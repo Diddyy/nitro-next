@@ -18,6 +18,7 @@ export * from './chatPreferencesCommands';
 export * from './chatSettingsCommands';
 export * from './clientLinkCommands';
 export * from './collectiblesCommands';
+export * from './connectionCommands';
 export * from './earningsCommands';
 export * from './floorPlanCommands';
 export * from './friendListCommands';

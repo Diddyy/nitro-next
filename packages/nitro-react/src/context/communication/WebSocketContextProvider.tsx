@@ -1,8 +1,9 @@
 import { BinaryReader, BinaryWriter, Byte, ClientDeviceCategoryEnum, ClientPlatformEnum, EvaWireDataWrapper, IMessageDataWrapper, IncomingPacketConstructor, IOutgoingPacket, NitroLogger, Short } from '@nitrodevco/nitro-api';
-import { AuthenticationOKMessage, ClientHelloComposer, GetIncomingPackets, GetOutgoingPackets, PingMessage, PongComposer, SSOTicketComposer } from '@nitrodevco/nitro-packets';
+import { AuthenticationOKMessage, ClientHelloComposer, DisconnectReasonMessage, GetIncomingPackets, GetOutgoingPackets, PingMessage, PongComposer, SSOTicketComposer } from '@nitrodevco/nitro-packets';
 import { GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
+import { showConnectionClosed } from '#base/commands';
 import { useCommunicationIncoming, useCommunicationOutgoing } from '#base/hooks/communication';
 
 import { useConfigValue } from '../system';
@@ -70,13 +71,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
 
                 if (ws.current !== socket) return;
 
-                ws.current = undefined;
-                wsBuffer.current = new ArrayBuffer(0);
-
-                pendingClientMessages.current = [];
-                pendingServerMessages.current = [];
-
-                setPhase('closed');
+                closeConnection(-1);
             };
 
             socket.onmessage = (event: MessageEvent<ArrayBuffer>) => {
@@ -92,6 +87,21 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         } catch (err) {
             NitroLogger.error(err);
         }
+    };
+
+    /** `IncomingMessages.onDisconnectReason`: stop the session before showing the alert. */
+    const closeConnection = (reason: number) => {
+        if (phase.current === 'closed') return;
+
+        const socket = ws.current;
+
+        ws.current = undefined;
+        wsBuffer.current = new ArrayBuffer(0);
+        pendingClientMessages.current = [];
+        pendingServerMessages.current = [];
+        setPhase('closed');
+        socket?.close();
+        showConnectionClosed(reason);
     };
 
     const processBuffer = () => {
@@ -222,6 +232,8 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
 
     const dispatchWrappers = (wrappers: IMessageDataWrapper[]) => {
         for (let index = 0; index < wrappers.length; index++) {
+            if (phase.current === 'closed') return;
+
             if (phase.current === 'awaitingHandlers') {
                 const queued = wrappers.slice(index);
 
@@ -348,6 +360,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         registerManyOutgoing(GetOutgoingPackets());
 
         const unsubscribeAuth = subscribe(AuthenticationOKMessage, () => setPhase('awaitingHandlers'));
+        const unsubscribeDisconnect = subscribe(DisconnectReasonMessage, data => closeConnection(data.reason ?? -1));
 
         // IncomingMessages.onPing in the SWF replies with an empty PongMessageComposer.
         // sendRaw bypasses the pending queue so the reply is never deferred — the
@@ -356,6 +369,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
 
         return () => {
             unsubscribeAuth();
+            unsubscribeDisconnect();
             unsubscribePing();
         };
     }, []);

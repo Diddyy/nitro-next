@@ -22,11 +22,12 @@ import { useEffect, useState } from 'react';
 
 import { preloadChatStyles } from '#base/chat';
 import { useWebSocketContext } from '#base/context/communication';
-import { PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets } from '#base/theme';
+import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, WindowLayer } from '#base/theme';
 import { loadAssetBundle, preloadAssetBundles } from '#base/utils';
 
 import { MainView } from './MainView';
 import { LoadingScreenView } from './views/loading-screen/LoadingScreenView';
+import { SystemDialogsView } from './views/system/SystemDialogsView';
 
 /** `HabboAir.unk_cabede`: where the percentage starts. */
 const INITIAL_PROGRESS = 0.6;
@@ -67,7 +68,8 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
     const [ splash, setSplash ] = useState<{ photo: number; seed: number } | null>(null);
     const [ photoReady, setPhotoReady ] = useState(false);
     const [ error, setError ] = useState<string | undefined>(undefined);
-    const { isAuthenticated, connect } = useWebSocketContext();
+    const [ hasShownClient, setHasShownClient ] = useState(false);
+    const { isAuthenticated, isDisconnected, connect } = useWebSocketContext();
     const isDataReady = dataLoaded === dataTotal;
 
     useEffect(() => {
@@ -118,14 +120,20 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
     }, [ isRendererReady ]);
 
     const isReady = isEngineReady && isDataReady && isAuthenticated;
+
+    // `HabboCommunicationDemo.disconnected` opens an alert over the existing desktop.
+    // Keep its mounted scene after logout; authentication still ends in the socket provider.
+    if (isReady && !hasShownClient) setHasShownClient(true);
+
+    const showClient = isReady || hasShownClient;
     const stepsDone = 1 + dataLoaded + setupDone + (isAuthenticated ? 1 : 0);
     const stepsTotal = 1 + dataTotal + SETUP_STEPS + 1;
     const progress = Math.min(1, INITIAL_PROGRESS + ((stepsDone / stepsTotal) * (1 - INITIAL_PROGRESS)));
 
     return (
         <PixiApplicationRoot onReady={() => setIsRendererReady(true)}>
-            {isReady && <MainView />}
-            {!isReady && splash && (
+            {showClient && <MainView />}
+            {!showClient && !isDisconnected && splash && (
                 <LoadingScreenView
                     progress={progress}
                     error={error}
@@ -133,6 +141,12 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
                     seed={splash.seed}
                     photoReady={photoReady}
                 />
+            )}
+            {!showClient && isDisconnected && (
+                <WindowLayer>
+                    <SystemDialogsView />
+                    <ModalLayer />
+                </WindowLayer>
             )}
         </PixiApplicationRoot>
     );
