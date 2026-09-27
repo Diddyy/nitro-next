@@ -238,7 +238,7 @@ await test('in-place avatar movement is detected after a stationary frame', () =
     assert.equal(f.camera.targetObjectLocation.x, 301);
 });
 
-await test('unsupported camera speed configuration cannot alter AS3 easing', () => {
+await test('camera speed configuration changes easing while defaulting to AS3 speed', () => {
     const normal = fixture({ follow: true });
     const override = fixture({ follow: true, configuredSpeed: 1 });
     for (const f of [ normal, override ]) {
@@ -248,9 +248,9 @@ await test('unsupported camera speed configuration cannot alter AS3 easing', () 
     for (let frame = 0; frame < 30; frame++) {
         normal.updateRoomCamera(frame + 1);
         override.updateRoomCamera(frame + 1);
-        assert.equal(override.camera.currentLocation.x, normal.camera.currentLocation.x);
-        assert.equal(override.camera.currentLocation.y, normal.camera.currentLocation.y);
     }
+    assert.notEqual(override.camera.currentLocation.x, normal.camera.currentLocation.x);
+    assert.notEqual(override.camera.currentLocation.y, normal.camera.currentLocation.y);
 });
 
 await test('zoom 2 keeps the camera stationary until zoom 1 resumes following the displaced avatar', () => {

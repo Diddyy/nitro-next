@@ -53,7 +53,8 @@ const createCameraData = (room: IRoom | undefined): RoomCameraData => ({
  * the store names as the target, with the same easing, pauses following when the user has
  * dragged the room, and keeps the room inside the canvas. With nothing to follow - before your
  * avatar arrives, or as a spectator - it rests on the room's camera init position, which is where
- * `RoomDesktop.initCameraLocation` pointed it.
+ * `RoomDesktop.initCameraLocation` pointed it. The easing speed defaults to the AS3 value and can
+ * be tuned through the Nitro `camera.move.speed` config value.
  * Flash's `RoomEngine.useOffsetScrolling` is hard-coded true in the reference revision; its
  * alternative geometry-scrolling branches are unreachable. Forced canvas flips are a separate
  * room-effect path that this canvas does not yet implement.
@@ -66,6 +67,12 @@ export const useRoomCamera = () => {
     // `SessionDataManager.isRoomCameraFollowDisabled` - the account's "disable room camera follow" setting.
     const followDisabledByUser = useUserStore(x => x.isRoomCameraFollowDisabled);
     const followDuration = useRoomStore(x => x.followDuration);
+    const configuredMoveSpeedDenominator = useConfigValue<number>('camera.move.speed');
+    const moveSpeedDenominator = (configuredMoveSpeedDenominator !== undefined)
+        && Number.isFinite(configuredMoveSpeedDenominator)
+        && (configuredMoveSpeedDenominator > 0)
+        ? configuredMoveSpeedDenominator
+        : 12;
     const followEnabled = useConfigValue<boolean>('room.camera.follow_user') === true;
     const zoomEnabled = useConfigValue<boolean>('zoom.enabled') === true;
     const cameraDataRef = useRef<RoomCameraData>(createCameraData(undefined));
@@ -112,7 +119,7 @@ export const useRoomCamera = () => {
 
         const sinFactor = Math.sin((Math.PI * diff.length) / cameraData.moveDistance);
         const minSpeed = threshold * 0.5;
-        const maxSpeed = cameraData.moveDistance / 12;
+        const maxSpeed = cameraData.moveDistance / moveSpeedDenominator;
 
         let speed = minSpeed + (maxSpeed - minSpeed) * sinFactor;
 
