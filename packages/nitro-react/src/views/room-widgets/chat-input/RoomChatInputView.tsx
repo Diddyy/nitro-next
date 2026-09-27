@@ -116,9 +116,6 @@ export const RoomChatInputView = () => {
         for (const style of allStyles) {
             const styleId = style.id;
 
-            styles.push(style);
-            continue;
-
             if (style.isSystemStyle) continue;
 
             if (isNftChatStyle(styleId)) {

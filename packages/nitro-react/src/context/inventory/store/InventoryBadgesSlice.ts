@@ -13,6 +13,9 @@
  * - `updateBadge` is `BadgesModel.updateBadge` (`BadgeReceivedMessage`): a code already held is
  *   updated in place, a new one goes to the front when it is unseen and to the back otherwise, and,
  *   where the packet says so, is put straight on.
+ * - A badge's mark is `Badge.isUnseen`, fixed when the badge is made - from the tracker as it stands
+ *   at that moment, the same ask that places it - and cleared only by `resetBadgesUnseen`
+ *   (`BadgesModel.resetUnseenItems`). An update to a badge already held keeps its mark.
  * - `removeBadge` takes the badge off first (`stopWearingBadge`), so a badge that goes while it is
  *   worn does not leave a hole in the worn list.
  * - Wearing is `toggleBadgeWearing` -> `startWearingBadge` / `stopWearingBadge`: the worn list is
@@ -43,6 +46,8 @@ export interface InventoryBadge {
     badgeNumberId: number;
     ownerCount: number;
     rarityId: number;
+    /** `Badge.isUnseen`: fixed when the badge is made, cleared by `resetUnseenItems`. */
+    isUnseen: boolean;
 }
 
 type State = {
@@ -70,6 +75,8 @@ type Actions = {
     /** `BadgesModel.setBadgeSelected`; '' is `removeSelections`. */
     selectBadge: (code: string) => void;
     setBadgesRequested: () => void;
+    /** `BadgesModel.resetUnseenItems`' own half: every badge's `isUnseen` goes false. */
+    resetBadgesUnseen: () => void;
 };
 
 export const InventoryBadgesSliceInitialState: State = {
@@ -82,7 +89,7 @@ export const InventoryBadgesSliceInitialState: State = {
 
 export type InventoryBadgesSlice = State & Actions;
 
-const toBadge = (badge: IInventoryBadge): InventoryBadge => ({ code: badge.badgeCode, badgeNumberId: badge.badgeId, ownerCount: badge.ownerCount, rarityId: badge.badgeRarityId });
+const toBadge = (badge: IInventoryBadge, isUnseen: boolean): InventoryBadge => ({ code: badge.badgeCode, badgeNumberId: badge.badgeId, ownerCount: badge.ownerCount, rarityId: badge.badgeRarityId, isUnseen });
 
 export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice & InventoryUnseenSlice, [], [], InventoryBadgesSlice> = (set, get) => ({
     ...InventoryBadgesSliceInitialState,
@@ -96,17 +103,20 @@ export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice & Inv
 
             seen.add(badge.badgeCode);
 
-            if (isUnseenItem(unseenItems, UnseenItemCategory.BADGE, badge.badgeId)) badges.unshift(toBadge(badge));
-            else badges.push(toBadge(badge));
+            const isUnseen = isUnseenItem(unseenItems, UnseenItemCategory.BADGE, badge.badgeId);
+
+            if (isUnseen) badges.unshift(toBadge(badge, true));
+            else badges.push(toBadge(badge, false));
         }
 
         // `resetBadges` clears the worn list and the selection with the badges themselves.
         set({ badges, badgeCodes: badges.map(badge => badge.code), wornBadgeCodes: [], selectedBadgeCode: '' });
     },
     updateBadge: (incoming, wear) => set((x) => {
-        const badge = toBadge(incoming);
-        const index = x.badges.findIndex(held => held.code === badge.code);
-        const unseen = isUnseenItem(x.unseenItems, UnseenItemCategory.BADGE, badge.badgeNumberId);
+        const index = x.badges.findIndex(held => held.code === incoming.badgeCode);
+        // A badge already held keeps its mark; a new one asks the tracker, once.
+        const unseen = (index === -1) ? isUnseenItem(x.unseenItems, UnseenItemCategory.BADGE, incoming.badgeId) : x.badges[index].isUnseen;
+        const badge = toBadge(incoming, unseen);
         const added = unseen ? [ badge, ...x.badges ] : [ ...x.badges, badge ];
         const badges = (index === -1) ? added : x.badges.map((held, at) => ((at === index) ? badge : held));
         const wornBadgeCodes = (wear && !x.wornBadgeCodes.includes(badge.code) && (x.wornBadgeCodes.length < INVENTORY_MAX_ACTIVE_BADGES))
@@ -139,6 +149,7 @@ export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice & Inv
     }),
     selectBadge: selectedBadgeCode => set({ selectedBadgeCode }),
     setBadgesRequested: () => set({ badgesRequested: true }),
+    resetBadgesUnseen: () => set(x => (x.badges.some(badge => badge.isUnseen) ? { badges: x.badges.map(badge => (badge.isUnseen ? { ...badge, isUnseen: false } : badge)) } : x)),
 });
 
 /** `BadgesModel.getBadges(filter)`. */

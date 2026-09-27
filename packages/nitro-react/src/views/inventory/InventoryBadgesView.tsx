@@ -18,12 +18,11 @@
  *   falls below that bar, one "common" entry covering all of them; and the search box, which
  *   matches a badge's name and description. The rarity menu is dead until it has more than two
  *   entries (`isBadgeRarityFilterEnabled`).
- * - A thumb's ground is green, in either grid, while the badge is unseen (`Badge.isUnseen`,
- *   category 4 by the badge's numeric id); leaving the page or closing the window on it resets
- *   that (`InventoryView`). Flash fixes the flag when the `Badge` is made and clears it on the
- *   reset, so a badge the server announces before it says the badge is new
- *   (`BadgeReceived`, then `UnseenItems` - the order this server sends them in) would stay unmarked
- *   while the tab counts it; here the mark is read from the tracker, so the two agree.
+ * - A thumb's ground is green, in either grid, while the badge is unseen (`Badge.isUnseen`): the
+ *   flag is fixed when the badge is made, from the tracker's category 4 by the badge's numeric id,
+ *   and cleared by leaving the page or closing the window on it while the inventory is the active
+ *   window (`InventoryView`, `BadgesModel.resetUnseenItems`). So the server has to say a badge is
+ *   new (`UnseenItems`) before it hands the badge over (`BadgeReceived`), as Habbo's does.
  *
  * Not ported: the 200-item pages under `inactive_items` (`item_grid_pages`, the grid scrolls
  * instead), `badgeOwnerCount` beside the rarity tag, and `achievements_score_container`, which
@@ -37,7 +36,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import {
     getInventoryBadgeRarityIds, getInventoryBadges, INVENTORY_BADGE_FILTER_ACHIEVEMENTS, INVENTORY_BADGE_FILTER_ALL, INVENTORY_BADGE_FILTER_NORMAL,
     INVENTORY_BADGE_RARITY_ALL, INVENTORY_BADGE_RARITY_COMMON, INVENTORY_BADGES_ACTIVE, INVENTORY_BADGES_INACTIVE, INVENTORY_MAX_ACTIVE_BADGES,
-    InventoryBadge, isInventoryBadgeRarityFilterEnabled, passInventoryBadgeFilter, UnseenItemCategory, useInventoryBadgesActions, useInventoryStore, useInventoryUnseenIds,
+    InventoryBadge, isInventoryBadgeRarityFilterEnabled, passInventoryBadgeFilter, useInventoryBadgesActions, useInventoryStore,
 } from '#base/context/inventory';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Border, Box, Button, Dropmenu, DropmenuOption, InfiniteGrid, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
@@ -91,7 +90,6 @@ export const InventoryBadgesView = () => {
     const badges = useInventoryStore(x => x.badges);
     const wornBadgeCodes = useInventoryStore(x => x.wornBadgeCodes);
     const selectedBadgeCode = useInventoryStore(x => x.selectedBadgeCode);
-    const unseenBadgeIds = useInventoryUnseenIds(UnseenItemCategory.BADGE);
     const { selectBadge } = useInventoryBadgesActions();
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
     // `BadgesModel.isUncommonBadgeRarityEnabled`: without it the uncommon tier is shown as common.
@@ -191,7 +189,7 @@ export const InventoryBadgesView = () => {
                                 badge={badge}
                                 badgeUrl={badgeUrl}
                                 selected={badge.code === selectedBadgeCode}
-                                unseen={unseenBadgeIds.includes(badge.badgeNumberId)}
+                                unseen={badge.isUnseen}
                                 onSelect={selectBadge}
                             />
                         )}
@@ -212,7 +210,7 @@ export const InventoryBadgesView = () => {
                         badge={badge}
                         badgeUrl={badgeUrl}
                         selected={badge.code === selectedBadgeCode}
-                        unseen={unseenBadgeIds.includes(badge.badgeNumberId)}
+                        unseen={badge.isUnseen}
                         onSelect={selectBadge}
                     />
                 ))}

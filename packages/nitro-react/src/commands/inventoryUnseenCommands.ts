@@ -16,8 +16,10 @@
  * - `removeUnseenFurniCounter` is what the gift card's place button does with the gifted item
  *   (`PresentFurniWidget.onPlaceInRoom`).
  *
- * `BadgesModel.resetUnseenItems` also returns while the inventory is not the active (focused)
- * window (`isMainViewActive`); the port has no window focus, so the badges reset like the others.
+ * `BadgesModel.resetUnseenItems` also returns while the inventory is not the active window
+ * (`isMainViewActive`, the window's active state flag): here, while it is not the window the
+ * system store last brought to the front (`topId`), which a frame takes when it opens and when it
+ * is pressed.
  * `HabboUnseenItemsUpdatedEvent` is not sent anywhere: its readers (the toolbar, the tab
  * counters) read the counts from `inventoryStore`.
  */
@@ -25,6 +27,10 @@ import { ResetUnseenItemsComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore, isUnseenItem, UnseenItemCategory } from '#base/context/inventory';
+import { systemStore } from '#base/context/system';
+
+/** `InventoryView`'s frame id: the window `isMainViewActive` asks about. */
+const INVENTORY_FRAME_ID = 'inventory';
 
 type Send = WebSocketConnection['send'];
 
@@ -79,7 +85,11 @@ export const resetInventoryUnseenCounters = (send: Send, page: InventoryUnseenPa
             resetInventoryUnseenCategory(send, UnseenItemCategory.PET);
             return;
         case 'badges':
+            // `BadgesModel.resetUnseenItems`: nothing at all unless the inventory is the active window.
+            if (systemStore.getState().topId !== INVENTORY_FRAME_ID) return;
+
             resetInventoryUnseenCategory(send, UnseenItemCategory.BADGE);
+            inventoryStore.getState().resetBadgesUnseen();
             return;
         case 'collectibles':
             resetInventoryUnseenCategory(send, UnseenItemCategory.COLLECTIBLES);
