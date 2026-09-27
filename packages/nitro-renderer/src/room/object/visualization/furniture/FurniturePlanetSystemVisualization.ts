@@ -1,9 +1,9 @@
 import { IAssetLogicPlanetSystem, IVector3D, RoomGeometryScaleType, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 import { FurniturePlanetSystemVisualizationPlanetObject } from './FurniturePlanetSystemVisualizationPlanetObject';
 
-export class FurniturePlanetSystemVisualization extends FurnitureAnimatedVisualization {
+export class FurniturePlanetSystemVisualization extends AnimatedFurnitureVisualization {
     private _planetIndex: FurniturePlanetSystemVisualizationPlanetObject[] | undefined = undefined;
     private _planetNameIndex: string[] = [];
     private _offsetArray: IVector3D[] = [];

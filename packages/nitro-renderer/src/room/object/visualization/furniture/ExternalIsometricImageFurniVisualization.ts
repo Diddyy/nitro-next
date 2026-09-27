@@ -3,7 +3,7 @@ import { Texture } from 'pixi.js';
 
 import { IsometricImageFurniVisualization } from './IsometricImageFurniVisualization';
 
-export class FurnitureDynamicThumbnailVisualization extends IsometricImageFurniVisualization {
+export class ExternalIsometricImageFurniVisualization extends IsometricImageFurniVisualization {
     private _cachedUrl: string | undefined = undefined;
 
     constructor() {

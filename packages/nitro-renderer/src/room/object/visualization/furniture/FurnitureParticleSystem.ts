@@ -10,12 +10,12 @@ import { AdvancedMap } from '@nitrodevco/nitro-api';
 import { AlphaFilter, Graphics, Matrix, Point, Sprite, Texture } from 'pixi.js';
 
 import { TextureUtils } from '../../../../utils';
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 import { FurnitureParticleSystemEmitter } from './FurnitureParticleSystemEmitter';
 
 export class FurnitureParticleSystem {
     private _emitters: IAdvancedMap<number, FurnitureParticleSystemEmitter> = new AdvancedMap();
-    private _visualization: FurnitureAnimatedVisualization;
+    private _visualization: AnimatedFurnitureVisualization;
     private _size: RoomGeometryScaleType;
     private _canvasId: number = -1;
     private _offsetY: number = 0;
@@ -37,7 +37,7 @@ export class FurnitureParticleSystem {
     private _particleSprite: Sprite = new Sprite();
     private _isDone: boolean = false;
 
-    constructor(visualization: FurnitureAnimatedVisualization) {
+    constructor(visualization: AnimatedFurnitureVisualization) {
         this._visualization = visualization;
     }
 

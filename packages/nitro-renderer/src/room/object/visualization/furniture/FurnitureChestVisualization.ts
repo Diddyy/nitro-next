@@ -1,6 +1,6 @@
 import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
 /**
  * The wired trading chests: an animated furni whose `wired_emblem` layer only shows while the
@@ -11,7 +11,7 @@ import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization
  * on request (`RoomObjectFurniIconAssetEvent`), which this renderer does not do yet, so a furni
  * chest renders like a coins chest: it opens and closes, without the floating icons.
  */
-export class FurnitureChestVisualization extends FurnitureAnimatedVisualization {
+export class FurnitureChestVisualization extends AnimatedFurnitureVisualization {
     private static WIRED_EMBLEM_TAG: string = 'wired_emblem';
 
     private _isWiredEnabled: boolean = false;

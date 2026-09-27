@@ -4,7 +4,7 @@ import { Texture } from 'pixi.js';
 import { GetAssetManager } from '../../../../assets';
 import { FurnitureVisualization } from './FurnitureVisualization';
 
-export class FurnitureBrandedImageVisualization extends FurnitureVisualization {
+export class FurnitureRoomBrandingVisualization extends FurnitureVisualization {
     protected static BRANDED_IMAGE: string = 'branded_image';
     protected static STATE_0: number = 0;
     protected static STATE_1: number = 1;
@@ -111,25 +111,25 @@ export class FurnitureBrandedImageVisualization extends FurnitureVisualization {
         let flipV = false;
 
         switch (state) {
-            case FurnitureBrandedImageVisualization.STATE_0:
+            case FurnitureRoomBrandingVisualization.STATE_0:
                 x = 0;
                 y = 0;
                 flipH = false;
                 flipV = false;
                 break;
-            case FurnitureBrandedImageVisualization.STATE_1:
+            case FurnitureRoomBrandingVisualization.STATE_1:
                 x = -texture.width;
                 y = 0;
                 flipH = true;
                 flipV = false;
                 break;
-            case FurnitureBrandedImageVisualization.STATE_2:
+            case FurnitureRoomBrandingVisualization.STATE_2:
                 x = -texture.width;
                 y = -texture.height;
                 flipH = true;
                 flipV = true;
                 break;
-            case FurnitureBrandedImageVisualization.STATE_3:
+            case FurnitureRoomBrandingVisualization.STATE_3:
                 x = 0;
                 y = -texture.height;
                 flipH = false;
@@ -143,7 +143,7 @@ export class FurnitureBrandedImageVisualization extends FurnitureVisualization {
     protected override getSpriteAssetName(scale: RoomGeometryScaleType, layerId: number): string {
         const tag = this.getLayerTag(scale, this._direction, layerId);
 
-        if (tag === FurnitureBrandedImageVisualization.BRANDED_IMAGE && this._imageUrl) {
+        if (tag === FurnitureRoomBrandingVisualization.BRANDED_IMAGE && this._imageUrl) {
             return `${this._imageUrl}_${this.getFrameNumber(scale, layerId)}`;
         }
 

@@ -1,8 +1,8 @@
 import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
-export class FurnitureVoteMajorityVisualization extends FurnitureAnimatedVisualization {
+export class FurnitureVoteMajorityVisualization extends AnimatedFurnitureVisualization {
     private static ONES_SPRITE: string = 'ones_sprite';
     private static TENS_SPRITE: string = 'tens_sprite';
     private static HUNDREDS_SPRITE: string = 'hundreds_sprite';

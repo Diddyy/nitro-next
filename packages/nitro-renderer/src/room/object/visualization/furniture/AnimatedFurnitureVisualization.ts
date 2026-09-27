@@ -1,10 +1,10 @@
 import { IObjectVisualizationData, RoomGeometryScaleType, RoomObjectVariableEnum, RoomObjectVisualizationType } from '@nitrodevco/nitro-api';
 
 import { AnimationData, AnimationFrame, AnimationStateData } from '../data';
-import { FurnitureAnimatedVisualizationData } from './FurnitureAnimatedVisualizationData';
+import { AnimatedFurnitureVisualizationData } from './AnimatedFurnitureVisualizationData';
 import { FurnitureVisualization } from './FurnitureVisualization';
 
-export class FurnitureAnimatedVisualization extends FurnitureVisualization {
+export class AnimatedFurnitureVisualization extends FurnitureVisualization {
     public static override TYPE: string = RoomObjectVisualizationType.FURNITURE_ANIMATED;
     public static DEFAULT_ANIMATION_ID: number = 0;
 
@@ -17,7 +17,7 @@ export class FurnitureAnimatedVisualization extends FurnitureVisualization {
     private _directionChanged: boolean = false;
 
     public override initialize(data: IObjectVisualizationData): boolean {
-        if (!(data instanceof FurnitureAnimatedVisualizationData)) return false;
+        if (!(data instanceof AnimatedFurnitureVisualizationData)) return false;
 
         return super.initialize(data);
     }
@@ -42,12 +42,12 @@ export class FurnitureAnimatedVisualization extends FurnitureVisualization {
 
     protected getAnimationId(animationData: AnimationStateData): number {
         if (
-            this.animationId !== FurnitureAnimatedVisualization.DEFAULT_ANIMATION_ID
+            this.animationId !== AnimatedFurnitureVisualization.DEFAULT_ANIMATION_ID
             && this.data.hasAnimation(this._animationScale, this.animationId)
         )
             return this.animationId;
 
-        return FurnitureAnimatedVisualization.DEFAULT_ANIMATION_ID;
+        return AnimatedFurnitureVisualization.DEFAULT_ANIMATION_ID;
     }
 
     protected override updateObject(scale: RoomGeometryScaleType, direction: number): boolean {
@@ -347,7 +347,7 @@ export class FurnitureAnimatedVisualization extends FurnitureVisualization {
         return this._frameIncrease;
     }
 
-    protected override get data(): FurnitureAnimatedVisualizationData {
-        return this._data as FurnitureAnimatedVisualizationData;
+    protected override get data(): AnimatedFurnitureVisualizationData {
+        return this._data as AnimatedFurnitureVisualizationData;
     }
 }

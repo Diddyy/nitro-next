@@ -3,11 +3,11 @@ import { Texture } from 'pixi.js';
 
 import { GetAssetManager } from '../../../../assets';
 import { AnimationData, AnimationStateData, DirectionData, LayerData } from '../data';
-import { FurnitureAnimatedVisualization, FurnitureVisualizationData } from '../furniture';
+import { AnimatedFurnitureVisualization, FurnitureVisualizationData } from '../furniture';
+import { AnimatedPetVisualizationData } from './AnimatedPetVisualizationData';
 import { ExperienceData } from './ExperienceData';
-import { PetVisualizationData } from './PetVisualizationData';
 
-export class PetVisualization extends FurnitureAnimatedVisualization {
+export class AnimatedPetVisualization extends AnimatedFurnitureVisualization {
     public static override TYPE: string = RoomObjectVisualizationType.PET_ANIMATED;
 
     private static HEAD: string = 'head';
@@ -46,14 +46,14 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
     constructor() {
         super();
 
-        while (this._animationStates.length < PetVisualization.ANIMATION_INDEX_COUNT)
+        while (this._animationStates.length < AnimatedPetVisualization.ANIMATION_INDEX_COUNT)
             this._animationStates.push(new AnimationStateData());
     }
 
     public override initialize(data: IObjectVisualizationData): boolean {
-        if (!(data instanceof PetVisualizationData)) return false;
+        if (!(data instanceof AnimatedPetVisualizationData)) return false;
 
-        const texture = GetAssetManager().getTexture(PetVisualization.PET_EXPERIENCE_BUBBLE);
+        const texture = GetAssetManager().getTexture(AnimatedPetVisualization.PET_EXPERIENCE_BUBBLE);
 
         if (texture) {
             this._experienceData = new ExperienceData(texture);
@@ -96,9 +96,9 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
         if (this._experienceTimestamp) {
             const difference = time - this._experienceTimestamp;
 
-            if (difference < PetVisualization.EXPERIENCE_BUBBLE_VISIBLE_IN_MS) {
+            if (difference < AnimatedPetVisualization.EXPERIENCE_BUBBLE_VISIBLE_IN_MS) {
                 this._experienceData.alpha
-                    = Math.sin((difference / PetVisualization.EXPERIENCE_BUBBLE_VISIBLE_IN_MS) * Math.PI) * 0xff;
+                    = Math.sin((difference / AnimatedPetVisualization.EXPERIENCE_BUBBLE_VISIBLE_IN_MS) * Math.PI) * 0xff;
             } else {
                 this._experienceTimestamp = 0;
             }
@@ -204,7 +204,7 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
             this._posture = posture;
 
             this.setAnimationForIndex(
-                PetVisualization.POSTURE_ANIMATION_INDEX,
+                AnimatedPetVisualization.POSTURE_ANIMATION_INDEX,
                 this.data?.postureToAnimation(this._scale, posture) ?? 0,
             );
         }
@@ -215,7 +215,7 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
             this._gesture = gesture;
 
             this.setAnimationForIndex(
-                PetVisualization.GESTURE_ANIMATION_INDEX,
+                AnimatedPetVisualization.GESTURE_ANIMATION_INDEX,
                 this.data?.gestureToAnimation(this._scale, gesture) ?? 0,
             );
         }
@@ -399,10 +399,10 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
         if (this._headSprites[layerId] === undefined) {
             const isHead
                 = this.data.getLayerTag(this._scale, DirectionData.USE_DEFAULT_DIRECTION, layerId)
-                    === PetVisualization.HEAD;
+                    === AnimatedPetVisualization.HEAD;
             const isHair
                 = this.data.getLayerTag(this._scale, DirectionData.USE_DEFAULT_DIRECTION, layerId)
-                    === PetVisualization.HAIR;
+                    === AnimatedPetVisualization.HAIR;
 
             if (isHead || isHair) this._headSprites[layerId] = true;
             else this._headSprites[layerId] = false;
@@ -416,7 +416,7 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
             if (layerId < this._shadowLayerIndex) {
                 const tag = this.data.getLayerTag(this._scale, DirectionData.USE_DEFAULT_DIRECTION, layerId);
 
-                if (tag && tag.length > 0 && tag !== PetVisualization.HEAD && tag !== PetVisualization.HAIR) {
+                if (tag && tag.length > 0 && tag !== AnimatedPetVisualization.HEAD && tag !== AnimatedPetVisualization.HAIR) {
                     this._nonHeadSprites[layerId] = true;
                 } else {
                     this._nonHeadSprites[layerId] = false;
@@ -433,7 +433,7 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
         if (this._saddleSprites[layerId] === undefined) {
             if (
                 this.data.getLayerTag(this._scale, DirectionData.USE_DEFAULT_DIRECTION, layerId)
-                === PetVisualization.SADDLE
+                === AnimatedPetVisualization.SADDLE
             ) {
                 this._saddleSprites[layerId] = true;
             } else {
@@ -462,7 +462,7 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
     }
 
     protected override getAdditionalLayerCount(): number {
-        return super.getAdditionalLayerCount() + PetVisualization.ADDITIONAL_SPRITE_COUNT;
+        return super.getAdditionalLayerCount() + AnimatedPetVisualization.ADDITIONAL_SPRITE_COUNT;
     }
 
     protected override setLayerCount(count: number): void {
@@ -503,7 +503,7 @@ export class PetVisualization extends FurnitureAnimatedVisualization {
         return posture;
     }
 
-    protected override get data(): PetVisualizationData {
-        return this._data as PetVisualizationData;
+    protected override get data(): AnimatedPetVisualizationData {
+        return this._data as AnimatedPetVisualizationData;
     }
 }

@@ -1,8 +1,8 @@
 import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
-export class FurnitureSoundBlockVisualization extends FurnitureAnimatedVisualization {
+export class FurnitureSoundBlockVisualization extends AnimatedFurnitureVisualization {
     private _internalFrameIncreaseCounter: number = 0;
 
     protected override updateAnimations(scale: RoomGeometryScaleType): number {
