@@ -71,6 +71,7 @@ export * from './Collectibles/NftCollectiblesClaimRewardItemComposer';
 export * from './Collectibles/NftStorePurchaseComposer';
 export * from './Collectibles/NftTransferAssetsComposer';
 export * from './Collectibles/PurchaseMintTokenComposer';
+export * from './Collectibles/RedeemNftLootBoxComposer';
 export * from './Competition/ForwardToACompetitionRoomComposer';
 export * from './Competition/ForwardToASubmittableRoomComposer';
 export * from './Competition/ForwardToRandomCompetitionRoomComposer';

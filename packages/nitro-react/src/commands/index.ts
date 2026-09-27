@@ -38,6 +38,7 @@ export * from './offerCenterCommands';
 export * from './roomPetCommands';
 export * from './roomUserCommands';
 export * from './singularNotificationCommands';
+export * from './soundCommands';
 export * from './soundSettingsCommands';
 export * from './specialItemsCommands';
 export * from './targetedOfferCommands';

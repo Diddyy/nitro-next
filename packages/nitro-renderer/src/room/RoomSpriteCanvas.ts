@@ -323,8 +323,11 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         if (this._width !== this._renderedWidth || this._height !== this._renderedHeight) update = true;
 
         if (this._display && (this._display.x !== this._screenOffsetX || this._display.y !== this._screenOffsetY || this._display.scale.x !== this.displayScale)) {
-            this._display.x = Math.floor(this._screenOffsetX);
-            this._display.y = Math.floor(this._screenOffsetY);
+            // Flash assigns the offset unrounded: `renderObject` snaps each sprite against this
+            // exact offset (`snapRoomSpriteCoordinate`), so flooring it here moves every sprite
+            // off the pixel grid, and a fractional offset would never compare equal again.
+            this._display.x = this._screenOffsetX;
+            this._display.y = this._screenOffsetY;
             this._display.scale.set(this.displayScale);
 
             update = true;
@@ -480,7 +483,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             if (!texture || !baseTexture) continue;
 
             // The composite's source grid has two pixels per screen pixel at zoom 0.
-            const samplingScale = this._compositeZoom ? 1 : this._scale;
+            // A flipped display maps `coordinate` to `offset - coordinate * scale`, so the snap takes the sign.
+            const samplingScale = (this._compositeZoom ? 1 : this._scale) * (this._isFlipped ? -1 : 1);
             const samplingOffset = this._compositeZoom ? 2 : 1;
             const spriteX = snapRoomSpriteCoordinate(x + sprite.offsetX, screenOffsetX * samplingOffset, samplingScale) + screenOffsetX;
             const spriteY = snapRoomSpriteCoordinate(y + sprite.offsetY, screenOffsetY * samplingOffset, samplingScale) + screenOffsetY;

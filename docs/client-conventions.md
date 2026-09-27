@@ -30,12 +30,23 @@ and `views/` has no barrels - views are imported by path.
   hooks are `.ts`.
 - A docblock at the top saying what the module is and, for a port, which Flash class it
   ports. A reader should not need to open a second file to learn what the first one is for.
-- No `eslint-disable`. The four that exist each carry a reason on the line; do not add a fifth
+- No `eslint-disable`. The two that exist each carry a reason; do not add a third
   without one, and prefer restructuring.
 - No `TODO`. Do the thing, or say in the docblock what is missing and why, so the gap is
   documented rather than deferred.
 - No copy-paste stubs and no dead code: a file nothing imports, or a slice that duplicates
-  another under a different name, is deleted, not kept for later.
+  another under a different name, is deleted, not kept for later. `scripts/drift/dead_code.py`
+  reports a module nothing imports and a registered window nothing opens.
+
+Lint enforces the style: 4-space indent, single quotes, `[ a, b ]` array spacing, trailing commas
+on multiline, `simple-import-sort` with `#base/*` as its own group. Run `eslint --fix` for the
+mechanical fixes rather than hand-formatting.
+
+The React Compiler is on. Never add `eslint-disable react-hooks/*`. When a rule fires, restructure:
+no impure calls at render time (`performance.now()`, `Math.random()`, `new Date()` - use
+`useSyncExternalStore` or a hook such as `useSecondsClock`), no `setState` synchronously inside an
+effect to "sync" props (adjust during render instead, as `RoomBotSkillConfigurationWidget` does with
+`loadedFor`), no reading `.current` during render.
 
 Imports go through the aliases: `#base/context/<feature>` (never `#base/context`),
 `#base/commands`, `#base/handlers`, `#base/hooks`, `#base/theme`, `#base/utils`,
@@ -64,6 +75,8 @@ Imports go through the aliases: `#base/context/<feature>` (never `#base/context`
 - Every slice's actions are exposed by an action hook. If a component needs an action the
   hooks do not offer, add it to the slice's hook (or add `useRoom<Slice>Actions.ts`) rather than
   reaching for `xStore.getState()` - that call belongs in handlers and commands only.
+  `scripts/drift/store_access.py` reports an action selected from a store and a `getState()` in a
+  view or component.
 
 ### Packet handlers (`handlers/`)
 

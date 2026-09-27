@@ -44,7 +44,7 @@ of those scripts or external inputs may be absent from a checkout. Check that th
 exists before running it. Obtain missing tooling/inputs, or report that verification was not run.
 A package script alone does not guarantee its underlying generator is included.
 
-`tools/local/` is ignored and optional. Brief generators and Jev helpers there must not become a
+`tools/local/` is optional and not covered by `.gitignore`; keep it uncommitted. Brief generators and Jev helpers there must not become a
 requirement for another developer. Trace AS3 and packet contracts directly when those helpers are
 unavailable. Browser/GPU diagnostics and their runtime instrumentation must be present together;
 work parked on a WIP branch is not part of a clean checkout.
@@ -61,9 +61,13 @@ the nearest existing component/store/handler as a starting point. Optional brief
 can help locate gaps; AS3 and executable evidence decide behavior. Jev is not a pixel-accuracy check.
 
 For UI work, verify visible behavior, interaction, packet handling and state reset against Turbo.
+The dev server is `yarn dev` on port 3000; packets can also be replayed against the client without
+a server by delivering them through the socket layer. For a new or substantially changed window,
+follow [the layout reference workflow](../tools/layout-reference.md) before writing the view.
 When a bubble or widget never appears, check `RoomRenderedEvent` dispatch and packet registration.
 After moving modules, restart Vite if stale import URLs prevent loading. Describe missing downstream
-behavior explicitly rather than claiming feature parity.
+behavior explicitly rather than claiming feature parity - say what depends on a subsystem that does
+not exist yet (trading, profile, group info, messenger conversations, report/help).
 
 Files use LF. When writing scripts on Windows, select LF explicitly and avoid shell quoting that
 interprets code unexpectedly; a script file is preferable for complex content. Use Corepack if the

@@ -20,6 +20,9 @@ node scripts/build-asset-bundles.ts theme chat-styles          # or just these
 | `nitro-layouts` | loose | every `assets/<component>` layout folder, the catalog's included |
 | `fonts` | loose | the captured `*.air51.json` AIR bundles |
 | `font-faces` | loose | the `.ttf` faces the browser falls back to |
+| `loading-screen` | loose | `assets/loading-screen` - the loading screen's frame, loaded by name before anything else |
+| `loading-screen-photos` | loose | `assets/loading-screen-photos` - the loading screen's photos |
+| `sounds` | loose | the `.mp3` sounds under `assets/sounds`, loaded by name the first time one plays |
 
 An **atlas** bundle packs its PNGs into one sheet plus a Pixi `SpritesheetData` manifest
 (`<name>.png` + `<name>_spritesheet.json`), which is one GPU upload the per-asset textures share.
@@ -55,10 +58,13 @@ Rules that come out of that:
   does not fail; it draws the old art. `bundles.json` records the file behind every asset, the way
   `layout-images.json` does for the layout bitmaps, so the pack is auditable rather than trusted.
 - **What is preloaded is `asset.bundles.preload` in `nitro-config.json`**, fetched by
-  `preloadAssetBundles()` before the first view renders. `effect-icons` and `font-faces` are
-  deliberately out of it: a texture request for one of their assets pulls the bundle in on its own
+  `preloadAssetBundles()` before the first view renders. `effect-icons` is
+  deliberately out of it: a texture request for one of its assets pulls the bundle in on its own
   (`lazyBundleForAsset` in `utils/assetBundles.ts`), so adding a lazy bundle means adding its name
-  prefix there.
+  prefix there. `font-faces` is out of it too; `preloadFlashFonts` starts it in the background.
+  `scripts/drift/bundle_loading.py` holds every bundle to one of those ways in (preloaded, a lazy
+  prefix every one of its assets carries and no other bundle's does, or loaded by name in code):
+  a bundle reached by none of them is art that never draws.
 - **The builder owns `public/assets/bundles/`.** A full run drops the archives the previous
   `bundles.json` lists and the current table no longer builds, so a renamed bundle does not leave
   its old file behind to be served. A `.nitro` no manifest ever named is left alone.

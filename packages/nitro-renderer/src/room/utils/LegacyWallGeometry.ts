@@ -272,21 +272,22 @@ export class LegacyWallGeometry implements ILegacyWallGeometry {
     }
 
     public getFloorAltitude(x: number, y: number): number {
-        // Flash `LegacyWallGeometry.getFloorAltitude` coerces only the current tile to int;
-        // neighboring `getTileHeight` values remain Numbers for the exact stair comparison.
+        // Flash `LegacyWallGeometry.getFloorAltitude`: the tile and every neighbour go through
+        // AS3 `int()` (ToInt32, which is `| 0`) before the stair comparison - the decompiled
+        // class and Sulake's JS conversion (`Math.trunc`) both coerce the neighbours too.
         const height = this.getHeight(x, y) | 0;
         const _local_4 = (height + 1) | 0;
 
         return (
             height
-            + (this.getHeight(x - 1, y - 1) == _local_4
-                || this.getHeight(x, y - 1) == _local_4
-                || this.getHeight(x + 1, y - 1) == _local_4
-                || this.getHeight(x - 1, y) == _local_4
-                || this.getHeight(x + 1, y) == _local_4
-                || this.getHeight(x - 1, y + 1) == _local_4
-                || this.getHeight(x, y + 1) == _local_4
-                || this.getHeight(x + 1, y + 1) == _local_4
+            + ((this.getHeight(x - 1, y - 1) | 0) == _local_4
+                || (this.getHeight(x, y - 1) | 0) == _local_4
+                || (this.getHeight(x + 1, y - 1) | 0) == _local_4
+                || (this.getHeight(x - 1, y) | 0) == _local_4
+                || (this.getHeight(x + 1, y) | 0) == _local_4
+                || (this.getHeight(x - 1, y + 1) | 0) == _local_4
+                || (this.getHeight(x, y + 1) | 0) == _local_4
+                || (this.getHeight(x + 1, y + 1) | 0) == _local_4
                 ? 0.5
                 : 0)
         );

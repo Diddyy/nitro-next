@@ -56,11 +56,8 @@ export const HotelViewCommunityGoalWidget = ({ width }: { width: number }) => {
                 layout={{ position: 'absolute', left: 12, top: 34, width: width - 24, height: 20 }}
             />
             <ThemeText
-                text={t('landing.view.community.community_total_status', '', {
-                    userRank: String(goal.personalContributionRank),
-                    userAmount: String(goal.personalContributionScore),
-                    totalAmount: String(goal.communityTotalScore),
-                })}
+                // `CommunityGoalWidget`: `setCampaignLocalization("community_total_status", "landing.view.community.meter")`.
+                text={t(`landing.view.community.meter.${goal.goalCode}`, '', { totalAmount: String(goal.communityTotalScore) })}
                 textStyle="u_regular"
                 layout={{ position: 'absolute', left: 12, top: 58, width: width - 24, height: 22 }}
             />

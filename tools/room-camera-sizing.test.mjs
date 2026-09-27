@@ -30,7 +30,7 @@ const fixture = ({ width = 800, height = 600, small = false, follow = false, dis
     const variables = Object.fromEntries(Object.keys(values).map(key => [ key, key ]));
     const state = { targetId: 1, targetCategory: 100, cameraFollowDisabled: disabled, followDuration: follow ? 1000 : 0 };
     const { useRoomCamera } = load(source, {
-        '@nitrodevco/nitro-api': { Vector3d, RoomGeometryScaleType: { ZoomedIn: 64 }, RoomObjectVariableEnum: variables, RoomObjectCategoryEnum: { Room: 0 }, RoomDraggedEvent: { ROOM_DRAGGED: 'drag' } },
+        '@nitrodevco/nitro-api': { Vector3d, RoomGeometryScaleType: { ZoomedIn: 64 }, RoomObjectVariableEnum: variables, RoomObjectCategoryEnum: { Room: 0 }, RoomDraggedEvent: { ROOM_DRAGGED: 'drag' }, RoomZoomEvent: { ROOM_ZOOM: 'zoom' }, RoomEngineEvent: class { static ROOM_ZOOMED = 'zoomed'; } },
         '@nitrodevco/nitro-renderer': { Room: { ROOM_OBJECT_ID: 0 } },
         'pixi.js': { Matrix, Point, Rectangle },
         react: { useRef: value => (ref = { current: value }) },

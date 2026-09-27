@@ -1,12 +1,13 @@
-import { ColorConverter, IRoomObject, MouseEventType, NitroLogger, RoomEngineObjectEvent, RoomObjectBadgeAssetEvent, RoomObjectCategoryEnum, RoomObjectDataRequestEvent, RoomObjectDimmerStateUpdateEvent, RoomObjectEvent, RoomObjectFurnitureActionEvent, RoomObjectHSLColorEnableEvent, RoomObjectMouseEvent, RoomObjectMoveEvent, RoomObjectStateChangedEvent, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent, RoomSpriteMouseEvent, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
+import { ColorConverter, IRoomObject, MouseEventType, NitroLogger, RoomEngineObjectEvent, RoomObjectBadgeAssetEvent, RoomObjectCategoryEnum, RoomObjectDataRequestEvent, RoomObjectDimmerStateUpdateEvent, RoomObjectEvent, RoomObjectFloorHoleEvent, RoomObjectFurnitureActionEvent, RoomObjectHSLColorEnableEvent, RoomObjectMouseEvent, RoomObjectMoveEvent, RoomObjectRoomAdEvent, RoomObjectStateChangedEvent, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent, RoomSpriteMouseEvent, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
+import { RoomDimmerPresetsMessageType } from '@nitrodevco/nitro-packets';
 import { RoomObjectUpdateMessage } from '@nitrodevco/nitro-renderer';
 import { useEffect } from 'react';
 
-import { useWebSocketContext } from '#base/context/communication';
-import { useRoom, useRoomIsPlayingGame, useRoomMouseActions } from '#base/context/room';
+import { useRoom, useRoomIsPlayingGame, useRoomMouseActions, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
 import { useOwnIsModerator, useOwnUserId } from '#base/context/user';
-import { useRoomBadgeAssetHandler, useRoomEventDispatcher, useRoomEventHandler, useRoomFurnitureActionHandler, useRoomObjectInteraction, useRoomObjectSelect, useRoomWidgetRequestHandler } from '#base/hooks';
+import { useRoomAdHandler, useRoomBadgeAssetHandler, useRoomEventDispatcher, useRoomEventHandler, useRoomFurnitureActionHandler, useRoomObjectInteraction, useRoomObjectSelect, useRoomWidgetRequestHandler } from '#base/hooks';
+import { handleRoomObjectSoundEvent, isRoomObjectSoundEvent } from '#base/sound';
 
 import { SetRoomBackgroundColor } from './roomBackgroundColor';
 
@@ -21,9 +22,11 @@ export const RoomEventHandler = () => {
     const { handleRoomWidgetRequestEvent } = useRoomWidgetRequestHandler();
     const { handleBadgeAssetEvent } = useRoomBadgeAssetHandler();
     const { handleFurnitureActionEvent } = useRoomFurnitureActionHandler();
+    const { handleRoomAdEvent } = useRoomAdHandler();
+    const dimmerRequest = useRoomWidget<RoomDimmerPresetsMessageType>(RoomObjectWidgetRequestEvent.DIMMER);
+    const { mergeRoomWidgetData } = useRoomWidgetActions();
     const ownUserId = useOwnUserId();
     const urlPrefix = useConfigValue<string>('url.prefix') ?? '';
-    const { send } = useWebSocketContext();
 
     const handleRoomObjectEvent = (event: RoomObjectEvent) => {
         if (!room) return;
@@ -40,8 +43,21 @@ export const RoomEventHandler = () => {
             return;
         }
 
+        // The sound blocks' samples and the cuckoo clock (a furniture action event too), for the sound manager.
+        if (isRoomObjectSoundEvent(event)) {
+            handleRoomObjectSoundEvent(event);
+
+            return;
+        }
+
         if (event instanceof RoomObjectFurnitureActionEvent) {
             handleFurnitureActionEvent(event);
+
+            return;
+        }
+
+        if (event instanceof RoomObjectRoomAdEvent) {
+            handleRoomAdEvent(event);
 
             return;
         }
@@ -77,6 +93,18 @@ export const RoomEventHandler = () => {
                 const dimmer = event as RoomObjectDimmerStateUpdateEvent;
 
                 room.updateRoomObjectRoomColor(dimmer.color, dimmer.brightness, dimmer.effectId === 2);
+
+                // `DimmerFurniWidget.onDimmerState`: the dialog showing this dimmer follows it on and off.
+                if (dimmerRequest?.data && (dimmerRequest.objectId === dimmer.objectId)) mergeRoomWidgetData<RoomDimmerPresetsMessageType>(RoomObjectWidgetRequestEvent.DIMMER, { isOn: dimmer.state > 0 });
+                return;
+            }
+            // `handleObjectFloorHoleEvent`: a floor hole furni opening or closing the floor under it.
+            case RoomObjectFloorHoleEvent.ADD_HOLE: {
+                room.addFloorHole(event.objectId);
+                return;
+            }
+            case RoomObjectFloorHoleEvent.REMOVE_HOLE: {
+                room.removeFloorHole(event.objectId);
                 return;
             }
             case RoomObjectHSLColorEnableEvent.ROOM_BACKGROUND_COLOR: {

@@ -19,7 +19,8 @@ import { NOTIFICATION_STYLES, NotificationAssetName, NotificationLayoutName, Not
  * this store: the MOTD, club gift and safety lock windows and the `HabboAlertDialogManager`
  * alerts are `context/singular-notifications` (`registerSingularNotificationHandlers`,
  * `registerAlertDialogHandlers`). Not ported: the new-feature window, the moderation disclaimer
- * and the notification feed; `addSongPlayingNotification` waits for the sound machine.
+ * and the notification feed. `addSongPlayingNotification` is the sound manager's
+ * (`HabboSoundManager.notifyPlayedSong`), which adds its `soundmachine` bubble here.
  */
 
 /**

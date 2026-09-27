@@ -55,8 +55,8 @@ const createCameraData = (room: IRoom | undefined): RoomCameraData => ({
  * avatar arrives, or as a spectator - it rests on the room's camera init position, which is where
  * `RoomDesktop.initCameraLocation` pointed it.
  * Flash's `RoomEngine.useOffsetScrolling` is hard-coded true in the reference revision; its
- * alternative geometry-scrolling branches are unreachable. Forced canvas flips are a separate
- * room-effect path that this canvas does not yet implement.
+ * alternative geometry-scrolling branches are unreachable. A forced canvas flip
+ * (`RoomZoomEvent.isFlipForced`) turns the canvas over and stops the camera until it is upright.
  */
 export const useRoomCamera = () => {
     const room = useRoom();
@@ -66,7 +66,8 @@ export const useRoomCamera = () => {
     // `SessionDataManager.isRoomCameraFollowDisabled` - the account's "disable room camera follow" setting.
     const followDisabledByUser = useUserStore(x => x.isRoomCameraFollowDisabled);
     const followDuration = useRoomStore(x => x.followDuration);
-    const moveSpeedDenominator = useConfigValue<number>('camera.move.speed') ?? 12;
+    // `RoomEngine.cameraFollowDuration`: `getBoolean("room.camera.follow_user") ? 1000 : 0`.
+    const followEnabled = useConfigValue<boolean>('room.camera.follow_user') === true;
     const zoomEnabled = useConfigValue<boolean>('zoom.enabled') === true;
     const cameraDataRef = useRef<RoomCameraData>(createCameraData(undefined));
 
@@ -147,7 +148,8 @@ export const useRoomCamera = () => {
     const updateRoomCamera = (time: number) => {
         const canvas = room?.canvas;
 
-        if (canvas?.isFlipped) return;
+        // RoomEngine.updateRoomCamera: no canvas, a scaled canvas or a flipped one is not followed.
+        if (!room || !canvas || canvas.scale !== 1 || canvas.isFlipped) return;
 
         // A new room starts with a new camera: where the last room was scrolled to says nothing
         // about this one, and its location has to be initialized on this room's geometry.

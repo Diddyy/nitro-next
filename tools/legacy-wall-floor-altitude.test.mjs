@@ -1,4 +1,4 @@
-/** LegacyWallGeometry floor altitude checks against Flash's exact stair comparison. */
+/** LegacyWallGeometry floor altitude checks against Flash's stair comparison (every height through AS3 `int()`). */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
@@ -36,12 +36,12 @@ for (const [ x, y, direction ] of [
     [ 0, 0, 'diagonal' ],
     [ 1, 0, 'cardinal' ],
 ]) {
-    await test(`fractional ${direction} neighbor does not lift the current plateau`, () => {
+    await test(`fractional ${direction} neighbor is truncated before the comparison`, () => {
         const geometry = createGeometry();
 
         geometry.setHeight(x, y, 3.6);
 
-        assert.equal(geometry.getFloorAltitude(1, 1), 2);
+        assert.equal(geometry.getFloorAltitude(1, 1), 2.5);
     });
 }
 
@@ -55,7 +55,7 @@ await test('an integer cardinal or diagonal stair neighbor lifts the plateau', (
     }
 });
 
-await test('only the current tile is truncated before calculating the next height', () => {
+await test('the current tile is truncated before calculating the next height', () => {
     const geometry = createGeometry();
 
     geometry.setHeight(1, 1, 2.9);
@@ -66,12 +66,12 @@ await test('only the current tile is truncated before calculating the next heigh
 
 const neighbors = [ [ -1, -1 ], [ 0, -1 ], [ 1, -1 ], [ -1, 0 ], [ 1, 0 ], [ -1, 1 ], [ 0, 1 ], [ 1, 1 ] ];
 
-await test('all eight neighbors lift only at the exact next integer height', () => {
+await test('all eight neighbors lift when their truncated height is the next integer', () => {
     for (const [ dx, dy ] of neighbors) {
         for (const neighbor of [ 1, 2, 2.5, 2.999, 3, 3.001, 3.5, 4 ]) {
             const geometry = createGeometry();
             geometry.setHeight(1 + dx, 1 + dy, neighbor);
-            assert.equal(geometry.getFloorAltitude(1, 1), neighbor === 3 ? 2.5 : 2, `${dx},${dy}: ${neighbor}`);
+            assert.equal(geometry.getFloorAltitude(1, 1), Math.trunc(neighbor) === 3 ? 2.5 : 2, `${dx},${dy}: ${neighbor}`);
         }
     }
 });
@@ -108,7 +108,7 @@ await test('flat rooms, map boundaries and multiple matching neighbors preserve 
 });
 
 await test('deterministic height maps match a source-derived AS3 altitude oracle', () => {
-    // AS3 declares current and next as int, reads eight Number neighbors, and adds once.
+    // AS3 declares current and next as int, int()-coerces all eight neighbors, and adds once.
     const heights = [ -1, 0, 0.5, 1, 1.25, 2, 2.9, 3, 3.6, 20 ];
     let comparisons = 0;
     for (let seed = 0; seed < 100; seed++) {
@@ -120,7 +120,7 @@ await test('deterministic height maps match a source-derived AS3 altitude oracle
             for (let x = 0; x < 3; x++) {
                 const current = geometry.getHeight(x, y) | 0;
                 const next = (current + 1) | 0;
-                const raised = neighbors.some(([ dx, dy ]) => geometry.getHeight(x + dx, y + dy) === next);
+                const raised = neighbors.some(([ dx, dy ]) => (geometry.getHeight(x + dx, y + dy) | 0) === next);
                 assert.equal(geometry.getFloorAltitude(x, y), current + (raised ? 0.5 : 0));
                 comparisons++;
             }

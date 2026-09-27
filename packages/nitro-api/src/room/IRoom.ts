@@ -139,6 +139,8 @@ export interface IRoom {
     updateRoomObjectState(objectId: number, category: RoomObjectCategoryEnum): boolean;
     updateRoomObjectRoomColor(color: number, light: number, backgroundOnly: boolean): boolean;
     updateAreaHide(furniId: number, on: boolean, rootX: number, rootY: number, width: number, length: number, invert: boolean): boolean;
+    addFloorHole(objectId: number): void;
+    removeFloorHole(objectId: number): void;
     updateRoomPlaneType(floorType: string | undefined, wallType: string | undefined, landscapeType: string | undefined): boolean;
     updateRoomPlaneVisibilities(wallVisible: boolean, floorVisible?: boolean): boolean;
     updateRoomPlaneThickness(wallThickness: RoomThicknessType, floorThickness: RoomThicknessType): boolean;

@@ -1,7 +1,7 @@
 # Porting gotchas
 
 Traps that cost a retry, each hit at least once. Read this before building a view; add to it when
-a new one costs you time. Rules with a longer story live in `AGENTS.md`; this is the short list.
+a new one costs you time. Rules with a longer story live in the other guides in `docs/`; this is the short list.
 
 ## Theme
 
@@ -15,11 +15,11 @@ a new one costs you time. Rules with a longer story live in `AGENTS.md`; this is
 - **Check the component's props before adding diagnostic labels.** Named-control browser
   diagnostics require matching UI instrumentation; optional tooling may not be in your branch.
 - **A Flash `TextFieldManager` hint is real text**, in the field's normal colour, cleared on focus -
-  not a grey `placeholder`. See `NavigatorRoomCreateView`'s `HintedInput`.
+  not a grey `placeholder`. See `NavigatorRoomCreateView`'s name and description fields.
 - **Config booleans go through `useConfigValue<boolean>(key) === true`**, and the key must be in
   `nitro-config.json`: a missing key is silently `false`.
 - **A table lifted out of a Flash method** lives in `context/<feature>/store/`, not in the view
-  file (fast refresh fails lint), and gets a `scripts/drift/tables.py` entry.
+  file (fast refresh fails lint), and gets a `scripts/drift/constants.py` entry.
 - **A `Frame` opens at its layout's position**: pass `defaultPosition` from the layout's root
   container (the messenger's is (120, 120)); without it the window opens in the top-left corner.
 - **Check the available scrolling API.** `scrollResetKey` resets to the start. Chat auto-scroll

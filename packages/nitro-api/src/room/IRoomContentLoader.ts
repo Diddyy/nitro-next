@@ -12,6 +12,8 @@ export interface IRoomContentLoader {
     processFurnitureData(furnitureData: IFurnitureData[]): void;
     downloadAsset(type: string, events: IEventDispatcher): void;
     downloadAssetAsync(type: string): Promise<boolean>;
+    /** Flash `purge`: releases the collections nothing has referenced for a while. */
+    purge(): void;
     isLoaderType(type: string): boolean;
     getCollection(name: string): IGraphicAssetCollection | undefined;
     getPlaceholderName(type: string): string;

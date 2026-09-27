@@ -5,7 +5,7 @@ export interface ITraxSongInfoSong {
     songName: string;
     /** The track itself, as the sound machine plays it. */
     data: string;
-    /** Seconds. */
+    /** Milliseconds (`SongDataEntry.length`: the music controller compares it with seconds times 1000). */
     length: number;
     creator: string;
 }

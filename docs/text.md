@@ -64,7 +64,7 @@ the face at the end of a run rather than dropping it, so the gap stays visible.
   other character - or a raw `fontFamily`/`fontSize` override - falls back to the browser's text
   in the same `.ttf` faces, so never assume a text is a Flash bitmap. Those faces are
   `font-faces.nitro`, added to `document.fonts` from the archive's own bytes by
-  `registerBundledFonts` - started at boot but never awaited, because they are only the fallback.
+  `registerBrowserFonts` - started by `preloadFlashFonts` at boot but never awaited, because they are only the fallback.
 - A rendered text is a bitmap with Flash's 2px `TextField` gutter on every side; caret and
   selection geometry (`flashTextCaretRect`) is in that same space.
 - The `il_*` styles are etched: a translucent white line under every glyph, made for dark text

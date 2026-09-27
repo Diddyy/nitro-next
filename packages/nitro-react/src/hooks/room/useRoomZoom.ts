@@ -1,9 +1,12 @@
+import { RoomZoomEvent } from '@nitrodevco/nitro-api';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Ticker } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
 import { useRoom } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
+
+import { useRoomEventDispatcher } from './useRoomEventDispatcher';
 
 /** `RoomDesktop.ROOM_ZOOM_SCALES` - the room only ever rests on one of these. */
 const ZOOM_SCALES = [ 0.5, 1, 2, 4, 8, 16 ];
@@ -31,6 +34,12 @@ const toLevel = (scale: number) => Math.log(scale) / Math.LN2;
  *
  * The room object itself keeps no zoom state - the canvas does - so the level the buttons act on
  * is held here, and it starts at 1 because that is what a freshly built canvas is at.
+ *
+ * A `RoomZoomEvent` (Flash's `RoomEngineZoomEvent`, `REE_ROOM_ZOOM`) is answered as
+ * `RoomUI.roomEngineEventHandler` answered it: its level becomes a scale that is zoomed to, which
+ * needs `zoom.enabled` as `RoomEngine.setRoomCanvasScale` does. One that forces a flip (the upside
+ * down special room effect) is `useRoomCamera`'s, which turns the canvas and re-syncs the camera
+ * to it; answering it here as well would turn the canvas straight back.
  */
 export const useRoomZoom = () => {
     const room = useRoom();
@@ -76,6 +85,13 @@ export const useRoomZoom = () => {
         setScale(next);
         targetRef.current = next;
     };
+
+    useRoomEventDispatcher<RoomZoomEvent>(RoomZoomEvent.ROOM_ZOOM, (event) => {
+        if (!enabled || event.isFlipForced) return;
+
+        // `1 << (min(5, floor(level)) - 1)`: level 1 is scale 1, and anything under 1 is half.
+        zoomTo((event.level < 1) ? 0.5 : (1 << (Math.min(5, Math.floor(event.level)) - 1)));
+    });
 
     const index = ZOOM_SCALES.indexOf(scale);
     const canZoomIn = enabled && (index >= 0) && (index < ZOOM_SCALES.length - 1);

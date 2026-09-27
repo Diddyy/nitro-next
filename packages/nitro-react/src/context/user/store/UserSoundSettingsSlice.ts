@@ -3,11 +3,10 @@
  * and Trax - as `SoundSettingsView` shows and `AccountPreferencesEventMessage` delivers them.
  *
  * Flash holds each as 0..1 and stores it as an int percentage (`storeVolumeSetting`); that is what
- * `soundSettingsCommands` sends. There is no audio engine in this client yet - nothing loads or
- * plays a sound - so these are the account's remembered settings and nothing reads them to set a
- * gain. When a sound manager is ported it reads them here, which is where Flash's own volume
- * getters read from; the `muted` flag `updateVolumeSetting` applies over them has no store field
- * for the same reason, because nothing would honour it.
+ * `soundSettingsCommands` sends. The sound manager (`src/sound`, Flash's `HabboSoundManagerFlash10`)
+ * plays at them: `bridgeSoundManager` hands every change to its `updateVolumeSetting`, so a slider
+ * dragged in the window is heard at once. The `muted` flag `updateVolumeSetting` applies over them
+ * has no store field: only Flash's video offers set it, and they are not ported.
  */
 import { StateCreator } from 'zustand';
 

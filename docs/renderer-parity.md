@@ -10,7 +10,7 @@ as implementation guidance. A passing unit test does not establish whole-client 
 From the repository root:
 
 ```sh
-node --test tools/tests/plane-rasterizer.test.mjs tools/tests/plane-material.test.mjs tools/tests/water-rasterizer.test.mjs
+node --test tools/plane-rasterizer.test.mjs tools/plane-material.test.mjs tools/water-rasterizer.test.mjs
 ```
 
 Check signed shear, geometry scales 64 and 32, plane color rounding, water border traversal,

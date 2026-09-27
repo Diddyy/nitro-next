@@ -7,10 +7,15 @@ Many generated parsers and composers are empty. To complete one:
 
 1. Read the candidate body from the corresponding path in the packet generator output directory. Keep the repo's header id;
    never copy `IncomingHeader.ts`, `OutgoingHeader.ts` or the `Get*Packets.ts` maps.
-2. Preserve the hand-edit marker recognized by the packet sync tool before changing generated
-   code. Inspect the available tool's preservation rule and an existing hand-edited parser; do
-   not introduce a machine-specific path in new comments. If the sync script is unavailable,
-   finish the parser against AS3 manually and report that regeneration safety was not checked.
+2. Put the hand-edit marker at the top of the file before changing generated code: a comment
+   beginning `// Body filled by hand` (the `PRESERVE_MARKER` that
+   `packages/nitro-packets/scripts/sync-generated-packets.ts` looks for), saying the generator has
+   no preserve step - `// Body filled by hand from the packet generator output - the generator has
+   no preserve step, so re-apply after a regeneration.` Older markers name a local path; do not
+   introduce one in new comments. The marker goes on with the first hand edit, not at the
+   end: renaming one `param1` is a hand edit, and 44 composers once had real names and no marker,
+   so one `--apply` would have reset them all. If the sync script is unavailable, finish the parser
+   against AS3 manually and report that regeneration safety was not checked.
 3. Rename generic parameters (`param2`) to what they mean, using the Flash parser or
    `com/sulake/habbo/session/*` for field meanings.
 4. Register the class in `GetIncomingPackets.ts` / `GetOutgoingPackets.ts` and both barrels

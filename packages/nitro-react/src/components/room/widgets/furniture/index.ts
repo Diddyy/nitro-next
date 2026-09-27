@@ -29,6 +29,7 @@ export * from './FurnitureRoomLinkWidget';
 export * from './FurnitureStackHeightWidget';
 export * from './FurnitureStickieWidget';
 export * from './FurnitureTrophyWidget';
+export * from './FurnitureVimeoWidget';
 export * from './furnitureWidgetData';
 export * from './furnitureWidgetRegistry';
 export * from './FurnitureYoutubeWidget';
