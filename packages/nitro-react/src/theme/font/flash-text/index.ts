@@ -5,6 +5,7 @@ export * from './flashFonts';
 export * from './flashTextBlock';
 export * from './flashTextCanvas';
 export * from './flashTextCaret';
+export * from './flashTextFallbackReport';
 export * from './flashTextFormat';
 export * from './flashTextHit';
 export * from './flashTextMarkup';

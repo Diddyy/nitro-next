@@ -164,7 +164,7 @@ export class Air32NativeTextRenderer {
 /** Lays the run out and widens the field by what an italic face leans past its advance width. */
 function layoutRun(font: NativeFont, content: string, resolved: ResolvedRenderOptions): TextRunLayout {
     const isNormal = resolved.antiAliasType === 'normal';
-    const layout = isNormal ? layoutNormalText(font, content, resolved.size, resolved.kerning, resolved.normalPenLayout) : layoutNativeText(font, content, resolved.size, resolved.kerning);
+    const layout = isNormal ? layoutNormalText(font, content, resolved.size, resolved.kerning, resolved.normalPenLayout) : layoutNativeText(font, content, resolved.size, resolved.kerning, resolved.letterSpacing);
 
     if (resolved.fontStyle !== 'italic') return layout;
 
@@ -191,12 +191,19 @@ function renderNormalRun(font: NativeFont, layout: TextRunLayout, lineMetrics: L
     else compositeNormalCoverage(sampleMasks, pixels, resolved.color);
 }
 
-export function layoutNativeText(font: NativeFont, text: string, size: number, useKerning: boolean = true): TextRunLayout {
+/**
+ * `letterSpacing` (px) is a port extension: added to the pen after every glyph, where AIR's
+ * `TextFormat.letterSpacing` goes. At 0 - every text Sulake's build renders - neither layout
+ * takes a different step.
+ */
+export function layoutNativeText(font: NativeFont, text: string, size: number, useKerning: boolean = true, letterSpacing: number = 0): TextRunLayout {
     if (!Number.isSafeInteger(size) || size <= 0) throw new RangeError('the exact native layout currently requires integer size');
 
     if (typeof useKerning != 'boolean') throw new TypeError('useKerning must be boolean');
 
-    if (font.swfFont.alignmentZones != null) return layoutZonedNativeText(font, text, size, useKerning);
+    if (font.swfFont.alignmentZones != null) return layoutZonedNativeText(font, text, size, useKerning, letterSpacing);
+
+    if (letterSpacing !== 0) return layoutSpacedNativeText(font, text, size, useKerning, letterSpacing);
 
     const { emSquare } = font.swfFont;
     let penUnits = 0;
@@ -251,7 +258,50 @@ export function layoutNativeText(font: NativeFont, text: string, size: number, u
     };
 }
 
-function layoutZonedNativeText(font: NativeFont, text: string, size: number, useKerning: boolean = true): TextRunLayout {
+/**
+ * `layoutNativeText` with a letter spacing, for a font without alignment zones: the pen is a px
+ * position rather than whole em units, so it is phased the way the zoned layout phases its own.
+ */
+function layoutSpacedNativeText(font: NativeFont, text: string, size: number, useKerning: boolean, letterSpacing: number): TextRunLayout {
+    const { emSquare } = font.swfFont;
+    let penUnits = 0;
+    let previousCode: number | null = null;
+    const placements: GlyphPlacement[] = [];
+
+    for (let index = 0; index < text.length; index++) {
+        const code = text.charCodeAt(index);
+        const glyph = font.swfGlyphs.get(code);
+
+        if (!glyph || glyph.advance == null) throw new RangeError(`DefineFont3 has no mapped glyph for U+${code.toString(16).padStart(4, '0')}`);
+
+        if (useKerning && previousCode !== null) penUnits += font.kerning.get(`${previousCode},${code}`) ?? 0;
+
+        const penX = ((penUnits * size) / emSquare) + (index * letterSpacing);
+        const whole = Math.floor(penX);
+        const roundedPhase = roundTiesEven((penX - whole) * 8);
+
+        placements.push({
+            codepoint: code,
+            stringIndex: index,
+            penUnits,
+            penX,
+            phaseIndex: roundedPhase & 7,
+            roundedPhase,
+            anchorX: whole + (roundedPhase >= 4 ? 1 : 0),
+            maskPenX: whole + roundedPhase / 8,
+            hasInk: swfGlyphHasInk(font, glyph, code),
+        });
+        penUnits += glyph.advance;
+        previousCode = code;
+    }
+
+    const rawTextWidth = Math.max(0, ((penUnits * size) / emSquare) + (text.length * letterSpacing));
+    const textWidth = Math.floor(rawTextWidth * 20) / 20;
+
+    return { placements, rawTextWidth, textWidth, fieldWidth: textWidth + 4 };
+}
+
+function layoutZonedNativeText(font: NativeFont, text: string, size: number, useKerning: boolean = true, letterSpacing: number = 0): TextRunLayout {
     if (!Number.isSafeInteger(size) || size <= 0) throw new RangeError('the exact native layout currently requires integer size');
 
     if (typeof useKerning != 'boolean') throw new TypeError('useKerning must be boolean');
@@ -323,6 +373,8 @@ function layoutZonedNativeText(font: NativeFont, text: string, size: number, use
         }
 
         penX += (advanceUnits / 20) * advanceScale + residual;
+
+        if (letterSpacing !== 0) penX += letterSpacing;
     }
 
     const rawTextWidth = penX;
@@ -436,7 +488,12 @@ function resolveOptions(options: NativeRenderOptions): ResolvedRenderOptions {
         throw new RangeError(`unsupported AIR mode ${antiAliasType} + ${gridFitType}; the native path supports advanced + pixel and line-only normal text`);
     }
 
-    if ((options.letterSpacing ?? 0) !== 0) throw new RangeError('native letterSpacing is not implemented yet');
+    const letterSpacing = options.letterSpacing ?? 0;
+
+    // Port extension: Sulake's build refuses any letter spacing here. The advanced layouts add it to
+    // the pen after each glyph (`layoutNativeText`), so a 0 leaves every existing render unchanged;
+    // the line-only normal path has no such step and still refuses it.
+    if (!Number.isFinite(letterSpacing) || ((letterSpacing !== 0) && (antiAliasType !== 'advanced'))) throw new RangeError('native letterSpacing is only implemented for advanced text');
 
     const size = options.size;
 
@@ -504,6 +561,7 @@ function resolveOptions(options: NativeRenderOptions): ResolvedRenderOptions {
         thickness: finiteNumber(options.thickness ?? 0, 'thickness'),
         sharpness: finiteNumber(options.sharpness ?? 0, 'sharpness'),
         kerning,
+        letterSpacing,
         stageQuality,
         normalPenLayout,
         fontStyle,

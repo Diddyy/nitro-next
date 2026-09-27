@@ -75,6 +75,7 @@ const toNativeRenderOptions = (format: FlashTextFormat): NativeRenderOptions => 
         thickness: format.thickness,
         sharpness: format.sharpness,
         kerning: format.kerning,
+        letterSpacing: format.letterSpacing,
         fontStyle: format.italic ? 'italic' : 'normal',
         stageQuality: format.stageQuality,
         normalPenLayout: format.normalPenLayout,
@@ -86,38 +87,49 @@ const toNativeRenderOptions = (format: FlashTextFormat): NativeRenderOptions => 
     };
 };
 
-/** The font entry when `text` can be rendered exactly in `format`, otherwise `null`. */
-const resolveSupportedFont = (format: FlashTextFormat, text: string): NativeFontEntry | null => {
+/**
+ * Why `text` cannot be rendered exactly in `format`, or `null` when it can - the checks in the
+ * order the exact renderer needs them. The dev text-fallback report shows these reasons.
+ */
+const unsupportedReason = (format: FlashTextFormat, text: string): string | null => {
     const entry = resolveNativeFont(format);
 
-    if (!entry) return null;
+    if (!entry) return `no captured font for ${format.fontFamily}${format.bold ? ' bold' : ''}${format.italic ? ' italic' : ''}`;
 
-    if (!Number.isSafeInteger(format.fontSize) || format.fontSize <= 0 || format.fontSize > MAX_FONT_SIZE) return null;
+    if (!Number.isSafeInteger(format.fontSize) || format.fontSize <= 0 || format.fontSize > MAX_FONT_SIZE) return `font size ${format.fontSize}`;
 
-    if (format.letterSpacing !== 0 || !Number.isFinite(format.thickness) || !Number.isFinite(format.sharpness)) return null;
+    // Letter spacing is laid out by the advanced path only (`layoutNativeText`).
+    if (!Number.isFinite(format.letterSpacing) || ((format.letterSpacing !== 0) && (format.antiAliasType !== 'advanced'))) return `letter spacing ${format.letterSpacing} on ${format.antiAliasType} text`;
 
-    if (!GRID_FIT_TYPES.includes(format.gridFitType)) return null;
+    if (!Number.isFinite(format.thickness) || !Number.isFinite(format.sharpness)) return 'thickness or sharpness not finite';
+
+    if (!GRID_FIT_TYPES.includes(format.gridFitType)) return `grid fit ${format.gridFitType}`;
 
     if (format.antiAliasType === 'advanced') {
-        if (format.gridFitType !== 'pixel') return null;
+        if (format.gridFitType !== 'pixel') return `advanced text with grid fit ${format.gridFitType}`;
     } else if (format.antiAliasType !== 'normal' || !entry.font.fontKey?.toLowerCase().includes('volter')) {
         // Normal anti-aliasing is only exact for the line-only outlines of the Volter faces.
-        return null;
+        return `${format.antiAliasType} anti-aliasing on ${format.fontFamily}`;
     }
 
     for (let index = 0; index < text.length; index++) {
         const code = text.charCodeAt(index);
         const glyph = entry.font.swfGlyphs.get(code);
 
-        if (!glyph || (glyph.hasInk && !entry.font.profile.glyphs.has(code))) return null;
+        if (!glyph || (glyph.hasInk && !entry.font.profile.glyphs.has(code))) return `no glyph for ${JSON.stringify(text[index])} (U+${code.toString(16).toUpperCase().padStart(4, '0')})`;
     }
 
-    return entry;
+    return null;
 };
 
-const layoutRun = (entry: NativeFontEntry, text: string, format: FlashTextFormat): TextRunLayout => (format.antiAliasType === 'normal')
-    ? layoutNormalText(entry.font, text, format.fontSize, format.kerning, format.normalPenLayout)
-    : layoutNativeText(entry.font, text, format.fontSize, format.kerning);
+/** The font entry when `text` can be rendered exactly in `format`, otherwise `null`. */
+const resolveSupportedFont = (format: FlashTextFormat, text: string): NativeFontEntry | null => (unsupportedReason(format, text) === null) ? resolveNativeFont(format) : null;
+
+const layoutRun = (entry: NativeFontEntry, text: string, format: FlashTextFormat): TextRunLayout => {
+    if (format.antiAliasType === 'normal') return layoutNormalText(entry.font, text, format.fontSize, format.kerning, format.normalPenLayout);
+
+    return layoutNativeText(entry.font, text, format.fontSize, format.kerning, format.letterSpacing);
+};
 
 const floorToTwips = (value: number): number => Math.floor(value * 20) / 20;
 
@@ -129,6 +141,17 @@ export class FlashTextRenderer {
 
     public static supports(format: FlashTextFormat, text: string = ''): boolean {
         return !!resolveSupportedFont(format, text);
+    }
+
+    /** Why `text` in `format` falls back to browser text, or `null` when it renders exactly. */
+    public static unsupportedReason(format: FlashTextFormat, text: string = ''): string | null {
+        const reason = unsupportedReason(format, text);
+
+        if (reason !== null) return reason;
+
+        const textWidth = FlashTextRenderer.measure(text, format) ?? 0;
+
+        return ((textWidth > MAX_TEXT_WIDTH) || ((textWidth + 128) * (format.fontSize * 2 + 8) > MAX_BITMAP_PIXELS)) ? `run too large to rasterize (${Math.round(textWidth)}px)` : null;
     }
 
     /** The run's width in px, or `null` when it cannot be rendered exactly. */

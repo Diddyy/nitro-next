@@ -3,6 +3,7 @@ import { createStore } from 'zustand';
 
 import { fillLocalizationParameters } from '#base/utils';
 
+import { createHotelViewSlice, HotelViewSlice } from './HotelViewSlice';
 import { createSystemDialogsSlice, SystemDialogsSlice } from './SystemDialogsSlice';
 import { VisibleWindows, WindowName, WindowRegistry } from './WindowRegistry';
 
@@ -97,7 +98,7 @@ const initialState: State = {
     roomSessionRequest: undefined,
 };
 
-export type SystemStore = State & Actions & SystemDialogsSlice;
+export type SystemStore = State & Actions & SystemDialogsSlice & HotelViewSlice;
 
 export const createSystemStore = () => createStore<SystemStore>()((set, get, store) => ({
     ...initialState,
@@ -364,6 +365,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
     startRoomSession: (roomId: number) => set(x => ({ roomSessionRequest: { type: 'start', roomId, sequence: (x.roomSessionRequest?.sequence ?? 0) + 1 } })),
     endRoomSession: () => set(x => ({ roomSessionRequest: { type: 'end', roomId: 0, sequence: (x.roomSessionRequest?.sequence ?? 0) + 1 } })),
     ...createSystemDialogsSlice(set, get, store),
+    ...createHotelViewSlice(set, get, store),
 }));
 
 /**

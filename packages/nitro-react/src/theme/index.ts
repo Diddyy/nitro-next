@@ -20,6 +20,7 @@ export * from './CheckBox';
 export * from './CloseButton';
 export * from './ContainerButton';
 export * from './ContentArea';
+export * from './CountdownWidget';
 export * from './drag/DragTargetContext';
 export * from './drag/useDragTarget';
 export * from './drag/useDragTrigger';

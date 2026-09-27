@@ -15,22 +15,18 @@
  *   however much narrower the list is, down to 10 (`setHorizontalSpacing`).
  *
  * A slot is occupied when its widget has a container - here, when the type is one the port draws
- * (`generic`, `widgetcontainer`, `bonusrare`); a slot naming any other type stays empty, where Flash
+ * (`PORTED_LANDING_VIEW_WIDGETS`); a slot naming any other type stays empty, where Flash
  * would have shown that widget. The slots' separators (`landing.view.dynamic.slot.4/5.separator`,
  * `dynamic_widget_grid_separator`) are drawn when the hotel turns them on; it does not.
  */
 import { Container as PixiContainer } from 'pixi.js';
 import { ReactNode, useEffect, useState } from 'react';
 
-import { LANDING_VIEW_WIDGET_BONUS_RARE, LANDING_VIEW_WIDGET_CONTAINER, LANDING_VIEW_WIDGET_GENERIC } from '#base/commands';
-import { useConfigData, useTranslation } from '#base/context/system';
-import { Box, LayoutImage, Region, ThemeImage, ThemeText, useLayoutSize } from '#base/theme';
-import { configReader, landingViewPaneWidths } from '#base/utils';
+import { hotelViewColorableFormat, hotelViewCommonSettings, hotelViewPaneWidths, hotelViewProperty, hotelViewSlotWidget, PORTED_LANDING_VIEW_WIDGETS, useConfigData, useTranslation } from '#base/context/system';
+import { useViewportSize } from '#base/hooks';
+import { Box, ColorableTextFormat, LayoutImage, Region, ThemeImage, ThemeText, useLayoutSize } from '#base/theme';
 
-import { HotelViewBonusRareWidget } from './HotelViewBonusRareWidget';
-import { HotelViewColorable } from './hotelViewColorable';
-import { HotelViewGenericWidget } from './HotelViewGenericWidget';
-import { HotelViewWidgetContainer } from './HotelViewWidgetContainer';
+import { HotelViewSlotWidget } from './HotelViewSlotWidget';
 
 /** `widgetlist_fromtop`'s place and size in the landing view's 1172x822 layout. */
 export const HOTEL_VIEW_GRID_X = 256;
@@ -58,8 +54,6 @@ const SLOT_1_WIDTH = 800;
 /** `dynamic_widget_grid_separator`: its height, the header line either side of the title. */
 const SEPARATOR_HEIGHT = 20;
 
-const DRAWN_TYPES = [ LANDING_VIEW_WIDGET_GENERIC, LANDING_VIEW_WIDGET_CONTAINER, LANDING_VIEW_WIDGET_BONUS_RARE ];
-
 interface MeasuredSlotProps {
     slot: number;
     onHeight: (slot: number, height: number) => void;
@@ -86,7 +80,7 @@ const MeasuredSlot = ({ slot, onHeight, children }: MeasuredSlotProps) => {
 };
 
 /** `enableSeparator`: `dynamic_widget_grid_separator` over slot 4 or 5, its title a text key. */
-const Separator = ({ width, title }: { width: number; title: string }) => {
+const Separator = ({ width, title, colorable }: { width: number; title: string; colorable: ColorableTextFormat }) => {
     const t = useTranslation();
 
     return (
@@ -101,7 +95,8 @@ const Separator = ({ width, title }: { width: number; title: string }) => {
                 name="separator_title"
                 text={t(title)}
                 textStyle="il_heading_3"
-                textOptions={{ fontSize: 9 }}
+                textOptions={{ fontSize: 9, ...(colorable.fill ? { fill: colorable.fill } : {}) }}
+                flashFormat={colorable.flashFormat}
                 verticalAlign="top"
                 layout={{ position: 'absolute', left: 18, top: 4 }}
             />
@@ -115,22 +110,20 @@ const Separator = ({ width, title }: { width: number; title: string }) => {
     );
 };
 
-export interface HotelViewDynamicGridProps {
-    width: number;
-    height: number;
-    colorable: HotelViewColorable;
-}
-
-export const HotelViewDynamicGrid = ({ width, height, colorable }: HotelViewDynamicGridProps) => {
+export const HotelViewWidgetGrid = () => {
     const config = useConfigData();
+    const { width, height } = useViewportSize();
+    const settings = hotelViewCommonSettings(config);
+    const colorable = hotelViewColorableFormat(settings);
     const [ heights, setHeights ] = useState<Record<number, number>>({});
-    const { configString, configBoolean } = configReader(config);
-    const panes = landingViewPaneWidths(configString);
+    const configString = (key: string) => hotelViewProperty(config, key);
+    const configBoolean = (key: string) => configString(key) === 'true';
+    const panes = hotelViewPaneWidths(config);
 
     const onHeight = (slot: number, slotHeight: number) => setHeights(previous => ((previous[slot] === slotHeight) ? previous : { ...previous, [slot]: slotHeight }));
 
-    const widgetType = (slot: number) => configString(`landing.view.dynamic.slot.${slot}.widget`);
-    const occupied = (slot: number) => DRAWN_TYPES.includes(widgetType(slot));
+    const widgetType = (slot: number) => hotelViewSlotWidget(config, slot);
+    const occupied = (slot: number) => PORTED_LANDING_VIEW_WIDGETS.has(widgetType(slot));
     const natural = (slot: number) => (occupied(slot) ? (heights[slot] ?? 0) : ((slot === 1) ? 0 : 1));
     const separator = (slot: number) => (configBoolean(`landing.view.dynamic.slot.${slot}.separator`) ? configString(`landing.view.dynamic.slot.${slot}.title`) : undefined);
 
@@ -163,28 +156,14 @@ export const HotelViewDynamicGrid = ({ width, height, colorable }: HotelViewDyna
     const narrowedBy = LIST_WIDTH - listWidth;
     const columnSpacing = (narrowedBy > (COLUMN_SPACING_MAX - COLUMN_SPACING_MIN)) ? COLUMN_SPACING_MIN : Math.min(COLUMN_SPACING_MAX, COLUMN_SPACING_MAX - narrowedBy);
 
-    const renderWidget = (slot: number) => {
-        switch (widgetType(slot)) {
-            case LANDING_VIEW_WIDGET_GENERIC:
-                return (
-                    <HotelViewGenericWidget
-                        slot={slot}
-                        colorable={colorable}
-                    />
-                );
-            case LANDING_VIEW_WIDGET_CONTAINER:
-                return (
-                    <HotelViewWidgetContainer
-                        slot={slot}
-                        colorable={colorable}
-                    />
-                );
-            case LANDING_VIEW_WIDGET_BONUS_RARE:
-                return <HotelViewBonusRareWidget colorable={colorable} />;
-            default:
-                return null;
-        }
-    };
+    const renderWidget = (slot: number) => (
+        <HotelViewSlotWidget
+            type={widgetType(slot)}
+            slot={slot}
+            code={null}
+            settings={settings}
+        />
+    );
 
     const slotBox = (slot: number, slotWidth: number, slotHeight: number, left: number = 0) => (
         <Region
@@ -205,7 +184,7 @@ export const HotelViewDynamicGrid = ({ width, height, colorable }: HotelViewDyna
     return (
         <Region
             name="widgetlist_fromtop"
-            layout={{ position: 'absolute', left: HOTEL_VIEW_GRID_X, top: HOTEL_VIEW_GRID_Y, width: listWidth, height: listHeight, flexDirection: 'column', gap: topSpacing, overflow: 'hidden' }}
+            layout={{ position: 'absolute', left: HOTEL_VIEW_GRID_X, top: HOTEL_VIEW_GRID_Y, width: Math.max(0, listWidth), height: listHeight, flexDirection: 'column', gap: topSpacing, overflow: 'hidden' }}
         >
             {slotBox(1, SLOT_1_WIDTH, natural(1), SLOT_1_X)}
             <Region
@@ -225,6 +204,7 @@ export const HotelViewDynamicGrid = ({ width, height, colorable }: HotelViewDyna
                             <Separator
                                 width={panes.left}
                                 title={separator4}
+                                colorable={colorable}
                             />
                         )}
                         {slotBox(4, panes.left, slot4)}
@@ -243,6 +223,7 @@ export const HotelViewDynamicGrid = ({ width, height, colorable }: HotelViewDyna
                             <Separator
                                 width={panes.right}
                                 title={separator5}
+                                colorable={colorable}
                             />
                         )}
                         {slotBox(5, panes.right, slot5)}

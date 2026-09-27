@@ -31,7 +31,6 @@ export * from './inventoryMarketplaceCommands';
 export * from './inventoryPetsCommands';
 export * from './inventoryTradingCommands';
 export * from './inventoryUnseenCommands';
-export * from './landingViewCommands';
 export * from './navigatorCommands';
 export * from './notificationCommands';
 export * from './offerCenterCommands';

@@ -1,7 +1,7 @@
 import { Color, TextDropShadow } from 'pixi.js';
 import { useMemo } from 'react';
 
-import { FLASH_TEXT_GUTTER, FlashTextCanvas, FlashTextFace, FlashTextFieldOverrides, FlashTextFormat, FlashTextLayoutOptions, flashTextLineHeight, FlashTextRenderer, FlashTextRun, HABBO_TEXT_STYLES, HabboTextStyleName, layoutFlashTextBlock, parseFlashTextMarkupWithLinks, renderFlashTextCanvas, resolveFlashTextFormat } from '../font/flash-text';
+import { FLASH_TEXT_GUTTER, FlashTextCanvas, FlashTextFace, FlashTextFieldOverrides, FlashTextFormat, FlashTextLayoutOptions, flashTextLineHeight, FlashTextRenderer, FlashTextRun, HABBO_TEXT_STYLES, HabboTextStyleName, layoutFlashTextBlock, parseFlashTextMarkupWithLinks, renderFlashTextCanvas, reportFlashTextFallback, resolveFlashTextFormat } from '../font/flash-text';
 import { flashFaceOverride } from '../utils/textStyles';
 
 /**
@@ -199,7 +199,11 @@ export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | 
 
         const rendered = renderFlashTextCanvas(content, format, { align, ...layoutOptions, lineHeight, shadow });
 
-        if (!rendered) return undefined;
+        if (!rendered) {
+            reportFlashTextFallback(content, format, habboKey);
+
+            return undefined;
+        }
 
         // A truncated text is plain (`_field.text = ...`), so it keeps no links.
         return (parsed?.links.length && (typeof content !== 'string')) ? { ...rendered, links: parsed.links } : rendered;
