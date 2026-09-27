@@ -1,6 +1,6 @@
 import { IAssetData, IAssetManager, IGraphicAsset, IGraphicAssetCollection, NitroLogger } from '@nitrodevco/nitro-api';
 import { AnimatedGIF } from '@pixi/gif';
-import { Spritesheet, SpritesheetData, Texture } from 'pixi.js';
+import { Spritesheet, SpritesheetData, Texture, TextureSource } from 'pixi.js';
 
 import { NitroBundle, TextureUtils } from '../utils';
 import { GraphicAssetCollection } from './GraphicAssetCollection';
@@ -59,16 +59,37 @@ export class AssetManager implements IAssetManager {
         return this._collections.get(name);
     }
 
+    /**
+     * Forgets a collection and frees what it drew with: its textures, and the sheets they are cut
+     * from, which live on the GPU until destroyed. Flash's `dispose` of the collection and its asset
+     * library. Only for a collection nothing draws any more - `RoomContentLoader.purge` asks its
+     * reference count first; the next object of the type downloads it again.
+     */
     public removeCollection(name: string): void {
         const collection = this._collections.get(name);
 
         if (!collection) return;
 
-        for (const textureName of collection.textures.keys()) this.removeTexture(textureName);
+        const sources = new Set<TextureSource>();
+
+        if (collection.textureSource) sources.add(collection.textureSource);
+
+        for (const [ textureName, texture ] of collection.textures) {
+            this.removeTexture(textureName);
+
+            if (texture.source) sources.add(texture.source);
+
+            // `destroyTexture` rebuilds the room's batches first, so none still binds the sheet.
+            TextureUtils.destroyTexture(texture, false);
+        }
 
         this._collections.delete(name);
 
         collection.dispose();
+
+        for (const source of sources) {
+            if (!source.destroyed) source.destroy();
+        }
     }
 
     public createCollection(

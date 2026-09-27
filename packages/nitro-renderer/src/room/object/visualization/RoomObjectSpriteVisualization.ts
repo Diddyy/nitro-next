@@ -50,7 +50,9 @@ export class RoomObjectSpriteVisualization implements IRoomObjectSpriteVisualiza
         }
 
         this._object = undefined!;
-        this._asset = undefined!;
+        // Flash `assetCollection = null`: through the setter, so the collection's reference is let go
+        // and `RoomContentLoader.purge` can release it once nothing else draws with it.
+        this.asset = undefined;
     }
 
     public getSprite(index: number): IRoomObjectSprite | undefined {

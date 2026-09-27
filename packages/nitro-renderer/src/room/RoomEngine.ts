@@ -17,7 +17,7 @@ import {
 import { ImageLike, Texture, Ticker, UPDATE_PRIORITY } from 'pixi.js';
 
 import { PetFigureData } from '#renderer/session';
-import { GetTicker, NumberBank, TextureUtils } from '#renderer/utils';
+import { GetTicker, NumberBank, PurgeTrigger, TextureUtils } from '#renderer/utils';
 
 import { GetRoomContentLoader } from './GetRoomContentLoader';
 import { ObjectDataUpdateMessage, ObjectRoomMaskUpdateMessage } from './messages';
@@ -38,6 +38,10 @@ export class RoomEngine implements IRoomEngine {
 
     public async init(): Promise<void> {
         await GetRoomContentLoader().init();
+
+        // Flash `CoreComponentContext` starts the purge trigger with the client; `Core.purge` reaches
+        // the room engine's `purge`, which purges the room content.
+        PurgeTrigger.start(() => this.purgeRoomContent());
 
         // The Variable FX atlas is not needed for the first frame; statuses that arrive before it
         // has loaded are kept by their stack additions and drawn once it is ready.
@@ -96,6 +100,11 @@ export class RoomEngine implements IRoomEngine {
      * disposing it (`roomInstanceData.remove(identifier)`), so a later createRoom for
      * the same id builds a fresh room rather than handing back a disposed one.
      */
+    /** Flash `purgeRoomContent` (and the engine's `purge`): the loader releases what nothing draws. */
+    public purgeRoomContent(): void {
+        GetRoomContentLoader().purge();
+    }
+
     public disposeRoom(roomId: number): void {
         const room = this._rooms.get(roomId);
 

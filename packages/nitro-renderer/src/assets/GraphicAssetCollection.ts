@@ -8,7 +8,7 @@ import {
 } from '@nitrodevco/nitro-api';
 import { Texture, TextureSource } from 'pixi.js';
 
-import { TextureUtils } from '#renderer/utils';
+import { GetTickerTime, TextureUtils } from '#renderer/utils';
 
 import { GraphicAsset } from './GraphicAsset';
 import { GraphicAssetPalette } from './GraphicAssetPalette';
@@ -17,6 +17,13 @@ export class GraphicAssetCollection implements IGraphicAssetCollection {
     private static PALETTE_ASSET_DISPOSE_THRESHOLD: number = 10;
 
     private _referenceCount: number = 0;
+    /**
+     * Flash `GraphicAssetCollection`'s reference timestamp, which `RoomContentLoader.purge` reads
+     * to find a collection nothing has used for a while. Flash starts it at 0; here it starts when
+     * the collection is made, so one that has just downloaded is not purgeable before the object
+     * that asked for it has taken its reference.
+     */
+    private _lastReferenceTimestamp: number = GetTickerTime();
 
     private _type: string;
     private _textureSource: TextureSource | undefined;
@@ -172,6 +179,7 @@ export class GraphicAssetCollection implements IGraphicAssetCollection {
 
     public addReference(): void {
         this._referenceCount++;
+        this._lastReferenceTimestamp = GetTickerTime();
     }
 
     public removeReference(): void {
@@ -179,6 +187,7 @@ export class GraphicAssetCollection implements IGraphicAssetCollection {
 
         if (this._referenceCount <= 0) {
             this._referenceCount = 0;
+            this._lastReferenceTimestamp = GetTickerTime();
 
             this.disposePaletteAssets(false);
         }
@@ -186,6 +195,10 @@ export class GraphicAssetCollection implements IGraphicAssetCollection {
 
     public get referenceCount(): number {
         return this._referenceCount;
+    }
+
+    public get lastReferenceTimestamp(): number {
+        return this._lastReferenceTimestamp;
     }
 
     public get name(): string {

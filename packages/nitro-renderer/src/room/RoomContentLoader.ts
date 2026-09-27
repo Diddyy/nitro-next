@@ -15,6 +15,7 @@ import {
 import { Texture } from 'pixi.js';
 
 import { GetAssetManager } from '../assets';
+import { GetTickerTime } from '../utils';
 import { GetRoomEngine } from './GetRoomEngine';
 import { PetColorResult } from './PetColorResult';
 
@@ -35,10 +36,15 @@ export class RoomContentLoader implements IRoomContentLoader {
         RoomContentLoader.PLACE_HOLDER_PET,
     ];
 
+    /** Flash `purge`: how long a collection nothing references is kept before it is released. */
+    public static PURGE_IDLE_MS: number = 20000;
+
     private _iconListener: IRoomContentListener;
     private _images: Map<string, HTMLImageElement> = new Map();
     private _listeners: Map<string, Set<IEventDispatcher>> = new Map();
     private _downloads: Map<string, Promise<boolean>> = new Map();
+    /** The types this loader downloaded - the collections `purge` may release (Flash's own collection map). */
+    private _downloadedTypes: Set<string> = new Set();
 
     private _activeObjects: { [index: string]: number } = {};
     private _activeObjectTypes: Map<number, string> = new Map();
@@ -365,6 +371,8 @@ export class RoomContentLoader implements IRoomContentLoader {
             .then((flag) => {
                 if (!flag) return false;
 
+                this._downloadedTypes.add(type);
+
                 const petIndex = this._pets[type];
                 const collection = this.getCollection(type);
 
@@ -414,6 +422,35 @@ export class RoomContentLoader implements IRoomContentLoader {
         this._downloads.set(type, promise);
 
         return promise;
+    }
+
+    /**
+     * Flash `RoomContentLoader.purge`: every collection this loader downloaded that nothing has
+     * referenced for `PURGE_IDLE_MS` - no room object draws with it, and none has let go of it
+     * recently - is removed with its textures, and the next object of the type downloads it again
+     * (`downloadAsset` finds no collection). Flash spares the placeholders; the port spares every
+     * mandatory library it loads at `init`, which it never asks for again.
+     */
+    public purge(): void {
+        const now = GetTickerTime();
+
+        for (const type of [ ...this._downloadedTypes ]) {
+            if (RoomContentLoader.MANDATORY_LIBRARIES.includes(type) || this._downloads.has(type)) continue;
+
+            const collection = this.getCollection(type);
+
+            if (!collection) {
+                this._downloadedTypes.delete(type);
+
+                continue;
+            }
+
+            if ((collection.referenceCount >= 1) || ((now - collection.lastReferenceTimestamp) < RoomContentLoader.PURGE_IDLE_MS)) continue;
+
+            GetAssetManager().removeCollection(type);
+
+            this._downloadedTypes.delete(type);
+        }
     }
 
     public getAssetAliasName(name: string): string {

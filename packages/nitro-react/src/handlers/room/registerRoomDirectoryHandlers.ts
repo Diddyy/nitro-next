@@ -33,7 +33,11 @@ export const registerRoomDirectoryHandlers = ({ subscribe }: WebSocketConnection
     const enterRoom = (roomId: number, force: boolean = false) => {
         if (!force && currentRoomId === roomId) return;
 
-        if (currentRoomId !== 0) GetRoomEngine().disposeRoom(currentRoomId);
+        if (currentRoomId !== 0) {
+            GetRoomEngine().disposeRoom(currentRoomId);
+            // `RoomSessionManager.disposeSession`: the ended session's content may go once nothing uses it.
+            GetRoomEngine().purgeRoomContent();
+        }
 
         currentRoomId = roomId;
 
@@ -45,6 +49,8 @@ export const registerRoomDirectoryHandlers = ({ subscribe }: WebSocketConnection
     const leaveRoom = () => {
         if (currentRoomId !== 0) {
             GetRoomEngine().disposeRoom(currentRoomId);
+            // `RoomSessionManager.disposeSession` -> `purgeRoomContent`.
+            GetRoomEngine().purgeRoomContent();
 
             currentRoomId = 0;
         }
