@@ -1,6 +1,7 @@
 import {
     IRoomObjectController,
     IRoomObjectEventHandler,
+    IRoomObjectEventHandlerStateTransfer,
     IRoomObjectModel,
     IRoomObjectMouseHandler,
     IRoomObjectUpdateMessage,
@@ -117,10 +118,13 @@ export class RoomObject implements IRoomObjectController {
         if (this._visualization) this._visualization.object = this;
     }
 
+    /** `RoomObject.setEventHandler`: a replacing logic that can carry state over takes it from the one it replaces. */
     public setLogic(logic: IRoomObjectEventHandler): void {
         if (this._logic === logic) return;
 
         const eventHandler = this._logic;
+
+        if (eventHandler && logic && 'transferStateFrom' in logic) (logic as IRoomObjectEventHandler & IRoomObjectEventHandlerStateTransfer).transferStateFrom(eventHandler);
 
         if (eventHandler) {
             this._logic = null!;

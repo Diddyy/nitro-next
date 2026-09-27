@@ -1,4 +1,4 @@
-import { IRoomObjectController, IRoomObjectModel, IRoomObjectUpdateMessage, IVariableFxStatusModelEntry, IVector3D, RoomObjectMoveEvent, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
+import { IRoomObjectController, IRoomObjectEventHandler, IRoomObjectEventHandlerStateTransfer, IRoomObjectModel, IRoomObjectUpdateMessage, IVariableFxStatusModelEntry, IVector3D, RoomObjectMoveEvent, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 
 import { GetTickerTime } from '#renderer/utils';
 
@@ -14,7 +14,7 @@ const VARIABLE_FX_CHANGE_UP = 2;
 const VARIABLE_FX_CHANGE_DOWN = 4;
 const VARIABLE_FX_CHANGE_SAME = 8;
 
-export class MovingObjectLogic extends ObjectLogicBase {
+export class MovingObjectLogic extends ObjectLogicBase implements IRoomObjectEventHandlerStateTransfer {
     public static DEFAULT_UPDATE_INTERVAL: number = 500;
     private static TEMP_VECTOR: Vector3d = new Vector3d();
 
@@ -64,20 +64,23 @@ export class MovingObjectLogic extends ObjectLogicBase {
         super.update(time);
 
         const locationOffset = this.getLocationOffset();
+        const model = this.object?.model;
 
-        if (locationOffset) {
-            if (this._liftAmount !== locationOffset.z) {
-                this._liftAmount = locationOffset.z;
+        if (model) {
+            if (locationOffset) {
+                if (this._liftAmount !== locationOffset.z) {
+                    this._liftAmount = locationOffset.z;
 
-                this.object.model.setValue(RoomObjectVariableEnum.FurnitureLiftAmount, this._liftAmount);
+                    model.setValue(RoomObjectVariableEnum.FurnitureLiftAmount, this._liftAmount);
+                }
+            } else if (this._liftAmount !== 0) {
+                this._liftAmount = 0;
+
+                model.setValue(RoomObjectVariableEnum.FurnitureLiftAmount, this._liftAmount);
             }
-        } else if (this._liftAmount !== 0) {
-            this._liftAmount = 0;
 
-            this.object.model.setValue(RoomObjectVariableEnum.FurnitureLiftAmount, this._liftAmount);
+            this.updateVariableFxPublication(time, model);
         }
-
-        this.updateVariableFxPublication(time, this.object?.model);
 
         if (this._locationDelta.length > 0 || locationOffset) {
             const vector = MovingObjectLogic.TEMP_VECTOR;
@@ -102,7 +105,7 @@ export class MovingObjectLogic extends ObjectLogicBase {
                 vector.z += this.calculateCurveOffset(difference, this._updateInterval);
             }
 
-            this.object.setLocation(vector);
+            if (this.object) this.object.setLocation(vector);
 
             if (difference === this._updateInterval) {
                 this._locationDelta.x = 0;
@@ -119,42 +122,51 @@ export class MovingObjectLogic extends ObjectLogicBase {
     public override processUpdateMessage(message: IRoomObjectUpdateMessage): void {
         if (!message) return;
 
-        if (this.processVariableFxStatusMessage(message)) return;
-
         super.processUpdateMessage(message);
 
-        if (message instanceof ObjectMoveUpdateMessage) {
-            if (message.skipPositionUpdate) return;
+        const moveMessage = message instanceof ObjectMoveUpdateMessage ? message : undefined;
 
-            if (message.location) {
-                this._location.assign(message.location);
+        if (moveMessage?.skipPositionUpdate) return;
 
-                this._locationDelta.x = 0;
-                this._locationDelta.y = 0;
-                this._locationDelta.z = 0;
+        if (message.location) this._location.assign(message.location);
 
-                if (message.targetLocation) {
-                    this._updateInterval = Math.max(1, isNaN(message.animationTime) ? MovingObjectLogic.DEFAULT_UPDATE_INTERVAL : message.animationTime);
-
-                    const overshootTime = message.overshootAnimationTime;
-                    const curveStrength = this.getCurveStrength(message);
-
-                    if (!isNaN(overshootTime) && overshootTime === 0) this._overshootTime = NaN;
-                    else this._overshootTime = overshootTime;
-
-                    if (!isNaN(curveStrength) && curveStrength === 0) this._curveStrength = NaN;
-                    else this._curveStrength = curveStrength;
-
-                    this._changeTime = this._lastUpdateTime > 0 ? this._lastUpdateTime : GetTickerTime();
-                    this._locationDelta.assign(message.targetLocation);
-                    this._locationDelta.subtract(this._location);
-
-                    this.fixDeltaAndIntervalForOvershooting();
-                }
-            }
-
-            return;
+        if (message.location) {
+            this._locationDelta.x = 0;
+            this._locationDelta.y = 0;
+            this._locationDelta.z = 0;
         }
+
+        if (!moveMessage) return;
+
+        if (this.object && message.location) {
+            const targetLocation = moveMessage.targetLocation;
+            const animationTime = isNaN(moveMessage.animationTime) ? MovingObjectLogic.DEFAULT_UPDATE_INTERVAL : moveMessage.animationTime;
+
+            this.setMoveUpdateInterval(animationTime, moveMessage.overshootAnimationTime, this.getCurveStrength(moveMessage));
+
+            this._changeTime = this._lastUpdateTime > 0 ? this._lastUpdateTime : GetTickerTime();
+            if (targetLocation) this._locationDelta.assign(targetLocation);
+            this._locationDelta.subtract(this._location);
+
+            this.fixDeltaAndIntervalForOvershooting();
+        }
+    }
+
+    /** `MovingObjectLogic.transferStateFrom`: a replacing logic takes over the Variable FX state of the one it replaces. */
+    public transferStateFrom(handler: IRoomObjectEventHandler): void {
+        if (!(handler instanceof MovingObjectLogic) || handler === this) return;
+
+        this._variableFxStatuses = handler._variableFxStatuses;
+        this._variableFxStatusUpdateId = handler._variableFxStatusUpdateId;
+        this._variableFxPublicationId = handler._variableFxPublicationId;
+        this._variableFxManagerUpdateId = handler._variableFxManagerUpdateId;
+        this._variableFxNextExpiry = handler._variableFxNextExpiry;
+        this._variableFxDirty = handler._variableFxDirty;
+        this._variableFxHovered = handler._variableFxHovered;
+        this._variableFxPublished = handler._variableFxPublished;
+
+        handler._variableFxStatuses = undefined;
+        handler._variableFxPublished = undefined;
     }
 
     public override setObject(object: IRoomObjectController): void {
@@ -375,12 +387,6 @@ export class MovingObjectLogic extends ObjectLogicBase {
         return this._lastUpdateTime;
     }
 
-    protected set updateInterval(interval: number) {
-        if (interval <= 0) interval = 1;
-
-        this._updateInterval = interval;
-    }
-
     protected getCurveStrength(message: ObjectMoveUpdateMessage): number {
         return message.curveStrength;
     }
@@ -393,24 +399,23 @@ export class MovingObjectLogic extends ObjectLogicBase {
         if (!isNaN(overshootTime) && overshootTime === 0) this._overshootTime = NaN;
         else this._overshootTime = overshootTime;
 
-        if (!isNaN(curveStrength) && curveStrength === 0) this._curveStrength = NaN;
-        else this._curveStrength = curveStrength;
+        this._curveStrength = curveStrength;
     }
 
-    protected fixDeltaAndIntervalForOvershooting(): void {
+    private fixDeltaAndIntervalForOvershooting(): void {
         if (!isNaN(this._overshootTime) && this._overshootTime !== 0 && this._updateInterval !== 0) {
-            const prevZ = this._location.z;
+            const prevZ = this._locationDelta.z;
 
-            this._location.multiply((this._updateInterval + this._overshootTime) / this._updateInterval);
-            this._location.z = prevZ;
+            this._locationDelta.multiply((this._updateInterval + this._overshootTime) / this._updateInterval);
+            this._locationDelta.z = prevZ;
 
             this._updateInterval += this._overshootTime;
         }
     }
 
-    protected calculateCurveOffset(diff: number, time: number): number {
-        if (isNaN(this._curveStrength) || this._curveStrength == 0) return 0;
+    private calculateCurveOffset(diff: number, time: number): number {
+        if (isNaN(this._curveStrength) || this._curveStrength === 0) return 0;
 
-        return 4 * (this._curveStrength / 100 * (this._location.length / 4) / (time * time)) * diff * (time - diff);
+        return 4 * (this._curveStrength / 100 * (this._locationDelta.length / 4) / (time * time)) * diff * (time - diff);
     }
 }

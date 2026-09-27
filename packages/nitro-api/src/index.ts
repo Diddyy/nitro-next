@@ -282,6 +282,7 @@ export * from './room/object/IRoomObjectModel';
 export * from './room/object/IRoomObjectSpriteData';
 export * from './room/object/IRoomObjectUpdateMessage';
 export * from './room/object/logic/IRoomObjectEventHandler';
+export * from './room/object/logic/IRoomObjectEventHandlerStateTransfer';
 export * from './room/object/logic/IRoomObjectLogicFactory';
 export * from './room/object/logic/IRoomObjectMouseHandler';
 export * from './room/object/RoomObjectCategoryEnum';

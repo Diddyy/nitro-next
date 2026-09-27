@@ -21,6 +21,7 @@ export * from './IRoomObjectModel';
 export * from './IRoomObjectSpriteData';
 export * from './IRoomObjectUpdateMessage';
 export * from './logic/IRoomObjectEventHandler';
+export * from './logic/IRoomObjectEventHandlerStateTransfer';
 export * from './logic/IRoomObjectLogicFactory';
 export * from './logic/IRoomObjectMouseHandler';
 export * from './RoomObjectCategoryEnum';
