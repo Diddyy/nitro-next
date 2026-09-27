@@ -93,6 +93,8 @@ export class PetLogic extends MovingObjectLogic {
 
         super.processUpdateMessage(message);
 
+        if (this.processVariableFxStatusMessage(message)) return;
+
         if (message instanceof ObjectAvatarUpdateMessage) {
             this.object.model.setValue(RoomObjectVariableEnum.HeadDirection, message.headDirection);
 

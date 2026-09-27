@@ -168,6 +168,8 @@ export class AvatarLogic extends MovingObjectLogic {
 
         super.processUpdateMessage(message);
 
+        if (this.processVariableFxStatusMessage(message)) return;
+
         if (message instanceof ObjectAvatarPostureUpdateMessage) {
             this.object.model.setValue(RoomObjectVariableEnum.FigurePosture, message.postureType);
             this.object.model.setValue(RoomObjectVariableEnum.FigurePostureParameter, message.parameter);

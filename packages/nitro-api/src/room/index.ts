@@ -55,6 +55,7 @@ export * from './object/IRoomObjectModel';
 export * from './object/IRoomObjectSpriteData';
 export * from './object/IRoomObjectUpdateMessage';
 export * from './object/logic/IRoomObjectEventHandler';
+export * from './object/logic/IRoomObjectEventHandlerStateTransfer';
 export * from './object/logic/IRoomObjectLogicFactory';
 export * from './object/logic/IRoomObjectMouseHandler';
 export * from './object/RoomObjectCategoryEnum';

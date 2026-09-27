@@ -14,7 +14,7 @@ export class FurniturePushableLogic extends FurnitureMultiStateLogic {
     constructor() {
         super();
 
-        this.updateInterval = MovingObjectLogic.DEFAULT_UPDATE_INTERVAL;
+        this.setMoveUpdateInterval(MovingObjectLogic.DEFAULT_UPDATE_INTERVAL);
     }
 
     public override update(time: number): void {
@@ -57,10 +57,9 @@ export class FurniturePushableLogic extends FurnitureMultiStateLogic {
 
         if (message instanceof ObjectDataUpdateMessage) {
             if (message.state > 0) {
-                this.updateInterval
-                    = MovingObjectLogic.DEFAULT_UPDATE_INTERVAL / this.getUpdateIntervalValue(message.state);
+                this.setMoveUpdateInterval(MovingObjectLogic.DEFAULT_UPDATE_INTERVAL / this.getUpdateIntervalValue(message.state));
             } else {
-                this.updateInterval = 1;
+                this.setMoveUpdateInterval(1);
             }
 
             const animation = this.getAnimationValue(message.state);
