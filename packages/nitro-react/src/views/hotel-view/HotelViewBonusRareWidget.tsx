@@ -1,6 +1,6 @@
 /**
  * `BonusRarePromoWidget`: `bonus_rare_promo` - the rare every so many credits spent buys, and how
- * far the user is from the next one (`BonusRareInfoMessage`, asked for by `activateLandingView`).
+ * far the user is from the next one (`BonusRareInfoMessage`, asked for by `registerHotelViewHandlers`).
  *
  * The widget keeps its place in the grid but is hidden until the server has named a rare
  * (`productClassId` -1 until then), and its texts and bar are only filled once the rare's product
@@ -12,12 +12,8 @@
  * (`web.shop.relativeUrl`) beside the client; the port has no hotel web page to open it under - see
  * `purchaseCredits` in `commands/targetedOfferCommands.ts` - so it is drawn and does nothing.
  */
-import { useLandingViewStore } from '#base/context/landing-view';
-import { useConfigData, useSystemStore, useTranslation } from '#base/context/system';
-import { Border, Box, Button, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
-import { configReader } from '#base/utils';
-
-import { HotelViewColorable } from './hotelViewColorable';
+import { hotelViewProperty, useConfigData, useSystemStore, useTranslation } from '#base/context/system';
+import { Border, Box, Button, ColorableTextFormat, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
 
 /** `bonus_rare_promo`'s size. */
 const WIDTH = 602;
@@ -28,15 +24,22 @@ const BAR_FILL_X = 4;
 const BAR_FILL_WIDTH = 292;
 
 export interface HotelViewBonusRareWidgetProps {
-    colorable: HotelViewColorable;
+    colorable: ColorableTextFormat;
 }
 
 export const HotelViewBonusRareWidget = ({ colorable }: HotelViewBonusRareWidgetProps) => {
-    const bonusRare = useLandingViewStore(x => x.bonusRare);
-    const product = useSystemStore(x => x.productData[bonusRare.productType]);
+    const bonusRare = useSystemStore(x => x.hotelViewBonusRare);
+    const product = useSystemStore(x => x.productData[bonusRare?.productType ?? '']);
     const config = useConfigData();
     const t = useTranslation();
-    const { configString } = configReader(config);
+    const configString = (key: string) => hotelViewProperty(config, key);
+
+    if (!bonusRare) return (
+        <Box
+            visible={false}
+            layout={{ width: WIDTH, height: HEIGHT }}
+        />
+    );
 
     const visible = bonusRare.productClassId !== -1;
     const total = bonusRare.totalCoinsForBonus;
@@ -76,7 +79,7 @@ export const HotelViewBonusRareWidget = ({ colorable }: HotelViewBonusRareWidget
                             name="header"
                             text={t('landing.view.bonus.rare.header', '', { rarename: product.name, amount: String(total) })}
                             textStyle="u_headline_medium"
-                            textOptions={{ ...colorable.textOptions, align: 'center' }}
+                            textOptions={{ ...(colorable.fill ? { fill: colorable.fill } : {}), align: 'center' }}
                             flashFormat={colorable.flashFormat}
                             verticalAlign="top"
                             layout={{ position: 'absolute', left: 0, width: 304, top: 5, alignItems: 'center' }}

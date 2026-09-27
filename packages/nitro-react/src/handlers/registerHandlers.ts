@@ -7,7 +7,6 @@ import { registerGameTokensHandlers } from './game-tokens';
 import { registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
-import { registerLandingViewHandlers } from './landing-view';
 import { registerNavigatorHandlers, registerRoomQueueHandlers } from './navigator';
 import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
@@ -20,6 +19,7 @@ import {
     registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomYoutubeHandlers,
 } from './room';
 import { registerSpecialItemsHandlers } from './special-items';
+import { registerHotelViewHandlers } from './system';
 import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerMessengerHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
 import { registerProfileHandlers } from './user-profile';
 import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
@@ -36,6 +36,7 @@ import { bridgeWiredTradingLifecycle, registerSelfDonationHandlers, registerWire
  */
 export const registerHandlers = (socket: WebSocketConnection) => {
     const unsubscribes = [
+        registerHotelViewHandlers(socket),
         registerRoomAreaHideHandlers(socket),
         registerRoomChatHandlers(socket),
         registerRoomConfigurationItemsHandlers(socket),
@@ -68,7 +69,6 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomRentableSpaceHandlers(socket),
         registerRoomYoutubeHandlers(socket),
         registerNavigatorHandlers(socket),
-        registerLandingViewHandlers(socket),
         registerRoomQueueHandlers(socket),
         // The server's own bubbles and alerts, after the room and navigator listeners that may raise one.
         registerNotificationHandlers(socket),

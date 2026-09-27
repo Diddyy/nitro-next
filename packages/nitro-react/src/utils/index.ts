@@ -20,7 +20,6 @@ export * from './GetLaunchParameter';
 export * from './GetPixelRatio';
 export * from './habbiconAssets';
 export * from './IsRetinaDisplay';
-export * from './landingView';
 export * from './localizationData';
 export * from './localizationParameters';
 export * from './marketplace';
