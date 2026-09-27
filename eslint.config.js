@@ -50,6 +50,9 @@ const config = [
             '**/eslint.config.js',
             '**/postcss.config.js',
             '**/vite.config.*',
+            // Nitro Studio's converter (it began as nitro-tools'): it keeps its own (non-strict)
+            // tsconfig and style, which lint's autofix would break.
+            'packages/nitro-studio/converter/**',
             // Standalone Node build tools, deliberately excluded from the app's own
             // tsconfig (they need `.ts`-extension imports for plain `node` execution,
             // which the app's tsc project disallows) - no tsconfig covers them for
@@ -131,7 +134,7 @@ const config = [
         },
     },
     {
-        files: ['packages/nitro-react/**/*.{ts,tsx}'],
+        files: ['packages/nitro-react/**/*.{ts,tsx}', 'packages/nitro-studio/src/**/*.{ts,tsx}'],
         plugins: {
             ...reactHooks.configs.flat['recommended-latest'].plugins,
             'react-refresh': reactRefresh,

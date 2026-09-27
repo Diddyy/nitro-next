@@ -24,7 +24,7 @@ packet ownership and verification across both repositories.
 | Extracted component resources | Layout/skin XML, fonts and images grouped by their owning library |
 | Hotel external variables and localization data | Feature gating, text keys and configuration values |
 | Packet generator output | Candidate parser/composer bodies; validate against AS3 |
-| Asset manager checkout and configured workspace | Import and manage hotel assets, gamedata, localization and versions; see [asset manager workflow](asset-manager.md) |
+| Nitro Studio checkout and configured workspace | Import and manage hotel assets, gamedata, localization and versions; see [Nitro Studio workflow](nitro-studio.md) |
 | Turbo checkout and running server | Verify packet exchanges and implement server behavior |
 
 These resources are supplied separately. Paths in the topic guides are repository-relative unless
@@ -34,7 +34,7 @@ assume every generator supports the same environment variables.
 
 ## Tool availability
 
-The asset manager is useful shared tooling even when it is absent from a developer's checkout.
+Nitro Studio is useful shared tooling even when it is absent from a developer's checkout.
 Keep its workflow and integration contracts documented; local availability does not determine
 whether a tool belongs in the project. Use its own README for setup and version-specific commands.
 

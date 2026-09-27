@@ -25,7 +25,7 @@ const BUNDLE_NAME = 'chat-styles';
  * per-style try/catch.
  *
  * A hotel with styles of its own serves the whole bundle itself - the client's styles and its own, built
- * by the asset manager's chat bubble builder - and names it with `chat.styles.url` (`assetBundleUrl`):
+ * by Nitro Studio's chat bubble builder - and names it with `chat.styles.url` (`assetBundleUrl`):
  * the library reads it exactly as it reads the client's.
  */
 export class ChatStyleLibrary {

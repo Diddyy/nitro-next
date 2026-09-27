@@ -4,8 +4,8 @@
  * `Volter Bold` is both a weight of Volter and a family of its own.
  *
  * A module of its own, with no imports, because two loaders read it: `preloadFlashFonts` registers the
- * faces from the `fonts` bundle at the client's boot, and the asset manager's chat bubble builder
- * (`packages/nitro-asset-manager/src/lib/flashText.ts`) registers the same bundles to draw its bubbles
+ * faces from the `fonts` bundle at the client's boot, and Nitro Studio's chat bubble builder
+ * (`packages/nitro-studio/src/lib/flashText.ts`) registers the same bundles to draw its bubbles
  * in the client's own text.
  */
 export interface FlashFontFace {

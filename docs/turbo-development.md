@@ -16,14 +16,14 @@ works independently. Use each developer's own checkout locations; no shared abso
 | Protocol revision | `production.version` in the loaded client configuration | Registered `IRevision.Revision`; session selected by `ClientHelloMessageHandler` |
 | Connection | `socket.url` | `serverOptions:WebSocketServer:listeners` and any configured proxy/TLS endpoint |
 | Authentication | `sso` URL query parameter sent by `SSOTicketComposer` | `SSOTicketMessageHandler` and `AuthenticationService` |
-| Gamedata and assets | Loaded config URLs, asset bundles and furniture definitions | Development hotel's definitions, catalog and room models; coordinated through the asset manager |
+| Gamedata and assets | Loaded config URLs, asset bundles and furniture definitions | Development hotel's definitions, catalog and room models; coordinated through Nitro Studio |
 | Test state | Dedicated account, room and fixture | The same account and room in the configured development database |
 
 The inspected revision is `WIN63-202609091217-117204808`, implemented under
 `Turbo.Revisions/Revision20260909/`. Confirm the current registration when changing revisions;
 updating the client's version string alone does not update packet headers or payload layouts.
 Keep asset imports, configuration and database definitions consistent with the fixture being tested.
-See [asset manager workflow](asset-manager.md) for workspace and version management.
+See [Nitro Studio workflow](nitro-studio.md) for workspace and version management.
 
 ## Start the development environment
 
@@ -123,7 +123,7 @@ running. Keep diagnostic reports under ignored `tmp/`, with credentials and pers
 | Socket opens but login fails | Matching revision, ticket for this database, ticket consumption and SSO handler logs |
 | Login works but an action does nothing | Outgoing registration, Turbo parser/handler mapping, permission/configuration gates |
 | Server sends data but UI does not update | Field order/types, incoming registration, subscription and current store state |
-| Furniture appears incorrectly or assets return 404 | Asset-manager workspace, generated URLs, imported definitions, bundles and room fixture |
+| Furniture appears incorrectly or assets return 404 | Nitro Studio workspace, generated URLs, imported definitions, bundles and room fixture |
 | Change disappears after re-entry | Owning grain, persistence path, reset/reload behavior and cached state |
 
 ## Cross-repository handoff

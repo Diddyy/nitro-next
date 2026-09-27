@@ -83,7 +83,7 @@ at the first `=`, `\n` is a line break):
    language's file over it. Most `wiredmenu.*` texts exist only here.
 2. `gamedata.urls.externalTexts` - the hotel's texts, which override the first.
 
-Both come from the asset manager (`packages/nitro-asset-manager`): the hotel's texts from its Habbo
+Both come from Nitro Studio (`packages/nitro-studio`): the hotel's texts from its Habbo
 import, the default localizations from the client SWF (`HabboAir.swf`) given on its Habbo assets
 page; a text that is wrong or cut off is fixed there, never patched in the client. Use Flash's
 key and Flash's parameter names (`t('infostand.text.badges_rank', '', { rank: '#3' })` fills

@@ -12,7 +12,9 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "clean": "yarn workspaces foreach --all -pt run clean",
-        "dev": "yarn workspace @nitrodevco/nitro-react dev"
+        "dev": "yarn workspace @nitrodevco/nitro-react dev",
+        "build-client": "yarn workspace @nitrodevco/nitro-react build",
+        "start-studio": "yarn workspace @nitrodevco/nitro-studio start"
     },
     "dependencies": {
         "pixi.js": "^8.18.1"

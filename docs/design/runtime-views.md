@@ -119,7 +119,7 @@ with a dynamic `import()`:
 
 ## The tool
 
-Put it in `nitro-asset-manager`. It already manages bundles, workspaces and versions, serves
+Put it in `nitro-studio`. It already manages bundles, workspaces and versions, serves
 the hotel's assets, and has a preview surface (`src/preview`). Pages:
 
 - **Theme editor:** pick a `(type, style)`, see it rendered at several sizes and states with a
@@ -132,7 +132,7 @@ the hotel's assets, and has a preview surface (`src/preview`). Pages:
 - **Pack builder:** writes `<pack>.nitro` (the templates' JSON, variant JSON, an atlas, and a
   manifest with id, version, schemaVersion and the client revision). The client lists packs in
   `nitro-config.json` (`theme.packs`, `views.packs`).
-- **Dev loop:** the asset manager pushes pack changes to a running `yarn dev` over a websocket,
+- **Dev loop:** Nitro Studio pushes pack changes to a running `yarn dev` over a websocket,
   and the client swaps the registry entry. That gives hot reload without a Vite rebuild.
 
 ## Production checklist
@@ -144,7 +144,7 @@ the hotel's assets, and has a preview surface (`src/preview`). Pages:
   laid out.
 - Validate at load with the schema, fall back to the built-in, and report once per template.
 - Memoise the parsed tree by `(templateId, packVersion)`.
-- Add a drift-style check in the asset manager: every template validated against the current
+- Add a drift-style check in Nitro Studio: every template validated against the current
   slot schemas before a pack is published.
 
 ## Recommendation

@@ -1,7 +1,7 @@
 # Client code conventions
 
 Read the relevant sections when changing `packages/nitro-react` code. Paths below are relative
-to that package. These conventions also apply when reviewing the affected code. For asset-manager
+to that package. These conventions also apply when reviewing the affected code. For Nitro Studio
 UI, follow that application's own conventions; the client's Pixi-only rule does not apply to it.
 
 ```
@@ -212,6 +212,6 @@ like `BoxPixi` used to mean it had a DOM twin. `Pixi` in a name is the library
   (`badge.leaderboard.enabled` hid a badge rank Flash shows unconditionally). Flash reads them from
   the hotel's `external_variables`; this client does not load that file, so every key the hotel
   sets and the port reads goes into `public/config/nitro-config.json` with the hotel's value
-  (the asset manager's `gamedata/ExternalVariables.json`). A missing one is silently Flash's default -
+  (Nitro Studio's `gamedata/ExternalVariables.json`). A missing one is silently Flash's default -
   that is how `wired.menu.enabled` kept the wired menu off in the user's own room. `getBoolean`
   defaults to false, so a fallback is `=== true`, not `?? true`. `config_keys.py` checks all of it.

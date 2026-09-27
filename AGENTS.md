@@ -8,7 +8,7 @@ A Habbo Flash client port using Pixi v8 and React, with Yarn workspaces under `p
 | `nitro-packets` | Incoming parsers, outgoing composers and header maps |
 | `nitro-renderer` | Room engine, object logic, visualizations and asset loading |
 | `nitro-react` | Client UI rendered through Pixi |
-| `nitro-asset-manager` | Asset imports/conversion, versioned workspaces, gamedata and Turbo catalog integration; separate web application |
+| `nitro-studio` | Asset imports/conversion, versioned workspaces, gamedata and Turbo catalog integration; separate web application in its own git repository, checked out here |
 
 ## Core contracts
 
@@ -18,7 +18,7 @@ A Habbo Flash client port using Pixi v8 and React, with Yarn workspaces under `p
   reset, mutable-value ownership and numeric units when they affect the change.
 - Turbo is the development server. Use its configured endpoint and Turbo-issued SSO tickets.
   Implement missing server behavior in the development Turbo checkout and check the real exchange.
-- The client renders through Pixi; React DOM only mounts the canvas. The asset-manager web app
+- The client renders through Pixi; React DOM only mounts the canvas. The Nitro Studio web app
   has its own UI stack and conventions. Keep its documentation even if it is absent locally.
 - Preserve existing work. Keep personal paths, credentials, private reference attribution and
   generated diagnostic output out of shared files and commits.
@@ -35,7 +35,7 @@ Use the relevant references below; a small edit does not require reading every g
 | A view or layout | [Layout views](docs/layout-views.md), [porting gotchas](docs/porting-gotchas.md) |
 | Fonts, localization or text rendering | [Text](docs/text.md) |
 | Bundled images, fonts or asset loading | [Asset bundles](docs/asset-bundles.md) |
-| Asset imports, workspace versions, gamedata or catalog publishing | [Asset manager](docs/asset-manager.md) |
+| Asset imports, workspace versions, gamedata or catalog publishing | [Nitro Studio](docs/nitro-studio.md) |
 | Parsers, composers or packet registration | [Packets](docs/packets.md) |
 | Wired definitions, setup views or stores | [Wired](docs/wired.md) |
 | Revision updates or copied reference tables | [Staying in step](docs/staying-in-step.md) |
