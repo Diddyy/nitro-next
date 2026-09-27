@@ -6,15 +6,17 @@ import {
     IRoomObjectEvent,
     IRoomSpriteMouseEvent,
     RoomObjectCategoryEnum,
-    type RoomObjectEvent, RoomSpriteMouseEvent } from '@nitrodevco/nitro-api';
+    type RoomObjectEvent, RoomObjectFurniIconAssetEvent, RoomSpriteMouseEvent } from '@nitrodevco/nitro-api';
 
+import { GetFurniIconImageManager } from './FurniIconImageManager';
 import { RoomEnterEffect } from './utils';
 
 /**
  * The engine's end of Flash `RoomObjectEventHandler`: room object events and canvas mouse events
  * pass through here on their way to the UI, which holds the rest of that class
  * (`RoomEventHandler.tsx`, `useRoomEventHandler`). What is decided here is what Flash decided
- * before looking at the event at all - the head of `processRoomCanvasMouseEvent`.
+ * before looking at the event at all - the head of `processRoomCanvasMouseEvent` - and the one
+ * request the engine answers without the UI, a furni asking for another furni's icon.
  */
 export class RoomEventHandler implements IRoomEventHandler {
     private _roomObjectEventHandler: ((event: RoomObjectEvent) => void) | undefined = undefined;
@@ -23,7 +25,18 @@ export class RoomEventHandler implements IRoomEventHandler {
     constructor(private _room: IRoom) { }
 
     public handleRoomObjectEvent(event: RoomObjectEvent): void {
-        if (!event || !this._roomObjectEventHandler) return;
+        if (!event) return;
+
+        // `RoomObjectEventHandler.handleObjectFurniIconAssetEvent`: Flash's room engine answered this itself.
+        if (event instanceof RoomObjectFurniIconAssetEvent && event.type === RoomObjectFurniIconAssetEvent.LOAD_FURNI_ICON) {
+            const object = this._room.getRoomObject(event.objectId, this._room.getRoomObjectCategoryForType(event.objectType));
+
+            if (object) GetFurniIconImageManager().requestFurniIconAsset(object, event.wallItem, event.typeId, event.extra);
+
+            return;
+        }
+
+        if (!this._roomObjectEventHandler) return;
 
         this._roomObjectEventHandler(event);
     }

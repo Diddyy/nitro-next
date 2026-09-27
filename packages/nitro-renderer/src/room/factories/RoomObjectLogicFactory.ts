@@ -24,6 +24,7 @@ import { AvatarLogic,
     FurnitureExternalImageLogic,
     FurnitureFireworksLogic,
     FurnitureFloorHoleLogic,
+    FurnitureFurniChestLogic,
     FurnitureGuildCustomizedLogic,
     FurnitureGuildForumTerminalLogic,
     FurnitureHabboWheelLogic,
@@ -42,6 +43,7 @@ import { AvatarLogic,
     FurnitureMysteryBoxLogic,
     FurnitureMysteryTrophyLogic,
     FurnitureNftCreditLogic,
+    FurnitureNftRewardBoxLogic,
     FurnitureOneWayDoorLogic,
     FurniturePetProductLogic,
     FurniturePlaceholderLogic,
@@ -62,9 +64,11 @@ import { AvatarLogic,
     FurnitureSoundMachineLogic,
     FurnitureStickieLogic,
     FurnitureTrophyLogic,
+    FurnitureVimeoLogic,
     FurnitureVoteCounterLogic,
     FurnitureVoteMajorityLogic,
     FurnitureWelcomeGiftLogic,
+    FurnitureWildWestWantedLogic,
     FurnitureWindowLogic,
     FurnitureYoutubeLogic,
     ObjectLogicBase,
@@ -197,6 +201,8 @@ export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
                 logic = FurnitureRoomBillboardLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_FURNI_CHEST:
+                logic = FurnitureFurniChestLogic;
+                break;
             case RoomObjectLogicType.FURNITURE_COINS_CHEST:
                 logic = FurnitureChestLogic;
                 break;
@@ -302,11 +308,17 @@ export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
             case RoomObjectLogicType.FURNITURE_NFT_CREDIT:
                 logic = FurnitureNftCreditLogic;
                 break;
-            // Flash builds five more types that deliberately land here on the basic logic:
-            // `furniture_nft_reward_box` (its open dialog is not ported, and no server this client
-            // speaks to sends it), `furniture_vimeo` (video is out of scope),
-            // `furniture_wildwest_wanted` (cosmetic) and the snowwar
-            // `game_snowball` / `game_snowsplash` (they need the game engine). Run
+            case RoomObjectLogicType.FURNITURE_NFT_REWARD_BOX:
+                logic = FurnitureNftRewardBoxLogic;
+                break;
+            case RoomObjectLogicType.FURNITURE_WILDWEST_WANTED:
+                logic = FurnitureWildWestWantedLogic;
+                break;
+            case RoomObjectLogicType.FURNITURE_VIMEO:
+                logic = FurnitureVimeoLogic;
+                break;
+            // Flash builds two more types that deliberately land here on the basic logic: the
+            // snowwar `game_snowball` / `game_snowsplash`, which need the game engine. Run
             // `scripts/drift/factories.py` after a revision bump to see whether that list grew.
             default:
                 logic = FurnitureLogic;

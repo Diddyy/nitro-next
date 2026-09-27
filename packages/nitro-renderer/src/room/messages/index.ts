@@ -25,6 +25,7 @@ export * from './ObjectAvatarTypingUpdateMessage';
 export * from './ObjectAvatarUpdateMessage';
 export * from './ObjectAvatarUseObjectUpdateMessage';
 export * from './ObjectDataUpdateMessage';
+export * from './ObjectFurniIconUpdateMessage';
 export * from './ObjectGroupBadgeUpdateMessage';
 export * from './ObjectHeightUpdateMessage';
 export * from './ObjectItemDataUpdateMessage';

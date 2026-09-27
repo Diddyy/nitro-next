@@ -20,6 +20,7 @@ import { AnimatedFurnitureVisualization,
     FurnitureCuboidVisualization,
     FurnitureExternalImageVisualization,
     FurnitureFireworksVisualization,
+    FurnitureFurniChestVisualization,
     FurnitureGiftWrappedFireworksVisualization,
     FurnitureGiftWrappedVisualization,
     FurnitureGuildCustomizedVisualization,
@@ -103,6 +104,8 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
                 visualization = FurnitureIsometricBBVisualization;
                 break;
             case RoomObjectVisualizationType.FURNITURE_FURNI_CHEST:
+                visualization = FurnitureFurniChestVisualization;
+                break;
             case RoomObjectVisualizationType.FURNITURE_COINS_CHEST:
                 visualization = FurnitureChestVisualization;
                 break;
