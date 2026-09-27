@@ -61,6 +61,10 @@ export class PlaneVisualization {
         return true;
     }
 
+    public getLayers(): (PlaneVisualizationLayer | PlaneVisualizationAnimationLayer | undefined)[] {
+        return this._layers;
+    }
+
     /**
      * Draws every layer onto `canvas` when it is `width` x `height`, or onto a new canvas when it is
      * not. The canvas drawn on is returned and belongs to the caller.

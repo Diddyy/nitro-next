@@ -43,7 +43,7 @@ export class PlaneVisualizationLayer {
         const tinted = (red < 255) || (green < 255) || (blue < 255);
 
         if (!this._material) {
-            fillPlaneCanvas(canvas, this._color);
+            fillPlaneCanvas(canvas, this._color, true);
 
             return canvas;
         }

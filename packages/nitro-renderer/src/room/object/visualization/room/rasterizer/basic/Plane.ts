@@ -62,4 +62,9 @@ export class Plane {
 
         return this._lastPlaneVisualization;
     }
+
+    /** Flash `getLayers`: the layers of the visualization last drawn. */
+    public getLayers(): ReturnType<PlaneVisualization['getLayers']> {
+        return this.getPlaneVisualization(this._lastSize)?.getLayers() ?? [];
+    }
 }
