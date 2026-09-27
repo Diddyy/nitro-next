@@ -7,8 +7,9 @@ const state = notificationStore.getState();
  * time here rather than subscribed to: a component using these re-renders for nothing.
  *
  * `addNotification` and `removeNotificationById` are Flash's `IHabboNotifications.addItem` and
- * `removeNotificationById`, for any feature that raises a bubble; the rest is the notifications
- * view reporting back.
+ * `removeNotificationById`, for any feature that raises a bubble; the popup pair opens and closes
+ * a `NotificationPopup` (open one through `showNotification` in `commands/notificationCommands`);
+ * the rest is the notifications view reporting back.
  */
 const actions = {
     addNotification: state.addNotification,
@@ -18,6 +19,8 @@ const actions = {
     finishNotification: state.finishNotification,
     setExtensionHeight: state.setExtensionHeight,
     setNotificationsDisabled: state.setNotificationsDisabled,
+    addNotificationPopup: state.addNotificationPopup,
+    removeNotificationPopup: state.removeNotificationPopup,
 };
 
 export const useNotificationActions = () => actions;

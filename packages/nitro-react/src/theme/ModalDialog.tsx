@@ -139,9 +139,13 @@ export const ModalDialog = ({ children }: ModalDialogProps) => {
                         alpha={BACKDROP_ALPHA}
                     />
                 </Box>
+                {/* `pointerTransparent`: the frame inside is absolutely positioned (a window is never
+                  * in a sibling's flow), so this box lays out 0x0 and its default hit area would
+                  * prune every press on the dialog. The stage-sized container above still bounds it. */}
                 <Box
                     ref={setDialogNode}
                     eventMode="passive"
+                    pointerTransparent
                     layout={{ position: 'absolute', left: x, top: y }}
                 >
                     {/* The dialog is placed on context 3's desktop: a `Frame` in here is this

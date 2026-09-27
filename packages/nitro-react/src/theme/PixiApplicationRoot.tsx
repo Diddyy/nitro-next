@@ -63,6 +63,8 @@ export const PixiApplicationRoot = ({ onReady, children }: PixiApplicationRootPr
 
         readyRef.current = true;
 
+        app.canvas.style = 'position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; image-rendering: pixelated;';
+
         SetRenderer(app.renderer);
         applyCanvasColorSpace(app, colorSpace);
 
@@ -85,7 +87,6 @@ export const PixiApplicationRoot = ({ onReady, children }: PixiApplicationRootPr
 
     return (
         <Application
-            className="fixed inset-0 z-0 size-full [image-rendering:pixelated]"
             onInit={handleInit}
             resizeTo={window}
             resolution={GetPixelRatio()}

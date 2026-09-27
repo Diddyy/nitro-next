@@ -24,22 +24,21 @@
  * nothing answers the requests below yet; this follows Flash.
  */
 import { FurnitureTypeEnum, IPurchasableOffer, NitroLogger } from '@nitrodevco/nitro-api';
-import { BuyHabbiconCollectionComposer, BuyHabbiconComposer, ClaimHabbiconComposer, FavoriteHabbiconComposer, GetHabbiconInfoComposer, GetHabbiconShopDataComposer, IHabbiconShopItem, ResetUnseenItemsComposer, UnfavoriteHabbiconComposer } from '@nitrodevco/nitro-packets';
+import { BuyHabbiconCollectionComposer, BuyHabbiconComposer, ClaimHabbiconComposer, FavoriteHabbiconComposer, GetHabbiconInfoComposer, GetHabbiconShopDataComposer, IHabbiconShopItem, UnfavoriteHabbiconComposer } from '@nitrodevco/nitro-packets';
 import { AvatarLogic, GetAssetManager } from '@nitrodevco/nitro-renderer';
 import type { Texture } from 'pixi.js';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { HabbiconEntryModel, HabbiconSetModel, habbiconsStore } from '#base/context/habbicons';
+import { getUnseenItemCount, inventoryStore, isUnseenItem, UnseenItemCategory } from '#base/context/inventory';
 import { systemStore } from '#base/context/system';
 import { textureFromCanvas } from '#base/theme';
 import { cutHabbiconFrame, dimHabbiconPreview, getOfferProduct, HABBICONS_COLLECTION_ICONS_SPRITESHEET_FILE, HABBICONS_METADATA_FILE, HABBICONS_SPRITESHEET_FILE, parseHabbiconMetadata, resolveHabbiconAssetRoot } from '#base/utils';
 
 import { resetPlacedOfferData } from './catalogPlacementCommands';
+import { removeInventoryUnseenItem, resetInventoryUnseenCategory, resetInventoryUnseenCategoryIfEmpty } from './inventoryUnseenCommands';
 
 type Send = WebSocketConnection['send'];
-
-/** `IHabboInventory`'s unseen item category of the habbicons (`UnseenItemTracker`, `getCount(8)`). */
-export const HABBICON_UNSEEN_CATEGORY = 8;
 
 /** `HabbiconController.habbiconsEnabled`. */
 export const habbiconsEnabled = (): boolean => systemStore.getState().config['habbicons.enabled'] === true;
@@ -90,28 +89,20 @@ export const noteHabbiconUsed = (habbiconId: number) => {
     notifyHabbiconChange('recent', habbiconId);
 };
 
-/** `isUnseenHabbicon`. */
-export const isUnseenHabbicon = (habbiconId: number): boolean => habbiconsStore.getState().unseenHabbiconIds.includes(habbiconId);
+/** `isUnseenHabbicon`: `unseenItemTracker.isUnseen(8, id)`. */
+export const isUnseenHabbicon = (habbiconId: number): boolean => isUnseenItem(inventoryStore.getState().unseenItems, UnseenItemCategory.HABBICONS, habbiconId);
 
-/** `unseenHabbiconCount`. */
-export const getUnseenHabbiconCount = (): number => habbiconsStore.getState().unseenHabbiconIds.length;
+/** `unseenHabbiconCount`: `unseenItemTracker.getCount(8)`. */
+export const getUnseenHabbiconCount = (): number => getUnseenItemCount(inventoryStore.getState().unseenItems, UnseenItemCategory.HABBICONS);
 
 /** `removeUnseenHabbicon`: `removeUnseen(8, id)`, then `resetCategoryIfEmpty(8)` - which tells the server whenever nothing is left unseen. */
 export const removeUnseenHabbicon = (send: Send, habbiconId: number) => {
-    const { removeUnseenHabbicon: remove } = habbiconsStore.getState();
-
-    remove(habbiconId);
-
-    if (!getUnseenHabbiconCount()) send(new ResetUnseenItemsComposer({ category: HABBICON_UNSEEN_CATEGORY }));
+    removeInventoryUnseenItem(UnseenItemCategory.HABBICONS, habbiconId);
+    resetInventoryUnseenCategoryIfEmpty(send, UnseenItemCategory.HABBICONS);
 };
 
 /** `resetUnseenHabbicons`: `resetCategory(8)`, which does nothing when nothing is unseen. */
-export const resetUnseenHabbicons = (send: Send) => {
-    if (!getUnseenHabbiconCount()) return;
-
-    habbiconsStore.getState().resetUnseenHabbicons();
-    send(new ResetUnseenItemsComposer({ category: HABBICON_UNSEEN_CATEGORY }));
-};
+export const resetUnseenHabbicons = (send: Send) => resetInventoryUnseenCategory(send, UnseenItemCategory.HABBICONS);
 
 /** `buyHabbicon`: the purchase result that follows is the controller's (`_pendingPurchaseRefresh`). */
 export const buyHabbicon = (send: Send, habbiconId: number) => {

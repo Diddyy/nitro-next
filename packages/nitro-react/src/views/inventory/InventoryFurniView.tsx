@@ -11,8 +11,8 @@
  * - While the list has not arrived, or holds nothing, the page draws none of that and
  *   `InventoryView` shows the loading or empty container (`updateContainerVisibility`).
  * - Opening the page asks for the list unless the one held is current
- *   (`HabboInventory.checkCategoryInitilization('furni')`); closing it clears the new-item marks
- *   (`FurniModel.closingInventoryView` -> `resetUnseenItems`).
+ *   (`HabboInventory.checkCategoryInitilization('furni')`); leaving it or closing the window on it
+ *   clears the new-item marks (`resetUnseenItems`, which `InventoryView` runs for every page).
  * - A thumb (`GroupItem.updateItemCountVisual` / `updateBackgroundVisual` /
  *   `updateSelectionVisual`): the unlocked count from 2 up, the icon faded to 0.2 when every item
  *   is locked in a trade, a green ground while the group is new, the outline when selected. A
@@ -261,7 +261,7 @@ export const InventoryFurniView = () => {
     const marketplaceEnabled = useInventoryStore(x => x.marketplaceConfiguration.isEnabled);
     const recyclerRunning = useInventoryStore(x => x.recyclerState === INVENTORY_RECYCLER_STATE_ACTIVE);
     const safetyLocked = useUserStore(x => x.accountSafetyLocked);
-    const { selectFurniGroup, resetFurniUnseenItems, setFurniFilterMain, setFurniFilterType, setFurniFilterText } = useInventoryFurniActions();
+    const { selectFurniGroup, setFurniFilterMain, setFurniFilterType, setFurniFilterText } = useInventoryFurniActions();
     // `offertotrade_cnt`'s caption.
     const [ offerCount, setOfferCount ] = useState('1');
 
@@ -272,9 +272,7 @@ export const InventoryFurniView = () => {
         checkFurniInventoryInitialization(send);
         // `FurniModel.getWindowContainer` -> `checkCategoryInitilization('marketplace')`.
         checkMarketplaceInitialization(send);
-
-        return () => resetFurniUnseenItems();
-    }, [ send, resetFurniUnseenItems ]);
+    }, [ send ]);
 
     // `FurniView.updateContainerVisibility`: the page shows only once the list holds something;
     // `InventoryView` draws the loading and empty containers otherwise.

@@ -1,6 +1,7 @@
-import { GetGuestRoomComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
+import { GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
+import { groupStore } from '#base/context/groups';
 import { navigatorStore } from '#base/context/navigator';
 import { systemStore } from '#base/context/system';
 
@@ -83,3 +84,15 @@ export const searchNavigator = (send: Send, text: string) => performNavigatorSea
  * the owner filter selected and their name in the field.
  */
 export const searchRoomsByOwner = (send: Send, userName: string) => performNavigatorSearch(send, HOTEL_VIEW_SEARCH_CODE, OWNER_FILTER_PREFIX + userName);
+
+/**
+ * `NavigatorView.showRoomInfoBubbleAt`: a room of a group whose details the client has not been
+ * told yet asks for them (`getGuildInfo(habboGroupId, false)` - the answer only, no window), so
+ * the room info bubble can show the group's mode icons once they arrive. `HabboNewNavigator` kept
+ * its own cache of `HabboGroupDetailsData`; here it is the groups' one, filled by the same packet.
+ */
+export const requestRoomGroupDetails = (send: Send, groupId: number) => {
+    if ((groupId <= 0) || groupStore.getState().detailsById[groupId]) return;
+
+    send(new GetHabboGroupDetailsComposer({ groupId, openDetails: false }));
+};

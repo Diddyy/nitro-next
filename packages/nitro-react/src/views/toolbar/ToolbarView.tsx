@@ -15,6 +15,12 @@
  * friend bar's `friendtools` (`new_bar` of `habbo-friend-bar-com`), which has no port yet, and
  * keeps its own flex placement; its arrow is `new_bar`'s `collapse_right` / `collapse_left`.
  *
+ * The inventory icon carries the unseen item count (`HabboToolbar.onUnseenItemsUpdate` ->
+ * `BottomBarLeft.setUnseenItemCount('HTIE_ICON_INVENTORY', inventoryCount)`): the window manager's
+ * counter, its right edge on the icon region's and its top on the region's top
+ * (`getUnseenItemCounter`: `x = width - counter.width`, `y = 0`). The games icon's count
+ * (category 6) has no icon to go on here.
+ *
  * Collapsing slides rather than switches (`BottomBarLeft.onCollapseToolsBar` ->
  * `startCollapseAnimation`, `onAnimationTimer`): over 140 ms, eased `1 - (1 - t)^3`, the icons that
  * only the expanded bar shows fade out where they stand (`applyAnimatedToggleLayout`: `blend`
@@ -31,12 +37,14 @@ import { ReactNode, useState } from 'react';
 import { goToHomeRoom, openClientLink, openProfile, toggleCatalog } from '#base/commands';
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
+import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useConfigValue, useIsLandingViewVisible, useSystemActions, useTranslation } from '#base/context/system';
 import { useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useTween } from '#base/hooks';
 import { Border, Box, LayoutImage, Region, ThemeImage, useLayoutEvent } from '#base/theme';
 import { RoomToolsMinimizeButton } from '#base/views/room-widgets/room-tools/RoomToolsMinimizeButton';
+import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
 
 import { ME_MENU_HEIGHT, PROG_MENU_HEIGHT, ToolbarExtendedMenu } from './ToolbarExtendedMenu';
 
@@ -60,10 +68,12 @@ interface ToolbarItemProps {
     icon: [ number, number, number, number ];
     /** The region's height: 41, or 43 / 45 for the icons that reach lower. */
     height?: number;
+    /** What the region holds over its icon - the unseen item counter. */
+    children?: ReactNode;
 }
 
 /** One `lifted_hover` region of `toolbar_items`, its icon where `bottom_bar_left` places it. */
-const ToolbarItem = ({ tooltip, onPointerTap, src, icon: [ x, y, width, height ], height: itemHeight = 41 }: ToolbarItemProps) => (
+const ToolbarItem = ({ tooltip, onPointerTap, src, icon: [ x, y, width, height ], height: itemHeight = 41, children }: ToolbarItemProps) => (
     <Region
         dynamicStyle="lifted_hover"
         onPointerTap={onPointerTap}
@@ -77,6 +87,7 @@ const ToolbarItem = ({ tooltip, onPointerTap, src, icon: [ x, y, width, height ]
             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
             layout={{ position: 'absolute', left: x, top: y, width, height }}
         />
+        {children}
     </Region>
 );
 
@@ -141,6 +152,7 @@ export const ToolbarView = () => {
     // `MeMenuNewController`: the collectibles button is hidden unless both hub flags are on.
     const classicCollectiblesHubEnabled = useConfigValue<boolean>('classic.collectibles.hub.enabled') === true;
     const collectiblesHubEnabled = useConfigValue<boolean>('collectibles.hub.enabled') === true;
+    const unseenInventoryCount = useInventoryUnseenTotalCount();
 
     // HabboLandingView.onToolbarClick HTIE_ICON_RECEPTION: quit and dispose the room session right away (RSE_ENDED shows the hotel view)
     const goToHotelView = () => {
@@ -252,7 +264,12 @@ export const ToolbarView = () => {
                             src="toolbar/bottom_bar_inventory.png"
                             height={43}
                             icon={[ 0, 0, 44, 41 ]}
-                        />
+                        >
+                            <UnseenItemCounterView
+                                count={unseenInventoryCount}
+                                layout={{ position: 'absolute', right: 0, top: 0 }}
+                            />
+                        </ToolbarItem>
                         <Region
                             dynamicStyle="lifted_hover"
                             onPointerTap={() => toggleMenu('me')}

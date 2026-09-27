@@ -8,10 +8,11 @@
  * - `initBadges` is `BadgesModel.initBadges` with a complete `BadgesMessage` (the fragments joined
  *   by `registerInventoryBadgesHandlers`): the list is replaced, one entry per code - the parser
  *   keys the fragment by code, so a code the server repeats is kept once, where it first appeared.
- *   Flash puts the badges its unseen item tracker names at the front; that tracker is not ported,
- *   so every badge keeps the server's order, as Flash does for a badge the tracker does not name.
+ *   A badge whose id the unseen item tracker names (category 4, `isUnseen(4, badgeId)`) is put at
+ *   the front (`unshift`, so the new ones end up in reverse), every other one at the back.
  * - `updateBadge` is `BadgesModel.updateBadge` (`BadgeReceivedMessage`): a code already held is
- *   updated in place, a new one is appended and, where the packet says so, put straight on.
+ *   updated in place, a new one goes to the front when it is unseen and to the back otherwise, and,
+ *   where the packet says so, is put straight on.
  * - `removeBadge` takes the badge off first (`stopWearingBadge`), so a badge that goes while it is
  *   worn does not leave a hole in the worn list.
  * - Wearing is `toggleBadgeWearing` -> `startWearingBadge` / `stopWearingBadge`: the worn list is
@@ -24,6 +25,8 @@
 import { isBadgeRarityStandaloneTier } from '@nitrodevco/nitro-api';
 import { IInventoryBadge } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
+
+import { InventoryUnseenSlice, isUnseenItem, UnseenItemCategory } from './InventoryUnseenSlice';
 
 /** `BadgesModel.MAX_ACTIVE_BADGE_COUNT`. */
 export const INVENTORY_MAX_ACTIVE_BADGES = 5;
@@ -81,9 +84,10 @@ export type InventoryBadgesSlice = State & Actions;
 
 const toBadge = (badge: IInventoryBadge): InventoryBadge => ({ code: badge.badgeCode, badgeNumberId: badge.badgeId, ownerCount: badge.ownerCount, rarityId: badge.badgeRarityId });
 
-export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice, [], [], InventoryBadgesSlice> = set => ({
+export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice & InventoryUnseenSlice, [], [], InventoryBadgesSlice> = (set, get) => ({
     ...InventoryBadgesSliceInitialState,
     initBadges: (incoming) => {
+        const { unseenItems } = get();
         const badges: InventoryBadge[] = [];
         const seen = new Set<string>();
 
@@ -91,7 +95,9 @@ export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice, [], 
             if (seen.has(badge.badgeCode)) continue;
 
             seen.add(badge.badgeCode);
-            badges.push(toBadge(badge));
+
+            if (isUnseenItem(unseenItems, UnseenItemCategory.BADGE, badge.badgeId)) badges.unshift(toBadge(badge));
+            else badges.push(toBadge(badge));
         }
 
         // `resetBadges` clears the worn list and the selection with the badges themselves.
@@ -100,7 +106,9 @@ export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice, [], 
     updateBadge: (incoming, wear) => set((x) => {
         const badge = toBadge(incoming);
         const index = x.badges.findIndex(held => held.code === badge.code);
-        const badges = (index === -1) ? [ ...x.badges, badge ] : x.badges.map((held, at) => ((at === index) ? badge : held));
+        const unseen = isUnseenItem(x.unseenItems, UnseenItemCategory.BADGE, badge.badgeNumberId);
+        const added = unseen ? [ badge, ...x.badges ] : [ ...x.badges, badge ];
+        const badges = (index === -1) ? added : x.badges.map((held, at) => ((at === index) ? badge : held));
         const wornBadgeCodes = (wear && !x.wornBadgeCodes.includes(badge.code) && (x.wornBadgeCodes.length < INVENTORY_MAX_ACTIVE_BADGES))
             ? [ ...x.wornBadgeCodes, badge.code ]
             : x.wornBadgeCodes;

@@ -11,6 +11,7 @@ export * from './hotel-view';
 export * from './inventory';
 export * from './messenger';
 export * from './navigator';
+export * from './notifications';
 export * from './offer-center';
 export * from './room';
 export * from './special-items';

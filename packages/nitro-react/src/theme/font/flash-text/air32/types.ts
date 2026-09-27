@@ -12,6 +12,15 @@ export type GridFitType = 'pixel' | 'subpixel' | 'none';
 
 export type StageQuality = 'high' | 'low';
 
+/**
+ * Where `layoutNormalText` puts each glyph of a normal anti-aliased run. `twips` is Sulake's
+ * JavaScript layout: every advance floored to whole twips on its own, so Volter 9's 6 px
+ * advances (13653/20480 em) become 5.95 px and a long string drifts left of the pixel grid.
+ * `units` keeps the pen in font units and only rounds where a glyph lands, which is what Adobe
+ * AIR draws in `HabboAir`'s windows - every Volter glyph on a whole pixel, 6 px apart.
+ */
+export type NormalPenLayout = 'twips' | 'units';
+
 export type ColorType = 'dark' | 'light';
 
 export type RenderingPipeline = 'direct' | 'habbo-retained';
@@ -335,6 +344,8 @@ export interface NativeRenderOptions {
     letterSpacing?: number;
     fontStyle?: 'normal' | 'italic';
     stageQuality?: StageQuality;
+    /** Normal anti-aliasing only; `twips` when omitted. */
+    normalPenLayout?: NormalPenLayout;
     /** `direct`: opaque RGBA over `background`. `habbo-retained`: premultiplied RGBA with real alpha as well. */
     renderingPipeline?: RenderingPipeline;
     padding?: number;
@@ -362,6 +373,7 @@ export interface ResolvedRenderOptions {
     sharpness: number;
     kerning: boolean;
     stageQuality: StageQuality;
+    normalPenLayout: NormalPenLayout;
     fontStyle: 'normal' | 'italic';
     renderingPipeline: RenderingPipeline;
     size: number;

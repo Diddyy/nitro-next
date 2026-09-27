@@ -10,3 +10,4 @@ export * from './InventoryPlacementSlice';
 export * from './InventoryRecyclerSlice';
 export * from './InventoryStore';
 export * from './InventoryTradingSlice';
+export * from './InventoryUnseenSlice';

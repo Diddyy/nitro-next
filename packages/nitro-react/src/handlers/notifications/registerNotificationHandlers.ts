@@ -6,8 +6,11 @@
  *
  * Only the part of that class whose packet the port parses and whose destination exists is here:
  * `onLevelUp`, `onBadgeReceived`, `onPetLevelNotification`, `onRoomMessagesNotification`,
- * `onInfoFeedEnable`, `onBroadcastMessageEvent` and `onClaimProductResult`. The rest of the class needs windows that are
- * not ported (the MOTD, club gift and safety lock dialogs, `HabboAlertDialogManager`, the
+ * `onInfoFeedEnable`, `onBroadcastMessageEvent`, `onClaimProductResult` and
+ * `onNotificationDialogMessageEvent` (`showNotification`, in `commands/notificationCommands`,
+ * with `showCallCreatedNotification` for `cfh.created`). The MOTD, club gift and safety lock
+ * windows and the `HabboAlertDialogManager` alerts are `registerSingularNotificationHandlers` and
+ * `registerAlertDialogHandlers`. The rest of the class needs windows that are not ported (the
  * notification feed) or a packet that is still an empty stub; each is listed in
  * `scripts/drift/known.py` with what it waits for. The listeners the port already had - the
  * respect chat bubbles, the wired transaction bubbles - stay where they are.
@@ -17,13 +20,17 @@
  * does. The pet bubbles have no image: a pet picture needs the avatar renderer, which only
  * answers for a pet that is in the room, and the pet a level-up names need not be.
  */
-import { BadgeReceivedEventMessage, ClaimProductResultMessage, HabboAchievementNotificationMessage, HabboBroadcastMessage, InfoFeedEnableMessage, PetLevelNotificationEventMessage, RoomMessageNotificationMessage } from '@nitrodevco/nitro-packets';
+import { BadgeReceivedEventMessage, ClaimProductResultMessage, HabboAchievementNotificationMessage, HabboBroadcastMessage, InfoFeedEnableMessage, NotificationDialogMessage, PetLevelNotificationEventMessage, RoomMessageNotificationMessage } from '@nitrodevco/nitro-packets';
 
+import { showNotification } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
+
+/** `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('window-manager/illumina_alert_illustrations_frank_neutral.png')`. */
+const FRANK_NEUTRAL = 'window-manager-illumina_alert_illustrations_frank_neutral';
 
 /** `HabboLocalizationManager.getBadgeName`. */
 const badgeName = (code: string) => systemStore.getState().getLocalizationValue(`badge_name_${code}`, code);
@@ -91,8 +98,25 @@ export const registerNotificationHandlers = ({ subscribe }: WebSocketConnection)
             systemStore.getState().showSimpleAlert({
                 caption: localize('notifications.broadcast.title'),
                 message: data.messageText.replace(/\\r/g, '\n'),
-                // `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('window-manager/illumina_alert_illustrations_frank_neutral.png')`.
-                illustration: 'window-manager-illumina_alert_illustrations_frank_neutral',
+                illustration: FRANK_NEUTRAL,
+            });
+        }),
+
+        on(NotificationDialogMessage, (data) => {
+            if (data.type !== 'cfh.created') {
+                showNotification(data.type, data.parameters);
+
+                return;
+            }
+
+            // `showCallCreatedNotification`: the call for help's receipt is a `simpleAlert` with Frank, and the FAQ link only when the server sent one.
+            const linkUrl = data.parameters['linkUrl'];
+
+            systemStore.getState().showSimpleAlert({
+                caption: localize('help.cfh.sent.title'),
+                message: (data.parameters['message'] ?? '').replace(/\\r/g, '\n'),
+                ...((linkUrl !== undefined) && { linkTitle: localize('help.main.faq.link.text'), linkUrl }),
+                illustration: FRANK_NEUTRAL,
             });
         }),
     ]);

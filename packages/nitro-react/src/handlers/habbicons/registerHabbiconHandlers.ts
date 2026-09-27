@@ -25,9 +25,10 @@ import { RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import { HabbiconInfoMessage, HabbiconShopDataMessage, PurchaseErrorMessage, PurchaseNotAllowedMessage, PurchaseOKMessage, RoomUseHabbiconMessage, UserHabbiconsMessage, UserHabbiconStatusChangedMessage } from '@nitrodevco/nitro-packets';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
-import { closeHabbiconPurchaseConfirmation, getHabbiconShopData, habbiconPreviewAssetName, habbiconsEnabled, loadHabbiconAssets } from '#base/commands';
+import { closeHabbiconPurchaseConfirmation, getHabbiconShopData, habbiconPreviewAssetName, habbiconsEnabled, loadHabbiconAssets, setInventoryUnseenItem } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { habbiconsStore, isClaimedHabbiconTransition, isStoredHabbiconState } from '#base/context/habbicons';
+import { UnseenItemCategory } from '#base/context/inventory';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
@@ -49,9 +50,9 @@ const showNewHabbiconNotification = (habbiconId: number) => {
     notificationStore.getState().addNotification(text, 'habbicon_received', image, 'habbicons/open');
 };
 
-/** `handleNewOwnedHabbicon`. */
+/** `handleNewOwnedHabbicon`: `unseenItemTracker.setUnseenItem(8, id)`, then the bubble. */
 const handleNewOwnedHabbicon = (habbiconId: number) => {
-    habbiconsStore.getState().addUnseenHabbicon(habbiconId);
+    setInventoryUnseenItem(UnseenItemCategory.HABBICONS, habbiconId);
     showNewHabbiconNotification(habbiconId);
 };
 

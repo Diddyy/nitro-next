@@ -1,4 +1,4 @@
-import { GetConfigValue, NitroLogger } from '@nitrodevco/nitro-api';
+import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 
@@ -16,14 +16,6 @@ interface ChatStyleCatalogue {
 const BUNDLE_NAME = 'chat-styles';
 
 /**
- * The hotel's own styles, when it has any: a bundle laid out as `chat-styles` is (the asset manager's
- * chat bubble builder writes it) at the url this key names. Nitro's own key - Flash's styles came in
- * its SWF alone.
- */
-const CUSTOM_STYLES_KEY = 'chat.styles.custom.url';
-const CUSTOM_BUNDLE_NAME = 'custom-chat-styles';
-
-/**
  * The Flash `ChatStyleLibrary`: every style in `chatstyles.xml`, read out of the `chat-styles`
  * bundle - the catalogue (`chat-style-definitions.json`) and the bitmaps it describes arrive
  * together in one archive, and the bitmaps are already decoded into the shared asset manager, so
@@ -32,8 +24,9 @@ const CUSTOM_BUNDLE_NAME = 'custom-chat-styles';
  * skipped with a warning rather than aborting the whole library - that too mirrors the client's
  * per-style try/catch.
  *
- * A hotel's own styles (`chat.styles.custom.url`) are read after the client's, from a bundle of the same
- * layout, and listed after them; one whose id the client has already is left out with a warning.
+ * A hotel with styles of its own serves the whole bundle itself - the client's styles and its own, built
+ * by the asset manager's chat bubble builder - and names it with `chat.styles.url` (`assetBundleUrl`):
+ * the library reads it exactly as it reads the client's.
  */
 export class ChatStyleLibrary {
     private readonly _styles: Map<number, ChatStyle> = new Map();
@@ -89,17 +82,7 @@ export class ChatStyleLibrary {
             return;
         }
 
-        const custom = await this.loadCustomCatalogue();
-        const clientIds = new Set(catalogue.styles.map(definition => definition.id));
-        const definitions = [ ...catalogue.styles, ...custom.filter((definition) => {
-            if (!clientIds.has(definition.id)) return true;
-
-            NitroLogger.warn(`ChatStyleLibrary: the hotel's chat style ${definition.assetId} has id ${definition.id}, which the client's own has - left out`);
-
-            return false;
-        }) ];
-
-        const styles = definitions.map((definition) => {
+        const styles = catalogue.styles.map((definition) => {
             try {
                 return this.loadStyle(definition);
             } catch (err) {
@@ -123,22 +106,6 @@ export class ChatStyleLibrary {
 
         // Every style is built; the catalogue behind them is not read again.
         GetAssetManager().releaseBundleData(BUNDLE_NAME);
-        GetAssetManager().releaseBundleData(CUSTOM_BUNDLE_NAME);
-    }
-
-    /** The hotel's own style rows, when the config names its bundle and the bundle loads; none otherwise. */
-    private async loadCustomCatalogue(): Promise<ChatStyleDefinition[]> {
-        const url = GetConfigValue<string>(CUSTOM_STYLES_KEY);
-
-        if (!url) return [];
-
-        if (!await GetAssetManager().downloadAssetBundle(CUSTOM_BUNDLE_NAME, url)) {
-            NitroLogger.warn(`ChatStyleLibrary: the hotel's chat styles (${url}) did not load - only the client's are available`);
-
-            return [];
-        }
-
-        return GetAssetManager().getBundleFile<ChatStyleCatalogue>(CUSTOM_BUNDLE_NAME, 'chat-style-definitions')?.styles ?? [];
     }
 
     private loadStyle(definition: ChatStyleDefinition): ChatStyle {

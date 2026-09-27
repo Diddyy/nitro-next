@@ -4,6 +4,7 @@ import type { CatalogViewWindowParams } from '#base/views/catalog/CatalogView';
 import type { FriendListViewWindowParams } from '#base/views/friendlist/FriendListView';
 import type { InventoryViewWindowParams } from '#base/views/inventory/InventoryView';
 import type { NavigatorViewWindowParams } from '#base/views/navigator/NavigatorView';
+import type { RoomSettingsViewWindowParams } from '#base/views/room-widgets/room-settings/RoomSettingsView';
 
 /**
  * Every window the client can show, with the parameters it is opened with - `showWindow(name,
@@ -28,7 +29,7 @@ export type WindowRegistry = {
 
     /** The room info panel and the room settings behind it, both opened from the room tools. */
     room_info: NoWindowParams;
-    room_settings: NoWindowParams;
+    room_settings: RoomSettingsViewWindowParams;
 
     /** The floor plan editor (`BCFloorPlanEditor`), opened from the room info panel. */
     floor_plan_editor: NoWindowParams;

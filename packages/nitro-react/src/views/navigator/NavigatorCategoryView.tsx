@@ -6,7 +6,7 @@ import { useInterpolate, useTranslation } from '#base/context/system';
 import { LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
 
 import { ALTERNATING_COLOR_MOD, ALTERNATING_COLOR_NONE, getModulatedBackgroundColor, ROW_BASE_COLOR, TILE_BASE_COLOR } from './NavigatorRoomEntryUtils';
-import { NavigatorRoomEntryView } from './NavigatorRoomEntryView';
+import { NavigatorRoomEntryView, NavigatorShowRoomInfo } from './NavigatorRoomEntryView';
 
 export const RESULTS_MODE_ROWS = 0;
 export const RESULTS_MODE_TILES = 1;
@@ -19,7 +19,7 @@ const CATEGORY_WIDTH = 407 - 13;
 export interface NavigatorCategoryViewProps {
     block: ISearchResultList;
     onEnter: (room: IRoomInfo) => void;
-    onShowInfo?: (room: IRoomInfo) => void;
+    onShowInfo?: NavigatorShowRoomInfo;
     onCollapse: (searchCode: string) => void;
     onShowMore: (searchCode: string) => void;
     onBack: () => void;

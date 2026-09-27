@@ -1,31 +1,31 @@
 import { BannedUsersFromRoomEventMessage, FlatControllerAddedEventMessage, FlatControllerRemovedEventMessage, FlatControllersEventMessage, RoomSettingsDataEventMessage, RoomSettingsErrorEventMessage, RoomSettingsSavedEventMessage, RoomSettingsSaveErrorEventMessage, UserUnbannedFromRoomEventMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { RoomSettingsFormError, roomStore } from '#base/context/room';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
 /**
- * `RoomSettingsCtrl.onRoomSettingsSaveError`: the server's code (and, for 16, the field it names)
- * turned into the text Flash shows beside that field. Flash also moves to the field's tab, which
- * the window does for itself from the key this returns.
+ * `RoomSettingsCtrl.onRoomSettingsSaveError`: the server's code (and, for 16, the field it names;
+ * for the tag codes, the tag) turned into the text Flash shows and the input it shows it over.
+ * Flash also moves to the field's tab, which the window does for itself from the field.
  */
-const roomSettingsSaveErrorKey = (errorCode: number, info: string): string => {
+const roomSettingsSaveError = (errorCode: number, info: string): RoomSettingsFormError => {
     switch (errorCode) {
-        case 5: return 'navigator.roomsettings.passwordismandatory';
-        case 7: return 'navigator.roomsettings.roomnameismandatory';
-        case 8:
-        case 10:
-        case 11: return 'navigator.roomsettings.unacceptablewords';
-        case 12: return 'navigator.roomsettings.nonuserchoosabletag';
-        case 13: return 'navigator.roomsettings.toomanycharacters';
+        case 5: return { key: 'navigator.roomsettings.passwordismandatory', field: 'password' };
+        case 7: return { key: 'navigator.roomsettings.roomnameismandatory', field: 'name' };
+        case 8: return { key: 'navigator.roomsettings.unacceptablewords', field: 'name' };
+        case 10: return { key: 'navigator.roomsettings.unacceptablewords', field: 'description' };
+        case 11: return { key: 'navigator.roomsettings.unacceptablewords', field: 'tags', tag: info };
+        case 12: return { key: 'navigator.roomsettings.nonuserchoosabletag', field: 'tags', tag: info };
+        case 13: return { key: 'navigator.roomsettings.toomanycharacters', field: 'tags', tag: info };
         case 16:
-            if (info === 'idleSleepTimeoutSeconds') return 'navigator.roomsettings.idle_sleep_timeout.invalid';
-            if (info === 'idleAutokickTimeoutSeconds') return 'navigator.roomsettings.idle_autokick_timeout.invalid';
+            if (info === 'idleSleepTimeoutSeconds') return { key: 'navigator.roomsettings.idle_sleep_timeout.invalid', field: 'idleSleepTimeout' };
+            if (info === 'idleAutokickTimeoutSeconds') return { key: 'navigator.roomsettings.idle_autokick_timeout.invalid', field: 'idleAutokickTimeout' };
 
-            return `navigator.roomsettings.save.error.${errorCode}`;
-        // `"Update failed: error " + code` in Flash - a key here, so a hotel can word it.
-        default: return `navigator.roomsettings.save.error.${errorCode}`;
+            return { key: `navigator.roomsettings.save.error.${errorCode}`, field: 'name' };
+        // `"Update failed: error " + code` over the name field in Flash - a key here, so a hotel can word it.
+        default: return { key: `navigator.roomsettings.save.error.${errorCode}`, field: 'name' };
     }
 };
 
@@ -50,11 +50,11 @@ export const registerRoomSettingsHandlers = ({ subscribe }: WebSocketConnection)
         }),
 
         on(RoomSettingsSaveErrorEventMessage, (data) => {
-            setRoomSettingsFormError(roomSettingsSaveErrorKey(data.errorCode, data.info));
+            setRoomSettingsFormError(roomSettingsSaveError(data.errorCode, data.info));
         }),
 
         on(RoomSettingsErrorEventMessage, (data) => {
-            setRoomSettingsFormError(`navigator.roomsettings.error.${data.errorCode}`);
+            setRoomSettingsFormError({ key: `navigator.roomsettings.error.${data.errorCode}`, field: 'name' });
         }),
 
         on(FlatControllersEventMessage, (data) => {

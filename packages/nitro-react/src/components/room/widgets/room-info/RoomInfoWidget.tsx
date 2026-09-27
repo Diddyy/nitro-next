@@ -93,7 +93,8 @@ export const RoomInfoWidget = () => {
             }}
             onMakeHome={() => send(new UpdateHomeRoomComposer({ roomId }))}
             onRemoveRights={() => send(new RemoveOwnRoomRightsRoomComposer({ roomId }))}
-            onRoomSettings={() => showWindow('room_settings')}
+            // `startRoomSettingsEdit`: always the room you are in, even over a navigator-opened one.
+            onRoomSettings={() => showWindow('room_settings', {})}
             onFloorPlanEditor={() => showWindow('floor_plan_editor')}
             onToggleStaffPick={() => {
                 send(new ToggleStaffPickComposer({ roomId, isStaffPicked: !isStaffPicked }));

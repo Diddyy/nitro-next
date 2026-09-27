@@ -735,6 +735,9 @@ const RUNTIME_IMAGES: { name: string; component: string }[] = [
     // the thumbnails' tile icons and bobbing arrow, and the name error's arrow, through
     // `refreshButton` by the bitmap's own name.
     'tile_icon_black', 'tile_icon_white', 'select_arrow', 'popup_arrow_down',
+    // `RoomInfoPopup.populate` sets the favourite and home toggles' "yes" state and the group
+    // owner / admin mode icon by asset name; the layout names only the "no" pair.
+    'newnavigator_icon_fav_yes', 'newnavigator_icon_home_yes', 'newnavigator_icon_group_owner', 'newnavigator_icon_group_admin',
 ].map(name => ({ name, component: 'navigator' }))).concat([
     // `FriendListTabsView.refreshHeader` draws the white arrows on every tab header but the
     // friends tab's (the black pair is named by the layouts).

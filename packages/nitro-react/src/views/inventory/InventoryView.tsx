@@ -18,14 +18,27 @@
  * - `empty_container` / `loading_container` follow `FurniView.updateContainerVisibility` on the
  *   furni page - loading until the list has arrived, empty while it holds nothing - and the
  *   empty page's `open_catalog_btn` opens the catalog (`InventoryMainView.windowEventProc`).
+ * - A tab carries the red unseen item counter (`updateUnseenItemCounts`: furni category 1, pets 3,
+ *   badges 4, bots 5 - collectibles and games have none) while its count is above 0:
+ *   `createCounter` puts it 3 from the tab's right edge and 3 down, and `updateCounter` widens the
+ *   title's right margin to the counter's width plus 6, so the tab grows by the counter and the
+ *   counter ends 3 before the tab does.
+ * - Leaving a tab resets its unseen items (`windowEventProc`'s `WE_SELECTED` ->
+ *   `resetUnseenCounters`), and so does closing the window on it (`hideInventory` ->
+ *   `closingInventoryView`, each model resetting while its page is the one showing).
  * - While a trade runs it is docked in `subContentArea` and the window grows by exactly its height
  *   (`TradingView.resizeWindow` -> `InventoryMainView.resizeToFitContents`). Leaving the furni page
  *   cancels the trade (`TradingModel.categorySwitch` / `subCategorySwitch`), and closing the window
  *   closes it (`closingInventoryView`).
  */
-import { useInventoryStore } from '#base/context/inventory';
+import { useEffect } from 'react';
+
+import { resetInventoryUnseenCounters } from '#base/commands';
+import { useWebSocketContext } from '#base/context/communication';
+import { UnseenItemCategory, useInventoryStore, useInventoryUnseenItemCount } from '#base/context/inventory';
 import { useConfigValue, useSystemActions, useTranslation, useWindowParams, WindowParams } from '#base/context/system';
 import { Button, Frame, LayoutImage, Region, TabButton, TabContent, TabContext, ThemeImage, ThemeText } from '#base/theme';
+import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
 
 import { InventoryBadgesView } from './InventoryBadgesView';
 import { InventoryBotsView } from './InventoryBotsView';
@@ -44,14 +57,48 @@ const TOP_CONTENT_HEIGHT = 301;
 /** The frame's own height with nothing docked - its 35/6 margins around `top_content`. */
 const FRAME_HEIGHT = 342;
 
-/** The ported tabs in `inventory_xml`'s order, with their captions. */
-const TABS: readonly { id: InventoryTab; caption: string }[] = [
-    { id: 'furni', caption: 'inventory.furni' },
-    { id: 'collectibles', caption: 'inventory.collectibles' },
-    { id: 'pets', caption: 'inventory.furni.tab.pets' },
-    { id: 'badges', caption: 'inventory.badges' },
-    { id: 'bots', caption: 'inventory.bots' },
+/** The ported tabs in `inventory_xml`'s order, with their captions and the unseen item category their counter shows (-1 for none). */
+const TABS: readonly { id: InventoryTab; caption: string; unseenCategory: number }[] = [
+    { id: 'furni', caption: 'inventory.furni', unseenCategory: UnseenItemCategory.OWNED_FURNI },
+    { id: 'collectibles', caption: 'inventory.collectibles', unseenCategory: -1 },
+    { id: 'pets', caption: 'inventory.furni.tab.pets', unseenCategory: UnseenItemCategory.PET },
+    { id: 'badges', caption: 'inventory.badges', unseenCategory: UnseenItemCategory.BADGE },
+    { id: 'bots', caption: 'inventory.bots', unseenCategory: UnseenItemCategory.BOT },
 ];
+
+/** `InventoryMainView.createCounter`: the counter's right edge 3 in from the tab's. */
+const TAB_COUNTER_MARGIN = 3;
+/** `updateCounter`: the title's right margin with a counter is the counter's width plus twice that. */
+const TAB_TITLE_MARGIN = 10;
+
+interface InventoryTabButtonProps {
+    caption: string;
+    unseenCategory: number;
+    selected: boolean;
+    onSelect: () => void;
+}
+
+/** One `tab_container_button`, with its unseen item counter. */
+const InventoryTabButton = ({ caption, unseenCategory, selected, onSelect }: InventoryTabButtonProps) => {
+    const unseenCount = useInventoryUnseenItemCount(unseenCategory);
+
+    return (
+        <TabButton
+            variant="3"
+            textStyle="u_regular"
+            selected={selected}
+            onPointerTap={onSelect}
+            layout={{ flexShrink: 0, alignItems: 'flex-start', paddingLeft: TAB_TITLE_MARGIN, paddingTop: 7, paddingRight: (unseenCount > 0) ? TAB_COUNTER_MARGIN : TAB_TITLE_MARGIN }}
+        >
+            {caption}
+            {/* `y = 3`, where the title sits 7 down; the title's margin plus 6 leaves 3 either side of the counter. */}
+            <UnseenItemCounterView
+                count={Math.max(unseenCount, 0)}
+                layout={{ marginLeft: TAB_COUNTER_MARGIN, marginTop: 3 - 7 }}
+            />
+        </TabButton>
+    );
+};
 
 export const InventoryView = () => {
     const { tab: activeTab = 'furni' } = useWindowParams('inventory');
@@ -62,6 +109,10 @@ export const InventoryView = () => {
     const furniListInitialized = useInventoryStore(x => x.furniListInitialized);
     const furniCount = useInventoryStore(x => x.furniGroups.length);
     const dockedHeight = useInventoryTradingDockHeight();
+    const { send } = useWebSocketContext();
+
+    // `resetUnseenCounters(previous tab)` on a switch, and the showing page's `closingInventoryView` on close.
+    useEffect(() => () => resetInventoryUnseenCounters(send, activeTab), [ send, activeTab ]);
 
     // `FurniView.setViewToState`: 1 loading, 2 empty, 3 the page.
     const furniLoading = (activeTab === 'furni') && !furniListInitialized;
@@ -90,16 +141,13 @@ export const InventoryView = () => {
                     layout={{ position: 'absolute', left: 8, top: 0, width: 462, height: 32, padding: 0, overflow: 'hidden' }}
                 >
                     {TABS.filter(tab => (tab.id !== 'bots') || botsEnabled).map(tab => (
-                        <TabButton
+                        <InventoryTabButton
                             key={tab.id}
-                            variant="3"
-                            textStyle="u_regular"
+                            caption={t(tab.caption)}
+                            unseenCategory={tab.unseenCategory}
                             selected={activeTab === tab.id}
-                            onPointerTap={() => updateWindowParams('inventory', { tab: tab.id })}
-                            layout={{ flexShrink: 0, alignItems: 'flex-start', paddingLeft: 10, paddingTop: 7, paddingRight: 10 }}
-                        >
-                            {t(tab.caption)}
-                        </TabButton>
+                            onSelect={() => updateWindowParams('inventory', { tab: tab.id })}
+                        />
                     ))}
                 </TabContext>
                 {furniEmpty && (

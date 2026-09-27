@@ -13,15 +13,20 @@ import { EarningsComponent } from './components/earnings';
 import { GroupCreatedComponent, GroupHcRequiredComponent, GroupInfoComponent, GroupManagementComponent, GroupMembersComponent, GroupRoomInfoComponent } from './components/groups';
 import { HabbiconsComponent } from './components/habbicons';
 import { HotelViewComponent } from './components/hotel-view';
+import { MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
+import { RoomSettingsWidget } from './components/room/widgets/room-settings';
 import { SpecialItemsComponent } from './components/special-items';
 import { UserProfileComponent } from './components/user-profile';
 import { registerHandlers } from './handlers';
 import { useRegisterHandlers } from './hooks';
 import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
+import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
+import { NotificationPopupsView } from './views/notifications/NotificationPopupsView';
 import { NotificationsExtensionAnchor } from './views/notifications/NotificationsExtensionAnchor';
 import { NotificationsView } from './views/notifications/NotificationsView';
+import { SafetyLockedNotificationView } from './views/notifications/SafetyLockedNotificationView';
 import { ActivityPointsView } from './views/purse/ActivityPointsView';
 import { PurseView } from './views/purse/PurseView';
 import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInputView';
@@ -77,6 +82,9 @@ export const MainView = () => {
                     >
                         <ActivityPointsView />
                         <TargetedOfferMinimizedView />
+                        {/* `SingularNotificationController`'s extensions, docked at the end of the column. */}
+                        <SafetyLockedNotificationView />
+                        <ClubGiftNotificationView />
                     </Box>
                     {/* `GroupRoomInfoCtrl` docks the banner in this column, under the quest tracker and event card. */}
                     <GroupRoomInfoComponent />
@@ -88,6 +96,8 @@ export const MainView = () => {
                 <InventoryComponent />
                 <FriendListWrapper />
                 <NavigatorComponent />
+                {/* `RoomSettingsCtrl` is the navigator's, not the room's: it also edits a room you are not in. */}
+                <RoomSettingsWidget />
                 <WalletComponent />
                 <WiredSetupComponent />
                 <WiredMenuComponent />
@@ -117,6 +127,8 @@ export const MainView = () => {
                 {/* Drawn after the toolbar because it sits inside it when it fits; it renders nothing outside a room. */}
                 <RoomChatInputView />
                 <NotificationsView />
+                <MotdNotificationComponent />
+                <NotificationPopupsView />
                 <SystemDialogsView />
                 {/* Context 3: every `ModalDialog` is moved in here, over the windows and their popups. */}
                 <ModalLayer />

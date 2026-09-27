@@ -7,10 +7,9 @@
  * `HabbiconInfo` is written back into the shop data - are ported as the transitions below; Flash
  * mutated the shared parser objects in place, here each change builds new ones.
  *
- * `unseenHabbiconIds` stands in for the inventory's `UnseenItemTracker` category 8, which Flash
- * reaches through `HabboInventory.unseenItemTracker`. The tracker itself (and the
- * `UnseenItemsMessage` it is fed by) is not ported, so only the habbicons the controller marks
- * unseen itself (`handleNewOwnedHabbicon`) are in it.
+ * Which habbicons are new is not kept here: Flash reaches the inventory's `UnseenItemTracker`
+ * (category 8) through `HabboInventory.unseenItemTracker`, and so does the port
+ * (`inventoryStore`'s `unseenItems`, through `habbiconCommands`).
  *
  * `change` is the last `HabbiconControllerEvent` the hub reacts to: its `habbiconId` and
  * `collectionId` pick what `HabbiconView.onControllerDataUpdated` refreshes.
@@ -47,7 +46,6 @@ type State = {
     shopDataRequested: boolean;
     /** A buy or claim was sent, and the next purchase result is the controller's. */
     pendingPurchaseRefresh: boolean;
-    unseenHabbiconIds: number[];
     change: HabbiconControllerChange;
 };
 
@@ -64,10 +62,6 @@ type Actions = {
     setPendingPurchaseRefresh: (pending: boolean) => void;
     /** `addRecentHabbiconId`: moved (or added) to the front, the list cut at `HABBICON_RECENT_LIMIT`. */
     addRecentHabbiconId: (habbiconId: number) => void;
-    addUnseenHabbicon: (habbiconId: number) => void;
-    /** Returns whether it was unseen. */
-    removeUnseenHabbicon: (habbiconId: number) => boolean;
-    resetUnseenHabbicons: () => void;
     /** Dispatches a `HabbiconControllerEvent`. */
     notifyHabbiconChange: (type: HabbiconControllerChange['type'], habbiconId?: number, collectionId?: number) => void;
 };
@@ -81,7 +75,6 @@ export const HabbiconControllerSliceInitialState: State = {
     hasLoadedShopData: false,
     shopDataRequested: false,
     pendingPurchaseRefresh: false,
-    unseenHabbiconIds: [],
     change: { seq: 0, type: 'shop', habbiconId: 0, collectionId: 0 },
 };
 
@@ -150,7 +143,7 @@ const updateCachedShopItemState = (current: ShopState, habbiconId: number, habbi
 
 const nextChange = (change: HabbiconControllerChange, type: HabbiconControllerChange['type'], habbiconId: number = 0, collectionId: number = 0): HabbiconControllerChange => ({ seq: change.seq + 1, type, habbiconId, collectionId });
 
-export const createHabbiconControllerSlice: StateCreator<HabbiconControllerSlice, [], [], HabbiconControllerSlice> = (set, get) => ({
+export const createHabbiconControllerSlice: StateCreator<HabbiconControllerSlice, [], [], HabbiconControllerSlice> = set => ({
     ...HabbiconControllerSliceInitialState,
     setOwnedHabbicons: (ownedHabbicons, recentHabbiconIds) => set({ ownedHabbicons, recentHabbiconIds: [ ...recentHabbiconIds ], hasLoadedOwnedHabbicons: true }),
     setHabbiconStatus: (habbiconId, habbiconState) => set((x) => {
@@ -182,14 +175,5 @@ export const createHabbiconControllerSlice: StateCreator<HabbiconControllerSlice
 
         set(x => ({ recentHabbiconIds: [ habbiconId, ...x.recentHabbiconIds.filter(id => id !== habbiconId) ].slice(0, HABBICON_RECENT_LIMIT) }));
     },
-    addUnseenHabbicon: habbiconId => set(x => (x.unseenHabbiconIds.includes(habbiconId) ? x : { unseenHabbiconIds: [ ...x.unseenHabbiconIds, habbiconId ] })),
-    removeUnseenHabbicon: (habbiconId) => {
-        if (!get().unseenHabbiconIds.includes(habbiconId)) return false;
-
-        set(x => ({ unseenHabbiconIds: x.unseenHabbiconIds.filter(id => id !== habbiconId) }));
-
-        return true;
-    },
-    resetUnseenHabbicons: () => set({ unseenHabbiconIds: [] }),
     notifyHabbiconChange: (type, habbiconId = 0, collectionId = 0) => set(x => ({ change: nextChange(x.change, type, habbiconId, collectionId) })),
 });

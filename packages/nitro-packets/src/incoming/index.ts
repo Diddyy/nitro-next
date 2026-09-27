@@ -481,7 +481,7 @@ export * from './Notifications/NotificationDialogMessage';
 export * from './Notifications/OfferRewardDeliveredMessage';
 export * from './Notifications/PetLevelNotificationEventMessage';
 export * from './Notifications/RestoreClientMessage';
-export * from './Notifications/UnseenItemsEventMessage';
+export * from './Notifications/UnseenItemsMessage';
 export * from './Nux/Data/INewUserExperienceGiftOfferGiftOption';
 export * from './Nux/Data/INewUserExperienceGiftOfferOption';
 export * from './Nux/Data/INewUserExperienceGiftOfferProductOfferList';

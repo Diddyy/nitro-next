@@ -1,11 +1,11 @@
 import { RoomDoorModeEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
-import { AssignRightsComposer, DeleteRoomComposer, GetBannedUsersFromRoomComposer, GetFlatControllersComposer, GetRoomSettingsComposer, RemoveAllRightsComposer, RemoveRightsComposer, SaveRoomSettingsComposer, UnbanUserFromRoomComposer } from '@nitrodevco/nitro-packets';
+import { AssignRightsComposer, DeleteRoomComposer, GetBannedUsersFromRoomComposer, GetFlatControllersComposer, GetRoomSettingsComposer, RemoveAllRightsComposer, RemoveRightsComposer, RoomSettingsDataEventMessageType, SaveRoomSettingsComposer, UnbanUserFromRoomComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorStore } from '#base/context/navigator';
-import { useRoomSettingsFormActions, useRoomStore } from '#base/context/room';
-import { useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
+import { RoomSettingsErrorField, RoomSettingsFormError, useRoomSettingsFormActions, useRoomStore } from '#base/context/room';
+import { useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useFriends, useOwnHasClub, useUserStore } from '#base/context/user';
 import { RoomSettingsView } from '#base/views/room-widgets/room-settings/RoomSettingsView';
 
@@ -48,11 +48,10 @@ const visitorStepsFor = (hasClub: boolean): number[] => {
     return steps;
 };
 
-/** `onRoomSettingsSaveError` / `handleCustomRoomSettingSaveError`: which tab a refusal belongs on. */
-const tabForError = (error: string): number => {
-    if (error.startsWith('navigator.roomsettings.password')) return TAB_ACCESS;
-    if (error.startsWith('navigator.roomsettings.invalidconfirm')) return TAB_ACCESS;
-    if (error.startsWith('navigator.roomsettings.idle_')) return TAB_CLUB_AND_CHAT;
+/** `onRoomSettingsSaveError` / `save`: the tab of the field a refusal is shown on (`switchToTab`). */
+const tabForField = (field: RoomSettingsErrorField): number => {
+    if ((field === 'password') || (field === 'passwordConfirm')) return TAB_ACCESS;
+    if ((field === 'idleSleepTimeout') || (field === 'idleAutokickTimeout')) return TAB_CLUB_AND_CHAT;
 
     return FIRST_TAB;
 };
@@ -65,15 +64,24 @@ const tabForError = (error: string): number => {
  * The password pair is held here rather than on the form: the server never sends the current one
  * back, so it only travels when it has actually been typed, and Flash refuses the whole save when
  * the two fields differ.
+ *
+ * There is no Save button, as in Flash: a pick saves at once and a text field saves when it is left
+ * (`onUnfocus`), and a refusal is shown over the field it is about.
  */
 export const RoomSettingsWidget = () => {
     const isVisible = useIsWindowVisible('room_settings');
+    const params = useWindowParams('room_settings');
     const enteredRoom = useNavigatorStore(x => x.enteredRoom);
     const categories = useNavigatorStore(x => x.flatCategories);
-    const roomId = enteredRoom?.info.roomId ?? 0;
-    const form = useRoomStore(x => x.roomSettingsForm);
+    // `startRoomSettingsEditFromNavigator(flatId, groupId)` names the room; `startRoomSettingsEdit` is the one you are in.
+    const roomId = params.roomId ?? enteredRoom?.info.roomId ?? 0;
+    const groupId = (params.roomId !== undefined) ? (params.groupId ?? -1) : (enteredRoom?.info.groupId ?? -1);
+    // `_removeTabsForNavigatorView`: any room but the one you are standing in.
+    const removeTabsForNavigatorView = !enteredRoom || (enteredRoom.info.roomId !== roomId);
+    const storedForm = useRoomStore(x => x.roomSettingsForm);
+    // `onRoomSettings`: settings for any room but the one asked for are not this window's.
+    const form = (storedForm && (storedForm.roomId === roomId)) ? storedForm : undefined;
     const error = useRoomStore(x => x.roomSettingsFormError);
-    const saving = useRoomStore(x => x.roomSettingsFormSaving);
     const controllers = useRoomStore(x => x.roomControllers);
     const bannedUsers = useRoomStore(x => x.roomBannedUsers);
     const { setRoomSettingsForm, updateRoomSettingsForm, setRoomSettingsFormError, setRoomSettingsFormSaving } = useRoomSettingsFormActions();
@@ -92,8 +100,10 @@ export const RoomSettingsWidget = () => {
     const [ passwordConfirm, setPasswordConfirm ] = useState('');
     const [ friendFilter, setFriendFilter ] = useState('');
     const [ selectedBannedUser, setSelectedBannedUser ] = useState(0);
-    // The error the tab was last moved for, so a second identical refusal does not move it again.
-    const [ shownError, setShownError ] = useState<string>();
+    // The refusal the tab was last moved for: each refusal moves it once, as `switchToTab` does.
+    const [ shownError, setShownError ] = useState<RoomSettingsFormError>();
+    // The room the window was last showing: another one starts it afresh (`close()` then the new edit).
+    const [ shownRoomId, setShownRoomId ] = useState(roomId);
 
     useEffect(() => {
         if (!isVisible || !roomId) return;
@@ -117,6 +127,15 @@ export const RoomSettingsWidget = () => {
         if (tab === TAB_MODERATION) send(new GetBannedUsersFromRoomComposer({ roomId }));
     }, [ isVisible, roomId, tab, send ]);
 
+    if (roomId !== shownRoomId) {
+        setShownRoomId(roomId);
+        setTab(FIRST_TAB);
+        setPassword('');
+        setPasswordConfirm('');
+        setFriendFilter('');
+        setSelectedBannedUser(0);
+    }
+
     // A fresh window starts on the first tab with nothing typed into it.
     if (!isVisible && ((tab !== FIRST_TAB) || password.length || passwordConfirm.length || friendFilter.length || selectedBannedUser)) {
         setTab(FIRST_TAB);
@@ -130,18 +149,18 @@ export const RoomSettingsWidget = () => {
     if (error !== shownError) {
         setShownError(error);
 
-        if (error) setTab(tabForError(error));
+        if (error) setTab(tabForField(error.field));
     }
 
     if (!isVisible || !form) return null;
 
-    const groupId = enteredRoom?.info.groupId ?? -1;
     const visitorSteps = visitorStepsFor(hasClub);
     const visitorCap = visitorSteps[visitorSteps.length - 1];
-    // `refreshMaxVisitors`: a room over the cap shows - and therefore saves - the cap itself.
-    const selectedVisitors = visitorSteps.includes(form.maximumVisitors)
-        ? form.maximumVisitors
-        : ((form.maximumVisitors > visitorCap) ? visitorCap : visitorSteps[0]);
+    // `refreshMaxVisitors`: a room over the cap shows - and therefore saves - the cap itself; any other value that is not a step, the first.
+    const selectedVisitorsFor = (maximumVisitors: number) => (visitorSteps.includes(maximumVisitors)
+        ? maximumVisitors
+        : ((maximumVisitors > visitorCap) ? visitorCap : visitorSteps[0]));
+    const selectedVisitors = selectedVisitorsFor(form.maximumVisitors);
 
     /** `onDeleteButtonClick`: the home room and a group's base room cannot be deleted. */
     const deleteRoom = () => {
@@ -163,15 +182,37 @@ export const RoomSettingsWidget = () => {
         });
     };
 
-    /** `RoomSettingsCtrl.save` - every rule that can refuse the save, in its order. */
-    const save = () => {
-        if (saving) return;
+    /**
+     * `isRoomBehaviorSettingsReadyForSave`: a room behaviour switch only saves once both timeouts
+     * it turns on are in range - until then it waits, without an error, for the field to be fixed.
+     */
+    const behaviourError = (next: RoomSettingsDataEventMessageType): RoomSettingsFormError | undefined => {
+        if (!hasClub) return undefined;
 
-        const isPasswordDoor = Number(form.doorMode) === Number(RoomDoorModeEnum.Password);
+        const sleepTimeout = next.idleSleepEnabled ? next.idleSleepTimeoutSeconds : 0;
+        const autokickTimeout = next.idleAutokickEnabled ? next.idleAutokickTimeoutSeconds : 0;
+
+        if (next.idleSleepEnabled && ((sleepTimeout < MIN_IDLE_SLEEP_TIMEOUT_SECONDS) || (sleepTimeout > MAX_IDLE_SLEEP_TIMEOUT_SECONDS))) return { key: 'navigator.roomsettings.idle_sleep_timeout.invalid', field: 'idleSleepTimeout' };
+
+        if (next.idleAutokickEnabled && ((autokickTimeout < MIN_IDLE_AUTOKICK_TIMEOUT_SECONDS) || (autokickTimeout > MAX_IDLE_AUTOKICK_TIMEOUT_SECONDS))) return { key: 'navigator.roomsettings.idle_autokick_timeout.invalid', field: 'idleAutokickTimeout' };
+
+        // The kick has to come at least half a minute after the sleep, or neither is applied.
+        if (next.idleSleepEnabled && next.idleAutokickEnabled && (autokickTimeout < (sleepTimeout + MIN_IDLE_AUTOKICK_OFFSET_SECONDS))) return { key: 'navigator.roomsettings.idle_autokick_timeout.offset.invalid', field: 'idleAutokickTimeout' };
+
+        return undefined;
+    };
+
+    /**
+     * `RoomSettingsCtrl.save` - every rule that can refuse the save, in its order - over the form
+     * with `changes` on top: a pick saves in the same handler that makes it, before the store has
+     * re-rendered.
+     */
+    const save = (changes: Partial<RoomSettingsDataEventMessageType> = {}) => {
+        const next = { ...form, ...changes };
+        const isPasswordDoor = Number(next.doorMode) === Number(RoomDoorModeEnum.Password);
 
         if (isPasswordDoor && (password !== passwordConfirm)) {
-            setTab(TAB_ACCESS);
-            setRoomSettingsFormError('navigator.roomsettings.invalidconfirm');
+            setRoomSettingsFormError({ key: 'navigator.roomsettings.invalidconfirm', field: 'passwordConfirm' });
 
             return;
         }
@@ -181,64 +222,60 @@ export const RoomSettingsWidget = () => {
          * whole behaviour block goes back as the server sent it, which is what the disabled
          * controls still hold (`refreshRoomBehaviorSettingsState` never lets them be changed).
          */
-        if (hasClub) {
-            const sleepTimeout = form.idleSleepEnabled ? form.idleSleepTimeoutSeconds : 0;
-            const autokickTimeout = form.idleAutokickEnabled ? form.idleAutokickTimeoutSeconds : 0;
+        const refused = behaviourError(next);
 
-            if (form.idleSleepEnabled && ((sleepTimeout < MIN_IDLE_SLEEP_TIMEOUT_SECONDS) || (sleepTimeout > MAX_IDLE_SLEEP_TIMEOUT_SECONDS))) {
-                setTab(TAB_CLUB_AND_CHAT);
-                setRoomSettingsFormError('navigator.roomsettings.idle_sleep_timeout.invalid');
+        if (refused) {
+            setRoomSettingsFormError(refused);
 
-                return;
-            }
-
-            if (form.idleAutokickEnabled && ((autokickTimeout < MIN_IDLE_AUTOKICK_TIMEOUT_SECONDS) || (autokickTimeout > MAX_IDLE_AUTOKICK_TIMEOUT_SECONDS))) {
-                setTab(TAB_CLUB_AND_CHAT);
-                setRoomSettingsFormError('navigator.roomsettings.idle_autokick_timeout.invalid');
-
-                return;
-            }
-
-            // The kick has to come at least half a minute after the sleep, or neither is applied.
-            if (form.idleSleepEnabled && form.idleAutokickEnabled && (autokickTimeout < (sleepTimeout + MIN_IDLE_AUTOKICK_OFFSET_SECONDS))) {
-                setTab(TAB_CLUB_AND_CHAT);
-                setRoomSettingsFormError('navigator.roomsettings.idle_autokick_timeout.offset.invalid');
-
-                return;
-            }
+            return;
         }
 
+        // `clearErrors`: a save that is sent takes every marked field back to normal.
         setRoomSettingsFormError(undefined);
         setRoomSettingsFormSaving(true);
 
         send(new SaveRoomSettingsComposer({
-            roomId: form.roomId,
-            roomName: form.name,
-            roomDescription: form.description,
-            doorMode: form.doorMode,
+            roomId: next.roomId,
+            roomName: next.name,
+            roomDescription: next.description,
+            doorMode: next.doorMode,
             // Only a password door carries one, and only what was typed here.
             password: isPasswordDoor ? password : '',
-            maxVisitors: selectedVisitors,
-            categoryId: form.categoryId,
-            tags: form.tags,
-            tradeMode: form.tradeMode,
-            allowPets: form.allowPets,
-            allowFoodConsume: form.allowFoodConsume,
-            allowWalkThrough: form.allowWalkThrough,
-            hideWalls: form.hideWalls,
-            wallThickness: form.wallThickness,
-            floorThickness: form.floorThickness,
-            whoCanMute: form.moderation.whoCanMute,
-            whoCanKick: form.moderation.whoCanKick,
-            whoCanBan: form.moderation.whoCanBan,
-            chatFloodSensitivity: form.chatFloodSensitivity,
-            leaveOnDoorTileEnabled: form.leaveOnDoorTileEnabled,
-            idleSleepEnabled: form.idleSleepEnabled,
-            idleSleepTimeoutSeconds: form.idleSleepEnabled ? form.idleSleepTimeoutSeconds : 0,
-            idleAutokickEnabled: form.idleAutokickEnabled,
-            idleAutokickTimeoutSeconds: form.idleAutokickEnabled ? form.idleAutokickTimeoutSeconds : 0,
-            muteAllPets: form.muteAllPets,
+            // `save()` reads the menu's selection, so the capped value is what is sent.
+            maxVisitors: selectedVisitorsFor(next.maximumVisitors),
+            categoryId: next.categoryId,
+            tags: next.tags,
+            tradeMode: next.tradeMode,
+            allowPets: next.allowPets,
+            allowFoodConsume: next.allowFoodConsume,
+            allowWalkThrough: next.allowWalkThrough,
+            hideWalls: next.hideWalls,
+            wallThickness: next.wallThickness,
+            floorThickness: next.floorThickness,
+            whoCanMute: next.moderation.whoCanMute,
+            whoCanKick: next.moderation.whoCanKick,
+            whoCanBan: next.moderation.whoCanBan,
+            chatFloodSensitivity: next.chatFloodSensitivity,
+            leaveOnDoorTileEnabled: next.leaveOnDoorTileEnabled,
+            idleSleepEnabled: next.idleSleepEnabled,
+            idleSleepTimeoutSeconds: next.idleSleepEnabled ? next.idleSleepTimeoutSeconds : 0,
+            idleAutokickEnabled: next.idleAutokickEnabled,
+            idleAutokickTimeoutSeconds: next.idleAutokickEnabled ? next.idleAutokickTimeoutSeconds : 0,
+            muteAllPets: next.muteAllPets,
         }));
+    };
+
+    /** `onUnfocus` on a dropmenu, switch or door mode: the pick is made and saved at once. */
+    const selectSetting = (changes: Partial<RoomSettingsDataEventMessageType>) => {
+        updateRoomSettingsForm(changes);
+        save(changes);
+    };
+
+    /** `onRoomBehaviorSettingsChanged`: the switch always changes; it saves only when the timeouts allow it. */
+    const selectBehaviour = (changes: Partial<RoomSettingsDataEventMessageType>) => {
+        updateRoomSettingsForm(changes);
+
+        if (!behaviourError({ ...form, ...changes })) save(changes);
     };
 
     return (
@@ -261,10 +298,13 @@ export const RoomSettingsWidget = () => {
             deleteDisabled={accountSafetyLocked}
             isStaff={Number(securityLevel) >= Number(SecurityLevelEnum.Employee)}
             tab={tab}
+            removeTabsForNavigatorView={removeTabsForNavigatorView}
             error={error}
-            saving={saving}
             onChangeTab={setTab}
             onChange={updateRoomSettingsForm}
+            onSelectSetting={selectSetting}
+            onSelectBehaviour={selectBehaviour}
+            onCommit={() => save()}
             onChangePassword={setPassword}
             onChangePasswordConfirm={setPasswordConfirm}
             onChangeFriendFilter={setFriendFilter}
@@ -275,7 +315,6 @@ export const RoomSettingsWidget = () => {
             // `onUnbanClick`: nothing happens until a row has been picked out.
             onUnban={() => selectedBannedUser && send(new UnbanUserFromRoomComposer({ userId: selectedBannedUser, roomId: form.roomId }))}
             onDeleteRoom={deleteRoom}
-            onSave={save}
             onClose={() => hideWindow('room_settings')}
         />
     );

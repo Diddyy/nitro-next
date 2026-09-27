@@ -21,6 +21,7 @@ import { Key, ReactNode, useRef, useState } from 'react';
 import { Box, BoxLayout } from './Box';
 import { DropmenuFrame } from './DropmenuFrame';
 import { DropmenuItem } from './DropmenuItem';
+import { dropmenuItemHeight } from './dropmenuItemVariants';
 import { FloatingPopup } from './FloatingPopup';
 import { placeExpandedDropmenu } from './utils/dropmenuPlacement';
 import { expandSides } from './utils/expandSides';
@@ -28,7 +29,6 @@ import { getGlobalRect } from './utils/getGlobalRect';
 import { TextStyleKey } from './utils/textStyles';
 
 /** `dropmenu_item*` layouts: one item row. */
-const DEFAULT_ITEM_HEIGHT = 19;
 /** The closed menu's caption keeps clear of the arrow. */
 const ARROW_SPACE = 24;
 /** How long after an outside press closed the view a tap on the menu is taken as that same press. */
@@ -94,7 +94,7 @@ export interface DropmenuProps {
     captionContent?: ReactNode;
     options?: readonly DropmenuOption[];
     disabled?: boolean;
-    /** One option row's height. */
+    /** One option row's height; by default Flash's own, its label's (`dropmenuItemHeight`). */
     itemHeight?: number;
     /** The closed menu's box. */
     layout?: BoxLayout;
@@ -111,13 +111,15 @@ interface OpenMenu {
 
 export const Dropmenu = ({
     variant, defaultVariant, tooltip, tintColor, textStyle, textColor, caption = '', captionContent, options = [], disabled = false,
-    itemHeight = DEFAULT_ITEM_HEIGHT, layout, visible, zIndex, onOpenChange,
+    itemHeight: itemHeightProp, layout, visible, zIndex, onOpenChange,
 }: DropmenuProps) => {
     const anchorRef = useRef<PixiContainer>(null);
     // Set while the press that just closed the view from outside may still end as a tap on the menu.
     const closedFromOutsideRef = useRef(false);
     const [ open, setOpen ] = useState<OpenMenu | null>(null);
     // Placed again from the current options, so a `keepOpen` pick that lists more re-fits the view.
+    // `TextLabelController.refresh`: an item is as tall as its label, unless the caller fixes it.
+    const itemHeight = itemHeightProp ?? dropmenuItemHeight(variant, textStyle);
     const placement = open ? placeExpandedDropmenu(open.anchor, options.length * itemHeight, open.desktop) : null;
     const { box: boxLayout, frame: frameLayout } = splitMenuLayout(layout);
 
@@ -175,7 +177,8 @@ export const Dropmenu = ({
                     tintColor={tintColor}
                     textStyle={textStyle}
                     textColor={textColor}
-                    onPointerTap={toggle}
+                    // No handler while disabled, so it does not read as clickable (the cursor follows the handlers).
+                    onPointerTap={disabled ? undefined : toggle}
                     layout={frameLayout}
                 >
                     {captionContent ?? caption}

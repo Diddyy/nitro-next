@@ -34,6 +34,8 @@ import { useWindowVisibility } from '#base/hooks';
 import { Border, Button, ButtonThick, Dropmenu, Frame, Icon, LayoutImage, Region, ScrollArea, TextInput, ThemeImage, ThemeText } from '#base/theme';
 import { flatCategoryName } from '#base/utils';
 
+import { NavigatorErrorPopup } from './NavigatorErrorPopup';
+
 /**
  * `RoomCreateViewCtrl`'s `_layouts`, in its push order: the club level each needs (-1: staff,
  * `hasSecurity(4)`), its size in tiles and the model name after `model_`.
@@ -418,30 +420,13 @@ export const NavigatorRoomCreateView = () => {
                     {t('generic.cancel')}
                 </Button>
                 {nameErrorShown && (
-                    // `displayError`: `nav_error_popup` centred over the name field, its arrow on the field's top edge.
-                    <Region
-                        name="popup_container"
-                        layout={{ position: 'absolute', left: 0, width: 240, top: 20 - 33 + 3, height: 33, flexDirection: 'column', alignItems: 'center' }}
-                    >
-                        <Border
-                            variant="0"
-                            name="border"
-                            layout={{ height: 23, paddingLeft: 8, paddingRight: 8, paddingTop: 4 }}
-                        >
-                            <ThemeText
-                                text={t('navigator.createroom.nameerr')}
-                                textStyle="regular"
-                                textOptions={{ fontFamily: 'Volter', fontSize: 9, fill: '#000000' }}
-                                verticalAlign="top"
-                            />
-                        </Border>
-                        <ThemeImage
-                            name="popup_arrow_down"
-                            src={LayoutImage('navigator/popup_arrow_down.png')}
-                            bitmap={{}}
-                            layout={{ width: 11, height: 11, marginTop: -1 }}
-                        />
-                    </Region>
+                    // `displayError`: `nav_error_popup` over the name field (0,20, 240 wide).
+                    <NavigatorErrorPopup
+                        text={t('navigator.createroom.nameerr')}
+                        fieldLeft={0}
+                        fieldTop={20}
+                        fieldWidth={240}
+                    />
                 )}
             </Region>
             <Region
@@ -460,9 +445,9 @@ export const NavigatorRoomCreateView = () => {
                     viewportLayout={{ position: 'absolute', left: 0, top: 0, width: 290, height: 295 }}
                     scrollbarLayout={{ position: 'absolute', left: 278, top: 0, width: 17, height: 295 }}
                 >
+                    {/* `background="true"` with no colour: `_fillColor | _alphaColor` is 0x00ffffff, a transparent fill. */}
                     <Region
                         name="layout_item_list"
-                        backgroundColor="#ffffff"
                         layout={{ flexDirection: 'column', width: '100%' }}
                     >
                         {rows.map(row => (

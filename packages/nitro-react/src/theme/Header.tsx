@@ -220,6 +220,8 @@ const HEADER_VARIANTS: ThemeVariants<HeaderVariant> = {
 export interface HeaderProps extends ThemeProps<HeaderVariant> {
     caption?: string;
     onClose?: () => void;
+    /** `header_button_close` exists: a dialog that disposes it (`SimpleAlertDialog`) passes false. */
+    closeButtonVisible?: boolean;
     /** Shows the skin's menu button, for the variants whose skin has one (`menuButton`). */
     onMenu?: () => void;
     /**
@@ -233,7 +235,7 @@ export interface HeaderProps extends ThemeProps<HeaderVariant> {
 
 export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, HeaderProps>(
     ({
-        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, caption, onClose, onMenu, helpPage, onHelp,
+        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, caption, onClose, closeButtonVisible = true, onMenu, helpPage, onHelp,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
         const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
@@ -306,7 +308,7 @@ export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiC
             ? (
                     <Box layout={{ position: 'absolute', right: config.closeAt.right, top: config.closeAt.top, flexDirection: 'row' }}>
                         {helpNode}
-                        <CloseButton onPointerTap={onClose} />
+                        {closeButtonVisible && <CloseButton onPointerTap={onClose} />}
                     </Box>
                 )
             : (
@@ -323,7 +325,7 @@ export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiC
                     >
                         { config.needsBgChip && <ColorLayer color={resolvedTint} /> }
                         {helpNode}
-                        <CloseButton onPointerTap={onClose} />
+                        {closeButtonVisible && <CloseButton onPointerTap={onClose} />}
                     </Box>
                 );
 

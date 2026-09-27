@@ -5,6 +5,9 @@
  *
  * - `onFurniList`: the list comes in fragments; they are collected (`addMessageFragment`, the
  *   buffer sized by the first fragment's total) and inserted once all are in.
+ * - `onFurniListRemove`: an item the list held going resets the furni page's unseen items
+ *   (`FurniModel.resetUnseenItems`), whichever page is showing - `ResetUnseenItems` for category 1
+ *   when anything in it was new.
  * - `onFurniListInvalidate`: the list is no longer current; it is asked for again straight away
  *   while the inventory is open (`setInventoryCategoryInit('furni', false)`), otherwise when the
  *   furni page next opens.
@@ -17,7 +20,7 @@
  */
 import { FurniListAddOrUpdateEventMessage, FurniListEventMessage, FurniListInvalidateEventMessage, FurniListRemoveEventMessage, IFurniListAddOrUpdateFurni, WiredTradeCancelledMessage, WiredTradeCompletedMessage, WiredTradeItemsUpdateMessage } from '@nitrodevco/nitro-packets';
 
-import { removeAllInventoryFurniLocks, requestFurniInventory, updateInventoryFurniLocks } from '#base/commands';
+import { removeAllInventoryFurniLocks, requestFurniInventory, resetInventoryFurniUnseenItems, updateInventoryFurniLocks } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 import { systemStore } from '#base/context/system';
@@ -57,7 +60,9 @@ export const registerInventoryFurniHandlers = ({ send, subscribe }: WebSocketCon
 
         on(FurniListAddOrUpdateEventMessage, data => addOrUpdateFurni(data.furni)),
 
-        on(FurniListRemoveEventMessage, data => removeFurni(data.stripId)),
+        on(FurniListRemoveEventMessage, (data) => {
+            if (removeFurni(data.stripId)) resetInventoryFurniUnseenItems(send);
+        }),
 
         on(FurniListInvalidateEventMessage, () => {
             invalidateFurni();

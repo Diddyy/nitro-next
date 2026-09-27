@@ -237,6 +237,8 @@ export interface FrameProps extends Omit<ThemeProps<FrameVariant>, 'dropShadow'>
     /** Told where the frame is after it was centered or dragged, for a caller that keeps the position itself. */
     onPositionChange?: (position: { x: number; y: number }) => void;
     onClose?: () => void;
+    /** The header's close button; false where Flash disposes `header_button_close`. */
+    closeButtonVisible?: boolean;
     /** Shows the skin's menu button in the header (`IFrameWindow.menuButtonVisible`) and is called when it is pressed. */
     onMenu?: () => void;
     /**
@@ -309,7 +311,7 @@ const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefi
 
 export const Frame = ({
     variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, dropShadow, id, caption, resizeDirection = 'all', contentLayout, margins,
-    defaultPosition, rememberPosition = true, draggable = true, centered, onPositionChange, onClose, onMenu, helpPage, onHelp, backdrop, fitContent, children,
+    defaultPosition, rememberPosition = true, draggable = true, centered, onPositionChange, onClose, closeButtonVisible, onMenu, helpPage, onHelp, backdrop, fitContent, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
     const { frameRef, attachFrame, offset, zIndex, revealed, onPointerDown, onHeaderPointerDown } = useFrameDrag(id, { defaultPosition, remember: rememberPosition, centered, onPositionChange });
@@ -414,6 +416,7 @@ export const Frame = ({
                             caption={caption}
                             tintColor={resolvedTint}
                             onClose={onClose}
+                            closeButtonVisible={closeButtonVisible}
                             onMenu={onMenu}
                             helpPage={helpPage}
                             onHelp={onHelp}

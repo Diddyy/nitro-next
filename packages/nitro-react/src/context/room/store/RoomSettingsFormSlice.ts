@@ -1,6 +1,17 @@
 import { IFlatController, RoomSettingsDataEventMessageType } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
+/** The field a refusal is shown on: `TextFieldManager.displayError` puts its popup over that input. */
+export type RoomSettingsErrorField = 'name' | 'description' | 'tags' | 'password' | 'passwordConfirm' | 'idleSleepTimeout' | 'idleAutokickTimeout';
+
+export interface RoomSettingsFormError {
+    /** The localization key of the message. */
+    key: string;
+    field: RoomSettingsErrorField;
+    /** For `tags`: the tag the server named - only the input holding it is marked (`setTagError`). */
+    tag?: string;
+}
+
 /**
  * The room settings as they are being edited: the server's snapshot with whatever has been
  * changed on top, plus whatever it said about the last attempt to save.
@@ -10,8 +21,8 @@ import { StateCreator } from 'zustand';
  */
 type State = {
     roomSettingsForm: RoomSettingsDataEventMessageType | undefined;
-    /** A localization key for whatever the server refused, or nothing. */
-    roomSettingsFormError: string | undefined;
+    /** What the last save was refused for, and the field it is shown on, or nothing. */
+    roomSettingsFormError: RoomSettingsFormError | undefined;
     /** Set while a save is in flight, so the window can say so and refuse a second one. */
     roomSettingsFormSaving: boolean;
     /** Who holds rights in the room, from `FlatControllersEventMessage`. */
@@ -23,7 +34,7 @@ type State = {
 type Actions = {
     setRoomSettingsForm: (form: RoomSettingsDataEventMessageType | undefined) => void;
     updateRoomSettingsForm: (changes: Partial<RoomSettingsDataEventMessageType>) => void;
-    setRoomSettingsFormError: (error: string | undefined) => void;
+    setRoomSettingsFormError: (error: RoomSettingsFormError | undefined) => void;
     setRoomSettingsFormSaving: (saving: boolean) => void;
     setRoomControllers: (roomControllers: IFlatController[]) => void;
     addRoomController: (controller: IFlatController) => void;

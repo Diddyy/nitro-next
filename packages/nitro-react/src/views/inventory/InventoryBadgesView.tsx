@@ -18,10 +18,16 @@
  *   falls below that bar, one "common" entry covering all of them; and the search box, which
  *   matches a badge's name and description. The rarity menu is dead until it has more than two
  *   entries (`isBadgeRarityFilterEnabled`).
+ * - A thumb's ground is green, in either grid, while the badge is unseen (`Badge.isUnseen`,
+ *   category 4 by the badge's numeric id); leaving the page or closing the window on it resets
+ *   that (`InventoryView`). Flash fixes the flag when the `Badge` is made and clears it on the
+ *   reset, so a badge the server announces before it says the badge is new
+ *   (`BadgeReceived`, then `UnseenItems` - the order this server sends them in) would stay unmarked
+ *   while the tab counts it; here the mark is read from the tracker, so the two agree.
  *
  * Not ported: the 200-item pages under `inactive_items` (`item_grid_pages`, the grid scrolls
- * instead), `badgeOwnerCount` beside the rarity tag, the unseen item marks, and
- * `achievements_score_container`, which needs the achievement score this client does not hold.
+ * instead), `badgeOwnerCount` beside the rarity tag, and `achievements_score_container`, which
+ * needs the achievement score this client does not hold.
  */
 import { getBadgeRarityLabelKey, getBadgeRarityWhiteBackgroundTagColor, isBadgeRarityStandaloneTier } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';
@@ -31,7 +37,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import {
     getInventoryBadgeRarityIds, getInventoryBadges, INVENTORY_BADGE_FILTER_ACHIEVEMENTS, INVENTORY_BADGE_FILTER_ALL, INVENTORY_BADGE_FILTER_NORMAL,
     INVENTORY_BADGE_RARITY_ALL, INVENTORY_BADGE_RARITY_COMMON, INVENTORY_BADGES_ACTIVE, INVENTORY_BADGES_INACTIVE, INVENTORY_MAX_ACTIVE_BADGES,
-    InventoryBadge, isInventoryBadgeRarityFilterEnabled, passInventoryBadgeFilter, useInventoryBadgesActions, useInventoryStore,
+    InventoryBadge, isInventoryBadgeRarityFilterEnabled, passInventoryBadgeFilter, UnseenItemCategory, useInventoryBadgesActions, useInventoryStore, useInventoryUnseenIds,
 } from '#base/context/inventory';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Border, Box, Button, Dropmenu, DropmenuOption, InfiniteGrid, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
@@ -41,15 +47,18 @@ import { InventoryOptionsContainer } from './InventoryOptionsContainer';
 /** `Badge`'s thumb is the same 42x42 frame the furni thumbs use, with the same two ground colours. */
 const THUMB_SIZE = 42;
 const THUMB_COLOR = '#cccccc';
+/** `THUMB_COLOR_UNSEEN` (10275685): the thumb's ground while the tracker names the badge. */
+const THUMB_COLOR_UNSEEN = '#9ccb65';
 
 interface BadgeThumbProps {
     badge: InventoryBadge;
     badgeUrl: string;
     selected: boolean;
+    unseen: boolean;
     onSelect: (code: string) => void;
 }
 
-const BadgeThumb = ({ badge, badgeUrl, selected, onSelect }: BadgeThumbProps) => (
+const BadgeThumb = ({ badge, badgeUrl, selected, unseen, onSelect }: BadgeThumbProps) => (
     <Region
         cursor="pointer"
         onPointerDown={() => onSelect(badge.code)}
@@ -57,7 +66,7 @@ const BadgeThumb = ({ badge, badgeUrl, selected, onSelect }: BadgeThumbProps) =>
     >
         <Border
             variant="5"
-            tintColor={THUMB_COLOR}
+            tintColor={unseen ? THUMB_COLOR_UNSEEN : THUMB_COLOR}
             layout={{ position: 'absolute', left: 1, top: 1, width: 40, height: 40 }}
         >
             <ThemeImage
@@ -82,6 +91,7 @@ export const InventoryBadgesView = () => {
     const badges = useInventoryStore(x => x.badges);
     const wornBadgeCodes = useInventoryStore(x => x.wornBadgeCodes);
     const selectedBadgeCode = useInventoryStore(x => x.selectedBadgeCode);
+    const unseenBadgeIds = useInventoryUnseenIds(UnseenItemCategory.BADGE);
     const { selectBadge } = useInventoryBadgesActions();
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
     // `BadgesModel.isUncommonBadgeRarityEnabled`: without it the uncommon tier is shown as common.
@@ -181,6 +191,7 @@ export const InventoryBadgesView = () => {
                                 badge={badge}
                                 badgeUrl={badgeUrl}
                                 selected={badge.code === selectedBadgeCode}
+                                unseen={unseenBadgeIds.includes(badge.badgeNumberId)}
                                 onSelect={selectBadge}
                             />
                         )}
@@ -201,6 +212,7 @@ export const InventoryBadgesView = () => {
                         badge={badge}
                         badgeUrl={badgeUrl}
                         selected={badge.code === selectedBadgeCode}
+                        unseen={unseenBadgeIds.includes(badge.badgeNumberId)}
                         onSelect={selectBadge}
                     />
                 ))}
