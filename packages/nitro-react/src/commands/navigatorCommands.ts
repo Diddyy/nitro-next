@@ -1,4 +1,4 @@
-import { GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
+import { CreateFlatComposer, CreateFlatComposerType, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { groupStore } from '#base/context/groups';
@@ -96,3 +96,6 @@ export const requestRoomGroupDetails = (send: Send, groupId: number) => {
 
     send(new GetHabboGroupDetailsComposer({ groupId, openDetails: false }));
 };
+
+/** `RoomCreateViewCtrl.onCreateButtonClick`: the server answers with `FlatCreatedMessage`. */
+export const createFlat = (send: Send, room: CreateFlatComposerType) => send(new CreateFlatComposer(room));

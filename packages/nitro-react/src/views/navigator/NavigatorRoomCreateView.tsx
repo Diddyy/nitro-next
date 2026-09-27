@@ -22,12 +22,11 @@
  * Flash's `show()` calls `refresh()` either way.
  */
 import { ClubLevelEnum, RoomTradeModeEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
-import { CreateFlatComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { openClubCenter } from '#base/commands';
+import { createFlat, openClubCenter } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useNavigatorStore } from '#base/context/navigator';
+import { ROOM_CREATE_LAYOUTS, RoomCreateLayout, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useOwnClubLevel, useOwnSecurityLevel } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
@@ -35,53 +34,6 @@ import { Border, Button, ButtonThick, Dropmenu, Frame, Icon, LayoutImage, Region
 import { flatCategoryName } from '#base/utils';
 
 import { NavigatorErrorPopup } from './NavigatorErrorPopup';
-
-/**
- * `RoomCreateViewCtrl`'s `_layouts`, in its push order: the club level each needs (-1: staff,
- * `hasSecurity(4)`), its size in tiles and the model name after `model_`.
- * Checked against Flash by `scripts/drift/constants.py`.
- */
-const ROOM_LAYOUTS: { clubLevel: number; tileSize: number; name: string }[] = [
-    { clubLevel: 0, tileSize: 104, name: 'a' },
-    { clubLevel: 0, tileSize: 94, name: 'b' },
-    { clubLevel: 0, tileSize: 36, name: 'c' },
-    { clubLevel: 0, tileSize: 84, name: 'd' },
-    { clubLevel: 0, tileSize: 80, name: 'e' },
-    { clubLevel: 0, tileSize: 80, name: 'f' },
-    { clubLevel: 0, tileSize: 416, name: 'i' },
-    { clubLevel: 0, tileSize: 320, name: 'j' },
-    { clubLevel: 0, tileSize: 448, name: 'k' },
-    { clubLevel: 0, tileSize: 352, name: 'l' },
-    { clubLevel: 0, tileSize: 384, name: 'm' },
-    { clubLevel: 0, tileSize: 372, name: 'n' },
-    { clubLevel: 1, tileSize: 80, name: 'g' },
-    { clubLevel: 1, tileSize: 74, name: 'h' },
-    { clubLevel: 1, tileSize: 416, name: 'o' },
-    { clubLevel: 1, tileSize: 352, name: 'p' },
-    { clubLevel: 1, tileSize: 304, name: 'q' },
-    { clubLevel: 1, tileSize: 336, name: 'r' },
-    { clubLevel: 1, tileSize: 748, name: 'u' },
-    { clubLevel: 1, tileSize: 438, name: 'v' },
-    { clubLevel: 2, tileSize: 540, name: 't' },
-    { clubLevel: 2, tileSize: 512, name: 'w' },
-    { clubLevel: 2, tileSize: 396, name: 'x' },
-    { clubLevel: 2, tileSize: 440, name: 'y' },
-    { clubLevel: 2, tileSize: 456, name: 'z' },
-    { clubLevel: 2, tileSize: 208, name: '0' },
-    { clubLevel: 2, tileSize: 1009, name: '1' },
-    { clubLevel: 2, tileSize: 1044, name: '2' },
-    { clubLevel: 2, tileSize: 183, name: '3' },
-    { clubLevel: 2, tileSize: 254, name: '4' },
-    { clubLevel: 2, tileSize: 1024, name: '5' },
-    { clubLevel: 2, tileSize: 801, name: '6' },
-    { clubLevel: 2, tileSize: 354, name: '7' },
-    { clubLevel: 2, tileSize: 888, name: '8' },
-    { clubLevel: 2, tileSize: 926, name: '9' },
-    { clubLevel: -1, tileSize: 2500, name: 'snowwar1' },
-    { clubLevel: -1, tileSize: 2500, name: 'snowwar2' },
-];
-
-type RoomLayout = typeof ROOM_LAYOUTS[number];
 
 /** `ROOM_LIMIT_NON_SUBSCRIBER` / `ROOM_LIMIT_HC`: the highest visitor cap offered, which `refresh` picks by `hasVip`. */
 const ROOM_LIMIT_NON_SUBSCRIBER = 50;
@@ -146,7 +98,7 @@ const Caption = ({ text, top }: { text: string; top: number }) => (
 );
 
 interface ThumbnailProps {
-    layout: RoomLayout;
+    layout: RoomCreateLayout;
     left: number;
     selected: boolean;
     arrowY: number;
@@ -204,7 +156,7 @@ const Thumbnail = ({ layout, left, selected, arrowY, imageLibraryUrl, tileSizeTe
                     layout={{ position: 'absolute', left: 60, width: 18, top: arrowY, height: 20 }}
                 />
             )}
-            {((layout.clubLevel === Number(ClubLevelEnum.Club)) || (layout.clubLevel === Number(ClubLevelEnum.Vip))) && (
+            {((layout.requiredClubLevel === Number(ClubLevelEnum.Club)) || (layout.requiredClubLevel === Number(ClubLevelEnum.Vip))) && (
                 <Icon
                     variant="12"
                     name="club_icon"
@@ -232,7 +184,7 @@ export const NavigatorRoomCreateView = () => {
     const [ categoryIndex, setCategoryIndex ] = useState(0);
     const [ visitorsIndex, setVisitorsIndex ] = useState(0);
     const [ tradeIndex, setTradeIndex ] = useState(0);
-    const [ selectedLayout, setSelectedLayout ] = useState(ROOM_LAYOUTS[0].name);
+    const [ selectedLayout, setSelectedLayout ] = useState(ROOM_CREATE_LAYOUTS[0].name);
     const [ arrow, setArrow ] = useState<ArrowState>({ y: ARROW_TOP, down: true });
 
     useEffect(() => {
@@ -247,10 +199,10 @@ export const NavigatorRoomCreateView = () => {
     const isStaff = Number(securityLevel) >= Number(SecurityLevelEnum.Employee);
 
     /** `isAllowed(layout, requireClub)`: listing asks only about staff layouts; choosing asks about club too. */
-    const isAllowed = (layout: RoomLayout, requireClub: boolean) => {
-        if (layout.clubLevel === Number(ClubLevelEnum.None)) return true;
-        if (layout.clubLevel === Number(ClubLevelEnum.Club)) return !requireClub || hasClub;
-        if (layout.clubLevel === Number(ClubLevelEnum.Vip)) return !requireClub || hasVip;
+    const isAllowed = (layout: RoomCreateLayout, requireClub: boolean) => {
+        if (layout.requiredClubLevel === Number(ClubLevelEnum.None)) return true;
+        if (layout.requiredClubLevel === Number(ClubLevelEnum.Club)) return !requireClub || hasClub;
+        if (layout.requiredClubLevel === Number(ClubLevelEnum.Vip)) return !requireClub || hasVip;
 
         return isStaff;
     };
@@ -263,11 +215,11 @@ export const NavigatorRoomCreateView = () => {
     const visitorCap = hasVip ? ROOM_LIMIT_HC : ROOM_LIMIT_NON_SUBSCRIBER;
     const visitorSteps = Array.from({ length: ((visitorCap - 10) / 5) + 1 }, (_, i) => 10 + (i * 5));
 
-    const listedLayouts = ROOM_LAYOUTS.filter(layout => isAllowed(layout, false));
+    const listedLayouts = ROOM_CREATE_LAYOUTS.filter(layout => isAllowed(layout, false));
     const rows = Array.from({ length: Math.ceil(listedLayouts.length / 2) }, (_, i) => listedLayouts.slice(i * 2, (i * 2) + 2));
     const showVipPromo = (Number(clubLevel) < Number(ClubLevelEnum.Vip)) && !clubBuyDisabled;
 
-    const chooseLayout = (layout: RoomLayout) => {
+    const chooseLayout = (layout: RoomCreateLayout) => {
         if (isAllowed(layout, true)) setSelectedLayout(layout.name);
         else openClubCenter(send);
     };
@@ -294,14 +246,14 @@ export const NavigatorRoomCreateView = () => {
 
         setNameErrorBackground(false);
 
-        send(new CreateFlatComposer({
+        createFlat(send, {
             flatName,
             flatDescription: fieldText(description),
             flatModelName: `model_${selectedLayout}`,
             categoryID: categories[categoryIndex]?.nodeId ?? 0,
             maxPlayers: visitorSteps[visitorsIndex],
             tradeSetting: TRADE_MODES[tradeIndex].mode,
-        }));
+        });
     };
 
     const inputBackground = nameErrorBackground ? INPUT_ERROR_BACKGROUND : INPUT_BACKGROUND;
