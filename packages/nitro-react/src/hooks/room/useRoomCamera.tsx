@@ -50,10 +50,13 @@ const createCameraData = (room: IRoom | undefined): RoomCameraData => ({
 
 /**
  * The room camera - Flash's `RoomEngine.updateRoomCamera`: follows your own avatar, or whatever
- * the store names as the target, with the same easing, stops following once the user has
+ * the store names as the target, with the same easing, pauses following when the user has
  * dragged the room, and keeps the room inside the canvas. With nothing to follow - before your
  * avatar arrives, or as a spectator - it rests on the room's camera init position, which is where
  * `RoomDesktop.initCameraLocation` pointed it.
+ * Flash's `RoomEngine.useOffsetScrolling` is hard-coded true in the reference revision; its
+ * alternative geometry-scrolling branches are unreachable. Forced canvas flips are a separate
+ * room-effect path that this canvas does not yet implement.
  */
 export const useRoomCamera = () => {
     const room = useRoom();
@@ -63,7 +66,7 @@ export const useRoomCamera = () => {
     // `SessionDataManager.isRoomCameraFollowDisabled` - the account's "disable room camera follow" setting.
     const followDisabledByUser = useUserStore(x => x.isRoomCameraFollowDisabled);
     const followDuration = useRoomStore(x => x.followDuration);
-    const moveSpeedDenominator = useConfigValue<number>('camera.move.speed') ?? 12;
+    const followEnabled = useConfigValue<boolean>('room.camera.follow_user') === true;
     const cameraDataRef = useRef<RoomCameraData>(createCameraData(undefined));
 
     const setCameraTarget = (target: IVector3D) => {
@@ -108,7 +111,7 @@ export const useRoomCamera = () => {
 
         const sinFactor = Math.sin((Math.PI * diff.length) / cameraData.moveDistance);
         const minSpeed = threshold * 0.5;
-        const maxSpeed = cameraData.moveDistance / moveSpeedDenominator;
+        const maxSpeed = cameraData.moveDistance / 12;
 
         let speed = minSpeed + (maxSpeed - minSpeed) * sinFactor;
 
@@ -143,7 +146,8 @@ export const useRoomCamera = () => {
     const updateRoomCamera = (time: number) => {
         const canvas = room?.canvas;
 
-        if (!canvas) return;
+        // RoomEngine.updateRoomCamera follows only at scale 1, including no following above 1.
+        if (!canvas || canvas.scale !== 1) return;
 
         // A new room starts with a new camera: where the last room was scrolled to says nothing
         // about this one, and its location has to be initialized on this room's geometry.
@@ -175,7 +179,8 @@ export const useRoomCamera = () => {
 
         if (time === -1) cameraDataRef.current.scaleChanged = true;
 
-        cameraData.targetObjectLocation = goalLocation;
+        // RoomCamera.targetObjectLoc copies coordinates; room-object locations mutate in place.
+        cameraData.targetObjectLocation = Vector3d.from(goalLocation);
 
         let targetZ = Math.floor(goalLocation.z) + 1;
 
@@ -316,14 +321,15 @@ export const useRoomCamera = () => {
         }
 
         const finalScreen = canvas.geometry.getScreenPoint(finalLocation);
-        const currentPosition = new Vector3d(finalScreen.x, finalScreen.y);
+        const currentPosition = new Vector3d(finalScreen?.x ?? 0, finalScreen?.y ?? 0);
 
         const outOfActiveZoneX = targetObject !== undefined && (targetScreen.x < viewport.left || targetScreen.x > viewport.right) && !cameraData.centeredLocation.x;
         const outOfActiveZoneY = targetObject !== undefined && (targetScreen.y < viewport.top || targetScreen.y > viewport.bottom) && !cameraData.centeredLocation.y;
-        const horizontalFitChanged = fitsHorizontally && !cameraData.centeredLocation.x && cameraData.screenSize.w !== viewport.width;
-        const verticalFitChanged = fitsVertically && !cameraData.centeredLocation.y && cameraData.screenSize.h !== viewport.height;
+        // RoomEngine.updateRoomCamera compares the canvas dimensions, before tracking margins.
+        const horizontalFitChanged = fitsHorizontally && !cameraData.centeredLocation.x && cameraData.screenSize.w !== canvas.width;
+        const verticalFitChanged = fitsVertically && !cameraData.centeredLocation.y && cameraData.screenSize.h !== canvas.height;
         const roomSizeChanged = cameraData.roomSize.w !== roomBounds.width || cameraData.roomSize.h !== roomBounds.height;
-        const activeZoneChanged = cameraData.screenSize.w !== viewport.width || cameraData.screenSize.h !== viewport.height;
+        const activeZoneChanged = cameraData.screenSize.w !== canvas.width || cameraData.screenSize.h !== canvas.height;
 
         if (outOfActiveZoneX || outOfActiveZoneY || horizontalFitChanged || verticalFitChanged || roomSizeChanged || activeZoneChanged || cameraData.geometryUpdateId === -1) {
             cameraData.limitedLocation = { x: clampedX, y: clampedY };
@@ -344,7 +350,7 @@ export const useRoomCamera = () => {
             cameraData.scale = canvas.geometry.scale;
         }
 
-        if (!cameraFollowDisabled && !followDisabledByUser) adjustCamera(time, 8);
+        if (followEnabled && !cameraFollowDisabled && !followDisabledByUser) adjustCamera(time, 8);
 
         const offsetX = -(cameraData.currentLocation?.x ?? 0);
         const offsetY = -(cameraData.currentLocation?.y ?? 0);
