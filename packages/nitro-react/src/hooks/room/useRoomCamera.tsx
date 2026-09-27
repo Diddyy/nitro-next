@@ -54,8 +54,9 @@ const createCameraData = (room: IRoom | undefined): RoomCameraData => ({
  * dragged the room, and keeps the room inside the canvas. With nothing to follow - before your
  * avatar arrives, or as a spectator - it rests on the room's camera init position, which is where
  * `RoomDesktop.initCameraLocation` pointed it.
- * This uses Flash's offset-scrolling path. Nitro does not expose a flipped room canvas or
- * the alternative geometry-scrolling mode; those AS3 branches have no corresponding mode here.
+ * Flash's `RoomEngine.useOffsetScrolling` is hard-coded true in the reference revision; its
+ * alternative geometry-scrolling branches are unreachable. Forced canvas flips are a separate
+ * room-effect path that this canvas does not yet implement.
  */
 export const useRoomCamera = () => {
     const room = useRoom();
@@ -66,7 +67,6 @@ export const useRoomCamera = () => {
     const followDisabledByUser = useUserStore(x => x.isRoomCameraFollowDisabled);
     const followDuration = useRoomStore(x => x.followDuration);
     const followEnabled = useConfigValue<boolean>('room.camera.follow_user') === true;
-    const moveSpeedDenominator = useConfigValue<number>('camera.move.speed') ?? 12;
     const cameraDataRef = useRef<RoomCameraData>(createCameraData(undefined));
 
     const setCameraTarget = (target: IVector3D) => {
@@ -111,7 +111,7 @@ export const useRoomCamera = () => {
 
         const sinFactor = Math.sin((Math.PI * diff.length) / cameraData.moveDistance);
         const minSpeed = threshold * 0.5;
-        const maxSpeed = cameraData.moveDistance / moveSpeedDenominator;
+        const maxSpeed = cameraData.moveDistance / 12;
 
         let speed = minSpeed + (maxSpeed - minSpeed) * sinFactor;
 
@@ -146,7 +146,7 @@ export const useRoomCamera = () => {
     const updateRoomCamera = (time: number) => {
         const canvas = room?.canvas;
 
-        // RoomEngine.updateRoomCamera leaves the overview canvas stationary.
+        // RoomEngine.updateRoomCamera follows only at scale 1, including no following above 1.
         if (!canvas || canvas.scale !== 1) return;
 
         // A new room starts with a new camera: where the last room was scrolled to says nothing

@@ -18,7 +18,7 @@ const load = (source, dependencies) => {
 };
 const { Vector3d } = load(readFileSync(new URL('../packages/nitro-api/src/utils/Vector3d.ts', import.meta.url), 'utf8'), {});
 const source = readFileSync(new URL('../packages/nitro-react/src/hooks/room/useRoomCamera.tsx', import.meta.url), 'utf8');
-const fixture = ({ width = 800, height = 600, small = false, follow = false, disabled = false, disabledByUser = false, followEnabled = true } = {}) => {
+const fixture = ({ width = 800, height = 600, small = false, follow = false, disabled = false, disabledByUser = false, followEnabled = true, configuredSpeed = 12 } = {}) => {
     let ref;
     const target = new Vector3d(10, 10, 0);
     const bounds = small ? new Rectangle(250, 200, 100, 100) : new Rectangle(-500, -500, 2000, 1600);
@@ -35,7 +35,7 @@ const fixture = ({ width = 800, height = 600, small = false, follow = false, dis
         'pixi.js': { Matrix, Point, Rectangle },
         react: { useRef: value => (ref = { current: value }) },
         '#base/context/room': { useRoom: () => room, useRoomStore: select => select(state) },
-        '#base/context/system': { useConfigValue: key => key === 'room.camera.follow_user' ? followEnabled : 12 },
+        '#base/context/system': { useConfigValue: key => key === 'room.camera.follow_user' ? followEnabled : configuredSpeed },
         '#base/context/user': { useUserStore: select => select({ isRoomCameraFollowDisabled: disabledByUser }) },
         './useRoomEventDispatcher': { useRoomEventDispatcher() {} },
     });
@@ -236,4 +236,31 @@ await test('in-place avatar movement is detected after a stationary frame', () =
     f.updateRoomCamera(2);
     assert.ok(f.camera.targetLocation, 'copy the last target coordinates instead of retaining the mutable room position');
     assert.equal(f.camera.targetObjectLocation.x, 301);
+});
+
+await test('unsupported camera speed configuration cannot alter AS3 easing', () => {
+    const normal = fixture({ follow: true });
+    const override = fixture({ follow: true, configuredSpeed: 1 });
+    for (const f of [ normal, override ]) {
+        f.camera.targetLocation = new Vector3d(70, 80, 0);
+        f.camera.moveDistance = Math.hypot(70, 80);
+    }
+    for (let frame = 0; frame < 30; frame++) {
+        normal.updateRoomCamera(frame + 1);
+        override.updateRoomCamera(frame + 1);
+        assert.equal(override.camera.currentLocation.x, normal.camera.currentLocation.x);
+        assert.equal(override.camera.currentLocation.y, normal.camera.currentLocation.y);
+    }
+});
+
+await test('zoom 2 keeps the camera stationary until zoom 1 resumes following the displaced avatar', () => {
+    const f = fixture({ follow: true });
+    f.canvas.scale = 2;
+    f.target.x = 301;
+    f.updateRoomCamera(1);
+    assert.equal(f.offsets.length, 0);
+    f.canvas.scale = 1;
+    f.updateRoomCamera(2);
+    assert.ok(f.offsets.length > 0);
+    assert.notEqual(f.camera.currentLocation.x, 0);
 });
