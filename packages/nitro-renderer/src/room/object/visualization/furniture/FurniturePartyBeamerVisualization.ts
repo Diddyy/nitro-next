@@ -1,9 +1,9 @@
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { Point } from 'pixi.js';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
-export class FurniturePartyBeamerVisualization extends FurnitureAnimatedVisualization {
+export class FurniturePartyBeamerVisualization extends AnimatedFurnitureVisualization {
     private static UPDATE_INTERVAL: number = 2;
     private static AREA_DIAMETER_SMALL: number = 15;
     private static AREA_DIAMETER_LARGE: number = 31;

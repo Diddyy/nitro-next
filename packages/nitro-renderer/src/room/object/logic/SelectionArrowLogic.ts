@@ -1,9 +1,9 @@
 import { IAssetData, IRoomObjectUpdateMessage, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
 import { ObjectVisibilityUpdateMessage } from '../../messages';
-import { RoomObjectLogicBase } from './RoomObjectLogicBase';
+import { ObjectLogicBase } from './ObjectLogicBase';
 
-export class SelectionArrowLogic extends RoomObjectLogicBase {
+export class SelectionArrowLogic extends ObjectLogicBase {
     public override initialize(data: IAssetData): void {
         this.object.model.setValue(RoomObjectVariableEnum.FurnitureAlphaMultiplier, 1);
 

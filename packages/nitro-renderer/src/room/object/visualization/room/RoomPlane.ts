@@ -5,7 +5,7 @@ import {
     IRoomPlane,
     IVector3D,
     Vector3d } from '@nitrodevco/nitro-api';
-import { Container, Matrix, Point, RenderTexture, Sprite, Texture, TilingSprite } from 'pixi.js';
+import { Container, Matrix, Point, Rectangle, RenderTexture, Sprite, Texture, TilingSprite } from 'pixi.js';
 
 import { GetAssetManager } from '#renderer/assets';
 import { ExtendedSprite, TexturePool, TextureUtils } from '#renderer/utils';
@@ -13,7 +13,7 @@ import { ExtendedSprite, TexturePool, TextureUtils } from '#renderer/utils';
 import { RoomGeometry } from '../../../utils';
 import { PlaneMaskManager } from './mask';
 import { IPlaneRasterizer } from './rasterizer/IPlaneRasterizer';
-import { releasePlaneCanvas } from './rasterizer/PlaneCanvas';
+import { acquirePlaneTarget, copyToPlaneCanvas, createPlaneCanvas, fillPlaneCanvas, preparePlaneSampling, releasePlaneCanvas, releasePlaneTarget } from './rasterizer/PlaneCanvas';
 import { RoomPlaneBitmapMask } from './RoomPlaneBitmapMask';
 import { RoomPlaneRectangleMask } from './RoomPlaneRectangleMask';
 import { PlaneBitmapData, Randomizer } from './utils';
@@ -24,11 +24,15 @@ type PlaneDataType = 'floorData' | 'wallData';
  * One plane of the room - a floor, wall or landscape face - and the texture it is drawn with. Ports
  * Flash `RoomPlane`.
  *
- * A plane with a rasterizer (the landscapes, `LandscapeRasterizer`) gets its texture from it the way
- * Flash's `getTexture` does: one per texture identifier, kept until the rasterizer's time stamp on it
- * runs out, which is how an animated landscape is drawn again every half second. Walls and floors
- * have no rasterizer yet - `WallRasterizer` and `FloorRasterizer` are not ported - and tile the first
- * cell of their material instead (`getTextureAndColorForPlane`).
+ * Planes with a rasterizer use its texture - the way Flash's `getTexture` does - and keep one per
+ * texture identifier until the rasterizer's time stamp runs out. A plane without one tiles the
+ * first floor or wall material cell as `getTextureAndColorForPlane` does.
+ *
+ * Walls and landscapes are copied onto the plane in pixel-stepped column strips (`drawStepped`),
+ * as Flash's `draw` does; anything else is drawn through the plane's matrix. Not ported:
+ * `getDrawingDatas` (and `resolveMasks` under it), the per-layer drawing data only the photo
+ * camera reads - Flash's `SpriteDataCollector` sends it to the server in `RenderRoomMessageComposer`
+ * - and the photo camera is not ported, so nothing would call it.
  */
 export class RoomPlane implements IRoomPlane {
     public static readonly HORIZONTAL_ANGLE_DEFAULT = 45;
@@ -70,6 +74,8 @@ export class RoomPlane implements IRoomPlane {
     private _offset: Point = new Point();
     private _relativeDepth = 0;
     private _color = 0;
+    private _coloredTexture: RenderTexture | undefined;
+    private _textureColor: number = -1;
 
     private _maskManager?: PlaneMaskManager;
     private _id?: string;
@@ -88,11 +94,14 @@ export class RoomPlane implements IRoomPlane {
 
     private _width = 0;
     private _height = 0;
+    private _planeOffsetX = 0;
+    private _planeOffsetY = 0;
 
     private _canBeVisible = true;
     private _geometryUpdateId = -1;
     private _extraDepth = 0;
     private _isHighlighter = false;
+    private _hasTexture = true;
 
     private readonly _useMask: boolean;
     private _bitmapMasks: RoomPlaneBitmapMask[] = [];
@@ -104,9 +113,6 @@ export class RoomPlane implements IRoomPlane {
     private _planeSprite: Sprite | TilingSprite | undefined = undefined;
     private _planeTexture: RenderTexture | undefined = undefined;
     private _maskTexture: RenderTexture | undefined = undefined;
-
-    private _planeOffsetX = 0;
-    private _planeOffsetY = 0;
 
     private _rasterizer: IPlaneRasterizer | undefined = undefined;
     private _textures: Map<string, PlaneBitmapData> = new Map();
@@ -165,7 +171,7 @@ export class RoomPlane implements IRoomPlane {
         this._planeSprite = undefined;
 
         if (this._planeTexture) {
-            TexturePool.releaseTexture(this._planeTexture);
+            releasePlaneTarget(this._planeTexture);
             this._planeTexture = undefined;
         }
 
@@ -175,6 +181,9 @@ export class RoomPlane implements IRoomPlane {
         }
 
         this._disposed = true;
+
+        releasePlaneCanvas(this._coloredTexture);
+        this._coloredTexture = undefined;
     }
 
     public update(geometry: IRoomGeometry, timeSinceStartMs: number): boolean {
@@ -215,7 +224,6 @@ export class RoomPlane implements IRoomPlane {
 
                 width = texture.width;
                 height = texture.height;
-
                 this._planeSprite = new Sprite(texture);
             } else {
                 ({ width, height } = this.createTiledPlaneSprite(geometry));
@@ -226,12 +234,12 @@ export class RoomPlane implements IRoomPlane {
             if (!this._planeSprite) return false;
 
             if (this._planeTexture && (this._planeTexture.width !== this._width || this._planeTexture.height !== this._height)) {
-                TexturePool.releaseTexture(this._planeTexture);
+                releasePlaneTarget(this._planeTexture);
 
                 this._planeTexture = undefined;
             }
 
-            if (!this._planeTexture) this._planeTexture = TexturePool.createRenderTexture(this._width, this._height);
+            if (!this._planeTexture) this._planeTexture = acquirePlaneTarget(this._width, this._height);
 
             if (!this._planeTexture) return false;
 
@@ -250,12 +258,20 @@ export class RoomPlane implements IRoomPlane {
                 container.addChild(maskSprite);
             }
 
-            TextureUtils.getRenderer().render({
-                target: this._planeTexture,
-                container,
-                transform: this.getMatrixForDimensions(width, height),
-                clear: true,
-            });
+            const matrix = this.getMatrixForDimensions(width, height);
+
+            this._textureColor = -1;
+
+            if (this.isSteppedDraw(matrix)) this.drawStepped(container, width, height, matrix);
+            else {
+                // GPU coverage samples pixel centres. Align the matrix-drawn edges with the
+                // integer rows used by BitmapData.copyPixels above; otherwise a 2:1 edge leaves
+                // an uncovered pixel every second column where a wall meets its top face.
+                matrix.ty += 0.5;
+                TextureUtils.getRenderer().render({ target: this._planeTexture, container, transform: matrix, clear: true });
+            }
+
+            container.destroy();
 
             // The texture is drawn over in place, so a hit map built from what it held is stale.
             ExtendedSprite.removeHitmap(this._planeTexture.source);
@@ -266,30 +282,21 @@ export class RoomPlane implements IRoomPlane {
         return false;
     }
 
-    /**
-     * The wall and floor sprite: the first cell of the plane's material tiled over it, shifted by the
-     * plane's texture offset, until `WallRasterizer` and `FloorRasterizer` are ported.
-     *
-     * The size comes from the sides' exact lengths in `PLANE_GEOMETRY`, as Flash's wall and floor
-     * planes (`§_-e1B§`, `§_-RZ§`) take it, so the texture is exactly its on-screen corners and a mask
-     * cut into it keeps its bitmap's size. Rounding the lengths down once stood in for the z scale
-     * `RoomGeometry` did not apply; it only came close, and left a wall's door hole a different
-     * height from the landscape's behind it.
-     */
+    /** Tiles the first plane material cell until its floor or wall rasterizer is available. */
     private createTiledPlaneSprite(geometry: IRoomGeometry): { width: number; height: number } {
         const planeGeometry = RoomPlane.PLANE_GEOMETRY[geometry.scale];
 
         let width = this._leftSide.length;
         let height = this._rightSide.length;
 
-        const { texture, color } = this.getTextureAndColorForPlane(this._id!, this._type, planeGeometry);
+        const { texture: materialTexture, color } = this.getTextureAndColorForPlane(this._id ?? 'default', this._type, planeGeometry);
+        const texture = this._hasTexture ? materialTexture : Texture.WHITE;
 
         switch (this._type) {
             case RoomPlane.TYPE_FLOOR: {
                 const origin = planeGeometry.getScreenPoint(new Vector3d(0, 0, 0));
                 const yEnd = planeGeometry.getScreenPoint(new Vector3d(0, height, 0));
                 const xEnd = planeGeometry.getScreenPoint(new Vector3d(width, 0, 0));
-
                 let x = 0;
                 let y = 0;
 
@@ -297,9 +304,7 @@ export class RoomPlane implements IRoomPlane {
                     width = Math.round(Math.abs(origin.x - xEnd.x));
                     height = Math.round(Math.abs(origin.x - yEnd.x));
 
-                    const pixelsPerUnit = Math.abs(
-                        origin.x - planeGeometry.getScreenPoint(new Vector3d(1, 0, 0)).x,
-                    );
+                    const pixelsPerUnit = Math.abs(origin.x - planeGeometry.getScreenPoint(new Vector3d(1, 0, 0)).x);
 
                     x = this._textureOffsetX * pixelsPerUnit;
                     y = this._textureOffsetY * pixelsPerUnit;
@@ -314,7 +319,6 @@ export class RoomPlane implements IRoomPlane {
                 this._planeOffsetY = ((y % texture.height) + texture.height) % texture.height;
                 break;
             }
-
             case RoomPlane.TYPE_WALL: {
                 const origin = planeGeometry.getScreenPoint(new Vector3d(0, 0, 0));
                 const yEnd = planeGeometry.getScreenPoint(new Vector3d(0, 0, height));
@@ -331,16 +335,9 @@ export class RoomPlane implements IRoomPlane {
             }
         }
 
-        if (width < 1) width = 1;
-        if (height < 1) height = 1;
-
-        this._planeSprite = new TilingSprite({
-            texture,
-            width,
-            height,
-            tilePosition: { x: this._planeOffsetX, y: this._planeOffsetY },
-            tint: color,
-        });
+        width = Math.max(1, width);
+        height = Math.max(1, height);
+        this._planeSprite = new TilingSprite({ texture, width, height, tilePosition: { x: this._planeOffsetX, y: this._planeOffsetY }, tint: color });
 
         return { width, height };
     }
@@ -365,28 +362,43 @@ export class RoomPlane implements IRoomPlane {
         return this._rasterizer ? this._rasterizer.getTextureIdentifier(scale, this._normal) : String(scale);
     }
 
-    /** Flash `RoomPlane.getTexture`: the rasterizer's texture for the plane, drawn again when it has run out. */
+    /**
+     * Flash `RoomPlane.getTexture`: the rasterizer's texture for the plane, drawn again when it has
+     * run out. A plane with no rasterizer is its own colour, filled over its size in world units
+     * times the scale, as Flash's `new BitmapData(width, height, true, 0xFF000000 | color)`.
+     */
     private getTexture(geometry: IRoomGeometry, timeSinceStartMs: number): Texture | undefined {
-        if (!this._rasterizer) return undefined;
-
         const identifier = this.getTextureIdentifier(geometry.scale);
 
         if (this.needsNewTexture(geometry, timeSinceStartMs)) {
-            const previous = this._textures.get(identifier)?.texture;
-            const bitmapData = this._rasterizer.render(
-                (previous instanceof RenderTexture) ? previous : undefined,
-                this._id ?? '',
-                this._leftSide.length * geometry.scale,
-                this._rightSide.length * geometry.scale,
-                geometry.scale,
-                geometry.getCoordinatePosition(this._normal),
-                true,
-                this._textureOffsetX,
-                this._textureOffsetY,
-                this._textureMaxX,
-                this._textureMaxY,
-                timeSinceStartMs,
-            );
+            const width = this._leftSide.length * geometry.scale;
+            const height = this._rightSide.length * geometry.scale;
+            let bitmapData: PlaneBitmapData | undefined = undefined;
+
+            if (this._rasterizer) {
+                const previous = (this._activeTexture ?? this._textures.get(identifier))?.texture;
+
+                bitmapData = this._rasterizer.render(
+                    (previous instanceof RenderTexture) ? previous : undefined,
+                    this._id ?? '',
+                    width,
+                    height,
+                    geometry.scale,
+                    geometry.getCoordinatePosition(this._normal),
+                    this._hasTexture,
+                    this._textureOffsetX,
+                    this._textureOffsetY,
+                    this._textureMaxX,
+                    this._textureMaxY,
+                    timeSinceStartMs,
+                );
+            } else {
+                const canvas = createPlaneCanvas(width, height);
+
+                fillPlaneCanvas(canvas, this._color);
+
+                bitmapData = new PlaneBitmapData(canvas, -1);
+            }
 
             if (bitmapData) this.cacheTexture(identifier, bitmapData);
         }
@@ -468,42 +480,27 @@ export class RoomPlane implements IRoomPlane {
         return undefined;
     }
 
-    private getTextureAndColorForPlane(planeId: string, planeType: number, planeGeometry: IRoomGeometry) {
+    private getTextureAndColorForPlane(planeId: string, planeType: number, planeGeometry: IRoomGeometry): { texture: Texture; color: number } {
         const dataType: PlaneDataType = (planeType === RoomPlane.TYPE_FLOOR) ? 'floorData' : 'wallData';
-
-        const roomCollection = GetAssetManager().getCollection('room');
-        const planeVisualizationData = roomCollection?.data?.roomVisualization?.[dataType];
-
-        let plane = planeVisualizationData?.planes?.find(p => p.id === planeId);
-
-        if (!plane) plane = planeVisualizationData?.planes?.find(p => p.id === 'default');
-
-        const planeVisualization = plane?.visualizations?.find(v => v.size === planeGeometry.scale) ?? null;
-
+        const planeVisualizationData = GetAssetManager().getCollection('room')?.data?.roomVisualization?.[dataType];
+        const plane = planeVisualizationData?.planes?.find(entry => entry.id === planeId)
+            ?? planeVisualizationData?.planes?.find(entry => entry.id === 'default');
+        const planeVisualization = plane?.visualizations?.find(entry => entry.size === planeGeometry.scale) ?? null;
         const planeLayer = planeVisualization?.allLayers?.[0] as IAssetPlaneVisualizationLayer | undefined;
         const materialId = planeLayer?.materialId;
         const color = planeLayer?.color ?? 0xffffff;
-
-        // `PlaneRasterizer`: a layer names a material, the material's cells name the texture, and the
-        // texture (`PlaneTexture.getPlaneTextureBitmap`) picks its bitmap by the plane's normal. Walls and
-        // floors happen to use one id for both, but the material is not skipped. Only the first cell is
-        // drawn - the cell matrix itself (columns, repeat modes, extra items) and the layers above the
-        // first are `WallRasterizer`'s and `FloorRasterizer`'s job, which are not ported.
         const inNormalRange = (range: { normalMinX?: number; normalMaxX?: number; normalMinY?: number; normalMaxY?: number }) =>
             this._normal.x >= (range.normalMinX ?? -1)
             && this._normal.x <= (range.normalMaxX ?? 1)
             && this._normal.y >= (range.normalMinY ?? -1)
             && this._normal.y <= (range.normalMaxY ?? 1);
-
-        const material = planeVisualizationData?.materials?.find(m => m.id === materialId);
+        const material = planeVisualizationData?.materials?.find(entry => entry.id === materialId);
         const matrix = material?.matrices?.find(inNormalRange) ?? material?.matrices?.[0];
         const textureId = matrix?.columns?.[0]?.cells?.[0]?.textureId ?? materialId;
-        const bitmaps = planeVisualizationData?.textures?.find(t => t.id === textureId)?.bitmaps;
+        const bitmaps = planeVisualizationData?.textures?.find(entry => entry.id === textureId)?.bitmaps;
         const assetName = (bitmaps?.find(inNormalRange) ?? bitmaps?.[0])?.assetName ?? '';
 
-        const texture = GetAssetManager().getAsset(assetName)?.texture ?? Texture.WHITE;
-
-        return { texture, color };
+        return { texture: GetAssetManager().getAsset(assetName)?.texture ?? Texture.WHITE, color };
     }
 
     private updateCorners(geometry: IRoomGeometry): void {
@@ -548,6 +545,69 @@ export class RoomPlane implements IRoomPlane {
 
         this._width = maxX;
         this._height = maxY;
+    }
+
+    /**
+     * Flash `draw`'s fast path: a wall or landscape drawn unscaled with a vertical shear of at most
+     * one pixel per column (the 2:1 walls, `b = ±0.5`) is copied in column strips, each a pixel
+     * lower or higher than the last, rather than resampled through the matrix.
+     */
+    private isSteppedDraw(matrix: Matrix): boolean {
+        return (matrix.a === 1) && (matrix.d === 1) && (matrix.c === 0) && (matrix.b !== 0) && (Math.abs(matrix.b) <= 1)
+            && ((this._type === RoomPlane.TYPE_WALL) || (this._type === RoomPlane.TYPE_LANDSCAPE));
+    }
+
+    /**
+     * Flash `draw`'s column copy. Flash's texture already carries its masks (`updateMask` runs on
+     * it before `draw`), so the masked plane is drawn unsheared first and the strips are cut from
+     * that: each ends where the accumulated shear reaches a whole pixel, and the next is moved one
+     * pixel down (`b > 0`, after the whole plane is lowered one) or up.
+     */
+    private drawStepped(container: Container, width: number, height: number, matrix: Matrix): void {
+        const renderer = TextureUtils.getRenderer();
+        const source = TexturePool.createRenderTexture(width, height) ?? RenderTexture.create({ width, height });
+
+        renderer.render({ target: source, container, clear: true });
+
+        const strips = new Container();
+        const stepY = (matrix.b > 0) ? 1 : -1;
+        const shear = Math.abs(matrix.b);
+        const tx = matrix.tx;
+        const ty = matrix.ty + ((matrix.b > 0) ? 1 : 0);
+
+        let x = 0;
+        let start = 0;
+        let accumulated = 0;
+        let offsetY = 0;
+
+        const copyStrip = (): void => {
+            const sprite = new Sprite(new Texture({ source: source.source, frame: new Rectangle(start, 0, x - start, height) }));
+
+            sprite.position.set(tx + start, ty + offsetY);
+            strips.addChild(sprite);
+        };
+
+        while (x < width) {
+            x++;
+            accumulated += shear;
+
+            if (accumulated >= 1) {
+                copyStrip();
+
+                start = x;
+                offsetY += stepY;
+                accumulated = 0;
+            }
+        }
+
+        if (accumulated > 0) copyStrip();
+
+        renderer.render({ target: this._planeTexture!, container: strips, clear: true });
+
+        for (const strip of strips.children) (strip as Sprite).texture.destroy(false);
+
+        strips.destroy({ children: true });
+        TexturePool.releaseTexture(source);
     }
 
     private getMatrixForDimensions(width: number, height: number): Matrix {
@@ -639,7 +699,13 @@ export class RoomPlane implements IRoomPlane {
             }
 
             this._maskChanged = false;
+
+            return undefined;
         }
+
+        // Flash updateMask checks bitmap dimensions before accepting the cached mask.
+        // A geometry scale change resizes the material even when the door data is unchanged.
+        if (!this._maskTexture || this._maskTexture.width !== width || this._maskTexture.height !== height) this._maskChanged = true;
 
         if (!this._maskChanged || !this._maskManager) return this._maskTexture;
 
@@ -783,6 +849,15 @@ export class RoomPlane implements IRoomPlane {
         this._id = value;
     }
 
+    /** Flash `hasTexture`: false draws each material as plain white under its layer's colour - `RoomVisualization` sets it on a wall under a tile long. */
+    public get hasTexture(): boolean {
+        return this._hasTexture;
+    }
+
+    public set hasTexture(flag: boolean) {
+        this._hasTexture = flag;
+    }
+
     public set rasterizer(value: IPlaneRasterizer | undefined) {
         this._rasterizer = value;
     }
@@ -797,6 +872,27 @@ export class RoomPlane implements IRoomPlane {
 
     public get planeTexture(): Texture | undefined {
         return this._planeTexture;
+    }
+
+    /** RoomSpriteCanvas.getColoredBitmapData: cache the quantized tint until this plane changes. */
+    public getColoredTexture(color: number): Texture | undefined {
+        if (!this._planeTexture || color === 0xFFFFFF) return this._planeTexture;
+
+        if (this._coloredTexture && (this._coloredTexture.width !== this._width || this._coloredTexture.height !== this._height)) {
+            releasePlaneCanvas(this._coloredTexture);
+            this._coloredTexture = undefined;
+        }
+
+        if (!this._coloredTexture) this._coloredTexture = preparePlaneSampling(createPlaneCanvas(this._width, this._height));
+
+        if (this._textureColor !== color) {
+            TextureUtils.getRenderer().render({ target: this._coloredTexture, container: new Container(), clear: true });
+            copyToPlaneCanvas(this._coloredTexture, this._planeTexture, 0, 0, undefined, color);
+            ExtendedSprite.removeHitmap(this._coloredTexture.source);
+            this._textureColor = color;
+        }
+
+        return this._coloredTexture;
     }
 
     public get isHighlighter(): boolean {

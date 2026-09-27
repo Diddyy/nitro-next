@@ -2,9 +2,9 @@ import { IGraphicAsset, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { Matrix, Sprite, Texture } from 'pixi.js';
 
 import { TextureUtils } from '../../../../utils';
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
-export class IsometricImageFurniVisualization extends FurnitureAnimatedVisualization {
+export class IsometricImageFurniVisualization extends AnimatedFurnitureVisualization {
     protected static THUMBNAIL: string = 'THUMBNAIL';
 
     private _thumbnailAssetNameNormal: string | undefined = undefined;

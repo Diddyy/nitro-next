@@ -1,9 +1,9 @@
 import { AdvancedMap, IAdvancedMap, IParticleSystem, RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 import { FurnitureParticleSystem } from './FurnitureParticleSystem';
 
-export class FurnitureFireworksVisualization extends FurnitureAnimatedVisualization {
+export class FurnitureFireworksVisualization extends AnimatedFurnitureVisualization {
     private _particleSystems: IAdvancedMap<number, FurnitureParticleSystem> | undefined = undefined;
     private _currentParticleSystem: FurnitureParticleSystem | undefined = undefined;
 

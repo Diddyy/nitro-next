@@ -160,9 +160,11 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
 
                         _local_14 = (_local_18 << 24) + (_local_17 << 16) + (_local_16 << 8) + _local_15;
 
-                        sprite.color = _local_14;
+                        sprite.texture = plane.getColoredTexture(_local_14) ?? Texture.EMPTY;
+                        sprite.color = 0xFFFFFF;
                     } else {
-                        sprite.color = plane.color;
+                        sprite.texture = plane.getColoredTexture(plane.color) ?? Texture.EMPTY;
+                        sprite.color = 0xFFFFFF;
                     }
                 }
 
@@ -387,7 +389,9 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                             : _local_14.x !== 0
                                 ? RoomVisualization.FLOOR_COLOR_RIGHT
                                 : RoomVisualization.FLOOR_COLOR_LEFT;
-                } else if (planeType === RoomPlaneData.PLANE_WALL) {
+
+                    if (this._data) plane.rasterizer = this._data.floorRasterizer;
+                } else if (planeType === RoomPlaneData.PLANE_WALL || planeType === RoomPlaneData.PLANE_BILLBOARD) {
                     plane = new RoomPlane(
                         this.object.getLocation(),
                         location,
@@ -399,6 +403,9 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                         randomSeed,
                     );
 
+                    // A wall less than a tile long or high draws only its colour.
+                    if ((leftSide.length < 1) || (rightSide.length < 1)) plane.hasTexture = false;
+
                     plane.color
                         = _local_14.x === 0 && _local_14.y === 0
                             ? RoomVisualization.WALL_COLOR_BORDER
@@ -407,6 +414,9 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                                 : _local_14.y === 0
                                     ? RoomVisualization.WALL_COLOR_SIDE
                                     : RoomVisualization.WALL_COLOR_BOTTOM;
+
+                    // Flash builds a billboard (type 4) exactly as a wall, drawn from the billboard data.
+                    if (this._data) plane.rasterizer = (planeType === RoomPlaneData.PLANE_BILLBOARD) ? this._data.wallAdRasterizr : this._data.wallRasterizer;
                 } else if (planeType === RoomPlaneData.PLANE_LANDSCAPE) {
                     plane = new RoomPlane(
                         this.object.getLocation(),
@@ -840,8 +850,8 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         sprite.offsetX = -offset.x;
         sprite.offsetY = -offset.y;
         sprite.relativeDepth = relativeDepth;
-        sprite.color = plane.color;
-        sprite.texture = plane.planeTexture ?? Texture.EMPTY;
+        sprite.color = 0xFFFFFF;
+        sprite.texture = plane.getColoredTexture(plane.color) ?? Texture.EMPTY;
         sprite.name = _arg_3 + '_' + this._assetUpdateCounter;
     }
 

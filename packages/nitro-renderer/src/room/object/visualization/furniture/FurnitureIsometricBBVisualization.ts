@@ -3,10 +3,10 @@ import { Matrix, Sprite, Texture } from 'pixi.js';
 
 import { GetAssetManager } from '../../../../assets';
 import { TextureUtils } from '../../../../utils';
-import { FurnitureBBVisualization } from './FurnitureBBVisualization';
-import { FurnitureBrandedImageVisualization } from './FurnitureBrandedImageVisualization';
+import { FurnitureRoomBillboardVisualization } from './FurnitureRoomBillboardVisualization';
+import { FurnitureRoomBrandingVisualization } from './FurnitureRoomBrandingVisualization';
 
-export class FurnitureIsometricBBVisualization extends FurnitureBBVisualization {
+export class FurnitureIsometricBBVisualization extends FurnitureRoomBillboardVisualization {
     private _needsTransform: boolean = true;
 
     protected generateTransformedImage(texture: Texture, asset: IGraphicAsset): void {
@@ -63,7 +63,7 @@ export class FurnitureIsometricBBVisualization extends FurnitureBBVisualization 
     protected override getSpriteAssetName(scale: RoomGeometryScaleType, layerId: number): string {
         const tag = this.getLayerTag(scale, this._direction, layerId);
 
-        if (tag === FurnitureBrandedImageVisualization.BRANDED_IMAGE && this._imageUrl) {
+        if (tag === FurnitureRoomBrandingVisualization.BRANDED_IMAGE && this._imageUrl) {
             if (this._needsTransform) {
                 const texture = GetAssetManager().getTexture(this._imageUrl);
                 const asset = this.getAsset(super.getSpriteAssetName(scale, layerId));

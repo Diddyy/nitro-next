@@ -4,7 +4,7 @@ import { GetTickerTime } from '#renderer/utils';
 
 import { ObjectMoveUpdateMessage, RoomObjectVariableFxStatusRemoveMessage, RoomObjectVariableFxStatusUpdateMessage } from '../../messages';
 import { VariableFxStatusModelData, VariableFxStatusModelEntry } from '../variablefx/VariableFxStatusModelData';
-import { RoomObjectLogicBase } from './RoomObjectLogicBase';
+import { ObjectLogicBase } from './ObjectLogicBase';
 import { VariableFxLogicConfig } from './variablefx/VariableFxLogicConfig';
 import { VariableFxLogicConfigManager } from './variablefx/VariableFxLogicConfigManager';
 import { VariableFxLogicStatus } from './variablefx/VariableFxLogicStatus';
@@ -14,7 +14,7 @@ const VARIABLE_FX_CHANGE_UP = 2;
 const VARIABLE_FX_CHANGE_DOWN = 4;
 const VARIABLE_FX_CHANGE_SAME = 8;
 
-export class MovingObjectLogic extends RoomObjectLogicBase {
+export class MovingObjectLogic extends ObjectLogicBase {
     public static DEFAULT_UPDATE_INTERVAL: number = 500;
     private static TEMP_VECTOR: Vector3d = new Vector3d();
 

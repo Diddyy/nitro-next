@@ -2,7 +2,7 @@ import { ContextMenuEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro
 
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
-export class FurniturePurchaseableClothingLogic extends FurnitureMultiStateLogic {
+export class FurniturePurchasableClothingLogic extends FurnitureMultiStateLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [
             RoomObjectWidgetRequestEvent.PURCHASABLE_CLOTHING_CONFIRMATION_DIALOG,
