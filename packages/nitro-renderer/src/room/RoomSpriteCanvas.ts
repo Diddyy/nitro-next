@@ -68,6 +68,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
     private _mouseOutKeys: string[] = [];
     private _eventId: number = 0;
     private _scale: number = 1;
+    private _isFlipped: boolean = false;
 
     private _SafeStr_4507: boolean = false;
     private _rotation: number = 0;
@@ -274,18 +275,40 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         point: Point | undefined = undefined,
         offsetPoint: Point | undefined = undefined,
     ): void {
+        this.setTransform(Math.abs(scale), this._isFlipped, point, offsetPoint);
+    }
+
+    /** Flash `RoomSpriteCanvas.setFlip`: invert both display axes around the requested pivot. */
+    public setFlip(flipped: boolean, point?: Point, offsetPoint?: Point): void {
+        this.setTransform(this._scale, flipped, point, offsetPoint);
+    }
+
+    private get displayScale(): number {
+        return this._isFlipped ? -this._scale : this._scale;
+    }
+
+    public get isFlipped(): boolean {
+        return this._isFlipped;
+    }
+
+    /** Flash `RoomSpriteCanvas.setTransform`, including consecutive changes before a render. */
+    private setTransform(scale: number, flipped: boolean, point?: Point, offsetPoint?: Point): void {
         if (!this._master || !this._display) return;
 
         if (!point) point = new Point(this._width / 2, this._height / 2);
 
         if (!offsetPoint) offsetPoint = point;
 
-        const local = this._display.toLocal(point);
+        const local = new Point(
+            (point.x - this.screenOffsetX) / this.displayScale,
+            (point.y - this.screenOffsetY) / this.displayScale,
+        );
 
         this._scale = scale;
+        this._isFlipped = flipped;
 
-        this.screenOffsetX = offsetPoint.x - local.x * this._scale;
-        this.screenOffsetY = offsetPoint.y - local.y * this._scale;
+        this.screenOffsetX = offsetPoint.x - local.x * this.displayScale;
+        this.screenOffsetY = offsetPoint.y - local.y * this.displayScale;
     }
 
     public render(time: number, update: boolean = false): void {
@@ -299,10 +322,10 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         if (this._width !== this._renderedWidth || this._height !== this._renderedHeight) update = true;
 
-        if (this._display && (this._display.x !== this._screenOffsetX || this._display.y !== this._screenOffsetY || this._display.scale.x !== this._scale)) {
-            this._display.x = this._screenOffsetX;
-            this._display.y = this._screenOffsetY;
-            this._display.scale.set(this._scale);
+        if (this._display && (this._display.x !== this._screenOffsetX || this._display.y !== this._screenOffsetY || this._display.scale.x !== this.displayScale)) {
+            this._display.x = Math.floor(this._screenOffsetX);
+            this._display.y = Math.floor(this._screenOffsetY);
+            this._display.scale.set(this.displayScale);
 
             update = true;
         }
@@ -715,10 +738,20 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
     private isSpriteVisible(x: number, y: number, width: number, height: number): boolean {
         if (this._noSpriteVisibilityChecking) return true;
 
-        x = (x - this._screenOffsetX) * this._scale + this._screenOffsetX;
-        y = (y - this._screenOffsetY) * this._scale + this._screenOffsetY;
-        width = width * this._scale;
-        height = height * this._scale;
+        x = (x - this._screenOffsetX) * this.displayScale + this._screenOffsetX;
+        y = (y - this._screenOffsetY) * this.displayScale + this._screenOffsetY;
+        width = width * this.displayScale;
+        height = height * this.displayScale;
+
+        if (width < 0) {
+            x += width;
+            width = -width;
+        }
+
+        if (height < 0) {
+            y += height;
+            height = -height;
+        }
 
         if (x < this._width && x + width >= 0 && y < this._height && y + height >= 0) {
             if (!this._usesExclusionRectangles) return true;
@@ -739,14 +772,14 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         x = x - this._screenOffsetX;
         y = y - this._screenOffsetY;
 
-        this._mouseLocation.x = x / this._scale;
-        this._mouseLocation.y = y / this._scale;
+        this._mouseLocation.x = x / this.displayScale;
+        this._mouseLocation.y = y / this.displayScale;
 
         if (this._mouseCheckCount > 0 && type == MouseEventType.MOUSE_MOVE) return this._mouseSpriteWasHit;
 
         this._mouseSpriteWasHit = this.checkMouseHits(
-            Math.trunc(x / this._scale),
-            Math.trunc(y / this._scale),
+            Math.trunc(x / this.displayScale),
+            Math.trunc(y / this.displayScale),
             type,
             altKey,
             ctrlKey,

@@ -10,6 +10,8 @@ export interface IRoomRenderingCanvas {
     setMask(flag: boolean): void;
     setBackgroundVisible(flag: boolean): void;
     setScale(scale: number, point?: Point, offsetPoint?: Point): void;
+    setFlip(flipped: boolean, point?: Point, offsetPoint?: Point): void;
+    readonly isFlipped: boolean;
     render(time: number, update?: boolean): void;
     update(): void;
     skipSpriteVisibilityChecking(): void;
