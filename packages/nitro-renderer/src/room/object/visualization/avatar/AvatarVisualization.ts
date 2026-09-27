@@ -222,8 +222,7 @@ export class AvatarVisualization
             const didAlphaUpdate = alphaMultiplier !== this._alphaMultiplier;
 
             if (didScaleUpdate || !this._avatarImage || didEffectUpdate || didAlphaUpdate) {
-                this._avatarImage?.dispose();
-
+                // Cached scale/effect images are disposed together by resetAvatar.
                 this._avatarImage = this.createAvatarImage(scale, this._effect);
 
                 if (!this._avatarImage) return;

@@ -1,5 +1,5 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { RenderTexture } from 'pixi.js';
+import { RenderTexture, TextureSource } from 'pixi.js';
 
 import { ExtendedSprite } from './ExtendedSprite';
 import { GetTicker } from './GetTicker';
@@ -40,22 +40,32 @@ export class TexturePool {
         this._tickerFn = null;
     }
 
-    public static createRenderTexture(width: number, height: number): RenderTexture | undefined {
+    public static createRenderTexture(width: number, height: number, antialias: boolean = TextureSource.defaultOptions.antialias ?? false): RenderTexture | undefined {
         if (!this._texturePool[width]) this._texturePool[width] = {};
 
         if (!this._texturePool[width][height]) this._texturePool[width][height] = [];
 
-        if (this._texturePool[width][height].length > 0) {
-            const texture = this._texturePool[width][height].shift();
+        const matchingIndex = this._texturePool[width][height].findIndex(texture => texture.source.antialias === antialias);
+
+        if (matchingIndex >= 0) {
+            const [ texture ] = this._texturePool[width][height].splice(matchingIndex, 1);
 
             if (texture) {
                 this._totalTextures--;
+
+                // A final room plane may have enabled linear minification. A later owner
+                // must receive the same sampling defaults as a newly allocated target.
+                const style = texture.source.style;
+                const scaleMode = TextureSource.defaultOptions.scaleMode ?? 'linear';
+
+                style.scaleMode = scaleMode;
+                style.update();
 
                 return texture;
             }
         }
 
-        return RenderTexture.create({ width, height });
+        return RenderTexture.create({ width, height, antialias });
     }
 
     public static releaseTexture(texture: RenderTexture): void {
