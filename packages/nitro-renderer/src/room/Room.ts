@@ -389,21 +389,29 @@ export class Room implements IRoom {
         screenPoint.x = Math.round(screenPoint.x);
         screenPoint.y = Math.round(screenPoint.y);
 
-        rectangle.x = (rectangle.x * canvas.scale);
-        rectangle.y = (rectangle.y * canvas.scale);
+        // Flash `RoomEngine.getCanvasTransformScale`: flipped rectangles keep positive extents.
+        const transformScale = canvas.isFlipped ? -canvas.scale : canvas.scale;
+
+        if (canvas.isFlipped) {
+            rectangle.x += rectangle.width;
+            rectangle.y += rectangle.height;
+        }
+
+        rectangle.x = (rectangle.x * transformScale);
+        rectangle.y = (rectangle.y * transformScale);
         rectangle.width = (rectangle.width * canvas.scale);
         rectangle.height = (rectangle.height * canvas.scale);
 
-        screenPoint.x = (screenPoint.x * canvas.scale);
-        screenPoint.y = (screenPoint.y * canvas.scale);
+        screenPoint.x = (screenPoint.x * transformScale);
+        screenPoint.y = (screenPoint.y * transformScale);
 
         rectangle.x += screenPoint.x;
         rectangle.y += screenPoint.y;
 
         // The sprite canvas draws at `screenOffset + (point + canvasSize / 2) * scale` - the
         // half-size centring lives inside the scaled display, so it scales too.
-        rectangle.x += ((canvas.width >> 1) * canvas.scale) + canvas.screenOffsetX;
-        rectangle.y += ((canvas.height >> 1) * canvas.scale) + canvas.screenOffsetY;
+        rectangle.x += ((canvas.width >> 1) * transformScale) + canvas.screenOffsetX;
+        rectangle.y += ((canvas.height >> 1) * transformScale) + canvas.screenOffsetY;
 
         return rectangle;
     }
@@ -1582,11 +1590,13 @@ export class Room implements IRoom {
 
         const screenPoint = this._canvas.geometry.getScreenPoint(roomObject.getLocation());
 
-        screenPoint.x = screenPoint.x * this._canvas.scale;
-        screenPoint.y = screenPoint.y * this._canvas.scale;
+        const transformScale = this._canvas.isFlipped ? -this._canvas.scale : this._canvas.scale;
 
-        screenPoint.x += ((this._canvas.width >> 1) * this._canvas.scale) + this._canvas.screenOffsetX;
-        screenPoint.y += ((this._canvas.height >> 1) * this._canvas.scale) + this._canvas.screenOffsetY;
+        screenPoint.x = screenPoint.x * transformScale;
+        screenPoint.y = screenPoint.y * transformScale;
+
+        screenPoint.x += ((this._canvas.width >> 1) * transformScale) + this._canvas.screenOffsetX;
+        screenPoint.y += ((this._canvas.height >> 1) * transformScale) + this._canvas.screenOffsetY;
 
         screenPoint.x = Math.round(screenPoint.x);
         screenPoint.y = Math.round(screenPoint.y);
