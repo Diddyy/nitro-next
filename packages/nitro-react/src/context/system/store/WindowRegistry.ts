@@ -35,6 +35,8 @@ export type WindowRegistry = {
     floor_plan_editor: NoWindowParams;
 
     navigator: NavigatorViewWindowParams;
+    /** Room creation (`RoomCreateViewCtrl`), from the navigator's `create_room` button. */
+    room_create: NoWindowParams;
 
     /** The wired menu (`WiredMenuController`), from the toolbar or a `wiredmenu/...` link. The setup dialog is not a window: it opens when the server says so. */
     wired_menu: WiredMenuWindowParams;

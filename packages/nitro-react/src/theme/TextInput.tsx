@@ -562,23 +562,27 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                 layout={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: (multiline || flashPlacement) ? 'flex-start' : 'center', paddingLeft: paddingX, paddingRight: paddingX, overflow: 'hidden', ...layout }}
             >
                 {fill && <ColorLayer color={fill} />}
+                {/*
+                  * Each side states its length: insets alone leave a `ColorLayer` leaf at its
+                  * intrinsic 1x1, which drew the border as four dots in the corners.
+                  */}
                 {border && (
                     <>
                         <ColorLayer
                             color={border}
-                            layout={{ position: 'absolute', left: 0, top: 0, right: 0, height: 1 }}
+                            layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 1 }}
                         />
                         <ColorLayer
                             color={border}
-                            layout={{ position: 'absolute', left: 0, bottom: 0, right: 0, height: 1 }}
+                            layout={{ position: 'absolute', left: 0, bottom: 0, width: '100%', height: 1 }}
                         />
                         <ColorLayer
                             color={border}
-                            layout={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 1 }}
+                            layout={{ position: 'absolute', left: 0, top: 0, width: 1, height: '100%' }}
                         />
                         <ColorLayer
                             color={border}
-                            layout={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 1 }}
+                            layout={{ position: 'absolute', right: 0, top: 0, width: 1, height: '100%' }}
                         />
                     </>
                 )}

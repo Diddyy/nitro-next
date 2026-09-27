@@ -731,6 +731,9 @@ const RUNTIME_IMAGES: { name: string; component: string }[] = [
     // renderer take them from the navigator's own library, so they file under it.
     'remove_rights', 'make_home', 'home', 'favourite', 'make_favourite', 'thumb_up', 'tag_l', 'tag_m', 'tag_r',
     'tag_l_reactive', 'tag_m_reactive', 'tag_r_reactive',
+    // `RoomCreateViewCtrl.refreshSelection` swaps each layout thumbnail's tile icon and bouncing
+    // arrow through `refreshButton`, and `TextFieldManager.displayError` its popup's arrow.
+    'select_arrow', 'tile_icon_black', 'tile_icon_white', 'popup_arrow_down',
 ].map(name => ({ name, component: 'navigator' }))).concat([
     // `FriendListTabsView.refreshHeader` draws the white arrows on every tab header but the
     // friends tab's (the black pair is named by the layouts).

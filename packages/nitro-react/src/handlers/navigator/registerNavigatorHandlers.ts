@@ -1,5 +1,5 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
-import { CantConnectMessage, CantConnectReason, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, PerkAllowancesMessage, QuitComposer, RoomEntryInfoMessage, RoomForwardMessage, RoomRatingMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { CantConnectMessage, CantConnectReason, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, PerkAllowancesMessage, QuitComposer, RoomEntryInfoMessage, RoomForwardMessage, RoomRatingMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { forwardToRoom, goToHomeRoom, goToRoom } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -73,6 +73,17 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
         }),
 
         on(UserFlatCatsMessage, data => navigator().setFlatCategories(data.nodes)),
+
+        /*
+         * `NewIncomingMessages.onFlatCreated`: into the new room, the creation window gone
+         * (`goToMainView`) and the navigator closed. Its `reloadRoomList(5)` refreshes the legacy
+         * navigator's own room list, which the new navigator does not draw.
+         */
+        on(FlatCreatedMessage, (data) => {
+            goToRoom(send, data.roomId);
+            systemStore.getState().hideWindow('room_create');
+            systemStore.getState().hideWindow('navigator');
+        }),
 
         on(UserEventCatsMessage, data => navigator().setEventCategories(data.eventCategories)),
 

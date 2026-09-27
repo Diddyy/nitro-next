@@ -13,6 +13,7 @@
     "diamonds.enabled": true,
     "pet.enhancements.enabled": true,
     "production.version": "WIN63-202609091217-117204808",
+    "habbo_club_buy_disabled": true,
     "gamedata.urls.defaultLocalizations": "https://assets.nitrodev.co/gamedata/DefaultLocalizations_en.json",
     "gamedata.urls.externalTexts": "https://assets.nitrodev.co/gamedata/ExternalTexts.json",
     "furnituredata.url": "https://assets.nitrodev.co/gamedata/FurnitureData.json",

@@ -96,6 +96,7 @@ export const NavigatorView = () => {
     const preferences = useNavigatorStore(x => x.preferences);
     const { setTopLevelContext, setIsSearching, setLeftPaneHidden, toggleCollapsedCategory, setViewMode } = useNavigatorActions();
     const { hide } = useWindowVisibility('navigator');
+    const { show: showRoomCreate } = useWindowVisibility('room_create');
     const { send } = useWebSocketContext();
     const t = useTranslation();
 
@@ -187,6 +188,8 @@ export const NavigatorView = () => {
                     image={LayoutImage('navigator/newnavigator_create_room.png')}
                     caption={t('navigator.create.room')}
                     tooltip={t('navigator.tooltip.create.room')}
+                    // `NavigatorView.createRoomProcedure` -> `HabboNewNavigator.createRoom`.
+                    onTap={() => showRoomCreate()}
                 />
                 {showPromote
                     ? (

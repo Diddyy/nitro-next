@@ -1,4 +1,4 @@
-import { GetGuestRoomComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
+import { CreateFlatComposer, CreateFlatComposerType, GetGuestRoomComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
@@ -90,3 +90,6 @@ export const searchNavigator = (send: Send, text: string) => {
 
     systemStore.getState().showWindow('navigator');
 };
+
+/** `RoomCreateViewCtrl.onCreateButtonClick`: the server answers with `FlatCreatedMessage`. */
+export const createFlat = (send: Send, room: CreateFlatComposerType) => send(new CreateFlatComposer(room));
