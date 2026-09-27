@@ -1,8 +1,8 @@
 import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from '../furniture';
+import { AnimatedFurnitureVisualization } from '../furniture';
 
-export class TileCursorVisualization extends FurnitureAnimatedVisualization {
+export class TileCursorVisualization extends AnimatedFurnitureVisualization {
     private _tileHeight: number;
 
     constructor() {

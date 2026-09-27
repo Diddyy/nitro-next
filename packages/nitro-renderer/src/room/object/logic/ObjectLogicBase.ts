@@ -9,7 +9,7 @@ import {
     IRoomSpriteMouseEvent,
 } from '@nitrodevco/nitro-api';
 
-export class RoomObjectLogicBase implements IRoomObjectEventHandler {
+export class ObjectLogicBase implements IRoomObjectEventHandler {
     private _eventHandler: IRoomEventHandler;
     private _events: (() => void)[] = [];
     private _object: IRoomObjectController;

@@ -1,8 +1,8 @@
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 
-import { FurnitureBrandedImageVisualization } from './FurnitureBrandedImageVisualization';
+import { FurnitureRoomBrandingVisualization } from './FurnitureRoomBrandingVisualization';
 
-export class FurnitureBBVisualization extends FurnitureBrandedImageVisualization {
+export class FurnitureRoomBillboardVisualization extends FurnitureRoomBrandingVisualization {
     protected override getLayerXOffset(scale: RoomGeometryScaleType, direction: number, layerId: number): number {
         return super.getLayerXOffset(scale, direction, layerId) + this._offsetX;
     }

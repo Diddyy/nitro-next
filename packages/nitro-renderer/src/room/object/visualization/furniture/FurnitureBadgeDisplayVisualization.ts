@@ -1,8 +1,8 @@
 import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
-export class FurnitureBadgeDisplayVisualization extends FurnitureAnimatedVisualization {
+export class FurnitureBadgeDisplayVisualization extends AnimatedFurnitureVisualization {
     private static BADGE: string = 'BADGE';
 
     private _badgeId: string = '';

@@ -2,7 +2,7 @@ import { AvatarGenderType, AvatarSetType, IAvatarImage, IAvatarImageListener, IG
 import { Sprite, Texture } from 'pixi.js';
 
 import { GetTicker, TextureUtils } from '../../../../utils';
-import { FurnitureMannequinVisualizationData } from './FurnitureMannequinVisualizationData';
+import { AvatarFurnitureVisualizationData } from './AvatarFurnitureVisualizationData';
 import { FurnitureVisualization } from './FurnitureVisualization';
 
 /**
@@ -63,7 +63,7 @@ export class FurnitureMannequinVisualization extends FurnitureVisualization impl
     }
 
     public override initialize(data: IObjectVisualizationData): boolean {
-        if (!(data instanceof FurnitureMannequinVisualizationData)) return false;
+        if (!(data instanceof AvatarFurnitureVisualizationData)) return false;
 
         return super.initialize(data);
     }
@@ -282,7 +282,7 @@ export class FurnitureMannequinVisualization extends FurnitureVisualization impl
         return super.getLayerYOffset(scale, direction, layerId);
     }
 
-    protected override get data(): FurnitureMannequinVisualizationData {
-        return this._data as FurnitureMannequinVisualizationData;
+    protected override get data(): AvatarFurnitureVisualizationData {
+        return this._data as AvatarFurnitureVisualizationData;
     }
 }

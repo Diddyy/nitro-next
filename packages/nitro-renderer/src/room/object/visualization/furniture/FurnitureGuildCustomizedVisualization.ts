@@ -1,8 +1,8 @@
 import { IGraphicAsset, IRoomObjectSprite, RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
-export class FurnitureGuildCustomizedVisualization extends FurnitureAnimatedVisualization {
+export class FurnitureGuildCustomizedVisualization extends AnimatedFurnitureVisualization {
     public static PRIMARY_COLOUR_SPRITE_TAG: string = 'COLOR1' as const;
     public static SECONDARY_COLOUR_SPRITE_TAG: string = 'COLOR2' as const;
     public static BADGE: string = 'BADGE' as const;
