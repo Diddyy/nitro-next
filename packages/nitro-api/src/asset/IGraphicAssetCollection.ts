@@ -26,6 +26,7 @@ export interface IGraphicAssetCollection {
     addReference(): void;
     removeReference(): void;
     readonly referenceCount: number;
+    readonly lastReferenceTimestamp: number;
     readonly name: string;
     readonly data: IAssetData;
     readonly textureSource: TextureSource | undefined;
