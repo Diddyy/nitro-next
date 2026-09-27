@@ -145,6 +145,14 @@ export class Room implements IRoom {
      */
     private _areaHides: Map<number, ObjectRoomFloorHoleUpdateMessage> = new Map();
 
+    /**
+     * The room index of the user this client is logged in as, which Flash read off the room
+     * session (`IRoomSession.ownUserRoomId`) in `RoomEngine.updateObjectUser`. The session lives in
+     * the UI, so the engine learns it the moment the UI marks that avatar as its own
+     * (`updateRoomObjectUserOwn`); -1 until then.
+     */
+    private _ownUserRoomIndex: number = -1;
+
     private _floorStack: Map<number, IRoomFurnitureData> = new Map();
     private _wallStack: Map<number, IRoomFurnitureData> = new Map();
     private _variableFx: VariableFxRoomData = new VariableFxRoomData();
@@ -1264,6 +1272,38 @@ export class Room implements IRoom {
         return true;
     }
 
+    /**
+     * `RoomEngine.addFloorHole`: a floor hole furni opening the tiles it stands on. Unlike an area
+     * hide the hole is the furni's own footprint - its location and `furniture_size_x` /
+     * `_size_y` as they are now - and a negative id (a previewed or carried object) opens nothing.
+     */
+    public addFloorHole(objectId: number): void {
+        if (objectId < 0) return;
+
+        const room = this.getRoomObjectRoom();
+        const furni = this.getRoomObject(objectId, RoomObjectCategoryEnum.Floor);
+
+        if (!room || !furni) return;
+
+        const location = furni.getLocation();
+
+        room.processUpdateMessage(new ObjectRoomFloorHoleUpdateMessage(
+            ObjectRoomFloorHoleUpdateMessage.ADD,
+            objectId,
+            Math.trunc(location.x),
+            Math.trunc(location.y),
+            Math.trunc(furni.model.getValue<number>(RoomObjectVariableEnum.FurnitureSizeX)),
+            Math.trunc(furni.model.getValue<number>(RoomObjectVariableEnum.FurnitureSizeY)),
+        ));
+    }
+
+    /** `RoomEngine.removeFloorHole`. */
+    public removeFloorHole(objectId: number): void {
+        if (objectId < 0) return;
+
+        this.getRoomObjectRoom()?.processUpdateMessage(new ObjectRoomFloorHoleUpdateMessage(ObjectRoomFloorHoleUpdateMessage.REMOVE, objectId));
+    }
+
     public updateRoomPlaneType(floorType: string | undefined, wallType: string | undefined, landscapeType: string | undefined): boolean {
         const room = this.getRoomObjectRoom();
 
@@ -1335,12 +1375,9 @@ export class Room implements IRoom {
         // `RoomEngine.updateObjectUser`: both ends of the walk sit on the real floor, not the stacking map.
         object.processUpdateMessage(new ObjectAvatarUpdateMessage(this.fixedUserLocation(location), this.fixedUserLocation(target), direction, headDirection, canStandUp, baseY, jumpingPower, false, animationTime, skipPositionUpdate));
 
-        const ownRoomIndex = false;
-
-        if (ownRoomIndex) {
-            // TODO
-            this.dispatchEvent(new RoomToObjectOwnAvatarMoveEvent(RoomToObjectOwnAvatarMoveEvent.ROAME_MOVE_TO, target));
-        }
+        // `RoomEngine.updateObjectUser`: where the own avatar is heading goes out to every furni
+        // logic, unfixed - `FurnitureChangeStateWhenStepOnLogic` lights up under it.
+        if (objectId === this._ownUserRoomIndex) this.dispatchEvent(new RoomToObjectOwnAvatarMoveEvent(RoomToObjectOwnAvatarMoveEvent.ROAME_MOVE_TO, target));
 
         return true;
     }
@@ -1355,7 +1392,14 @@ export class Room implements IRoom {
         return true;
     }
 
+    /**
+     * Marks the avatar at `objectId` as the user's own (`RoomEngine.updateObjectUserOwnUserAvatar`)
+     * and records its index, as `RoomEngine.setOwnUserId` put it on the session, for
+     * `updateRoomObjectUser` to tell the furniture about.
+     */
     public updateRoomObjectUserOwn(objectId: number): boolean {
+        this._ownUserRoomIndex = objectId;
+
         const object = this.getRoomObject(objectId, RoomObjectCategoryEnum.Unit);
 
         if (!object) return false;
