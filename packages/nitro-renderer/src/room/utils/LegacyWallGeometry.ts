@@ -1,3 +1,4 @@
+/** Legacy wall coordinates and floor altitude; ports Flash `LegacyWallGeometry`. */
 import { ILegacyWallGeometry, IVector3D, RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
 
 export class LegacyWallGeometry implements ILegacyWallGeometry {
@@ -271,19 +272,21 @@ export class LegacyWallGeometry implements ILegacyWallGeometry {
     }
 
     public getFloorAltitude(x: number, y: number): number {
-        const height = this.getHeight(x, y);
-        const _local_4 = height + 1;
+        // Flash `LegacyWallGeometry.getFloorAltitude` coerces only the current tile to int;
+        // neighboring `getTileHeight` values remain Numbers for the exact stair comparison.
+        const height = this.getHeight(x, y) | 0;
+        const _local_4 = (height + 1) | 0;
 
         return (
             height
-            + (Math.trunc(this.getHeight(x - 1, y - 1)) == _local_4
-                || Math.trunc(this.getHeight(x, y - 1)) == _local_4
-                || Math.trunc(this.getHeight(x + 1, y - 1)) == _local_4
-                || Math.trunc(this.getHeight(x - 1, y)) == _local_4
-                || Math.trunc(this.getHeight(x + 1, y)) == _local_4
-                || Math.trunc(this.getHeight(x - 1, y + 1)) == _local_4
-                || Math.trunc(this.getHeight(x, y + 1)) == _local_4
-                || Math.trunc(this.getHeight(x + 1, y + 1)) == _local_4
+            + (this.getHeight(x - 1, y - 1) == _local_4
+                || this.getHeight(x, y - 1) == _local_4
+                || this.getHeight(x + 1, y - 1) == _local_4
+                || this.getHeight(x - 1, y) == _local_4
+                || this.getHeight(x + 1, y) == _local_4
+                || this.getHeight(x - 1, y + 1) == _local_4
+                || this.getHeight(x, y + 1) == _local_4
+                || this.getHeight(x + 1, y + 1) == _local_4
                 ? 0.5
                 : 0)
         );
