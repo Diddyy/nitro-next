@@ -35,3 +35,6 @@ public/config/*.json
 **/scripts/images
 **/scripts/**/*
 !packages/nitro-react/scripts/generate-layout-views.ts
+
+packages/nitro-asset-manager/*
+packages/nitro-asset-manager/**/*
