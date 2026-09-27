@@ -72,7 +72,8 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
     private _animationNumber: number = 0;
     private _lookThrough: boolean = false;
     private _needsLookThroughUpdate: boolean = false;
-    private _lastUpdateTime: number = -1000;
+    /** Flash `_lastUpdateTime`: the time the sprites were last brought up to date (the furni chest times its floating icons by it). */
+    protected _lastUpdateTime: number = -1000;
 
     private _variableFxRoomData: IVariableFxVisualizationRoomData | undefined = undefined;
     private _variableFxStack: StackedAdditionStack | undefined = new StackedAdditionStack();
@@ -334,6 +335,8 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
                         ? AlphaTolerance.MATCH_NOTHING
                         : AlphaTolerance.MATCH_OPAQUE_PIXELS;
 
+                    if (this.getLayerFlipH(scale, this._direction, layerId)) sprite.flipH = !sprite.flipH;
+
                     if (this._invisibleLayer && sprite.tag === FurnitureVisualization.INVISIBLE_LAYER_TAG) {
                         sprite.alpha = 0;
                         sprite.alphaTolerance = AlphaTolerance.MATCH_NOTHING;
@@ -358,7 +361,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
                 sprite.posture = assetData.source ? this.getPostureForAsset(scale, assetData.source) : undefined;
                 sprite.clickHandling = this._clickHandling;
 
-                this.updateSpriteFilters(sprite);
+                this.updateSpriteFilters(scale, sprite, layerId);
             } else {
                 this.resetSprite(sprite);
             }
@@ -366,16 +369,61 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
     }
 
     /**
-     * Flash `updateSpriteFilters`: every layer carries the furni's filters, except the additive
-     * ones (lights, glows), which are never filtered. Flash also appended a layer's own filters
-     * (`getSpriteFilters`); the one visualization that has any, the floating icon of the wired
-     * chests, is not ported, so there is nothing to append. `RoomObjectSprite.filters` counts
-     * every write as a change, so it is only written when the list really differs.
+     * Flash `updateSpriteFilters`: every layer carries the furni's filters followed by its own
+     * (`getSpriteFilters` - the glow round a furni chest's floating icons), except the additive
+     * ones (lights, glows), which are never filtered. `RoomObjectSprite.filters` counts every write
+     * as a change, so it is only written when the list really differs - `concatListWillEqual`
+     * for the combined list.
      */
-    private updateSpriteFilters(sprite: IRoomObjectSprite): void {
-        const filters = (sprite.blendMode === 'add') ? FurnitureVisualization.NO_FILTERS : this._filters;
+    private updateSpriteFilters(scale: RoomGeometryScaleType, sprite: IRoomObjectSprite, layerId: number): void {
+        if (sprite.blendMode === 'add') {
+            if (sprite.filters !== FurnitureVisualization.NO_FILTERS) sprite.filters = FurnitureVisualization.NO_FILTERS;
 
-        if (sprite.filters !== filters) sprite.filters = filters;
+            return;
+        }
+
+        const layerFilters = this.getLayerFilters(scale, this._direction, layerId);
+
+        if (!layerFilters || !layerFilters.length) {
+            if (sprite.filters !== this._filters) sprite.filters = this._filters;
+
+            return;
+        }
+
+        if (!this._filters.length) {
+            if (sprite.filters !== layerFilters) sprite.filters = layerFilters;
+
+            return;
+        }
+
+        if (FurnitureVisualization.concatListWillEqual(this._filters, layerFilters, sprite.filters)) return;
+
+        sprite.filters = this._filters.concat(layerFilters);
+    }
+
+    /** Flash `concatListWillEqual`: whether `first` followed by `second` is already `current`, item for item. */
+    private static concatListWillEqual(first: Filter[], second: Filter[], current: Filter[] | undefined): boolean {
+        if (!current || (first.length + second.length) !== current.length) return false;
+
+        for (let index = 0; index < first.length; index++) {
+            if (first[index] !== current[index]) return false;
+        }
+
+        for (let index = 0; index < second.length; index++) {
+            if (second[index] !== current[first.length + index]) return false;
+        }
+
+        return true;
+    }
+
+    /** Flash `getSpriteFilters`: filters of this layer's own, drawn after the furni's. */
+    protected getLayerFilters(_scale: RoomGeometryScaleType, _direction: number, _layerId: number): Filter[] | undefined {
+        return undefined;
+    }
+
+    /** Flash `getSpriteFlipH`: whether this layer is drawn mirrored against its asset. */
+    protected getLayerFlipH(_scale: RoomGeometryScaleType, _direction: number, _layerId: number): boolean {
+        return false;
     }
 
     protected getLibraryAssetNameForSprite(asset: IGraphicAsset, sprite: IRoomObjectSprite): string | undefined {

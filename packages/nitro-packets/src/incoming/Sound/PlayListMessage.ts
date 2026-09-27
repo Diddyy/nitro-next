@@ -5,7 +5,10 @@ import { IPlayListData } from './Data/IPlayListData';
 import { PlayListDataParser } from './Data/PlayListDataParser';
 
 export type PlayListMessageType = {
-    /** Bumped every time the music in the room is resynchronised. */
+    /**
+     * Milliseconds the machine has played its list for: `SoundMachinePlayListController.onPlayListMessage`
+     * takes it modulo the list's total length to find the song and the point in it the room is at.
+     */
     synchronizationCount: number;
     playList: IPlayListData[];
 };

@@ -933,6 +933,7 @@ export * from './outgoing/Collectibles/NftCollectiblesClaimRewardItemComposer';
 export * from './outgoing/Collectibles/NftStorePurchaseComposer';
 export * from './outgoing/Collectibles/NftTransferAssetsComposer';
 export * from './outgoing/Collectibles/PurchaseMintTokenComposer';
+export * from './outgoing/Collectibles/RedeemNftLootBoxComposer';
 export * from './outgoing/Competition/ForwardToACompetitionRoomComposer';
 export * from './outgoing/Competition/ForwardToASubmittableRoomComposer';
 export * from './outgoing/Competition/ForwardToRandomCompetitionRoomComposer';

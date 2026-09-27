@@ -18,6 +18,7 @@ import {
     registerRoomPresentHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
     registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomYoutubeHandlers,
 } from './room';
+import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
 import { registerSpecialItemsHandlers } from './special-items';
 import { registerHotelViewHandlers } from './system';
 import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerMessengerHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
@@ -63,6 +64,9 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomDimmerHandlers(socket),
         registerRoomGuildFurniHandlers(socket),
         registerRoomJukeboxHandlers(socket),
+        // The sound manager: trax music, the room's jukebox or sound machine, the sound blocks and the volumes.
+        registerSoundManagerHandlers(socket),
+        bridgeSoundManager(),
         registerRoomLinkHandlers(socket),
         registerRoomMysteryBoxHandlers(socket),
         registerRoomPresentHandlers(socket),

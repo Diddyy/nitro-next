@@ -12,6 +12,7 @@ export * from './offer-center';
 export * from './packetSubscriptions';
 export * from './registerHandlers';
 export * from './room';
+export * from './sound';
 export * from './special-items';
 export * from './system';
 export * from './user';

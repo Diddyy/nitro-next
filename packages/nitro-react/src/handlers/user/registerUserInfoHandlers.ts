@@ -1,5 +1,5 @@
 import { ChangeUserNameResultMessageCode } from '@nitrodevco/nitro-api';
-import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetUserNftChatStylesComposer, NoobnessLevelMessage, PetRespectFailedMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
+import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetSoundSettingsComposer, GetUserNftChatStylesComposer, NoobnessLevelMessage, PetRespectFailedMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
@@ -26,6 +26,8 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             setUserInfo(data.userInfo);
             // `SessionDataManager.initSessionData`.
             send(new GetUserNftChatStylesComposer({}));
+            // `HabboSoundManagerFlash10.initComponent`: asks for the sound settings `AccountPreferences` answers.
+            send(new GetSoundSettingsComposer({}));
         }),
 
         on(UserNftChatStylesMessage, (data) => {

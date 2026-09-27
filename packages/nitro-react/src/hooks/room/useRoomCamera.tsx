@@ -56,8 +56,8 @@ const createCameraData = (room: IRoom | undefined): RoomCameraData => ({
  * `RoomDesktop.initCameraLocation` pointed it. The easing speed defaults to the AS3 value and can
  * be tuned through the Nitro `camera.move.speed` config value.
  * Flash's `RoomEngine.useOffsetScrolling` is hard-coded true in the reference revision; its
- * alternative geometry-scrolling branches are unreachable. Forced canvas flips are a separate
- * room-effect path that this canvas does not yet implement.
+ * alternative geometry-scrolling branches are unreachable. A forced canvas flip
+ * (`RoomZoomEvent.isFlipForced`) turns the canvas over and stops the camera until it is upright.
  */
 export const useRoomCamera = () => {
     const room = useRoom();
@@ -67,6 +67,7 @@ export const useRoomCamera = () => {
     // `SessionDataManager.isRoomCameraFollowDisabled` - the account's "disable room camera follow" setting.
     const followDisabledByUser = useUserStore(x => x.isRoomCameraFollowDisabled);
     const followDuration = useRoomStore(x => x.followDuration);
+    // `RoomEngine.cameraFollowDuration`: `getBoolean("room.camera.follow_user") ? 1000 : 0`.
     const configuredMoveSpeedDenominator = useConfigValue<number>('camera.move.speed');
     const moveSpeedDenominator = (configuredMoveSpeedDenominator !== undefined)
         && Number.isFinite(configuredMoveSpeedDenominator)
@@ -154,7 +155,8 @@ export const useRoomCamera = () => {
     const updateRoomCamera = (time: number) => {
         const canvas = room?.canvas;
 
-        if (canvas?.isFlipped) return;
+        // RoomEngine.updateRoomCamera: no canvas, a scaled canvas or a flipped one is not followed.
+        if (!room || !canvas || canvas.scale !== 1 || canvas.isFlipped) return;
 
         // A new room starts with a new camera: where the last room was scrolled to says nothing
         // about this one, and its location has to be initialized on this room's geometry.

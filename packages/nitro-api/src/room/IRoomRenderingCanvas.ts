@@ -11,7 +11,6 @@ export interface IRoomRenderingCanvas {
     setBackgroundVisible(flag: boolean): void;
     setScale(scale: number, point?: Point, offsetPoint?: Point): void;
     setFlip(flipped: boolean, point?: Point, offsetPoint?: Point): void;
-    readonly isFlipped: boolean;
     render(time: number, update?: boolean): void;
     update(): void;
     skipSpriteVisibilityChecking(): void;
@@ -39,6 +38,7 @@ export interface IRoomRenderingCanvas {
     screenOffsetX: number;
     screenOffsetY: number;
     scale: number;
+    readonly isFlipped: boolean;
     width: number;
     height: number;
 }

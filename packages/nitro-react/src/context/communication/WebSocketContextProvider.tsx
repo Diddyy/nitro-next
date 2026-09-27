@@ -3,7 +3,7 @@ import { AuthenticationOKMessage, ClientHelloComposer, DisconnectReasonMessage, 
 import { GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
-import { showConnectionClosed } from '#base/commands';
+import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, showConnectionClosed } from '#base/commands';
 import { useCommunicationIncoming, useCommunicationOutgoing } from '#base/hooks/communication';
 
 import { useConfigValue } from '../system';
@@ -71,7 +71,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
 
                 if (ws.current !== socket) return;
 
-                closeConnection(-1);
+                closeConnection(DISCONNECT_REASON_SOCKET_CLOSED);
             };
 
             socket.onmessage = (event: MessageEvent<ArrayBuffer>) => {
@@ -89,8 +89,8 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         }
     };
 
-    /** `IncomingMessages.onDisconnectReason`: stop the session before showing the alert. */
-    const closeConnection = (reason: number) => {
+    /** `IncomingMessages.onDisconnectReason` / `onConnectionDisconnected`: stop the session before showing the alert. */
+    const closeConnection = (reason: number, reasonName = '') => {
         if (phase.current === 'closed') return;
 
         const socket = ws.current;
@@ -101,7 +101,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         pendingServerMessages.current = [];
         setPhase('closed');
         socket?.close();
-        showConnectionClosed(reason);
+        showConnectionClosed(reason, reasonName);
     };
 
     const processBuffer = () => {
@@ -360,7 +360,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         registerManyOutgoing(GetOutgoingPackets());
 
         const unsubscribeAuth = subscribe(AuthenticationOKMessage, () => setPhase('awaitingHandlers'));
-        const unsubscribeDisconnect = subscribe(DisconnectReasonMessage, data => closeConnection(data.reason ?? -1));
+        const unsubscribeDisconnect = subscribe(DisconnectReasonMessage, data => closeConnection(data.reason ?? -1, getDisconnectReasonName(data.reason ?? -1)));
 
         // IncomingMessages.onPing in the SWF replies with an empty PongMessageComposer.
         // sendRaw bypasses the pending queue so the reply is never deferred — the

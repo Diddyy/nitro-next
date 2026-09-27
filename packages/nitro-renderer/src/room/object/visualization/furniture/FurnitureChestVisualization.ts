@@ -3,13 +3,10 @@ import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
 /**
- * The wired trading chests: an animated furni whose `wired_emblem` layer only shows while the
- * chest has wired enabled (`FurnitureChestLogic` keeps that flag in the model).
- *
- * Flash's furni chest visualization also floats up to four icons of the items inside above an
- * open chest. That needs the room engine to load furni icons into an object's asset collection
- * on request (`RoomObjectFurniIconAssetEvent`), which this renderer does not do yet, so a furni
- * chest renders like a coins chest: it opens and closes, without the floating icons.
+ * Port of Flash `FurnitureChestVisualization` (obfuscated `§_-727§`), the wired trading chests:
+ * an animated furni whose `wired_emblem` layer only shows while the chest has wired enabled
+ * (`FurnitureChestLogic` keeps that flag in the model). The coins chest (`§_-X1W§`) is this class
+ * as it is; the furni chest adds its floating icons in `FurnitureFurniChestVisualization`.
  */
 export class FurnitureChestVisualization extends AnimatedFurnitureVisualization {
     private static WIRED_EMBLEM_TAG: string = 'wired_emblem';

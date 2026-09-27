@@ -141,6 +141,23 @@ export class RoomContentLoader implements IRoomContentLoader {
         return this._wallItemTypeIds.get(name) ?? -1;
     }
 
+    /**
+     * What Flash's `FurniIconImageManager` read from the furni data to name and fetch an icon: the
+     * class name, and the colour index when the furni has an indexed colour (`undefined` when it
+     * has not). `undefined` for a type id the furni data does not know.
+     */
+    public getFurnitureIconData(wallItem: boolean, typeId: number): { className: string; colorIndex: number | undefined } | undefined {
+        const type = wallItem ? this._wallItemTypes.get(typeId) : this._activeObjectTypes.get(typeId);
+
+        if (type === undefined) return undefined;
+
+        const index = type.indexOf('*');
+
+        if (index === -1) return { className: type, colorIndex: undefined };
+
+        return { className: type.substring(0, index), colorIndex: parseInt(type.substring(index + 1)) };
+    }
+
     public getFurnitureFloorColorIndex(typeId: number): number {
         return this.getColorIndexFromName(this._activeObjectTypes.get(typeId) ?? '');
     }

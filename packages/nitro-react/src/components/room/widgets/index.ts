@@ -11,6 +11,7 @@ export * from './object-menu';
 export * from './pets';
 export * from './poll';
 export * from './quiz';
+export * from './room-ad';
 export * from './room-info';
 export * from './room-queue';
 export * from './room-settings';

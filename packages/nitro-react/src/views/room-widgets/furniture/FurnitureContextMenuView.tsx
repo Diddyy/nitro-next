@@ -22,9 +22,12 @@ export interface FurnitureContextMenuViewProps {
  * are that same window with their own captions, which is why there is a single view here rather
  * than one each.
  *
- * Only the menus Flash actually shows are shown. `DUMMY` (a friend furni still locked), the
- * effect box and the mystery trophy open their own dialogs on use instead, so they get no menu,
- * and `FRIEND_FURNITURE` waits for the engraving dialog it belongs to.
+ * `friendfurni_menu` (`FriendFurniContextMenuView`) is the same window again, captioned
+ * `${friendfurni.context.title}` / `${friendfurni.context.use}`: an unlocked friend furni - a love
+ * lock or a wanted poster - offering to be used, which starts the locking.
+ *
+ * Only the menus Flash actually shows are shown. `DUMMY` (a friend furni already locked), the
+ * effect box and the mystery trophy open their own dialogs on use instead, so they get no menu.
  */
 export const FurnitureContextMenuView = ({ objectData, menu, onClose }: FurnitureContextMenuViewProps) => {
     const { objectId, category } = objectData;
@@ -52,6 +55,10 @@ export const FurnitureContextMenuView = ({ objectData, menu, onClose }: Furnitur
 
             title = t('furni.mnstr_seed.name');
             caption = t('widget.monsterplant_seed.button.use');
+            break;
+        case ContextMenuEnum.FRIEND_FURNITURE:
+            title = t('friendfurni.context.title');
+            caption = t('friendfurni.context.use');
             break;
         case ContextMenuEnum.MYSTERY_BOX:
             title = t('mysterybox.context.title');

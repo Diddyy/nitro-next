@@ -1,8 +1,9 @@
 import { RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectFurnitureActionEvent, RoomObjectOperationType } from '@nitrodevco/nitro-api';
-import { DiceOffComposer, EnterOneWayDoorComposer, GetItemDataComposer, GetJukeboxPlayListComposer, GetNowPlayingComposer, GetSoundMachinePlayListComposer, SpinWheelOfFortuneComposer, ThrowDiceComposer } from '@nitrodevco/nitro-packets';
+import { DiceOffComposer, EnterOneWayDoorComposer, GetItemDataComposer, GetNowPlayingComposer, RedeemNftLootBoxComposer, SpinWheelOfFortuneComposer, ThrowDiceComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { RoomMusicKind, useOwnControllerLevel, useRoom, useRoomMouseActions, useRoomSelectedObject, useRoomSoundActions } from '#base/context/room';
+import { useTranslation, useWindowActions } from '#base/context/system';
 
 /**
  * What a furniture logic asks the client to do on its behalf - Flash's
@@ -10,7 +11,8 @@ import { RoomMusicKind, useOwnControllerLevel, useRoom, useRoomMouseActions, use
  * a one-way door and a post-it each send their packet; a sound machine or jukebox announces
  * itself so the room knows what is playing (`handleObjectSoundMachineEvent` /
  * `handleObjectJukeboxEvent`, which raised the `RoomEngineSoundMachineEvent`s the music
- * controller listened to); and an avatar or usable furni claims and releases the pointer cursor.
+ * controller listened to); an NFT reward box asks before it is opened (`useObject`'s
+ * `ROFCAE_NFT_REWARD_BOX`); and an avatar or usable furni claims and releases the pointer cursor.
  */
 export const useRoomFurnitureActionHandler = () => {
     const room = useRoom();
@@ -18,6 +20,8 @@ export const useRoomFurnitureActionHandler = () => {
     const selectedObject = useRoomSelectedObject();
     const { addCursorOwner, removeCursorOwner } = useRoomMouseActions();
     const { setRoomMusic, setRoomMusicPlaying, clearRoomMusic } = useRoomSoundActions();
+    const { showConfirm } = useWindowActions();
+    const t = useTranslation();
     const { send } = useWebSocketContext();
 
     /** Flash ignored a machine that was only being carried across the room, not placed yet. */
@@ -36,11 +40,11 @@ export const useRoomFurnitureActionHandler = () => {
                 if (kind === 'jukebox') send(new GetNowPlayingComposer({}));
 
                 return;
-            // `JukeboxPlayListController.startPlaying` / `SoundMachinePlayListController.startPlaying`: a machine switched on asks for its list.
+            // A machine switched on starts its playlist controller. `SoundMachinePlayListController.startPlaying`
+            // asks for its list itself, and only while it has none; the jukebox's asks for nothing.
             case RoomObjectFurnitureActionEvent.JUKEBOX_START:
             case RoomObjectFurnitureActionEvent.SOUND_MACHINE_START:
                 setRoomMusicPlaying(event.objectId, true);
-                send(kind === 'jukebox' ? new GetJukeboxPlayListComposer({}) : new GetSoundMachinePlayListComposer({}));
 
                 return;
             case RoomObjectFurnitureActionEvent.JUKEBOX_MACHINE_STOP:
@@ -76,6 +80,13 @@ export const useRoomFurnitureActionHandler = () => {
             case RoomObjectFurnitureActionEvent.STICKIE:
                 send(new GetItemDataComposer({ objectId: event.objectId }));
                 return;
+            // `windowManager.confirm`; the box's contents come back as `RedeemNftLootBoxStateMessage`.
+            case RoomObjectFurnitureActionEvent.NFT_REWARD_BOX: {
+                const objectId = event.objectId;
+
+                showConfirm(t('collectibles.reward_box.confirm_title'), t('collectibles.reward_box.confirm_description'), () => send(new RedeemNftLootBoxComposer({ objectId })));
+                return;
+            }
             case RoomObjectFurnitureActionEvent.SOUND_MACHINE_INIT:
             case RoomObjectFurnitureActionEvent.SOUND_MACHINE_START:
             case RoomObjectFurnitureActionEvent.SOUND_MACHINE_STOP:

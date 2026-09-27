@@ -7,6 +7,8 @@ import { IRoom } from './IRoom';
 import { IObjectData } from './object';
 
 export interface IRoomEngine {
+    /** Flash `purgeRoomContent`: the content loader's `purge`, after a room session ends. */
+    purgeRoomContent(): void;
     init(): Promise<void>;
     /** Starts/stops the shared tick that advances every room with a canvas each frame (started by `init`). */
     start(): void;

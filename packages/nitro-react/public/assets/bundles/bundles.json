@@ -4061,6 +4061,35 @@
         "fonts/Volter.ttf"
       ],
       "sources": "d22a6e62611276a6"
+    },
+    {
+      "name": "sounds",
+      "mode": "loose",
+      "assets": {},
+      "absorbed": [
+        "sounds/FURNITURE_cuckoo_clock.mp3",
+        "sounds/HBSTG_ig_countdown.mp3",
+        "sounds/HBSTG_ig_losing.mp3",
+        "sounds/HBSTG_ig_winning.mp3",
+        "sounds/HBSTG_snowwar_get_snowball.mp3",
+        "sounds/HBSTG_snowwar_hit1.mp3",
+        "sounds/HBSTG_snowwar_hit2.mp3",
+        "sounds/HBSTG_snowwar_hit3.mp3",
+        "sounds/HBSTG_snowwar_make_snowball.mp3",
+        "sounds/HBSTG_snowwar_miss.mp3",
+        "sounds/HBSTG_snowwar_throw.mp3",
+        "sounds/HBSTG_snowwar_walk.mp3",
+        "sounds/sound_call_for_help.mp3",
+        "sounds/sound_camera_shutter.mp3",
+        "sounds/sound_catalogue_cash.mp3",
+        "sounds/sound_catalogue_duckets.mp3",
+        "sounds/sound_console_message_sent.mp3",
+        "sounds/sound_console_new_message.mp3",
+        "sounds/sound_guide_help_requested.mp3",
+        "sounds/sound_guide_received_invitation.mp3",
+        "sounds/sound_respect_received.mp3"
+      ],
+      "sources": "ffa575b0a52740e7"
     }
   ]
 }

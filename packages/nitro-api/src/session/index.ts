@@ -27,6 +27,3 @@ export * from './ISimpleRoomObjectData';
 export * from './IUserInfo';
 export * from './pet/IPetCustomPart';
 export * from './pet/PetType';
-export * from './polls/IPollChoice';
-export * from './polls/IPollQuestion';
-export * from './polls/IQuestion';

@@ -1,7 +1,7 @@
 import { FurnitureSpecialType, FurnitureTypeEnum, IPurchasableOffer, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { useEffect, useRef, useState } from 'react';
 
-import { requestOfficialSongId, requestSongInfoWithoutSamples } from '#base/commands';
+import { playSongDiskPreview, requestOfficialSongId, requestSongInfoWithoutSamples, stopSongDiskPreview } from '#base/commands';
 import { CatalogWidgetBundleDisplayExtraInfoEvent, CatalogWidgetEventEnum, CatalogWidgetSpinnerEvent, getCatalogPageImage, useCatalogStore } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomStore } from '#base/context/room';
@@ -48,13 +48,15 @@ const PREVIEW_DIRECTION = 90;
  * asked for with `requestSongInfoWithoutSamples` when it is not - and clears the length and
  * disables the button otherwise. The layout's `00:00` shows until the first product.
  *
- * Not in the port: the trax player. `listen` starts `HabboMusicController.playSong(songId, 3, 15,
- * 40, 0.5, 2)` after cutting the fade-out of whatever plays at priorities 0 and 3, and closing the
- * page stops priority 3; the port has no music controller, so the button enables and disables as
- * in Flash and plays nothing. Nor are the product view's chat style extra (`IPurchasableOffer`
- * carries no `extraChatStyleCode`) or ninja effect badge (`catalogue_effects_ninja` is not shipped)
- * drawn, nor its stuff data override, which no widget of this page sends. The song info request is
- * not made for a song id below 1, which names no song.
+ * `listen` (`onClickPlay`) plays the song through the sound manager's music controller -
+ * `playSong(songId, 3, 15, 40, 0.5, 2)` after cutting the fade-out of whatever plays at priorities 0
+ * and 3 (`playSongDiskPreview`) - and the page closing or going away stops priority 3
+ * (`closed` / `dispose`, `stopSongDiskPreview`).
+ *
+ * Not in the port: the product view's chat style extra (`IPurchasableOffer` carries no
+ * `extraChatStyleCode`) or ninja effect badge (`catalogue_effects_ninja` is not shipped), nor its
+ * stuff data override, which no widget of this page sends. The song info request is not made for a
+ * song id below 1, which names no song.
  */
 export const CatalogSongDiskProductViewWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ offer, setOffer ] = useState<IPurchasableOffer | undefined>(undefined);
@@ -157,6 +159,9 @@ export const CatalogSongDiskProductViewWidgetView = ({ page }: CatalogWidgetProp
         requestSongInfoWithoutSamples(send, currentSongId);
     }, [ currentSongId ]);
 
+    // `closed` / `dispose`: the preview stops with the page.
+    useEffect(() => () => stopSongDiskPreview(), []);
+
     // `init()` fails for a page with no offers: the widget draws nothing.
     if (!page.offers.length) return null;
 
@@ -214,6 +219,7 @@ export const CatalogSongDiskProductViewWidgetView = ({ page }: CatalogWidgetProp
                         variant="3"
                         name="listen"
                         disabled={songLength < 0}
+                        onPointerTap={() => playSongDiskPreview(currentSongId)}
                         layout={{ position: 'absolute', left: 102, width: 66, top: 8, height: 22, minWidth: 66, maxWidth: 66 }}
                     >
                         {t('play_preview_button')}

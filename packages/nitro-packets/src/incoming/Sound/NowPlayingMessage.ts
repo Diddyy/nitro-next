@@ -2,11 +2,14 @@
 import { IIncomingPacket, IMessageDataWrapper } from '@nitrodevco/nitro-api';
 
 export type NowPlayingMessageType = {
+    /** -1 while the jukebox plays nothing. */
     currentSongId: number;
-    /** Milliseconds into the song, so a late arrival joins it where it is. */
+    /** The playing song's index in the jukebox's list (`JukeboxPlayListController.playPosition`). */
     currentPosition: number;
     nextSongId: number;
+    /** The next song's index in the list. */
     nextPosition: number;
+    /** Milliseconds into the playing song, so a late arrival joins it where it is (`playSong(..., syncCount / 1000, ...)`). */
     syncCount: number;
 };
 

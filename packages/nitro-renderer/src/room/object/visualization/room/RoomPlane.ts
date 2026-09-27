@@ -34,19 +34,20 @@ type PlaneDataType = 'floorData' | 'wallData';
  * camera reads - Flash's `SpriteDataCollector` sends it to the server in `RenderRoomMessageComposer`
  * - and the photo camera is not ported, so nothing would call it.
  */
-export class RoomPlane implements IRoomPlane {
-    public static readonly HORIZONTAL_ANGLE_DEFAULT = 45;
-    public static readonly VERTICAL_ANGLE_DEFAULT = 30;
+/** The default plane angles (the port's `PlaneRasterizer` carries the same pair) for the per-size plane geometries. */
+const HORIZONTAL_ANGLE_DEFAULT = 45;
+const VERTICAL_ANGLE_DEFAULT = 30;
 
+export class RoomPlane implements IRoomPlane {
     public static readonly PLANE_GEOMETRY: Record<number, IRoomGeometry> = {
         32: new RoomGeometry(
             32,
-            new Vector3d(RoomPlane.HORIZONTAL_ANGLE_DEFAULT, RoomPlane.VERTICAL_ANGLE_DEFAULT),
+            new Vector3d(HORIZONTAL_ANGLE_DEFAULT, VERTICAL_ANGLE_DEFAULT),
             new Vector3d(-10, 0, 0),
         ),
         64: new RoomGeometry(
             64,
-            new Vector3d(RoomPlane.HORIZONTAL_ANGLE_DEFAULT, RoomPlane.VERTICAL_ANGLE_DEFAULT),
+            new Vector3d(HORIZONTAL_ANGLE_DEFAULT, VERTICAL_ANGLE_DEFAULT),
             new Vector3d(-10, 0, 0),
         ),
     };

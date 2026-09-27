@@ -31,6 +31,7 @@ import { FurnitureRoomLinkWidget } from './FurnitureRoomLinkWidget';
 import { FurnitureStackHeightWidget } from './FurnitureStackHeightWidget';
 import { FurnitureStickieWidget } from './FurnitureStickieWidget';
 import { FurnitureTrophyWidget } from './FurnitureTrophyWidget';
+import { FurnitureVimeoWidget } from './FurnitureVimeoWidget';
 import { PET_PACKAGE_WIDGET, PRESENT_OPENED_WIDGET } from './furnitureWidgetData';
 import { FurnitureYoutubeWidget } from './FurnitureYoutubeWidget';
 
@@ -74,6 +75,7 @@ export const FURNITURE_WIDGETS: Record<string, ComponentType> = {
     [RoomObjectWidgetRequestEvent.YOUTUBE]: FurnitureYoutubeWidget,
     [RoomWidgetEnum.CRAFTING]: FurnitureCraftingWidget,
     [RoomWidgetEnum.RENTABLESPACE]: FurnitureRentableSpaceWidget,
+    [RoomWidgetEnum.VIMEO]: FurnitureVimeoWidget,
     [PET_PACKAGE_WIDGET]: FurniturePetPackageWidget,
     [PRESENT_OPENED_WIDGET]: FurniturePresentOpenedWidget,
 };

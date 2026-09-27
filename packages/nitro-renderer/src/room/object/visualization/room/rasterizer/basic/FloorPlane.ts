@@ -35,9 +35,10 @@ export class FloorPlane extends Plane {
 
             const pixelsPerUnit = origin.x - geometry.getScreenPoint(new Vector3d(1, 0, 0)).x;
 
-            // Flash's `int` locals: the offsets truncate.
-            renderOffsetX = Math.trunc(offsetX * Math.abs(pixelsPerUnit));
-            renderOffsetY = Math.trunc(offsetY * Math.abs(pixelsPerUnit));
+            // Flash `param7 * int(Math.abs(_loc14_))` into an `int` local: the pixels per unit
+            // truncate first (a 31.999... from the geometry is 31), then the product does.
+            renderOffsetX = (offsetX * (Math.abs(pixelsPerUnit) | 0)) | 0;
+            renderOffsetY = (offsetY * (Math.abs(pixelsPerUnit) | 0)) | 0;
         }
 
         return visualization.render(canvas, width, height, normal, useTexture, renderOffsetX, renderOffsetY);
