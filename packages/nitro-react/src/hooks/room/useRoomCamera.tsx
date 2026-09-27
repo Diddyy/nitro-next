@@ -66,7 +66,7 @@ export const useRoomCamera = () => {
     // `SessionDataManager.isRoomCameraFollowDisabled` - the account's "disable room camera follow" setting.
     const followDisabledByUser = useUserStore(x => x.isRoomCameraFollowDisabled);
     const followDuration = useRoomStore(x => x.followDuration);
-    const moveSpeedDenominator = useConfigValue<number>('camera.move.speed') ?? 12;
+    const followEnabled = useConfigValue<boolean>('room.camera.follow_user') === true;
     const zoomEnabled = useConfigValue<boolean>('zoom.enabled') === true;
     const cameraDataRef = useRef<RoomCameraData>(createCameraData(undefined));
 
