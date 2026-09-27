@@ -235,6 +235,7 @@
     "special_items.wf15.items": "wf15_act,furni,wf_ltdproto_act_toggle_state;wf15_trg,furni,wf_proto_trg_at_given_time;wf15_cnd,furni,wf_proto_cnd_trggrer_on_frn;wf15_pyramid,furni,wf_proto_pyramid",
     "relationship.status.enabled": true,
     "respect.replenish_cost_duckets": 20,
+    "camera.move.speed": 12,
     "room.camera.follow_user": true,
     "discord.enabled": true,
     "user.custom.filter.enabled": true,
