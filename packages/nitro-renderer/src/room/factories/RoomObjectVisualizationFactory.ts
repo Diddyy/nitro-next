@@ -186,6 +186,16 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
         return visualization;
     }
 
+    /**
+     * Forgets the data kept for `type`: the next object of it builds its data from the asset it is
+     * given. Not disposed - objects made before still draw with it. Nitro's own: Flash replaces an
+     * asset only by reloading the client, and the asset manager's preview swaps a furniture's build
+     * in a running engine, where the kept data (its layers, its visualization type) would be the old one's.
+     */
+    public removeVisualizationData(type: string): void {
+        this._visualizationDatas.delete(type);
+    }
+
     public getVisualizationData(
         type: string,
         visualization: string | undefined,

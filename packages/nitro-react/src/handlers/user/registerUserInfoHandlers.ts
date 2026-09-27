@@ -1,5 +1,5 @@
 import { ChangeUserNameResultMessageCode } from '@nitrodevco/nitro-api';
-import { AccountPreferencesEventMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetUserNftChatStylesComposer, NoobnessLevelMessage, PetRespectFailedMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
+import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetUserNftChatStylesComposer, NoobnessLevelMessage, PetRespectFailedMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
@@ -11,10 +11,11 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * Who you are - Flash's `SessionDataManager`: the user object at login, figure and name changes,
  * rights, noobness level, email status, the account preferences and the chat styles the account
  * owns (NFT and bought ones, which the chat input's style picker offers). Also gives a pet respect
- * back when the server refuses one (`onPetRespectFailed`): the respect was spent when it was sent.
+ * back when the server refuses one (`onPetRespectFailed`): the respect was spent when it was sent,
+ * and follows the account's safety lock (`onAccountSafetyLockStatusChanged`: locked while the status is 0).
  */
 export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { setRights, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
+    const { setRights, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
 
     return subscribeAll(subscribe, [
         on(FigureUpdateEventMessage, (data) => {
@@ -61,6 +62,8 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
 
             setName(data.newName, false);
         }),
+
+        on(AccountSafetyLockStatusChangeMessage, data => setAccountSafetyLocked(data.status === 0)),
 
         on(EmailStatusResultEventMessage, (data) => {
             setEmailVerified(data.isVerified);

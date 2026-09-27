@@ -40,7 +40,7 @@ export const RoomToolsWidget = () => {
     const { toggleWindow } = useWindowActions();
     const { level, canZoomIn, canZoomOut, zoomIn, zoomOut } = useRoomZoom();
 
-    const infoEnabled = useConfigValue<boolean>('room.enter.info.enabled') ?? true;
+    const infoEnabled = useConfigValue<boolean>('room.enter.info.enabled') === true;
     const infoDelay = useConfigValue<number>('room.enter.info.collapse.delay') ?? DEFAULT_INFO_COLLAPSE_DELAY;
     const urlPrefix = useConfigValue<string>('url.prefix') ?? '';
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
@@ -164,8 +164,9 @@ export const RoomToolsWidget = () => {
                     />
                 )}
             />
-            {info.visible && currentRoomInfo && (
+            {currentRoomInfo && (
                 <RoomToolsInfoView
+                    open={info.visible}
                     roomName={currentRoomInfo.name}
                     ownerLine={currentRoomInfo.showOwner
                         ? `${t('room.tool.room.owner.prefix', 'By')} ${currentRoomInfo.ownerName}`

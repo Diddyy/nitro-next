@@ -3,8 +3,9 @@
  * the furni model (`FurniModel`) with the filters its page's search box and dropmenus set, the
  * badges (`BadgesModel`), pets (`PetsModel`) and bots (`BotsModel`) the other three tabs draw, the
  * user-to-user trade (`TradingModel`), and the marketplace (`MarketplaceModel`) and recycler
- * (`RecyclerModel`) models the furni page works with, and the object mover flag the three
- * placing pages share.
+ * (`RecyclerModel`) models the furni page works with, the object mover flag the three placing
+ * pages share, and the unseen item tracker (`UnseenItemTracker`) the furni and badge lists and
+ * every "new" count read.
  *
  * An app-wide singleton, like `wiredTradingStore`: the furni list arrives and changes while the
  * inventory window is closed (Flash keeps its models for the whole session), a trade may open with
@@ -21,8 +22,9 @@ import { createInventoryPetsSlice, InventoryPetsSlice } from './InventoryPetsSli
 import { createInventoryPlacementSlice, InventoryPlacementSlice } from './InventoryPlacementSlice';
 import { createInventoryRecyclerSlice, InventoryRecyclerSlice } from './InventoryRecyclerSlice';
 import { createInventoryTradingSlice, InventoryTradingSlice } from './InventoryTradingSlice';
+import { createInventoryUnseenSlice, InventoryUnseenSlice } from './InventoryUnseenSlice';
 
-export type InventoryStore = InventoryFurniSlice & InventoryFurniFilterSlice & InventoryBadgesSlice & InventoryPetsSlice & InventoryBotsSlice & InventoryTradingSlice & InventoryPlacementSlice & InventoryMarketplaceSlice & InventoryRecyclerSlice;
+export type InventoryStore = InventoryFurniSlice & InventoryFurniFilterSlice & InventoryBadgesSlice & InventoryPetsSlice & InventoryBotsSlice & InventoryTradingSlice & InventoryPlacementSlice & InventoryMarketplaceSlice & InventoryRecyclerSlice & InventoryUnseenSlice;
 
 export const createInventoryStore = () => createStore<InventoryStore>()((set, get, store) => ({
     ...createInventoryFurniSlice(set, get, store),
@@ -34,6 +36,7 @@ export const createInventoryStore = () => createStore<InventoryStore>()((set, ge
     ...createInventoryPlacementSlice(set, get, store),
     ...createInventoryMarketplaceSlice(set, get, store),
     ...createInventoryRecyclerSlice(set, get, store),
+    ...createInventoryUnseenSlice(set, get, store),
 }));
 
 export const inventoryStore = createInventoryStore();

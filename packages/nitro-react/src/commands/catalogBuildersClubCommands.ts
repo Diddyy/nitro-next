@@ -6,9 +6,8 @@
  * club offer can be placed in the room the user is in, and if not, why.
  *
  * `refreshBuilderStatus` also raises `CATALOG_BUILDER_MEMBERSHIP_IN_GRACE` / `_EXPIRED` in Flash,
- * which only `HabboNotifications.showNotification` hears - a pop-up (`notification.builders_club.*`
- * says `POP_UP`) that the port has no window for (see `NotificationDialogMessage` in
- * `drift/known.py`), so the flags are kept and nothing is raised.
+ * which only `HabboNotifications` hears (`onBuilderMembershipInGrace` / `_Expired`): each is a
+ * `showNotification` of `builders_club.membership_in_grace` / `_expired`, called here directly.
  */
 import { IPurchasableOffer, RoomControllerLevelEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { StoreApi } from 'zustand';
@@ -16,6 +15,8 @@ import { StoreApi } from 'zustand';
 import { CatalogStore, CatalogWidgetEventEnum } from '#base/context/catalog';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
+
+import { showNotification } from './notificationCommands';
 
 type CatalogStoreApi = StoreApi<CatalogStore>;
 
@@ -65,6 +66,11 @@ export const refreshBuilderStatus = (store: CatalogStoreApi) => {
     const secondsLeftWithGrace = getBuilderSecondsLeftWithGrace(store, now);
     const isMember = (secondsLeft > 0);
     const isInGrace = (secondsLeftWithGrace > 0);
+    const { builderIsMember: wasMember, builderIsInGrace: wasInGrace } = store.getState();
+
+    // The membership has just run out into its grace period, or the grace period has just run out.
+    if (wasMember && !isMember && isInGrace) showNotification('builders_club.membership_in_grace');
+    else if (wasInGrace && !isInGrace) showNotification('builders_club.membership_expired');
 
     store.getState().setBuilderStatus(isMember, isInGrace, isMember ? secondsLeft : (isInGrace ? secondsLeftWithGrace : 0), now);
 };

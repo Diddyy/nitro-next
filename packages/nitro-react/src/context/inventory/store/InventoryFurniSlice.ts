@@ -16,10 +16,19 @@
  * - The locks: `updateItemLocks` marks the items whose room item id is in a running trade,
  *   `removeAllLocks` clears them.
  *
- * Not ported: the unseen item tracker (`UnseenItemsMessage`) - an item it names moves its group
- * to the top of the grid; without it every new group goes to the bottom, as Flash does for an
- * item the tracker does not name. The rentables category does not exist in this client. The
- * recycler (`RecyclerModel`) and the marketplace (`MarketplaceModel`) lock items by strip id
+ * - The unseen item tracker (`InventoryUnseenSlice`): an item it names (category 1, or 2 for a
+ *   rented one - `isUnseen`) makes a new group of its own at the top of the grid, or moves the group
+ *   it stacks onto there (`addItemToTop` / `moveItemToTop`); anything else goes to the bottom.
+ *   `GroupItem.push` sets the group's `hasUnseenItems` to whether the item pushed is unseen, so a
+ *   seen item stacked onto a new group takes the mark off again, as it does in Flash. An item that
+ *   arrives in `FurniListAddOrUpdate` marks its group whatever the tracker says.
+ * - `updateFurniUnseenThumbs` is `updateUnseenItemsThumbs`, run when the tracker gains ids and over
+ *   the groups `FurniListAddOrUpdate` created: a group holding an unseen id is marked, and moved to
+ *   the top the first time each id is seen there (`setUnseenItemMovedToTop`).
+ *
+ * The rentables category does not exist in this client (`mergeRentFurni`), so `resetUnseenItems`
+ * always resets category 1 and a rented group's mark stays until the list is replaced, as in Flash.
+ * The recycler (`RecyclerModel`) and the marketplace (`MarketplaceModel`) lock items by strip id
  * through `setFurniItemLocks`, and `updateFurniLocks` counts their items with the trade's.
  */
 import { IFurniListAddOrUpdateFurni } from '@nitrodevco/nitro-packets';
@@ -29,6 +38,7 @@ import {
     createInventoryFurniItem, getInventoryFurniTotalCount, getStuffDataChestName, getStuffDataContentsCount, INVENTORY_FURNI_CATEGORY_CHEST_BROWN, INVENTORY_FURNI_CATEGORY_CHEST_GOLD, INVENTORY_FURNI_CATEGORY_GUILD_FURNI,
     INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_CATEGORY_RARE, InventoryFurniGroup, InventoryFurniItem, isInventoryFurniGroupGroupable, isInventoryFurniGroupWallItem,
 } from './InventoryFurniGroup';
+import { addUnseenItemIds, InventoryUnseenSlice, isUnseenItem, UnseenItemCategory, UnseenItemIds } from './InventoryUnseenSlice';
 
 type State = {
     /** `§_-V2i§`, in grid order. */
@@ -46,8 +56,11 @@ type Actions = {
     insertFurniture: (furni: Map<number, IFurniListAddOrUpdateFurni>) => void;
     /** `IncomingMessages.onFurnitureAddOrUpdate`. */
     addOrUpdateFurni: (furni: IFurniListAddOrUpdateFurni[]) => void;
-    /** `FurniModel.removeFurni`, then `resetUnseenItems` when something went. */
-    removeFurni: (stripId: number) => void;
+    /**
+     * `FurniModel.removeFurni`: true when the strip id was held, which is when
+     * `onFurniListRemove` goes on to `resetUnseenItems` (`resetInventoryFurniUnseenItems`).
+     */
+    removeFurni: (stripId: number) => boolean;
     /** `IncomingMessages.onFurniListInvalidate`. */
     invalidateFurni: () => void;
     /** `GroupItem.itemEventProc` on `WME_DOWN`: `removeSelections` and select this one. */
@@ -59,8 +72,10 @@ type Actions = {
      * these strip ids are locked or unlocked - what the recycler and the marketplace lock by hand.
      */
     setFurniItemLocks: (itemIds: readonly number[], locked: boolean) => void;
-    /** `FurniModel.resetUnseenItems`: no group is new any more. */
+    /** `FurniModel.resetUnseenItems`'s groups: no non-rented group is new any more. */
     resetFurniUnseenItems: () => void;
+    /** `FurniModel.updateUnseenItemsThumbs()` over every group, after the tracker gained ids. */
+    updateFurniUnseenThumbs: () => void;
 };
 
 export const InventoryFurniSliceInitialState: State = {
@@ -99,9 +114,19 @@ class FurniGroupsDraft {
         return copy;
     }
 
-    public add(group: InventoryFurniGroup) {
+    /** `addItemToBottom`, or `addItemToTop`. */
+    public add(group: InventoryFurniGroup, top: boolean = false) {
         this._copied.add(group);
-        this.groups.push(group);
+
+        if (top) this.groups.unshift(group);
+        else this.groups.push(group);
+    }
+
+    /** `moveItemToTop`. */
+    public moveToTop(index: number) {
+        const [ group ] = this.groups.splice(index, 1);
+
+        this.groups.unshift(group);
     }
 
     public indexOfItem(stripId: number): number {
@@ -109,21 +134,26 @@ class FurniGroupsDraft {
     }
 }
 
-/** `FurniModel.createGroupItem` plus the first `push`. */
-const createGroup = (draft: FurniGroupsDraft, item: InventoryFurniItem): InventoryFurniGroup => {
-    const group: InventoryFurniGroup = { id: nextGroupId++, typeId: item.typeId, category: item.category, stuffData: item.stuffData, extra: item.extra, items: [ item ], hasUnseenItems: false };
+/** `FurniModel.isUnseen`: a rented item is tracked under the rentables' category. */
+const isUnseenFurni = (unseenItems: UnseenItemIds, item: InventoryFurniItem): boolean => isUnseenItem(unseenItems, item.isRented ? UnseenItemCategory.RENTED_FURNI : UnseenItemCategory.OWNED_FURNI, item.id);
 
-    draft.add(group);
+/** `FurniModel.createGroupItem` plus the first `push`: an unseen item's group goes to the top, any other to the bottom. */
+const createGroup = (draft: FurniGroupsDraft, item: InventoryFurniItem, unseen: boolean): InventoryFurniGroup => {
+    const group: InventoryFurniGroup = { id: nextGroupId++, typeId: item.typeId, category: item.category, stuffData: item.stuffData, extra: item.extra, items: [ item ], hasUnseenItems: unseen };
+
+    draft.add(group, unseen);
 
     return group;
 };
 
-/** `GroupItem.push`: a strip id already held only loses its lock. */
-const pushItem = (group: InventoryFurniGroup, item: InventoryFurniItem) => {
+/** `GroupItem.push`: a strip id already held only loses its lock, and the group is new exactly when the item is. */
+const pushItem = (group: InventoryFurniGroup, item: InventoryFurniItem, unseen: boolean) => {
     const index = group.items.findIndex(existing => existing.id === item.id);
 
     if (index === -1) group.items.push(item);
     else if (group.items[index].locked) group.items[index] = { ...group.items[index], locked: false };
+
+    group.hasUnseenItems = unseen;
 };
 
 /** `addOrUpdateGroupableItem`'s search for the group an item stacks onto; the chest rule has no `break`, so the last match wins. */
@@ -153,28 +183,78 @@ const findStackGroupIndex = (groups: InventoryFurniGroup[], item: InventoryFurni
     return found;
 };
 
-/** `FurniModel.addOrUpdateItem`; `isInit` is Flash's second argument - from the full list, not a packet naming a new item. */
-const addOrUpdateItem = (draft: FurniGroupsDraft, item: InventoryFurniItem, isInit: boolean) => {
+/**
+ * `FurniModel.addOrUpdateItem`; `isInit` is Flash's second argument - from the full list, not a
+ * packet naming a new item. Returns the group the item went into.
+ */
+const addOrUpdateItem = (draft: FurniGroupsDraft, item: InventoryFurniItem, isInit: boolean, unseenItems: UnseenItemIds): InventoryFurniGroup => {
     const isStackable = item.groupable || (item.category === INVENTORY_FURNI_CATEGORY_RARE) || (item.category === INVENTORY_FURNI_CATEGORY_CHEST_BROWN) || (item.category === INVENTORY_FURNI_CATEGORY_CHEST_GOLD);
+    const unseen = isUnseenFurni(unseenItems, item);
     let group: InventoryFurniGroup;
 
     if (!isStackable) {
         // `addOrUpdateNonGroupableItem`: a group of the type that already holds the strip id is left alone.
         const index = draft.groups.findIndex(existing => (existing.typeId === item.typeId) && existing.items.some(held => held.id === item.id));
 
-        group = (index === -1) ? createGroup(draft, item) : draft.edit(index);
+        group = (index === -1) ? createGroup(draft, item, unseen) : draft.edit(index);
     } else {
         const index = findStackGroupIndex(draft.groups, item);
 
         if (index === -1) {
-            group = createGroup(draft, item);
+            group = createGroup(draft, item, unseen);
         } else {
             group = draft.edit(index);
-            pushItem(group, item);
+            pushItem(group, item, unseen);
+
+            if (unseen) draft.moveToTop(index);
         }
     }
 
     if (!isInit) group.hasUnseenItems = true;
+
+    return group;
+};
+
+/**
+ * `FurniModel.updateUnseenItemsThumbs` over `targets` (every group when left out). A group is
+ * judged by the first of its items the tracker names in either furni category: it is marked,
+ * and moved to the top when that id has not moved a group there before - which is then recorded
+ * in both categories, as Flash records it. A group already marked whose id has moved before is
+ * left where it is. Returns the tracker's moved-to-top lists with the new ids in them.
+ */
+const updateUnseenThumbs = (draft: FurniGroupsDraft, targets: readonly InventoryFurniGroup[] | undefined, unseenItems: UnseenItemIds, movedToTop: UnseenItemIds): UnseenItemIds => {
+    const unseen = new Set([ ...(unseenItems[UnseenItemCategory.OWNED_FURNI] ?? []), ...(unseenItems[UnseenItemCategory.RENTED_FURNI] ?? []) ]);
+
+    if (!unseen.size) return movedToTop;
+
+    let moved = movedToTop;
+
+    // Flash walks the list it reorders; moving the current group to the front leaves every later
+    // one where it was, so each is visited once, in the original order.
+    for (const target of targets ?? [ ...draft.groups ]) {
+        const id = target.items.map(item => item.id).find(itemId => unseen.has(itemId));
+
+        if (id === undefined) continue;
+
+        const movedOwned = isUnseenItem(moved, UnseenItemCategory.OWNED_FURNI, id);
+        const movedRented = isUnseenItem(moved, UnseenItemCategory.RENTED_FURNI, id);
+        const moves = !movedOwned || !movedRented;
+        const index = draft.groups.findIndex(group => group.id === target.id);
+
+        if ((index === -1) || (draft.groups[index].hasUnseenItems && !moves)) continue;
+
+        draft.edit(index).hasUnseenItems = true;
+
+        if (!moves) continue;
+
+        draft.moveToTop(index);
+
+        if (!movedOwned) moved = addUnseenItemIds(moved, UnseenItemCategory.OWNED_FURNI, [ id ]);
+
+        if (!movedRented) moved = addUnseenItemIds(moved, UnseenItemCategory.RENTED_FURNI, [ id ]);
+    }
+
+    return moved;
 };
 
 /** `FurniModel.getAllStripIds`: a post-it stack answers for its first item only. */
@@ -206,8 +286,13 @@ const removeItem = (draft: FurniGroupsDraft, stripId: number): boolean => {
 };
 
 /** `resetUnseenItems` for the furni category: its non-rented groups are no longer new. The same list when nothing changes. */
+/**
+ * `FurniModel.resetUnseenItems` for the furni page. Flash's page holds only the owned groups (the
+ * rented ones are on the rentables page); here both are on one page and both categories are reset
+ * with it (`resetInventoryFurniUnseenItems`), so every group loses its mark.
+ */
 const resetUnseen = (groups: InventoryFurniGroup[]): InventoryFurniGroup[] => {
-    const isNew = (group: InventoryFurniGroup) => group.hasUnseenItems && !(group.items[0]?.isRented ?? false);
+    const isNew = (group: InventoryFurniGroup) => group.hasUnseenItems;
 
     if (!groups.some(isNew)) return groups;
 
@@ -221,7 +306,7 @@ const keepSelection = (groups: InventoryFurniGroup[], selectedGroupId: number): 
     return groups[0]?.id ?? -1;
 };
 
-export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice, [], [], InventoryFurniSlice> = set => ({
+export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & InventoryUnseenSlice, [], [], InventoryFurniSlice> = (set, get) => ({
     ...InventoryFurniSliceInitialState,
     insertFurniture: furni => set((x) => {
         const draft = new FurniGroupsDraft(x.furniGroups);
@@ -232,7 +317,7 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice, [], []
         }
 
         for (const [ stripId, data ] of furni) {
-            if (!held.has(stripId)) addOrUpdateItem(draft, createInventoryFurniItem(data), true);
+            if (!held.has(stripId)) addOrUpdateItem(draft, createInventoryFurniItem(data), true, x.unseenItems);
         }
 
         return {
@@ -246,12 +331,13 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice, [], []
         if (!x.furniListInitialized) return x;
 
         const draft = new FurniGroupsDraft(x.furniGroups);
+        const added: InventoryFurniGroup[] = [];
 
         for (const data of furni) {
             const index = draft.indexOfItem(data.itemId);
 
             if (index === -1) {
-                addOrUpdateItem(draft, createInventoryFurniItem(data), false);
+                added.push(addOrUpdateItem(draft, createInventoryFurniItem(data), false, x.unseenItems));
 
                 continue;
             }
@@ -264,17 +350,21 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice, [], []
             group.hasUnseenItems = true;
         }
 
-        return { furniGroups: draft.groups };
+        // `updateUnseenItemsThumbs(newGroups, false)`.
+        const unseenMovedToTop = added.length ? updateUnseenThumbs(draft, added, x.unseenItems, x.unseenMovedToTop) : x.unseenMovedToTop;
+
+        return { furniGroups: draft.groups, unseenMovedToTop };
     }),
-    removeFurni: stripId => set((x) => {
+    removeFurni: (stripId) => {
+        const x = get();
         const draft = new FurniGroupsDraft(x.furniGroups);
 
-        if (!removeItem(draft, stripId)) return x;
+        if (!removeItem(draft, stripId)) return false;
 
-        const groups = resetUnseen(draft.groups);
+        set({ furniGroups: draft.groups, furniSelectedGroupId: keepSelection(draft.groups, x.furniSelectedGroupId) });
 
-        return { furniGroups: groups, furniSelectedGroupId: keepSelection(groups, x.furniSelectedGroupId) };
-    }),
+        return true;
+    },
     invalidateFurni: () => set({ furniCategoryInitialized: false }),
     selectFurniGroup: furniSelectedGroupId => set({ furniSelectedGroupId }),
     updateFurniLocks: lockedRefs => set((x) => {
@@ -310,5 +400,13 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice, [], []
         const furniGroups = resetUnseen(x.furniGroups);
 
         return (furniGroups === x.furniGroups) ? x : { furniGroups };
+    }),
+    updateFurniUnseenThumbs: () => set((x) => {
+        const draft = new FurniGroupsDraft(x.furniGroups);
+        const unseenMovedToTop = updateUnseenThumbs(draft, undefined, x.unseenItems, x.unseenMovedToTop);
+
+        if ((unseenMovedToTop === x.unseenMovedToTop) && draft.groups.every((group, index) => group === x.furniGroups[index])) return x;
+
+        return { furniGroups: draft.groups, unseenMovedToTop };
     }),
 });

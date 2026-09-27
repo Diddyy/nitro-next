@@ -1,5 +1,5 @@
 import { AvatarActionStateType, AvatarFigurePartType, AvatarGenderType, IRoomUserData, IVector3D, PetType, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
-import { AvatarEffectMessage, BlockUserUpdateMessage, CarryObjectMessage, DanceMessage, ExpressionMessage, IRoomAvatar, IRoomAvatarBot, IRoomAvatarPet, IRoomAvatarRentableBot, IRoomAvatarUser, SleepMessage, UseObjectMessage, UserChangeMessage, UserObjectMessage, UserRemoveMessage, UsersMessage, UserTypingMessage, UserUpdateMessage } from '@nitrodevco/nitro-packets';
+import { AvatarEffectMessage, BlockUserUpdateMessage, CarryObjectMessage, DanceMessage, ExpressionMessage, FavoriteMembershipUpdateMessage, IRoomAvatar, IRoomAvatarBot, IRoomAvatarPet, IRoomAvatarRentableBot, IRoomAvatarUser, SleepMessage, UseObjectMessage, UserChangeMessage, UserObjectMessage, UserRemoveMessage, UsersMessage, UserTypingMessage, UserUpdateMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
@@ -21,6 +21,13 @@ export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => 
     const { setOwnRoomIndex, setIsOwnDancing, updateUsers, updateUserPartial, removeUser } = roomStore.getState();
 
     return subscribeAll(subscribe, [
+        /*
+         * RoomUsersHandler.onFavoriteMembershipUpdate: a user in the room chose another favourite
+         * group. The infostand draws that group's badge from here, which is what
+         * `InfoStandWidget.favouriteGroupUpdated` redraws in Flash.
+         */
+        on(FavoriteMembershipUpdateMessage, data => updateUserPartial(data.roomIndex, { groupId: data.habboGroupId, groupName: data.habboGroupName })),
+
         on(UsersMessage, (data) => {
             const room = getRoom();
 

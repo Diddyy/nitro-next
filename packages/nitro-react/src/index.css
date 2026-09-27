@@ -1,7 +1,0 @@
-@import 'tailwindcss';
-@source "**/*.{ts,tsx,css}";
-
-@import './base.css';
-
-@theme static {
-}

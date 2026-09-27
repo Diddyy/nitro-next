@@ -6,8 +6,7 @@ import { NavigatorView } from '#base/views/navigator/NavigatorView';
 
 export const NavigatorComponent = () => {
     const { isWindowVisible } = useWindowVisibility('navigator');
-    // `RoomCreateViewCtrl` is its own window: it stays up if the navigator is closed under it.
-    const { isWindowVisible: isRoomCreateVisible } = useWindowVisibility('room_create');
+    const { isWindowVisible: isRoomCreateVisible } = useWindowVisibility('navigator_room_create');
 
     // A `navigator/tab/<name>` link travels as this window's parameter; act on it here.
     useNavigatorSearchCodeRequest();
@@ -15,6 +14,7 @@ export const NavigatorComponent = () => {
     return (
         <>
             {isWindowVisible && <NavigatorView />}
+            {/* `RoomCreateViewCtrl` is a window of its own: it stays when the navigator closes. */}
             {isRoomCreateVisible && <NavigatorRoomCreateView />}
             {/* doorbell / password / cant-connect popups outlive the navigator window */}
             <NavigatorRoomEntryDialogs />

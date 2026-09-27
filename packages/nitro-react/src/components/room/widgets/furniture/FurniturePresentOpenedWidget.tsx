@@ -3,8 +3,8 @@ import { RemovePetFromFlatComposer } from '@nitrodevco/nitro-packets';
 import { GetRoomEngine, PetFigureData } from '@nitrodevco/nitro-renderer';
 import { useEffect, useEffectEvent } from 'react';
 
-import { initializeRoomObjectInsert } from '#base/commands';
-import { useCatalogPurchaseStore } from '#base/context/catalog-purchase';
+import { initializeRoomObjectInsert, removeInventoryUnseenFurniCounter } from '#base/commands';
+import { useCatalogGiftReceiverActions } from '#base/context/catalog-purchase';
 import { useWebSocketContext } from '#base/context/communication';
 import { INVENTORY_FURNI_CATEGORY_POSTER, useInventoryStore } from '#base/context/inventory';
 import { useRoomStore, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
@@ -48,10 +48,12 @@ const ROOM_PLANE_CATEGORIES = [ 2, 3, 4 ];
  * - `give_gift_button` (`onGiveGiftOpened` -> `openGiftShop`): the sender becomes the catalogue's
  *   gift receiver and the `gift_shop` page opens.
  *
- * Not carried out: placing a pet (`placePetToRoom`) - the room's pet placement is not ported, so
- * the card closes and the pet stays in the inventory - and `removeUnseenFurniCounter` /
- * `removeUnseenPetCounter`, since the port has no unseen item tracker. The pet render is always
- * at the 64 scale, where Flash draws type 15 at 32: `usePetImageTexture` takes no scale.
+ *   A furni that goes to the mover is no longer new (`removeUnseenFurniCounter(placedItemId)`).
+ *
+ * Not carried out: placing a pet (`placePetToRoom`, then `removeUnseenPetCounter`) - the room's pet
+ * placement is not ported here, so the card closes and the pet stays in the inventory. The pet
+ * render is always at the 64 scale, where Flash draws type 15 at 32: `usePetImageTexture` takes
+ * no scale.
  */
 export const FurniturePresentOpenedWidget = () => {
     const request = useRoomWidget<PresentOpenedData>(PRESENT_OPENED_WIDGET);
@@ -60,7 +62,7 @@ export const FurniturePresentOpenedWidget = () => {
     const productData = useSystemStore(x => x.productData);
     const furniGroups = useInventoryStore(x => x.furniGroups);
     const usersByRoomObjectId = useRoomStore(x => x.usersByRoomObjectId);
-    const setGiftReceiver = useCatalogPurchaseStore(x => x.setGiftReceiver);
+    const { setGiftReceiver } = useCatalogGiftReceiverActions();
     const { closeRoomWidget, mergeRoomWidgetData } = useRoomWidgetActions();
     const { showWindow } = useWindowActions();
     const { modifyRoomObject } = useRoomObjectModify();
@@ -157,8 +159,9 @@ export const FurniturePresentOpenedWidget = () => {
                     const stripId = isWallItem ? contents.placedItemId : -contents.placedItemId;
                     const item = furniGroups.flatMap(group => group.items).find(entry => (entry.id === stripId) && (entry.isWallItem === isWallItem));
 
+                    // `requestSelectedFurniPlacement(item)`, then `removeUnseenFurniCounter(placedItemId)` when it went to the mover.
                     if (item && !ROOM_PLANE_CATEGORIES.includes(item.category)) {
-                        initializeRoomObjectInsert(
+                        const placing = initializeRoomObjectInsert(
                             RoomObjectPlacementSource.INVENTORY,
                             item.id,
                             item.isWallItem ? RoomObjectCategoryEnum.Wall : RoomObjectCategoryEnum.Floor,
@@ -166,6 +169,8 @@ export const FurniturePresentOpenedWidget = () => {
                             (item.category === INVENTORY_FURNI_CATEGORY_POSTER) ? item.stuffData.getLegacyString() : item.extra.toString(),
                             (item.category === INVENTORY_FURNI_CATEGORY_POSTER) ? undefined : item.stuffData,
                         );
+
+                        if (placing) removeInventoryUnseenFurniCounter(send, contents.placedItemId);
                     }
 
                     break;

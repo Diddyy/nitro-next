@@ -34,7 +34,7 @@ const toLevel = (scale: number) => Math.log(scale) / Math.LN2;
  */
 export const useRoomZoom = () => {
     const room = useRoom();
-    const enabled = useConfigValue<boolean>('zoom.enabled') ?? true;
+    const enabled = useConfigValue<boolean>('zoom.enabled') === true;
     const [ scale, setScale ] = useState(DEFAULT_SCALE);
     const targetRef = useRef<number | undefined>(undefined);
 

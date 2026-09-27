@@ -1,7 +1,8 @@
 import { AvatarGenderType, ISimpleRoomObjectData } from '@nitrodevco/nitro-api';
 
+import { AvatarImage } from '#base/components/AvatarImage';
 import { useTranslation } from '#base/context/system';
-import { Border, Box, Button, CloseButton, LayoutImage, Region, ThemeImage, ThemeText, useAvatarImageTexture } from '#base/theme';
+import { Border, Box, Button, CloseButton, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
 
 import { InfostandBadgeView } from './InfostandBadgeView';
 
@@ -80,23 +81,29 @@ const HandItemText = ({ text }: { text: string }) => (
  *
  * The rows are `infostand_element_list` (an `itemlist_vertical` at 10,10 with `spacing` 3) and
  * the border is that list's height plus 20 (`updateWindow`), so the list is a column here. The
- * avatar is a cropped `avatar_image`; `useAvatarImageTexture` has no cropped render, so the
- * uncropped image is centred where the cropped one would be. `rentable_bot_view`'s `home_icon`
+ * avatar is a cropped `avatar_image` facing southwest, drawn at its own size where the layout
+ * puts it (16,23 in `bot_view`, 16,21 in `rentable_bot_view`). `rentable_bot_view`'s `home_icon`
  * is a blank bitmap nothing fills, so it is not drawn.
  */
 export const InfostandBotView = ({ rentable, name, motto, figure, gender, ownerName, carryItem, canMove = false, canPickUp = false, onMove, onRotate, onPickUp, onClose }: InfostandBotViewProps) => {
     const t = useTranslation();
-    const { texture: avatarTexture, width: avatarWidth, height: avatarHeight } = useAvatarImageTexture(figure, gender, { direction: 4 });
 
     const carriesItem = (carryItem > 0) && (carryItem < MAX_CARRY_ITEM);
     const handItemText = t('infostand.text.handitem', '', { item: t(`handitem${carryItem}`, `handitem${carryItem}`) });
 
-    const avatar = avatarTexture && (
-        <pixiSprite
-            texture={avatarTexture}
-            layout={{ width: avatarWidth, height: avatarHeight }}
-        />
-    );
+    // `avatar_image`: `AvatarImageWidget.refresh` sizes the widget to its cropped bitmap and no
+    // `on_resize_align` param moves it, so the image's top-left stays where the layout puts it, 1:1.
+    const avatar = (top: number) => (figure
+        ? (
+                <AvatarImage
+                    figure={figure}
+                    gender={gender}
+                    cropped
+                    direction={4}
+                    layout={{ position: 'absolute', left: 16, top }}
+                />
+            )
+        : null);
 
     if (!rentable) {
         return (
@@ -119,9 +126,9 @@ export const InfostandBotView = ({ rentable, name, motto, figure, gender, ownerN
                                 variant="0"
                                 name="grey_bg"
                                 tintColor="#666666"
-                                layout={{ position: 'absolute', left: 16, top: 0, width: 67, height: 130, justifyContent: 'center', alignItems: 'center' }}
+                                layout={{ position: 'absolute', left: 16, top: 0, width: 67, height: 130, overflow: 'hidden' }}
                             >
-                                {avatar}
+                                {avatar(23)}
                             </Border>
                             <InfostandBadgeView
                                 code={BOT_BADGE}
@@ -189,13 +196,13 @@ export const InfostandBotView = ({ rentable, name, motto, figure, gender, ownerN
                             tintColor="#666666"
                             layout={{ position: 'absolute', left: 16, top: 0, width: 67, height: 130 }}
                         />
-                        <Region layout={{ position: 'absolute', left: 17, top: 2, width: 66, height: 127, justifyContent: 'center', alignItems: 'center' }}>
+                        <Region layout={{ position: 'absolute', left: 17, top: 2, width: 66, height: 127, overflow: 'hidden' }}>
                             <ThemeImage
                                 src={LayoutImage('room-ui/infostand_bot_info_bg.png')}
                                 bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 66, height: 127 }}
                             />
-                            {avatar}
+                            {avatar(21)}
                         </Region>
                         <InfostandBadgeView
                             code={BOT_BADGE}

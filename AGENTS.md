@@ -8,6 +8,7 @@ A port of the Habbo Flash client to Pixi v8 + React. Yarn workspaces under `pack
 | `nitro-packets` | Every incoming parser and outgoing composer, plus the header maps. |
 | `nitro-renderer` | The room engine: object logics, visualizations, asset loading. |
 | `nitro-react` | The client UI. Almost all feature work lands here. |
+| `nitro-asset-manager` | A local web app (Hono + React DOM + Tailwind) that manages what the hotel serves: bundles, gamedata, texts, images, and the catalog in turbo-cloud's database. It converts Habbo's SWFs itself (`converter/`, which began as nitro-tools' converter; not linted), imports official Habbo assets - and all the gamedata nitro-tools used to generate - fills the database from the assets, and tracks workspaces and their versions in a shared asset store. Not part of the client; see its `README.md`. |
 
 The reference implementation is the Flash client. When porting a feature, read the Flash class
 first and name it in the docblock of what you write (`` `InfoStandWidgetHandler.checkUserWithRightsModerationLevel` ``).
@@ -25,7 +26,7 @@ feature *does*. The JavaScript conversion is the best answer to how to *write* i
 | `packages/nitro-react/scripts/flash-js-resources` | What `flash-js` loads, one folder per component (`habbo-window-manager-com`, `habbo-room-ui-com`, `habbo-catalog-com`, ... 27 of them): that component's `<layout>` and skin XML, its PNGs and fonts, plus `_index.json` and `_manifest.xml`. Names are plain (`habbo_element_description.xml`, `roomtools_gear.png`) - no decompiler id, no `$hash` - and an asset sits in the folder of the library that embeds it. |
 | `D:\Habbo\packet-tool\out` | Every packet the tool generates - the bodies `yarn sync-packets` brings in. See Packets. |
 | `D:\Repositories\turbo\turbo-workspace\turbo-cloud` | The companion server this client talks to - what the wire actually carries, and the end of any question a packet capture cannot answer. |
-| `D:\Repositories\nitro\nitro-tools` | Generates the hotel's gamedata: texts, external variables, avatar data. See Staying in step with the client. |
+| `packages/nitro-asset-manager/workspace/gamedata` (or the workspace its settings name) | The hotel's gamedata as the asset manager's Habbo import writes it: texts, external variables (Hotel data), avatar actions, and the client SWF's default localizations. See Staying in step with the client. |
 
 Because `flash-js-resources` groups assets by the library that owns them, "which `zoom_in` is
 this one" is answered by the folder. The flat dumps that used to sit in `scripts/binaryData` and
@@ -85,7 +86,9 @@ and `views/` has no barrels - views are imported by path.
 - No `TODO`. Do the thing, or say in the docblock what is missing and why, so the gap is
   documented rather than deferred.
 - No copy-paste stubs and no dead code: a file nothing imports, or a slice that duplicates
-  another under a different name, is deleted, not kept for later.
+  another under a different name, is deleted, not kept for later. `dead_code.py` reports a module
+  nothing imports and a registered window nothing opens (the messenger's placeholder was both
+  mounted and unreachable).
 
 Imports go through the aliases: `#base/context/<feature>` (never `#base/context`),
 `#base/commands`, `#base/handlers`, `#base/hooks`, `#base/theme`, `#base/utils`,
@@ -114,6 +117,8 @@ Imports go through the aliases: `#base/context/<feature>` (never `#base/context`
 - Every slice's actions are exposed by an action hook. If a component needs an action the
   hooks do not offer, add it to the slice's hook (or add `useRoom<Slice>Actions.ts`) rather than
   reaching for `xStore.getState()` - that call belongs in handlers and commands only.
+  `store_access.py` reports an action selected from a store and a `getState()` in a view or
+  component.
 
 ### Packet handlers (`handlers/`)
 
@@ -249,9 +254,12 @@ like `BoxPixi` used to mean it had a DOM twin. `Pixi` in a name is the library
   (`badge.leaderboard.enabled` hid a badge rank Flash shows unconditionally). Flash reads them from
   the hotel's `external_variables`; this client does not load that file, so every key the hotel
   sets and the port reads goes into `public/config/nitro-config.json` with the hotel's value
-  (nitro-tools' `gamedata/ExternalVariables.json`). A missing one is silently Flash's default -
+  (the asset manager's `gamedata/ExternalVariables.json`). A missing one is silently Flash's default -
   that is how `wired.menu.enabled` kept the wired menu off in the user's own room. `getBoolean`
-  defaults to false, so a fallback is `=== true`, not `?? true`. `config_keys.py` checks all of it.
+  defaults to false, so a fallback is `=== true`, not `?? true`. `config_keys.py` checks all of it -
+  the renderer's `GetConfigValue` reads included, a `?? true` / `!== false` fallback, and a key
+  built at run time (`` `nest.breeding.${type}.enabled` ``) as a family every one of whose hotel keys
+  must be carried: four such families were missing whole, so every wired chest held 0.
 
 ### Asset bundles
 
@@ -313,7 +321,9 @@ Rules that come out of that:
   `preloadAssetBundles()` before the first view renders. `effect-icons` and `font-faces` are
   deliberately out of it: a texture request for one of their assets pulls the bundle in on its own
   (`lazyBundleForAsset` in `utils/assetBundles.ts`), so adding a lazy bundle means adding its name
-  prefix there.
+  prefix there. `bundle_loading.py` holds every bundle to one of those three ways in (preloaded, a
+  lazy prefix every one of its assets carries and no other bundle's does, or loaded by name in code):
+  one reached none of them is art that never draws.
 - **The builder owns `public/assets/bundles/`.** A full run drops the archives the previous
   `bundles.json` lists and the current table no longer builds, so a renamed bundle does not leave
   its old file behind to be served. A `.nitro` no manifest ever named is left alone.
@@ -413,9 +423,9 @@ at the first `=`, `\n` is a line break):
    language's file over it. Most `wiredmenu.*` texts exist only here.
 2. `gamedata.urls.externalTexts` - the hotel's texts, which override the first.
 
-Both are generated by nitro-tools (`D:\Repositories\nitro\nitro-tools`: `GetExternalTexts`, and
-`GetDefaultLocalizations`, which reads a local `HabboAir.swf` given with `--client-swf`); a text
-that is wrong or cut off is fixed there and regenerated, never patched in the client. Use Flash's
+Both come from the asset manager (`packages/nitro-asset-manager`): the hotel's texts from its Habbo
+import, the default localizations from the client SWF (`HabboAir.swf`) given on its Habbo assets
+page; a text that is wrong or cut off is fixed there, never patched in the client. Use Flash's
 key and Flash's parameter names (`t('infostand.text.badges_rank', '', { rank: '#3' })` fills
 `%rank%`). A key that neither file has and no Flash class or layout names is one the port made up:
 it only ever shows as the bare key. `localization_keys.py` lists them.
@@ -634,17 +644,20 @@ accumulate as "known noise"; that is how seventeen missing variable keys went un
 | Which reference file each shipped layout bitmap is, recorded in `public/assets/layout-images.json` | the bundle file carrying the published name, in the folder of the library that owns the layout | by the generator (see "Widget views from Flash layouts"); `layout_images.py` holds every shipped bitmap to its recorded bundle file byte for byte (a manifest crop to its region's size) and reports one shipped from a differently-named file where a bundle carries the exact name - another library's art under a shared embedded name. A name that settles neither way goes in `known.LAYOUT_IMAGES_AMBIGUOUS` with why the one shipped is kept |
 | A port class's constants where the Flash class has them (`AvatarLogic`, `AvatarVisualization`, `AnimationFrame`, `LayerData`), and the tables lifted out of a Flash method (the post-it colours, the dimmer colours, ...) | the `.as` class | by hand, under Flash's names; `constants.py` compares every static const of the paired class (an obfuscated Flash name maps through its `rename`, one the port leaves out needs a `skip` reason) and, for `AvatarLogic`, the timeouts Flash writes as literals |
 | `RoomObjectLogicFactory` / `RoomObjectVisualizationFactory` | `RoomObjectFactory.as` / `RoomObjectVisualizationFactory.as` | by hand; a type only Flash builds falls back to the basic class, so list it in the factory's comment or port it |
-| The hand-written `views/**` built from a Flash layout - the controls each one draws | `<layout>_xml` of the revision, and the `.as` class that drives the window | by hand; `layout_views.py` records each layout's named controls beside its view in `known.LAYOUT_VIEWS` and reports one the client added, dropped or reordered. A view built from a layout with no row falls behind unnoticed, so add the row with the view; a control the port leaves out on purpose stays in the list and the view's docblock says why (`RoomInfoView` names all four of its own). `layout_fills.py` holds the same views to the layout's `background` flag: `WindowController` paints a `color` as a rectangle only where the element carries `background="true"`, so a view that fills one without it invents a panel the client has not got - the navigator's `border` at (-3, -3) painted 577x578 of `#eceae0` across the content area and read as content overflowing the frame. A tinted `Border` is not the same thing and is not counted: skin art draws with or without the flag, as `me_menu_other_settings`'s `settings_brdr` (the whole panel) shows |
+| The hand-written `views/**` built from a Flash layout - the controls each one draws | `<layout>_xml` of the revision, and the `.as` class that drives the window | by hand; `layout_views.py` records each layout's named controls beside its view in `known.LAYOUT_VIEWS` and reports one the client added, dropped or reordered. `layout_text_styles.py` holds each named text of the layout to the view's element of that name: the text style the layout resolves to (its `text_style`, else its window style's theme default) and the `font_face` it sets over it A view built from a layout with no row falls behind unnoticed, so add the row with the view; a control the port leaves out on purpose stays in the list and the view's docblock says why (`RoomInfoView` names all four of its own). `layout_fills.py` holds the same views to the layout's `background` flag: `WindowController` paints a `color` as a rectangle only where the element carries `background="true"`, so a view that fills one without it invents a panel the client has not got - the navigator's `border` at (-3, -3) painted 577x578 of `#eceae0` across the content area and read as content overflowing the frame. A tinted `Border` is not the same thing and is not counted: skin art draws with or without the flag, as `me_menu_other_settings`'s `settings_brdr` (the whole panel) shows |
 | `nitro-react/src/wired/elements/<holder>/<holder>Codes.ts` (the six `*Codes` classes, whole) and the `<holder>Elements.ts` registration order | `wired_setup/<holder>/<Holder>Codes.as` and `ActionTypes.as` / `TriggerConfs.as` / ... push order | by hand; `wired_tables.py` compares names and values, and the sequence of codes the registered elements answer to |
 | Other wired constant tables: the variable FX editor enums, `WiredMenuSlice`'s error codes, `WiredEnvironmentSlice`'s click options, the wired enums of nitro-packets (`QuantifierType`, `WiredVariableTarget`, `TradeRequirementType`, ...) | the (mostly obfuscated) `.as` class named in each docblock | by hand; `wired_tables.py` compares values, and that every obfuscated Flash name is named in the port file |
 | `nitro-react/src/wired/styles/*WiredStyle.ts` | `uibuilder/styles/<Name>WiredStyle.as` getters, and the `wired_style_<name>_xml` templates | by hand; `wired_tables.py` diffs the getters only - the templates are not checked (`known.WIRED_STYLE_TEMPLATES_UNCHECKED`) |
-| The config flags the port reads, in `public/config/nitro-config.json` | the hotel's `external_variables` (nitro-tools `gamedata/ExternalVariables.json`) and the keys the `.as` files name | by hand; `config_keys.py` reports a key the hotel sets that the config lacks, and a key no Flash class names (Nitro's own go in `known.CONFIG_KEYS_PORT_ONLY`) |
+| The config flags the port reads, in `public/config/nitro-config.json` | the hotel's `external_variables` (the asset manager's `gamedata/ExternalVariables.json`) and the keys the `.as` files name | by hand; `config_keys.py` reports a key the hotel sets that the config lacks, and a key no Flash class names (Nitro's own go in `known.CONFIG_KEYS_PORT_ONLY`). A key read through a string constant (`useConfigValue(WARDROBE_SLOTS_KEY)`) is followed to its value, the file's own or one another file exports, and a read it cannot resolve is reported rather than skipped |
+| The hotel view's run-time keys in `nitro-config.json` - `landing.view.dynamic.slot.<n>.*`, `landing.view.common.*`, `landing.view.background_<name>.*`, and `landing.view.<code>.widget/.conf/.layout` for every code a slot's schedule names | the hotel's `external_variables` | by hand; `config_keys.py` holds each one the hotel sets to the hotel's value. The keys are built at run time, where the literal-read check above cannot see them; a schedule the hotel moved on from shows old promotions, and a code with no keys leaves its slot empty |
 | Class constants mirrored whole outside nitro-api (`AvatarVisualization`, `AnimationFrame`, `LayerData`, the Variable FX tables and paint colours) and module tables copied out of a Flash array or switch (post-it colours, pet/bot placing and friend list error texts, visitor steps, thumbnail `DRAW_ORDER`, `PRODUCT_IMAGES`, dimmer colours, trophy themes, mannequin clothing, ...) | the `.as` class or method named in each docblock | by hand; `constants.py` reads both sides and compares them. A file whose docblock names `drift/constants.py` is left out of `enums.py`; add a table to `constants.py` when you carry a new one |
 | `public/assets/chat-styles/<assetId>/chat_definition.json` and its `*.png`; `ChatMarkup.ts` palettes, `ChatConstants.ts` bubble widths | `chatstyles_xml`, every `style_<assetId>_regpoints` and bitmap of `HabboFreeFlowChatCom.as` (read as `ChatStyleLibrary.as` reads them); `ChatMarkup.as`, `ChatBubbleWidth.as` | by hand, bitmaps copied from the SWF images; `chat_styles.py` diffs every style's flags, regpoints keys and pixels, a regpoints key the library starts reading, the palettes and the width mapping |
 | The theme's skin tables: every `*_VARIANTS` table under `nitro-react/src/theme`, `theme/utils/windowLayouts.ts`, `theme/utils/iconSetFrames.ts` + `public/assets/images/icon-set.png`, and `TEXT_STYLES` in `theme/utils/textStyles.ts` | the `(type, style)` rows of `habbo_element_description_xml`, the window layouts they name (`HabboWindowManagerCom.as`), `habbo_skin_icon_set_xml` + `habbo_icons_png`, `styles_css` | by hand, art cut from the skin sheets (`scripts/extract-skin-assets.ts`, then `yarn build-asset-bundles`); `theme_skin.py` diffs the style ids per type, button layouts, frame minimum sizes, row tints, icon rects and pixels, and holds `TEXT_STYLES` to deriving its entries from `HABBO_TEXT_STYLES`, `TextStyleKey` to being `HabboTextStyleName`, and every `textStyle` prop in the tree to a style that table has. A style left out or added goes in `known.THEME_STYLES_NOT_PORTED` / `THEME_STYLES_PORT_ONLY` |
 | `nitro-react/src/context/catalog/page/CatalogLayouts.ts` (which widgets each layout code creates, the layout widths and aliases), `CatalogWidgetEnum`, the `PageLocalization` tables, and the slots each registered layout view draws | `CatalogPage.createWidgets`'s walk over each `layout_*_xml`, the layouts' manifest refs, `CatalogWidgetEnum.as`, `PageLocalization.as` | by hand; `catalog_layouts.py` holds the tables to the layout XML and manifest, the enum to Flash's `createWidget` cases and each registered layout view's slots to its layout, and `constants.py` the localization tables |
 | `nitro-react/src/theme/utils/dynamicStyles.ts` - the hover/press/disabled effects a layout names with `dynamic_style` (`lifted_hover`, `brightness_and_shadow_under`, `_gentle`, `reward_track_item`, `button`), and the generator's `DYNAMIC_STYLE_NAMES` | `DynamicStyleManager.fillStyleTable()` and `DynamicStyle`'s constructor defaults | by hand; `dynamic_styles.py` compares every style's effective rule for the host and each `#icon` / `#bg` child in every state, through the port's own `resolveDynamicStyleRule`. A name the port lacks draws nothing and fails nothing - that is how `button` went missing |
-| The text keys the port asks for (`t('...')`, `'${...}'`) | the embedded `default_localizations` + the hotel's external texts (nitro-tools `gamedata/DefaultLocalizations_en.json`, `ExternalTexts.json`) and the keys Flash's classes and layouts name | `localization_keys.py` reports a key in neither file that no Flash class or layout names |
+| The text keys the port asks for (`t('...')`, `'${...}'`, any key literal inside a `t(...)` call, and the key-shaped strings of a file that hands `t()` a variable) | the embedded `default_localizations` + the hotel's external texts (the asset manager's `gamedata/DefaultLocalizations_en.json`, `ExternalTexts.json`) and the keys Flash's classes and layouts name | `localization_keys.py` reports a key in neither file that no Flash class or layout names |
+| The names the asset manager's hand item builder takes for granted: the `CarryItem` / `UseItem` actions (`cri` / `usei`, drawing `crr` / `drk` on `handRight`), the `ri` part, `hh_human_item` as a mandatory library, and its sprites' `<size>_<crr\|drk>_ri_<asset>_<direction>_<frame>` names (`studio-hand-items.ts`, `hand-item-store.ts`) | the renderer's `HabboAvatarActions` and `HabboAvatarPartSets`, `AvatarAssetDownloadManager`, and the workspace's `hh_human_item` | by hand; `hand_items.py` holds the builder's code and the served actions to them, and every `ri` sprite of the library to the pattern - a rename would leave the merge that keeps the workspace's own hand items through Habbo's updates finding nothing to put back. `served_gamedata.py` sets the builder's own `CarryItem` / `UseItem` params aside (the ids its record lists) before holding the served actions to the source |
+| The asset manager's copies of other code's tables: `FURNITURE_CATEGORIES` (`shared/gamedata.ts`), the columns a new definition is inserted with and the ones a republish refreshes (`server/definitions.ts`), the config keys and url patterns `buildConfigUrls` writes into nitro-config.json (`shared/layout.ts`), the showroom's `room.sql` (`server/showroom-rooms.ts`), and the custom chat style bundle (`server/chat-styles.ts`, `CHAT_STYLE_FILES`) | turbo-cloud's `FurnitureCategory`, `FurnitureDefinitionEntity`, `FurnitureUsageType`, `RoomModelEntity`, `RoomEntity` and `FurnitureEntity`; the keys nitro-react and nitro-renderer read and the `%placeholders%` they fill; nitro-react's `chatStyleAssetName`, `ChatStyleDefinition`, `ChatStyleAssetFile`, `isStaticChatStyle` and what `ChatStyleLibrary` loads | by hand; `asset_manager.py` compares the categories, holds every inserted column to its entity and every `required` property to the insert (definitions and all three `room.sql` tables), reports a key the config lacks or no client code reads, or a placeholder nothing fills - `catalog.asset.url` was read by the catalog and missing from the config, so every wallpaper, floor and landscape picture was a 404 - and holds the chat style bundle's asset names, catalogue entry and fields, bundle name, config key, bitmap files and id range to what the client reads: a bundle packed any other way loads and yields no style |
 
 Rules that come out of that:
 
@@ -671,8 +684,9 @@ Rules that come out of that:
   (`RoomWidgetUpdateRoomObjectEvent` for `RoomWidgetRoomObjectUpdateEvent`), pair it in `known.PAIRED`.
 - A new hand-carried table gets a row above and a check in `scripts/drift` in the same change.
   Data with no check is data that will drift.
-- Refresh nitro-tools' gamedata (`yarn start` there, with `--client-swf`) after a revision bump:
-  `config_keys.py` and `localization_keys.py` read it, and say so when it is missing.
+- Refresh the asset manager's gamedata after a revision bump - scan habbo.com, import Hotel data and
+  Changed texts, and give it the new client SWF: `config_keys.py` and `localization_keys.py` read
+  its workspace's gamedata, and say so when it is missing.
 - **The avatar action and animation tables are served, not compiled in.** `HabboAvatarActions.ts`
   and `HabboAvatarAnimations.ts` are still the repo's source of record - generated from the SWF and
   held to it by the drift checks - but nothing imports them: the barrels do not export them, and
@@ -682,7 +696,9 @@ Rules that come out of that:
   `initActions` then `updateActions`. So after a revision bump the order is: regenerate the `.ts`,
   run the drift check, `yarn workspace @nitrodevco/nitro-renderer export-avatar-gamedata`, and
   upload `packages/nitro-renderer/gamedata/*.json` to the hotel's `/gamedata`. A stale upload does
-  not fail - the avatars just animate like the previous revision.
+  not fail - the avatars just animate like the previous revision - so `served_gamedata.py` holds both
+  the export and the asset manager's served copy to the `.ts` modules, and names the actions and
+  animations that differ.
 - Theme skin art is cut from the Flash skin bitmap along its skin XML's entities (`habbo_skin_*_xml`
   in `flash-js-resources/habbo-window-manager-com`), one image per entity that moves or stretches
   on its own - the

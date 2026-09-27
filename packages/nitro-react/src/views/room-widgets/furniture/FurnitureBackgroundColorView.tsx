@@ -12,7 +12,6 @@ export interface FurnitureBackgroundColorViewProps {
     lightness: number;
     /** The three channels resolved to one colour, for the swatch beside the sliders. */
     previewColor: string;
-    isOn: boolean;
     onChange: (hue: number, saturation: number, lightness: number) => void;
     onApply: () => void;
     onToggle: () => void;
@@ -65,7 +64,7 @@ const Channel = ({ label, top, value, onChange }: ChannelProps) => (
  * `on_off_button` keeps its right edge.
  */
 export const FurnitureBackgroundColorView = ({
-    hue, saturation, lightness, previewColor, isOn, onChange, onApply, onToggle, onClose,
+    hue, saturation, lightness, previewColor, onChange, onApply, onToggle, onClose,
 }: FurnitureBackgroundColorViewProps) => {
     const t = useTranslation();
 
@@ -140,7 +139,8 @@ export const FurnitureBackgroundColorView = ({
                 onPointerTap={onToggle}
                 layout={{ position: 'absolute', right: 1, top: 193, height: 24 }}
             >
-                {t(isOn ? 'widget.backgroundcolor.button.off' : 'widget.backgroundcolor.button.on')}
+                {/* One caption whatever the state, as `background_color_ui_xml`'s on_off_button has: the client has no "off" text. */}
+                {t('widget.backgroundcolor.button.on')}
             </Button>
         </Frame>
     );

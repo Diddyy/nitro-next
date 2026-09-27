@@ -23,6 +23,10 @@ const BUNDLE_NAME = 'chat-styles';
  * default style for unknown ids exactly like the client did. A style whose bitmaps are missing is
  * skipped with a warning rather than aborting the whole library - that too mirrors the client's
  * per-style try/catch.
+ *
+ * A hotel with styles of its own serves the whole bundle itself - the client's styles and its own, built
+ * by the asset manager's chat bubble builder - and names it with `chat.styles.url` (`assetBundleUrl`):
+ * the library reads it exactly as it reads the client's.
  */
 export class ChatStyleLibrary {
     private readonly _styles: Map<number, ChatStyle> = new Map();

@@ -6,9 +6,10 @@ import { registerEarningsHandlers } from './earnings';
 import { registerGameTokensHandlers } from './game-tokens';
 import { registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
-import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers } from './inventory';
+import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
+import { registerLandingViewHandlers } from './landing-view';
 import { registerNavigatorHandlers, registerRoomQueueHandlers } from './navigator';
-import { registerNotificationHandlers } from './notifications';
+import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
 import {
     registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
@@ -67,9 +68,13 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomRentableSpaceHandlers(socket),
         registerRoomYoutubeHandlers(socket),
         registerNavigatorHandlers(socket),
+        registerLandingViewHandlers(socket),
         registerRoomQueueHandlers(socket),
         // The server's own bubbles and alerts, after the room and navigator listeners that may raise one.
         registerNotificationHandlers(socket),
+        // `HabboAlertDialogManager`'s moderation and opening-hours alerts, and the MOTD, club gift and safety lock windows.
+        registerAlertDialogHandlers(socket),
+        registerSingularNotificationHandlers(socket),
         registerUserInfoHandlers(socket),
         registerUserSocialHandlers(socket),
         registerProfileHandlers(socket),
@@ -119,6 +124,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerInventoryBadgesHandlers(socket),
         registerInventoryPetsHandlers(socket),
         registerInventoryBotsHandlers(socket),
+        registerInventoryUnseenHandlers(socket),
         // The user-to-user trade, after the furni list whose locks its item lists re-read.
         registerInventoryTradingHandlers(socket),
         // The inventory's marketplace model (`MarketplaceModel`) and the catalogue's recycler (`RecyclerLogic`,

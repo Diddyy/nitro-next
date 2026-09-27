@@ -3,75 +3,10 @@ import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 
 
 import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
+import { DROPMENU_ITEM_VARIANTS, DropmenuItemVariant } from './dropmenuItemVariants';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, Stretch } from './layer';
-import { ThemeProps, ThemeVariants, ThemeWithStatesVariant, wrapTextChildren } from './utils';
-
-export type DropmenuItemVariant = ThemeWithStatesVariant;
-
-const DROPMENU_ITEM_VARIANTS: ThemeVariants<DropmenuItemVariant> = {
-    0: {
-        states: {
-            default: Stretch('dropmenuitem-0-default-src'),
-            hovering: Stretch('dropmenuitem-0-hovering-src'),
-            pressed: Stretch('dropmenuitem-0-selected-src'),
-            selected: Stretch('dropmenuitem-0-selected-src'),
-        },
-        layout: {
-            paddingLeft: 4,
-            paddingTop: 1,
-            paddingRight: 4,
-            paddingBottom: 2,
-        },
-        textStyle: 'regular',
-    },
-    1: {
-        states: {
-            default: Stretch('dropmenuitem-1-default-src'),
-            hovering: Stretch('dropmenuitem-1-hovering-src'),
-            pressed: Stretch('dropmenuitem-1-selected-src'),
-            selected: Stretch('dropmenuitem-1-selected-src'),
-        },
-        layout: {
-            paddingLeft: 4,
-            paddingTop: 1,
-            paddingRight: 4,
-            paddingBottom: 2,
-        },
-        textStyle: 'regular',
-        textColor: '#ffffff',
-    },
-    3: {
-        states: {
-            default: Stretch('dropmenuitem-0-default-src'),
-            hovering: Stretch('dropmenuitem-3-hovering-src'),
-            pressed: Stretch('dropmenuitem-3-selected-src'),
-            selected: Stretch('dropmenuitem-3-selected-src'),
-        },
-        layout: {
-            paddingLeft: 4,
-            paddingTop: 2,
-            paddingRight: 4,
-            paddingBottom: 4,
-        },
-        textStyle: 'u_regular',
-    },
-    100: {
-        states: {
-            default: Stretch('dropmenuitem-0-default-src'),
-            hovering: Stretch('dropmenuitem-3-hovering-src'),
-            pressed: Stretch('dropmenuitem-3-selected-src'),
-            selected: Stretch('dropmenuitem-3-selected-src'),
-        },
-        layout: {
-            paddingLeft: 4,
-            paddingTop: 1,
-            paddingRight: 4,
-            paddingBottom: 2,
-        },
-        textStyle: 'il_regular',
-    },
-};
+import { BackgroundLayer } from './layer';
+import { ThemeProps, wrapTextChildren } from './utils';
 
 export interface DropmenuItemProps extends ThemeProps<DropmenuItemVariant> {
     selected?: boolean;
@@ -92,7 +27,7 @@ export const DropmenuItem: ForwardRefExoticComponent<DropmenuItemProps & RefAttr
         return (
             <Box
                 ref={ref}
-                layout={{ minWidth: 5, minHeight: 19, ...config.layout, ...layout }}
+                layout={{ minWidth: 5, ...config.layout, ...layout }}
                 {...handlers}
             >
                 {resolvedLayer && (

@@ -147,8 +147,10 @@ export const GroupDetailsView = ({
                 >
                     <ThemeText
                         text={details.description}
-                        textStyle="u_regular"
-                        textOptions={{ wordWrap: true, wordWrapWidth: 211 }}
+                        // No `text_style` var: the style 0 window's `regular`, with the layout's Ubuntu 12 over it.
+                        textStyle="regular"
+                        textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, wordWrap: true, wordWrapWidth: 211 }}
+                        flashFormat={{ antiAliasType: 'advanced' }}
                         name="group_description"
                         verticalAlign="top"
                         layout={{ width: '100%' }}

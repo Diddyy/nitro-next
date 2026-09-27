@@ -4,6 +4,7 @@ import type { CatalogViewWindowParams } from '#base/views/catalog/CatalogView';
 import type { FriendListViewWindowParams } from '#base/views/friendlist/FriendListView';
 import type { InventoryViewWindowParams } from '#base/views/inventory/InventoryView';
 import type { NavigatorViewWindowParams } from '#base/views/navigator/NavigatorView';
+import type { RoomSettingsViewWindowParams } from '#base/views/room-widgets/room-settings/RoomSettingsView';
 
 /**
  * Every window the client can show, with the parameters it is opened with - `showWindow(name,
@@ -18,7 +19,6 @@ export type WindowRegistry = {
     friendlist: FriendListViewWindowParams;
     friendlist_invite: NoWindowParams;
     friendlist_remove_confirmation: NoWindowParams;
-    messenger: NoWindowParams;
     /** The user's extended profile (`ExtendedProfileWindowCtrl` in `HabboGroupsManager`). */
     user_profile: { userId?: number };
 
@@ -29,14 +29,15 @@ export type WindowRegistry = {
 
     /** The room info panel and the room settings behind it, both opened from the room tools. */
     room_info: NoWindowParams;
-    room_settings: NoWindowParams;
+    room_settings: RoomSettingsViewWindowParams;
 
     /** The floor plan editor (`BCFloorPlanEditor`), opened from the room info panel. */
     floor_plan_editor: NoWindowParams;
 
     navigator: NavigatorViewWindowParams;
-    /** Room creation (`RoomCreateViewCtrl`), from the navigator's `create_room` button. */
-    room_create: NoWindowParams;
+
+    /** Room creation (`RoomCreateViewCtrl`), from the navigator's create room button - `HabboNewNavigator.createRoom`. */
+    navigator_room_create: NoWindowParams;
 
     /** The wired menu (`WiredMenuController`), from the toolbar or a `wiredmenu/...` link. The setup dialog is not a window: it opens when the server says so. */
     wired_menu: WiredMenuWindowParams;
@@ -73,9 +74,6 @@ export type WindowRegistry = {
 
     /** The collectibles hub (`CollectiblesView`), from the me menu or a `collectibles/open` link. */
     collectibles: NoWindowParams;
-
-    /** Dev tool: browse/open any of the generated Flash layout ports (views/layouts). */
-    layout_browser: NoWindowParams;
 };
 
 export type NoWindowParams = Record<string, unknown>;

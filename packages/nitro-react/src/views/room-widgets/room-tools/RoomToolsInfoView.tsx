@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { motionEaseOutRate1, useTween } from '#base/hooks';
 import { Border, Box, Region, ThemeText } from '#base/theme';
 
 import { ROOM_TOOLS_BOTTOM } from './roomToolsGeometry';
@@ -12,6 +13,8 @@ export interface RoomToolsInfoViewProps {
     tags: string[];
     /** Where the card starts, measured from the left edge: clear of the tool column. */
     left: number;
+    /** Shown or put away; the card slides between the two and draws nothing once it is away. */
+    open: boolean;
     onSelectTag: (tag: string) => void;
     onPress: () => void;
 }
@@ -22,6 +25,10 @@ const MAX_TAG_LENGTH = 16;
 /** `RoomToolsInfoCtrl.onWindowEvent`: a tag's text colour under the pointer (4696294) and off it (1800619). */
 const TAG_COLOR_HOVER = '#47a8e6';
 const TAG_COLOR = '#1b79ab';
+
+/** `RoomToolsInfoCtrl.setCollapsed`: `MoveTo(_window, 100, ...)`. */
+const SLIDE_DURATION_MS = 100;
+// `EaseOut(..., 1)` is `motionEaseOutRate1`: a rate of 1, so the slide is linear.
 
 const trimTag = (tag: string) => ((tag.length > MAX_TAG_LENGTH) ? `${tag.substring(0, MAX_TAG_LENGTH)}...` : tag);
 
@@ -39,16 +46,26 @@ const trimTag = (tag: string) => ((tag.length > MAX_TAG_LENGTH) ? `${tag.substri
  * right edge of the wider of the name and the owner block, 10 in from its left, and is 77 high -
  * the owner block's bottom. The owner's line ends in `...` once it outgrows its 300
  * (`overflow_replace`). The name and the owner block keep their layout y (6 and 33).
+ *
+ * `RoomToolsInfoCtrl.setCollapsed` slides it rather than showing and hiding it: out from behind
+ * its own left edge (`-_window.width` from its place) to where it sits, and back, over 100 ms at a
+ * constant rate (`Queue(EaseOut(MoveTo(_window, 100, x, y), 1), Callback(motionComplete))`), and
+ * `motionComplete` hides it once it is away. The slide is `left` as a percentage of the card's own
+ * width - the outer box is as wide as the card - so no measuring is needed.
  */
-export const RoomToolsInfoView = ({ roomName, ownerLine, tags, left, onSelectTag, onPress }: RoomToolsInfoViewProps) => {
+export const RoomToolsInfoView = ({ roomName, ownerLine, tags, left, open, onSelectTag, onPress }: RoomToolsInfoViewProps) => {
     const [ hoveredTag, setHoveredTag ] = useState(-1);
+    // `showRoomInfo` places the card away (`updatePosition` while collapsed) before sliding it in, so it mounts away.
+    const shown = useTween(open ? 1 : 0, SLIDE_DURATION_MS, motionEaseOutRate1, 0);
+
+    if (!open && (shown === 0)) return null;
 
     return (
         <Box layout={{ position: 'absolute', left, bottom: ROOM_TOOLS_BOTTOM, height: 77, flexDirection: 'row' }}>
             <Region
                 onPointerTap={onPress}
                 cursor="pointer"
-                layout={{ height: 77, maxWidth: 320, flexDirection: 'row', flexShrink: 0 }}
+                layout={{ position: 'relative', left: `${(shown - 1) * 100}%`, height: 77, maxWidth: 320, flexDirection: 'row', flexShrink: 0 }}
             >
                 <Border
                     variant="2"

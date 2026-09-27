@@ -3,7 +3,10 @@ import { useEffect, useState } from 'react';
 
 import { useConfigActions, useConfigData } from '#base/context/system';
 
-/** Loads the client configuration once, and mirrors every change into the globals and logger flags that read it. */
+/**
+ * Loads the client configuration once, and mirrors every change into the globals and logger flags
+ * that read it. `isConfigReady` says when it is in - everything else the client loads is named by it.
+ */
 export const useConfigLoader = () => {
     const [ needsUpdate, setNeedsUpdate ] = useState(true);
     const config = useConfigData();
@@ -56,4 +59,6 @@ export const useConfigLoader = () => {
 
         void load(urls);
     }, [ needsUpdate ]);
+
+    return { isConfigReady: () => !needsUpdate };
 };

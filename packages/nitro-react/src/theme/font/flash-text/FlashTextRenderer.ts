@@ -77,6 +77,7 @@ const toNativeRenderOptions = (format: FlashTextFormat): NativeRenderOptions => 
         kerning: format.kerning,
         fontStyle: format.italic ? 'italic' : 'normal',
         stageQuality: format.stageQuality,
+        normalPenLayout: format.normalPenLayout,
         renderingPipeline: 'habbo-retained',
         // The retained pipeline draws underline and etching for advanced text only.
         textDecoration: (format.underline && isAdvanced) ? 'underline' : null,
@@ -114,11 +115,9 @@ const resolveSupportedFont = (format: FlashTextFormat, text: string): NativeFont
     return entry;
 };
 
-const layoutRun = (entry: NativeFontEntry, text: string, format: FlashTextFormat): TextRunLayout => {
-    const layout = (format.antiAliasType === 'normal') ? layoutNormalText : layoutNativeText;
-
-    return layout(entry.font, text, format.fontSize, format.kerning);
-};
+const layoutRun = (entry: NativeFontEntry, text: string, format: FlashTextFormat): TextRunLayout => (format.antiAliasType === 'normal')
+    ? layoutNormalText(entry.font, text, format.fontSize, format.kerning, format.normalPenLayout)
+    : layoutNativeText(entry.font, text, format.fontSize, format.kerning);
 
 const floorToTwips = (value: number): number => Math.floor(value * 20) / 20;
 

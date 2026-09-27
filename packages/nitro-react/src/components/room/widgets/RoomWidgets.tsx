@@ -17,7 +17,6 @@ import { RoomPlantBreedingWidget } from './pets/RoomPlantBreedingWidget';
 import { RoomPollWidget } from './poll/RoomPollWidget';
 import { RoomQuizWidget } from './quiz/RoomQuizWidget';
 import { RoomInfoWidget } from './room-info/RoomInfoWidget';
-import { RoomSettingsWidget } from './room-settings/RoomSettingsWidget';
 import { RoomToolsWidget } from './room-tools/RoomToolsWidget';
 
 /**
@@ -37,7 +36,6 @@ export const RoomWidgets = () => {
             <RoomFriendRequestWidget />
             <RoomEffectsWidget />
             <RoomInfoWidget />
-            <RoomSettingsWidget />
             <FloorPlanEditorWidget />
             <RoomBotSkillConfigurationWidget />
             <RoomPetBreedMenuWidget />

@@ -1,5 +1,6 @@
 export type { AntiAliasType, ColorTransform, EtchingPosition, GridFitType, StageQuality } from './air32/types';
 export * from './browserTextCanvas';
+export * from './flashFontFaces';
 export * from './flashFonts';
 export * from './flashTextBlock';
 export * from './flashTextCanvas';

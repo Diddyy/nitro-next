@@ -1,7 +1,8 @@
 import { IRoomInfo } from '@nitrodevco/nitro-packets';
+import { FederatedPointerEvent } from 'pixi.js';
 
 import { useInterpolate, useTranslation } from '#base/context/system';
-import { Border, LayoutImage, Region, ThemeImage, ThemeText, useTextureFromUrl } from '#base/theme';
+import { Border, getGlobalRect, LayoutImage, Region, ThemeImage, ThemeText, useTextureFromUrl } from '#base/theme';
 
 import { RESULTS_MODE_TILES } from './NavigatorCategoryView';
 import { getUserCountColor } from './NavigatorRoomEntryUtils';
@@ -13,13 +14,32 @@ const DOOR_MODE_IMAGES: Record<number, string> = {
     3: LayoutImage('navigator/newnavigator_doormode_invisible_small.png'),
 };
 
+/**
+ * `NavigatorView.showRoomInfoBubbleAt(room, x, y, hover)`: `x` / `y` are the screen point the
+ * bubble's pointer goes to. A click toggles the bubble; a hover (`hover`) only moves one already up.
+ */
+export type NavigatorShowRoomInfo = (room: IRoomInfo, x: number, y: number, hover: boolean) => void;
+
 export interface NavigatorRoomEntryViewProps {
     room: IRoomInfo;
     mode: number;
     backgroundColor: string;
     onEnter: (room: IRoomInfo) => void;
-    onShowInfo?: (room: IRoomInfo) => void;
+    onShowInfo?: NavigatorShowRoomInfo;
 }
+
+/**
+ * The point `RoomEntryElementFactory` hands `showRoomInfoBubbleAt` for a region: its right edge
+ * plus `dx`, its vertical centre plus `dy` - (0, 0) for `info_popup_click_region`, (20, 0) for a
+ * row's `go_to_room_region` and (-6, 56) for a tile's.
+ */
+const showInfoFrom = (event: FederatedPointerEvent, room: IRoomInfo, onShowInfo: NavigatorShowRoomInfo | undefined, hover: boolean, dx: number = 0, dy: number = 0) => {
+    if (!onShowInfo) return;
+
+    const rect = getGlobalRect(event.currentTarget);
+
+    onShowInfo(room, rect.x + rect.width + dx, rect.y + (rect.height / 2) + dy, hover);
+};
 
 /** `room_info_usercount_border`: a style 3 border in `getUserCountColor`, holding the `usercount` list (icon, then the count). */
 const UserCount = ({ room, left, top }: { room: IRoomInfo; left: number; top: number }) => (
@@ -52,12 +72,16 @@ const UserCount = ({ room, left, top }: { room: IRoomInfo; left: number; top: nu
     </Border>
 );
 
-/** `info_popup_click_region`: `newnavigator_button_show_room_info`, which opens the room info bubble. */
-const InfoButton = ({ room, left, top, onShowInfo }: { room: IRoomInfo; left: number; top: number; onShowInfo?: (room: IRoomInfo) => void }) => (
+/**
+ * `info_popup_click_region`: `newnavigator_button_show_room_info`. A click opens or closes the
+ * room info bubble (`onMouseClicked`), hovering moves an open one here (`onRoomRoomInfoMouseOver`).
+ */
+const InfoButton = ({ room, left, top, onShowInfo }: { room: IRoomInfo; left: number; top: number; onShowInfo?: NavigatorShowRoomInfo }) => (
     <Region
         name="info_popup_click_region"
         cursor="pointer"
-        onPointerTap={() => onShowInfo?.(room)}
+        onPointerTap={event => showInfoFrom(event, room, onShowInfo, false)}
+        onPointerOver={event => showInfoFrom(event, room, onShowInfo, true)}
         layout={{ position: 'absolute', left, width: 18, top, height: 18 }}
     >
         <ThemeImage
@@ -72,7 +96,8 @@ const InfoButton = ({ room, left, top, onShowInfo }: { room: IRoomInfo; left: nu
  * One room of a navigator result block: `navigator_entry_row_container` or
  * `navigator_entry_tile`, filled by `RoomEntryElementFactory.getNewRowElement` /
  * `getNewTileElement`. Only `go_to_room_region` enters the room (the row's leaves the info button
- * uncovered); `info_popup_click_region` asks for the room info bubble.
+ * uncovered); `info_popup_click_region` toggles the room info bubble (`NavigatorRoomInfoPopup`),
+ * and while it is up, hovering either region moves it to that room.
  *
  * Not ported: the tile's `room_group_badge` (a `badge_image` widget the group's badge fills) and
  * the thumbnail of a room without an official picture (`navigator.thumbnail.url_base` +
@@ -110,6 +135,8 @@ export const NavigatorRoomEntryView = ({ room, mode, backgroundColor, onEnter, o
                     tooltip={t('navigator.tooltip.go.to.room')}
                     cursor="pointer"
                     onPointerTap={() => onEnter(room)}
+                    // `onTileGoToRoomMouseOver`: an open info bubble follows the pointer onto this tile.
+                    onPointerOver={event => showInfoFrom(event, room, onShowInfo, true, -6, 56)}
                     layout={{ position: 'absolute', left: 0, width: 122, top: 0, height: 146 }}
                 />
                 <Region
@@ -200,6 +227,8 @@ export const NavigatorRoomEntryView = ({ room, mode, backgroundColor, onEnter, o
                 name="go_to_room_region"
                 cursor="pointer"
                 onPointerTap={() => onEnter(room)}
+                // `onGoToRoomMouseOver`: an open info bubble follows the pointer onto this row.
+                onPointerOver={event => showInfoFrom(event, room, onShowInfo, true, 20)}
                 layout={{ position: 'absolute', left: 0, width: 357, top: 0, height: 20 }}
             />
         </Border>

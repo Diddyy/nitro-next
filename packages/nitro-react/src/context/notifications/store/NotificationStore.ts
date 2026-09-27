@@ -11,13 +11,15 @@ import { NOTIFICATION_STYLES, NotificationAssetName, NotificationLayoutName, Not
  * `HabboNotificationViewManager`: it takes the next item when there is room, animates the
  * bubbles and reports back when one starts to fade or is gone.
  *
+ * It also holds the open `NotificationPopup`s - the other half of `HabboNotifications.showNotification`
+ * (`commands/notificationCommands`), drawn by `views/notifications/NotificationPopupsView`.
+ *
  * The packet-driven bubbles of Flash's `notifications/IncomingMessages` are in
- * `handlers/notifications/registerNotificationHandlers`. Not ported, because each is a feature of
- * its own that only happens to live in the same Flash component: `showNotification` (the server's
- * `NotificationDialogMessageEvent` - a bubble or a `NotificationPopup`), the MOTD, club gift,
- * safety lock and new-feature windows, `HabboAlertDialogManager`, the moderation disclaimer and
- * the notification feed. `addSongPlayingNotification` waits for the sound machine. All of those
- * end in `addNotification`, which is complete.
+ * `handlers/notifications/registerNotificationHandlers`. The component's own windows are not in
+ * this store: the MOTD, club gift and safety lock windows and the `HabboAlertDialogManager`
+ * alerts are `context/singular-notifications` (`registerSingularNotificationHandlers`,
+ * `registerAlertDialogHandlers`). Not ported: the new-feature window, the moderation disclaimer
+ * and the notification feed; `addSongPlayingNotification` waits for the sound machine.
  */
 
 /**
@@ -72,7 +74,29 @@ export interface NotificationItem {
     fading: boolean;
 }
 
+/**
+ * One `NotificationPopup`, its parts read once as its constructor reads them
+ * (`getNotificationPart` / `getNotificationImageUrl`).
+ */
+export interface NotificationPopupItem {
+    key: number;
+    /** The frame's caption: `title`. */
+    title: string;
+    /** `message`, the literal `\r` the server sends made a line break. Markup is honoured. */
+    message: string;
+    /** `linkUrl`, whole; an `event:` one is shown as the `action` button, any other as the `link` text. */
+    linkUrl: string | undefined;
+    /** `linkTitle`, else the url itself. */
+    linkTitle: string | undefined;
+    /** The `illustration`'s `assetUri`: a notification library bitmap by name, or a url with its `${...}` resolved. */
+    image: string;
+    /** `alertStyle == "critical"`: the frame is tinted `CRITICAL_COLOR` instead of the layout's own. */
+    critical: boolean;
+}
+
 type State = {
+    /** The `NotificationPopup`s that are open, oldest first - each is its own modal dialog. */
+    popups: NotificationPopupItem[];
     /** `SingularNotificationController`'s queue: added, not yet shown. */
     queue: NotificationItem[];
     /** `HabboNotificationViewManager._viewItems`: up on the screen, fading ones included. */
@@ -107,6 +131,10 @@ type Actions = {
     setExtensionHeight: (extensionHeight: number) => void;
     /** `InfoFeedEnableMessage`: the server turning the bubbles off, and back on. */
     setNotificationsDisabled: (disabled: boolean) => void;
+    /** `new NotificationPopup(...)`: opens one. Returns its key. */
+    addNotificationPopup: (popup: Omit<NotificationPopupItem, 'key'>) => number;
+    /** `NotificationPopup.dispose`. */
+    removeNotificationPopup: (key: number) => void;
 };
 
 export type NotificationStore = State & Actions;
@@ -114,6 +142,7 @@ export type NotificationStore = State & Actions;
 let nextNotificationKey = 1;
 
 export const createNotificationStore = () => createStore<NotificationStore>()((set, get) => ({
+    popups: [],
     queue: [],
     visible: [],
     extensionHeight: 0,
@@ -165,6 +194,14 @@ export const createNotificationStore = () => createStore<NotificationStore>()((s
     finishNotification: key => set(x => ({ visible: x.visible.filter(item => item.key !== key) })),
     setExtensionHeight: extensionHeight => set(x => ((x.extensionHeight === extensionHeight) ? x : { extensionHeight })),
     setNotificationsDisabled: disabled => set({ disabled }),
+    addNotificationPopup: (popup) => {
+        const key = nextNotificationKey++;
+
+        set(x => ({ popups: [ ...x.popups, { ...popup, key } ] }));
+
+        return key;
+    },
+    removeNotificationPopup: key => set(x => ({ popups: x.popups.filter(popup => popup.key !== key) })),
 }));
 
 /**

@@ -1,7 +1,7 @@
 import { RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
 import { PresentOpenComposer } from '@nitrodevco/nitro-packets';
 
-import { useCatalogPurchaseStore } from '#base/context/catalog-purchase';
+import { useCatalogGiftReceiverActions } from '#base/context/catalog-purchase';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useWindowActions } from '#base/context/system';
@@ -28,7 +28,7 @@ export const FurniturePresentWidget = () => {
     const request = useRoomWidget(RoomObjectWidgetRequestEvent.PRESENT);
     const room = useRoom();
     const ownUserId = useOwnUserId();
-    const setGiftReceiver = useCatalogPurchaseStore(x => x.setGiftReceiver);
+    const { setGiftReceiver } = useCatalogGiftReceiverActions();
     const { openRoomWidget, updateRoomWidgetData, closeRoomWidget } = useRoomWidgetActions();
     const { showWindow } = useWindowActions();
     const { send } = useWebSocketContext();

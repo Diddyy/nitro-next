@@ -1,4 +1,3 @@
-import './index.css';
 import '@pixi/layout';
 
 import { extend } from '@pixi/react';

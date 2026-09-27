@@ -1,13 +1,17 @@
 import { ForwardToARandomPromotedRoomComposer, GetGuestRoomComposer, IRoomInfo, NavigatorAddCollapsedCategoryComposer, NavigatorAddSavedSearchComposer, NavigatorRemoveCollapsedCategoryComposer, NavigatorSetSearchCodeViewModeComposer, NewNavigatorSearchComposer } from '@nitrodevco/nitro-packets';
+import { useState } from 'react';
 
+import { requestRoomGroupDetails } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
-import { useTranslation } from '#base/context/system';
+import { useSystemActions, useTranslation } from '#base/context/system';
 import { useWindowVisibility } from '#base/hooks';
 import { Border, Frame, LayoutImage, Region, ScrollArea, TabButton, TabContext, ThemeImage, ThemeText } from '#base/theme';
 
 import { NavigatorCategoryView } from './NavigatorCategoryView';
 import { NavigatorQuickLinksView } from './NavigatorQuickLinksView';
+import { NavigatorShowRoomInfo } from './NavigatorRoomEntryView';
+import { NavigatorRoomInfoPopup } from './NavigatorRoomInfoPopup';
 import { NavigatorSearchView } from './NavigatorSearchView';
 
 export type NavigatorViewWindowParams = { searchCode?: string };
@@ -28,6 +32,14 @@ const RIGHT_PANE_WIDTH = 410;
 const TAB_CONTEXT_X = 115;
 const TAB_CONTEXT_X_HIDDEN = TAB_CONTEXT_X - (LEFT_PANE_SHIFT / 2);
 const PROMOTE_SEARCH_CODES = [ 'roomads_view', 'myworld_view' ];
+
+/** The room the info bubble shows and where; `serial` counts each `showRoomInfoBubbleAt`. */
+interface RoomInfoBubble {
+    room: IRoomInfo;
+    x: number;
+    y: number;
+    serial: number;
+}
 
 /** A `navigator_frame_2` room button: a style 4/5 border, the art centred in its 185x56 region and the caption over it. */
 interface RoomButtonProps {
@@ -76,15 +88,19 @@ const RoomButton = ({ name, borderVariant, left, image, caption, tooltip, onTap 
  * - The left pane (`QuickLinksView`) hides and shows from `temp_back`
  *   (`leftPaneShowHideProcedure` -> `setLeftPaneVisibility`): hidden, the window narrows by 153,
  *   `right_pane` moves to x 7 at its own width and the tab context to 115 - 80.
- * - `onSearchResults`: `create_room` always, then `promote_room_border` for `roomads_view` /
+ * - `onSearchResults`: `create_room` always (opening `NavigatorRoomCreateView`), then `promote_room_border` for `roomads_view` /
  *   `myworld_view` and `random_room_border` otherwise, in the same place.
  * - While a search is out the window says so the way `isBusy` did: the caption turns to
  *   `${navigator.title.is.busy}` and the translucent `search_waiting_for_results_mask` (colour
  *   0x6feceae0) lies over the last results, which stay underneath - Flash shows no searching text.
  *
+ * - `showRoomInfoBubbleAt`: a room's info button opens the `room_info_popup` bubble
+ *   (`NavigatorRoomInfoPopup`) or, when one is up, closes it; hovering another room moves the open
+ *   one there. A room of a group with no cached details asks for them first. The bubble closes
+ *   with the window, when results land, and on create room, random room and the left pane toggle.
+ *
  * Not ported: the window-preference sync (`sendWindowPreferences`, telling the server this window's
- * position and size every 5 s after a change) - `Frame` does not hand its container out - and the
- * `room_info_popup` bubble, which `onShowInfo` would open.
+ * position and size every 5 s after a change) - `Frame` does not hand its container out.
  */
 export const NavigatorView = () => {
     const topLevelContexts = useNavigatorStore(x => x.topLevelContexts);
@@ -96,9 +112,34 @@ export const NavigatorView = () => {
     const preferences = useNavigatorStore(x => x.preferences);
     const { setTopLevelContext, setIsSearching, setLeftPaneHidden, toggleCollapsedCategory, setViewMode } = useNavigatorActions();
     const { hide } = useWindowVisibility('navigator');
-    const { show: showRoomCreate } = useWindowVisibility('room_create');
+    const { showWindow } = useSystemActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
+    const [ roomInfoBubble, setRoomInfoBubble ] = useState<RoomInfoBubble>();
+    const [ roomInfoBubbleResults, setRoomInfoBubbleResults ] = useState(searchResult);
+
+    // `onSearchResults` ends with `_roomInfoPopup.show(false)`.
+    if (roomInfoBubbleResults !== searchResult) {
+        setRoomInfoBubbleResults(searchResult);
+        setRoomInfoBubble(undefined);
+    }
+
+    /** `NavigatorView.showRoomInfoBubbleAt`: a click on an open bubble closes it, a hover only moves one that is up. */
+    const showRoomInfo: NavigatorShowRoomInfo = (room, x, y, hover) => {
+        if (roomInfoBubble && !hover) {
+            setRoomInfoBubble(undefined);
+
+            return;
+        }
+
+        if (!roomInfoBubble && hover) return;
+
+        requestRoomGroupDetails(send, room.groupId);
+
+        setRoomInfoBubble({ room, x, y, serial: (roomInfoBubble?.serial ?? 0) + 1 });
+    };
+
+    const hideRoomInfo = () => setRoomInfoBubble(undefined);
 
     const selectContext = (searchCode: string) => {
         const next = topLevelContexts.find(x => x.searchCode === searchCode);
@@ -188,8 +229,11 @@ export const NavigatorView = () => {
                     image={LayoutImage('navigator/newnavigator_create_room.png')}
                     caption={t('navigator.create.room')}
                     tooltip={t('navigator.tooltip.create.room')}
-                    // `NavigatorView.createRoomProcedure` -> `HabboNewNavigator.createRoom`.
-                    onTap={() => showRoomCreate()}
+                    // `createRoomProcedure` -> `HabboNewNavigator.createRoom`: the room creation window.
+                    onTap={() => {
+                        showWindow('navigator_room_create');
+                        hideRoomInfo();
+                    }}
                 />
                 {showPromote
                     ? (
@@ -212,6 +256,7 @@ export const NavigatorView = () => {
                                 tooltip={t('navigator.tooltip.random.room')}
                                 onTap={() => {
                                     send(new ForwardToARandomPromotedRoomComposer({ category: '' }));
+                                    hideRoomInfo();
                                     hide();
                                 }}
                             />
@@ -250,6 +295,7 @@ export const NavigatorView = () => {
                                 onBack={() => undefined}
                                 onCollapse={collapseCategory}
                                 onEnter={enterRoom}
+                                onShowInfo={showRoomInfo}
                                 onShowMore={showMore}
                                 onToggleMode={toggleMode}
                             />
@@ -268,7 +314,10 @@ export const NavigatorView = () => {
             <Region
                 name="temp_back"
                 tooltip={t('navigator.tooltip.left.show.hide')}
-                onPointerTap={() => setLeftPaneHidden(!leftPaneHidden)}
+                onPointerTap={() => {
+                    setLeftPaneHidden(!leftPaneHidden);
+                    hideRoomInfo();
+                }}
                 cursor="pointer"
                 layout={{ position: 'absolute', left: 4, width: 28, top: 2, height: 25 }}
             >
@@ -312,6 +361,16 @@ export const NavigatorView = () => {
                     </TabButton>
                 ))}
             </TabContext>
+            {roomInfoBubble && (
+                <NavigatorRoomInfoPopup
+                    key={roomInfoBubble.room.roomId}
+                    room={roomInfoBubble.room}
+                    x={roomInfoBubble.x}
+                    y={roomInfoBubble.y}
+                    serial={roomInfoBubble.serial}
+                    onClose={hideRoomInfo}
+                />
+            )}
         </Frame>
     );
 };

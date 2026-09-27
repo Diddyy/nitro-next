@@ -14,7 +14,7 @@ import { normalSampleCountToDensity, resolveAir32TextFieldCsm } from './csm';
 import { air32FlattenedPathToLines, air32GlyphRasterKey, air32TransformAndFlattenImp1, deriveAir32AdvancedPixelSetup, deriveAir32AdvancedRetainedSetup, rasterizeAir32Imp1 } from './imp1';
 import { blendAir32Component, premultiplyAir32Color, quantizeAir32AlphaMultiplier, roundRationalTiesEven, roundTiesEven } from './mathColor';
 import { compositeAir32RetainedCoverage, compositeAir32RetainedToOpaque, createAir32RetainedBitmap, normalSampleMaskCount, rasterizeAir32NormalImp1, rasterizeAirLowNormalImp1, setAir32NormalRetainedCoverage } from './normalRasterizer';
-import { AdvancedPixelSetup, CsmCutoffs, EtchingPosition, GlyphPlacement, Imp1Raster, LineMetrics, NativeFont, NativeGlyph, NativeRenderOptions, NativeRenderResult, Point, PositionedGlyphRaster, RasterCache, ResolvedEtching, ResolvedRenderOptions, RetainedGlyphRaster, RgbaBytes, StageQuality, SwfFont, SwfGlyph, TextRunLayout } from './types';
+import { AdvancedPixelSetup, CsmCutoffs, EtchingPosition, GlyphPlacement, Imp1Raster, LineMetrics, NativeFont, NativeGlyph, NativeRenderOptions, NativeRenderResult, NormalPenLayout, Point, PositionedGlyphRaster, RasterCache, ResolvedEtching, ResolvedRenderOptions, RetainedGlyphRaster, RgbaBytes, StageQuality, SwfFont, SwfGlyph, TextRunLayout } from './types';
 
 /** A glyph about to be rasterized: its pixel setup and the device pixel its origin is measured from. */
 interface GlyphOccurrence {
@@ -43,6 +43,7 @@ const DEFAULT_RENDER_OPTIONS = Object.freeze({
     sharpness: 0,
     kerning: true,
     stageQuality: 'high',
+    normalPenLayout: 'twips',
     renderingPipeline: 'direct',
     color: Object.freeze([ 0, 0, 0, 255 ]),
     background: Object.freeze([ 255, 255, 255, 255 ]),
@@ -163,7 +164,7 @@ export class Air32NativeTextRenderer {
 /** Lays the run out and widens the field by what an italic face leans past its advance width. */
 function layoutRun(font: NativeFont, content: string, resolved: ResolvedRenderOptions): TextRunLayout {
     const isNormal = resolved.antiAliasType === 'normal';
-    const layout = isNormal ? layoutNormalText(font, content, resolved.size, resolved.kerning) : layoutNativeText(font, content, resolved.size, resolved.kerning);
+    const layout = isNormal ? layoutNormalText(font, content, resolved.size, resolved.kerning, resolved.normalPenLayout) : layoutNativeText(font, content, resolved.size, resolved.kerning);
 
     if (resolved.fontStyle !== 'italic') return layout;
 
@@ -332,10 +333,12 @@ function layoutZonedNativeText(font: NativeFont, text: string, size: number, use
 
 const zonedAdvanceCaches = new WeakMap();
 
-export function layoutNormalText(font: NativeFont, text: string, size: number, useKerning: boolean = true): TextRunLayout {
+export function layoutNormalText(font: NativeFont, text: string, size: number, useKerning: boolean = true, penLayout: NormalPenLayout = 'twips'): TextRunLayout {
     if (!Number.isSafeInteger(size) || size <= 0) throw new RangeError('the exact native layout currently requires integer size');
 
     if (typeof useKerning != 'boolean') throw new TypeError('useKerning must be boolean');
+
+    if (penLayout === 'units') return layoutNormalTextInUnits(font, text, size, useKerning);
 
     const { emSquare } = font.swfFont;
     let penTwips = 0;
@@ -381,6 +384,48 @@ export function layoutNormalText(font: NativeFont, text: string, size: number, u
     return { placements, rawTextWidth: rawUnits / emSquare, textWidth, fieldWidth: textWidth + 4 };
 }
 
+/**
+ * `layoutNormalText` with the pen kept in font units (`NormalPenLayout` `units`): a glyph sits at
+ * the exact sum of the advances before it, and the run's width is that sum floored to twips once.
+ */
+function layoutNormalTextInUnits(font: NativeFont, text: string, size: number, useKerning: boolean): TextRunLayout {
+    const { emSquare } = font.swfFont;
+    let rawUnits = 0;
+    const placements: GlyphPlacement[] = [];
+
+    for (let index = 0; index < text.length; index++) {
+        const code = text.charCodeAt(index);
+        const glyph = font.swfGlyphs.get(code);
+
+        if (!glyph || glyph.advance == null) throw new RangeError(`DefineFont3 has no mapped glyph for U+${code.toString(16).padStart(4, '0')}`);
+
+        const penX = rawUnits / emSquare;
+
+        placements.push({
+            codepoint: code,
+            stringIndex: index,
+            penX,
+            maskPenX: roundToQuarterPixel(penX),
+            hasInk: swfGlyphHasInk(font, glyph, code),
+        });
+
+        let advanceUnits = glyph.advance;
+
+        if (useKerning && index + 1 < text.length) {
+            const nextCode = text.charCodeAt(index + 1);
+
+            advanceUnits += font.kerning.get(`${code},${nextCode}`) ?? 0;
+        }
+
+        rawUnits += advanceUnits * size;
+        assertSafeRun(rawUnits);
+    }
+
+    const textWidth = floorToTwips(rawUnits / emSquare);
+
+    return { placements, rawTextWidth: rawUnits / emSquare, textWidth, fieldWidth: textWidth + 4 };
+}
+
 function resolveOptions(options: NativeRenderOptions): ResolvedRenderOptions {
     const antiAliasType = options.antiAliasType ?? DEFAULT_RENDER_OPTIONS.antiAliasType;
     const gridFitType = options.gridFitType ?? DEFAULT_RENDER_OPTIONS.gridFitType;
@@ -404,6 +449,10 @@ function resolveOptions(options: NativeRenderOptions): ResolvedRenderOptions {
     const stageQuality = options.stageQuality ?? DEFAULT_RENDER_OPTIONS.stageQuality;
 
     if (stageQuality !== 'high' && stageQuality !== 'low') throw new RangeError('stageQuality must be high or low');
+
+    const normalPenLayout = options.normalPenLayout ?? DEFAULT_RENDER_OPTIONS.normalPenLayout;
+
+    if (normalPenLayout !== 'twips' && normalPenLayout !== 'units') throw new RangeError('normalPenLayout must be twips or units');
 
     const fontStyle = options.fontStyle ?? 'normal';
 
@@ -456,6 +505,7 @@ function resolveOptions(options: NativeRenderOptions): ResolvedRenderOptions {
         sharpness: finiteNumber(options.sharpness ?? 0, 'sharpness'),
         kerning,
         stageQuality,
+        normalPenLayout,
         fontStyle,
         renderingPipeline,
         size,

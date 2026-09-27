@@ -9,6 +9,8 @@
  * - `place_button` drags the bot in through the object mover, which only the room's owner may do
  *   (`BotsModel.placeItemToRoom`, whose two gates read the same flag - see
  *   `inventoryBotsCommands`).
+ * - A thumb's ground is green while the unseen item tracker names the bot (`BotGridItem.setUnseen`,
+ *   category 5); leaving the page or closing the window on it resets that (`InventoryView`).
  *
  * The page itself only shows with `inventory.bots.enabled`, which is where `InventoryView` keeps
  * the tab.
@@ -19,7 +21,7 @@ import { useEffect } from 'react';
 import { checkBotInventoryInitialization, placeInventoryBotToRoom } from '#base/commands';
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
-import { InventoryBot, useInventoryBotsActions, useInventoryStore } from '#base/context/inventory';
+import { InventoryBot, UnseenItemCategory, useInventoryBotsActions, useInventoryStore, useInventoryUnseenIds } from '#base/context/inventory';
 import { useRoomStore } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
 import { Border, Box, Button, InfiniteGrid, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
@@ -27,6 +29,8 @@ import { Border, Box, Button, InfiniteGrid, LayoutImage, Region, ThemeImage, The
 /** `inventory_thumb_xml`, the same 42x42 thumb the furni grid uses. */
 const THUMB_SIZE = 42;
 const THUMB_COLOR = '#cccccc';
+/** `THUMB_COLOR_UNSEEN` (10275685): the thumb's ground while the tracker names the bot. */
+const THUMB_COLOR_UNSEEN = '#9ccb65';
 
 /** `BotGridItem` draws the bot's head; the preview draws it whole. */
 const THUMB_DIRECTION = 2;
@@ -38,10 +42,11 @@ const getBotGender = (bot: InventoryBot): AvatarGenderType => ((bot.gender.toLow
 interface BotThumbProps {
     bot: InventoryBot;
     selected: boolean;
+    unseen: boolean;
     onSelect: (botId: number) => void;
 }
 
-const BotThumb = ({ bot, selected, onSelect }: BotThumbProps) => (
+const BotThumb = ({ bot, selected, unseen, onSelect }: BotThumbProps) => (
     <Region
         cursor="pointer"
         onPointerDown={() => onSelect(bot.id)}
@@ -49,7 +54,7 @@ const BotThumb = ({ bot, selected, onSelect }: BotThumbProps) => (
     >
         <Border
             variant="5"
-            tintColor={THUMB_COLOR}
+            tintColor={unseen ? THUMB_COLOR_UNSEEN : THUMB_COLOR}
             layout={{ position: 'absolute', left: 1, top: 1, width: 40, height: 40, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
         >
             <AvatarImage
@@ -74,6 +79,7 @@ export const InventoryBotsView = () => {
     const t = useTranslation();
     const bots = useInventoryStore(x => x.bots);
     const selectedBotId = useInventoryStore(x => x.botSelectedId);
+    const unseenBotIds = useInventoryUnseenIds(UnseenItemCategory.BOT);
     const isRoomOwner = useRoomStore(x => x.isRoomOwner);
     const { selectBot } = useInventoryBotsActions();
 
@@ -95,6 +101,7 @@ export const InventoryBotsView = () => {
                             <BotThumb
                                 bot={bot}
                                 selected={bot.id === selectedBotId}
+                                unseen={unseenBotIds.includes(bot.id)}
                                 onSelect={selectBot}
                             />
                         )}

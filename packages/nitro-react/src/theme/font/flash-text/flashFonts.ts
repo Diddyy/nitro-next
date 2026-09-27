@@ -16,14 +16,8 @@ import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { loadAssetBundle } from '#base/utils';
 
 import { NativeFontBundle } from './air32/types';
+import { FLASH_FONT_FACES } from './flashFontFaces';
 import { registerNativeFontBundle } from './FlashTextRenderer';
-
-interface FlashFontFace {
-    family: string;
-    weight: '400' | '700';
-    style: 'normal' | 'italic';
-    bundle: string;
-}
 
 /** A `.ttf` face as `document.fonts` needs it declared. */
 interface BrowserFontFace {
@@ -35,18 +29,6 @@ interface BrowserFontFace {
 
 const FONT_BUNDLE = 'fonts';
 const FACE_BUNDLE = 'font-faces';
-
-/** The Flash client's own font table; `Volter Bold` is both a weight of Volter and a family of its own. */
-const FLASH_FONT_FACES: readonly FlashFontFace[] = [
-    { family: 'Volter', weight: '400', style: 'normal', bundle: 'volter.air51.json' },
-    { family: 'Volter', weight: '700', style: 'normal', bundle: 'volter-bold.air51.json' },
-    { family: 'Volter Bold', weight: '400', style: 'normal', bundle: 'volter-bold.air51.json' },
-    { family: 'Ubuntu', weight: '400', style: 'normal', bundle: 'ubuntu-regular.air51.json' },
-    { family: 'Ubuntu', weight: '700', style: 'normal', bundle: 'ubuntu-bold.air51.json' },
-    { family: 'Ubuntu', weight: '400', style: 'italic', bundle: 'ubuntu-italic.air51.json' },
-    { family: 'Ubuntu', weight: '700', style: 'italic', bundle: 'ubuntu-bold-italic.air51.json' },
-    { family: 'UbuntuCondensed', weight: '400', style: 'normal', bundle: 'ubuntu-condensed.air51.json' },
-];
 
 /**
  * The four Flash families with their weights and styles, plus the single-face aliases

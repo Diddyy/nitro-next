@@ -1,7 +1,7 @@
 /** Mounts the extended user profile - Flash's `ExtendedProfileWindowCtrl`. */
 import { BlockUserComposer, DeselectFavouriteHabboGroupComposer, SelectFavouriteHabboGroupComposer, UnblockUserComposer } from '@nitrodevco/nitro-packets';
 
-import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, requestGroupDetails, searchNavigator, showFriendLimitReachedAlert, showGroupBases } from '#base/commands';
+import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, requestGroupDetails, searchRoomsByOwner, showFriendLimitReachedAlert, showGroupBases } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useIsWindowVisible, useSystemActions, useWindowParams } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
@@ -36,7 +36,7 @@ export const UserProfileComponent = () => {
             onAddFriend={() => {
                 if (!askForAFriend(send, profile.userId, profile.userName)) showFriendLimitReachedAlert();
             }}
-            onRooms={() => searchNavigator(send, `owner:${profile.userName}`)}
+            onRooms={() => searchRoomsByOwner(send, profile.userName)}
             onChangeLooks={() => showWindow('avatar_editor')}
             onChangeBadges={() => showWindow('inventory', { tab: 'badges' })}
             onBadgeCount={() => openClientLink(send, 'badge_leaderboard/0/-1/0')}

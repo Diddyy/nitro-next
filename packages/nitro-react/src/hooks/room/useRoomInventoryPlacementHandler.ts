@@ -15,7 +15,7 @@ import { RoomEngineObjectEvent } from '@nitrodevco/nitro-api';
 import { useEffect } from 'react';
 
 import { returnInventoryAfterPlacement } from '#base/commands';
-import { useInventoryStore } from '#base/context/inventory';
+import { useInventoryPlacementActions, useInventoryStore } from '#base/context/inventory';
 import { useIsWindowVisible } from '#base/context/system';
 
 import { useRoomEventDispatcher } from './useRoomEventDispatcher';
@@ -23,7 +23,7 @@ import { useRoomEventDispatcher } from './useRoomEventDispatcher';
 export const useRoomInventoryPlacementHandler = () => {
     const isVisible = useIsWindowVisible('inventory');
     const moverRequested = useInventoryStore(x => x.inventoryMoverRequested);
-    const setInventoryMoverRequested = useInventoryStore(x => x.setInventoryMoverRequested);
+    const { setInventoryMoverRequested } = useInventoryPlacementActions();
 
     useRoomEventDispatcher<RoomEngineObjectEvent>([
         RoomEngineObjectEvent.PLACED,

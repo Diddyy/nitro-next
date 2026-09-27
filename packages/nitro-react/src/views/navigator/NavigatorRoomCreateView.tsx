@@ -1,467 +1,465 @@
 /**
- * The room creation window - `RoomCreateViewCtrl`, drawn from its `roc_create_room` layout, with
- * one `roc_room_thumbnail` per floor plan and the `roc_vip_promo` row under them.
- * `HabboNewNavigator.createRoom` opens it (the navigator's `create_room` button) straight away: the
- * legacy navigator's `CanCreateRoomMessageComposer` round trip belongs to its own My Rooms tab and
- * toolbar menu, which the new navigator does not use.
+ * Room creation - `roc_create_room`, driven by `RoomCreateViewCtrl`, which the new navigator's
+ * `create_room` button opens (`HabboNewNavigator.createRoom`).
  *
- * - The form: name (25 characters) and description (128), each a `TextFieldManager` that shows its
- *   `navigator.createroom.*info` hint as the field's own text until the field is focused; the
- *   category (visible, not automatic, staff-only ones only with security 7); the visitor cap, 10 up
- *   to 50 - 75 with club (`hasVip`, which is `clubLevel >= 1` in this revision); the trade mode.
- * - The floor plans: `_layouts`, in Flash's order, two to a row. Every plan with a club level is
- *   listed, and choosing one without the club opens the club centre (`openCatalogClubPage`); the
- *   `-1` plans (snowwar) are listed only with security 4. The selected one is framed, shows its
- *   white tile icon and the arrow bobbing over it (`updateArrowPos`, every 100 ms).
- * - Create: a name of three or more characters after trimming, else the field turns pink under
- *   the `nav_error_popup` bubble (`checkMandatory`); then `CreateFlatMessageComposer`. The server
- *   answers with `FlatCreatedMessage`, and `registerNavigatorHandlers` takes the user there.
+ * - The name and description fields are `TextFieldManager`s: each starts out holding its info
+ *   text (`navigator.createroom.roomnameinfo` / `roomdescinfo`) as real text, not a placeholder,
+ *   and the first focus clears it. Until then the field reads as empty.
+ * - Create checks the name first (`checkMandatory`: more than two characters once trimmed, and not
+ *   the info text). A name that fails turns the field `0xf1a39b` and shows `nav_error_popup`
+ *   over it; focusing the untouched field or a name that passes restores the colour, but the
+ *   popup stays until the window is opened again, as it does in Flash. A good form sends
+ *   `CreateFlatComposer` and waits: `FlatCreatedMessage` enters the room and closes this window.
+ * - The layouts are `RoomCreateViewCtrl`'s own table, two to a row. A club layout carries the
+ *   `club_icon` and picking one without club opens the club centre instead
+ *   (`onChooseLayout` -> `openCatalogClubPage`); the staff-only ones are listed only for
+ *   `hasSecurity(4)`. Below them, without VIP, `roc_vip_promo` links to the club centre too.
+ * - The selected layout's `select_arrow` bobs on a 100 ms timer (`updateArrowPos`). Flash moves
+ *   each thumbnail's own arrow, so one picked again resumes where it stopped; here the one arrow
+ *   position is shared, which only shows as the bob not restarting from the top.
  *
- * Every open starts from `refresh`'s state: the window is mounted only while it is shown, which is
- * also `show` / `hide`. The selection is held by plan name and only ever set from a listed plan, so
- * `findLayout`'s fall back to the first plan for an unknown name has nothing to catch.
- *
- * The thumbnails' tile icon and arrow and the popup's arrow are loaded by url from
- * `public/assets/navigator/`: `scripts/build-asset-bundles.ts` is not on this machine, so they could
- * not be packed into `nitro-layouts.nitro`. Switch them to `LayoutImage` once the bundle is rebuilt.
+ * Opening the window while it is already open brings it forward without resetting the form;
+ * Flash's `show()` calls `refresh()` either way.
  */
-import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
-import { IFlatCategory } from '@nitrodevco/nitro-packets';
+import { ClubLevelEnum, RoomTradeModeEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';
 
 import { createFlat, openClubCenter } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ROOM_CREATE_LAYOUTS, RoomCreateLayout, useNavigatorStore } from '#base/context/navigator';
-import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigValue, useTranslation } from '#base/context/system';
 import { useOwnClubLevel, useOwnSecurityLevel } from '#base/context/user';
-import { Border, Box, Button, ButtonThick, Dropmenu, Frame, Icon, Region, ScrollArea, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { useWindowVisibility } from '#base/hooks';
+import { Border, Button, ButtonThick, Dropmenu, Frame, Icon, LayoutImage, Region, ScrollArea, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { flatCategoryName } from '#base/utils';
 
-/** `ROOM_LIMIT_NON_SUBSCRIBER` / `ROOM_LIMIT_HC`: the highest visitor cap offered. */
+import { NavigatorErrorPopup } from './NavigatorErrorPopup';
+
+/** `ROOM_LIMIT_NON_SUBSCRIBER` / `ROOM_LIMIT_HC`: the highest visitor cap offered, which `refresh` picks by `hasVip`. */
 const ROOM_LIMIT_NON_SUBSCRIBER = 50;
 const ROOM_LIMIT_HC = 75;
 
-/** `TextFieldManager`'s `maxChars` for the two fields. */
-const NAME_MAX_LENGTH = 25;
-const DESCRIPTION_MAX_LENGTH = 128;
+/** `prepareTradeModeSelection`: the trade menu's entries, whose index is the value sent. */
+const TRADE_MODES: { mode: RoomTradeModeEnum; labelKey: string }[] = [
+    { mode: RoomTradeModeEnum.Disabled, labelKey: 'navigator.roomsettings.trade_not_allowed' },
+    { mode: RoomTradeModeEnum.RoomOwnerAndRights, labelKey: 'navigator.roomsettings.trade_not_with_Controller' },
+    { mode: RoomTradeModeEnum.Everyone, labelKey: 'navigator.roomsettings.trade_allowed' },
+];
 
-/** `TextFieldManager.isInputValid`: more than two characters once trimmed. */
-const MIN_NAME_LENGTH = 3;
+/** The `TextFieldManager` limits the two fields are built with. */
+const MAX_NAME_LENGTH = 25;
+const MAX_DESCRIPTION_LENGTH = 128;
 
-/** `refreshSelection`'s tile size colours and `displayError`'s field colour. */
-const TILE_TEXT_SELECTED = '#ffffff';
-const TILE_TEXT_UNSELECTED = '#000000';
-const TILE_BACKGROUND_SELECTED = '#6e8184';
-const TILE_BACKGROUND_UNSELECTED = '#cbcbcb';
-const FIELD_ERROR_BACKGROUND = '#f18f9b';
+/** `input.textBackgroundColor`: `refresh` sets white, `displayError` `0xf1a39b`. */
+const INPUT_BACKGROUND = '#ffffff';
+const INPUT_ERROR_BACKGROUND = '#f1a39b';
 
-/** `roc_room_thumbnail`: 137x99, two to a row. */
-const THUMBNAIL_WIDTH = 137;
-const THUMBNAIL_HEIGHT = 99;
+/** `refreshSelection`: `tile_size_txt`'s text and fill, selected and not. */
+const TILE_TEXT_SELECTED = { fill: '#ffffff', background: '#6f8284' };
+const TILE_TEXT_UNSELECTED = { fill: '#000000', background: '#cccccb' };
 
-/** `updateArrowPos`: the arrow runs between y 0 and 15, a pixel a tick near either end and two between. */
+/** `updateArrowPos`: the timer's period and the range the arrow bobs over. */
 const ARROW_TICK_MS = 100;
 const ARROW_TOP = 0;
 const ARROW_BOTTOM = 15;
 
-const RUNTIME_IMAGE = (name: string) => `/assets/navigator/${name}.png`;
+/** `roc_room_thumbnail`'s size; a row holds two (`getRow`, `addThumbnail`). */
+const THUMBNAIL_WIDTH = 137;
+const THUMBNAIL_HEIGHT = 99;
 
-/** `hasVip` / `hasClub` (both `clubLevel >= 1` here) and `hasSecurity`. */
-const isLayoutAllowed = (requiredClubLevel: number, clubLevel: number, securityLevel: number, choosing: boolean) => {
-    switch (requiredClubLevel) {
-        case 0: return true;
-        case 1:
-        case 2: return !choosing || (clubLevel >= 1);
-        default: return securityLevel >= 4;
-    }
+interface ArrowState { y: number; down: boolean }
+
+/** `updateArrowPos`: one step - a pixel near either end, two in between, turning at the ends. */
+const stepArrow = ({ y, down }: ArrowState): ArrowState => {
+    const step = ((Math.abs(y - ARROW_TOP) < 2) || (Math.abs(y - ARROW_BOTTOM) < 2)) ? 1 : 2;
+    const next = y + (down ? step : -step);
+
+    if (next < ARROW_TOP) return { y: ARROW_TOP + 1, down: true };
+    if (next > ARROW_BOTTOM) return { y: ARROW_BOTTOM - 1, down: false };
+
+    return { y: next, down };
 };
 
-/** `FlatCategory.visibleName`. */
-const categoryName = (category: IFlatCategory, t: (key: string) => string) => (category.globalCategoryKey ? t(`navigator.flatcategory.global.${category.globalCategoryKey}`) : category.nodeName);
+/** A `TextFieldManager`'s field: the text, and whether it still holds its info text. */
+interface ManagedField { text: string; info: boolean }
 
-/** A `TextFieldManager` field's state: its text, and whether that text is still the hint. */
-interface HintedField {
-    text: string;
-    showingHint: boolean;
-}
+/** `getText`: the info text reads as nothing. */
+const fieldText = (field: ManagedField) => (field.info ? '' : field.text);
 
-/** `nav_error_popup`: the message in a style 0 border, with the arrow down onto the field, centred over it. */
-const FieldErrorPopup = ({ message, left, top, width }: { message: string; left: number; top: number; width: number }) => (
-    <Box layout={{ position: 'absolute', left, top: top - 30, width, flexDirection: 'column', alignItems: 'center' }}>
-        <Border
-            variant="0"
-            layout={{ paddingLeft: 8, paddingRight: 7, paddingTop: 4, height: 23 }}
-        >
-            <ThemeText
-                text={message}
-                textStyle="regular"
-                textOptions={{ fontFamily: 'Volter', fontSize: 9, fill: '#000000' }}
-            />
-        </Border>
-        <ThemeImage
-            src={RUNTIME_IMAGE('popup_arrow_down')}
-            layout={{ width: 11, height: 11, marginTop: -1 }}
-        />
-    </Box>
-);
-
-const Caption = ({ text, top, left = 0 }: { text: string; top: number; left?: number }) => (
+/** A caption: the style 0 window's `regular` in the layout's `Volter Bold` face. */
+const Caption = ({ text, top }: { text: string; top: number }) => (
     <ThemeText
         text={text}
         textStyle="regular"
         textOptions={{ fontFamily: 'Volter Bold' }}
-        flashFormat={{ kerning: false }}
-        layout={{ position: 'absolute', left, top }}
-    />
-);
-
-const HintedInput = ({ field, onChange, maxLength, multiline, error, top, height }: {
-    field: HintedField;
-    onChange: (field: HintedField) => void;
-    maxLength: number;
-    multiline?: boolean;
-    error: boolean;
-    top: number;
-    height: number;
-}) => (
-    <TextInput
-        value={field.text}
-        onChange={text => onChange({ text: text.slice(0, maxLength), showingHint: false })}
-        // `onInputClick`: focusing a field that still shows its hint empties it.
-        onFocusChange={(focused) => {
-            if (focused && field.showingHint) onChange({ text: '', showingHint: false });
-        }}
-        maxLength={maxLength}
-        multiline={multiline}
-        textStyle="regular"
-        flashFormat={{ kerning: false }}
-        border="#000000"
-        backgroundColor={error ? FIELD_ERROR_BACKGROUND : '#ffffff'}
-        focusedBackgroundColor={error ? FIELD_ERROR_BACKGROUND : '#ffffff'}
-        alwaysShowSelection
-        layout={{ position: 'absolute', left: 0, top, width: 240, height }}
+        verticalAlign="top"
+        layout={{ position: 'absolute', left: 0, top }}
     />
 );
 
 interface ThumbnailProps {
     layout: RoomCreateLayout;
+    left: number;
     selected: boolean;
     arrowY: number;
     imageLibraryUrl: string;
-    tileSizeLabel: string;
-    left: number;
+    tileSizeText: string;
     onChoose: () => void;
 }
 
-/** `addThumbnail` / `refreshSelection`: one floor plan. */
-const Thumbnail = ({ layout, selected, arrowY, imageLibraryUrl, tileSizeLabel, left, onChoose }: ThumbnailProps) => (
-    <Region
-        name="thumbnail"
-        onPointerTap={onChoose}
-        cursor="pointer"
-        layout={{ position: 'absolute', left, top: 0, width: THUMBNAIL_WIDTH, height: THUMBNAIL_HEIGHT }}
-    >
-        {/* `bg_sel` / `bg_unsel`: one border, tinted by the selection */}
-        <Border
-            variant="0"
-            tintColor={selected ? '#6f8285' : '#cccccc'}
-            layout={{ position: 'absolute', left: 0, top: 0, width: 135, height: 96 }}
-        />
-        {/* `bg_pic` */}
-        <ThemeImage
-            src={`${imageLibraryUrl}newroom/model_${layout.name}.png`}
-            bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
-            layout={{ position: 'absolute', left: 0, top: 0, width: 135, height: 96 }}
-            eventMode="none"
-        />
-        {/* `tile_size_txt` */}
-        <Region
-            backgroundColor={selected ? TILE_BACKGROUND_SELECTED : TILE_BACKGROUND_UNSELECTED}
-            layout={{ position: 'absolute', left: 25, top: 78 }}
-        >
-            <ThemeText
-                text={`${layout.tileSize} ${tileSizeLabel}`}
-                textStyle="regular"
-                textOptions={{ fill: selected ? TILE_TEXT_SELECTED : TILE_TEXT_UNSELECTED }}
-                flashFormat={{ kerning: false }}
-            />
-        </Region>
-        <ThemeImage
-            src={RUNTIME_IMAGE(selected ? 'tile_icon_white' : 'tile_icon_black')}
-            layout={{ position: 'absolute', left: 5, top: 80, width: 18, height: 10 }}
-            eventMode="none"
-        />
-        {selected && (
-            <ThemeImage
-                src={RUNTIME_IMAGE('select_arrow')}
-                layout={{ position: 'absolute', left: 60, top: arrowY, width: 18, height: 20 }}
-                eventMode="none"
-            />
-        )}
-        {/* `club_icon`, shown for the club and VIP plans. */}
-        {((layout.requiredClubLevel === 1) || (layout.requiredClubLevel === 2)) && (
-            <Icon
-                variant={12}
-                layout={{ position: 'absolute', left: 109, top: 5, width: 20, height: 10 }}
-            />
-        )}
-    </Region>
-);
+/** `roc_room_thumbnail`, as `addThumbnail` fills it and `refreshSelection` marks it. */
+const Thumbnail = ({ layout, left, selected, arrowY, imageLibraryUrl, tileSizeText, onChoose }: ThumbnailProps) => {
+    const tileText = selected ? TILE_TEXT_SELECTED : TILE_TEXT_UNSELECTED;
 
-/** `roc_vip_promo`: the club offer under the floor plans for a user without VIP. */
-const VipPromo = ({ t, onMore }: { t: (key: string) => string; onMore: () => void }) => (
-    <Border
-        variant="2"
-        tintColor="#d48612"
-        layout={{ width: 272, height: 52 }}
-    >
-        <Icon
-            variant={16}
-            layout={{ position: 'absolute', left: 9, top: 6, width: 42, height: 43 }}
-        />
-        <ThemeText
-            text={t('navigator.createroom.vippromo.text')}
-            textStyle="regular"
-            textOptions={{ fontFamily: 'Volter', fontSize: 9, fill: '#ffffff', wordWrap: true, wordWrapWidth: 206 }}
-            layout={{ position: 'absolute', left: 52, top: 6, width: 206, height: 25 }}
-        />
+    return (
         <Region
-            name="link"
-            onPointerTap={onMore}
+            name="thumbnail"
+            onPointerTap={onChoose}
             cursor="pointer"
-            layout={{ position: 'absolute', left: 52, top: 30, width: 206, height: 12 }}
+            layout={{ position: 'absolute', left, width: THUMBNAIL_WIDTH, top: 0, height: THUMBNAIL_HEIGHT }}
         >
-            <ThemeText
-                text={t('navigator.createroom.vippromo.link')}
-                textStyle="regular"
-                textOptions={{ fontFamily: 'Volter', fontSize: 9, fill: '#ffffff' }}
-                flashFormat={{ underline: true }}
+            <Border
+                variant="0"
+                name={selected ? 'bg_sel' : 'bg_unsel'}
+                tintColor={selected ? '#6f8285' : '#cccccc'}
+                layout={{ position: 'absolute', left: 0, width: 135, top: 0, height: 96 }}
             />
+            <ThemeImage
+                name="bg_pic"
+                src={`${imageLibraryUrl}newroom/model_${layout.name}.png`}
+                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
+                layout={{ position: 'absolute', left: 0, width: 135, top: 0, height: 96 }}
+            />
+            <Region
+                name="tile_size_txt"
+                backgroundColor={tileText.background}
+                layout={{ position: 'absolute', left: 25, top: 78 }}
+            >
+                <ThemeText
+                    text={tileSizeText}
+                    textStyle="regular"
+                    textOptions={{ fill: tileText.fill }}
+                    verticalAlign="top"
+                />
+            </Region>
+            <ThemeImage
+                name={selected ? 'tile_icon_white' : 'tile_icon_black'}
+                src={LayoutImage(selected ? 'navigator/tile_icon_white.png' : 'navigator/tile_icon_black.png')}
+                bitmap={{}}
+                layout={{ position: 'absolute', left: 5, width: 18, top: 80, height: 10 }}
+            />
+            {selected && (
+                <ThemeImage
+                    name="select_arrow"
+                    src={LayoutImage('navigator/select_arrow.png')}
+                    bitmap={{}}
+                    layout={{ position: 'absolute', left: 60, width: 18, top: arrowY, height: 20 }}
+                />
+            )}
+            {((layout.requiredClubLevel === Number(ClubLevelEnum.Club)) || (layout.requiredClubLevel === Number(ClubLevelEnum.Vip))) && (
+                <Icon
+                    variant="12"
+                    name="club_icon"
+                    layout={{ position: 'absolute', left: 109, width: 20, top: 5, height: 10 }}
+                />
+            )}
         </Region>
-    </Border>
-);
+    );
+};
 
 export const NavigatorRoomCreateView = () => {
-    const t = useTranslation();
-    const { send } = useWebSocketContext();
-    const { hideWindow } = useWindowActions();
-    const categories = useNavigatorStore(x => x.flatCategories);
-    const clubLevel = Number(useOwnClubLevel());
-    const securityLevel = Number(useOwnSecurityLevel());
+    const flatCategories = useNavigatorStore(x => x.flatCategories);
+    const clubLevel = useOwnClubLevel();
+    const securityLevel = useOwnSecurityLevel();
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const clubBuyDisabled = useConfigValue<boolean>('habbo_club_buy_disabled') === true;
+    const { hide } = useWindowVisibility('navigator_room_create');
+    const { send } = useWebSocketContext();
+    const t = useTranslation();
 
-    const [ name, setName ] = useState<HintedField>(() => ({ text: t('navigator.createroom.roomnameinfo'), showingHint: true }));
-    const [ description, setDescription ] = useState<HintedField>(() => ({ text: t('navigator.createroom.roomdescinfo'), showingHint: true }));
-    const [ nameError, setNameError ] = useState<string>();
+    const [ name, setName ] = useState<ManagedField>({ text: t('navigator.createroom.roomnameinfo'), info: true });
+    const [ description, setDescription ] = useState<ManagedField>({ text: t('navigator.createroom.roomdescinfo'), info: true });
+    const [ nameErrorShown, setNameErrorShown ] = useState(false);
+    const [ nameErrorBackground, setNameErrorBackground ] = useState(false);
     const [ categoryIndex, setCategoryIndex ] = useState(0);
     const [ visitorsIndex, setVisitorsIndex ] = useState(0);
-    const [ tradeMode, setTradeMode ] = useState<RoomTradeModeEnum>(RoomTradeModeEnum.Disabled);
+    const [ tradeIndex, setTradeIndex ] = useState(0);
     const [ selectedLayout, setSelectedLayout ] = useState(ROOM_CREATE_LAYOUTS[0].name);
-    const [ arrow, setArrow ] = useState({ y: ARROW_TOP, down: true });
+    const [ arrow, setArrow ] = useState<ArrowState>({ y: ARROW_TOP, down: true });
 
-    // `updateArrowPos`, on `_arrowTimer`.
     useEffect(() => {
-        const timer = setInterval(() => setArrow(({ y, down }) => {
-            const step = ((Math.abs(y - ARROW_TOP) < 2) || (Math.abs(y - ARROW_BOTTOM) < 2)) ? 1 : 2;
-            const next = y + (down ? step : -step);
-
-            if (next < ARROW_TOP) return { y: ARROW_TOP + 1, down: true };
-            if (next > ARROW_BOTTOM) return { y: ARROW_BOTTOM - 1, down: false };
-
-            return { y: next, down };
-        }), ARROW_TICK_MS);
+        const timer = setInterval(() => setArrow(stepArrow), ARROW_TICK_MS);
 
         return () => clearInterval(timer);
     }, []);
 
-    // `prepareCategorySelection`: visible categories a user may pick.
-    const selectableCategories = categories.filter(category => category.visible && !category.automatic && (!category.staffOnly || (securityLevel >= 7)));
-    // `refreshMaxVisitors`.
-    const visitorSteps: number[] = [];
+    // `SessionDataManager.hasClub` and `hasVip` are both `clubLevel >= 1` in this revision.
+    const hasClub = Number(clubLevel) >= Number(ClubLevelEnum.Club);
+    const hasVip = hasClub;
+    const isStaff = Number(securityLevel) >= Number(SecurityLevelEnum.Employee);
 
-    for (let step = 10; step <= ((clubLevel >= 1) ? ROOM_LIMIT_HC : ROOM_LIMIT_NON_SUBSCRIBER); step += 5) visitorSteps.push(step);
+    /** `isAllowed(layout, requireClub)`: listing asks only about staff layouts; choosing asks about club too. */
+    const isAllowed = (layout: RoomCreateLayout, requireClub: boolean) => {
+        if (layout.requiredClubLevel === Number(ClubLevelEnum.None)) return true;
+        if (layout.requiredClubLevel === Number(ClubLevelEnum.Club)) return !requireClub || hasClub;
+        if (layout.requiredClubLevel === Number(ClubLevelEnum.Vip)) return !requireClub || hasVip;
 
-    const tradeModes = [ 'navigator.roomsettings.trade_not_allowed', 'navigator.roomsettings.trade_not_with_Controller', 'navigator.roomsettings.trade_allowed' ];
-    const listedLayouts = ROOM_CREATE_LAYOUTS.filter(layout => isLayoutAllowed(layout.requiredClubLevel, clubLevel, securityLevel, false));
-    const rows: (typeof listedLayouts)[] = [];
+        return isStaff;
+    };
 
-    for (let index = 0; index < listedLayouts.length; index += 2) rows.push(listedLayouts.slice(index, index + 2));
+    // `prepareCategorySelection`: visible, not automatic, and staff-only ones for `hasSecurity(7)`.
+    const categories = flatCategories.filter(category => category.visible && !category.automatic
+        && (!category.staffOnly || (Number(securityLevel) >= Number(SecurityLevelEnum.Community))));
 
-    // `refreshRoomThumbnails`: the promo for a user below VIP, unless the hotel sells no club.
-    const showVipPromo = (clubLevel < 2) && !clubBuyDisabled;
+    // `refreshMaxVisitors`: 10 to the cap in steps of 5.
+    const visitorCap = hasVip ? ROOM_LIMIT_HC : ROOM_LIMIT_NON_SUBSCRIBER;
+    const visitorSteps = Array.from({ length: ((visitorCap - 10) / 5) + 1 }, (_, i) => 10 + (i * 5));
 
-    const close = () => hideWindow('room_create');
+    const listedLayouts = ROOM_CREATE_LAYOUTS.filter(layout => isAllowed(layout, false));
+    const rows = Array.from({ length: Math.ceil(listedLayouts.length / 2) }, (_, i) => listedLayouts.slice(i * 2, (i * 2) + 2));
+    const showVipPromo = (Number(clubLevel) < Number(ClubLevelEnum.Vip)) && !clubBuyDisabled;
 
     const chooseLayout = (layout: RoomCreateLayout) => {
-        if (isLayoutAllowed(layout.requiredClubLevel, clubLevel, securityLevel, true)) setSelectedLayout(layout.name);
+        if (isAllowed(layout, true)) setSelectedLayout(layout.name);
         else openClubCenter(send);
     };
 
-    // `onCreateButtonClick`.
-    const create = () => {
-        const roomName = name.showingHint ? '' : name.text;
+    /** `onInputClick`: the first focus of a field still holding its info text empties it. */
+    const focusField = (field: ManagedField, setField: (field: ManagedField) => void, isName: boolean) => {
+        if (!field.info) return;
 
-        if (roomName.trim().length < MIN_NAME_LENGTH) {
-            setNameError(t('navigator.createroom.nameerr'));
+        setField({ text: '', info: false });
+
+        if (isName) setNameErrorBackground(false);
+    };
+
+    const create = () => {
+        const flatName = fieldText(name);
+
+        // `checkMandatory(navigator.createroom.nameerr)`.
+        if (name.info || (flatName.trim().length <= 2)) {
+            setNameErrorBackground(true);
+            setNameErrorShown(true);
 
             return;
         }
 
-        setNameError(undefined);
+        setNameErrorBackground(false);
+
         createFlat(send, {
-            flatName: roomName,
-            flatDescription: description.showingHint ? '' : description.text,
+            flatName,
+            flatDescription: fieldText(description),
             flatModelName: `model_${selectedLayout}`,
-            categoryID: selectableCategories[categoryIndex]?.nodeId ?? 0,
-            maxPlayers: visitorSteps[visitorsIndex] ?? visitorSteps[0],
-            tradeSetting: tradeMode,
+            categoryID: categories[categoryIndex]?.nodeId ?? 0,
+            maxPlayers: visitorSteps[visitorsIndex],
+            tradeSetting: TRADE_MODES[tradeIndex].mode,
         });
     };
 
-    const dropmenu = (variant: string, top: number, labels: string[], selected: number, onSelect: (index: number) => void) => (
-        <Dropmenu
-            variant={variant}
-            caption={labels[selected] ?? ''}
-            options={labels.map((label, index) => ({ key: index, label, selected: index === selected, onSelect: () => onSelect(index) }))}
-            layout={{ position: 'absolute', left: 0, top, width: 240, height: 21 }}
-        />
-    );
+    const inputBackground = nameErrorBackground ? INPUT_ERROR_BACKGROUND : INPUT_BACKGROUND;
 
     return (
         <Frame
+            id="navigator_room_create"
             variant="3"
-            id="room-create"
             caption={t('navigator.createroom.title')}
             tintColor="#418db0"
             dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={close}
+            onClose={hide}
             centered
-            rememberPosition={false}
             resizeDirection="none"
-            margins={[ 6, 25, 6, 7 ]}
             layout={{ position: 'absolute', width: 585, height: 367 }}
+            margins={[ 6, 25, 6, 7 ]}
         >
-            {/* `room_settings_container` */}
-            <Box layout={{ position: 'absolute', left: 10, top: 15, width: 255, height: 315 }}>
-                {/* `create_room_caption` */}
+            <Region
+                name="room_settings_container"
+                layout={{ position: 'absolute', left: 10, width: 255, top: 15, height: 315 }}
+            >
                 <Caption
                     text={t('navigator.roomname')}
                     top={0}
                 />
-                {/* `room_name_input` */}
-                <HintedInput
-                    field={name}
-                    onChange={(field) => {
-                        setName(field);
-                        setNameError(undefined);
-                    }}
-                    maxLength={NAME_MAX_LENGTH}
-                    error={!!nameError}
-                    top={20}
-                    height={19}
+                <TextInput
+                    value={name.text}
+                    onChange={text => setName({ text, info: false })}
+                    onFocusChange={focused => focused && focusField(name, setName, true)}
+                    maxLength={MAX_NAME_LENGTH}
+                    textStyle="regular"
+                    flashPlacement
+                    border="#000000"
+                    alwaysShowSelection
+                    backgroundColor={inputBackground}
+                    focusedBackgroundColor={inputBackground}
+                    layout={{ position: 'absolute', left: 0, width: 240, top: 20, height: 19 }}
                 />
-                {/* `create_desc_caption` */}
                 <Caption
                     text={t('navigator.roomdesc')}
                     top={50}
                 />
-                {/* `room_desc_input` */}
-                <HintedInput
-                    field={description}
-                    onChange={setDescription}
-                    maxLength={DESCRIPTION_MAX_LENGTH}
+                <TextInput
+                    value={description.text}
+                    onChange={text => setDescription({ text, info: false })}
+                    onFocusChange={focused => focused && focusField(description, setDescription, false)}
+                    maxLength={MAX_DESCRIPTION_LENGTH}
                     multiline
-                    error={false}
-                    top={70}
-                    height={60}
+                    textStyle="regular"
+                    flashPlacement
+                    border="#000000"
+                    alwaysShowSelection
+                    backgroundColor={INPUT_BACKGROUND}
+                    focusedBackgroundColor={INPUT_BACKGROUND}
+                    layout={{ position: 'absolute', left: 0, width: 240, top: 70, height: 60 }}
                 />
-                {/* `create_category_caption` */}
                 <Caption
                     text={t('navigator.category')}
                     top={140}
                 />
-                {/* `categories_list` */}
-                {dropmenu('2', 160, selectableCategories.map(category => categoryName(category, t)), categoryIndex, setCategoryIndex)}
-                {/* `create_visitors_caption` */}
+                <Dropmenu
+                    variant="2"
+                    caption={categories[categoryIndex] ? flatCategoryName(categories[categoryIndex], t) : ''}
+                    options={categories.map((category, index) => ({
+                        key: category.nodeId,
+                        label: flatCategoryName(category, t),
+                        selected: index === categoryIndex,
+                        onSelect: () => setCategoryIndex(index),
+                    }))}
+                    layout={{ position: 'absolute', left: 0, width: 240, top: 160, height: 21 }}
+                />
                 <Caption
                     text={t('navigator.maxvisitors')}
                     top={190}
                 />
-                {/* `visitors_list` */}
-                {dropmenu('0', 210, visitorSteps.map(String), visitorsIndex, setVisitorsIndex)}
-                {/* `create_trade_caption` */}
+                <Dropmenu
+                    variant="0"
+                    caption={String(visitorSteps[visitorsIndex])}
+                    options={visitorSteps.map((step, index) => ({
+                        key: step,
+                        label: String(step),
+                        selected: index === visitorsIndex,
+                        onSelect: () => setVisitorsIndex(index),
+                    }))}
+                    layout={{ position: 'absolute', left: 0, width: 240, top: 210, height: 21 }}
+                />
                 <Caption
                     text={t('navigator.tradesettings')}
                     top={240}
                 />
-                {/* `trade_settings_list` */}
-                {dropmenu('0', 260, tradeModes.map(key => t(key)), tradeMode, index => setTradeMode(index))}
-                <ButtonThick
-                    name="create_button"
+                <Dropmenu
                     variant="0"
+                    caption={t(TRADE_MODES[tradeIndex].labelKey)}
+                    options={TRADE_MODES.map(({ mode, labelKey }, index) => ({
+                        key: mode,
+                        label: t(labelKey),
+                        selected: index === tradeIndex,
+                        onSelect: () => setTradeIndex(index),
+                    }))}
+                    layout={{ position: 'absolute', left: 0, width: 240, top: 260, height: 21 }}
+                />
+                <ButtonThick
+                    variant="0"
+                    name="create_button"
                     onPointerTap={create}
-                    layout={{ position: 'absolute', left: 0, top: 290, width: 100, height: 21 }}
+                    layout={{ position: 'absolute', left: 0, width: 100, top: 290, height: 21 }}
                 >
                     {t('navigator.createroom.create')}
                 </ButtonThick>
                 <Button
-                    name="back_button"
                     variant="0"
-                    onPointerTap={close}
-                    layout={{ position: 'absolute', left: 140, top: 290, width: 100, height: 21 }}
+                    name="back_button"
+                    onPointerTap={hide}
+                    layout={{ position: 'absolute', left: 140, width: 100, top: 290, height: 21 }}
                 >
                     {t('generic.cancel')}
                 </Button>
-                {nameError && (
-                    <FieldErrorPopup
-                        message={nameError}
-                        left={0}
-                        top={20}
-                        width={240}
+                {nameErrorShown && (
+                    // `displayError`: `nav_error_popup` over the name field (0,20, 240 wide).
+                    <NavigatorErrorPopup
+                        text={t('navigator.createroom.nameerr')}
+                        fieldLeft={0}
+                        fieldTop={20}
+                        fieldWidth={240}
                     />
                 )}
-            </Box>
-            {/* `room_layout_container` */}
-            <Box layout={{ position: 'absolute', left: 270, top: 15, width: 300, height: 315 }}>
-                {/* `choose_layout_caption` */}
+            </Region>
+            <Region
+                name="room_layout_container"
+                layout={{ position: 'absolute', left: 270, width: 300, top: 15, height: 315 }}
+            >
                 <Caption
                     text={t('navigator.createroom.chooselayoutcaption')}
                     top={0}
                 />
-                {/* `layout_item_list` and its `scroller` */}
                 <ScrollArea
+                    orientation="vertical"
+                    variant="0"
                     hideDisabledScrollbar={false}
-                    layout={{ position: 'absolute', left: 0, top: 20, width: 295, height: 295 }}
+                    layout={{ position: 'absolute', left: 0, width: 295, top: 20, height: 295 }}
                     viewportLayout={{ position: 'absolute', left: 0, top: 0, width: 290, height: 295 }}
                     scrollbarLayout={{ position: 'absolute', left: 278, top: 0, width: 17, height: 295 }}
                 >
-                    {rows.map(row => (
-                        <Box
-                            key={row[0].name}
-                            layout={{ width: 2 * THUMBNAIL_WIDTH, height: THUMBNAIL_HEIGHT }}
-                        >
-                            {row.map((layout, index) => (
-                                <Thumbnail
-                                    key={layout.name}
-                                    layout={layout}
-                                    selected={layout.name === selectedLayout}
-                                    arrowY={arrow.y}
-                                    imageLibraryUrl={imageLibraryUrl}
-                                    tileSizeLabel={t('navigator.createroom.tilesize')}
-                                    left={index * THUMBNAIL_WIDTH}
-                                    onChoose={() => chooseLayout(layout)}
+                    {/* `background="true"` with no colour: `_fillColor | _alphaColor` is 0x00ffffff, a transparent fill. */}
+                    <Region
+                        name="layout_item_list"
+                        layout={{ flexDirection: 'column', width: '100%' }}
+                    >
+                        {rows.map(row => (
+                            <Region
+                                key={row[0].name}
+                                layout={{ width: THUMBNAIL_WIDTH * 2, height: THUMBNAIL_HEIGHT, flexShrink: 0 }}
+                            >
+                                {row.map((layout, index) => (
+                                    <Thumbnail
+                                        key={layout.name}
+                                        layout={layout}
+                                        left={index * THUMBNAIL_WIDTH}
+                                        selected={layout.name === selectedLayout}
+                                        arrowY={arrow.y}
+                                        imageLibraryUrl={imageLibraryUrl}
+                                        tileSizeText={`${layout.tileSize} ${t('navigator.createroom.tilesize')}`}
+                                        onChoose={() => chooseLayout(layout)}
+                                    />
+                                ))}
+                            </Region>
+                        ))}
+                        {showVipPromo && (
+                            <Border
+                                variant="2"
+                                tintColor="#d48612"
+                                layout={{ width: 272, height: 52, flexShrink: 0 }}
+                            >
+                                <ThemeText
+                                    text={t('navigator.createroom.vippromo.text')}
+                                    textStyle="regular"
+                                    textOptions={{ fontFamily: 'Volter', fontSize: 9, fill: '#ffffff', wordWrap: true, wordWrapWidth: 202 }}
+                                    clip
+                                    verticalAlign="top"
+                                    layout={{ position: 'absolute', left: 52, width: 206, top: 6, height: 25 }}
                                 />
-                            ))}
-                        </Box>
-                    ))}
-                    {showVipPromo && (
-                        <VipPromo
-                            t={t}
-                            onMore={() => openClubCenter(send)}
-                        />
-                    )}
+                                <Region
+                                    name="link"
+                                    cursor="pointer"
+                                    onPointerTap={() => openClubCenter(send)}
+                                    layout={{ position: 'absolute', left: 52, width: 206, top: 30, height: 12 }}
+                                >
+                                    <ThemeText
+                                        text={t('navigator.createroom.vippromo.link')}
+                                        textStyle="regular"
+                                        textOptions={{ fontFamily: 'Volter', fontSize: 9, fill: '#ffffff' }}
+                                        flashFormat={{ underline: true }}
+                                        clip
+                                        verticalAlign="top"
+                                        layout={{ position: 'absolute', left: 0, width: 206, top: 0, height: 12 }}
+                                    />
+                                </Region>
+                                <Icon
+                                    variant="16"
+                                    layout={{ position: 'absolute', left: 9, width: 42, top: 6, height: 43 }}
+                                />
+                            </Border>
+                        )}
+                    </Region>
                 </ScrollArea>
-            </Box>
+            </Region>
         </Frame>
     );
 };

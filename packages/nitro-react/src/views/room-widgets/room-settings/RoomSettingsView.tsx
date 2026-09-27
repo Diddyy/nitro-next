@@ -2,8 +2,17 @@ import { RoomChatFloodSensitivityType, RoomDoorModeEnum, RoomModerationType, Roo
 import { IFlatCategory, IFlatController, IMessengerFriend, RoomSettingsDataEventMessageType } from '@nitrodevco/nitro-packets';
 import { ReactNode, useState } from 'react';
 
+import { RoomSettingsErrorField, RoomSettingsFormError } from '#base/context/room';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Border, Box, Button, ButtonThick, CheckBox, Dropmenu, Frame, Icon, RadioButton, Region, ScrollArea, TabButton, TabContent, TabContext, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { flatCategoryName } from '#base/utils';
+import { NavigatorErrorPopup } from '#base/views/navigator/NavigatorErrorPopup';
+
+/**
+ * `startRoomSettingsEdit` / `startRoomSettingsEditFromNavigator`: with no `roomId` the window edits
+ * the room you are standing in; the navigator's room info popup names another room and its group.
+ */
+export type RoomSettingsViewWindowParams = { roomId?: number; groupId?: number };
 
 export interface RoomSettingsViewProps {
     settings: RoomSettingsDataEventMessageType;
@@ -36,11 +45,22 @@ export interface RoomSettingsViewProps {
     isStaff: boolean;
     /** Which of the five tabs is open. */
     tab: number;
-    /** A localization key for whatever the server refused, or nothing. */
-    error: string | undefined;
-    saving: boolean;
+    /**
+     * `_removeTabsForNavigatorView`: the settings of a room you are not standing in (opened from the
+     * navigator) leave out the access and rights tabs, and `resizeTabs` spreads the rest wider.
+     */
+    removeTabsForNavigatorView: boolean;
+    /** What the last save was refused for, shown over the field it names, or nothing. */
+    error: RoomSettingsFormError | undefined;
     onChangeTab: (tab: number) => void;
+    /** A field being typed into: the form changes, nothing is sent until the field is left. */
     onChange: (changes: Partial<RoomSettingsDataEventMessageType>) => void;
+    /** A pick - a dropmenu, switch or door mode: the form changes and is saved (`onUnfocus`). */
+    onSelectSetting: (changes: Partial<RoomSettingsDataEventMessageType>) => void;
+    /** The three room behaviour switches: saved only once their timeouts are valid (`onRoomBehaviorSettingsChanged`). */
+    onSelectBehaviour: (changes: Partial<RoomSettingsDataEventMessageType>) => void;
+    /** A text field was left: the form as typed is saved. */
+    onCommit: () => void;
     onChangePassword: (password: string) => void;
     onChangePasswordConfirm: (password: string) => void;
     onChangeFriendFilter: (filter: string) => void;
@@ -50,7 +70,6 @@ export interface RoomSettingsViewProps {
     onSelectBannedUser: (userId: number) => void;
     onUnban: () => void;
     onDeleteRoom: () => void;
-    onSave: () => void;
     onClose: () => void;
 }
 
@@ -62,6 +81,9 @@ const TAB_ACCESS = 2;
 const TAB_RIGHTS = 3;
 const TAB_CLUB_AND_CHAT = 4;
 const TAB_MODERATION = 5;
+
+/** `tab_container_4`'s height, the tallest tab - taller than `content_container`'s 369. */
+const TALLEST_TAB_HEIGHT = 395;
 
 /** `UserListCtrl.DISPLAY_LIMIT`: neither user list ever draws more rows than this. */
 const DISPLAY_LIMIT = 200;
@@ -125,21 +147,14 @@ const MAX_TAG_LENGTH = 30;
 const MAX_TIMEOUT_LENGTH = 5;
 const MAX_TAGS = 2;
 
-/**
- * `FlatCategory.visibleName`: a category with a global key is named by
- * `${navigator.flatcategory.global.<key>}`; one without it carries the name the server sent, which
- * is not a key and is shown as it stands.
- */
-const categoryName = (category: IFlatCategory, t: (key: string) => string) => (category.globalCategoryKey
-    ? t(`navigator.flatcategory.global.${category.globalCategoryKey}`)
-    : category.nodeName);
-
 /** `ros_room_settings`' inputs: `u_regular` in a `0x959595` border over `0xfbfbf9`. */
 const INPUT_BORDER = '#959595';
 const INPUT_BACKGROUND = '#fbfbf9';
+/** `TextFieldManager.displayError`: a refused field's `textBackgroundColor`. */
+const INPUT_ERROR_BACKGROUND = '#f1a39b';
 
 /** `RoomSettingsCtrl.resizeTabs`: the window's width over the visible tabs, less one. */
-const TAB_WIDTH = Math.trunc(341 / TABS.length) - 1;
+const tabWidth = (visibleTabs: number) => Math.trunc(341 / visibleTabs) - 1;
 
 /** `UserListCtrl.getBgColor`: odd rows white, even rows `0xe9e9e1`, the hovered one `0xb6d9ff`; `BanListCtrl` marks the picked one `0x9ab8d9`. */
 const ROW_COLOR_ODD = '#ffffff';
@@ -238,9 +253,13 @@ const SettingDropmenu = ({ options, value, disabled, left, top, width, onSelect 
 );
 
 /** An `input` of the form: `u_regular`, the layout's border and fill, text at Flash's gutter. */
-const SettingInput = ({ value, onChange, maxLength, password, multiline, restrict, left, top, width, height }: Place & {
+const SettingInput = ({ value, onChange, onCommit, error = false, maxLength, password, multiline, restrict, left, top, width, height }: Place & {
     value: string;
+    /** Refused on the last save: tinted as `displayError` tints it. */
+    error?: boolean;
     onChange: (value: string) => void;
+    /** `WE_UNFOCUSED` -> `onUnfocus`: leaving the field saves the form. */
+    onCommit: () => void;
     maxLength: number;
     password?: boolean;
     multiline?: boolean;
@@ -251,6 +270,7 @@ const SettingInput = ({ value, onChange, maxLength, password, multiline, restric
     <TextInput
         value={value}
         onChange={onChange}
+        onFocusChange={focused => !focused && onCommit()}
         maxLength={maxLength}
         password={password}
         multiline={multiline}
@@ -258,8 +278,8 @@ const SettingInput = ({ value, onChange, maxLength, password, multiline, restric
         textStyle="u_regular"
         flashPlacement
         border={INPUT_BORDER}
-        backgroundColor={INPUT_BACKGROUND}
-        focusedBackgroundColor={INPUT_BACKGROUND}
+        backgroundColor={error ? INPUT_ERROR_BACKGROUND : INPUT_BACKGROUND}
+        focusedBackgroundColor={error ? INPUT_ERROR_BACKGROUND : INPUT_BACKGROUND}
         layout={{ position: 'absolute', left, top, width, height }}
     />
 );
@@ -330,11 +350,10 @@ const UserList = ({ left, top, width, height, listHeight, scrollbarLeft, scrollb
  * tab 5. The chat mode, bubble and scroll settings moved to the account in this revision, so only
  * the flood sensitivity is left of the chat settings.
  *
- * Deliberate difference: Flash has no Save button - `onUnfocus` saves the whole form on every
- * change and blur, and `TextFieldManager.displayError` marks a refused field. This window keeps
- * one button and one save, so a half-typed name is never sent, in the 30px under
- * `content_container`, with the refusal beside it; everything the save carries, and every rule
- * that refuses it, is Flash's (`RoomSettingsCtrl.save`). The Builders Club panel's
+ * There is no Save button: `onUnfocus` saves the whole form on every pick and whenever a text
+ * field is left, and `TextFieldManager.displayError` tints a refused field and puts
+ * `nav_error_popup` over it; everything the save carries, and every rule that refuses it, is
+ * Flash's (`RoomSettingsCtrl.save`). The Builders Club panel's
  * `builders_faq_button` is not drawn: nothing in the port opens that page.
  *
  * Theme gap worked around here: a `CheckBox` / `RadioButton` stretches its skin over its box,
@@ -345,12 +364,30 @@ const UserList = ({ left, top, width, height, listHeight, scrollbarLeft, scrollb
 export const RoomSettingsView = ({
     settings, categories, controllers, bannedUsers, selectedBannedUser, friends, friendFilter,
     password, passwordConfirm, visitorSteps, selectedVisitors, hasClub, isGroupRoom, canDelete, deleteDisabled, isStaff,
-    tab, error, saving,
-    onChangeTab, onChange, onChangePassword, onChangePasswordConfirm, onChangeFriendFilter,
-    onGiveRights, onTakeRights, onTakeAllRights, onSelectBannedUser, onUnban, onDeleteRoom, onSave, onClose,
+    tab, removeTabsForNavigatorView, error,
+    onChangeTab, onChange, onSelectSetting, onSelectBehaviour, onCommit, onChangePassword, onChangePasswordConfirm, onChangeFriendFilter,
+    onGiveRights, onTakeRights, onTakeAllRights, onSelectBannedUser, onUnban, onDeleteRoom, onClose,
 }: RoomSettingsViewProps) => {
     const t = useTranslation();
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
+
+    // `setTagError`: only the tag input holding the tag the server named is marked.
+    const isTagError = (index: number) => (error?.field === 'tags') && !!settings.tags[index]
+        && [ settings.tags[index].toLowerCase(), `#${settings.tags[index].toLowerCase()}` ].includes((error.tag ?? '').toLowerCase());
+    /** `TextFieldManager.displayError`'s popup over a field, in that field's parent's coordinates. */
+    const errorPopup = (field: RoomSettingsErrorField, left: number, top: number, width: number, shown: boolean = error?.field === field) => (shown && error
+        ? (
+                <NavigatorErrorPopup
+                    text={t(error.key)}
+                    fieldLeft={left}
+                    fieldTop={top}
+                    fieldWidth={width}
+                />
+            )
+        : null);
+
+    const visibleTabs = TABS.filter(index => !removeTabsForNavigatorView || ((index !== TAB_ACCESS) && (index !== TAB_RIGHTS)));
+    const tabButtonWidth = tabWidth(visibleTabs.length);
 
     let body: ReactNode = null;
 
@@ -366,7 +403,9 @@ export const RoomSettingsView = ({
                     top={-3}
                 />
                 <SettingInput
+                    onCommit={onCommit}
                     value={settings.name}
+                    error={error?.field === 'name'}
                     onChange={name => onChange({ name })}
                     maxLength={MAX_NAME_LENGTH}
                     left={0}
@@ -380,7 +419,9 @@ export const RoomSettingsView = ({
                     top={35}
                 />
                 <SettingInput
+                    onCommit={onCommit}
                     value={settings.description}
+                    error={error?.field === 'description'}
                     onChange={description => onChange({ description })}
                     maxLength={MAX_DESCRIPTION_LENGTH}
                     multiline
@@ -389,6 +430,8 @@ export const RoomSettingsView = ({
                     width={300}
                     height={39}
                 />
+                {errorPopup('name', 0, 14, 300)}
+                {errorPopup('description', 0, 51, 300)}
                 {/* `tag_category_container` at 0,100. */}
                 <Box layout={{ position: 'absolute', left: 0, top: 100, width: 300, height: 192 }}>
                     <Label
@@ -397,9 +440,9 @@ export const RoomSettingsView = ({
                         top={0}
                     />
                     <SettingDropmenu
-                        options={shownCategories.map(category => ({ value: category.nodeId, label: categoryName(category, t) }))}
+                        options={shownCategories.map(category => ({ value: category.nodeId, label: flatCategoryName(category, t) }))}
                         value={settings.categoryId}
-                        onSelect={categoryId => onChange({ categoryId })}
+                        onSelect={categoryId => onSelectSetting({ categoryId })}
                         left={0}
                         top={16}
                         width={300}
@@ -412,7 +455,7 @@ export const RoomSettingsView = ({
                     <SettingDropmenu
                         options={visitorSteps.map(step => ({ value: step, label: String(step) }))}
                         value={selectedVisitors}
-                        onSelect={maximumVisitors => onChange({ maximumVisitors })}
+                        onSelect={maximumVisitors => onSelectSetting({ maximumVisitors })}
                         left={0}
                         top={61}
                         width={300}
@@ -425,7 +468,7 @@ export const RoomSettingsView = ({
                     <SettingDropmenu
                         options={TRADE_MODES.map(x => ({ value: x.mode, label: t(x.labelKey) }))}
                         value={settings.tradeMode}
-                        onSelect={tradeMode => onChange({ tradeMode })}
+                        onSelect={tradeMode => onSelectSetting({ tradeMode })}
                         left={0}
                         top={106}
                         width={300}
@@ -437,9 +480,11 @@ export const RoomSettingsView = ({
                     />
                     {[ ...Array(MAX_TAGS).keys() ].map(index => (
                         <SettingInput
+                            onCommit={onCommit}
                             key={index}
                             // `setTag` shows a tag with the hash Flash puts on it; `addTag` takes it off again.
                             value={settings.tags[index] ? `#${settings.tags[index]}` : ''}
+                            error={isTagError(index)}
                             onChange={(tag) => {
                                 const tags = [ ...settings.tags ];
 
@@ -453,12 +498,17 @@ export const RoomSettingsView = ({
                             height={15}
                         />
                     ))}
+                    {[ ...Array(MAX_TAGS).keys() ].map(index => (
+                        <Box key={index}>
+                            {errorPopup('tags', index * 149, 154, 145, isTagError(index))}
+                        </Box>
+                    ))}
                 </Box>
                 {/* `advanced_container` at 0,253. */}
                 <Box layout={{ position: 'absolute', left: 0, top: 253, width: 218, height: 82 }}>
                     <SettingCheckBox
                         checked={settings.allowWalkThrough}
-                        onToggle={() => onChange({ allowWalkThrough: !settings.allowWalkThrough })}
+                        onToggle={() => onSelectSetting({ allowWalkThrough: !settings.allowWalkThrough })}
                         left={2}
                         top={59}
                         width={20}
@@ -529,7 +579,7 @@ export const RoomSettingsView = ({
                             <SettingRadioButton
                                 key={mode}
                                 selected={Number(settings.doorMode) === Number(mode)}
-                                onSelect={() => onChange({ doorMode: mode })}
+                                onSelect={() => onSelectSetting({ doorMode: mode })}
                                 left={5}
                                 top={18 + (index * 20)}
                                 width={270}
@@ -554,7 +604,9 @@ export const RoomSettingsView = ({
                                 top={0}
                             />
                             <SettingInput
+                                onCommit={onCommit}
                                 value={password}
+                                error={error?.field === 'password'}
                                 onChange={onChangePassword}
                                 maxLength={MAX_TAG_LENGTH}
                                 password
@@ -569,7 +621,9 @@ export const RoomSettingsView = ({
                                 top={32}
                             />
                             <SettingInput
+                                onCommit={onCommit}
                                 value={passwordConfirm}
+                                error={error?.field === 'passwordConfirm'}
                                 onChange={onChangePasswordConfirm}
                                 maxLength={MAX_TAG_LENGTH}
                                 password
@@ -578,6 +632,8 @@ export const RoomSettingsView = ({
                                 width={193}
                                 height={15}
                             />
+                            {errorPopup('password', 1, 15, 193)}
+                            {errorPopup('passwordConfirm', 1, 48, 193)}
                         </Box>
                     )}
                     {/* `doormode_override_info`: Builders Club took the room out of the navigator; staff are not told. */}
@@ -618,7 +674,7 @@ export const RoomSettingsView = ({
                     <Box layout={{ width: 218, height: 82, flexShrink: 0 }}>
                         <SettingCheckBox
                             checked={settings.allowPets}
-                            onToggle={() => onChange({ allowPets: !settings.allowPets })}
+                            onToggle={() => onSelectSetting({ allowPets: !settings.allowPets })}
                             left={3}
                             top={19}
                             width={270}
@@ -631,7 +687,7 @@ export const RoomSettingsView = ({
                         />
                         <SettingCheckBox
                             checked={settings.allowFoodConsume}
-                            onToggle={() => onChange({ allowFoodConsume: !settings.allowFoodConsume })}
+                            onToggle={() => onSelectSetting({ allowFoodConsume: !settings.allowFoodConsume })}
                             left={3}
                             top={39}
                             width={270}
@@ -644,7 +700,7 @@ export const RoomSettingsView = ({
                         />
                         <SettingCheckBox
                             checked={settings.muteAllPets}
-                            onToggle={() => onChange({ muteAllPets: !settings.muteAllPets })}
+                            onToggle={() => onSelectSetting({ muteAllPets: !settings.muteAllPets })}
                             left={3}
                             top={59}
                             width={270}
@@ -802,7 +858,7 @@ export const RoomSettingsView = ({
                 <SettingCheckBox
                     checked={settings.hideWalls}
                     disabled={!hasClub}
-                    onToggle={() => onChange({ hideWalls: !settings.hideWalls })}
+                    onToggle={() => onSelectSetting({ hideWalls: !settings.hideWalls })}
                     left={0}
                     top={104}
                     width={20}
@@ -818,7 +874,7 @@ export const RoomSettingsView = ({
                     options={THICKNESSES.map(x => ({ value: x.thickness, label: t(`navigator.roomsettings.wall_thickness.${x.suffix}`) }))}
                     value={settings.wallThickness}
                     disabled={!hasClub}
-                    onSelect={wallThickness => onChange({ wallThickness })}
+                    onSelect={wallThickness => onSelectSetting({ wallThickness })}
                     left={0}
                     top={125}
                     width={276}
@@ -827,7 +883,7 @@ export const RoomSettingsView = ({
                     options={THICKNESSES.map(x => ({ value: x.thickness, label: t(`navigator.roomsettings.floor_thickness.${x.suffix}`) }))}
                     value={settings.floorThickness}
                     disabled={!hasClub}
-                    onSelect={floorThickness => onChange({ floorThickness })}
+                    onSelect={floorThickness => onSelectSetting({ floorThickness })}
                     left={0}
                     top={156}
                     width={276}
@@ -841,7 +897,7 @@ export const RoomSettingsView = ({
                 <SettingCheckBox
                     checked={!settings.leaveOnDoorTileEnabled}
                     disabled={!hasClub}
-                    onToggle={() => onChange({ leaveOnDoorTileEnabled: !settings.leaveOnDoorTileEnabled })}
+                    onToggle={() => onSelectBehaviour({ leaveOnDoorTileEnabled: !settings.leaveOnDoorTileEnabled })}
                     left={0}
                     top={212}
                     width={20}
@@ -856,7 +912,7 @@ export const RoomSettingsView = ({
                 <SettingCheckBox
                     checked={settings.idleSleepEnabled}
                     disabled={!hasClub}
-                    onToggle={() => onChange({ idleSleepEnabled: !settings.idleSleepEnabled })}
+                    onToggle={() => onSelectBehaviour({ idleSleepEnabled: !settings.idleSleepEnabled })}
                     left={0}
                     top={234}
                     width={20}
@@ -869,7 +925,9 @@ export const RoomSettingsView = ({
                     top={233}
                 />
                 <SettingInput
+                    onCommit={onCommit}
                     value={String(settings.idleSleepTimeoutSeconds)}
+                    error={error?.field === 'idleSleepTimeout'}
                     onChange={text => onChange({ idleSleepTimeoutSeconds: Number(text.replace(/\D/g, '').slice(0, MAX_TIMEOUT_LENGTH)) || 0 })}
                     maxLength={MAX_TIMEOUT_LENGTH}
                     restrict="0-9"
@@ -887,7 +945,7 @@ export const RoomSettingsView = ({
                 <SettingCheckBox
                     checked={settings.idleAutokickEnabled}
                     disabled={!hasClub}
-                    onToggle={() => onChange({ idleAutokickEnabled: !settings.idleAutokickEnabled })}
+                    onToggle={() => onSelectBehaviour({ idleAutokickEnabled: !settings.idleAutokickEnabled })}
                     left={0}
                     top={280}
                     width={20}
@@ -900,7 +958,9 @@ export const RoomSettingsView = ({
                     top={279}
                 />
                 <SettingInput
+                    onCommit={onCommit}
                     value={String(settings.idleAutokickTimeoutSeconds)}
+                    error={error?.field === 'idleAutokickTimeout'}
                     onChange={text => onChange({ idleAutokickTimeoutSeconds: Number(text.replace(/\D/g, '').slice(0, MAX_TIMEOUT_LENGTH)) || 0 })}
                     maxLength={MAX_TIMEOUT_LENGTH}
                     restrict="0-9"
@@ -923,11 +983,13 @@ export const RoomSettingsView = ({
                 <SettingDropmenu
                     options={FLOOD_SENSITIVITIES.map(x => ({ value: x.sensitivity, label: t(x.labelKey) }))}
                     value={settings.chatFloodSensitivity}
-                    onSelect={chatFloodSensitivity => onChange({ chatFloodSensitivity })}
+                    onSelect={chatFloodSensitivity => onSelectSetting({ chatFloodSensitivity })}
                     left={0}
                     top={358}
                     width={276}
                 />
+                {errorPopup('idleSleepTimeout', 24, 255, 50)}
+                {errorPopup('idleAutokickTimeout', 24, 301, 50)}
             </Box>
         );
     }
@@ -999,14 +1061,15 @@ export const RoomSettingsView = ({
                     variant="3"
                     name="moderation_unban_btn"
                     onPointerTap={onUnban}
-                    layout={{ position: 'absolute', left: 190, top: 261, width: 257, height: 32 }}
+                    // The layout's 257 is not its width: a `button` with no `width_min` / `width_max` sizes to its caption.
+                    layout={{ position: 'absolute', left: 190, top: 261, height: 32 }}
                 >
                     {t('navigator.roomsettings.moderation.unban')}
                 </Button>
                 <SettingDropmenu
                     options={levels('mute')}
                     value={normalize('mute', settings.moderation.whoCanMute)}
-                    onSelect={whoCanMute => onChange({ moderation: { ...settings.moderation, whoCanMute } })}
+                    onSelect={whoCanMute => onSelectSetting({ moderation: { ...settings.moderation, whoCanMute } })}
                     left={10}
                     top={61}
                     width={276}
@@ -1014,7 +1077,7 @@ export const RoomSettingsView = ({
                 <SettingDropmenu
                     options={levels('kick')}
                     value={normalize('kick', settings.moderation.whoCanKick)}
-                    onSelect={whoCanKick => onChange({ moderation: { ...settings.moderation, whoCanKick } })}
+                    onSelect={whoCanKick => onSelectSetting({ moderation: { ...settings.moderation, whoCanKick } })}
                     left={10}
                     top={112}
                     width={276}
@@ -1022,7 +1085,7 @@ export const RoomSettingsView = ({
                 <SettingDropmenu
                     options={levels('ban')}
                     value={normalize('ban', settings.moderation.whoCanBan)}
-                    onSelect={whoCanBan => onChange({ moderation: { ...settings.moderation, whoCanBan } })}
+                    onSelect={whoCanBan => onSelectSetting({ moderation: { ...settings.moderation, whoCanBan } })}
                     left={10}
                     top={161}
                     width={276}
@@ -1048,7 +1111,7 @@ export const RoomSettingsView = ({
             <TabContext
                 variant="3"
                 name="tab_context"
-                layout={{ position: 'absolute', left: -6, top: 3, width: 354, height: 32, overflow: 'hidden' }}
+                layout={{ position: 'absolute', left: -6, top: 3, width: 354, height: 32 }}
             >
                 {/*
                   * `habbo_window_layout_tab_context_3`'s own `tab_content`, at y 30 and stretching
@@ -1061,39 +1124,29 @@ export const RoomSettingsView = ({
                     variant="3"
                     layout={{ position: 'absolute', left: 0, right: 0, top: 30, bottom: 0, padding: 0, paddingTop: 0, paddingLeft: 0, paddingRight: 0, paddingBottom: 0, marginTop: 0 }}
                 />
-                {TABS.map((index, position) => (
+                {/* The context's `_SELECTOR` (its variant's 8px padding) lines them up, `spacing` 0 - `SelectorListController.updateSelectableRegion`. */}
+                {visibleTabs.map(index => (
                     <TabButton
                         key={index}
                         variant="3"
                         selected={tab === index}
                         onPointerTap={() => onChangeTab(index)}
-                        layout={{ position: 'absolute', left: position * TAB_WIDTH, top: 0, width: TAB_WIDTH, height: 32 }}
+                        layout={{ width: tabButtonWidth, minWidth: tabButtonWidth, maxWidth: tabButtonWidth, height: 32, flexShrink: 0 }}
                     >
                         {t(`navigator.roomsettings.tab.${index}`)}
                     </TabButton>
                 ))}
             </TabContext>
-            {/* `content_container`: a tab that runs past its 369 (tab 4's flood menu) is cut at its bottom. */}
-            <Box layout={{ position: 'absolute', left: 10, top: 42, width: 327, height: 369, overflow: 'hidden' }}>
+            {/*
+              * `content_container` and the tab containers draw in the frame's graphic context
+              * (`use_parent_graphic_context`), so nothing cuts a tab at the container's 369: tab 4
+              * runs to 395 and its flood menu shows in full, clipped only by the frame itself. The box
+              * is as tall as that tab rather than the layout's 369: a pointer only reaches a child
+              * inside its parent's laid-out box, and Flash hit-tests these against the frame.
+              */}
+            <Box layout={{ position: 'absolute', left: 10, top: 42, width: 327, height: TALLEST_TAB_HEIGHT }}>
                 {body}
             </Box>
-            {!!error && (
-                <ThemeText
-                    text={t(error)}
-                    textStyle="u_regular"
-                    textOptions={{ fill: '#cc0000', wordWrap: true, wordWrapWidth: 196 }}
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 10, top: 413, width: 200 }}
-                />
-            )}
-            <Button
-                variant="3"
-                disabled={saving}
-                onPointerTap={onSave}
-                layout={{ position: 'absolute', left: 217, top: 413, width: 120, height: 26 }}
-            >
-                {t('navigator.roomsettings.save')}
-            </Button>
         </Frame>
     );
 };

@@ -17,15 +17,17 @@
  *   `place_button` works for the owner, or for anyone where the room allows pets
  *   (`PetsModel.placePetToRoom`).
  *
- * Not ported: the unseen item marks on the thumbs, and the breeding dialogs, which are a feature of
- * their own.
+ * - A thumb's ground is green while the unseen item tracker names the pet (`PetsGridItem.setUnseen`,
+ *   category 3); leaving the page or closing the window on it resets that (`InventoryView`).
+ *
+ * Not ported: the breeding dialogs, which are a feature of their own.
  */
 import { IPetCustomPart } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';
 
 import { checkPetInventoryInitialization, placeInventoryPetToRoom } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { InventoryPet, useInventoryPetsActions, useInventoryStore } from '#base/context/inventory';
+import { InventoryPet, UnseenItemCategory, useInventoryPetsActions, useInventoryStore, useInventoryUnseenIds } from '#base/context/inventory';
 import { useRoomStore } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
 import { Border, Box, Button, Dropmenu, DropmenuOption, InfiniteGrid, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
@@ -36,6 +38,8 @@ import { InventoryOptionsContainer } from './InventoryOptionsContainer';
 /** `inventory_thumb_xml`, the same 42x42 thumb the furni grid uses. */
 const THUMB_SIZE = 42;
 const THUMB_COLOR = '#cccccc';
+/** `THUMB_COLOR_UNSEEN` (10275685): the thumb's ground while the tracker names the pet. */
+const THUMB_COLOR_UNSEEN = '#9ccb65';
 
 /** `PetsView.updatePreview`'s directions; its scale of 64 is the one `usePetImageTexture` renders at. */
 const PREVIEW_DIRECTION = 4;
@@ -77,11 +81,12 @@ const getPetImageRequest = (pet: InventoryPet, direction: number, posture?: stri
 interface PetThumbProps {
     pet: InventoryPet;
     selected: boolean;
+    unseen: boolean;
     onSelect: (petId: number) => void;
 }
 
 /** One pet in the grid: the same frame the furni thumbs use, with the pet's picture centred in it. */
-const PetThumb = ({ pet, selected, onSelect }: PetThumbProps) => {
+const PetThumb = ({ pet, selected, unseen, onSelect }: PetThumbProps) => {
     const texture = usePetImageTexture(getPetImageRequest(pet, PREVIEW_DIRECTION, getPetPosture(pet)));
 
     return (
@@ -92,7 +97,7 @@ const PetThumb = ({ pet, selected, onSelect }: PetThumbProps) => {
         >
             <Border
                 variant="5"
-                tintColor={THUMB_COLOR}
+                tintColor={unseen ? THUMB_COLOR_UNSEEN : THUMB_COLOR}
                 layout={{ position: 'absolute', left: 1, top: 1, width: 40, height: 40 }}
             >
                 {texture && (
@@ -141,6 +146,7 @@ export const InventoryPetsView = () => {
     const t = useTranslation();
     const pets = useInventoryStore(x => x.pets);
     const selectedPetId = useInventoryStore(x => x.petSelectedId);
+    const unseenPetIds = useInventoryUnseenIds(UnseenItemCategory.PET);
     const petsAllowed = useRoomStore(x => x.allowPets);
     const isRoomOwner = useRoomStore(x => x.isRoomOwner);
     const { selectPet } = useInventoryPetsActions();
@@ -213,6 +219,7 @@ export const InventoryPetsView = () => {
                             <PetThumb
                                 pet={pet}
                                 selected={pet.id === selectedPetId}
+                                unseen={unseenPetIds.includes(pet.id)}
                                 onSelect={selectPet}
                             />
                         )}

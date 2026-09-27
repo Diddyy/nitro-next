@@ -1,13 +1,18 @@
-import { CreateFlatComposer, CreateFlatComposerType, GetGuestRoomComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
+import { CreateFlatComposer, CreateFlatComposerType, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
+import { groupStore } from '#base/context/groups';
 import { navigatorStore } from '#base/context/navigator';
 import { systemStore } from '#base/context/system';
 
 type Send = WebSocketConnection['send'];
 
-/** The prefix a tag search carries, as the navigator's own filter menu sends it. */
+/** The prefixes a tag and an owner search carry, as the navigator's own filter menu sends them. */
 const TAG_FILTER_PREFIX = 'tag:';
+const OWNER_FILTER_PREFIX = 'owner:';
+
+/** The All Rooms tab - where `HabboNewNavigator` sends every search made from outside the window. */
+const HOTEL_VIEW_SEARCH_CODE = 'hotel_view';
 
 /**
  * `HabboNavigator.goToRoom` -> `RoomSessionManager.gotoRoom` -> `RoomSession.start()`: sends
@@ -49,46 +54,47 @@ export const goToHomeRoom = (send: Send) => {
 };
 
 /**
- * Clicking one of a room's tags searches for it - `HabboNavigator.performTagSearch` - and opens
- * the navigator on the results. Before the navigator metadata has arrived there is no context to
- * search in, so the filter is only left in place for the navigator to show.
+ * `HabboNewNavigator.performSearch`: sends the search and opens the navigator. The window is not
+ * touched until the results land - `setSearchResult` then selects the tab they answer and puts
+ * their filter back in the drop menu and the field, as `NavigatorView.onSearchResults` does, so
+ * a search made from anywhere reads as though it was typed there.
  */
-export const searchRoomTag = (send: Send, tag: string) => {
-    const { topLevelContext, setFilterType, setSearchFilter, setIsSearching } = navigatorStore.getState();
+export const performNavigatorSearch = (send: Send, searchCode: string, filteringData: string = '') => {
+    navigatorStore.getState().setIsSearching(true);
 
-    setFilterType('tag');
-    setSearchFilter(tag);
-
-    if (topLevelContext) {
-        setIsSearching(true);
-
-        send(new NewNavigatorSearchComposer({
-            searchCodeOriginal: topLevelContext.searchCode,
-            // A tag with a space in it is quoted, the way Flash sent it.
-            filteringData: TAG_FILTER_PREFIX + (tag.includes(' ') ? `"${tag}"` : tag),
-        }));
-    }
+    send(new NewNavigatorSearchComposer({ searchCodeOriginal: searchCode, filteringData }));
 
     systemStore.getState().showWindow('navigator');
 };
 
 /**
- * A free-text navigator search, as `navigator/search/<text>` links ask for - the rentable bots'
- * search skill (14) uses one.
+ * Clicking one of a room's tags searches every room for it - the new navigator's
+ * `performTagSearch`, which (unlike the legacy one) sends the tag unquoted.
  */
-export const searchNavigator = (send: Send, text: string) => {
-    const { topLevelContext, setFilterType, setSearchFilter, setIsSearching } = navigatorStore.getState();
+export const searchRoomTag = (send: Send, tag: string) => performNavigatorSearch(send, HOTEL_VIEW_SEARCH_CODE, TAG_FILTER_PREFIX + tag);
 
-    setFilterType('anything');
-    setSearchFilter(text);
+/**
+ * A free-text navigator search, as `navigator/search/<text>` links ask for - the rentable bots'
+ * search skill (14) uses one. `HabboNewNavigator.linkReceived` searches `hotel_view` with it.
+ */
+export const searchNavigator = (send: Send, text: string) => performNavigatorSearch(send, HOTEL_VIEW_SEARCH_CODE, text);
 
-    if (topLevelContext) {
-        setIsSearching(true);
+/**
+ * `ExtendedProfileWindowCtrl`'s rooms link: every room the user owns, in the All Rooms tab with
+ * the owner filter selected and their name in the field.
+ */
+export const searchRoomsByOwner = (send: Send, userName: string) => performNavigatorSearch(send, HOTEL_VIEW_SEARCH_CODE, OWNER_FILTER_PREFIX + userName);
 
-        send(new NewNavigatorSearchComposer({ searchCodeOriginal: topLevelContext.searchCode, filteringData: text }));
-    }
+/**
+ * `NavigatorView.showRoomInfoBubbleAt`: a room of a group whose details the client has not been
+ * told yet asks for them (`getGuildInfo(habboGroupId, false)` - the answer only, no window), so
+ * the room info bubble can show the group's mode icons once they arrive. `HabboNewNavigator` kept
+ * its own cache of `HabboGroupDetailsData`; here it is the groups' one, filled by the same packet.
+ */
+export const requestRoomGroupDetails = (send: Send, groupId: number) => {
+    if ((groupId <= 0) || groupStore.getState().detailsById[groupId]) return;
 
-    systemStore.getState().showWindow('navigator');
+    send(new GetHabboGroupDetailsComposer({ groupId, openDetails: false }));
 };
 
 /** `RoomCreateViewCtrl.onCreateButtonClick`: the server answers with `FlatCreatedMessage`. */

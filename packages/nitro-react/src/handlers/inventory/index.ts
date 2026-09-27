@@ -5,3 +5,4 @@ export * from './registerInventoryFurniHandlers';
 export * from './registerInventoryMarketplaceHandlers';
 export * from './registerInventoryPetsHandlers';
 export * from './registerInventoryTradingHandlers';
+export * from './registerInventoryUnseenHandlers';

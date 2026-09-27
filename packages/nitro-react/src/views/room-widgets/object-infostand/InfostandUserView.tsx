@@ -3,11 +3,12 @@ import { ChangeMottoComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
 import { openProfile, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_SMILE, requestUserDetails, showGroupBadgeInfo } from '#base/commands';
+import { AvatarImage } from '#base/components/AvatarImage';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useRoomUserData } from '#base/hooks';
-import { Border, Box, CloseButton, LayoutImage, Region, TextInput, ThemeImage, ThemeText, useAvatarImageTexture } from '#base/theme';
+import { Border, Box, CloseButton, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
 
 import { InfostandBadgeView } from './InfostandBadgeView';
 
@@ -76,9 +77,8 @@ const BADGE_SLOTS: { slot: number; left: number; top: number }[] = [
  * list is a column here; everything else keeps the layout's absolute rects.
  *
  * `setRealName` looks for a `realname_text` the layout does not have, so Flash never shows the
- * real name, and neither does this. The avatar is `avatar_image` with `avatar_image:cropped`;
- * `useAvatarImageTexture` has no cropped render, so the uncropped image is centred where the
- * cropped one would be.
+ * real name, and neither does this. The avatar is `avatar_image` with `avatar_image:cropped` and
+ * `avatar_image:direction` `southwest` (4): the cropped render at its own size, never scaled.
  */
 export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProps) => {
     const info = useRoomUserData(objectData.objectId);
@@ -88,14 +88,13 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
     const [ motto, setMotto ] = useState('');
     const [ nameHovered, setNameHovered ] = useState(false);
     const mottoMaxLength = useConfigValue<number>('motto.max.length') ?? 38;
-    const mottoChangeEnabled = useConfigValue<boolean>('infostand.motto.change.enabled') ?? true;
+    const mottoChangeEnabled = useConfigValue<boolean>('infostand.motto.change.enabled') === true;
     // `InfoStandWidgetHandler.isActivityDisplayEnabled` shows `score_spacer`, `score_text` and `score_value`.
     const activityDisplayEnabled = useConfigValue<boolean>('activity.point.display.enabled') === true;
     // `InfoStandUserView.createWindow`: `relationship_status_container.visible = getBoolean("relationship.status.enabled")`.
     const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
     const t = useTranslation();
     const { send } = useWebSocketContext();
-    const { texture: avatarTexture, width: avatarWidth, height: avatarHeight } = useAvatarImageTexture(info?.figure, info?.gender ?? AvatarGenderType.Male, { direction: 4 });
 
     const webId = info?.webId ?? -1;
 
@@ -188,12 +187,18 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
                             tooltipDelay={100}
                             cursor="pointer"
                             onPointerTap={() => openProfile(send, info.webId)}
-                            layout={{ position: 'absolute', left: 17, top: 2, width: 66, height: 127, justifyContent: 'center', alignItems: 'center' }}
+                            layout={{ position: 'absolute', left: 17, top: 2, width: 66, height: 127, overflow: 'hidden' }}
                         >
-                            {!showsCrocodile && avatarTexture && (
-                                <pixiSprite
-                                    texture={avatarTexture}
-                                    layout={{ width: avatarWidth, height: avatarHeight }}
+                            {!showsCrocodile && info.figure && (
+                                // `avatar_image`: `AvatarImageWidget.refresh` sizes the widget to its
+                                // bitmap and no `on_resize_align` param moves it, so the image's
+                                // top-left stays at the layout's 16,21, drawn 1:1.
+                                <AvatarImage
+                                    figure={info.figure}
+                                    gender={info.gender ?? AvatarGenderType.Male}
+                                    cropped
+                                    direction={4}
+                                    layout={{ position: 'absolute', left: 16, top: 21 }}
                                 />
                             )}
                         </Region>

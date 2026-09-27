@@ -69,6 +69,8 @@ export const SimpleAlertView = ({ id, caption, subtitle, message, linkTitle, onL
                 rememberPosition={false}
                 resizeDirection="none"
                 margins={[ 1, 30, 1, 1 ]}
+                // `SimpleAlertDialog` disposes `header_button_close`: only `close_button` closes it.
+                closeButtonVisible={false}
                 layout={{ width, height }}
             >
                 {illustration && (

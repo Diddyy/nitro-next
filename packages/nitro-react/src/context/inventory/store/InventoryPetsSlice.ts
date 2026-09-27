@@ -13,8 +13,9 @@
  *   preview's place button work. It is written by the room's permission handler, not by a pet
  *   packet.
  *
- * Not ported: the unseen item tracker (a pet it names sorts to the front of the grid, and the
- * thumb carries the "new" mark), and the pet breeding dialogs, which are their own feature.
+ * Which pets are new is the unseen item tracker's (`InventoryUnseenSlice`, category 3), which the
+ * grid reads for its thumbs; Flash keeps no order for them. Not ported: the pet breeding dialogs,
+ * which are their own feature.
  */
 import { IPetData } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';

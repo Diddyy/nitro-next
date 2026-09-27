@@ -47,7 +47,14 @@ export const isAssetName = (value: string | undefined): value is string => !!val
 /** The not-preloaded bundle an asset belongs to, or `undefined` when it is in a preloaded one. */
 export const lazyBundleForAsset = (name: string): string | undefined => LAZY_BUNDLE_PREFIXES.find(([ prefix ]) => name.startsWith(prefix))?.[1];
 
-export const assetBundleUrl = (name: string): string => (GetConfigValue<string>('asset.bundles.url') ?? DEFAULT_BUNDLE_URL).replace('%name%', name);
+/**
+ * The url of a bundle a hotel may serve itself: the chat styles (`chat.styles.url`), which the asset
+ * manager builds of the client's and the hotel's own (its chat bubble builder) and publishes. Unset, the
+ * bundle is the client's own like every other. Nitro's own key - Flash's styles came in its SWF.
+ */
+const hotelBundleUrl = (name: string): string | undefined => (name === 'chat-styles' ? GetConfigValue<string>('chat.styles.url') : undefined);
+
+export const assetBundleUrl = (name: string): string => hotelBundleUrl(name) || (GetConfigValue<string>('asset.bundles.url') ?? DEFAULT_BUNDLE_URL).replace('%name%', name);
 
 /**
  * Fetches a bundle, or joins the fetch already in flight for it. Safe to call on every render

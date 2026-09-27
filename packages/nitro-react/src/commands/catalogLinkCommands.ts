@@ -12,23 +12,10 @@ import { NitroLogger } from '@nitrodevco/nitro-api';
 
 import { CatalogLocalizedPage } from '#base/context/catalog';
 import { systemStore } from '#base/context/system';
+import { configReader } from '#base/utils';
 
-/**
- * `HabboCatalog.getProperty`: a hotel variable with the `${key}` placeholders in it filled from the
- * other variables (`link.format.club` is `${url.prefix}/shop`).
- */
-const getCatalogProperty = (key: string): string => {
-    const { config } = systemStore.getState();
-    const value = config[key];
-
-    if (typeof value !== 'string') return '';
-
-    return value.replace(/\$\{([^}]*)\}/g, (match, name: string) => {
-        const replacement = config[name];
-
-        return ((typeof replacement === 'string') || (typeof replacement === 'number')) ? String(replacement) : match;
-    });
-};
+/** `getProperty` / `getBoolean` over the current config - see `configReader`. */
+const hotelConfig = () => configReader(systemStore.getState().config);
 
 /**
  * `openExternalLink`: the "leaving the hotel" alert, and the page in the hotel's main browser
@@ -50,10 +37,10 @@ export const onCatalogPageLink = (page: CatalogLocalizedPage, elementName: strin
 
     switch (page.layoutCode) {
         case 'club_buy':
-            if (elementName === 'club_link') openCatalogExternalLink(getCatalogProperty('link.format.club'));
+            if (elementName === 'club_link') openCatalogExternalLink(hotelConfig().configString('link.format.club'));
             return;
         case 'mad_money':
-            if (elementName === 'ctlg_madmoney_button') openCatalogExternalLink(getCatalogProperty('link.format.madmoney'));
+            if (elementName === 'ctlg_madmoney_button') openCatalogExternalLink(hotelConfig().configString('link.format.madmoney'));
             return;
         case 'monkey':
             if ((elementName === 'ctlg_teaserimg_1_region') || (elementName === 'ctlg_special_img_region')) openCatalogExternalLink(getLocalizationValue('link.format.monkey', 'http://store.apple.com/'));

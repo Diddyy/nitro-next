@@ -1,9 +1,11 @@
 import { ReactNode } from 'react';
 
 import { useTranslation } from '#base/context/system';
+import { easeOutCubic, useTween } from '#base/hooks';
 import { Border, Box, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
 
 import { ROOM_TOOLS_BOTTOM, ROOM_TOOLS_SIDE_BAR_WIDTH, ROOM_TOOLS_WIDTH, ROOM_TOOLS_X } from './roomToolsGeometry';
+import { RoomToolsMinimizeButton } from './RoomToolsMinimizeButton';
 
 /** One entry in the tool column, in the order `room_tools_toolbar` stacks them. */
 export interface RoomToolsButton {
@@ -55,6 +57,15 @@ const HISTORY_ROW_HEIGHT = 43;
 const PLAIN_LABEL_KEYS = [ 'button_settings', 'button_achievements' ];
 /** `roomtools_minimizebutton`'s height, which `arrow_collapse` / `arrow_expand` fit to. */
 const ARROW_HEIGHT = 8;
+/** `window_bg`'s width in the layout. */
+const WINDOW_BG_WIDTH = 164;
+/**
+ * `getCollapsedExpandedOffsetX`: `side_bar_expand.width - window_bg.width - 1`, which parks the
+ * column's right edge on the strip's.
+ */
+const COLLAPSED_OFFSET_X = ROOM_TOOLS_SIDE_BAR_WIDTH - WINDOW_BG_WIDTH - 1;
+/** `RoomToolsToolbarCtrl.ANIMATION_DURATION_MS`. */
+const ANIMATION_DURATION_MS = 140;
 
 /**
  * The room tools, on the `room_tools_toolbar` layout (165 wide): the column of room actions in
@@ -63,6 +74,10 @@ const ARROW_HEIGHT = 8;
  *
  * Flash sized the window by summing whichever rows were visible, so the same is done here rather
  * than leaving the layout's nominal 229 height standing when half the rows are hidden.
+ *
+ * Opening and shutting slides the column rather than switching it: `RoomToolsToolbarCtrl.setCollapsed`
+ * -> `beginAnimation` moves `window_bg` between x 1 and its collapsed offset over 140 ms, eased
+ * `1 - (1 - t)^3` (`update`), under the strip, which is drawn over it.
  */
 export const RoomToolsView = ({
     buttons, zoomLevel, canZoomIn, canZoomOut, onZoomIn, onZoomOut,
@@ -71,6 +86,10 @@ export const RoomToolsView = ({
 }: RoomToolsViewProps) => {
     const t = useTranslation();
     const height = (buttons.length * BUTTON_HEIGHT) + ZOOM_ROW_HEIGHT + HISTORY_ROW_HEIGHT;
+    // `applyExpandedBranchOffset`: `window_bg` sits at 1 + the offset, which slides between 0 and the collapsed one.
+    const offsetX = useTween(collapsed ? COLLAPSED_OFFSET_X : 0, ANIMATION_DURATION_MS, easeOutCubic);
+    // `updateVisuals`: `window_bg` stays drawn while the column is still sliding shut.
+    const sliding = offsetX !== (collapsed ? COLLAPSED_OFFSET_X : 0);
 
     return (
         <Box layout={{ position: 'absolute', left: ROOM_TOOLS_X, bottom: ROOM_TOOLS_BOTTOM, width: ROOM_TOOLS_WIDTH, height }}>
@@ -80,14 +99,14 @@ export const RoomToolsView = ({
                     {history}
                 </Box>
             )}
-            {!collapsed && (
+            {(!collapsed || sliding) && (
                 <Border
                     variant="2"
                     name="window_bg"
                     tintColor="#24231e"
                     blend={0.8}
                     ownGraphicContext
-                    layout={{ position: 'absolute', left: 1, width: 164, top: 0, bottom: 0 }}
+                    layout={{ position: 'absolute', left: 1 + Math.round(offsetX), width: WINDOW_BG_WIDTH, top: 0, bottom: 0 }}
                 >
                     <Region
                         name="itemlist_buttons"
@@ -246,24 +265,19 @@ export const RoomToolsView = ({
                     </Region>
                 </Border>
             )}
-            <Border
-                variant="2"
-                tintColor="#3b3933"
-                onPointerTap={onToggleCollapsed}
-                layout={{ position: 'absolute', left: 0, width: ROOM_TOOLS_SIDE_BAR_WIDTH, top: 0, bottom: 0, flex: 1 }}
-            >
-                {/*
-                  * `arrow_collapse` (x 9) while the column is open, `arrow_expand` (x 11, mirrored)
-                  * once it is shut; `RoomToolsToolbarCtrl.updatePosition` centres either on the column's
-                  * height, `int(height * 0.5 - arrow.height * 0.5)`.
-                  */}
-                <ThemeImage
-                    src={LayoutImage('shared/roomtools_minimizebutton.png')}
-                    bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true, ...(collapsed && { zoomX: -1 }) }}
-                    dynamicRole={collapsed ? undefined : 'icon'}
-                    layout={{ position: 'absolute', left: collapsed ? 11 : 9, top: Math.trunc((height * 0.5) - (ARROW_HEIGHT * 0.5)), width: 6, height: ARROW_HEIGHT }}
-                />
-            </Border>
+            {/*
+              * `side_bar_collapse` while the column is open, `side_bar_expand` once it is shut, swapped as
+              * the slide starts (`beginAnimation` -> `updateVisuals`): `arrow_collapse` at x 9, or
+              * `arrow_expand` at x 11 and mirrored, each centred on the column's height by
+              * `updatePosition`, `int(height * 0.5 - arrow.height * 0.5)`.
+              */}
+            <RoomToolsMinimizeButton
+                layout={{ position: 'absolute', left: 0, top: 0, width: ROOM_TOOLS_SIDE_BAR_WIDTH, height }}
+                border={[ 0, 0, ROOM_TOOLS_SIDE_BAR_WIDTH, height ]}
+                arrow={[ collapsed ? 11 : 9, Math.trunc((height * 0.5) - (ARROW_HEIGHT * 0.5)), 6, ARROW_HEIGHT ]}
+                mirrored={collapsed}
+                onPress={onToggleCollapsed}
+            />
         </Box>
     );
 };

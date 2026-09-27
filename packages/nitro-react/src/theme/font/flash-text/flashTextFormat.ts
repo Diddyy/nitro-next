@@ -2,7 +2,7 @@
  * A Flash `TextFormat` together with the `TextField` rendering properties the client set next
  * to it - everything that decides how a string rasterizes.
  */
-import { AntiAliasType, ColorTransform, EtchingPosition, GridFitType, StageQuality } from './air32/types';
+import { AntiAliasType, ColorTransform, EtchingPosition, GridFitType, NormalPenLayout, StageQuality } from './air32/types';
 
 export interface FlashTextFormat {
     /** `Volter`, `Volter Bold`, `Ubuntu` or `UbuntuCondensed` - see `FLASH_FONT_FACES`. */
@@ -24,7 +24,10 @@ export interface FlashTextFormat {
     /** `TextField.sharpness`, -400 to 400. */
     sharpness: number;
     kerning: boolean;
+    /** The stage quality the field is drawn at - see `DEFAULT_FLASH_TEXT_FORMAT`. Only normal anti-aliasing reads it. */
     stageQuality: StageQuality;
+    /** Where a normal anti-aliased run puts its glyphs - see `DEFAULT_FLASH_TEXT_FORMAT`. */
+    normalPenLayout: NormalPenLayout;
     colorTransform: ColorTransform | null;
     /** `0xAARRGGBB` - the skin's one pixel etching; advanced anti-aliasing only. */
     etchingColor: number | null;
@@ -51,7 +54,23 @@ export type FlashTextFieldOverrides = Partial<Pick<FlashTextFormat,
     | 'antiAliasType' | 'gridFitType' | 'thickness' | 'sharpness' | 'kerning'
     | 'etchingColor' | 'etchingPosition'>>;
 
-/** What a `TextField` renders with when its style names nothing else. */
+/**
+ * What a `TextField` renders with when its style names nothing else.
+ *
+ * `stageQuality` is `low` because the client runs its stage at low quality (`HabboAir` sets
+ * `stage.quality = "low"` at start-up), and every window text is drawn at it: `TextSkinRenderer`
+ * puts its field into the window's bitmap with `BitmapData.draw`, which renders at the stage's
+ * quality. Advanced anti-aliasing (Ubuntu, Illumina) ignores the setting.
+ *
+ * `normalPenLayout` is `units`, not the `twips` of Sulake's JavaScript layout, which floors every
+ * advance to whole twips on its own: Volter's 6 px advances (13653 of a 20480 em at 9 px) become
+ * 5.95 px, so each glyph lands a twentieth of a pixel further left than AIR puts it. At high
+ * quality that drew grey smeared columns; at low quality it snapped them crisp but a pixel short
+ * ("di" of "discussion" touching in the room settings' category menu). AIR places every Volter
+ * glyph at the exact sum of its advances - a screenshot of the Flash client's category menu
+ * matches the `units` layout pixel for pixel at either quality and the `twips` one at neither.
+ * The golden corpus pins Sulake's renderer, so it keeps `twips` as the renderer's own default.
+ */
 export const DEFAULT_FLASH_TEXT_FORMAT: Readonly<FlashTextFormat> = Object.freeze({
     fontFamily: 'Volter',
     fontSize: 9,
@@ -66,7 +85,8 @@ export const DEFAULT_FLASH_TEXT_FORMAT: Readonly<FlashTextFormat> = Object.freez
     thickness: 0,
     sharpness: 0,
     kerning: true,
-    stageQuality: 'high',
+    stageQuality: 'low',
+    normalPenLayout: 'units',
     colorTransform: null,
     etchingColor: null,
     etchingPosition: null,

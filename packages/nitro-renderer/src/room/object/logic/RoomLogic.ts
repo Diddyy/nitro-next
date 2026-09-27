@@ -35,7 +35,6 @@ export class RoomLogic extends RoomObjectLogicBase {
     private _colorTransitionLength = 1500;
     private _lastHoleUpdate = 0;
     private _needsMapUpdate = false;
-    private _skipColorTransition = false;
 
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectMouseEvent.MOUSE_MOVE, RoomObjectMouseEvent.CLICK ]);
@@ -65,8 +64,6 @@ export class RoomLogic extends RoomObjectLogicBase {
         this.object.model.setValue(RoomObjectVariableEnum.RoomFloorVisibility, 1);
         this.object.model.setValue(RoomObjectVariableEnum.RoomWallVisibility, 1);
         this.object.model.setValue(RoomObjectVariableEnum.RoomLandscapeVisibility, 1);
-
-        // this._skipColorTransition = GetConfigValue<boolean>('renderer.skipColorTransition') === true;
     }
 
     public override update(time: number): void {
@@ -198,8 +195,7 @@ export class RoomLogic extends RoomObjectLogicBase {
             this._targetLight = message.light;
             this._colorChangedTime = this.time;
 
-            if (this._skipColorTransition) this._colorTransitionLength = 0;
-            else this._colorTransitionLength = 1500;
+            this._colorTransitionLength = 1500;
 
             this.object.model.setValue(RoomObjectVariableEnum.RoomColorizeBgOnly, message.backgroundOnly);
 

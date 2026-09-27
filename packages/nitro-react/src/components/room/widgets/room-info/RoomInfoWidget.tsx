@@ -93,16 +93,15 @@ export const RoomInfoWidget = () => {
             }}
             onMakeHome={() => send(new UpdateHomeRoomComposer({ roomId }))}
             onRemoveRights={() => send(new RemoveOwnRoomRightsRoomComposer({ roomId }))}
-            onRoomSettings={() => showWindow('room_settings')}
+            // `startRoomSettingsEdit`: always the room you are in, even over a navigator-opened one.
+            onRoomSettings={() => showWindow('room_settings', {})}
             onFloorPlanEditor={() => showWindow('floor_plan_editor')}
             onToggleStaffPick={() => {
                 send(new ToggleStaffPickComposer({ roomId, isStaffPicked: !isStaffPicked }));
                 updateEnteredRoom(roomId, { isStaffPicked: !isStaffPicked });
             }}
-            onMuteAll={() => {
-                send(new MuteAllInRoomComposer({}));
-                updateEnteredRoom(roomId, { allInRoomMuted: !allInRoomMuted });
-            }}
+            // `RoomInfoViewCtrl.onMuteAllClick` only asks; `MuteAllInRoomMessage` sets the flag the caption follows.
+            onMuteAll={() => send(new MuteAllInRoomComposer({}))}
             onClose={() => hideWindow('room_info')}
         />
     );
