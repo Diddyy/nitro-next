@@ -27,6 +27,12 @@ export interface ScrollAreaProps {
     hideDisabledScrollbar?: boolean;
     /** Scrolls back to the start whenever this value changes - pass whatever identifies the content (a tab, a category, a page). */
     scrollResetKey?: unknown;
+    /**
+     * Scrolls to the end whenever this value changes - a chat list's newest entry, the way
+     * Flash sets `scrollV = 1` after appending. It waits two frames, so the new content has
+     * been laid out and the end is the new one.
+     */
+    scrollEndKey?: unknown;
     layout?: BoxLayout;
     viewportLayout?: BoxLayout;
     /**
@@ -49,7 +55,7 @@ export interface ScrollAreaProps {
  */
 export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
     (
-        { orientation = 'vertical', variant, defaultVariant, tintColor, step, minThumbSize, reachThreshold, onReachStart, onReachEnd, scrollResetKey, hideDisabledScrollbar = true, layout, viewportLayout, scrollbarLayout, contentLayout, children },
+        { orientation = 'vertical', variant, defaultVariant, tintColor, step, minThumbSize, reachThreshold, onReachStart, onReachEnd, scrollResetKey, scrollEndKey, hideDisabledScrollbar = true, layout, viewportLayout, scrollbarLayout, contentLayout, children },
         ref,
     ) => {
         const showVertical = orientation === 'vertical' || orientation === 'both';
@@ -84,6 +90,20 @@ export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
             verticalScrollTo(0);
             horizontalScrollTo(0);
         }, [ scrollResetKey, verticalScrollTo, horizontalScrollTo ]);
+
+        useEffect(() => {
+            if (scrollEndKey === undefined) return;
+
+            let second = 0;
+            const first = requestAnimationFrame(() => {
+                second = requestAnimationFrame(() => verticalScrollTo(Number.MAX_SAFE_INTEGER));
+            });
+
+            return () => {
+                cancelAnimationFrame(first);
+                cancelAnimationFrame(second);
+            };
+        }, [ scrollEndKey, verticalScrollTo ]);
 
         // Only used by the 'both' branch below - kept unconditional since hooks can't be
         // called conditionally.

@@ -47,6 +47,7 @@ import { RoomToolsMinimizeButton } from '#base/views/room-widgets/room-tools/Roo
 import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
 
 import { ME_MENU_HEIGHT, PROG_MENU_HEIGHT, ToolbarExtendedMenu } from './ToolbarExtendedMenu';
+import { ToolbarMessengerIcon } from './ToolbarMessengerIcon';
 
 /** `bottom_background_border`: 54 high, 3 of it below the desktop (`updatePosition`). */
 const BACKGROUND_HEIGHT = 54;
@@ -359,6 +360,7 @@ export const ToolbarView = () => {
                             layout={{ width: 29, height: 33 }}
                         />
                     </Region>
+                    <ToolbarMessengerIcon />
                     {/* `new_bar`: `collapse_right` (mirrored) while the bar is open, `collapse_left` once it is shut. */}
                     <RoomToolsMinimizeButton
                         layout={{ width: 15, height: 46, flexShrink: 0 }}

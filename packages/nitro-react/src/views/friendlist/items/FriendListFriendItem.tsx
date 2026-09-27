@@ -2,6 +2,8 @@ import { IMessengerFriend, MessengerFriendRelationType } from '@nitrodevco/nitro
 import { Container as PixiContainer } from 'pixi.js';
 import { memo, useRef, useState } from 'react';
 
+import { openMessengerConversation } from '#base/commands';
+import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsActions, useFriendsStore } from '#base/context/friend';
 import { Border, FloatingPopup, getGlobalRect, GlobalRect, Icon, LayoutImage, Region, ThemeImage } from '#base/theme';
 
@@ -54,7 +56,8 @@ export interface FriendListFriendItemProps {
  * The relationship region opens `RelationshipStatusSelector`: the `relationship_chooser` window
  * built on the desktop at the region's global position (`appearAt`), here a `FloatingPopup` so the
  * list's clipping does not cut it. Picking an item closes it; the port has no
- * `setRelationshipStatus` wiring behind the items.
+ * `setRelationshipStatus` wiring behind the items. `start_chat` opens a conversation with the
+ * friend (`FriendsView.onChatButtonClick` -> `messenger.startConversation`).
  */
 export const FriendListFriendItem = memo(({ friend, showRelationshipIcon = true, showFollowIcon = true, showMessageIcon = true, zebraColor }: FriendListFriendItemProps) => {
     const relationshipRef = useRef<PixiContainer | null>(null);
@@ -63,6 +66,7 @@ export const FriendListFriendItem = memo(({ friend, showRelationshipIcon = true,
     const relationshipDropdownId = useFriendsStore(x => x.relationshipDropdownId);
     const selectedFriendIds = useFriendsStore(x => x.selectedFriendIds);
     const { setRelationshipDropdownId, toggleSelectedFriendId, tooltipHandlers } = useFriendsActions();
+    const { send } = useWebSocketContext();
 
     const isSelected = selectedFriendIds.indexOf(friend.playerId) >= 0;
     const isDropdownVisible = relationshipDropdownId === friend.playerId;
@@ -88,7 +92,9 @@ export const FriendListFriendItem = memo(({ friend, showRelationshipIcon = true,
         >
             {showMessageIcon && (
                 <Region
+                    name="start_chat"
                     cursor="pointer"
+                    onPointerTap={() => openMessengerConversation(send, friend.playerId)}
                     onPointerOver={messageHover.onMouseEnter}
                     onPointerOut={messageHover.onMouseLeave}
                     layout={{ position: 'absolute', right: 3, top: 2, width: 16, height: 14 }}

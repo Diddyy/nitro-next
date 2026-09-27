@@ -52,6 +52,8 @@ export interface HeaderProps extends ThemeProps<HeaderVariant> {
     onClose?: () => void;
     /** `header_button_close` exists: a dialog that disposes it (`SimpleAlertDialog`) passes false. */
     closeButtonVisible?: boolean;
+    /** The close button's style where the window code changes it from the skin's. */
+    closeVariant?: string;
     /** Shows the skin's menu button, for the variants whose skin has one (`menuButton`). */
     onMenu?: () => void;
     /**
@@ -65,7 +67,7 @@ export interface HeaderProps extends ThemeProps<HeaderVariant> {
 
 export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, HeaderProps>(
     ({
-        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, caption, onClose, closeButtonVisible = true, onMenu, helpPage, onHelp,
+        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, caption, onClose, closeButtonVisible = true, closeVariant, onMenu, helpPage, onHelp,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
         const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<HeaderVariant>({
@@ -146,11 +148,17 @@ export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiC
                     <Box layout={{ ...controlsAt, flexDirection: 'row', ...(!config.closeAt && { paddingLeft: 2, alignItems: 'center' }) }}>
                         { !config.closeAt && config.needsBgChip && <ColorLayer color={resolvedTint} /> }
                         {helpNode}
-                        {closeButtonVisible && <CloseButton onPointerTap={onClose} />}
+                        {closeButtonVisible && (
+                            <CloseButton
+                                variant={closeVariant}
+                                onPointerTap={onClose}
+                            />
+                        )}
                     </Box>
                 )
             : closeButtonVisible && (
                 <CloseButton
+                    variant={closeVariant}
                     onPointerTap={onClose}
                     layout={controlsAt}
                 />

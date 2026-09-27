@@ -1,6 +1,12 @@
-import { AcceptFriendResultMessage, FindFriendsProcessResultMessage, FollowFriendErrorCodeType, FollowFriendFailedMessage, FriendListErrorCodeType, FriendListFragmentMessage, FriendListUpdateMessage, FriendRequestsMessage, HabboSearchResultMessage, MessengerErrorMessage, MessengerInitMessage, NewFriendRequestMessage, RoomInviteErrorMessage } from '@nitrodevco/nitro-packets';
+import {
+    AcceptFriendResultMessage, ConsoleMessageHistoryMessage, FindFriendsProcessResultMessage, FollowFriendErrorCodeType, FollowFriendFailedMessage, FriendListErrorCodeType, FriendListFragmentMessage, FriendListUpdateMessage,
+    FriendRequestsMessage, HabboGroupDetailsMessage, HabboSearchResultMessage, InstantMessageErrorMessage, MessengerErrorMessage, MessengerInitMessage, NewConsoleMessageMessage, NewFriendRequestMessage, RoomInviteErrorMessage,
+    RoomInviteMessage,
+} from '@nitrodevco/nitro-packets';
 
+import { addMessengerConsoleMessage, addMessengerInstantMessageError, addMessengerRoomInvite, goToRoom, loadMessengerHistory, setMessengerOnlineStatus } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
+import { messengerStore } from '#base/context/messenger';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
@@ -9,9 +15,13 @@ import { on, subscribeAll } from '../packetSubscriptions';
 /**
  * The friend list - Flash's `HabboFriendList` message handlers: the initial fragments, updates,
  * requests, the search tab's results and the errors the list reports. The friend data lives in the
- * user store because the room widgets read it too. The console's own packets (conversations,
- * their history, instant message errors, room invites, mini mail) wait for `HabboMessenger`, which
- * is not ported - `known.HANDLERS_UNHANDLED` lists them rather than empty listeners here.
+ * user store because the room widgets read it too.
+ *
+ * And `HabboMessenger`'s console: new messages, their history, instant message errors and room
+ * invites go to `MainView` (`commands/messengerCommands.ts`); a friend coming online or going
+ * offline is noted in an open conversation (`FriendCategories.onFriendListUpdate` ->
+ * `setOnlineStatus`); a group chat's follow finishes on the group's details. Mini mail
+ * (`client.minimail.embed.enabled`) is not part of this: its unread count has no view yet.
  */
 /**
  * `HabboFriendList.showAlertView`: the text a friend list error code is explained with, for a
@@ -39,7 +49,7 @@ const showFriendListError = (errorCode: number, clientMessageId: number = 0) => 
     friendListAlert(getLocalizationValue('friendlist.alert.title'), key ? getLocalizationValue(key) : `Received messenger error: msg: ${clientMessageId}, errorCode: ${errorCode}`);
 };
 
-export const registerMessengerHandlers = ({ subscribe }: WebSocketConnection) => {
+export const registerMessengerHandlers = ({ send, subscribe }: WebSocketConnection) => {
     const { setFriendLimits, setFriendCategories, processFriends, processFriendUpdates, processFriendRequests, setSearchResults } = userStore.getState();
 
     return subscribeAll(subscribe, [
@@ -89,6 +99,17 @@ export const registerMessengerHandlers = ({ subscribe }: WebSocketConnection) =>
         on(FriendListUpdateMessage, (data) => {
             if (data.friendCategories) setFriendCategories(data.friendCategories);
 
+            // `FriendCategories.onFriendListUpdate`: tell the messenger when a friend's online flag flips.
+            const { friends } = userStore.getState();
+
+            for (const update of data.updates ?? []) {
+                if (!update.friend) continue;
+
+                const wasOnline = friends[update.friend.playerId]?.isOnline ?? false;
+
+                if (wasOnline !== update.friend.isOnline) setMessengerOnlineStatus(send, update.friend.playerId, update.friend.isOnline);
+            }
+
             if (data.updates && data.updates.length > 0) processFriendUpdates(data.updates);
         }),
 
@@ -112,6 +133,26 @@ export const registerMessengerHandlers = ({ subscribe }: WebSocketConnection) =>
 
         on(NewFriendRequestMessage, (data) => {
             processFriendRequests([ data.request ]);
+        }),
+
+        // `HabboMessenger.onNewConsoleMessage`.
+        on(NewConsoleMessageMessage, data => addMessengerConsoleMessage(send, data)),
+
+        // `HabboMessenger.onConsoleHistory`.
+        on(ConsoleMessageHistoryMessage, data => loadMessengerHistory(data.chatId, data.messages)),
+
+        // `HabboMessenger.onInstantMessageError`.
+        on(InstantMessageErrorMessage, data => addMessengerInstantMessageError(send, data.playerId, data.errorCode, data.message)),
+
+        // `HabboMessenger.onRoomInvite`.
+        on(RoomInviteMessage, data => addMessengerRoomInvite(send, data.senderId, data.message)),
+
+        // `HabboMessenger.onHabboGroupDetails`: a group chat's follow goes to the group's room.
+        on(HabboGroupDetailsMessage, (data) => {
+            if (!messengerStore.getState().followingToGroupRoom) return;
+
+            messengerStore.getState().setFollowingToGroupRoom(false);
+            goToRoom(send, data.data.roomId);
         }),
 
         // `HabboFriendList.onRoomInviteError`: shown raw, the recipients joined the way `Util.arrayToString` does.

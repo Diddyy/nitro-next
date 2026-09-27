@@ -58,6 +58,8 @@ export interface FrameProps extends Omit<ThemeProps<FrameVariant>, 'dropShadow'>
     onClose?: () => void;
     /** The header's close button; false where Flash disposes `header_button_close`. */
     closeButtonVisible?: boolean;
+    /** The header close button's style, where the window code sets one. */
+    closeButtonVariant?: string;
     /** Shows the skin's menu button in the header (`IFrameWindow.menuButtonVisible`) and is called when it is pressed. */
     onMenu?: () => void;
     /**
@@ -130,7 +132,7 @@ const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefi
 
 export const Frame = ({
     variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, dropShadow, id, caption, resizeDirection = 'all', contentLayout, margins,
-    defaultPosition, rememberPosition = true, draggable = true, centered, onPositionChange, onClose, closeButtonVisible, onMenu, helpPage, onHelp, backdrop, fitContent, children,
+    defaultPosition, rememberPosition = true, draggable = true, centered, onPositionChange, onClose, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
     const { frameRef, attachFrame, offset, zIndex, revealed, onPointerDown, onHeaderPointerDown } = useFrameDrag(id, { defaultPosition, remember: rememberPosition, centered, onPositionChange });
@@ -236,6 +238,7 @@ export const Frame = ({
                             tintColor={resolvedTint}
                             onClose={onClose}
                             closeButtonVisible={closeButtonVisible}
+                            closeVariant={closeButtonVariant}
                             onMenu={onMenu}
                             helpPage={helpPage}
                             onHelp={onHelp}
