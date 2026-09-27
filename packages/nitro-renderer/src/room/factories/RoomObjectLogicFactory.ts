@@ -24,17 +24,17 @@ import { AvatarLogic,
     FurnitureExternalImageLogic,
     FurnitureFireworksLogic,
     FurnitureFloorHoleLogic,
-    FurnitureGroupForumTerminalLogic,
     FurnitureGuildCustomizedLogic,
+    FurnitureGuildForumTerminalLogic,
     FurnitureHabboWheelLogic,
+    FurnitureHalloweenLovelockLogic,
     FurnitureHighScoreLogic,
     FurnitureHockeyScoreLogic,
-    FurnitureHweenLovelockLogic,
     FurnitureIceStormLogic,
     FurnitureInternalLinkLogic,
     FurnitureJukeboxLogic,
     FurnitureLogic,
-    FurnitureLoveLockLogic,
+    FurnitureLovelockLogic,
     FurnitureMannequinLogic,
     FurnitureMonsterplantSeedLogic,
     FurnitureMultiHeightLogic,
@@ -43,11 +43,11 @@ import { AvatarLogic,
     FurnitureMysteryTrophyLogic,
     FurnitureNftCreditLogic,
     FurnitureOneWayDoorLogic,
-    FurniturePetCustomizationLogic,
+    FurniturePetProductLogic,
     FurniturePlaceholderLogic,
     FurniturePlanetSystemLogic,
     FurniturePresentLogic,
-    FurniturePurchaseableClothingLogic,
+    FurniturePurchasableClothingLogic,
     FurniturePushableLogic,
     FurnitureRandomStateLogic,
     FurnitureRandomTeleportLogic,
@@ -56,7 +56,7 @@ import { AvatarLogic,
     FurnitureRoomBackgroundLogic,
     FurnitureRoomBillboardLogic,
     FurnitureRoomDimmerLogic,
-    FurnitureScoreLogic,
+    FurnitureScoreBoardLogic,
     FurnitureSongDiskLogic,
     FurnitureSoundBlockLogic,
     FurnitureSoundMachineLogic,
@@ -67,11 +67,11 @@ import { AvatarLogic,
     FurnitureWelcomeGiftLogic,
     FurnitureWindowLogic,
     FurnitureYoutubeLogic,
+    ObjectLogicBase,
     PetLogic,
     RoomLogic,
-    RoomObjectLogicBase,
+    RoomTileCursorLogic,
     SelectionArrowLogic,
-    TileCursorLogic,
 } from '../object';
 
 export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
@@ -91,15 +91,15 @@ export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
         }
     }
 
-    public getLogicType(type: string | undefined): typeof RoomObjectLogicBase | undefined {
-        let logic: typeof RoomObjectLogicBase;
+    public getLogicType(type: string | undefined): typeof ObjectLogicBase | undefined {
+        let logic: typeof ObjectLogicBase;
 
         switch (type) {
             case RoomObjectLogicType.ROOM:
                 logic = RoomLogic;
                 break;
             case RoomObjectLogicType.TILE_CURSOR:
-                logic = TileCursorLogic;
+                logic = RoomTileCursorLogic;
                 break;
             case RoomObjectLogicType.SELECTION_ARROW:
                 logic = SelectionArrowLogic;
@@ -176,13 +176,13 @@ export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
                 logic = FurnitureOneWayDoorLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_PET_CUSTOMIZATION:
-                logic = FurniturePetCustomizationLogic;
+                logic = FurniturePetProductLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_PRESENT:
                 logic = FurniturePresentLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_PURCHASABLE_CLOTHING:
-                logic = FurniturePurchaseableClothingLogic;
+                logic = FurniturePurchasableClothingLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_PUSHABLE:
                 logic = FurniturePushableLogic;
@@ -204,7 +204,7 @@ export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
                 logic = FurnitureRoomDimmerLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_SCORE:
-                logic = FurnitureScoreLogic;
+                logic = FurnitureScoreBoardLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_SOUNDBLOCK:
                 logic = FurnitureSoundBlockLogic;
@@ -225,7 +225,7 @@ export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
                 logic = FurnitureWindowLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_LOVELOCK:
-                logic = FurnitureLoveLockLogic;
+                logic = FurnitureLovelockLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_YOUTUBE:
                 logic = FurnitureYoutubeLogic;
@@ -261,10 +261,10 @@ export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
                 logic = FurnitureEcotronBoxLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_GROUP_FORUM_TERMINAL:
-                logic = FurnitureGroupForumTerminalLogic;
+                logic = FurnitureGuildForumTerminalLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_HWEEN_LOVELOCK:
-                logic = FurnitureHweenLovelockLogic;
+                logic = FurnitureHalloweenLovelockLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_INTERNAL_LINK:
                 logic = FurnitureInternalLinkLogic;

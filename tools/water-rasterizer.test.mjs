@@ -15,7 +15,7 @@ const PIXI = {
     Texture: class Texture {},
 };
 
-const FurnitureAnimatedVisualization = class {
+const AnimatedFurnitureVisualization = class {
     direction = 0;
     object;
     totalSprites = 0;
@@ -56,7 +56,7 @@ const ShoreMaskCreatorUtility = load('ShoreMaskCreatorUtility', {
 
 const FurnitureWaterAreaVisualization = load('FurnitureWaterAreaVisualization', {
     '@nitrodevco/nitro-api': { RoomObjectVariableEnum: { FurnitureSizeX: 'size_x', FurnitureSizeY: 'size_y' } },
-    './FurnitureAnimatedVisualization': { FurnitureAnimatedVisualization },
+    './AnimatedFurnitureVisualization': { AnimatedFurnitureVisualization },
     './ShoreMaskCreatorUtility': { ShoreMaskCreatorUtility },
 });
 

@@ -20,9 +20,9 @@ import { RoomPlaneBitmapMaskData } from '../RoomPlaneBitmapMaskData';
 import { RoomPlaneBitmapMaskParser } from '../RoomPlaneBitmapMaskParser';
 import { RoomPlaneData } from '../RoomPlaneData';
 import { RoomPlaneParser } from '../RoomPlaneParser';
-import { RoomObjectLogicBase } from './RoomObjectLogicBase';
+import { ObjectLogicBase } from './ObjectLogicBase';
 
-export class RoomLogic extends RoomObjectLogicBase {
+export class RoomLogic extends ObjectLogicBase {
     private _planeParser: RoomPlaneParser = new RoomPlaneParser();
     private _planeBitmapMaskParser: RoomPlaneBitmapMaskParser = new RoomPlaneBitmapMaskParser();
     private _color = 0xffffff;

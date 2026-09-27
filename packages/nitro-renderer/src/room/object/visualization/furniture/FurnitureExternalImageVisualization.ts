@@ -1,8 +1,8 @@
 import { RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureDynamicThumbnailVisualization } from './FurnitureDynamicThumbnailVisualization';
+import { ExternalIsometricImageFurniVisualization } from './ExternalIsometricImageFurniVisualization';
 
-export class FurnitureExternalImageVisualization extends FurnitureDynamicThumbnailVisualization {
+export class FurnitureExternalImageVisualization extends ExternalIsometricImageFurniVisualization {
     private _url: string | undefined = undefined;
     private _typePrefix: string | undefined = undefined;
 

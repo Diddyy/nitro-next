@@ -11,10 +11,10 @@
  */
 import { IGraphicAsset, RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
-import { FurnitureAnimatedVisualization } from './FurnitureAnimatedVisualization';
+import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 import { ShoreMaskCreatorUtility } from './ShoreMaskCreatorUtility';
 
-export class FurnitureWaterAreaVisualization extends FurnitureAnimatedVisualization {
+export class FurnitureWaterAreaVisualization extends AnimatedFurnitureVisualization {
     private static SHORE_SPRITE_TAG: string = 'shore';
 
     /** Whether any segment of the shore is shown. */
