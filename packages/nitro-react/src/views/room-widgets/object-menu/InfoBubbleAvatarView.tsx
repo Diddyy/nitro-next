@@ -77,8 +77,8 @@ export const InfoBubbleAvatarView = ({ objectData, onClose }: InfoBubbleAvatarVi
     const citizenshipTrack = useConfigValue<boolean>('talent.track.citizenship.enabled') ?? false;
     // `AvatarMenuView`: the config flag, and not while the room's configuration items block hand item control.
     const isHanditemControlBlocked = useRoomStore(x => x.isHanditemControlBlocked);
-    const handItemGiveEnabled = (useConfigValue<boolean>('handitem.give.enabled') ?? true) && !isHanditemControlBlocked;
-    const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') ?? true;
+    const handItemGiveEnabled = (useConfigValue<boolean>('handitem.give.enabled') === true) && !isHanditemControlBlocked;
+    const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
     const replenishCost = useConfigValue<number>('respect.replenish_cost_duckets') ?? 50;
     const showWiredInspect = useWiredShowInspectButton();
     const t = useTranslation();

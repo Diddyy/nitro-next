@@ -46,7 +46,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const nowPlayingSongId = useRoomStore(x => x.nowPlayingSongId);
     const songInfoById = useRoomStore(x => x.songInfoById);
     const groupDetails = useGroupStore(x => (furniData?.groupId ? x.detailsById[furniData.groupId] : undefined));
-    const useButtonEnabled = useConfigValue<boolean>('infostand.use.button.enabled') ?? true;
+    const useButtonEnabled = useConfigValue<boolean>('infostand.use.button.enabled') === true;
     const clockMs = useSecondsClock();
     const { modifyRoomObject } = useRoomObjectModify();
     const { changeItemState } = useRoomObjectInteraction();

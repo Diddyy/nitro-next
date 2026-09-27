@@ -61,6 +61,14 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
     private _filters: Filter[] = FurnitureVisualization.NO_FILTERS;
     private _needsFilterUpdate: boolean = false;
 
+    /**
+     * Layers drawn as nothing (`setHiddenLayers`), `-1` for the shadow - Nitro's own, for the asset
+     * manager's Paint preview, where a layer hidden on the canvas is hidden in the room too.
+     */
+    private _hiddenLayers: ReadonlySet<number> = new Set();
+    private _hiddenLayersKey: string = '';
+    private _needsHiddenUpdate: boolean = false;
+
     private _animationNumber: number = 0;
     private _lookThrough: boolean = false;
     private _needsLookThroughUpdate: boolean = false;
@@ -167,6 +175,11 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
         if (this._needsFilterUpdate) {
             updateSprites = true;
             this._needsFilterUpdate = false;
+        }
+
+        if (this._needsHiddenUpdate) {
+            updateSprites = true;
+            this._needsHiddenUpdate = false;
         }
 
         let animation = 0;
@@ -301,7 +314,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
             const assetData = this.getAsset(assetName, layerId);
 
             if (assetData) {
-                sprite.visible = true;
+                sprite.visible = !this._hiddenLayers.has(layerId === this._shadowLayerIndex ? -1 : layerId);
                 sprite.type = this._type!;
                 sprite.texture = this.getTexture(scale, layerId, assetData);
                 sprite.flipH = assetData.flipH;
@@ -749,6 +762,17 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
     public set filters(filters: Filter[]) {
         this._filters = (filters && filters.length) ? filters : FurnitureVisualization.NO_FILTERS;
         this._needsFilterUpdate = true;
+    }
+
+    /** Hides these layers (`-1`: the shadow); the sprites update on the next frame. Setting the same set again does nothing. */
+    public setHiddenLayers(layers: number[]): void {
+        const key = [ ...layers ].sort((a, b) => a - b).join(',');
+
+        if (key === this._hiddenLayersKey) return;
+
+        this._hiddenLayersKey = key;
+        this._hiddenLayers = new Set(layers);
+        this._needsHiddenUpdate = true;
     }
 
     protected get direction(): number {

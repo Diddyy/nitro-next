@@ -1,5 +1,5 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
-import { CantConnectMessage, CantConnectReason, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, PerkAllowancesMessage, QuitComposer, RoomEntryInfoMessage, RoomForwardMessage, RoomRatingMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { CantConnectMessage, CantConnectReason, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, PerkAllowancesMessage, QuitComposer, RoomEntryInfoMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { forwardToRoom, goToHomeRoom, goToRoom } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -77,6 +77,34 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
         on(UserEventCatsMessage, data => navigator().setEventCategories(data.eventCategories)),
 
         on(NavigatorSearchResultBlocksMessage, data => navigator().setSearchResult(data.searchResult)),
+
+        // IncomingMessages.onRoomInfoUpdated: a room's settings changed - ask for its info again, which the GetGuestRoomResult listener below takes in.
+        on(RoomInfoUpdatedMessage, data => send(new GetGuestRoomComposer({ roomId: data.roomId, enterRoom: false, roomForward: false }))),
+
+        /*
+         * NewIncomingMessages.onMuteAllEvent: the server's answer to the room info panel's mute-all
+         * button - the entered room's `allInRoomMuted`, which the button's caption then follows.
+         */
+        on(MuteAllInRoomMessage, (data) => {
+            const entered = navigator().enteredRoom;
+
+            if (entered) navigator().updateEnteredRoom(entered.info.roomId, { allInRoomMuted: data.allMuted });
+        }),
+
+        /*
+         * IncomingMessages.onFlatCreated: straight into the room just made
+         * (`goToRoom(flatId, true)`), then `goToMainView` hides the room creation window and
+         * `closeNavigator` the navigator. Flash also remembers the id as `createdFlatId` so the
+         * first entry skips the room-entry ad; the port shows no such ad.
+         */
+        on(FlatCreatedMessage, (data) => {
+            goToRoom(send, data.roomId);
+
+            const { hideWindow } = systemStore.getState();
+
+            hideWindow('navigator_room_create');
+            hideWindow('navigator');
+        }),
 
         on(NavigatorCollapsedCategoriesMessage, (data) => {
             navigator().setCollapsedCategories((data as { collapsedCategories?: string[] }).collapsedCategories ?? []);

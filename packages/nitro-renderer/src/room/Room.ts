@@ -343,7 +343,8 @@ export class Room implements IRoom {
             RoomObjectCategoryEnum.Cursor,
         );
 
-        if (GetConfigValue<boolean>('renderer.avatarArrowEnabled') ?? false) this.createRoomObjectAndInitalize(
+        // `RoomEngine`: the selection arrow only when the avatar widget is off - `!getBoolean("avatar.widget.enabled")`.
+        if (GetConfigValue<boolean>('avatar.widget.enabled') !== true) this.createRoomObjectAndInitalize(
             Room.ARROW_OBJECT_ID,
             Room.ARROW_OBJECT_TYPE,
             RoomObjectCategoryEnum.Cursor,
@@ -927,21 +928,23 @@ export class Room implements IRoom {
 
         const roomObject = this.createRoomObjectFloor(data.objectId, typeName);
 
-        if (roomObject) {
-            roomObject.model.setValue(
-                RoomObjectVariableEnum.FurnitureColor,
-                GetRoomContentLoader().getFurnitureFloorColorIndex(data.typeId),
-            );
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureTypeId, data.typeId);
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureAdUrl, '');
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureRealRoomObject, data.realRoomObject ? 1 : 0);
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExpiryTime, data.expires);
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExpiryTimestamp, GetTickerTime());
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureUsagePolicy, data.usagePolicy);
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureOwnerId, data.ownerId);
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureOwnerName, data.ownerName);
-            roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExtra, data.extra);
-        }
+        // As `addFurnitureWallFromData` does: an object that could not be made is not updated, or
+        // `updateRoomObjectFloor` asks `getRoomObject`, which makes it from this same data again - forever.
+        if (!roomObject) return false;
+
+        roomObject.model.setValue(
+            RoomObjectVariableEnum.FurnitureColor,
+            GetRoomContentLoader().getFurnitureFloorColorIndex(data.typeId),
+        );
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureTypeId, data.typeId);
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureAdUrl, '');
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureRealRoomObject, data.realRoomObject ? 1 : 0);
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExpiryTime, data.expires);
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExpiryTimestamp, GetTickerTime());
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureUsagePolicy, data.usagePolicy);
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureOwnerId, data.ownerId);
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureOwnerName, data.ownerName);
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExtra, data.extra);
 
         if (!this.updateRoomObjectFloor(data.objectId, data.location, data.direction, data.state, data.objectData, data.extra)) return false;
 

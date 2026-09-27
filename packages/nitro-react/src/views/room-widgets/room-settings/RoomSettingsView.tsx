@@ -4,6 +4,7 @@ import { ReactNode, useState } from 'react';
 
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Border, Box, Button, ButtonThick, CheckBox, Dropmenu, Frame, Icon, RadioButton, Region, ScrollArea, TabButton, TabContent, TabContext, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { flatCategoryName } from '#base/utils';
 
 export interface RoomSettingsViewProps {
     settings: RoomSettingsDataEventMessageType;
@@ -124,15 +125,6 @@ const MAX_DESCRIPTION_LENGTH = 255;
 const MAX_TAG_LENGTH = 30;
 const MAX_TIMEOUT_LENGTH = 5;
 const MAX_TAGS = 2;
-
-/**
- * `FlatCategory.visibleName`: a category with a global key is named by
- * `${navigator.flatcategory.global.<key>}`; one without it carries the name the server sent, which
- * is not a key and is shown as it stands.
- */
-const categoryName = (category: IFlatCategory, t: (key: string) => string) => (category.globalCategoryKey
-    ? t(`navigator.flatcategory.global.${category.globalCategoryKey}`)
-    : category.nodeName);
 
 /** `ros_room_settings`' inputs: `u_regular` in a `0x959595` border over `0xfbfbf9`. */
 const INPUT_BORDER = '#959595';
@@ -397,7 +389,7 @@ export const RoomSettingsView = ({
                         top={0}
                     />
                     <SettingDropmenu
-                        options={shownCategories.map(category => ({ value: category.nodeId, label: categoryName(category, t) }))}
+                        options={shownCategories.map(category => ({ value: category.nodeId, label: flatCategoryName(category, t) }))}
                         value={settings.categoryId}
                         onSelect={categoryId => onChange({ categoryId })}
                         left={0}
@@ -999,7 +991,8 @@ export const RoomSettingsView = ({
                     variant="3"
                     name="moderation_unban_btn"
                     onPointerTap={onUnban}
-                    layout={{ position: 'absolute', left: 190, top: 261, width: 257, height: 32 }}
+                    // The layout's 257 is not its width: a `button` with no `width_min` / `width_max` sizes to its caption.
+                    layout={{ position: 'absolute', left: 190, top: 261, height: 32 }}
                 >
                     {t('navigator.roomsettings.moderation.unban')}
                 </Button>
@@ -1061,13 +1054,14 @@ export const RoomSettingsView = ({
                     variant="3"
                     layout={{ position: 'absolute', left: 0, right: 0, top: 30, bottom: 0, padding: 0, paddingTop: 0, paddingLeft: 0, paddingRight: 0, paddingBottom: 0, marginTop: 0 }}
                 />
-                {TABS.map((index, position) => (
+                {/* The context's `_SELECTOR` (its variant's 8px padding) lines them up, `spacing` 0 - `SelectorListController.updateSelectableRegion`. */}
+                {TABS.map(index => (
                     <TabButton
                         key={index}
                         variant="3"
                         selected={tab === index}
                         onPointerTap={() => onChangeTab(index)}
-                        layout={{ position: 'absolute', left: position * TAB_WIDTH, top: 0, width: TAB_WIDTH, height: 32 }}
+                        layout={{ width: TAB_WIDTH, minWidth: TAB_WIDTH, maxWidth: TAB_WIDTH, height: 32, flexShrink: 0 }}
                     >
                         {t(`navigator.roomsettings.tab.${index}`)}
                     </TabButton>

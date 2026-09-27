@@ -4,7 +4,7 @@ import { GetRoomEngine, PetFigureData } from '@nitrodevco/nitro-renderer';
 import { useEffect, useEffectEvent } from 'react';
 
 import { initializeRoomObjectInsert } from '#base/commands';
-import { useCatalogPurchaseStore } from '#base/context/catalog-purchase';
+import { useCatalogGiftReceiverActions } from '#base/context/catalog-purchase';
 import { useWebSocketContext } from '#base/context/communication';
 import { INVENTORY_FURNI_CATEGORY_POSTER, useInventoryStore } from '#base/context/inventory';
 import { useRoomStore, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
@@ -60,7 +60,7 @@ export const FurniturePresentOpenedWidget = () => {
     const productData = useSystemStore(x => x.productData);
     const furniGroups = useInventoryStore(x => x.furniGroups);
     const usersByRoomObjectId = useRoomStore(x => x.usersByRoomObjectId);
-    const setGiftReceiver = useCatalogPurchaseStore(x => x.setGiftReceiver);
+    const { setGiftReceiver } = useCatalogGiftReceiverActions();
     const { closeRoomWidget, mergeRoomWidgetData } = useRoomWidgetActions();
     const { showWindow } = useWindowActions();
     const { modifyRoomObject } = useRoomObjectModify();

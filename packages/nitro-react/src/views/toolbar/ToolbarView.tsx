@@ -7,15 +7,26 @@
  * `ProgMenuController`).
  *
  * Which icons show follows the port's own collapse and landing view state, not `setToolbarState`'s
- * tag groups. The collapse arrow is the captured `collapse_left` art (the layout's style 2 border
- * with `roomtools_minimizebutton` over it) rather than the two drawn apart. The right-hand group is
- * a stand-in for the friend bar's `friendtools` (`new_bar` of `habbo-friend-bar-com`), which has no
- * port yet, and keeps its own flex placement.
+ * tag groups. The collapse arrow is the layout's own: `collapse_left` / `collapse_right` - the
+ * room tools' `roomtools_minimizebutton` in a 13x45 box at (1, 0) of a 15-wide region at (0, -1)
+ * - over the unnamed style 2 border in `0x3b3933` at (-6, 0), 20x43, of which the window's left
+ * edge leaves the right 14 with its rounded corners. Expanded it points left; collapsed it is
+ * `icons_toolbar_collapse_right`, mirrored and etched. The right-hand group is a stand-in for the
+ * friend bar's `friendtools` (`new_bar` of `habbo-friend-bar-com`), which has no port yet, and
+ * keeps its own flex placement; its arrow is `new_bar`'s `collapse_right` / `collapse_left`.
+ *
+ * Collapsing slides rather than switches (`BottomBarLeft.onCollapseToolsBar` ->
+ * `startCollapseAnimation`, `onAnimationTimer`): over 140 ms, eased `1 - (1 - t)^3`, the icons that
+ * only the expanded bar shows fade out where they stand (`applyAnimatedToggleLayout`: `blend`
+ * `1 - t`, or `t` coming back) while the rest move to their new x and the bar narrows with them.
+ * The arrows are `TOGGLE` items too, and `checkSize` only swaps them when the state lands at the
+ * end, so the left arrow fades out with the icons on the way in and the right one holds until the
+ * end on the way out. A press while it runs is ignored, as Flash's is.
  */
 import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
 import { QuitComposer } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer } from 'pixi.js';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 import { goToHomeRoom, openClientLink, openProfile, toggleCatalog } from '#base/commands';
 import { AvatarImage } from '#base/components';
@@ -23,7 +34,9 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useIsLandingViewVisible, useSystemActions, useTranslation } from '#base/context/system';
 import { useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
-import { Border, LayoutImage, Region, ThemeImage, useLayoutEvent } from '#base/theme';
+import { easeOutCubic, useTween } from '#base/hooks';
+import { Border, Box, LayoutImage, Region, ThemeImage, useLayoutEvent } from '#base/theme';
+import { RoomToolsMinimizeButton } from '#base/views/room-widgets/room-tools/RoomToolsMinimizeButton';
 
 import { ME_MENU_HEIGHT, PROG_MENU_HEIGHT, ToolbarExtendedMenu } from './ToolbarExtendedMenu';
 
@@ -33,6 +46,10 @@ const BACKGROUND_HEIGHT = 54;
 const BAR_HEIGHT = 46;
 /** Every `toolbar_items` region is 45 wide. */
 const ITEM_WIDTH = 45;
+/** `toolbar_items`' `spacing`. */
+const ITEM_SPACING = 8;
+/** `BottomBarLeft.COLLAPSE_ANIMATION_DURATION_MS`. */
+const COLLAPSE_ANIMATION_DURATION_MS = 140;
 
 interface ToolbarItemProps {
     tooltip: string;
@@ -63,10 +80,47 @@ const ToolbarItem = ({ tooltip, onPointerTap, src, icon: [ x, y, width, height ]
     </Region>
 );
 
+interface ToolbarToggleSlotProps {
+    /** How much of the icon is left: 1 in the expanded bar, 0 in the collapsed one. */
+    shown: number;
+    /** How many of the other expanded-only icons come before this one. */
+    index: number;
+    children: ReactNode;
+}
+
+/**
+ * An icon only the expanded bar shows, while the bar folds: its slot narrows so the icons after it
+ * move up, and it fades where it stood - `applyAnimatedToggleLayout` keeps a hidden item's x - so
+ * it is drawn back by as much as the slots before it have given up. Settled, it is just the icon.
+ */
+const ToolbarToggleSlot = ({ shown, index, children }: ToolbarToggleSlotProps) => {
+    if (shown >= 1) return children;
+
+    const slotWidth = Math.round((ITEM_WIDTH + ITEM_SPACING) * shown);
+
+    return (
+        <Box
+            alpha={shown}
+            layout={{ width: slotWidth, marginRight: -ITEM_SPACING, height: 41, flexShrink: 0 }}
+        >
+            <Box layout={{ position: 'absolute', left: (ITEM_WIDTH + ITEM_SPACING - slotWidth) * index, top: 0 }}>
+                {children}
+            </Box>
+        </Box>
+    );
+};
+
 export const ToolbarView = () => {
     const [ isMeExpanded, setMeExpanded ] = useState(false);
     const [ isProgressionExpanded, setProgressionExpanded ] = useState(false);
     const [ leftSideCollapsed, setLeftSideCollapsed ] = useState(false);
+    // 0 expanded, 1 collapsed, and in between while `onAnimationTimer` runs.
+    const collapseProgress = useTween(leftSideCollapsed ? 1 : 0, COLLAPSE_ANIMATION_DURATION_MS, easeOutCubic);
+    const collapseRunning = collapseProgress !== (leftSideCollapsed ? 1 : 0);
+    // The icons only the expanded bar shows are tagged for every state but `VISIBLE_COLLAPSED`.
+    const expandedOnlyShown = 1 - collapseProgress;
+    // `checkSize` swaps the arrows when the new state is set, at the end of the run.
+    const arrowCollapsed = collapseRunning ? !leftSideCollapsed : leftSideCollapsed;
     const [ rightSideCollapsed, setRightSideCollapsed ] = useState(false);
     const ownFigure = useOwnUserFigure();
     const ownGender = useOwnUserGender();
@@ -112,47 +166,73 @@ export const ToolbarView = () => {
                     ref={setLeftGroup}
                     layout={{ position: 'absolute', left: 0, top: BACKGROUND_HEIGHT - BAR_HEIGHT, height: BAR_HEIGHT, flexDirection: 'row', alignItems: 'flex-start' }}
                 >
-                    <ThemeImage
-                        src={LayoutImage(leftSideCollapsed ? 'toolbar/collapse_left_active.png' : 'toolbar/collapse_left.png')}
-                        width={14}
-                        height={43}
-                        onPointerTap={() => setLeftSideCollapsed(prev => !prev)}
-                        layout={{ flexShrink: 0 }}
+                    {/*
+                      * `arrow_container_left` fades with the icons as the bar collapses; `arrow_container_right`
+                      * is in every state, so the collapsed arrow never fades.
+                      */}
+                    <RoomToolsMinimizeButton
+                        layout={{ width: 15, height: 45, marginTop: -1, flexShrink: 0 }}
+                        border={[ -6, 1, 20, 43 ]}
+                        arrow={[ 1, 0, 13, 45 ]}
+                        mirrored={arrowCollapsed}
+                        etched={arrowCollapsed}
+                        alpha={arrowCollapsed ? 1 : expandedOnlyShown}
+                        onPress={() => {
+                            // `onCollapseToolsBar` returns while the timer runs.
+                            if (!collapseRunning) setLeftSideCollapsed(!leftSideCollapsed);
+                        }}
                     />
                     {/* `toolbar_items`: a boxsizer at x 19, `spacing` 8, `padding_vertical` 1. */}
-                    <Region layout={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginLeft: 5, paddingTop: 1, paddingBottom: 1, height: BAR_HEIGHT }}>
-                        {!leftSideCollapsed && !landingViewVisible && (
-                            <ToolbarItem
-                                tooltip={t('toolbar.icon.tooltip.exitroom.hotelview')}
-                                onPointerTap={goToHotelView}
-                                src="toolbar/bottom_bar_logo.png"
-                                icon={[ 8, 5, 28, 28 ]}
-                            />
-                        ) }
-                        {!leftSideCollapsed && landingViewVisible && (
-                            <ToolbarItem
-                                tooltip={t('toolbar.icon.tooltip.exitroom.home')}
-                                // HTIE_ICON_HOME -> goToHomeRoom(): a room forward to the home room (its GetGuestRoomResult starts the session)
-                                onPointerTap={() => goToHomeRoom(send)}
-                                src="toolbar/bottom_bar_home.png"
-                                icon={[ 6, 5, 32, 30 ]}
-                            />
-                        ) }
-                        {!leftSideCollapsed && (
-                            <ToolbarItem
-                                tooltip={t('toolbar.icon.label.navigator')}
-                                onPointerTap={() => toggleWindow('navigator')}
-                                src="toolbar/bottom_bar_navigator.png"
-                                icon={[ 0, 5, 44, 30 ]}
-                            />
+                    <Region layout={{ flexDirection: 'row', alignItems: 'flex-start', gap: ITEM_SPACING, marginLeft: 4, paddingTop: 1, paddingBottom: 1, height: BAR_HEIGHT }}>
+                        {(expandedOnlyShown > 0) && (
+                            <ToolbarToggleSlot
+                                shown={expandedOnlyShown}
+                                index={0}
+                            >
+                                {!landingViewVisible && (
+                                    <ToolbarItem
+                                        tooltip={t('toolbar.icon.tooltip.exitroom.hotelview')}
+                                        onPointerTap={goToHotelView}
+                                        src="toolbar/bottom_bar_logo.png"
+                                        icon={[ 8, 5, 28, 28 ]}
+                                    />
+                                )}
+                                {landingViewVisible && (
+                                    <ToolbarItem
+                                        tooltip={t('toolbar.icon.tooltip.exitroom.home')}
+                                        // HTIE_ICON_HOME -> goToHomeRoom(): a room forward to the home room (its GetGuestRoomResult starts the session)
+                                        onPointerTap={() => goToHomeRoom(send)}
+                                        src="toolbar/bottom_bar_home.png"
+                                        icon={[ 6, 5, 32, 30 ]}
+                                    />
+                                )}
+                            </ToolbarToggleSlot>
                         )}
-                        {!leftSideCollapsed && (
-                            <ToolbarItem
-                                tooltip={t('toolbar.icon.label.progression')}
-                                onPointerTap={() => toggleMenu('progression')}
-                                src="toolbar/bottom_bar_progression.png"
-                                icon={[ 0, 0, 44, 37 ]}
-                            />
+                        {(expandedOnlyShown > 0) && (
+                            <ToolbarToggleSlot
+                                shown={expandedOnlyShown}
+                                index={1}
+                            >
+                                <ToolbarItem
+                                    tooltip={t('toolbar.icon.label.navigator')}
+                                    onPointerTap={() => toggleWindow('navigator')}
+                                    src="toolbar/bottom_bar_navigator.png"
+                                    icon={[ 0, 5, 44, 30 ]}
+                                />
+                            </ToolbarToggleSlot>
+                        )}
+                        {(expandedOnlyShown > 0) && (
+                            <ToolbarToggleSlot
+                                shown={expandedOnlyShown}
+                                index={2}
+                            >
+                                <ToolbarItem
+                                    tooltip={t('toolbar.icon.label.progression')}
+                                    onPointerTap={() => toggleMenu('progression')}
+                                    src="toolbar/bottom_bar_progression.png"
+                                    icon={[ 0, 0, 44, 37 ]}
+                                />
+                            </ToolbarToggleSlot>
                         )}
                         <ToolbarItem
                             tooltip={t('toolbar.icon.label.catalogue')}
@@ -262,12 +342,13 @@ export const ToolbarView = () => {
                             layout={{ width: 29, height: 33 }}
                         />
                     </Region>
-                    <ThemeImage
-                        src={LayoutImage(rightSideCollapsed ? 'toolbar/collapse_right_active.png' : 'toolbar/collapse_right.png')}
-                        width={14}
-                        height={43}
-                        cursor="pointer"
-                        onPointerTap={() => setRightSideCollapsed(prev => !prev)}
+                    {/* `new_bar`: `collapse_right` (mirrored) while the bar is open, `collapse_left` once it is shut. */}
+                    <RoomToolsMinimizeButton
+                        layout={{ width: 15, height: 46, flexShrink: 0 }}
+                        border={[ 0, 1, 20, 43 ]}
+                        arrow={[ 1, 0, 13, 45 ]}
+                        mirrored={!rightSideCollapsed}
+                        onPress={() => setRightSideCollapsed(prev => !prev)}
                     />
                 </Region>
             </Region>

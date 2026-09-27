@@ -50,7 +50,6 @@ export const FurnitureBackgroundColorWidget = () => {
             saturation={current.saturation}
             lightness={current.lightness}
             previewColor={`#${previewColor.toString(16).padStart(6, '0')}`}
-            isOn={roomObject.getState() === 1}
             onChange={(hue, saturation, lightness) => setDraft({ hue, saturation, lightness })}
             onApply={() => send(new SetRoomBackgroundColorDataComposer({ objectId: request.objectId, ...current }))}
             onToggle={() => send(new UseFurnitureComposer({ objectId: request.objectId, param: 0 }))}

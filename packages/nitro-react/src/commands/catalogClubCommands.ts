@@ -27,7 +27,7 @@ import { CatalogStore, CLUB_CENTER_DATA_UPDATE_INTERVAL, CLUB_OFFERS_SOURCE_CLUB
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { clubBuyOfferAsPurchasableOffer } from '#base/utils';
+import { clubBuyOfferAsPurchasableOffer, configReader } from '#base/utils';
 
 import { showPurchaseConfirmation } from './catalogCommands';
 import { openCatalogExternalLink } from './catalogLinkCommands';
@@ -40,26 +40,8 @@ type CatalogStoreApi = StoreApi<CatalogStore>;
 
 const t = (key: string, defaultValue?: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, defaultValue, replacements);
 
-/** `getProperty`: a hotel variable with its `${key}` placeholders filled from the other variables, '' when unset. */
-const getProperty = (key: string): string => {
-    const { config } = systemStore.getState();
-    const value = config[key];
-
-    if ((typeof value !== 'string') && (typeof value !== 'number')) return '';
-
-    return String(value).replace(/\$\{([^}]*)\}/g, (match, name: string) => {
-        const replacement = config[name];
-
-        return ((typeof replacement === 'string') || (typeof replacement === 'number')) ? String(replacement) : match;
-    });
-};
-
-/** `getBoolean`: only `true` / `"true"` / `"1"` count, anything else is Flash's `false` default. */
-const getBoolean = (key: string): boolean => {
-    const value = systemStore.getState().config[key];
-
-    return (value === true) || (value === 'true') || (value === '1');
-};
+/** `getProperty` / `getBoolean` over the current config - see `configReader`. */
+const hotelConfig = () => configReader(systemStore.getState().config);
 
 /** `CatalogNavigator.getNodeById` / `getNodeByName`: the first node below the root that matches. */
 const findCatalogNode = (node: ICatalogNode | undefined, match: (node: ICatalogNode) => boolean, isRoot: boolean = true): ICatalogNode | undefined => {
@@ -83,7 +65,7 @@ const findCatalogNode = (node: ICatalogNode | undefined, match: (node: ICatalogN
  */
 export const showNotEnoughCreditsAlert = () => {
     systemStore.getState().showConfirm(t('catalog.alert.notenough.title'), t('catalog.alert.notenough.credits.description'), () => {
-        const url = getProperty('web.shop.relativeUrl');
+        const url = hotelConfig().configString('web.shop.relativeUrl');
 
         if (url.length) window.open(url, 'habboMain');
     }, { onClose: () => resetPlacedOfferData() });
@@ -96,16 +78,16 @@ export const showNotEnoughCreditsAlert = () => {
  * `resetPlacedOfferData`).
  */
 export const showNotEnoughActivityPointsAlert = (type: number) => {
-    const { config, showAlert, showConfirm } = systemStore.getState();
-    // `getActivityPointName`: the config names the currency's text key, which is then localized.
-    const nameKey = (config[`activitypoint.name.${type}`] as string | undefined) ?? '';
+    const { showAlert, showConfirm } = systemStore.getState();
+    // `getActivityPointName`: `getProperty` names the currency's text key (its `${...}` filled in), which is then localized.
+    const nameKey = hotelConfig().configString(`activitypoint.name.${type}`);
     const currencyname = t(nameKey, nameKey);
     const title = t('catalog.alert.notenough.activitypoints.title', '', { currencyname });
     const description = t('catalog.alert.notenough.activitypoints.description', '', { currencyname });
 
     const onClose = () => resetPlacedOfferData();
 
-    if (type === 0) showConfirm(title, description, () => openCatalogExternalLink(getProperty('link.format.duckets')), { onClose });
+    if (type === 0) showConfirm(title, description, () => openCatalogExternalLink(hotelConfig().configString('link.format.duckets')), { onClose });
     else showAlert(title, description, { onClose });
 };
 
@@ -237,8 +219,8 @@ export const confirmClubGift = (send: Send, store: CatalogStoreApi) => {
  * otherwise the club web page (`openLink(link.format.club)`).
  */
 export const showVipBenefits = (store: CatalogStoreApi) => {
-    if (getBoolean('catalog.vip.benefits.enabled')) store.getState().setVipBenefitsVisible(true);
-    else openCatalogExternalLink(getProperty('link.format.club'));
+    if (hotelConfig().configBoolean('catalog.vip.benefits.enabled')) store.getState().setVipBenefitsVisible(true);
+    else openCatalogExternalLink(hotelConfig().configString('link.format.club'));
 };
 
 /** `openClubCenter`: the `habboUI/open/hccenter` link, which the club centre answers. */

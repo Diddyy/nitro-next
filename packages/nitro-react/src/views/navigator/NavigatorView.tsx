@@ -2,7 +2,7 @@ import { ForwardToARandomPromotedRoomComposer, GetGuestRoomComposer, IRoomInfo, 
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
-import { useTranslation } from '#base/context/system';
+import { useSystemActions, useTranslation } from '#base/context/system';
 import { useWindowVisibility } from '#base/hooks';
 import { Border, Frame, LayoutImage, Region, ScrollArea, TabButton, TabContext, ThemeImage, ThemeText } from '#base/theme';
 
@@ -76,7 +76,7 @@ const RoomButton = ({ name, borderVariant, left, image, caption, tooltip, onTap 
  * - The left pane (`QuickLinksView`) hides and shows from `temp_back`
  *   (`leftPaneShowHideProcedure` -> `setLeftPaneVisibility`): hidden, the window narrows by 153,
  *   `right_pane` moves to x 7 at its own width and the tab context to 115 - 80.
- * - `onSearchResults`: `create_room` always, then `promote_room_border` for `roomads_view` /
+ * - `onSearchResults`: `create_room` always (opening `NavigatorRoomCreateView`), then `promote_room_border` for `roomads_view` /
  *   `myworld_view` and `random_room_border` otherwise, in the same place.
  * - While a search is out the window says so the way `isBusy` did: the caption turns to
  *   `${navigator.title.is.busy}` and the translucent `search_waiting_for_results_mask` (colour
@@ -96,6 +96,7 @@ export const NavigatorView = () => {
     const preferences = useNavigatorStore(x => x.preferences);
     const { setTopLevelContext, setIsSearching, setLeftPaneHidden, toggleCollapsedCategory, setViewMode } = useNavigatorActions();
     const { hide } = useWindowVisibility('navigator');
+    const { showWindow } = useSystemActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
 
@@ -187,6 +188,8 @@ export const NavigatorView = () => {
                     image={LayoutImage('navigator/newnavigator_create_room.png')}
                     caption={t('navigator.create.room')}
                     tooltip={t('navigator.tooltip.create.room')}
+                    // `createRoomProcedure` -> `HabboNewNavigator.createRoom`: the room creation window.
+                    onTap={() => showWindow('navigator_room_create')}
                 />
                 {showPromote
                     ? (

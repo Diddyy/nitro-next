@@ -4,14 +4,15 @@ import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { useEffect } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useIsLandingViewVisible } from '#base/context/system';
+import { useConfigValue } from '#base/context/system';
 
-import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, MessengerComponent, NavigatorComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTradeComponent, WiredTransactionsComponent } from './components';
+import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, NavigatorComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTradeComponent, WiredTransactionsComponent } from './components';
 import { TargetedOfferComponent } from './components/catalog/TargetedOfferComponent';
 import { CollectiblesComponent } from './components/collectibles';
 import { EarningsComponent } from './components/earnings';
 import { GroupCreatedComponent, GroupHcRequiredComponent, GroupInfoComponent, GroupManagementComponent, GroupMembersComponent, GroupRoomInfoComponent } from './components/groups';
 import { HabbiconsComponent } from './components/habbicons';
+import { HotelViewComponent } from './components/hotel-view';
 import { OfferCenterComponent } from './components/offer-center';
 import { SpecialItemsComponent } from './components/special-items';
 import { UserProfileComponent } from './components/user-profile';
@@ -19,7 +20,6 @@ import { registerHandlers } from './handlers';
 import { useRegisterHandlers } from './hooks';
 import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
-import { HotelView } from './views/hotel-view/HotelView';
 import { NotificationsExtensionAnchor } from './views/notifications/NotificationsExtensionAnchor';
 import { NotificationsView } from './views/notifications/NotificationsView';
 import { ActivityPointsView } from './views/purse/ActivityPointsView';
@@ -30,7 +30,6 @@ import { ToolbarView } from './views/toolbar/ToolbarView';
 
 export const MainView = () => {
     const { setReady, send } = useWebSocketContext();
-    const landingViewVisible = useIsLandingViewVisible();
     const maxFPS = useConfigValue<number>('fps.limit') ?? 60;
 
     // Every connection-lifetime packet handler, attached before the effect below lets the queued packets through.
@@ -53,7 +52,7 @@ export const MainView = () => {
     return (
         <>
             <RoomWrapper />
-            {landingViewVisible && <HotelView />}
+            <HotelViewComponent />
             {/* Window context 1's desktop: every window is drawn and ordered in here. */}
             <WindowLayer>
                 <Box layout={{
@@ -88,7 +87,6 @@ export const MainView = () => {
                 <CatalogWrapper catalogType={CatalogTypeEnum.BuildersClub} />
                 <InventoryComponent />
                 <FriendListWrapper />
-                <MessengerComponent />
                 <NavigatorComponent />
                 <WalletComponent />
                 <WiredSetupComponent />

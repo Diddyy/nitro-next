@@ -111,10 +111,10 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const effectsDisabled = useConfigValue<boolean>('memenu.effects.widget.disabled') ?? false;
     // `OwnAvatarMenuView`: the config flag, and not while the room's configuration items block hand item control.
     const isHanditemControlBlocked = useRoomStore(x => x.isHanditemControlBlocked);
-    const handItemDropEnabled = (useConfigValue<boolean>('handitem.drop.enabled') ?? true) && !isHanditemControlBlocked;
-    const expressionsMenuEnabled = useConfigValue<boolean>('avatar.expressions_menu.enabled') ?? true;
-    const signsEnabled = useConfigValue<boolean>('avatar.signs.enabled') ?? true;
-    const sittingEnabled = useConfigValue<boolean>('avatar.sitting.enabled') ?? true;
+    const handItemDropEnabled = (useConfigValue<boolean>('handitem.drop.enabled') === true) && !isHanditemControlBlocked;
+    const expressionsMenuEnabled = useConfigValue<boolean>('avatar.expressions_menu.enabled') === true;
+    const signsEnabled = useConfigValue<boolean>('avatar.signs.enabled') === true;
+    const sittingEnabled = useConfigValue<boolean>('avatar.sitting.enabled') === true;
     const expression67Enabled = useConfigValue<boolean>('avatar.expression.67.enabled') ?? false;
     const t = useTranslation();
     const { send } = useWebSocketContext();

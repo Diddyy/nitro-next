@@ -7,6 +7,7 @@ import { registerGameTokensHandlers } from './game-tokens';
 import { registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers } from './inventory';
+import { registerLandingViewHandlers } from './landing-view';
 import { registerNavigatorHandlers, registerRoomQueueHandlers } from './navigator';
 import { registerNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
@@ -67,6 +68,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomRentableSpaceHandlers(socket),
         registerRoomYoutubeHandlers(socket),
         registerNavigatorHandlers(socket),
+        registerLandingViewHandlers(socket),
         registerRoomQueueHandlers(socket),
         // The server's own bubbles and alerts, after the room and navigator listeners that may raise one.
         registerNotificationHandlers(socket),

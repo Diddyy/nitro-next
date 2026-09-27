@@ -99,10 +99,8 @@ export const RoomInfoWidget = () => {
                 send(new ToggleStaffPickComposer({ roomId, isStaffPicked: !isStaffPicked }));
                 updateEnteredRoom(roomId, { isStaffPicked: !isStaffPicked });
             }}
-            onMuteAll={() => {
-                send(new MuteAllInRoomComposer({}));
-                updateEnteredRoom(roomId, { allInRoomMuted: !allInRoomMuted });
-            }}
+            // `RoomInfoViewCtrl.onMuteAllClick` only asks; `MuteAllInRoomMessage` sets the flag the caption follows.
+            onMuteAll={() => send(new MuteAllInRoomComposer({}))}
             onClose={() => hideWindow('room_info')}
         />
     );

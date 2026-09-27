@@ -4,5 +4,6 @@ export * from './useInventoryBotsActions';
 export * from './useInventoryFurniActions';
 export * from './useInventoryMarketplaceActions';
 export * from './useInventoryPetsActions';
+export * from './useInventoryPlacementActions';
 export * from './useInventoryRecyclerActions';
 export * from './useInventoryTradingActions';

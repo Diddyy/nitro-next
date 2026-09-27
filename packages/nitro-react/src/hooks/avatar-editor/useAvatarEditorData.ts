@@ -70,8 +70,8 @@ export const useAvatarEditorData = (setType: string): { parts: AvatarEditorPartD
     const figureSetIds = useAvatarEditorStore(x => x.figureSetIds);
     // Widened to a plain number: `ClubLevelEnum` values compare against the structure's numeric club levels.
     const clubLevel: number = useOwnClubLevel();
-    const clubItemsFirst = useConfigValue<boolean>('avatareditor.show.clubitems.first') ?? true;
-    const clubItemsDimmed = useConfigValue<boolean>('avatareditor.show.clubitems.dimmed') ?? true;
+    const clubItemsFirst = useConfigValue<boolean>('avatareditor.show.clubitems.first') === true;
+    const clubItemsDimmed = useConfigValue<boolean>('avatareditor.show.clubitems.dimmed') === true;
 
     return useMemo(() => {
         const renderManager = GetAvatarRenderManager();

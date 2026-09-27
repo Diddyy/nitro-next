@@ -98,6 +98,8 @@ export class RoomPlane implements IRoomPlane {
     private _bitmapMasks: RoomPlaneBitmapMask[] = [];
     private _rectangleMasks: RoomPlaneRectangleMask[] = [];
     private _maskChanged = false;
+    /** A tiled plane given another type (`id`): it has no texture cache to empty, so it is drawn again on this. */
+    private _tiledTypeChanged = false;
 
     private _planeSprite: Sprite | TilingSprite | undefined = undefined;
     private _planeTexture: RenderTexture | undefined = undefined;
@@ -217,6 +219,8 @@ export class RoomPlane implements IRoomPlane {
                 this._planeSprite = new Sprite(texture);
             } else {
                 ({ width, height } = this.createTiledPlaneSprite(geometry));
+
+                this._tiledTypeChanged = false;
             }
 
             if (!this._planeSprite) return false;
@@ -350,7 +354,7 @@ export class RoomPlane implements IRoomPlane {
 
         if (this._maskChanged) return true;
 
-        if (!this._rasterizer) return false;
+        if (!this._rasterizer) return this._tiledTypeChanged;
 
         const texture = this._activeTexture ?? this._textures.get(this.getTextureIdentifier(geometry.scale));
 
@@ -771,6 +775,10 @@ export class RoomPlane implements IRoomPlane {
         if (value === this._id) return;
 
         this.resetTextureCache();
+
+        // A wall or floor drawn by tiling its material is drawn again for the new one - a wallpaper
+        // or floor changed in a room as it stands (`RoomPropertyMessage`) showed nothing otherwise.
+        if (this._id !== undefined && !this._rasterizer) this._tiledTypeChanged = true;
 
         this._id = value;
     }

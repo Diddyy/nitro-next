@@ -1,6 +1,7 @@
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigData, useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { Border, ThemeText } from '#base/theme';
+import { configReader } from '#base/utils';
 
 import { CatalogCurrencyIcon } from '../../CatalogCurrencyIcon';
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
@@ -20,7 +21,8 @@ import { CatalogWidgetProps } from '../CatalogPageRegistry';
 export const CatalogActivityPointDisplayWidgetView = ({ page }: CatalogWidgetProps) => {
     const type = page.offers.find(offer => (offer.activityPointType > 0))?.activityPointType ?? 0;
     const amount = useUserStore(x => x.activityPoints[type] ?? 0);
-    const nameKey = useConfigValue<string>(`activitypoint.name.${type}`) ?? '';
+    // `getActivityPointName`: `getProperty`, its `${...}` filled in.
+    const nameKey = configReader(useConfigData()).configString(`activitypoint.name.${type}`);
     const t = useTranslation();
 
     // `§_-u1R§.isVisible`, read as written.

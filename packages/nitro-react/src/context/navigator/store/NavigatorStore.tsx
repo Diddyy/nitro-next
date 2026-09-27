@@ -69,6 +69,31 @@ const MAX_ROOM_VISIT_HISTORY = 20;
 /** filter_type_drop_menu options from navigator_frame_2 */
 export type NavigatorFilterType = 'anything' | 'room.name' | 'owner' | 'tag' | 'group';
 
+/**
+ * The drop menu's modes in its own order, each with the prefix a search's `filteringData` carries
+ * for it - `SearchView`'s selector entries over `FilterMode.FILTER_PREFIX`.
+ */
+export const NAVIGATOR_FILTER_TYPES: { type: NavigatorFilterType; prefix: string }[] = [
+    { type: 'anything', prefix: '' },
+    { type: 'room.name', prefix: 'roomname:' },
+    { type: 'owner', prefix: 'owner:' },
+    { type: 'tag', prefix: 'tag:' },
+    { type: 'group', prefix: 'group:' },
+];
+
+/**
+ * `SearchView.setTextAndSearchModeFromFilter` via `FilterMode.filterInInput`: a filter that starts
+ * with a mode's prefix selects that mode and shows the rest in the field (`owner:Test` is the
+ * owner mode and `Test`); any other filter is the first mode with the whole text.
+ */
+export const splitNavigatorFilter = (filteringData: string): { filterType: NavigatorFilterType; searchFilter: string } => {
+    const mode = NAVIGATOR_FILTER_TYPES.find(x => (x.prefix !== '') && filteringData.startsWith(x.prefix));
+
+    return mode
+        ? { filterType: mode.type, searchFilter: filteringData.slice(mode.prefix.length) }
+        : { filterType: 'anything', searchFilter: filteringData };
+};
+
 type State = {
     topLevelContexts: ITopLevelContext[];
     topLevelContext: ITopLevelContext | undefined;
@@ -181,11 +206,26 @@ export const createNavigatorStore = () => createStore<NavigatorStore>()((set, ge
     setPreferences: preferences => set({ preferences }),
     setFlatCategories: flatCategories => set({ flatCategories }),
     setEventCategories: eventCategories => set({ eventCategories }),
-    setSearchResult: searchResult => set({
-        searchResult,
-        isSearching: false,
-        // BlockResultsView reseeds _searchCodeViewMode from the incoming blocks
-        viewModes: Object.fromEntries((searchResult?.blocks ?? []).map(x => [ x.searchCode, x.viewMode ])),
+    /*
+     * `NavigatorView.onSearchResults`: the tab of the search the results answer is selected, when
+     * there is one, and the filter they carry is put back in the drop menu and the field - so a
+     * search made from elsewhere (`owner:<name>` from a profile) reads as one made here.
+     */
+    setSearchResult: searchResult => set((x) => {
+        const cleared = {
+            searchResult,
+            isSearching: false,
+            // BlockResultsView reseeds _searchCodeViewMode from the incoming blocks
+            viewModes: Object.fromEntries((searchResult?.blocks ?? []).map(block => [ block.searchCode, block.viewMode ])),
+        };
+
+        if (!searchResult) return cleared;
+
+        return {
+            ...cleared,
+            topLevelContext: x.topLevelContexts.find(context => context.searchCode === searchResult.searchCodeOriginal) ?? x.topLevelContext,
+            ...splitNavigatorFilter(searchResult.filteringData),
+        };
     }),
     setCollapsedCategories: collapsedCategories => set({ collapsedCategories }),
     toggleCollapsedCategory: code => set(x => ({

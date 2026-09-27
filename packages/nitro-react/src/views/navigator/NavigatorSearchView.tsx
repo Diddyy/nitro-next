@@ -1,17 +1,9 @@
 import { NewNavigatorSearchComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { NavigatorFilterType, useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
+import { NAVIGATOR_FILTER_TYPES, NavigatorFilterType, splitNavigatorFilter, useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useTranslation } from '#base/context/system';
 import { Border, Button, Dropmenu, LayoutImage, Region, TextInput, ThemeImage } from '#base/theme';
-
-const FILTER_TYPES: { type: NavigatorFilterType; prefix: string }[] = [
-    { type: 'anything', prefix: '' },
-    { type: 'room.name', prefix: 'roomname:' },
-    { type: 'owner', prefix: 'owner:' },
-    { type: 'tag', prefix: 'tag:' },
-    { type: 'group', prefix: 'group:' },
-];
 
 /** `SearchView.INPUT_PLACEHOLDER_TEXTCOLOR` (10461087). */
 const INPUT_PLACEHOLDER_COLOR = '#9f9f9f';
@@ -41,7 +33,7 @@ export const NavigatorSearchView = () => {
 
         setIsSearching(true);
 
-        const prefix = FILTER_TYPES.find(x => x.type === type)?.prefix ?? '';
+        const prefix = NAVIGATOR_FILTER_TYPES.find(x => x.type === type)?.prefix ?? '';
 
         send(new NewNavigatorSearchComposer({ searchCodeOriginal: topLevelContext.searchCode, filteringData: prefix + filter }));
     };
@@ -55,9 +47,7 @@ export const NavigatorSearchView = () => {
     };
 
     // `setTextAndSearchModeFromFilter`: the results' filter without its mode prefix.
-    const resultFilter = searchResult?.filteringData ?? '';
-    const resultPrefix = FILTER_TYPES.find(x => x.prefix !== '' && resultFilter.startsWith(x.prefix))?.prefix ?? '';
-    const showRefresh = resultFilter.length > resultPrefix.length;
+    const showRefresh = splitNavigatorFilter(searchResult?.filteringData ?? '').searchFilter.length > 0;
 
     return (
         <Region
@@ -68,7 +58,7 @@ export const NavigatorSearchView = () => {
                 variant="0"
                 tooltip={t('navigator.tooltip.filter.type')}
                 caption={t(`navigator.filter.${filterType}`)}
-                options={FILTER_TYPES.map(({ type }) => ({
+                options={NAVIGATOR_FILTER_TYPES.map(({ type }) => ({
                     key: type,
                     label: t(`navigator.filter.${type}`),
                     selected: type === filterType,

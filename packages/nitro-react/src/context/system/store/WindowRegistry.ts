@@ -18,7 +18,6 @@ export type WindowRegistry = {
     friendlist: FriendListViewWindowParams;
     friendlist_invite: NoWindowParams;
     friendlist_remove_confirmation: NoWindowParams;
-    messenger: NoWindowParams;
     /** The user's extended profile (`ExtendedProfileWindowCtrl` in `HabboGroupsManager`). */
     user_profile: { userId?: number };
 
@@ -35,6 +34,9 @@ export type WindowRegistry = {
     floor_plan_editor: NoWindowParams;
 
     navigator: NavigatorViewWindowParams;
+
+    /** Room creation (`RoomCreateViewCtrl`), from the navigator's create room button - `HabboNewNavigator.createRoom`. */
+    navigator_room_create: NoWindowParams;
 
     /** The wired menu (`WiredMenuController`), from the toolbar or a `wiredmenu/...` link. The setup dialog is not a window: it opens when the server says so. */
     wired_menu: WiredMenuWindowParams;
@@ -71,9 +73,6 @@ export type WindowRegistry = {
 
     /** The collectibles hub (`CollectiblesView`), from the me menu or a `collectibles/open` link. */
     collectibles: NoWindowParams;
-
-    /** Dev tool: browse/open any of the generated Flash layout ports (views/layouts). */
-    layout_browser: NoWindowParams;
 };
 
 export type NoWindowParams = Record<string, unknown>;

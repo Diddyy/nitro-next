@@ -209,7 +209,9 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         const floorThickness = model.getValue<number>(RoomObjectVariableEnum.RoomFloorThickness);
         const wallThickness = model.getValue<number>(RoomObjectVariableEnum.RoomWallThickness);
 
-        if (!isNaN(this._floorThickness) && !isNaN(this._wallThickness) && (floorThickness !== this._floorThickness || wallThickness !== this._wallThickness)) {
+        // Flash `updatePlaneThicknesses` tests the values the model now holds, not the ones kept: kept
+        // ones start NaN, so testing those left every room at the thickness it was built with.
+        if (!isNaN(floorThickness) && !isNaN(wallThickness) && (floorThickness !== this._floorThickness || wallThickness !== this._wallThickness)) {
             this._floorThickness = floorThickness;
             this._wallThickness = wallThickness;
 

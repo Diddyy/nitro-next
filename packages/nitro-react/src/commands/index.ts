@@ -30,6 +30,7 @@ export * from './inventoryCommands';
 export * from './inventoryMarketplaceCommands';
 export * from './inventoryPetsCommands';
 export * from './inventoryTradingCommands';
+export * from './landingViewCommands';
 export * from './navigatorCommands';
 export * from './offerCenterCommands';
 export * from './roomPetCommands';
