@@ -1,9 +1,9 @@
 import { IAssetGesture, IAssetPosture, IAssetVisualizationData, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 
 import { AnimationSizeData, PetSizeData, SizeData } from '../data';
-import { FurnitureAnimatedVisualizationData } from '../furniture';
+import { AnimatedFurnitureVisualizationData } from '../furniture';
 
-export class PetVisualizationData extends FurnitureAnimatedVisualizationData {
+export class AnimatedPetVisualizationData extends AnimatedFurnitureVisualizationData {
     private _isAllowedToTurnHead: boolean = true;
 
     protected override getSizeData(size: RoomGeometryScaleType): PetSizeData | undefined {

@@ -7,7 +7,7 @@ import { RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
 
 import { FurnitureLogic } from './FurnitureLogic';
 
-export class FurniturePetCustomizationLogic extends FurnitureLogic {
+export class FurniturePetProductLogic extends FurnitureLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.PET_PRODUCT_MENU ]);
     }

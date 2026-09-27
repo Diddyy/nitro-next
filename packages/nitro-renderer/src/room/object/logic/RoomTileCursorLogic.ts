@@ -1,9 +1,9 @@
 import { IAssetData, IRoomObjectUpdateMessage, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
 import { ObjectTileCursorUpdateMessage } from '../../messages';
-import { RoomObjectLogicBase } from './RoomObjectLogicBase';
+import { ObjectLogicBase } from './ObjectLogicBase';
 
-export class TileCursorLogic extends RoomObjectLogicBase {
+export class RoomTileCursorLogic extends ObjectLogicBase {
     private static CURSOR_VISIBLE_STATE: number = 0;
     private static CURSOR_HIDDEN_STATE: number = 1;
     private static CURSOR_HEIGHT_STATE: number = 6;
@@ -14,7 +14,7 @@ export class TileCursorLogic extends RoomObjectLogicBase {
     public override initialize(data: IAssetData): void {
         this.object.model.setValue(RoomObjectVariableEnum.FurnitureAlphaMultiplier, 1);
 
-        this.object.setState(TileCursorLogic.CURSOR_HIDDEN_STATE, 0);
+        this.object.setState(RoomTileCursorLogic.CURSOR_HIDDEN_STATE, 0);
     }
 
     public override processUpdateMessage(message: IRoomObjectUpdateMessage): void {
@@ -30,14 +30,14 @@ export class TileCursorLogic extends RoomObjectLogicBase {
         super.processUpdateMessage(message);
 
         if (this._isHidden) {
-            this.object.setState(TileCursorLogic.CURSOR_HIDDEN_STATE, 0);
+            this.object.setState(RoomTileCursorLogic.CURSOR_HIDDEN_STATE, 0);
         } else if (!message.visible) {
-            this.object.setState(TileCursorLogic.CURSOR_HIDDEN_STATE, 0);
+            this.object.setState(RoomTileCursorLogic.CURSOR_HIDDEN_STATE, 0);
         } else {
             this.object.model.setValue(RoomObjectVariableEnum.TileCursorHeight, message.height);
 
             this.object.setState(
-                message.height > 0.8 ? TileCursorLogic.CURSOR_HEIGHT_STATE : TileCursorLogic.CURSOR_VISIBLE_STATE,
+                message.height > 0.8 ? RoomTileCursorLogic.CURSOR_HEIGHT_STATE : RoomTileCursorLogic.CURSOR_VISIBLE_STATE,
             );
         }
 

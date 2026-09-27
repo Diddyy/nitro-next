@@ -2,7 +2,7 @@ import { RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from '@nitrodevc
 
 import { FurnitureGuildCustomizedLogic } from './FurnitureGuildCustomizedLogic';
 
-export class FurnitureGroupForumTerminalLogic extends FurnitureGuildCustomizedLogic {
+export class FurnitureGuildForumTerminalLogic extends FurnitureGuildCustomizedLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.INTERNAL_LINK ]);
     }

@@ -5,12 +5,14 @@ import {
     IRoomObjectVisualizationFactory,
     RoomObjectVisualizationType } from '@nitrodevco/nitro-api';
 
-import { AvatarVisualization,
+import { AnimatedFurnitureVisualization,
+    AnimatedFurnitureVisualizationData,
+    AnimatedPetVisualization,
+    AnimatedPetVisualizationData,
+    AvatarFurnitureVisualizationData,
+    AvatarVisualization,
     AvatarVisualizationData,
-    FurnitureAnimatedVisualization,
-    FurnitureAnimatedVisualizationData,
     FurnitureBadgeDisplayVisualization,
-    FurnitureBBVisualization,
     FurnitureBottleVisualization,
     FurnitureBuilderPlaceholderVisualization,
     FurnitureChestVisualization,
@@ -25,13 +27,13 @@ import { AvatarVisualization,
     FurnitureHabboWheelVisualization,
     FurnitureIsometricBBVisualization,
     FurnitureMannequinVisualization,
-    FurnitureMannequinVisualizationData,
     FurniturePartyBeamerVisualization,
     FurniturePlanetSystemVisualization,
     FurniturePosterVisualization,
     FurnitureQueueTileVisualization,
     FurnitureResettingAnimatedVisualization,
     FurnitureRoomBackgroundVisualization,
+    FurnitureRoomBillboardVisualization,
     FurnitureScoreBoardVisualization,
     FurnitureSoundBlockVisualization,
     FurnitureStickieVisualization,
@@ -42,8 +44,6 @@ import { AvatarVisualization,
     FurnitureVoteMajorityVisualization,
     FurnitureWaterAreaVisualization,
     FurnitureYoutubeVisualization,
-    PetVisualization,
-    PetVisualizationData,
     RoomObjectSpriteVisualization,
     RoomVisualization,
     RoomVisualizationData,
@@ -79,13 +79,13 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
                 visualization = AvatarVisualization;
                 break;
             case RoomObjectVisualizationType.PET_ANIMATED:
-                visualization = PetVisualization;
+                visualization = AnimatedPetVisualization;
                 break;
             case RoomObjectVisualizationType.FURNITURE_STATIC:
                 visualization = FurnitureVisualization;
                 break;
             case RoomObjectVisualizationType.FURNITURE_ANIMATED:
-                visualization = FurnitureAnimatedVisualization;
+                visualization = AnimatedFurnitureVisualization;
                 break;
             case RoomObjectVisualizationType.FURNITURE_RESETTING_ANIMATED:
                 visualization = FurnitureResettingAnimatedVisualization;
@@ -97,7 +97,7 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
                 visualization = FurnitureRoomBackgroundVisualization;
                 break;
             case RoomObjectVisualizationType.FURNITURE_BB:
-                visualization = FurnitureBBVisualization;
+                visualization = FurnitureRoomBillboardVisualization;
                 break;
             case RoomObjectVisualizationType.FURNITURE_ISOMETRIC_BB:
                 visualization = FurnitureIsometricBBVisualization;
@@ -240,10 +240,10 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
             case RoomObjectVisualizationType.FURNITURE_EXTERNAL_IMAGE:
             case RoomObjectVisualizationType.FURNITURE_YOUTUBE:
             case RoomObjectVisualizationType.TILE_CURSOR:
-                visualizationData = new FurnitureAnimatedVisualizationData();
+                visualizationData = new AnimatedFurnitureVisualizationData();
                 break;
             case RoomObjectVisualizationType.FURNITURE_MANNEQUIN:
-                visualizationData = new FurnitureMannequinVisualizationData();
+                visualizationData = new AvatarFurnitureVisualizationData();
                 break;
             case RoomObjectVisualizationType.ROOM:
                 visualizationData = new RoomVisualizationData();
@@ -254,7 +254,7 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
                 visualizationData = new AvatarVisualizationData();
                 break;
             case RoomObjectVisualizationType.PET_ANIMATED:
-                visualizationData = new PetVisualizationData();
+                visualizationData = new AnimatedPetVisualizationData();
                 break;
             default:
                 visualizationData = new FurnitureVisualizationData();

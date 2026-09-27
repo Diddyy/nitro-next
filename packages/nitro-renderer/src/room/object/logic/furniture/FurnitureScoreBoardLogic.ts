@@ -4,7 +4,7 @@ import { GetTickerTime } from '../../../../utils';
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureLogic } from './FurnitureLogic';
 
-export class FurnitureScoreLogic extends FurnitureLogic {
+export class FurnitureScoreBoardLogic extends FurnitureLogic {
     private static UPDATE_INTERVAL: number = 50;
     private static MAX_UPDATE_TIME: number = 3000;
 
@@ -45,9 +45,9 @@ export class FurnitureScoreLogic extends FurnitureLogic {
 
                 if (difference < 0) difference = -difference;
 
-                if (difference * FurnitureScoreLogic.UPDATE_INTERVAL > FurnitureScoreLogic.MAX_UPDATE_TIME)
-                    this._scoreIncreaser = FurnitureScoreLogic.MAX_UPDATE_TIME / difference;
-                else this._scoreIncreaser = FurnitureScoreLogic.UPDATE_INTERVAL;
+                if (difference * FurnitureScoreBoardLogic.UPDATE_INTERVAL > FurnitureScoreBoardLogic.MAX_UPDATE_TIME)
+                    this._scoreIncreaser = FurnitureScoreBoardLogic.MAX_UPDATE_TIME / difference;
+                else this._scoreIncreaser = FurnitureScoreBoardLogic.UPDATE_INTERVAL;
 
                 this._scoreTimer = GetTickerTime();
             }
