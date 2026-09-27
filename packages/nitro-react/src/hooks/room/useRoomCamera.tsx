@@ -1,4 +1,4 @@
-import { IRoom, IVector3D, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectCategoryEnum, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
+import { IRoom, IVector3D, RoomDraggedEvent, RoomEngineEvent, RoomGeometryScaleType, RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomZoomEvent, Vector3d } from '@nitrodevco/nitro-api';
 import { Room } from '@nitrodevco/nitro-renderer';
 import { Matrix, Point, Rectangle } from 'pixi.js';
 import { useRef } from 'react';
@@ -66,7 +66,8 @@ export const useRoomCamera = () => {
     // `SessionDataManager.isRoomCameraFollowDisabled` - the account's "disable room camera follow" setting.
     const followDisabledByUser = useUserStore(x => x.isRoomCameraFollowDisabled);
     const followDuration = useRoomStore(x => x.followDuration);
-    const followEnabled = useConfigValue<boolean>('room.camera.follow_user') === true;
+    const moveSpeedDenominator = useConfigValue<number>('camera.move.speed') ?? 12;
+    const zoomEnabled = useConfigValue<boolean>('zoom.enabled') === true;
     const cameraDataRef = useRef<RoomCameraData>(createCameraData(undefined));
 
     const setCameraTarget = (target: IVector3D) => {
@@ -146,8 +147,7 @@ export const useRoomCamera = () => {
     const updateRoomCamera = (time: number) => {
         const canvas = room?.canvas;
 
-        // RoomEngine.updateRoomCamera follows only at scale 1, including no following above 1.
-        if (!canvas || canvas.scale !== 1) return;
+        if (canvas?.isFlipped) return;
 
         // A new room starts with a new camera: where the last room was scrolled to says nothing
         // about this one, and its location has to be initialized on this room's geometry.
@@ -362,6 +362,33 @@ export const useRoomCamera = () => {
             room.setRoomInstanceRenderingCanvasOffset(new Point(offsetX, offsetY));
         }
     };
+
+    /**
+     * Forced-flip branch of Flash `RoomUI.onRoomEngineZoomEvent` / `RoomEngine.setRoomCanvasScale`.
+     * Ordinary toolbar zoom remains in `useRoomZoom`; this listener only handles forced flips.
+     */
+    useRoomEventDispatcher<RoomZoomEvent>(RoomZoomEvent.ROOM_ZOOM, (event) => {
+        const canvas = room?.canvas;
+
+        if (!room || !canvas || event.roomId !== room.roomId || !event.isFlipForced || !zoomEnabled) return;
+
+        canvas.setFlip(!canvas.isFlipped);
+
+        // `syncRoomCameraLocationToCanvasOffset` skips the inverted display, then restores
+        // the unscaled camera position when the next effect turns it upright again.
+        if (!canvas.isFlipped) {
+            // AS3 width/height already include scale; Nitro exposes the unscaled canvas size.
+            const halfWidth = canvas.width / 2;
+            const halfHeight = canvas.height / 2;
+
+            cameraDataRef.current.currentLocation = new Vector3d(
+                -(halfWidth - (halfWidth - canvas.screenOffsetX) / canvas.scale),
+                -(halfHeight - (halfHeight - canvas.screenOffsetY) / canvas.scale),
+            );
+        }
+
+        room.eventDispatcher.dispatchEvent(new RoomEngineEvent(RoomEngineEvent.ROOM_ZOOMED, room.roomId));
+    });
 
     useRoomEventDispatcher<RoomDraggedEvent>(RoomDraggedEvent.ROOM_DRAGGED, (event) => {
         const cameraData = cameraDataRef.current;
