@@ -30,7 +30,7 @@ export class AvatarVisualizationData implements IObjectVisualizationData {
         effectListener: IAvatarEffectListener | undefined = undefined,
         blocked: boolean = false,
     ): IAvatarImage | undefined {
-        const scale = (size > RoomGeometryScaleType.AvatarSizeNormal) ? AvatarScaleType.Large : AvatarScaleType.Small;
+        const scale = (size > RoomGeometryScaleType.AvatarSizeNormal) ? AvatarScaleType.Large : AvatarScaleType.LargeToSmall;
 
         if (blocked) return GetAvatarRenderManager().createBlockedAvatarImage(figure, scale);
 

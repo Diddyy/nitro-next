@@ -2,7 +2,9 @@ import {
     IAssetPlaneMaterial,
     IAssetPlaneMaterialCellColumn,
     IAssetPlaneTexture,
+    IAssetPlaneVisualization,
     IAssetPlaneVisualizationData,
+    IAssetPlaneVisualizationLayer,
     IGraphicAsset,
     IGraphicAssetCollection,
     IRoomGeometry,
@@ -21,19 +23,24 @@ import { PlaneMaterialCell } from './PlaneMaterialCell';
 import { PlaneMaterialCellColumn } from './PlaneMaterialCellColumn';
 import { PlaneMaterialCellMatrix } from './PlaneMaterialCellMatrix';
 import { PlaneTexture } from './PlaneTexture';
+import { PlaneVisualizationLayer } from './PlaneVisualizationLayer';
 
 /**
  * The base of the plane rasterizers: reads the textures and materials of one section of the room's
  * visualization data (`wallData`, `floorData`, `landscapeData`), resolves their bitmaps from the
  * room's asset collection and keeps the planes a subclass builds from them. Ports Flash
- * `PlaneRasterizer`.
+ * `PlaneRasterizer`; `FloorRasterizer`, `WallRasterizer`, `WallAdRasterizer` and
+ * `LandscapeRasterizer` extend it.
  *
- * `parseVisualizations`, which the wall and floor rasterizers build their planes with, is not here:
- * walls and floors are still drawn by `RoomPlane` from their first texture, and only the landscape
- * rasterizer is ported. `getLayers` goes with `RoomPlane.getDrawingDatas`, which the port lacks.
+ * The data is the room asset's JSON rather than Flash's XML: a section's `planes` is Flash's
+ * `<walls>`/`<floors>`/`<wallAds>` list, a plane's `visualizations` its `<visualization>` elements
+ * and `allLayers` their `<visualizationLayer>` children, attribute for attribute.
  */
 export class PlaneRasterizer implements IPlaneRasterizer {
     protected static DEFAULT_TYPE: string = 'default';
+    /** The angles a visualization without its own is drawn at, as `parseVisualizations` defaults them. */
+    protected static HORIZONTAL_ANGLE_DEFAULT: number = 45;
+    protected static VERTICAL_ANGLE_DEFAULT: number = 30;
 
     private _assetCollection: IGraphicAssetCollection | undefined = undefined;
     private _materials: Map<string, PlaneMaterial> = new Map();
@@ -276,6 +283,45 @@ export class PlaneRasterizer implements IPlaneRasterizer {
         }
 
         return geometry;
+    }
+
+    /**
+     * Flash `parseVisualizations`: one visualization per `size` (default angles 45 and 30), each
+     * `visualizationLayer` a layer of it - its material, `color` (white by default), `offset` and
+     * `align` (`top` unless it says `bottom`). A layer naming a material the data lacks is still set,
+     * without one, as Flash sets it.
+     */
+    protected parseVisualizations(plane: Plane, visualizations: IAssetPlaneVisualization[] | undefined): void {
+        if (!plane || !visualizations) return;
+
+        for (const visualization of visualizations) {
+            if (visualization?.size === undefined) continue;
+
+            const size = Math.trunc(visualization.size);
+            const horizontalAngle = visualization.horizontalAngle ?? PlaneRasterizer.HORIZONTAL_ANGLE_DEFAULT;
+            const verticalAngle = visualization.verticalAngle ?? PlaneRasterizer.VERTICAL_ANGLE_DEFAULT;
+            const layers = (visualization.allLayers ?? []) as IAssetPlaneVisualizationLayer[];
+            const planeVisualization = plane.createPlaneVisualization(size, layers.length, this.getGeometry(size, horizontalAngle, verticalAngle));
+
+            if (!planeVisualization) continue;
+
+            layers.forEach((layer, index) => {
+                const material = layer?.materialId ? this.getMaterial(layer.materialId) : undefined;
+                const offset = (layer?.offset !== undefined) ? Math.trunc(layer.offset) : 0;
+                const color = (layer?.color !== undefined) ? layer.color : 0xFFFFFF;
+                let align = PlaneVisualizationLayer.ALIGN_TOP;
+
+                if (layer?.align === 'bottom') align = PlaneVisualizationLayer.ALIGN_BOTTOM;
+                else if (layer?.align === 'top') align = PlaneVisualizationLayer.ALIGN_TOP;
+
+                planeVisualization.setLayer(index, material, color, align, offset);
+            });
+        }
+    }
+
+    /** Flash `getLayers`: the layers of the plane type (or `default`) as last drawn. */
+    public getLayers(planeId: string): ReturnType<Plane['getLayers']> {
+        return (this.getPlane(planeId) ?? this.getPlane(PlaneRasterizer.DEFAULT_TYPE))?.getLayers() ?? [];
     }
 
     public render(

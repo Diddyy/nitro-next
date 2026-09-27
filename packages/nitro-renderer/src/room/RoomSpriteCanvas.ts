@@ -21,19 +21,28 @@ import {
     RoomShakingEffect,
     SortableSprite,
 } from './utils';
+import { RoomDownsampleFilter } from './utils/RoomDownsampleFilter';
+import { snapRoomSpriteCoordinate } from './utils/snapRoomSpriteCoordinate';
 
+/**
+ * One view of a room: every object's sprites, sorted by depth into one display, with the mouse
+ * events that reach them. Ports Flash `com.sulake.room.renderer.RoomSpriteCanvas`.
+ */
 export class RoomSpriteCanvas implements IRoomRenderingCanvas {
     private _room: IRoom;
     private _geometry: IRoomGeometry;
     private _renderTimestamp: number = 0;
 
     private _master: Container | undefined = undefined;
+    private _roomLayer: Container | undefined = undefined;
     private _display: Container | undefined = undefined;
     // A Graphics rectangle rather than a Sprite: Pixi masks a Sprite through an alpha-mask
     // filter (screen-sized render textures per masked object, and misrendering when several
     // rooms are masked in one frame), while a rect Graphics is a plain stencil/scissor mask.
     private _mask: Graphics | undefined = undefined;
     private _background: Sprite | undefined = undefined;
+    private _downsampleFilter: RoomDownsampleFilter | undefined = undefined;
+    private _compositeZoom: boolean = false;
 
     private _sortableSprites: SortableSprite[] = [];
     private _spriteCount: number = 0;
@@ -104,13 +113,18 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         this._master.interactiveChildren = false;
         this._master.cullableChildren = false;
 
+        if (!this._roomLayer) {
+            this._roomLayer = new Container();
+            this._master.addChild(this._roomLayer);
+        }
+
         if (!this._display) {
             const display = new Container();
 
             display.isRenderGroup = false;
             display.cullableChildren = false;
 
-            this._master.addChild(display);
+            this._roomLayer.addChild(display);
 
             this._display = display;
 
@@ -120,6 +134,9 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
     }
 
     public dispose(): void {
+        this._downsampleFilter?.destroy();
+        this._downsampleFilter = undefined;
+
         if (this._display) TextureUtils.unwatchBatches(this._display);
 
         this.cleanSprites(0, true);
@@ -128,6 +145,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             this._geometry.dispose();
         }
 
+        // setMask(false) detaches the mask, so dispose it even outside the room layer.
+        this._mask?.destroy();
         this._mask = undefined;
 
         if (this._objectCache) {
@@ -140,7 +159,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             while (this._master.children.length) {
                 const child = this._master.removeChildAt(0);
 
-                child.destroy();
+                child.destroy({ children: child === this._roomLayer });
             }
 
             if (this._master.parent) this._master.parent.removeChild(this._master);
@@ -148,9 +167,11 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             this._master.destroy();
 
             this._master = undefined;
+            this._roomLayer = undefined;
         }
 
         this._display = undefined;
+        this._background = undefined;
         this._sortableSprites = [];
 
         if (this._mouseActiveObjects) this._mouseActiveObjects.clear();
@@ -180,7 +201,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             this._background.height = height;
             this._background.visible = this._backgroundVisible;
 
-            if (this._master) this._master.addChildAt(this._background, 0);
+            if (this._roomLayer) this._roomLayer.addChildAt(this._background, 0);
         } else {
             this._background.width = width;
             this._background.height = height;
@@ -190,8 +211,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             if (!this._mask) {
                 this._mask = new Graphics().rect(0, 0, width, height).fill(0xffffff);
 
-                if (this._master) {
-                    this._master.addChild(this._mask);
+                if (this._roomLayer) {
+                    this._roomLayer.addChild(this._mask);
 
                     if (this._display) this._display.mask = this._mask;
                 }
@@ -215,6 +236,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         this._width = width;
         this._height = height;
+        this.updateZoomSampling();
     }
 
     public setBackgroundVisible(flag: boolean): void {
@@ -229,20 +251,22 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         if (flag && !this._usesMask) {
             this._usesMask = true;
 
-            if (this._mask && this._mask.parent !== this._master) {
-                this._master.addChild(this._mask);
+            if (this._mask && this._mask.parent !== this._roomLayer) {
+                this._roomLayer?.addChild(this._mask);
 
                 this._display.mask = this._mask;
             }
         } else if (!flag && this._usesMask) {
             this._usesMask = false;
 
-            if (this._mask && this._mask.parent === this._master) {
-                this._master.removeChild(this._mask);
+            if (this._mask && this._mask.parent === this._roomLayer) {
+                this._roomLayer?.removeChild(this._mask);
 
                 this._display.mask = null;
             }
         }
+
+        this.updateZoomSampling();
     }
 
     public setScale(
@@ -271,11 +295,13 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         if (!this._geometry || time === this._renderTimestamp) return;
 
+        this.updateZoomSampling();
+
         if (this._width !== this._renderedWidth || this._height !== this._renderedHeight) update = true;
 
         if (this._display && (this._display.x !== this._screenOffsetX || this._display.y !== this._screenOffsetY || this._display.scale.x !== this._scale)) {
-            this._display.x = Math.floor(this._screenOffsetX);
-            this._display.y = Math.floor(this._screenOffsetY);
+            this._display.x = this._screenOffsetX;
+            this._display.y = this._screenOffsetY;
             this._display.scale.set(this._scale);
 
             update = true;
@@ -338,6 +364,32 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
     public removeFromCache(identifier: number): void {
         this._objectCache.removeObjectCache(identifier);
+    }
+
+    /** Join the existing depth-sorted pixels before reducing the room to half size. */
+    private updateZoomSampling(): void {
+        if (!this._master || !this._display || !this._roomLayer) return;
+
+        const composite = this._scale === 0.5;
+
+        if (composite) {
+            this._downsampleFilter ??= new RoomDownsampleFilter();
+            this._downsampleFilter.resolution = TextureUtils.getRenderer().resolution * 2;
+        }
+
+        if (composite !== this._compositeZoom) {
+            this._compositeZoom = composite;
+            this._roomLayer.filters = composite ? [ this._downsampleFilter! ] : [];
+        }
+
+        this._roomLayer.filterArea = this._usesMask ? this._master.filterArea : undefined;
+
+        // The room layer's viewport filterArea supplies the same rectangular clipping.
+        // A stencil inside this offscreen pass can leak into subsequent UI draws.
+        const mask = composite ? null : (this._usesMask ? this._mask ?? null : null);
+
+        if (this._display.mask !== mask) this._display.mask = mask;
+        if (this._mask) this._mask.visible = !composite;
     }
 
     private renderObject(
@@ -404,8 +456,11 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
             if (!texture || !baseTexture) continue;
 
-            const spriteX = x + sprite.offsetX + screenOffsetX;
-            const spriteY = y + sprite.offsetY + screenOffsetY;
+            // The composite's source grid has two pixels per screen pixel at zoom 0.
+            const samplingScale = this._compositeZoom ? 1 : this._scale;
+            const samplingOffset = this._compositeZoom ? 2 : 1;
+            const spriteX = snapRoomSpriteCoordinate(x + sprite.offsetX, screenOffsetX * samplingOffset, samplingScale) + screenOffsetX;
+            const spriteY = snapRoomSpriteCoordinate(y + sprite.offsetY, screenOffsetY * samplingOffset, samplingScale) + screenOffsetY;
 
             if (sprite.flipH) {
                 const checkX = x + -(texture.width + -sprite.offsetX) + screenOffsetX;
@@ -933,6 +988,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         this._screenOffsetX = currentOffsetX;
         this._screenOffsetY = currentOffsetY;
+        this.render(-1, true);
 
         return texture;
     }
