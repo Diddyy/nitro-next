@@ -18,7 +18,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * someone in the room was blocked or unblocked.
  */
 export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => {
-    const { setOwnRoomIndex, setIsOwnDancing, updateUsers, updateUserPartial, removeUser } = roomStore.getState();
+    const { setOwnRoomIndex, setTarget, setIsOwnDancing, updateUsers, updateUserPartial, removeUser } = roomStore.getState();
 
     return subscribeAll(subscribe, [
         /*
@@ -45,6 +45,8 @@ export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => 
 
                 if (avatar.webId === userStore.getState().userId) {
                     setOwnRoomIndex(avatar.objectId);
+                    // RoomEngine.setOwnUserId assigns the room camera to this avatar.
+                    setTarget(avatar.objectId, RoomObjectCategoryEnum.Unit);
                     room.updateRoomObjectUserOwn(avatar.objectId);
                 }
 
@@ -300,7 +302,7 @@ export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => 
         }),
 
         /*
-         * `RoomMessageHandler` keeps the own user id off `UserObjectEvent` (`§_-78b4fe§`) and
+         * `RoomMessageHandler` keeps the own user id off `UserObjectEvent` (`Â§_-78b4feÂ§`) and
          * reads it in `onUsers`; here that id is `userStore.userId`. The user object is the answer
          * to the `InfoRetrieveComposer` `MainView` sends, and that send waits behind every packet
          * queued while the UI mounted - so a room whose `Users` sat in that queue is entered with
@@ -318,6 +320,7 @@ export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => 
             if (!own || (roomStore.getState().ownRoomIndex === own.objectId)) return;
 
             setOwnRoomIndex(own.objectId);
+            setTarget(own.objectId, RoomObjectCategoryEnum.Unit);
             room.updateRoomObjectUserOwn(own.objectId);
         }),
 

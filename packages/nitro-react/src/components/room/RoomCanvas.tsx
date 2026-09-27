@@ -1,7 +1,8 @@
+/** Room canvas lifecycle and input bridge, including RoomEngine camera updates on each render tick. */
 import { IRoomObject, MouseEventType, RoomDragEvent, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectMouseEvent, RoomRenderedEvent } from '@nitrodevco/nitro-api';
 import { GetRenderer, GetRoomStage, GetTicker, RoomAreaSelectionManager } from '@nitrodevco/nitro-renderer';
 import { FederatedPointerEvent, Ticker } from 'pixi.js';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { useRoom, useRoomMouseActions, useRoomStore } from '#base/context/room';
 import { useRoomCamera } from '#base/hooks';
@@ -21,6 +22,12 @@ export const RoomCanvas = () => {
     const isDecorating = useRoomStore(x => x.isDecorating);
     const isPlayingGame = useRoomStore(x => x.isPlayingGame);
     const { updateRoomCamera } = useRoomCamera();
+    // The ticker outlives renders; own-avatar targeting and follow settings must stay current.
+    const updateCameraRef = useRef(updateRoomCamera);
+
+    useLayoutEffect(() => {
+        updateCameraRef.current = updateRoomCamera;
+    });
     const { hasAndResetCursorUpdate, hasCursorOwners } = useRoomMouseActions();
     const mouseDataRef = useRef<MouseData>({
         mouseXY: { x: 0, y: 0 },
@@ -170,7 +177,7 @@ export const RoomCanvas = () => {
 
         if (!container) return;
 
-        updateRoomCamera(-1);
+        updateCameraRef.current(-1);
 
         const resizeCanvas = () => {
             if (!room.canvas) return;
@@ -180,7 +187,7 @@ export const RoomCanvas = () => {
 
             room.canvas.initialize(width, height);
 
-            updateRoomCamera(-1);
+            updateCameraRef.current(-1);
         };
 
         renderer.on('resize', resizeCanvas);
@@ -193,7 +200,7 @@ export const RoomCanvas = () => {
             const mouseData = mouseDataRef.current;
             const time = ticker.lastTime;
 
-            if (!mouseData.isDragged) updateRoomCamera(time);
+            if (!mouseData.isDragged) updateCameraRef.current(time);
 
             if (mouseData.wasDragged) {
                 const offsetX = canvas.screenOffsetX || 0;
