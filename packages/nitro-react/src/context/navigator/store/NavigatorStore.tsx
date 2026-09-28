@@ -202,7 +202,8 @@ export const createNavigatorStore = () => createStore<NavigatorStore>()((set, ge
     setTopLevelContexts: topLevelContexts => set({ topLevelContexts }),
     setTopLevelContext: topLevelContext => set({ topLevelContext }),
     setSavedSearches: savedSearches => set({ savedSearches }),
-    setPerks: perks => set({ perks }),
+    // `PerkManager.onPerkAllowances` merges: a later message carrying some perks updates those and keeps the rest.
+    setPerks: perks => set(state => ({ perks: [ ...state.perks.filter(x => !perks.some(perk => perk.code === x.code)), ...perks ] })),
     setPreferences: preferences => set({ preferences }),
     setFlatCategories: flatCategories => set({ flatCategories }),
     setEventCategories: eventCategories => set({ eventCategories }),

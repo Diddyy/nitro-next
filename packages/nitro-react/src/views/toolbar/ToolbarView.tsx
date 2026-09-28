@@ -38,6 +38,7 @@ import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog 
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
+import { useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useIsLandingViewVisible, useSystemActions, useTranslation } from '#base/context/system';
 import { useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
@@ -147,6 +148,10 @@ export const ToolbarView = () => {
     const landingViewVisible = useIsLandingViewVisible();
     // `BottomBarLeft`: the wired menu icon is a room icon, and only for someone `showToolbarMenuButton` lets see it.
     const showWiredMenuButton = useWiredShowToolbarMenuButton() && !landingViewVisible;
+    // `BottomBarLeft`: the camera icon too is a room icon, drawn only where `camera.launch.ui.position` puts it and with the `CAMERA` perk.
+    const cameraLaunchPosition = useConfigValue<string>('camera.launch.ui.position');
+    const cameraAllowed = useNavigatorStore(x => x.perks.some(perk => (perk.code === 'CAMERA') && perk.isAllowed));
+    const showCameraButton = !landingViewVisible && (cameraLaunchPosition === 'bottom-icons') && cameraAllowed;
     const { send } = useWebSocketContext();
     const t = useTranslation();
     // `MeMenuNewController`: the collectibles button is hidden unless both hub flags are on.
@@ -311,12 +316,14 @@ export const ToolbarView = () => {
                                 icon={[ 3, 0, 38, 45 ]}
                             />
                         )}
-                        <ToolbarItem
-                            tooltip={t('camera.interface.title')}
-                            src="toolbar/bottom_bar_camera.png"
-                            height={45}
-                            icon={[ 3, 0, 38, 45 ]}
-                        />
+                        {showCameraButton && (
+                            <ToolbarItem
+                                tooltip={t('camera.interface.title')}
+                                src="toolbar/bottom_bar_camera.png"
+                                height={45}
+                                icon={[ 3, 0, 38, 45 ]}
+                            />
+                        )}
                         <ThemeImage
                             name="line"
                             src={LayoutImage('shared/bottom_bar_divider_1px.png')}
