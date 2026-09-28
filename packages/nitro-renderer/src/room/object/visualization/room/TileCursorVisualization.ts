@@ -2,6 +2,10 @@ import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro
 
 import { AnimatedFurnitureVisualization } from '../furniture';
 
+/**
+ * `TileCursorVisualization`: the tile cursor, whose layer 1 (the height marker) is lifted by the
+ * `tile_cursor_height` the logic was given, at half a tile's scale per height unit.
+ */
 export class TileCursorVisualization extends AnimatedFurnitureVisualization {
     private _tileHeight: number;
 
@@ -15,7 +19,8 @@ export class TileCursorVisualization extends AnimatedFurnitureVisualization {
         if (layerId === 1) {
             this._tileHeight = this.object.model.getValue<number>(RoomObjectVariableEnum.TileCursorHeight);
 
-            return -this._tileHeight * 32; // 32 = scale / 2
+            // Flash's `getSpriteYOffset` returns an int, so the lift truncates.
+            return Math.trunc(-this._tileHeight * (scale / 2));
         }
 
         return super.getLayerYOffset(scale, direction, layerId);

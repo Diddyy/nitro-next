@@ -5,49 +5,20 @@ import { requestInventoryBadgesIfEmpty } from '#base/commands';
 import { CatalogWidgetEventEnum } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryStore } from '#base/context/inventory';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { Border, InfiniteGrid, LayoutImage, Region, TextInput, ThemeImage, ThemeText, useTextureFromUrl } from '#base/theme';
+import { getBadgeDesc, getBadgeName } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
 
 /** `MAX_SEARCH_STRING_LENGTH`, which is also `search_input`'s `max_chars`. */
 const MAX_SEARCH_STRING_LENGTH = 40;
-/** `HabboLocalizationManager._romanNumerals`: a badge level as `%roman%`. */
-const ROMAN_NUMERALS: readonly string[] = [ 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII', 'XXVIII', 'XXIX', 'XXX' ];
 
 type Translate = (key: string, defaultValue?: string, replacements?: Record<string, string>) => string;
 
-/** `BadgeBaseAndLevel`: a badge code split into its base and the level its trailing digits give (1 without any). */
-const getBadgeBaseAndLevel = (code: string): { base: string; level: number } => {
-    let at = code.length - 1;
-
-    while ((at > 0) && (code.charCodeAt(at) >= 48) && (code.charCodeAt(at) <= 57)) at--;
-
-    const digits = code.substring(at + 1);
-
-    return { base: code.substring(0, at + 1), level: digits.length ? parseInt(digits) : 1 };
-};
-
-/** `getExistingKey`: the first key with a text, or the first key. */
-const getExistingKey = (t: Translate, keys: string[]): string => keys.find(key => (t(key, '') !== '')) ?? keys[0];
-
-/**
- * `HabboLocalizationManager.getBadgeName` / `getBadgeDesc`, as `buildBadgeSearchText` reads them:
- * the code's own text or its base's, `%roman%` the level (and, in a description, `%limit%` the
- * badge's point limit - `BadgePointLimitsMessage` is not stored by the port, so that stays as it
- * is); a description with no text of its own is empty, a name falls back to its key.
- */
-const getBadgeSearchText = (t: Translate, code: string): string => {
-    const { base, level } = getBadgeBaseAndLevel(code);
-    const roman = ROMAN_NUMERALS[Math.max(0, level - 1)] ?? '';
-    const nameKey = getExistingKey(t, [ `badge_name_${code}`, `badge_name_${base}` ]);
-    const descKey = getExistingKey(t, [ `badge_desc_${code}`, `badge_desc_${base}` ]);
-    const name = t(nameKey, nameKey, { roman });
-    const desc = t(descKey, '', { roman });
-
-    return `${code} ${name} ${desc}`.toLowerCase();
-};
+/** `buildBadgeSearchText`: the code, `getBadgeName` and `getBadgeDesc`, lower-cased. */
+const getBadgeSearchText = (t: Translate, code: string, pointLimits: Record<string, number>): string => `${code} ${getBadgeName(t, code)} ${getBadgeDesc(t, code, pointLimits)}`.toLowerCase();
 
 /** `getPreviewerStuffData`: the string array stuff data a badge display furni is previewed and bought with. */
 const getPreviewerStuffData = (badgeCode: string) => {
@@ -130,6 +101,7 @@ export const CatalogUserBadgeSelectorWidgetView = ({ page }: CatalogWidgetProps)
     const badgeCodes = useInventoryStore(x => x.badgeCodes);
     const { send } = useWebSocketContext();
     const t = useTranslation();
+    const badgePointLimits = useSystemStore(x => x.badgePointLimits);
 
     // `refreshBadgeData`: the owned badges but the excluded ones; a picked badge the user no longer owns is dropped quietly.
     const excluded = excludedBadges.split(',');
@@ -139,7 +111,7 @@ export const CatalogUserBadgeSelectorWidgetView = ({ page }: CatalogWidgetProps)
 
     const currentBadge = ((selectedBadge !== undefined) && ownedBadges.includes(selectedBadge)) ? selectedBadge : undefined;
     const search = searchText.toLowerCase();
-    const filteredBadges = (search === '') ? ownedBadges : ownedBadges.filter(code => getBadgeSearchText(t, code).includes(search));
+    const filteredBadges = (search === '') ? ownedBadges : ownedBadges.filter(code => getBadgeSearchText(t, code, badgePointLimits).includes(search));
 
     const dispatchBadge = (code: string) => {
         page.events.dispatchEvent({ type: CatalogWidgetEventEnum.SET_EXTRA_PARAMETER, parameter: code });
@@ -153,7 +125,7 @@ export const CatalogUserBadgeSelectorWidgetView = ({ page }: CatalogWidgetProps)
 
         setSearchText(value);
 
-        if ((currentBadge === undefined) || (next === '') || getBadgeSearchText(t, currentBadge).includes(next)) return;
+        if ((currentBadge === undefined) || (next === '') || getBadgeSearchText(t, currentBadge, badgePointLimits).includes(next)) return;
 
         setSelectedBadge(undefined);
         dispatchBadge('');

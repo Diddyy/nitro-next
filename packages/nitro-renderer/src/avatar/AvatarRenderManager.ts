@@ -1,4 +1,4 @@
-import { AvatarFigurePartType, AvatarGenderType, AvatarScaleType, AvatarSetType, IAssetAvatarActionData, IAssetAvatarAnimation, IAvatarEffectListener, IAvatarFigureContainer, IAvatarImage, IAvatarImageListener, IAvatarRenderManager, IAvatarStructure, IEffectAssetDownloadLibrary, IEffectMapLibrary, IFigureData, IFigureMapLibrary, IFigurePartSet, IGraphicAsset, IStructureData } from '@nitrodevco/nitro-api';
+import { AvatarFigurePartType, AvatarGenderType, AvatarScaleType, AvatarSetType, IAvatarEffectListener, IAvatarFigureContainer, IAvatarImage, IAvatarImageListener, IAvatarRenderData, IAvatarRenderManager, IAvatarStructure, IEffectAssetDownloadLibrary, IEffectMapLibrary, IFigureData, IFigureMapLibrary, IFigurePartSet, IGraphicAsset, IStructureData } from '@nitrodevco/nitro-api';
 
 import { AssetAliasCollection } from './alias';
 import { AvatarAssetDownloadManager } from './AvatarAssetDownloadManager';
@@ -6,7 +6,7 @@ import { AvatarFigureContainer } from './AvatarFigureContainer';
 import { AvatarImage } from './AvatarImage';
 import { AvatarStructure } from './AvatarStructure';
 import { BlockedAvatarImage } from './BlockedAvatarImage';
-import { HabboAvatarActionsDefault, HabboAvatarBuiltInAnimations, HabboAvatarFigureDataDefault, HabboAvatarGeometry, HabboAvatarPartSets } from './data';
+import { HabboAvatarActionsDefault } from './data';
 import { EffectAssetDownloadManager } from './EffectAssetDownloadManager';
 import { FigureDataContainer } from './FigureDataContainer';
 import { PlaceHolderAvatarImage } from './PlaceHolderAvatarImage';
@@ -35,28 +35,26 @@ export class AvatarRenderManager implements IAvatarRenderManager {
         this._blockedFigure = undefined;
     }
 
-    public init(): void {
-        this._structure.initGeometry(HabboAvatarGeometry);
-        this._structure.initPartSets(HabboAvatarPartSets);
-        // Flash `initActions`: the baked-in set. The downloaded one goes over it through
-        // `processAvatarActions`, which `useAvatarLoader` calls once `avatar.actions.url` lands -
-        // Flash downloaded `HabboAvatarActions.xml` too, so the order is its `updateActions`.
-        this._structure.updateActions(HabboAvatarActionsDefault);
-        this._structure.initFigureData(HabboAvatarFigureDataDefault);
+    /**
+     * Starts from the hotel's avatar data (`LoadAvatarData`, `avatar.data.url`): the tables Flash's
+     * render library carried, then the hotel's actions over the built-in set and its animations -
+     * Flash's `initActions` then `updateActions`.
+     */
+    public init(data: IAvatarRenderData): void {
+        this._structure.initGeometry(data.geometry);
+        this._structure.initPartSets(data.partSets);
+        // Flash `initActions`: the baked-in set - the stand and the snowwar postures, which are
+        // Flash code rather than an asset - with the render library's action offsets.
+        this._structure.updateActions({ actions: HabboAvatarActionsDefault.actions, actionOffsets: data.actionOffsets });
+        this._structure.initFigureData(data.figureData);
         // Flash `registerBuiltInAnimations`: the animations embedded in the client rather than in an effect library
-        this._structure.registerAnimations(HabboAvatarBuiltInAnimations);
+        this._structure.registerAnimations(data.builtInAnimations);
+
+        if (data.actions) this._structure.updateActions(data.actions);
+        if (data.animations) this._structure.initAnimation(data.animations);
+
         // Flash builds the alias collection with `init()`: the aliases of every library already loaded
         this._aliasCollection.init();
-    }
-
-    /** `avatar.actions.url`, applied over the baked-in set - see `init`. */
-    public processAvatarActions(data: IAssetAvatarActionData): void {
-        this._structure.updateActions(data);
-    }
-
-    /** `avatar.animations.url`: the per-action frame table, which nothing else writes. */
-    public processAvatarAnimations(data: IAssetAvatarAnimation[]): void {
-        this._structure.initAnimation(data);
     }
 
     public processFigureMap(data: IFigureMapLibrary[], assetUrl: string) {

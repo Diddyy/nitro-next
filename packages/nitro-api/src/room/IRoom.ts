@@ -20,7 +20,7 @@ import {
     RoomObjectUserType,
     RoomObjectVariableEnum,
 } from './object';
-import { ILegacyWallGeometry, IRoomAreaSelectionManager, IRoomObjectHighLighter, IStackingHeightMapReader } from './utils';
+import { ILegacyWallGeometry, IRoomAreaSelectionManager, IRoomObjectHighLighter, IStackingHeightMapReader, ITileObjectMap } from './utils';
 
 export interface IRoom {
     dispose(): void;
@@ -169,6 +169,12 @@ export interface IRoom {
     setLegacyGeometry(geometry: ILegacyWallGeometry): void;
     /** Lends the room a live view of the stacking height map, which the UI owns and keeps up to date. */
     setStackingHeightMap(map: IStackingHeightMapReader | undefined): void;
+    /** A new stacking height map of this size: the tile object map starts over, empty. */
+    resetTileObjectMap(width: number, height: number): void;
+    /** Rebuilds the tile object map from the floor objects, after the height map or the furni changed. */
+    refreshTileObjectMap(): void;
+    /** The topmost floor object on each tile, or undefined before a stacking height map arrived. */
+    readonly tileObjectMap: ITileObjectMap | undefined;
     getRoomValue<T>(key: RoomObjectVariableEnum): T;
     setRoomValue<T>(key: RoomObjectVariableEnum, value: T): void;
     /** A room value that is set and above zero - the wired configuration item flags. */

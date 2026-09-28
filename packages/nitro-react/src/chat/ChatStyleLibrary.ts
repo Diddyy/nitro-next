@@ -2,7 +2,7 @@ import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 
-import { loadAssetBundle } from '#base/utils';
+import { assetBundleUrl, loadAssetBundle } from '#base/utils';
 
 import { ChatStyle, IChatStyle } from './ChatStyle';
 import { CHAT_STYLE_DEFAULT_ID, chatStyleAssetName, ChatStyleDefinition, ChatStyleOptionalBitmap } from './ChatStyleDefinitions';
@@ -24,9 +24,9 @@ const BUNDLE_NAME = 'chat-styles';
  * skipped with a warning rather than aborting the whole library - that too mirrors the client's
  * per-style try/catch.
  *
- * A hotel with styles of its own serves the whole bundle itself - the client's styles and its own, built
- * by Nitro Studio's chat bubble builder - and names it with `chat.styles.url` (`assetBundleUrl`):
- * the library reads it exactly as it reads the client's.
+ * The hotel serves the bundle - the client's styles and its own, built by Nitro Studio's chat bubble
+ * builder - and names it with `chat.styles.url` (`assetBundleUrl`). With that unset there is no bundle
+ * and no style.
  */
 export class ChatStyleLibrary {
     private readonly _styles: Map<number, ChatStyle> = new Map();
@@ -68,6 +68,8 @@ export class ChatStyleLibrary {
     }
 
     private async loadStyles(): Promise<void> {
+        if (!assetBundleUrl(BUNDLE_NAME)) return;
+
         if (!await loadAssetBundle(BUNDLE_NAME)) {
             NitroLogger.error('ChatStyleLibrary: the chat-styles bundle failed to load - no chat style is available');
 

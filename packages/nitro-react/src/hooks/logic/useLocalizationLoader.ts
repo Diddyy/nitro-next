@@ -47,18 +47,6 @@ export const useLocalizationLoader = () => {
         return resolveReferences(data);
     };
 
-    /* useMessageEvent<BadgePointLimitsEvent>(BadgePointLimitsEvent, event => {
-        const parser = event.getParser();
-
-        const data: Record<string, number> = {};
-
-        for (const data of parser.data) {
-            data[data.badgeId] = data.limit;
-        }
-
-        setBadgePointLimits(data);
-    }); */
-
     useEffect(() => {
         if (!needsUpdate || !localizationUrl || !localizationUrl.length) return;
 

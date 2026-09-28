@@ -1,3 +1,4 @@
+export * from './ColorTransitioner';
 export * from './LegacyWallGeometry';
 export * from './ObjectMouseData';
 export * from './RoomAreaSelectionManager';
@@ -9,3 +10,4 @@ export * from './RoomRotatingEffect';
 export * from './RoomShakingEffect';
 export * from './SelectedRoomObjectData';
 export * from './SortableSprite';
+export * from './TileObjectMap';

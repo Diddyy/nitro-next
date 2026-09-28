@@ -5,19 +5,18 @@ import { IVariableFxAssetProvider, VariableFxIconMetadataEntry, VariableFxRender
 import { createTransparentBitmap, getBitmapContext, VariableFxBitmap } from './rendering/VariableFxBitmap';
 import { VariableFxServerTables } from './VariableFxTables';
 
-/** The two XML tables the Flash library carried, as `scripts/build-asset-bundles.ts` converts them. */
+/** The two XML tables the Flash library carried, as Nitro Studio converts them. */
 interface VariableFxBundleTables {
     icons: Record<string, { x: number; y: number }>;
     renderers: { id: number; name: string; rendererClass: string }[];
 }
 
-const BUNDLE_NAME = 'nitro-renderer';
+const BUNDLE_NAME = 'room-object-visualization';
 const TABLES_FILE = 'variable-fx-tables';
-const DEFAULT_BUNDLE_URL = '/assets/bundles/%name%.nitro';
 
 /**
  * The Flash client embedded every `variablefx_*` bitmap (and the icon/renderer XML tables) in
- * its room visualization library. Here they share `nitro-renderer.nitro` with the avatar
+ * its room visualization library. Here they share `room-object-visualization.nitro` with the avatar
  * additions - what the room engine draws, as against the UI's own art: the bitmaps packed into a
  * sheet the shared `AssetManager` decodes and uploads once, and the two tables beside them as
  * JSON. The renderers compose on the CPU, so each asset is still cut out into its own canvas on
@@ -86,7 +85,11 @@ export class VariableFxAssetLibrary implements IVariableFxAssetProvider {
     }
 
     private async loadBundle(): Promise<boolean> {
-        const url = (GetConfigValue<string>('asset.bundles.url') ?? DEFAULT_BUNDLE_URL).replace('%name%', BUNDLE_NAME);
+        // The hotel serves the bundle (Nitro Studio's, of the client's bitmaps and its own); unset, it is not loaded.
+        const url = GetConfigValue<string>('renderer.assets.url');
+
+        if (!url) return false;
+
         const assetManager = GetAssetManager();
 
         if (!await assetManager.downloadAssetBundle(BUNDLE_NAME, url)) throw new Error(`bundle request failed: ${url}`);

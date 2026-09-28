@@ -1,7 +1,7 @@
 import { NitroLogger, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
 import { GuildFurniContextMenuInfoMessageType, JoinHabboGroupComposer } from '@nitrodevco/nitro-packets';
 
-import { goToRoom } from '#base/commands';
+import { goToRoom, openGroupInfo } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { FurnitureGuildMenuView } from '#base/views/room-widgets/furniture/FurnitureGuildMenuView';
@@ -36,6 +36,10 @@ export const FurnitureGuildMenuWidget = () => {
                 }}
                 onHomeRoom={() => {
                     goToRoom(send, data.guildHomeRoomId);
+                    onClose();
+                }}
+                onProfile={() => {
+                    openGroupInfo(send, data.guildId);
                     onClose();
                 }}
                 onForum={() => {

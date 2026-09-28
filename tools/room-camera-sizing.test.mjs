@@ -176,7 +176,9 @@ await test('own-avatar camera target is assigned in both login packet orders, ne
             '@nitrodevco/nitro-api': { Vector3d, RoomObjectCategoryEnum: { Unit: 100 }, RoomObjectUserType: { User: 1 }, AvatarGenderType: {}, RoomObjectVariableEnum: {} },
             '@nitrodevco/nitro-packets': new Proxy({}, { get: (_, name) => name }),
             '#base/context/room': { getRoom: () => room, roomStore: { getState: () => state } },
-            '#base/context/user': { userStore: { getState: () => ({ userId: identity, blockedUserIds: [] }) } },
+            '#base/context/user': { userStore: { getState: () => ({ userId: identity, blockedUserIds: [], ignoredUserIds: [] }) } },
+            '#base/context/system': { systemStore: { getState: () => ({ config: {} }) } },
+            '#base/utils': { configReader: () => ({ configBoolean: () => false }) },
             '../packetSubscriptions': { on: (name, handler) => ({ name, handler }), subscribeAll: (_, entries) => { for (const { name, handler } of entries) callbacks.set(name, handler); } },
         });
         registerRoomUserHandlers({ subscribe() {} });

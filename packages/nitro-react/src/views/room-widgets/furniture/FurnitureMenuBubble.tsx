@@ -14,6 +14,8 @@ export interface FurnitureMenuBubbleProps {
     title: string;
     /** `profile_link`'s tooltip on the guild menu; the other menus' title region has none. */
     titleTooltip?: string;
+    /** `profile_link` on the guild menu opens the group; the other menus' title is not clickable. */
+    onTitleTap?: () => void;
     buttons: FurnitureMenuButton[];
     /**
      * How far below the list's foot the layout puts `minimize`: 1 in `generic_usable_menu`
@@ -47,7 +49,7 @@ const ROW_SPACING = 1;
  * 45x35 bubble whose `minimize` region carries the icon set's style 6 arrow; the arrow of either
  * view is tinted while the pointer is over its region (`onMinimizeHover`).
  */
-export const FurnitureMenuBubble = ({ title, titleTooltip, buttons, minimizeGap }: FurnitureMenuBubbleProps) => {
+export const FurnitureMenuBubble = ({ title, titleTooltip, onTitleTap, buttons, minimizeGap }: FurnitureMenuBubbleProps) => {
     const [ minimized, setMinimized ] = useState<boolean>(false);
     const [ hovered, setHovered ] = useState<boolean>(false);
 
@@ -96,6 +98,8 @@ export const FurnitureMenuBubble = ({ title, titleTooltip, buttons, minimizeGap 
                 <Region
                     tooltip={titleTooltip}
                     tooltipDelay={titleTooltip ? 100 : undefined}
+                    cursor={onTitleTap ? 'pointer' : undefined}
+                    onPointerTap={onTitleTap}
                     layout={{ position: 'absolute', left: 0, top: 7, width: 107, height: 16, flexDirection: 'row', justifyContent: 'center' }}
                 >
                     <ThemeText

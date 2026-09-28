@@ -1,5 +1,5 @@
 import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
-import { InfoRetrieveComposer } from '@nitrodevco/nitro-packets';
+import { GetFurnitureAliasesComposer, InfoRetrieveComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { useEffect } from 'react';
 
@@ -51,6 +51,8 @@ export const MainView = () => {
      */
     useEffect(() => {
         send(new InfoRetrieveComposer({}));
+        // `onAuthenticationOK` asks for the furni aliases right after the user object.
+        send(new GetFurnitureAliasesComposer({}));
         setReady();
     }, []);
 

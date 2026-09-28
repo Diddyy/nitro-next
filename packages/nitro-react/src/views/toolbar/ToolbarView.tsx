@@ -34,7 +34,7 @@ import { QuitComposer } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer } from 'pixi.js';
 import { ReactNode, useState } from 'react';
 
-import { goToHomeRoom, openClientLink, openProfile, toggleCatalog } from '#base/commands';
+import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog } from '#base/commands';
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
@@ -374,7 +374,8 @@ export const ToolbarView = () => {
                     height={ME_MENU_HEIGHT}
                     buttons={[
                         { icon: 'me_menu_me_profile', caption: t('widget.memenu.profile'), action: () => openProfile(send, ownUserId) },
-                        { icon: 'me_menu_me_rooms', caption: t('widget.memenu.myrooms') },
+                        // `MeMenuNewController.onSubMenuItemClick('rooms')`: `navigator.showOwnRooms()`.
+                        { icon: 'me_menu_me_rooms', caption: t('widget.memenu.myrooms'), action: () => showOwnRooms(send) },
                         { icon: 'me_menu_me_clothing', caption: t('widget.memenu.editavatar'), action: () => toggleWindow('avatar_editor') },
                         { icon: 'me_menu_me_forums', caption: t('widget.memenu.forums') },
                         // `onSubMenuItemClick('collectibles')`: `createLinkEvent('collectibles/open')`.

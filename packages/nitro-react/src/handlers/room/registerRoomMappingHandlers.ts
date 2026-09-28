@@ -242,6 +242,7 @@ export const registerRoomMappingHandlers = ({ subscribe }: WebSocketConnection) 
             }
 
             setHeightMap(width, height, heights, stackingBlocked, validTiles);
+            room.resetTileObjectMap(width, height);
         }),
 
         on(HeightMapUpdateMessage, (data) => {
@@ -260,6 +261,7 @@ export const registerRoomMappingHandlers = ({ subscribe }: WebSocketConnection) 
             });
 
             setHeightMapUpdates(updates);
+            room.refreshTileObjectMap();
         }),
 
         on(RoomPropertyMessage, (data) => {
@@ -300,21 +302,24 @@ export const registerRoomMappingHandlers = ({ subscribe }: WebSocketConnection) 
                     break;
                 }
                 case SpecialRoomEffectType.Disco: {
+                    // Flash's `Timer(1000, colours.length + 1)`: one colour a second, then a tenth
+                    // tick past the end of the list, whose missing colour coerces to 0 and is
+                    // applied to the background only.
                     const colors = [
-                        0x0072BB, 0xFF953B, 0xFFD700, 0x9B59B6,
-                        0x0072BB, 0xFF953B, 0xFFD700, 0x9B59B6,
+                        0x0072BB, 0xFF4C3B, 0xFFD034, 0x99FF00,
+                        0x0072BB, 0xFF4C3B, 0xFFD034, 0x99FF00,
                         0x000000,
                     ];
+                    const roomId = room.roomId;
 
                     let index = 0;
                     const timer = setInterval(() => {
-                        const isLastColor = index === colors.length;
-                        // roomEngine.updateObjectRoomColor(objectId, colors[index], 176, isLastColor);
+                        const current = getRoom();
+
+                        if (current?.roomId === roomId) current.updateRoomObjectRoomColor(colors[index] ?? 0, 176, index === colors.length);
 
                         if (++index > colors.length) clearInterval(timer);
                     }, 1000);
-
-                    clearInterval(timer);
                     break;
                 }
             }

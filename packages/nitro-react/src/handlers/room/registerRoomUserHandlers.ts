@@ -1,9 +1,11 @@
 import { AvatarActionStateType, AvatarFigurePartType, AvatarGenderType, IRoomUserData, IVector3D, PetType, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
-import { AvatarEffectMessage, BlockUserUpdateMessage, CarryObjectMessage, DanceMessage, ExpressionMessage, FavoriteMembershipUpdateMessage, IRoomAvatar, IRoomAvatarBot, IRoomAvatarPet, IRoomAvatarRentableBot, IRoomAvatarUser, SleepMessage, UseObjectMessage, UserChangeMessage, UserObjectMessage, UserRemoveMessage, UsersMessage, UserTypingMessage, UserUpdateMessage } from '@nitrodevco/nitro-packets';
+import { AvatarEffectMessage, BlockUserUpdateMessage, CarryObjectMessage, DanceMessage, ExpressionMessage, FavoriteMembershipUpdateMessage, GamePlayerValueMessage, IgnoreResultMessage, IRoomAvatar, IRoomAvatarBot, IRoomAvatarPet, IRoomAvatarRentableBot, IRoomAvatarUser, SleepMessage, UseObjectMessage, UserChangeMessage, UserObjectMessage, UserRemoveMessage, UsersMessage, UserTypingMessage, UserUpdateMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
+import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
+import { configReader } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -16,9 +18,16 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * A blocked user is drawn as the generic blocked figure: `RoomEngine.addObjectUser` checked the
  * block list as the avatar arrived, and `RoomMessageHandler.onBlockUserUpdate` swapped it when
  * someone in the room was blocked or unblocked.
+ *
+ * An ignored user carries the muted bubble while `avatar.ignored.bubble.enabled`: set as the
+ * avatar arrives (`onUsers`) and whenever the ignore list changes (`onIgnoreResult`). A game's
+ * number over a player's head is `onGamePlayerNumberValue`.
  */
 export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => {
     const { setOwnRoomIndex, setTarget, setIsOwnDancing, updateUsers, updateUserPartial, removeUser } = roomStore.getState();
+
+    /** `configuration.getBoolean("avatar.ignored.bubble.enabled")`. */
+    const ignoredBubbleEnabled = () => configReader(systemStore.getState().config).configBoolean('avatar.ignored.bubble.enabled');
 
     return subscribeAll(subscribe, [
         /*
@@ -49,6 +58,8 @@ export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => 
                     setTarget(avatar.objectId, RoomObjectCategoryEnum.Unit);
                     room.updateRoomObjectUserOwn(avatar.objectId);
                 }
+
+                if (ignoredBubbleEnabled()) room.updateRoomObjectUserAction(avatar.objectId, RoomObjectVariableEnum.FigureIsMuted, userStore.getState().ignoredUserIds.includes(avatar.webId) ? 1 : 0);
 
                 switch (avatar.avatarType) {
                     case RoomObjectUserType.User: {
@@ -399,6 +410,22 @@ export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => 
             if (!room) return;
 
             room.updateRoomObjectUserAction(data.objectId, RoomObjectVariableEnum.FigureUseObject, data.itemType);
+        }),
+
+        on(GamePlayerValueMessage, data => getRoom()?.updateRoomObjectUserAction(data.userId, RoomObjectVariableEnum.FigureNumberValue, data.value)),
+
+        // `onIgnoreResult`: 1 ignored, 2 ignored with the oldest dropped, 3 unignored.
+        on(IgnoreResultMessage, (data) => {
+            const room = getRoom();
+
+            if (!room || !ignoredBubbleEnabled()) return;
+
+            const user = roomStore.getState().getUserByWebId(data.userId, RoomObjectUserType.User);
+
+            if (!user) return;
+
+            if ((data.result === 1) || (data.result === 2)) room.updateRoomObjectUserAction(user.objectId, RoomObjectVariableEnum.FigureIsMuted, 1);
+            else if (data.result === 3) room.updateRoomObjectUserAction(user.objectId, RoomObjectVariableEnum.FigureIsMuted, 0);
         }),
 
         on(UserTypingMessage, (data) => {

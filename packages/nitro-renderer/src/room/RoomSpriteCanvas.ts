@@ -8,7 +8,7 @@ import {
     IRoomSpriteMouseEvent,
     MouseEventType, RoomGeometryScaleType,
     RoomObjectSpriteData,
-    RoomObjectSpriteTypeEnum, RoomSpriteMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
+    RoomObjectSpriteTypeEnum, RoomObjectVariableEnum, RoomSpriteMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
 import { Container, Graphics, Matrix, Point, Rectangle, Sprite, Texture } from 'pixi.js';
 
 import { ExtendedSprite, TextureUtils } from '../utils';
@@ -101,7 +101,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             new Vector3d(11, 11, 5),
             new Vector3d(-135, 0.5, 0),
         );
-        this._objectCache = new RoomObjectCache();
+        // `RoomEngine.createRoomCanvas` gives every renderer `object_accurate_z_value` as its accurate-z variable.
+        this._objectCache = new RoomObjectCache(RoomObjectVariableEnum.ObjectAccurateZValue);
 
         this.setupCanvas();
         this.initialize(width, height);
@@ -489,15 +490,13 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             const spriteX = snapRoomSpriteCoordinate(x + sprite.offsetX, screenOffsetX * samplingOffset, samplingScale) + screenOffsetX;
             const spriteY = snapRoomSpriteCoordinate(y + sprite.offsetY, screenOffsetY * samplingOffset, samplingScale) + screenOffsetY;
 
-            if (sprite.flipH) {
-                const checkX = x + -(texture.width + -sprite.offsetX) + screenOffsetX;
+            // `rectangleVisible` on the snapped position. Flash drew a flipped sprite from a mirrored
+            // copy of its bitmap, so it still started at its x; here the sprite is mirrored in place
+            // (`scale -1`) and reaches back from it, so the rectangle starts a width (or height) earlier.
+            const visibleX = sprite.flipH ? (spriteX - texture.width) : spriteX;
+            const visibleY = sprite.flipV ? (spriteY - texture.height) : spriteY;
 
-                if (!this.isSpriteVisible(checkX, spriteY, texture.width, texture.height)) continue;
-            } else if (sprite.flipV) {
-                const checkY = y + -(texture.height + -sprite.offsetY) + screenOffsetY;
-
-                if (!this.isSpriteVisible(spriteX, checkY, texture.width, texture.height)) continue;
-            } else if (!this.isSpriteVisible(spriteX, spriteY, texture.width, texture.height)) continue;
+            if (!this.isSpriteVisible(visibleX, visibleY, texture.width, texture.height)) continue;
 
             let sortableSprite = sortableCache.getSprite(spriteCount);
 
@@ -781,6 +780,20 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         if (this._mouseCheckCount > 0 && type == MouseEventType.MOUSE_MOVE) return this._mouseSpriteWasHit;
 
+        // Flash's `clickHandler`, the display's own click listener: sprites with a click url get
+        // their clicks here, since `checkMouseHits` passes them over.
+        if ((type === MouseEventType.MOUSE_CLICK) || (type === MouseEventType.DOUBLE_CLICK)) {
+            this.checkMouseClickHits(
+                Math.trunc(x / this.displayScale),
+                Math.trunc(y / this.displayScale),
+                (type === MouseEventType.DOUBLE_CLICK),
+                altKey,
+                ctrlKey,
+                shiftKey,
+                buttonDown,
+            );
+        }
+
         this._mouseSpriteWasHit = this.checkMouseHits(
             Math.trunc(x / this.displayScale),
             Math.trunc(y / this.displayScale),
@@ -794,6 +807,58 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         this._mouseCheckCount++;
 
         return this._mouseSpriteWasHit;
+    }
+
+    /** `checkMouseClickHits`: a click or double click, for the sprites that handle their own. */
+    private checkMouseClickHits(
+        x: number,
+        y: number,
+        doubleClick: boolean,
+        altKey: boolean = false,
+        ctrlKey: boolean = false,
+        shiftKey: boolean = false,
+        buttonDown: boolean = false,
+    ): boolean {
+        const type = doubleClick ? MouseEventType.DOUBLE_CLICK : MouseEventType.MOUSE_CLICK;
+        const clicked = new Set<string>();
+
+        let didHitSprite = false;
+        let spriteId = this._activeSpriteCount - 1;
+
+        while (spriteId >= 0) {
+            const extendedSprite = this.getExtendedSprite(spriteId);
+
+            if (extendedSprite?.clickHandling) {
+                if (extendedSprite.containsXY(x - extendedSprite.x, y - extendedSprite.y)) {
+                    const identifier = this.getExtendedSpriteIdentifier(extendedSprite);
+
+                    if (!clicked.has(identifier)) {
+                        this.bufferMouseEvent(this.createMouseEvent(
+                            x,
+                            y,
+                            x - extendedSprite.x,
+                            y - extendedSprite.y,
+                            type,
+                            extendedSprite.tag,
+                            altKey,
+                            ctrlKey,
+                            shiftKey,
+                            buttonDown,
+                        ), identifier);
+
+                        clicked.add(identifier);
+                    }
+                }
+
+                didHitSprite = true;
+            }
+
+            spriteId--;
+        }
+
+        this.processMouseEvents();
+
+        return didHitSprite;
     }
 
     private checkMouseHits(
@@ -820,7 +885,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
                         extendedSprite.clickHandling
                         && (type === MouseEventType.MOUSE_CLICK || type === MouseEventType.DOUBLE_CLICK)
                     ) {
-                        //
+                        // Left to `checkMouseClickHits`.
                     } else {
                         const identifier = this.getExtendedSpriteIdentifier(extendedSprite);
 

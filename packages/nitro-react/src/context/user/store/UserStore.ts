@@ -77,6 +77,8 @@ export interface UserChatPreferences {
 
 type Actions = {
     setTags: (tags: string[]) => void;
+    /** `SessionDataManager.onAvailabilityStatus`: whether the hotel is open, shutting down, and the account authentic. */
+    setAvailabilityStatus: (systemOpen: boolean, systemShutdown: boolean, isAuthenticHabbo: boolean) => void;
     setRights: (clubLevel: ClubLevelEnum, securityLevel: SecurityLevelEnum, isAmbassador: boolean) => void;
     setNoobnessLevel: (noobnessLevel: NoobnessLevelEnum) => void;
     increasePetRespects: () => void;
@@ -138,6 +140,7 @@ export const createUserStore = () => createStore<UserStore>()((set, get, store) 
     increasePetRespects: () => set(state => ({ petRespectLeft: state.petRespectLeft + 1 })),
     decreasePetRespects: () => set(state => ({ petRespectLeft: state.petRespectLeft - 1 })),
     setTags: (tags: string[]) => set({ tags }),
+    setAvailabilityStatus: (systemOpen: boolean, systemShutdown: boolean, isAuthenticHabbo: boolean) => set({ systemOpen, systemShutdown, isAuthenticHabbo }),
     setChatPreferences: (preferences: UserChatPreferences) => set({ ...preferences }),
     setPreferredChatStyle: (preferredChatStyle: number) => set({ preferredChatStyle }),
     setChatSizePreference: (chatSizePreference: number) => set({ chatSizePreference }),

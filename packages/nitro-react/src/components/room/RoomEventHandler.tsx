@@ -1,7 +1,7 @@
-import { ColorConverter, IRoomObject, MouseEventType, NitroLogger, RoomEngineObjectEvent, RoomObjectBadgeAssetEvent, RoomObjectCategoryEnum, RoomObjectDataRequestEvent, RoomObjectDimmerStateUpdateEvent, RoomObjectEvent, RoomObjectFloorHoleEvent, RoomObjectFurnitureActionEvent, RoomObjectHSLColorEnableEvent, RoomObjectMouseEvent, RoomObjectMoveEvent, RoomObjectRoomAdEvent, RoomObjectStateChangedEvent, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent, RoomSpriteMouseEvent, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
+import { IRoomObject, MouseEventType, NitroLogger, RoomBackgroundColorEvent, RoomEngineObjectEvent, RoomObjectBadgeAssetEvent, RoomObjectCategoryEnum, RoomObjectDataRequestEvent, RoomObjectDimmerStateUpdateEvent, RoomObjectEvent, RoomObjectFloorHoleEvent, RoomObjectFurnitureActionEvent, RoomObjectHSLColorEnableEvent, RoomObjectMouseEvent, RoomObjectMoveEvent, RoomObjectRoomAdEvent, RoomObjectStateChangedEvent, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent, RoomSpriteMouseEvent, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
 import { RoomDimmerPresetsMessageType } from '@nitrodevco/nitro-packets';
 import { RoomObjectUpdateMessage } from '@nitrodevco/nitro-renderer';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useRoom, useRoomIsPlayingGame, useRoomMouseActions, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
@@ -9,7 +9,8 @@ import { useOwnIsModerator, useOwnUserId } from '#base/context/user';
 import { useRoomAdHandler, useRoomBadgeAssetHandler, useRoomEventDispatcher, useRoomEventHandler, useRoomFurnitureActionHandler, useRoomObjectInteraction, useRoomObjectSelect, useRoomWidgetRequestHandler } from '#base/hooks';
 import { handleRoomObjectSoundEvent, isRoomObjectSoundEvent } from '#base/sound';
 
-import { SetRoomBackgroundColor } from './roomBackgroundColor';
+import { DisposeRoomBackgroundColor, SetRoomBackgroundColor } from './roomBackgroundColor';
+import { DisposeRoomViewColor, SetRoomViewColor } from './roomViewColor';
 
 export const RoomEventHandler = () => {
     const room = useRoom();
@@ -26,6 +27,8 @@ export const RoomEventHandler = () => {
     const dimmerRequest = useRoomWidget<RoomDimmerPresetsMessageType>(RoomObjectWidgetRequestEvent.DIMMER);
     const { mergeRoomWidgetData } = useRoomWidgetActions();
     const ownUserId = useOwnUserId();
+    /** `DimmerFurniWidget`'s dimmer in charge: the last one switched on. */
+    const activeDimmerIdRef = useRef<number>(-1);
     const urlPrefix = useConfigValue<string>('url.prefix') ?? '';
 
     const handleRoomObjectEvent = (event: RoomObjectEvent) => {
@@ -92,7 +95,12 @@ export const RoomEventHandler = () => {
                 // widget so the room is lit whether or not anyone has its dialog open.
                 const dimmer = event as RoomObjectDimmerStateUpdateEvent;
 
-                room.updateRoomObjectRoomColor(dimmer.color, dimmer.brightness, dimmer.effectId === 2);
+                // `DimmerFurniWidget.onDimmerState`: the room follows the dimmer last switched on,
+                // so another dimmer going off does not undo it. Effect 2 colours the background
+                // planes only; any other effect the whole room view.
+                if (dimmer.state > 0) activeDimmerIdRef.current = dimmer.objectId;
+
+                if (activeDimmerIdRef.current === dimmer.objectId) room.updateRoomObjectRoomColor(dimmer.color, dimmer.brightness, dimmer.effectId === 2);
 
                 // `DimmerFurniWidget.onDimmerState`: the dialog showing this dimmer follows it on and off.
                 if (dimmerRequest?.data && (dimmerRequest.objectId === dimmer.objectId)) mergeRoomWidgetData<RoomDimmerPresetsMessageType>(RoomObjectWidgetRequestEvent.DIMMER, { isOn: dimmer.state > 0 });
@@ -113,11 +121,9 @@ export const RoomEventHandler = () => {
                 // in it and not only for whoever has the dialog open.
                 const hsl = event as RoomObjectHSLColorEnableEvent;
 
-                SetRoomBackgroundColor(
-                    hsl.enable
-                        ? ColorConverter.hslToRGB(((hsl.hue & 0xFF) << 16) | ((hsl.saturation & 0xFF) << 8) | (hsl.lightness & 0xFF))
-                        : undefined,
-                );
+                // `RoomUI`'s `ROHSLCEE_ROOM_BACKGROUND_COLOR`: a toner switched off fades to nothing.
+                if (hsl.enable) SetRoomBackgroundColor(room.canvas, hsl.hue, hsl.saturation, hsl.lightness);
+                else SetRoomBackgroundColor(room.canvas, 0, 0, 0);
                 return;
             }
             /*
@@ -283,6 +289,26 @@ export const RoomEventHandler = () => {
 
         if (updateEvent) room.dispatchEvent(updateEvent);
     });
+
+    /*
+     * `RoomUI`'s `REE_ROOM_COLOR`: a background-only colour is the planes' own (`RoomLogic`), so the
+     * view's colorizer goes back to white; any other colour tints the whole view.
+     */
+    useRoomEventDispatcher<RoomBackgroundColorEvent>(RoomBackgroundColorEvent.ROOM_COLOR, (event) => {
+        if (event.bgOnly) SetRoomViewColor(0xFFFFFF, 0xFF);
+        else SetRoomViewColor(event.color, event.brightness);
+    });
+
+    // `disposeDesktop` on `REE_DISPOSED`: the colorizer, the toner backdrop and the dimmer followed do not outlive their room.
+    useEffect(() => {
+        if (!room) return;
+
+        return () => {
+            DisposeRoomViewColor();
+            DisposeRoomBackgroundColor();
+            activeDimmerIdRef.current = -1;
+        };
+    }, [ room ]);
 
     useEffect(() => {
         if (!room) return;

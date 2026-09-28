@@ -597,8 +597,10 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
             onLayout();
         }
 
+        // `RoomPreviewer.onRoomObjectAdded`, on both `REOE_ADDED` and `REOE_CONTENT_UPDATED`: a
+        // wall item only knows its size once its asset has loaded, so it is placed again then.
         const onObjectEvent = (event: RoomEngineObjectEvent) => {
-            if (!event || event.type !== RoomEngineObjectEvent.ADDED) return;
+            if (!event || (event.objectId !== PREVIEW_OBJECT_ID) || (event.category !== previewData.current.objectCategory)) return;
 
             previewData.current.previewRectangle = undefined;
 
@@ -608,12 +610,13 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
                 const sizeZ = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureSizeZ);
                 const centerZ = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureCenterZ);
 
-                room.updateRoomObjectWallLocation(event.objectId, new Vector3d(0.5, 2.3, (((3.6 - sizeZ) / 2) + centerZ)));
+                if (!isNaN(sizeZ) && !isNaN(centerZ)) room.updateRoomObjectWallLocation(event.objectId, new Vector3d(0.5, 2.3, (((3.6 - sizeZ) / 2) + centerZ)));
             }
         };
 
         const listeners = [
             room.eventDispatcher.addEventListener(RoomEngineObjectEvent.ADDED, onObjectEvent),
+            room.eventDispatcher.addEventListener(RoomEngineObjectEvent.CONTENT_UPDATED, onObjectEvent),
         ];
 
         return () => {

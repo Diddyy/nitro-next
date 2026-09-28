@@ -19,10 +19,8 @@ accumulate as "known noise"; that is how seventeen missing variable keys went un
 
 | What | Source of truth | How it gets here |
 |---|---|---|
-| `nitro-renderer/src/avatar/data/HabboAvatarAnimations.ts` | `HabboAvatarAnimation_xml` in the SWF | `nitro-renderer/scripts/generate-avatar-animations.ts` - regenerate, never edit. Build input, not shipped code: `export-avatar-gamedata` writes it out as `gamedata/HabboAvatarAnimations.json` for the CDN (see below) |
-| `HabboAvatarGeometry.ts`, `HabboAvatarPartSets.ts`, `HabboAvatarFigureDataDefault.ts`, `HabboAvatarBuiltInAnimations.ts` | the matching `_xml` assets | by hand; `run-all.sh` diffs them |
-| `HabboAvatarActionsDefault.ts` | the XML literal in `AvatarRenderManager.as` | by hand; diffed |
-| `HabboAvatarActions.ts` | `HabboAvatarActions.xml`, which Flash *downloads* - it is not in the SWF | by hand, and cannot be checked offline. Build input, as `HabboAvatarAnimations.ts` is |
+| The avatar data the renderer starts from (`avatar-data.nitro`, `avatar.data.url`, nitro-api's `IAvatarRenderData`): geometry, part sets, placeholder figure, built-in animations, action offsets, actions and animations | the client release's `habbo-avatar-render-lib` (`HabboAvatarGeometry`, `HabboAvatarPartSets`, `HabboAvatarFigure`, `dance_sixseven_animation`, `action_offset_lay` / `_swim`, `HabboAvatarAnimation`) and the hotel's `HabboAvatarActions.xml` | Nitro Studio: Changes, From Habbo - Client data and Hotel data - into its workspace's gamedata, built into the bundle on import, edit and publish. The renderer carries none of it; `run-all.sh` diffs the studio's copies against the SWF |
+| `HabboAvatarActionsDefault.ts` (the stand and the snowwar postures) | the XML literal in `AvatarRenderManager.as` - Flash code, not an asset | by hand; diffed (its offsets come with the avatar data) |
 | `theme/font/flash-text/habboTextStyles.ts` | `styles_css` in the SWF | `nitro-react/scripts/generate-habbo-text-styles.ts` |
 | `nitro-react/src/context/notifications/store/NotificationConfig.ts` | `habbo_notifications_config_xml` and the bitmaps of `HabboNotificationsCom.as` | by hand; `notifications_config.py` diffs styles, view timings and asset names |
 | `IncomingHeader.ts` / `OutgoingHeader.ts` and the packet classes | the packet generator output directory | see Packets; `packets.py` checks names, ids and registration, `wire.py` what each packet reads and writes |
@@ -75,18 +73,14 @@ Rules that come out of that:
 - A new hand-carried table gets a row above and a check in `scripts/drift` in the same change.
   Data with no check is data that will drift.
 - Refresh Nitro Studio's gamedata after a revision bump - scan habbo.com, import Hotel data and
-  Changed texts, and give it the new client SWF: `config_keys.py` and `localization_keys.py` read
+  Changed texts, and import the client release's categories (Client data, Chat styles, Renderer
+  assets, Avatar tables): `config_keys.py` and `localization_keys.py` read
   its workspace's gamedata, and say so when it is missing.
-- **The avatar action and animation tables are served, not compiled in.** `HabboAvatarActions.ts`
-  and `HabboAvatarAnimations.ts` are still the repo's source of record - generated from the SWF and
-  held to it by the drift checks - but nothing imports them: the barrels do not export them, and
-  `useAvatarLoader` fetches `avatar.actions.url` and `avatar.animations.url` the way Flash
-  downloaded `HabboAvatarActions.xml`. `AvatarRenderManager.init()` applies the baked-in
-  `HabboAvatarActionsDefault` first and the downloaded set goes over it, which is Flash's
-  `initActions` then `updateActions`. So after a revision bump the order is: regenerate the `.ts`,
-  run the drift check, `node scripts/export-avatar-gamedata.ts` from `packages/nitro-renderer`, and
-  upload `packages/nitro-renderer/gamedata/*.json` to the hotel's `/gamedata`. A stale upload does
-  not fail - the avatars just animate like the previous revision.
+- **The avatar data is loaded, not compiled in.** `useAvatarLoader` reads `avatar.data.url` with the
+  renderer's `LoadAvatarData` and starts the avatar manager from it (`init(data)`) before the figure
+  map, effect map and figure data; `init` applies the baked-in `HabboAvatarActionsDefault` first and
+  the hotel's actions over it, which is Flash's `initActions` then `updateActions`. After a revision
+  bump, import Client data and Hotel data in Nitro Studio and publish - the renderer does not change.
 - Theme skin art is cut from the Flash skin bitmap along its skin XML's entities (`habbo_skin_*_xml`
   in `flash-js-resources/habbo-window-manager-com`), one image per entity that moves or stretches
   on its own - the

@@ -8,19 +8,23 @@
  *   first fragment's total) and handed to `initBadges` once all are in.
  * - `BadgeReceived` is `updateBadgeData`: one badge added or updated, and put straight on where the
  *   list still has room for it.
+ * - `BadgePointLimits` is `onBadgePointLimits`: each badge's point limit goes to the localization,
+ *   which fills a description's `%limit%` with it (`utils/badgeLocalization`).
  *
  * Who asks for the list: `HabboInventory.getAllMyBadgeIds` the first time it finds the model empty,
  * and the badges tab when it opens (`commands/inventoryBadgeCommands`).
  */
-import { BadgeReceivedEventMessage, BadgesEventMessage, IInventoryBadge } from '@nitrodevco/nitro-packets';
+import { BadgePointLimitsEventMessage, BadgeReceivedEventMessage, BadgesEventMessage, IInventoryBadge } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
+import { systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
 export const registerInventoryBadgesHandlers = ({ subscribe }: WebSocketConnection) => {
     const { initBadges, updateBadge } = inventoryStore.getState();
+    const { setBadgePointLimits } = systemStore.getState();
     // `IncomingMessages`' badge fragment buffer: the fragments of the list on its way in.
     let fragments: (IInventoryBadge[] | undefined)[] | undefined;
 
@@ -48,5 +52,7 @@ export const registerInventoryBadgesHandlers = ({ subscribe }: WebSocketConnecti
 
         // `updateBadgeData(data, true)`: a badge that arrives during the session is worn if it fits.
         on(BadgeReceivedEventMessage, data => updateBadge(data, true)),
+
+        on(BadgePointLimitsEventMessage, data => setBadgePointLimits(Object.fromEntries(data.data.map(entry => [ entry.badgeId, entry.limit ])))),
     ]);
 };

@@ -1,5 +1,6 @@
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { BoxLayout, Region, useTextureFromUrl } from '#base/theme';
+import { getBadgeDesc, getBadgeName } from '#base/utils';
 
 export interface InfostandBadgeViewProps {
     /** A badge code, or for a group badge the badge data string. */
@@ -21,6 +22,7 @@ export const InfostandBadgeView = ({ code, group = false, ownerCount, onPress, l
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const t = useTranslation();
+    const badgePointLimits = useSystemStore(x => x.badgePointLimits);
 
     const url = !code?.length
         ? undefined
@@ -28,7 +30,7 @@ export const InfostandBadgeView = ({ code, group = false, ownerCount, onPress, l
     const texture = useTextureFromUrl(url);
 
     const tooltip = (code && !group)
-        ? [ t(`badge_name_${code}`, code), t(`badge_desc_${code}`, ''), (ownerCount && (ownerCount > 0) && (ownerCount < 1000)) ? t('badge.owner_count', '', { count: String(ownerCount) }) : '' ].filter(line => line.length).join('\n')
+        ? [ getBadgeName(t, code), getBadgeDesc(t, code, badgePointLimits), (ownerCount && (ownerCount > 0) && (ownerCount < 1000)) ? t('badge.owner_count', '', { count: String(ownerCount) }) : '' ].filter(line => line.length).join('\n')
         : undefined;
 
     return (

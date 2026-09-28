@@ -1,6 +1,6 @@
 import { AvatarActionStateType, IVector3D, LegacyDataType, RoomObjectCategoryEnum, RoomObjectVariableEnum, SlideAvatarMoveType, Vector3d } from '@nitrodevco/nitro-api';
-import { DiceValueMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
-import { LegacyWallGeometry, ObjectMoveUpdateMessage } from '@nitrodevco/nitro-renderer';
+import { DiceValueMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
+import { GetRoomContentLoader, LegacyWallGeometry, ObjectMoveUpdateMessage } from '@nitrodevco/nitro-renderer';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
@@ -12,6 +12,9 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * and leaving, the sliding and wired movement bundles, dice values and one-way doors. Every
  * packet ends in a call on the room, which owns the objects; the store only learns what the
  * widgets need.
+ *
+ * The furni aliases (`onFurnitureAliases`) are the content loader's, not a room's: a type drawn
+ * from another type's asset (`RoomEngine.setRoomObjectAlias`).
  */
 export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection) => {
     const addRoomObjectFloor = (item: IRoomFloorItem) => {
@@ -103,6 +106,10 @@ export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection
             room.updateRoomObjectFloor(data.objectId, undefined, undefined, data.stuffData.state, data.stuffData);
         }),
 
+        on(FurnitureAliasesMessage, (data) => {
+            for (const { name, alias } of data.aliases) GetRoomContentLoader().setAssetAliasName(name, alias);
+        }),
+
         on(ObjectRemoveMessage, (data) => {
             const room = getRoom();
 
@@ -117,9 +124,11 @@ export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection
                     if (!room) return;
 
                     room.removeRoomObjectFloor(data.objectId, isOwner);
+                    room.refreshTileObjectMap();
                 }, data.delay);
             } else {
                 room.removeRoomObjectFloor(data.objectId, isOwner);
+                room.refreshTileObjectMap();
             }
         }),
 
@@ -132,6 +141,7 @@ export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection
                 const isOwner = false;
 
                 room.removeRoomObjectFloor(objectId, isOwner);
+                room.refreshTileObjectMap();
             }
         }),
 

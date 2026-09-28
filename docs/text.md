@@ -84,8 +84,8 @@ at the first `=`, `\n` is a line break):
 2. `gamedata.urls.externalTexts` - the hotel's texts, which override the first.
 
 Both come from Nitro Studio (`packages/nitro-studio`): the hotel's texts from its Habbo
-import, the default localizations from the client SWF (`HabboAir.swf`) given on its Habbo assets
-page; a text that is wrong or cut off is fixed there, never patched in the client. Use Flash's
+import, the default localizations from the client release (Changes, From Habbo, Client data);
+a text that is wrong or cut off is fixed there, never patched in the client. Use Flash's
 key and Flash's parameter names (`t('infostand.text.badges_rank', '', { rank: '#3' })` fills
 `%rank%`). A key that neither file has and no Flash class or layout names is one the port made up:
 it only ever shows as the bare key. `localization_keys.py` lists them.

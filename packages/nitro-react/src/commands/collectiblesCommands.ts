@@ -35,6 +35,7 @@ import { inventoryStore, isInventoryFurniGroupWallItem } from '#base/context/inv
 import { notificationStore } from '#base/context/notifications';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
+import { getBadgeName } from '#base/utils';
 
 import { showNotEnoughActivityPointsAlert } from './catalogClubCommands';
 import { checkFurniInventoryInitialization } from './inventoryCommands';
@@ -106,7 +107,7 @@ export const getCollectibleProductName = (info: CollectibleProductInfo | null): 
         case COLLECTIBLE_PRODUCT_TYPE_FLOOR:
         case COLLECTIBLE_PRODUCT_TYPE_CLOTHING: return floorItems[parseInt(info.itemTypeId)]?.localizedName ?? '(missing floor item)';
         case COLLECTIBLE_PRODUCT_TYPE_EFFECT: return t(`fx_${info.itemTypeId}`);
-        case COLLECTIBLE_PRODUCT_TYPE_BADGE: return t(`badge_name_${info.itemTypeId}`, info.itemTypeId);
+        case COLLECTIBLE_PRODUCT_TYPE_BADGE: return getBadgeName(t, info.itemTypeId);
         case COLLECTIBLE_PRODUCT_TYPE_CHAT_STYLE: return t('product.type.chatstyle');
         case COLLECTIBLE_PRODUCT_TYPE_PET: return t(`pet.type.${info.itemTypeId}`);
         default:

@@ -25,7 +25,7 @@ const DEFAULT_BUNDLE_URL = '/assets/bundles/%name%.nitro';
  * it is only the browser's fallback for a string the exact text renderer cannot take, so
  * `preloadFlashFonts` starts it in the background instead of blocking on it.
  */
-const DEFAULT_PRELOAD = [ 'theme', 'fonts', 'chat-styles', 'nitro-renderer', 'nitro-wired', 'nitro-layouts' ];
+const DEFAULT_PRELOAD = [ 'theme', 'fonts', 'chat-styles', 'room-object-visualization', 'nitro-wired', 'nitro-layouts' ];
 
 /**
  * The bundles left out of the preload, by the asset-name prefix that belongs to each. A texture
@@ -48,19 +48,29 @@ export const isAssetName = (value: string | undefined): value is string => !!val
 export const lazyBundleForAsset = (name: string): string | undefined => LAZY_BUNDLE_PREFIXES.find(([ prefix ]) => name.startsWith(prefix))?.[1];
 
 /**
- * The url of a bundle a hotel may serve itself: the chat styles (`chat.styles.url`), which the asset
- * manager builds of the client's and the hotel's own (its chat bubble builder) and publishes. Unset, the
- * bundle is the client's own like every other. Nitro's own key - Flash's styles came in its SWF.
+ * The bundles the hotel serves, by the config key naming them: the chat styles (`chat.styles.url`)
+ * and the renderer's bitmaps - the avatar additions and the Variable FX art (`renderer.assets.url`) -
+ * which Nitro Studio builds from the client release and the hotel's own and publishes. The client
+ * ships no copy of either: with its key unset, the bundle is not loaded. Nitro's own keys - Flash's
+ * came in its SWF.
  */
-const hotelBundleUrl = (name: string): string | undefined => (name === 'chat-styles' ? GetConfigValue<string>('chat.styles.url') : undefined);
+const HOTEL_BUNDLE_KEYS: Record<string, string> = { 'chat-styles': 'chat.styles.url', 'room-object-visualization': 'renderer.assets.url' };
 
-export const assetBundleUrl = (name: string): string => hotelBundleUrl(name) || (GetConfigValue<string>('asset.bundles.url') ?? DEFAULT_BUNDLE_URL).replace('%name%', name);
+/** Where a bundle is fetched from; `undefined` for a hotel bundle whose config key is unset. */
+export const assetBundleUrl = (name: string): string | undefined => (Object.hasOwn(HOTEL_BUNDLE_KEYS, name)
+    ? (GetConfigValue<string>(HOTEL_BUNDLE_KEYS[name]) || undefined)
+    : (GetConfigValue<string>('asset.bundles.url') ?? DEFAULT_BUNDLE_URL).replace('%name%', name));
 
 /**
  * Fetches a bundle, or joins the fetch already in flight for it. Safe to call on every render
  * path that needs one: the `AssetManager` keeps the promise, so a bundle is only ever read once.
+ * `false` without a request for a hotel bundle the config names no url for.
  */
-export const loadAssetBundle = async (name: string): Promise<boolean> => !!await GetAssetManager().downloadAssetBundle(name, assetBundleUrl(name));
+export const loadAssetBundle = async (name: string): Promise<boolean> => {
+    const url = assetBundleUrl(name);
+
+    return !!url && !!await GetAssetManager().downloadAssetBundle(name, url);
+};
 
 /**
  * The boot load. A bundle that fails is logged and skipped rather than failing the boot - the
@@ -70,7 +80,7 @@ export const loadAssetBundle = async (name: string): Promise<boolean> => !!await
 export const preloadAssetBundles = async (): Promise<void> => {
     const names = GetConfigValue<string[]>('asset.bundles.preload') ?? DEFAULT_PRELOAD;
 
-    await Promise.all(names.map(async (name) => {
+    await Promise.all(names.filter(name => assetBundleUrl(name)).map(async (name) => {
         if (!await loadAssetBundle(name)) NitroLogger.error(`Asset bundle failed to load: ${name}`);
     }));
 };

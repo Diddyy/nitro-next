@@ -4,5 +4,6 @@ export * from './RoomCanvas';
 export * from './RoomContainer';
 export * from './RoomEventHandler';
 export * from './RoomPreviewer';
+export * from './roomViewColor';
 export * from './RoomWrapper';
 export * from './widgets';

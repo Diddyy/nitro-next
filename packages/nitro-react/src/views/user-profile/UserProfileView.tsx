@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { AvatarImage } from '#base/components/AvatarImage';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Border, Button, ContainerButton, Frame, Icon, Region, ScrollArea, ThemeImage, ThemeText } from '#base/theme';
-import { GetFriendlyTime } from '#base/utils';
+import { getBadgeName, GetFriendlyTime } from '#base/utils';
 import { GroupBadgeImage } from '#base/views/groups/GroupBadgeImage';
 
 import { UserProfileGroupDetailsView } from './UserProfileGroupDetailsView';
@@ -177,7 +177,7 @@ export const UserProfileView = ({ profile, badges, relationships, ownUserId, act
                             key={badge.badgeIndex}
                             src={badgeUrl.replace('%badgename%', badge.badgeCode)}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            tooltip={t(`badge_name_${badge.badgeCode}`, badge.badgeCode)}
+                            tooltip={getBadgeName(t, badge.badgeCode)}
                             name={`badge_${badge.badgeIndex - 1}`}
                             layout={{ position: 'absolute', left: 7 + ((badge.badgeIndex - 1) * 50), top: 6, width: 42, height: 42 }}
                         />

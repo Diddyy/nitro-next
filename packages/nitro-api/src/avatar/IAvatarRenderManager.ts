@@ -1,4 +1,4 @@
-import { IAssetAvatarActionData, IAssetAvatarAnimation, IEffectMapLibrary, IFigureData, IFigureMapLibrary, IGraphicAsset } from '../asset';
+import { IAvatarRenderData, IEffectMapLibrary, IFigureData, IFigureMapLibrary, IGraphicAsset } from '../asset';
 import { AvatarGenderType, AvatarScaleType } from './enum';
 import { IAvatarEffectListener } from './IAvatarEffectListener';
 import { IAvatarFigureContainer } from './IAvatarFigureContainer';
@@ -8,11 +8,8 @@ import { IEffectAssetDownloadLibrary } from './IEffectAssetDownloadLibrary';
 import { IAvatarStructure, IStructureData } from './structure';
 
 export interface IAvatarRenderManager {
-    init(): void;
-    /** `avatar.actions.url`, applied over the baked-in action set. */
-    processAvatarActions(data: IAssetAvatarActionData): void;
-    /** `avatar.animations.url`: the per-action figure part frame table. */
-    processAvatarAnimations(data: IAssetAvatarAnimation[]): void;
+    /** Starts from the hotel's avatar data (`avatar.data.url`, read by the renderer's `LoadAvatarData`). */
+    init(data: IAvatarRenderData): void;
     processFigureMap(data: IFigureMapLibrary[], assetUrl: string);
     processEffectMap(data: IEffectMapLibrary[], assetUrl: string);
     createFigureContainer(figure: string): IAvatarFigureContainer;

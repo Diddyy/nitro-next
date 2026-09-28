@@ -1,5 +1,5 @@
 import { ChangeUserNameResultMessageCode } from '@nitrodevco/nitro-api';
-import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetSoundSettingsComposer, GetUserNftChatStylesComposer, NoobnessLevelMessage, PetRespectFailedMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
+import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetSoundSettingsComposer, GetUserNftChatStylesComposer, NoobnessLevelMessage, PetRespectFailedMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
@@ -12,10 +12,11 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * rights, noobness level, email status, the account preferences and the chat styles the account
  * owns (NFT and bought ones, which the chat input's style picker offers). Also gives a pet respect
  * back when the server refuses one (`onPetRespectFailed`): the respect was spent when it was sent,
- * and follows the account's safety lock (`onAccountSafetyLockStatusChanged`: locked while the status is 0).
+ * and follows the account's safety lock (`onAccountSafetyLockStatusChanged`: locked while the status is 0)
+ * and the hotel's availability (`onAvailabilityStatus`), which trading checks for a shutdown.
  */
 export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { setRights, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
+    const { setAvailabilityStatus, setRights, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
 
     return subscribeAll(subscribe, [
         on(FigureUpdateEventMessage, (data) => {
@@ -45,6 +46,8 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
         on(NoobnessLevelMessage, (data) => {
             setNoobnessLevel(data.noobnessLevel);
         }),
+
+        on(AvailabilityStatusMessage, data => setAvailabilityStatus(data.isOpen, data.onShutDown, data.isAuthenticHabbo)),
 
         on(UserRightsMessage, (data) => {
             setRights(data.clubLevel, data.securityLevel, data.isAmbassador);

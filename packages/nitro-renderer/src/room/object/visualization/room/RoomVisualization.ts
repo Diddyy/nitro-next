@@ -46,11 +46,10 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
     private _visiblePlanes: RoomPlane[] = [];
     private _visiblePlaneSpriteNumbers: number[] = [];
     private _roomScale: RoomGeometryScaleType = RoomGeometryScaleType.None;
-    private _colorBackgroundOnly: boolean = true;
     private _color: number = 0xffffff;
-    private _redColor: number = 0xffffff;
-    private _greenColor: number = 0xffffff;
-    private _blueColor: number = 0xffffff;
+    private _backgroundRed: number = 0xff;
+    private _backgroundGreen: number = 0xff;
+    private _backgroundBlue: number = 0xff;
     private _wallType: string | undefined = undefined;
     private _floorType: string | undefined = undefined;
     private _landscapeType: string | undefined = undefined;
@@ -149,23 +148,18 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                 const sprite = this.getSprite(spriteIndex);
                 const plane = this._visiblePlanes[index];
 
+                // Every plane but the landscape takes the background colour, channel by channel.
+                // It is white unless a background-only colour is set (`RoomLogic.updateColors`).
                 if (sprite && plane && plane.type !== RoomPlane.TYPE_LANDSCAPE) {
-                    if (this._colorBackgroundOnly) {
-                        let _local_14 = plane.color;
+                    const color = plane.color;
+                    const blue = ((color & 0xff) * this._backgroundBlue) / 0xff;
+                    const green = (((color >> 8) & 0xff) * this._backgroundGreen) / 0xff;
+                    const red = (((color >> 16) & 0xff) * this._backgroundRed) / 0xff;
+                    const alpha = color >> 24;
 
-                        const _local_15 = ((_local_14 & 0xff) * this._redColor) / 0xff;
-                        const _local_16 = (((_local_14 >> 8) & 0xff) * this._greenColor) / 0xff;
-                        const _local_17 = (((_local_14 >> 16) & 0xff) * this._blueColor) / 0xff;
-                        const _local_18 = _local_14 >> 24;
-
-                        _local_14 = (_local_18 << 24) + (_local_17 << 16) + (_local_16 << 8) + _local_15;
-
-                        sprite.texture = plane.getColoredTexture(_local_14) ?? Texture.EMPTY;
-                        sprite.color = 0xFFFFFF;
-                    } else {
-                        sprite.texture = plane.getColoredTexture(plane.color) ?? Texture.EMPTY;
-                        sprite.color = 0xFFFFFF;
-                    }
+                    // `uint(...)`: the sum truncated and read unsigned.
+                    sprite.texture = plane.getColoredTexture(Math.trunc((alpha << 24) + (red << 16) + (green << 8) + blue) >>> 0) ?? Texture.EMPTY;
+                    sprite.color = 0xFFFFFF;
                 }
 
                 index++;
@@ -280,17 +274,9 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
 
         if (backgroundColor !== this._color) {
             this._color = backgroundColor;
-            this._redColor = this._color & 0xff;
-            this._greenColor = (this._color >> 8) & 0xff;
-            this._blueColor = (this._color >> 16) & 0xff;
-
-            didUpdate = true;
-        }
-
-        const backgroundOnly = model.getValue<boolean>(RoomObjectVariableEnum.RoomColorizeBgOnly) || false;
-
-        if (backgroundOnly !== this._colorBackgroundOnly) {
-            this._colorBackgroundOnly = backgroundOnly;
+            this._backgroundBlue = this._color & 0xff;
+            this._backgroundGreen = (this._color >> 8) & 0xff;
+            this._backgroundRed = (this._color >> 16) & 0xff;
 
             didUpdate = true;
         }

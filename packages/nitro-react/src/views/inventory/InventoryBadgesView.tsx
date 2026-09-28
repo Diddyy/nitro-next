@@ -38,8 +38,9 @@ import {
     INVENTORY_BADGE_RARITY_ALL, INVENTORY_BADGE_RARITY_COMMON, INVENTORY_BADGES_ACTIVE, INVENTORY_BADGES_INACTIVE, INVENTORY_MAX_ACTIVE_BADGES,
     InventoryBadge, isInventoryBadgeRarityFilterEnabled, passInventoryBadgeFilter, useInventoryBadgesActions, useInventoryStore,
 } from '#base/context/inventory';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { Border, Box, Button, Dropmenu, DropmenuOption, InfiniteGrid, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
+import { getBadgeDesc, getBadgeName } from '#base/utils';
 
 import { InventoryOptionsContainer } from './InventoryOptionsContainer';
 
@@ -87,6 +88,7 @@ const BadgeThumb = ({ badge, badgeUrl, selected, unseen, onSelect }: BadgeThumbP
 export const InventoryBadgesView = () => {
     const { send } = useWebSocketContext();
     const t = useTranslation();
+    const badgePointLimits = useSystemStore(x => x.badgePointLimits);
     const badges = useInventoryStore(x => x.badges);
     const wornBadgeCodes = useInventoryStore(x => x.wornBadgeCodes);
     const selectedBadgeCode = useInventoryStore(x => x.selectedBadgeCode);
@@ -114,8 +116,8 @@ export const InventoryBadgesView = () => {
         effectiveRarity,
         uncommonRarityEnabled,
         searchText,
-        t(`badge_name_${badge.code}`, badge.code),
-        t(`badge_desc_${badge.code}`, ''),
+        getBadgeName(t, badge.code),
+        getBadgeDesc(t, badge.code, badgePointLimits),
     );
 
     const inactiveBadges = getInventoryBadges(badges, wornBadgeCodes, INVENTORY_BADGES_INACTIVE).filter(matches);
@@ -229,14 +231,14 @@ export const InventoryBadgesView = () => {
                         />
                         <Region layout={{ position: 'absolute', left: 63, top: 3, width: 271, flexDirection: 'column' }}>
                             <ThemeText
-                                text={t(`badge_name_${selectedBadge.code}`, selectedBadge.code)}
+                                text={getBadgeName(t, selectedBadge.code)}
                                 textStyle="u_regular"
                                 verticalAlign="top"
                                 layout={{ width: 211, height: 17, flexShrink: 0 }}
                             />
                             <Box layout={{ width: 271, maxHeight: 28, flexShrink: 0, overflow: 'hidden' }}>
                                 <ThemeText
-                                    text={t(`badge_desc_${selectedBadge.code}`, '')}
+                                    text={getBadgeDesc(t, selectedBadge.code, badgePointLimits)}
                                     textStyle="u_regular"
                                     textOptions={{ wordWrap: true, wordWrapWidth: 267 }}
                                     verticalAlign="top"

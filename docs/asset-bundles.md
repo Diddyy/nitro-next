@@ -7,15 +7,13 @@ them from anywhere. `scripts/build-asset-bundles.ts` writes them:
 
 ```sh
 yarn workspace @nitrodevco/nitro-react build-asset-bundles     # all of them
-node scripts/build-asset-bundles.ts theme chat-styles          # or just these
+node scripts/build-asset-bundles.ts theme effect-icons         # or just these
 ```
 
 | Bundle | Mode | Holds |
 |---|---|---|
 | `theme` | atlas | `assets/theme` - the skin chrome `THEME_ASSETS` names |
-| `chat-styles` | atlas | `assets/chat-styles`, plus every style's `chat_definition.json` merged into one `chat-style-definitions.json` |
 | `effect-icons` | atlas | `assets/effect-icons` |
-| `nitro-renderer` | atlas | `assets/renderer/**` - the avatar additions and the Variable FX bitmaps, plus the FX icon/renderer tables as `variable-fx-tables.json` |
 | `nitro-wired` | atlas | `assets/wired` |
 | `nitro-layouts` | loose | every `assets/<component>` layout folder, the catalog's included |
 | `fonts` | loose | the captured `*.air51.json` AIR bundles |
@@ -23,6 +21,12 @@ node scripts/build-asset-bundles.ts theme chat-styles          # or just these
 | `loading-screen` | loose | `assets/loading-screen` - the loading screen's frame, loaded by name before anything else |
 | `loading-screen-photos` | loose | `assets/loading-screen-photos` - the loading screen's photos |
 | `sounds` | loose | the `.mp3` sounds under `assets/sounds`, loaded by name the first time one plays |
+
+`chat-styles` and `nitro-renderer` (the avatar additions and the Variable FX bitmaps with their
+tables) are not built here: Nitro Studio builds and publishes them from the client release's art
+and the hotel's own, and the client loads them from `chat.styles.url` and `renderer.assets.url`
+(see [Nitro Studio](nitro-studio.md)). The client ships no copy: with a key unset, that bundle is
+not loaded.
 
 An **atlas** bundle packs its PNGs into one sheet plus a Pixi `SpritesheetData` manifest
 (`<name>.png` + `<name>_spritesheet.json`), which is one GPU upload the per-asset textures share.
@@ -44,11 +48,6 @@ Rules that come out of that:
   builds exactly that name, so a call site still names the file the Flash layout named. The dot
   matters: `GraphicAssetCollection.removeFileExtension` cuts a name at its last dot, which is how
   `border/15-default-shade-0.12.png` and its `0.2` sibling would arrive as one asset.
-- **Art the room engine looks up by its bare Flash name keeps that name.** `AvatarVisualization`'s
-  additions ask for `avatar_addition_user_typing` and the FX renderers for `variablefx_*`, so the
-  folders that group them under `assets/renderer/` are listed in the bundle's `strip` and dropped
-  from the name rather than prefixed onto it. A name built at run time (`'avatar_addition_number_'
-  + n`) has no folder in front of it either, which `scripts/drift/assets.py` has to allow for.
 - **The loose PNGs are build input, not files the client fetches.** They stay under
   `public/assets/<component>/` - the layout generator writes them there, and the drift checks read
   them - but `vite.config.ts`'s `pruneBundledAssets` deletes every one of them from `dist/` after
@@ -71,10 +70,3 @@ Rules that come out of that:
 - **A `ThemeImage`'s `src` is an asset name or a url**, told apart by `isAssetName` - a name has no
   scheme, no `/` and no `.`. Either way it resolves to a `Texture` through the asset manager; a
   bundled bitmap is never fetched by url.
-- **A table a bundle carries is the one copy, and it lives beside the art it describes.** Each
-  chat style's row is a `chat_definition.json` in its own folder - `{ id, flags, regPoints,
-  bitmaps }`, with the folder name as the `assetId`, so that name is written once. The builder
-  merges them in id order (which is `chatstyles_xml` order) into `chat-style-definitions.json`
-  inside `chat-styles.nitro`, and `ChatStyleLibrary` reads that back; `ChatStyleDefinitions.ts` is
-  only the types and the two id predicates. Adding a style is a folder with its bitmaps and its
-  row - no TS to edit.

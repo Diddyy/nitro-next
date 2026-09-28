@@ -3,6 +3,7 @@
     type IRoomObjectSpriteData,
     RoomObjectSpriteData,
     RoomObjectSpriteTypeEnum,
+    RoomObjectVariableEnum,
 } from '@nitrodevco/nitro-api';
 
 import { SortableSprite } from '../../utils';
@@ -12,6 +13,12 @@ export class RoomObjectCache {
     private static MAX_SIZE_FOR_AVG_COLOR: number = 200;
 
     private _data: Map<number, RoomObjectCacheItem> = new Map();
+    private _accurateZVariable: RoomObjectVariableEnum | undefined;
+
+    /** `RoomObjectCache(roomObjectVariableAccurateZ)`: the model variable each item's location reads. */
+    constructor(accurateZVariable?: RoomObjectVariableEnum) {
+        this._accurateZVariable = accurateZVariable;
+    }
 
     public dispose(): void {
         if (this._data) {
@@ -31,7 +38,7 @@ export class RoomObjectCache {
         let existing = this._data.get(key);
 
         if (!existing) {
-            existing = new RoomObjectCacheItem();
+            existing = new RoomObjectCacheItem(this._accurateZVariable);
 
             this._data.set(key, existing);
         }

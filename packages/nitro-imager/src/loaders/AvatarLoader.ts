@@ -2,7 +2,7 @@ import 'dotenv/config';
 import '@pixi/node';
 
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
+import { GetAvatarRenderManager, LoadAvatarData } from '@nitrodevco/nitro-renderer';
 
 import { EffectMapLoader } from './EffectMapLoader';
 import { FigureDataLoader } from './FigureDataLoader';
@@ -12,9 +12,10 @@ export const AvatarLoader = async () => {
     const figureMapUrl = process.env.FIGUREMAP_URL;
     const effectMapUrl = process.env.EFFECTMAP_URL;
     const figureDataUrl = process.env.FIGUREDATA_URL;
+    const avatarDataUrl = process.env.AVATAR_DATA_URL ?? '';
 
     try {
-        GetAvatarRenderManager().init();
+        GetAvatarRenderManager().init(await LoadAvatarData(avatarDataUrl));
 
         if (figureMapUrl) await FigureMapLoader(figureMapUrl);
         if (effectMapUrl) await EffectMapLoader(effectMapUrl);

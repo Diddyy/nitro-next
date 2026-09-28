@@ -10,6 +10,7 @@ export interface FurnitureGuildMenuViewProps {
     onJoin: () => void;
     onHomeRoom: () => void;
     onForum: () => void;
+    onProfile: () => void;
 }
 
 /**
@@ -17,12 +18,10 @@ export interface FurnitureGuildMenuViewProps {
  * `GuildFurnitureContextMenuView`: the guild's name in `profile_link` and up to three rows below
  * it, `join` only for a non-member and `open_forum` only for a guild with a readable forum
  * (`updateButtons`); the bubble shrinks with the rows it drops.
- *
- * `profile_link` carries Flash's tooltip, but pressing it does nothing here: it opens the group
- * info window (`openGroupInfo`), which the port has yet to build.
+ * Pressing `profile_link` opens the group info window (`HabboGroupsManager.openGroupInfo`).
  */
 export const FurnitureGuildMenuView = ({
-    guildName, isMember, hasForum, onJoin, onHomeRoom, onForum,
+    guildName, isMember, hasForum, onJoin, onHomeRoom, onForum, onProfile,
 }: FurnitureGuildMenuViewProps) => {
     const t = useTranslation();
 
@@ -38,6 +37,7 @@ export const FurnitureGuildMenuView = ({
         <FurnitureMenuBubble
             title={guildName}
             titleTooltip={t('infostand.profile.link.tooltip', 'Click to view profile')}
+            onTitleTap={onProfile}
             buttons={buttons}
             minimizeGap={0}
         />

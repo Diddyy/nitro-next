@@ -26,10 +26,16 @@ not the client runtime texture loader.
 
 - Read the workspace selected in Nitro Studio's settings. Where the package is present,
   `packages/nitro-studio/workspace/gamedata` is the documented default location.
-- After a client revision bump, scan Habbo assets, import Hotel data and Changed texts, and supply
-  the matching client SWF. The workspace provides external variables, external texts, default
-  localizations and avatar data. Correct imported/generated text at its source instead of patching
-  the client to compensate.
+- After a client revision bump, scan Habbo assets and import Hotel data and Changed texts, and
+  check the HTML client release (Changes, Habbo client; production and sandbox) so the From Habbo
+  tab lists what it brings: the room content and placeholder libraries (`.hab`, converted like an
+  SWF), default localizations, avatar animations and tables, chat styles and the renderer's bitmaps. An import from the sandbox is recorded as the sandbox's. The
+  workspace provides external variables, external texts, default localizations and avatar data.
+  Correct imported/generated text at its source instead of patching the client to compensate.
+- The avatar data the renderer starts from - the client's avatar tables and the hotel's actions and
+  animations - is the workspace's `renderer/avatar-data.nitro` (`avatar.data.url`), built from its
+  gamedata on import, edit and publish. Keep `avatar.data.url` pointed at it; the renderer compiles
+  none of it in.
 - Keep `nitro-config.json` aligned with the workspace's external variables and generated asset URLs.
   Check the actual files served to the client as well as the workspace's source files.
 - Preserve workspace-specific assets when updating or merging official assets. Follow the asset

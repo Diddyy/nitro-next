@@ -43,6 +43,7 @@ export * from './asset/avatar/geometry/IAssetAvatarGeometryConfig';
 export * from './asset/avatar/geometry/IAssetAvatarSet';
 export * from './asset/avatar/geometry/IAssetAvatarSetGroup';
 export * from './asset/avatar/geometry/IAssetAvatarType';
+export * from './asset/avatar/IAvatarRenderData';
 export * from './asset/avatar/partsets/IAssetAvatarActivePart';
 export * from './asset/avatar/partsets/IAssetAvatarActivePartSet';
 export * from './asset/avatar/partsets/IAssetAvatarPartSetItem';

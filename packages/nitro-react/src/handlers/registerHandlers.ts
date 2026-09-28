@@ -13,7 +13,7 @@ import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
 import {
     registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
     registerRoomDirectoryHandlers, registerRoomDoorbellHandlers, registerRoomFloorPlanHandlers, registerRoomFriendFurniHandlers, registerRoomFriendRequestHandlers,
-    registerRoomFurnitureHandlers, registerRoomGuildFurniHandlers, registerRoomInfostandHandlers, registerRoomJukeboxHandlers, registerRoomLinkHandlers, registerRoomMappingHandlers,
+    registerRoomFurnitureHandlers, registerRoomGenericErrorHandlers, registerRoomGuildFurniHandlers, registerRoomInfostandHandlers, registerRoomJukeboxHandlers, registerRoomLinkHandlers, registerRoomMappingHandlers,
     registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers,
     registerRoomPresentHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
     registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomYoutubeHandlers,
@@ -62,6 +62,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         // Furniture dialogs: a payload for a dialog that is not open is dropped by the store.
         registerRoomCraftingHandlers(socket),
         registerRoomDimmerHandlers(socket),
+        registerRoomGenericErrorHandlers(socket),
         registerRoomGuildFurniHandlers(socket),
         registerRoomJukeboxHandlers(socket),
         // The sound manager: trax music, the room's jukebox or sound machine, the sound blocks and the volumes.

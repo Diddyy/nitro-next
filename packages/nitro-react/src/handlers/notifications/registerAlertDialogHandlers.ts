@@ -1,8 +1,8 @@
 /**
  * The moderation and opening-hours alerts - the listeners of Flash's
  * `notifications/IncomingMessages` that end in `HabboAlertDialogManager` (`onModCautionEvent`,
- * `onHotelClosing`, `onHotelMaintenance`, `onHotelClosed`, `onLoginFailedHotelClosed`), with the
- * manager's own methods folded in. They write nothing but the system store's dialogs, which is
+ * `onModMessageEvent`, `onUserBannedMessageEvent`, `onHotelClosing`, `onHotelMaintenance`,
+ * `onHotelClosed`, `onLoginFailedHotelClosed`), with the manager's own methods folded in. They write nothing but the system store's dialogs, which is
  * the window manager's `simpleAlert` and `alert`.
  *
  * - `handleModeratorCaution`: a `simpleAlert` with no caption, `${mod.alert.title}` as its
@@ -12,6 +12,9 @@
  *   `habbo_way`, and the quiz it leads to) is one of the help windows the port has not got, so
  *   here the close does nothing more. The `notification.feed.enabled` feed item is not made either:
  *   the notification feed is not ported (and the hotel sets the key false).
+ * - `handleModeratorMessage`: the same alert for a moderator's message, whose close never leads
+ *   to the Habbo Way; also only while `notification.items.enabled`.
+ * - `handleUserBannedMessage`: the same alert for a ban, with no url, whatever the config says.
  * - `handleHotelClosingMessage` / `handleHotelMaintenanceMessage`: a `simpleAlert` with
  *   `${opening.hours.title}` as its subtitle over `${opening.hours.shutdown}` (`%m%`) or
  *   `${maintenance.shutdown}` (`%m%`, `%d%`).
@@ -26,7 +29,7 @@
  * `disconnected.maintenance_status` and its `onLoginFailedHotelClosed` showing the login view's
  * disconnected text - which is the login session the port does not run.
  */
-import { InfoHotelClosedMessage, InfoHotelClosingMessage, LoginFailedHotelClosedMessage, MaintenanceStatusMessage, ModeratorCautionMessage } from '@nitrodevco/nitro-packets';
+import { InfoHotelClosedMessage, InfoHotelClosingMessage, LoginFailedHotelClosedMessage, MaintenanceStatusMessage, ModeratorCautionMessage, ModeratorMessage, UserBannedMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
@@ -50,22 +53,34 @@ export const registerAlertDialogHandlers = ({ subscribe }: WebSocketConnection) 
         showAlert(localize('opening.hours.title'), localize(key, { h: getTimeZeroPadded(openHour), m: getTimeZeroPadded(openMinute) }));
     };
 
+    // `showModerationMessage`: `simpleAlert("", "${mod.alert.title}", message, "${mod.alert.link}", url, null, frank)`.
+    const showModerationMessage = (message: string, url: string) => {
+        showSimpleAlert({
+            caption: '',
+            subtitle: localize('mod.alert.title'),
+            message: message.replace(/\\r/g, '\n'),
+            linkTitle: localize('mod.alert.link'),
+            // `SimpleAlertDialog`: `param6 = interpolate(param6)`.
+            linkUrl: systemStore.getState().interpolate(url),
+            // `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('window-manager/illumina_alert_illustrations_frank_neutral.png')`.
+            illustration: 'window-manager-illumina_alert_illustrations_frank_neutral',
+        });
+    };
+
     return subscribeAll(subscribe, [
         on(ModeratorCautionMessage, (data) => {
             if (!notificationItemsEnabled()) return;
 
-            // `showModerationMessage`: `simpleAlert("", "${mod.alert.title}", message, "${mod.alert.link}", url, null, frank)`.
-            showSimpleAlert({
-                caption: '',
-                subtitle: localize('mod.alert.title'),
-                message: data.message.replace(/\\r/g, '\n'),
-                linkTitle: localize('mod.alert.link'),
-                // `SimpleAlertDialog`: `param6 = interpolate(param6)`.
-                linkUrl: systemStore.getState().interpolate(data.url),
-                // `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('window-manager/illumina_alert_illustrations_frank_neutral.png')`.
-                illustration: 'window-manager-illumina_alert_illustrations_frank_neutral',
-            });
+            showModerationMessage(data.message, data.url);
         }),
+
+        on(ModeratorMessage, (data) => {
+            if (!notificationItemsEnabled()) return;
+
+            showModerationMessage(data.message, data.url);
+        }),
+
+        on(UserBannedMessage, data => showModerationMessage(data.message, '')),
 
         on(InfoHotelClosingMessage, (data) => {
             showSimpleAlert({

@@ -1,12 +1,12 @@
 import { IIncomingPacket, IMessageDataWrapper } from '@nitrodevco/nitro-api';
 
-export type UserBannedMessageType = object;
+export type UserBannedMessageType = {
+    message: string;
+};
 
 export class UserBannedMessage implements IIncomingPacket<UserBannedMessageType> {
     public parse(wrapper: IMessageDataWrapper): UserBannedMessageType {
-        const packet: UserBannedMessageType = {
-        };
-
-        return packet;
+        const message = wrapper.readString();
+        return { message };
     }
 }

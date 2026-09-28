@@ -51,6 +51,8 @@ type Actions = {
     getLocalizationValue: (key: string, defaultValue?: string, replacements?: Record<string, string>) => string;
     interpolate: (text: string) => string;
     setLocalization: (localization: Record<string, string>) => void;
+    /** `HabboLocalizationManager.setBadgePointLimit`, for every badge `BadgePointLimitsMessage` names. */
+    setBadgePointLimits: (limits: Record<string, number>) => void;
     setLocalizationForFurniture: (furniture: IFurnitureData[]) => void;
     parseFloorItems: (data: IFurnitureType[]) => void;
     parseWallItems: (data: IFurnitureType[]) => void;
@@ -159,6 +161,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
 
         return result;
     },
+    setBadgePointLimits: (limits: Record<string, number>) => set(state => ({ badgePointLimits: { ...state.badgePointLimits, ...limits } })),
     setLocalization: (localizations: Record<string, string>) =>
         set((state) => {
             return {

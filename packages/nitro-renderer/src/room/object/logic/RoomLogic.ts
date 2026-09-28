@@ -1,5 +1,5 @@
 import {
-    ColorConverter, IRoomGeometry,
+    IRoomGeometry,
     IRoomMapData,
     IRoomObjectUpdateMessage,
     IRoomSpriteMouseEvent,
@@ -15,6 +15,7 @@ import {
     ObjectRoomPlaneVisibilityUpdateMessage,
     ObjectRoomUpdateMessage,
 } from '../../messages';
+import { ColorTransitioner } from '../../utils/ColorTransitioner';
 import { RoomMapData } from '../RoomMapData';
 import { RoomPlaneBitmapMaskData } from '../RoomPlaneBitmapMaskData';
 import { RoomPlaneBitmapMaskParser } from '../RoomPlaneBitmapMaskParser';
@@ -25,14 +26,7 @@ import { ObjectLogicBase } from './ObjectLogicBase';
 export class RoomLogic extends ObjectLogicBase {
     private _planeParser: RoomPlaneParser = new RoomPlaneParser();
     private _planeBitmapMaskParser: RoomPlaneBitmapMaskParser = new RoomPlaneBitmapMaskParser();
-    private _color = 0xffffff;
-    private _light = 0xff;
-    private _originalColor = 0xffffff;
-    private _originalLight = 0xff;
-    private _targetColor = 0xffffff;
-    private _targetLight = 0xff;
-    private _colorChangedTime = 0;
-    private _colorTransitionLength = 1500;
+    private _colorTransitioner: ColorTransitioner = new ColorTransitioner();
     private _lastHoleUpdate = 0;
     private _needsMapUpdate = false;
 
@@ -188,16 +182,16 @@ export class RoomLogic extends ObjectLogicBase {
             return;
         }
 
+        /*
+         * `updateColors`: only a background colour lands on the planes. A colour for the whole
+         * room fades them back to white - `RoomDesktop`'s colorizer tints the whole view with it
+         * instead (`REE_ROOM_COLOR`).
+         */
         if (message instanceof ObjectRoomColorUpdateMessage) {
-            this._originalColor = this._color;
-            this._originalLight = this._light;
-            this._targetColor = message.color;
-            this._targetLight = message.light;
-            this._colorChangedTime = this.time;
-
-            this._colorTransitionLength = 1500;
-
             this.object.model.setValue(RoomObjectVariableEnum.RoomColorizeBgOnly, message.backgroundOnly);
+
+            if (message.backgroundOnly) this._colorTransitioner.startTransition(message.color, message.light, this.time);
+            else this._colorTransitioner.startTransition(0xFFFFFF, 0xFF, this.time);
 
             return;
         }
@@ -347,38 +341,10 @@ export class RoomLogic extends ObjectLogicBase {
         }
     }
 
+    /** `updateBackgroundColor`: the faded colour, while a fade runs. */
     private updateBackgroundColor(time: number): void {
-        if (!this._colorChangedTime) return;
+        if (!this._colorTransitioner.updateColor(time)) return;
 
-        let color = this._color;
-        let newColor = this._light;
-
-        if (time - this._colorChangedTime >= this._colorTransitionLength) {
-            color = this._targetColor;
-            newColor = this._targetLight;
-
-            this._colorChangedTime = 0;
-        } else {
-            const offset = (time - this._colorChangedTime) / this._colorTransitionLength;
-
-            let r = (this._originalColor >> 16) & 0xff;
-            let g = (this._originalColor >> 8) & 0xff;
-            let b = this._originalColor & 0xff;
-
-            r = r + (((this._targetColor >> 16) & 0xff) - r) * offset;
-            g = g + (((this._targetColor >> 8) & 0xff) - g) * offset;
-            b = b + ((this._targetColor & 0xff) - b) * offset;
-
-            color = (r << 16) + (g << 8) + b;
-            newColor = this._originalLight + (this._targetLight - this._originalLight) * offset;
-
-            this._color = color;
-            this._light = newColor;
-        }
-
-        this.object.model.setValue(
-            RoomObjectVariableEnum.RoomBackgroundColor,
-            ColorConverter.hslToRGB((ColorConverter.rgbToHSL(color) & 0xffff00) + newColor),
-        );
+        this.object.model.setValue(RoomObjectVariableEnum.RoomBackgroundColor, this._colorTransitioner.color);
     }
 }

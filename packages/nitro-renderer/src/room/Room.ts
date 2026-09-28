@@ -25,11 +25,13 @@ import {
     IRoomObjectVisualization,
     IRoomRenderingCanvas,
     IStackingHeightMapReader,
+    ITileObjectMap,
     IVariableFxConfigUpdateData,
     IVariableFxStatusRemoveData,
     IVariableFxStatusUpdateData,
     IVector3D, LegacyDataType,
     ObjectDataFlagsEnum,
+    RoomBackgroundColorEvent,
     RoomContentLoadedEvent,
     RoomEngineEvent,
     RoomEngineObjectEvent,
@@ -95,7 +97,7 @@ import { VariableFxRoomData } from './object/variablefx/VariableFxRoomData';
 import { isVariableFxVisualizationHost } from './object/visualization/variablefx/IVariableFxVisualizationRoomData';
 import { RoomEventHandler } from './RoomEventHandler';
 import { RoomSpriteCanvas } from './RoomSpriteCanvas';
-import { RoomAreaSelectionManager, RoomObjectHighLighter } from './utils';
+import { RoomAreaSelectionManager, RoomObjectHighLighter, TileObjectMap } from './utils';
 
 export class Room implements IRoom {
     public static ROOM_OBJECT_ID: number = -1;
@@ -127,6 +129,7 @@ export class Room implements IRoom {
     private _skipFurnitureCreationForNextFrame: boolean = false;
     private _legacyGeometry: ILegacyWallGeometry | undefined = undefined;
     private _stackingHeightMap: IStackingHeightMapReader | undefined = undefined;
+    private _tileObjectMap: TileObjectMap | undefined = undefined;
     private _canvas: IRoomRenderingCanvas | undefined = undefined;
     private _areaSelection: IRoomAreaSelectionManager;
     private _objectHighLighter: IRoomObjectHighLighter;
@@ -182,6 +185,8 @@ export class Room implements IRoom {
 
         this._areaHides.clear();
         this._stackingHeightMap = undefined;
+        this._tileObjectMap?.dispose();
+        this._tileObjectMap = undefined;
         this._variableFx.dispose();
         this._model.dispose();
 
@@ -451,6 +456,24 @@ export class Room implements IRoom {
         return this._stackingHeightMap?.getTileHeight(x, y) ?? -1;
     }
 
+    /**
+     * `RoomInstanceData.furniStackingHeightMap`'s setter: a new stacking height map comes with a
+     * new, empty tile object map of its size.
+     */
+    public resetTileObjectMap(width: number, height: number): void {
+        this._tileObjectMap?.dispose();
+        this._tileObjectMap = ((width > 0) && (height > 0)) ? new TileObjectMap(width, height) : undefined;
+    }
+
+    /** `RoomEngine.refreshTileObjectMap`: rebuilt from every floor object. */
+    public refreshTileObjectMap(): void {
+        this._tileObjectMap?.populate(this.getRoomObjectsForCategory(RoomObjectCategoryEnum.Floor));
+    }
+
+    public get tileObjectMap(): ITileObjectMap | undefined {
+        return this._tileObjectMap;
+    }
+
     public setRoomInstanceRenderingCanvasOffset(point: PointData): boolean {
         if (!this._canvas || !point) return false;
 
@@ -668,9 +691,10 @@ export class Room implements IRoom {
             }
         }
 
-        // EventStore.getState().emit(new RoomEngineObjectEvent(RoomEngineObjectEvent.CONTENT_UPDATED, id, objectId, category));
+        this.dispatchEvent(new RoomEngineObjectEvent(RoomEngineObjectEvent.CONTENT_UPDATED, this._roomId, objectId, category));
 
-        // this.addObjectToTileMap(id, object);
+        // Only an object that is ready goes in, so one made before it has a location does not.
+        this._tileObjectMap?.addRoomObject(object);
     }
 
     public reinitializeRoomObjectsByType(type: string): void {
@@ -714,9 +738,10 @@ export class Room implements IRoom {
                             this.assignVariableFxLogicManager(logic, category);
                         }
 
-                        this.objectInitialized(object.id, category);
-
+                        // Flash's `RoomManager` marks the object initialized before `objectInitialized`.
                         object.isReady = true;
+
+                        this.objectInitialized(object.id, category);
 
                         continue;
                     }
@@ -953,7 +978,7 @@ export class Room implements IRoom {
             GetRoomContentLoader().getFurnitureFloorColorIndex(data.typeId),
         );
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureTypeId, data.typeId);
-        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureAdUrl, '');
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureAdUrl, GetRoomContentLoader().getRoomObjectAdUrl(typeName));
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureRealRoomObject, data.realRoomObject ? 1 : 0);
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExpiryTime, data.expires);
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExpiryTimestamp, GetTickerTime());
@@ -971,6 +996,8 @@ export class Room implements IRoom {
         this.dispatchEvent(
             new RoomEngineObjectEvent(RoomEngineObjectEvent.ADDED, this._roomId, data.objectId, RoomObjectCategoryEnum.Floor),
         );
+
+        if (roomObject.isReady) this._tileObjectMap?.addRoomObject(roomObject);
 
         return true;
     }
@@ -1027,10 +1054,12 @@ export class Room implements IRoom {
             GetRoomContentLoader().getFurnitureWallColorIndex(data.typeId),
         );
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureTypeId, data.typeId);
-        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureAdUrl, '');
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureAdUrl, GetRoomContentLoader().getRoomObjectAdUrl(data.typeName));
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureRealRoomObject, data.realRoomObject ? 1 : 0);
+        // `addObjectWallItem`: a wall item sorts by its own depth, not the tile it hangs over.
+        roomObject.model.setValue(RoomObjectVariableEnum.ObjectAccurateZValue, 1);
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExpiryTime, data.expires);
-        roomObject.model.setValue(RoomObjectVariableEnum.FigureExperienceTimestamp, GetTickerTime());
+        roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExpiryTimestamp, GetTickerTime());
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureUsagePolicy, data.usagePolicy);
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureOwnerId, data.ownerId);
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureOwnerName, data.ownerName);
@@ -1243,6 +1272,9 @@ export class Room implements IRoom {
         if (!room) return false;
 
         room.processUpdateMessage(new ObjectRoomColorUpdateMessage(ObjectRoomColorUpdateMessage.BACKGROUND_COLOR, color, light, backgroundOnly));
+
+        // `RoomEngine.updateObjectRoomColor`: the room view tints itself from this (`RoomUI`'s `REE_ROOM_COLOR`).
+        this.dispatchEvent(new RoomBackgroundColorEvent(this._roomId, color, light, backgroundOnly));
 
         return true;
     }

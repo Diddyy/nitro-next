@@ -26,6 +26,7 @@ import { showNotification } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { systemStore } from '#base/context/system';
+import { getBadgeName } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -33,7 +34,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
 const FRANK_NEUTRAL = 'window-manager-illumina_alert_illustrations_frank_neutral';
 
 /** `HabboLocalizationManager.getBadgeName`. */
-const badgeName = (code: string) => systemStore.getState().getLocalizationValue(`badge_name_${code}`, code);
+const badgeName = (code: string) => getBadgeName(systemStore.getState().getLocalizationValue, code);
 
 /** The badge image `SessionDataManager.requestBadgeImage` fetched, as a URL the bubble can show. */
 const badgeImage = (code: string) => {

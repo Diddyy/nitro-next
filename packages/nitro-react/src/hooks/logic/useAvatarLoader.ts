@@ -1,5 +1,5 @@
-import { IAssetAvatarActionData, IAssetAvatarAnimation, IEffectMapLibrary, IFigureMapLibrary, NitroLogger } from '@nitrodevco/nitro-api';
-import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
+import { IEffectMapLibrary, IFigureMapLibrary, NitroLogger } from '@nitrodevco/nitro-api';
+import { GetAvatarRenderManager, LoadAvatarData } from '@nitrodevco/nitro-renderer';
 import { useEffect } from 'react';
 
 import { useConfigValue } from '#base/context/system';
@@ -10,8 +10,7 @@ export const useAvatarLoader = () => {
     const avatarAssetUrl = useConfigValue<string>('asset.urls.avatar') ?? '';
     const effectAssetUrl = useConfigValue<string>('asset.urls.effect') ?? '';
     const figureDataUrl = useConfigValue<string>('figuredata.url') ?? '';
-    const avatarActionsUrl = useConfigValue<string>('avatar.actions.url') ?? '';
-    const avatarAnimationsUrl = useConfigValue<string>('avatar.animations.url') ?? '';
+    const avatarDataUrl = useConfigValue<string>('avatar.data.url') ?? '';
 
     useEffect(() => {
         if (!figureMapUrl || !effectMapUrl || !figureDataUrl) return;
@@ -63,45 +62,24 @@ export const useAvatarLoader = () => {
         };
 
         /**
-         * `HabboAvatarActions.xml` and `HabboAvatarAnimation.xml`, which the client used to carry
-         * as ~105 KB of compiled-in table. Flash downloaded the actions too, so fetching them is
-         * the client's own shape; `init()` has already applied the baked-in action set, and this
-         * goes over it exactly as Flash's `initActions` then `updateActions` did.
+         * `avatar-data.nitro` first: the geometry, part sets, placeholder figure, built-in animations,
+         * action offsets, actions and animations the manager starts from. The figure data is laid over
+         * its placeholder figure, so it waits for it; the maps only need it for what they render.
          */
-        const loadAvatarActionsAsync = async (url: string) => {
-            if (!url || !url.length) return;
-
+        const startAsync = async () => {
             try {
-                const response = await fetch(url);
-
-                if (response.status !== 200) throw new Error('Invalid avatar actions url');
-
-                GetAvatarRenderManager().processAvatarActions(await response.json() as IAssetAvatarActionData);
+                GetAvatarRenderManager().init(await LoadAvatarData(avatarDataUrl));
             } catch (e) {
                 NitroLogger.error(e);
+
+                return;
             }
+
+            void loadFigureMapAsync(figureMapUrl);
+            void loadEffectMapAsync(effectMapUrl);
+            void loadFigureDataAsync(figureDataUrl);
         };
 
-        const loadAvatarAnimationsAsync = async (url: string) => {
-            if (!url || !url.length) return;
-
-            try {
-                const response = await fetch(url);
-
-                if (response.status !== 200) throw new Error('Invalid avatar animations url');
-
-                GetAvatarRenderManager().processAvatarAnimations(await response.json() as IAssetAvatarAnimation[]);
-            } catch (e) {
-                NitroLogger.error(e);
-            }
-        };
-
-        GetAvatarRenderManager().init();
-
-        void loadAvatarActionsAsync(avatarActionsUrl);
-        void loadAvatarAnimationsAsync(avatarAnimationsUrl);
-        void loadFigureMapAsync(figureMapUrl);
-        void loadEffectMapAsync(effectMapUrl);
-        void loadFigureDataAsync(figureDataUrl);
+        void startAsync();
     }, [ figureMapUrl, effectMapUrl ]);
 };
