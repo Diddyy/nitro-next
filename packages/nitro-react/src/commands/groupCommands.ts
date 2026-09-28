@@ -15,7 +15,7 @@
  * either: `GuildMembersWindowCtrl.onAcceptAll` is written but never bound, and
  * `guild_members_window` has no control to bind it to.
  */
-import { ClubLevelEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { ClubLevelEnum } from '@nitrodevco/nitro-api';
 import {
     AddAdminRightsToMemberComposer, ApproveMembershipRequestComposer, CreateGuildComposer, DeactivateGuildComposer,
     EventLogComposer, GetGuildCreationInfoComposer, GetGuildEditInfoComposer, GetGuildEditorDataComposer, GetGuildMembersComposer, GetHabboGroupDetailsComposer,
@@ -32,7 +32,7 @@ import {
 } from '#base/context/groups';
 import { navigatorStore } from '#base/context/navigator';
 import { systemStore } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { ClientGates, hasClientGate, userStore } from '#base/context/user';
 
 import { openClubCenter } from './catalogClubCommands';
 import { openClientLink } from './clientLinkCommands';
@@ -57,7 +57,7 @@ const getBoolean = (key: string): boolean => {
 export const hasGroupVip = (): boolean => Number(userStore.getState().clubLevel) >= Number(ClubLevelEnum.Vip);
 
 /** `GroupDetailsCtrl.onDeleteGuild`: a moderator may delete a group they do not own. */
-export const canDeleteAnyGroup = (): boolean => Number(userStore.getState().securityLevel) >= Number(SecurityLevelEnum.Moderator);
+export const canDeleteAnyGroup = (): boolean => hasClientGate(ClientGates.DeleteAnyGroup);
 
 /** `HabboGroupsManager.openGroupInfo`: asks for the details *and* for the window to open. */
 export const openGroupInfo = (send: Send, groupId: number) => send(new GetHabboGroupDetailsComposer({ groupId, openDetails: true }));

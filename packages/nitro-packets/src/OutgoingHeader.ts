@@ -502,6 +502,7 @@ export class OutgoingHeader {
     public static ToggleStaffPickComposer = 1675;
     public static TriggerHabbiconComposer = 1358;
     public static TryPhoneNumberComposer = 3079;
+    public static TurboClientCapabilitiesComposer = 30000;
     public static UnacceptTradingComposer = 1324;
     public static UnbanUserFromRoomComposer = 3989;
     public static UnblockGroupMemberComposer = 2564;

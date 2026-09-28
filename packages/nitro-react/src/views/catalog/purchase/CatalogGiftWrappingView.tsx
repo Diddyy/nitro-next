@@ -5,7 +5,7 @@ import { closePurchaseDialog, giveGift } from '#base/commands';
 import { CatalogPurchaseRequest, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useInterpolate, useSystemStore, useTranslation } from '#base/context/system';
-import { useOwnIsModerator, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
+import { ClientGates, useClientGate, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { Border, ButtonThick, CheckBox, ContainerButton, Frame, Icon, LayoutImage, Region, TextInput, ThemeImage, ThemeText, useAvatarImageTexture } from '#base/theme';
 
 import { useFurnitureImageTexture } from '../useFurnitureImageTexture';
@@ -105,7 +105,8 @@ export const CatalogGiftWrappingView = ({ purchase }: CatalogGiftWrappingViewPro
     const userName = useUserStore(x => x.name);
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();
-    const isModerator = useOwnIsModerator();
+    // `PurchaseConfirmationDialog.isModerator`: `hasSecurity(5)`, the gift sent without the sender's face.
+    const isModerator = useClientGate(ClientGates.GiftHideSender);
     const giftCard = useConfigValue<string>('catalog.gift_wrapping_new.gift_card') ?? '';
     const defaultBoxIndex = useConfigValue<number>('catalog.purchase.gift_wrapping.default_box_index') ?? 0;
     const store = useCatalogStoreApi();

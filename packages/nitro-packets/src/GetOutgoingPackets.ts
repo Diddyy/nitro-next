@@ -487,6 +487,7 @@ import {
     TogglePetRidingPermissionComposer,
     ToggleStaffPickComposer,
     TryPhoneNumberComposer,
+    TurboClientCapabilitiesComposer,
     UnacceptTradingComposer,
     UnbanUserFromRoomComposer,
     UnblockGroupMemberComposer,
@@ -1110,5 +1111,8 @@ export const GetOutgoingPackets = () => {
         [OutgoingHeader.WiredTransactionGetRoomLogsComposer]: WiredTransactionGetRoomLogsComposer,
         [OutgoingHeader.WiredUpdateContractComposer]: WiredUpdateContractComposer,
         [OutgoingHeader.WiredUpdateRoomComposer]: WiredUpdateRoomComposer,
+
+        // Turbo extensions (not Habbo's): see TurboClientCapabilitiesComposer.
+        [OutgoingHeader.TurboClientCapabilitiesComposer]: TurboClientCapabilitiesComposer,
     } as Record<number, OutgoingPacketConstructor>;
 };

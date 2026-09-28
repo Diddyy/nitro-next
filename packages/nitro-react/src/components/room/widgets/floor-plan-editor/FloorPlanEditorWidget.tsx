@@ -1,4 +1,4 @@
-import { RoomControllerLevelEnum, RoomThicknessType, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { RoomControllerLevelEnum, RoomThicknessType } from '@nitrodevco/nitro-api';
 import { useEffect, useMemo, useState } from 'react';
 
 import { requestFloorPlanData, saveFloorPlan, saveFloorPlanImport } from '#base/commands';
@@ -6,7 +6,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorStore } from '#base/context/navigator';
 import { useOwnControllerLevel, useRoomFloorPlanActions, useRoomStore } from '#base/context/room';
 import { useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
-import { useOwnSecurityLevel, useUserActions, useUserStore } from '#base/context/user';
+import { ClientGates, useClientGate, useUserActions, useUserStore } from '#base/context/user';
 import { createFloorPlanModel, floorPlanModelText, FloorPlanTile } from '#base/utils';
 import { FloorPlanEditorView } from '#base/views/room-widgets/floor-plan-editor/FloorPlanEditorView';
 
@@ -41,7 +41,7 @@ export const FloorPlanEditorWidget = () => {
     const { send } = useWebSocketContext();
     const isVisible = useIsWindowVisible('floor_plan_editor');
     const controllerLevel = useOwnControllerLevel();
-    const securityLevel = useOwnSecurityLevel();
+    const saveWithoutClub = useClientGate(ClientGates.FloorPlanSaveWithoutClub);
 
     const rows = useRoomStore(x => x.floorPlanRows);
     const receivedModel = useRoomStore(x => x.floorPlanReceivedModel);
@@ -88,7 +88,7 @@ export const FloorPlanEditorWidget = () => {
     if (Number(controllerLevel) < Number(RoomControllerLevelEnum.Guest)) return null;
 
     /* `createEditorWindow` / `onBcCountdownTimerEvent`: Builder's Club, or `hasSecurity(4)`. */
-    const canSave = (buildersClubSecondsLeft > 0) || (Number(securityLevel) >= Number(SecurityLevelEnum.Employee));
+    const canSave = (buildersClubSecondsLeft > 0) || saveWithoutClub;
     const modelData = floorPlanModelText(model);
 
     const onCommit = (nextRows: string[], nextEntryPoint: FloorPlanTile | null) => {

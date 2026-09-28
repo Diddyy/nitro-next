@@ -21,14 +21,14 @@
  * Opening the window while it is already open brings it forward without resetting the form;
  * Flash's `show()` calls `refresh()` either way.
  */
-import { ClubLevelEnum, RoomTradeModeEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { ClubLevelEnum, RoomTradeModeEnum } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';
 
 import { createFlat, openClubCenter } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ROOM_CREATE_LAYOUTS, RoomCreateLayout, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { useOwnClubLevel, useOwnSecurityLevel } from '#base/context/user';
+import { ClientGates, useClientGate, useOwnClubLevel } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
 import { Border, Button, ButtonThick, Dropmenu, Frame, Icon, LayoutImage, Region, ScrollArea, TextInput, ThemeImage, ThemeText } from '#base/theme';
 import { flatCategoryName } from '#base/utils';
@@ -170,7 +170,8 @@ const Thumbnail = ({ layout, left, selected, arrowY, imageLibraryUrl, tileSizeTe
 export const NavigatorRoomCreateView = () => {
     const flatCategories = useNavigatorStore(x => x.flatCategories);
     const clubLevel = useOwnClubLevel();
-    const securityLevel = useOwnSecurityLevel();
+    const staffOptions = useClientGate(ClientGates.RoomCreateStaffOptions);
+    const staffCategories = useClientGate(ClientGates.StaffCategories);
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const clubBuyDisabled = useConfigValue<boolean>('habbo_club_buy_disabled') === true;
     const { hide } = useWindowVisibility('navigator_room_create');
@@ -196,7 +197,7 @@ export const NavigatorRoomCreateView = () => {
     // `SessionDataManager.hasClub` and `hasVip` are both `clubLevel >= 1` in this revision.
     const hasClub = Number(clubLevel) >= Number(ClubLevelEnum.Club);
     const hasVip = hasClub;
-    const isStaff = Number(securityLevel) >= Number(SecurityLevelEnum.Employee);
+    const isStaff = staffOptions;
 
     /** `isAllowed(layout, requireClub)`: listing asks only about staff layouts; choosing asks about club too. */
     const isAllowed = (layout: RoomCreateLayout, requireClub: boolean) => {
@@ -209,7 +210,7 @@ export const NavigatorRoomCreateView = () => {
 
     // `prepareCategorySelection`: visible, not automatic, and staff-only ones for `hasSecurity(7)`.
     const categories = flatCategories.filter(category => category.visible && !category.automatic
-        && (!category.staffOnly || (Number(securityLevel) >= Number(SecurityLevelEnum.Community))));
+        && (!category.staffOnly || staffCategories));
 
     // `refreshMaxVisitors`: 10 to the cap in steps of 5.
     const visitorCap = hasVip ? ROOM_LIMIT_HC : ROOM_LIMIT_NON_SUBSCRIBER;

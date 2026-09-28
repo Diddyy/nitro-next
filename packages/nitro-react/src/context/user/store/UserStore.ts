@@ -14,6 +14,13 @@ type State = {
     clubLevel: ClubLevelEnum;
     securityLevel: SecurityLevelEnum;
     isAmbassador: boolean;
+    /**
+     * Not Flash's: the client-facing permission nodes a Turbo server says the user holds (its
+     * `permission.nodes` extension), or `null` when the server never sent them - any other server,
+     * or a Turbo that declined. With them, every `ClientGate` asks its node; without, its
+     * `securityLevel` threshold, as Flash does.
+     */
+    permissionNodes: ReadonlySet<string> | null;
     noobnessLevel: number;
     isEmailVerified: boolean;
     systemOpen: boolean;
@@ -80,6 +87,7 @@ type Actions = {
     /** `SessionDataManager.onAvailabilityStatus`: whether the hotel is open, shutting down, and the account authentic. */
     setAvailabilityStatus: (systemOpen: boolean, systemShutdown: boolean, isAuthenticHabbo: boolean) => void;
     setRights: (clubLevel: ClubLevelEnum, securityLevel: SecurityLevelEnum, isAmbassador: boolean) => void;
+    setPermissionNodes: (permissionNodes: ReadonlySet<string> | null) => void;
     setNoobnessLevel: (noobnessLevel: NoobnessLevelEnum) => void;
     increasePetRespects: () => void;
     decreasePetRespects: () => void;
@@ -108,6 +116,7 @@ const initialState: State = {
     clubLevel: ClubLevelEnum.Club,
     securityLevel: 0,
     isAmbassador: false,
+    permissionNodes: null,
     noobnessLevel: -1,
     isEmailVerified: false,
     systemOpen: false,
@@ -136,6 +145,7 @@ export type UserStore = State & Actions & UserInfoSlice & UserFriendsSlice & Use
 export const createUserStore = () => createStore<UserStore>()((set, get, store) => ({
     ...initialState,
     setRights: (clubLevel: ClubLevelEnum, securityLevel: SecurityLevelEnum, isAmbassador: boolean) => set({ clubLevel, securityLevel, isAmbassador }),
+    setPermissionNodes: (permissionNodes: ReadonlySet<string> | null) => set({ permissionNodes }),
     setNoobnessLevel: (noobnessLevel: NoobnessLevelEnum) => set({ noobnessLevel }),
     increasePetRespects: () => set(state => ({ petRespectLeft: state.petRespectLeft + 1 })),
     decreasePetRespects: () => set(state => ({ petRespectLeft: state.petRespectLeft - 1 })),

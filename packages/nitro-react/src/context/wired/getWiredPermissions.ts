@@ -7,11 +7,10 @@
  * - `hasReadPermission` / `hasWritePermission`: owner or staff, otherwise what the last
  *   `WiredPermissions` packet granted.
  */
-import { SecurityLevelEnum } from '@nitrodevco/nitro-api';
 
 import { roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { ClientGates, hasClientGate } from '#base/context/user';
 
 import { wiredStore } from './store/WiredStore';
 
@@ -24,7 +23,7 @@ export const getWiredIsRoomOwnerOrStaff = (): boolean => {
 
     if (!room) return false;
 
-    return (userStore.getState().securityLevel >= SecurityLevelEnum.Employee) || isRoomOwner;
+    return hasClientGate(ClientGates.WiredMenu) || isRoomOwner;
 };
 
 /** `WiredMenuController.hasReadPermission`. */

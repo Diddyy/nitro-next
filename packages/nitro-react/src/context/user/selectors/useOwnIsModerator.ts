@@ -1,9 +1,5 @@
-import { SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { ClientGates } from '../gates';
+import { useClientGate } from './useClientGate';
 
-import { useOwnSecurityLevel } from './useOwnSecurityLevel';
-
-export const useOwnIsModerator = () => {
-    const securityLevel = useOwnSecurityLevel();
-
-    return securityLevel >= SecurityLevelEnum.Moderator;
-};
+/** `SessionDataManager.isAnyRoomController`: a controller of every room - `ClientGates.AnyRoomController`. */
+export const useOwnIsModerator = () => useClientGate(ClientGates.AnyRoomController);

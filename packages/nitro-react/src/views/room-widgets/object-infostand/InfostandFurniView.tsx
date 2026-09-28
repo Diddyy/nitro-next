@@ -518,8 +518,8 @@ export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWir
                     )}
                 </Box>
             </Border>
-            {/* `createWindow` disposes `custom_variables` unless the user has security level 5 - the staff details' gate. */}
-            {details.staffDetails && !!details.customVariables.length && (
+            {/* `createWindow` disposes `custom_variables` unless the user has security level 5; the widget passes none then. */}
+            {!!details.customVariables.length && (
                 // `custom_variables`: a row of `variable_list` per variable, the panel growing with the list.
                 <Border
                     variant="2"
