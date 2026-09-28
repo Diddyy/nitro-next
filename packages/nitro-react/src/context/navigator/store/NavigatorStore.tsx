@@ -1,4 +1,4 @@
-import { IEventCategory, IFlatCategory, IPerk, IRoomInfo, ISavedSearch, ISearchResultList, ISearchResultSet, ITopLevelContext } from '@nitrodevco/nitro-packets';
+import { IEventCategory, IFlatCategory, IRoomInfo, ISavedSearch, ISearchResultList, ISearchResultSet, ITopLevelContext } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 /**
@@ -98,7 +98,6 @@ type State = {
     topLevelContexts: ITopLevelContext[];
     topLevelContext: ITopLevelContext | undefined;
     savedSearches: ISavedSearch[];
-    perks: IPerk[];
     /* NewNavigatorPreferencesMessage — HabboNewNavigator.onPreferences */
     preferences: { windowX: number; windowY: number; windowWidth: number; windowHeight: number; resultsMode: number } | undefined;
     flatCategories: IFlatCategory[];
@@ -134,7 +133,6 @@ type Actions = {
     setTopLevelContexts: (topLevelContexts: ITopLevelContext[]) => void;
     setTopLevelContext: (topLevelContext: ITopLevelContext | undefined) => void;
     setSavedSearches: (savedSearches: ISavedSearch[]) => void;
-    setPerks: (perks: IPerk[]) => void;
     setPreferences: (preferences: { windowX: number; windowY: number; windowWidth: number; windowHeight: number; resultsMode: number }) => void;
     setFlatCategories: (flatCategories: IFlatCategory[]) => void;
     setEventCategories: (eventCategories: IEventCategory[]) => void;
@@ -171,7 +169,6 @@ const initialState: State = {
     topLevelContexts: [],
     topLevelContext: undefined,
     savedSearches: [],
-    perks: [],
     preferences: undefined,
     flatCategories: [],
     eventCategories: [],
@@ -202,8 +199,6 @@ export const createNavigatorStore = () => createStore<NavigatorStore>()((set, ge
     setTopLevelContexts: topLevelContexts => set({ topLevelContexts }),
     setTopLevelContext: topLevelContext => set({ topLevelContext }),
     setSavedSearches: savedSearches => set({ savedSearches }),
-    // `PerkManager.onPerkAllowances` merges: a later message carrying some perks updates those and keeps the rest.
-    setPerks: perks => set(state => ({ perks: [ ...state.perks.filter(x => !perks.some(perk => perk.code === x.code)), ...perks ] })),
     setPreferences: preferences => set({ preferences }),
     setFlatCategories: flatCategories => set({ flatCategories }),
     setEventCategories: eventCategories => set({ eventCategories }),

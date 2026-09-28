@@ -38,9 +38,8 @@ import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog 
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
-import { useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useIsLandingViewVisible, useSystemActions, useTranslation } from '#base/context/system';
-import { useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
+import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useTween } from '#base/hooks';
 import { Border, Box, LayoutImage, Region, ThemeImage, useLayoutEvent } from '#base/theme';
@@ -150,7 +149,7 @@ export const ToolbarView = () => {
     const showWiredMenuButton = useWiredShowToolbarMenuButton() && !landingViewVisible;
     // `BottomBarLeft`: the camera icon too is a room icon, drawn only where `camera.launch.ui.position` puts it and with the `CAMERA` perk.
     const cameraLaunchPosition = useConfigValue<string>('camera.launch.ui.position');
-    const cameraAllowed = useNavigatorStore(x => x.perks.some(perk => (perk.code === 'CAMERA') && perk.isAllowed));
+    const cameraAllowed = useOwnPerkAllowed(PerkCodes.Camera);
     const showCameraButton = !landingViewVisible && (cameraLaunchPosition === 'bottom-icons') && cameraAllowed;
     const { send } = useWebSocketContext();
     const t = useTranslation();

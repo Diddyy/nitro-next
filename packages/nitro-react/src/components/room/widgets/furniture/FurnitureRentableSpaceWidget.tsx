@@ -1,9 +1,10 @@
-import { RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomWidgetEnum } from '@nitrodevco/nitro-api';
+import { RoomObjectCategoryEnum, RoomWidgetEnum } from '@nitrodevco/nitro-api';
 import { RentableSpaceCancelRentComposer, RentableSpaceRentComposer, RentableSpaceStatusMessageType } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { ClientGates, useClientGate, useOwnUserId, useUserStore } from '#base/context/user';
+import { isFurnitureOwnedBy } from '#base/utils';
 import { FurnitureRentableSpaceView } from '#base/views/room-widgets/furniture/FurnitureRentableSpaceView';
 
 /**
@@ -31,7 +32,7 @@ export const FurnitureRentableSpaceWidget = () => {
     return (
         <FurnitureRentableSpaceView
             rented={data.rented}
-            canCancelRent={data.rented && ((room?.getRoomObject(request.objectId, RoomObjectCategoryEnum.Floor)?.model.getValue<number>(RoomObjectVariableEnum.FurnitureOwnerId) === ownUserId) || cancelsAny)}
+            canCancelRent={data.rented && (isFurnitureOwnedBy(room?.getRoomObject(request.objectId, RoomObjectCategoryEnum.Floor), ownUserId) || cancelsAny)}
             canRent={data.canRent}
             canRentErrorCode={data.canRentErrorCode}
             canAfford={data.price <= credits}

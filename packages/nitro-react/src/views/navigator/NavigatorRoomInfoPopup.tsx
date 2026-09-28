@@ -44,7 +44,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
 import { useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useHomeRoomId, useInterpolate, useTranslation, useWindowActions } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { PerkCodes, useOwnPerkAllowed, useUserStore } from '#base/context/user';
 import { Border, Bubble, FloatingPopup, LayoutImage, Region, ThemeImage, ThemeText, useTextureFromUrl } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 import { GroupBadgeImage } from '#base/views/groups/GroupBadgeImage';
@@ -196,7 +196,7 @@ const useCloseWhenMouseLeaves = (bubble: RefObject<PixiContainer | null>, serial
 export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: NavigatorRoomInfoPopupProps) => {
     const bubbleRef = useRef<PixiContainer | null>(null);
     const favouriteRoomIds = useNavigatorStore(x => x.favouriteRoomIds);
-    const perks = useNavigatorStore(x => x.perks);
+    const thumbnailCameraAllowed = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);
     const homeRoomId = useHomeRoomId();
     const userName = useUserStore(x => x.name);
     const groupDetails = useGroupStore(x => ((room.groupId > 0) ? x.detailsById[room.groupId] : undefined));
@@ -224,7 +224,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
 
     let thumbnailUrl: string | undefined;
 
-    if (perks.some(perk => (perk.code === 'NAVIGATOR_ROOM_THUMBNAIL_CAMERA') && perk.isAllowed)) {
+    if (thumbnailCameraAllowed) {
         if (room.officialRoomPicRef.length) {
             thumbnailUrl = officialThumbnailsInAmazon
                 ? `${thumbnailUrlBase}${room.roomId}.png`

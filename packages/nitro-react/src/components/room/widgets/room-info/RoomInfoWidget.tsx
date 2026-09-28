@@ -31,7 +31,8 @@ export const RoomInfoWidget = () => {
     const { showWindow, hideWindow } = useWindowActions();
     const controllerLevel = useOwnControllerLevel();
     const isAnyRoomController = useClientGate(ClientGates.AnyRoomController);
-    const isStaffPicker = useClientGate(ClientGates.StaffPick);
+    /* `NavigatorData.roomPicker`, set by `IncomingMessages.onUserRights` at `securityLevel >= 7`. */
+    const canStaffPick = useClientGate(ClientGates.StaffPick);
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     // `RoomInfoViewCtrl.layoutButtons`: the mute-all button needs the hotel's flag as well as the right.
@@ -46,8 +47,6 @@ export const RoomInfoWidget = () => {
     const isFavourite = favouriteRoomIds.includes(roomId);
     /* `NavigatorData.canEditRoomSettings` - the room's owner, or staff from `hasSecurity(5)`. */
     const canEditRoomSettings = isOwner || isAnyRoomController;
-    /* `NavigatorData.roomPicker`, set by `IncomingMessages.onUserRights` at `securityLevel >= 7`. */
-    const canStaffPick = isStaffPicker;
 
     const thumbnailUrl = currentRoomInfo.officialRoomPicRef.length
         ? `${imageLibraryUrl}${currentRoomInfo.officialRoomPicRef}`

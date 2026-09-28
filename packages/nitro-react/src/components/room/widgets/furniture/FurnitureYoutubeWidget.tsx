@@ -1,10 +1,11 @@
-import { RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
+import { RoomObjectCategoryEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
 import { ControlYoutubeDisplayPlaybackComposer, SetYoutubeDisplayPlaylistComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { YoutubeData } from '#base/handlers';
+import { isFurnitureOwnedBy } from '#base/utils';
 import { FurnitureYoutubeView } from '#base/views/room-widgets/furniture/FurnitureYoutubeView';
 
 /**
@@ -25,8 +26,7 @@ export const FurnitureYoutubeWidget = () => {
 
     if (!request || !data || (data.furniId !== request.objectId)) return null;
 
-    const ownerId = room?.getRoomObject(request.objectId, RoomObjectCategoryEnum.Floor)?.model.getValue<number>(RoomObjectVariableEnum.FurnitureOwnerId);
-    const canControl = (ownerId === ownUserId) || controlsAny;
+    const canControl = isFurnitureOwnedBy(room?.getRoomObject(request.objectId, RoomObjectCategoryEnum.Floor), ownUserId) || controlsAny;
 
     return (
         <FurnitureYoutubeView

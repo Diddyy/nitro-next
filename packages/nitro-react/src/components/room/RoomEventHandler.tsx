@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 
 import { useRoom, useRoomIsPlayingGame, useRoomMouseActions, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
-import { useOwnIsModerator, useOwnUserId } from '#base/context/user';
+import { useOwnIsAnyRoomController, useOwnUserId } from '#base/context/user';
 import { useRoomAdHandler, useRoomBadgeAssetHandler, useRoomEventDispatcher, useRoomEventHandler, useRoomFurnitureActionHandler, useRoomObjectInteraction, useRoomObjectSelect, useRoomWidgetRequestHandler } from '#base/hooks';
 import { handleRoomObjectSoundEvent, isRoomObjectSoundEvent } from '#base/sound';
 
@@ -14,7 +14,7 @@ import { DisposeRoomViewColor, SetRoomViewColor } from './roomViewColor';
 
 export const RoomEventHandler = () => {
     const room = useRoom();
-    const isModerator = useOwnIsModerator();
+    const isAnyRoomController = useOwnIsAnyRoomController();
     const isPlayingGame = useRoomIsPlayingGame();
     const { getMouseEventId, setMouseEventId } = useRoomMouseActions();
     const { handleRoomObjectMouseEvent } = useRoomEventHandler();
@@ -203,7 +203,7 @@ export const RoomEventHandler = () => {
 
                 const disabled = (roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureSelectionDisabled) === 1);
 
-                if (!disabled || isModerator) updateEvent = new RoomWidgetUpdateRoomObjectEvent(
+                if (!disabled || isAnyRoomController) updateEvent = new RoomWidgetUpdateRoomObjectEvent(
                     RoomWidgetUpdateRoomObjectEvent.OBJECT_SELECTED,
                     event.objectId,
                     event.category,

@@ -96,9 +96,12 @@ in Nitro. Check Turbo's architecture contract for the relevant domain before imp
 The client stays a plain Habbo client against any server. Where Habbo's protocol cannot say
 something, Turbo offers opt-in extensions: after the user object the client sends
 `TurboClientCapabilitiesComposer` (header 30000), and a Turbo server answers with
-`TurboServerCapabilitiesMessage` (30000). Headers 30000-30099 are reserved for these on both sides;
-another server ignores the unknown packet and never answers. Turbo's `docs/client-capabilities.md`
-owns the wire format.
+`TurboServerCapabilitiesMessage` (30000), which `userStore.turboCapabilities` keeps. Headers
+30000-30099 are reserved for these on both sides; another server ignores the unknown packet and
+never answers. A hotel whose server objects to unknown packets sets `turbo.extensions.disabled`
+and the client never asks. An extension's packets are taken only once the server has accepted it,
+so a server using the same headers for something else cannot feed them in. Turbo's
+`docs/client-capabilities.md` owns the wire format.
 
 `permission.nodes` is the one extension so far: Turbo sends the user's client-facing permission
 nodes (`TurboPermissionNodesMessage`, 30001) after `UserRights` and on every change, into

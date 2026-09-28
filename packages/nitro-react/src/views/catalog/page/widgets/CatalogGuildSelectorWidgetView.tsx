@@ -88,7 +88,7 @@ const GuildSelector = ({ page, forum }: GuildSelectorProps) => {
     const { unregisterGuildSelectorWidget } = useCatalogGuildActions();
     const { send } = useWebSocketContext();
     const userId = useOwnUserId();
-    const anyGroupAllowed = useClientGate(ClientGates.GuildAnyGroup);
+    const anyGroup = useClientGate(ClientGates.GuildAnyGroup);
     const t = useTranslation();
 
     /** `filterGroupMemberships`: every group, or for a forum the ones one can be bought for. */
@@ -96,7 +96,6 @@ const GuildSelector = ({ page, forum }: GuildSelectorProps) => {
         if (!forum) return all;
 
         // `hasSecurity(4)`: staff may buy a forum for any of their groups.
-        const anyGroup = anyGroupAllowed;
 
         return all.filter(guild => (guild.hasForum || (guild.ownerId === userId) || anyGroup));
     };

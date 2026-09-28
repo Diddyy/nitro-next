@@ -170,7 +170,7 @@ const Thumbnail = ({ layout, left, selected, arrowY, imageLibraryUrl, tileSizeTe
 export const NavigatorRoomCreateView = () => {
     const flatCategories = useNavigatorStore(x => x.flatCategories);
     const clubLevel = useOwnClubLevel();
-    const staffOptions = useClientGate(ClientGates.RoomCreateStaffOptions);
+    const isStaff = useClientGate(ClientGates.RoomCreateStaffOptions);
     const staffCategories = useClientGate(ClientGates.StaffCategories);
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const clubBuyDisabled = useConfigValue<boolean>('habbo_club_buy_disabled') === true;
@@ -197,7 +197,6 @@ export const NavigatorRoomCreateView = () => {
     // `SessionDataManager.hasClub` and `hasVip` are both `clubLevel >= 1` in this revision.
     const hasClub = Number(clubLevel) >= Number(ClubLevelEnum.Club);
     const hasVip = hasClub;
-    const isStaff = staffOptions;
 
     /** `isAllowed(layout, requireClub)`: listing asks only about staff layouts; choosing asks about club too. */
     const isAllowed = (layout: RoomCreateLayout, requireClub: boolean) => {

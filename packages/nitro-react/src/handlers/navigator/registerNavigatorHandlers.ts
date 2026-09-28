@@ -1,5 +1,5 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
-import { CantConnectMessage, CantConnectReason, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, PerkAllowancesMessage, QuitComposer, RoomEntryInfoMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { CantConnectMessage, CantConnectReason, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomEntryInfoMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { forwardToRoom, goToHomeRoom, goToRoom } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -48,10 +48,6 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
         // quick links come from NavigatorSavedSearchesMessage — the topLevelContexts
         // in NavigatorMetadataMessage arrive with an empty quickLinks array
         on(NavigatorSavedSearchesMessage, data => navigator().setSavedSearches(data.savedSearches)),
-
-        // CategoryElementFactory removes both toggle buttons unless
-        // sessionData.isPerkAllowed("NAVIGATOR_ROOM_THUMBNAIL_CAMERA")
-        on(PerkAllowancesMessage, data => navigator().setPerks(data.perks)),
 
         /*
          * HabboNewNavigator.onPreferences -> NavigatorView.setInitialWindowDimensions(

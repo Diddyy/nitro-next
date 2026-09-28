@@ -54,7 +54,7 @@ export const RoomChatInputView = () => {
     const preferredChatStyle = useUserStore(x => x.preferredChatStyle);
     const chatSizePreference = useUserStore(x => x.chatSizePreference);
     const clubLevel = useOwnClubLevel();
-    const staffStylesAllowed = useClientGate(ClientGates.StaffChatStyles);
+    const isStaff = useClientGate(ClientGates.StaffChatStyles);
     const isAmbassador = useOwnIsAmbassador();
     const nftChatStyles = useUserStore(x => x.nftChatStyles);
     const purchasableChatStyles = useUserStore(x => x.purchasableChatStyles);
@@ -109,7 +109,6 @@ export const RoomChatInputView = () => {
         if (!customStylesEnabled) return [];
 
         const disabled = disabledStyles.split(',');
-        const isStaff = staffStylesAllowed;
         const hasClub = (clubLevel >= ClubLevelEnum.Club);
         const styles: IChatStyle[] = [];
 
@@ -147,7 +146,7 @@ export const RoomChatInputView = () => {
         }
 
         return styles;
-    }, [ allStyles, customStylesEnabled, disabledStyles, staffStylesAllowed, clubLevel, isAmbassador, nftChatStyles, purchasableChatStyles ]);
+    }, [ allStyles, customStylesEnabled, disabledStyles, isStaff, clubLevel, isAmbassador, nftChatStyles, purchasableChatStyles ]);
 
     const sendTypingStatus = () => {
         if (isFloodBlocked) return;
