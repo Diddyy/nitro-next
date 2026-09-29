@@ -56,10 +56,20 @@ interface PixiApplicationRootProps {
      * (the client's room stage).
      */
     onInit?: (app: PixiApplication) => void;
+    /**
+     * What the canvas is as big as: the window (the client's), or nothing - the app sizes it itself
+     * (`app.renderer.resize`), as a canvas moved between boxes on a page is (Nitro Studio's previews).
+     */
+    resizeTo?: Window | null;
+    /** The canvas's own style: fixed over the whole window, unless the app places it itself. */
+    canvasStyle?: string;
     children?: ReactNode;
 }
 
-export const PixiApplicationRoot = ({ onReady, onInit, children }: PixiApplicationRootProps) => {
+/** The client's canvas: the whole window, under everything else on the page. */
+const FULL_WINDOW_CANVAS = 'position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; image-rendering: pixelated;';
+
+export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvasStyle = FULL_WINDOW_CANVAS, children }: PixiApplicationRootProps) => {
     const readyRef = useRef(false);
     const colorSpace = useThemeConfigValue<string>(COLOR_SPACE_KEY);
 
@@ -68,7 +78,7 @@ export const PixiApplicationRoot = ({ onReady, onInit, children }: PixiApplicati
 
         readyRef.current = true;
 
-        app.canvas.style = 'position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; image-rendering: pixelated;';
+        app.canvas.style = canvasStyle;
 
         SetRenderer(app.renderer);
         applyCanvasColorSpace(app, colorSpace);
@@ -88,12 +98,12 @@ export const PixiApplicationRoot = ({ onReady, onInit, children }: PixiApplicati
         app.renderer.on('resize', applyScreenLayout);
 
         onReady();
-    }, [ onReady, onInit, colorSpace ]);
+    }, [ onReady, onInit, colorSpace, canvasStyle ]);
 
     return (
         <Application
             onInit={handleInit}
-            resizeTo={window}
+            resizeTo={resizeTo ?? undefined}
             resolution={GetPixelRatio()}
             autoDensity={true}
             backgroundAlpha={0}

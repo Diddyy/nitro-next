@@ -1,10 +1,10 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { SpritesheetData } from 'pixi.js';
 
-import { registerThemeTexture } from '../hooks/usePixiTexture';
+import { registerThemeTexture, resetThemeTextures } from '../hooks/usePixiTexture';
 import { themeHost } from '../host';
 import { registerThemeVariants, themeTextureAliases, ThemeVariantsData } from './themeRegistry';
-import { registerThemeAtlas, themeTextureKeys } from './themeSprites';
+import { registerThemeAtlas, resetThemeSprites, themeTextureKeys } from './themeSprites';
 
 /**
  * Loads the `theme` asset bundle and hands its contents to the registries the chrome reads, once at
@@ -35,15 +35,21 @@ const BUNDLE_NAME = 'theme';
 /** `theme-variants.json`, by the name `getBundleFile` knows a bundle's JSON by. */
 const THEME_VARIANTS_FILE = 'theme-variants';
 
-export const preloadThemeAssets = async (): Promise<void> => {
-    if (!await themeHost().loadAssetBundle(BUNDLE_NAME)) return;
+/**
+ * Loads the theme from its bundle - `theme`, or another name the host serves the theme's bundle under:
+ * art that changed is a bundle of its own, a bundle once fetched being kept by its name
+ * (`resetThemeArtCaches` first, so nothing cut from the old art is drawn again).
+ */
+export const preloadThemeAssets = async (bundle: string = BUNDLE_NAME): Promise<void> => {
+    if (!await themeHost().loadAssetBundle(bundle)) return;
 
     const assetManager = GetAssetManager();
-    const manifest = assetManager.getBundleFile<SpritesheetData>(BUNDLE_NAME, `${BUNDLE_NAME}_spritesheet`);
+    // The sheet and its manifest are named by the theme's own bundle, whatever this one is fetched as.
+    const manifest = assetManager.getBundleFile<SpritesheetData>(bundle, `${BUNDLE_NAME}_spritesheet`);
     // `processNitroBundle` registers the sheet itself under the manifest's own name.
     const sheet = assetManager.getTexture(`${BUNDLE_NAME}_spritesheet`);
 
-    const variants = assetManager.getBundleFile<ThemeVariantsData>(BUNDLE_NAME, THEME_VARIANTS_FILE);
+    const variants = assetManager.getBundleFile<ThemeVariantsData>(bundle, THEME_VARIANTS_FILE);
 
     if (!manifest?.frames || !sheet) return;
 
@@ -63,5 +69,11 @@ export const preloadThemeAssets = async (): Promise<void> => {
     registerThemeAtlas({ image, width: sheet.source.width, height: sheet.source.height }, manifest.frames, themeTextureAliases());
 
     // The rects are in `themeSprites` now; the manifest they were read out of is not needed again.
-    assetManager.releaseBundleData(BUNDLE_NAME);
+    assetManager.releaseBundleData(bundle);
+};
+
+/** Forgets the theme's art - its textures, its sheet and all cut from them - before new art is loaded (`preloadThemeAssets`). */
+export const resetThemeArtCaches = (): void => {
+    resetThemeTextures();
+    resetThemeSprites();
 };

@@ -10,9 +10,11 @@
  *   keys the fragment by code, so a code the server repeats is kept once, where it first appeared.
  *   A badge whose id the unseen item tracker names (category 4, `isUnseen(4, badgeId)`) is put at
  *   the front (`unshift`, so the new ones end up in reverse), every other one at the back.
- * - `updateBadge` is `BadgesModel.updateBadge` (`BadgeReceivedMessage`): a code already held is
- *   updated in place, a new one goes to the front when it is unseen and to the back otherwise, and,
- *   where the packet says so, is put straight on.
+ * - `updateBadge` is `BadgesModel.updateBadge`: a code already held is updated in place and put on
+ *   or taken off to match `wear`; a new one goes to the front when it is unseen and to the back
+ *   otherwise, and is put on when `wear` says so. `HabboUserBadges` for the user (`onUserBadges`)
+ *   calls it with `wear` for each worn badge - the only thing that fills the worn list, which
+ *   `initBadges` empties - and `BadgeReceived` / an achievement level-up with `wear` false.
  * - A badge's mark is `Badge.isUnseen`, fixed when the badge is made - from the tracker as it stands
  *   at that moment, the same ask that places it - and cleared only by `resetBadgesUnseen`
  *   (`BadgesModel.resetUnseenItems`). An update to a badge already held keeps its mark.
@@ -66,7 +68,7 @@ type State = {
 type Actions = {
     /** `BadgesModel.initBadges` with every fragment of a `BadgesMessage`, in order. */
     initBadges: (badges: IInventoryBadge[]) => void;
-    /** `BadgesModel.updateBadge`: one badge added or updated, optionally put straight on. */
+    /** `BadgesModel.updateBadge`: one badge added or updated, and worn or not as `wear` says. */
     updateBadge: (badge: IInventoryBadge, wear: boolean) => void;
     /** `BadgesModel.removeBadge`, taking it off first. */
     removeBadge: (code: string) => void;
@@ -114,16 +116,25 @@ export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice & Inv
     },
     updateBadge: (incoming, wear) => set((x) => {
         const index = x.badges.findIndex(held => held.code === incoming.badgeCode);
-        // A badge already held keeps its mark; a new one asks the tracker, once.
-        const unseen = (index === -1) ? isUnseenItem(x.unseenItems, UnseenItemCategory.BADGE, incoming.badgeId) : x.badges[index].isUnseen;
-        const badge = toBadge(incoming, unseen);
-        const added = unseen ? [ badge, ...x.badges ] : [ ...x.badges, badge ];
-        const badges = (index === -1) ? added : x.badges.map((held, at) => ((at === index) ? badge : held));
-        const wornBadgeCodes = (wear && !x.wornBadgeCodes.includes(badge.code) && (x.wornBadgeCodes.length < INVENTORY_MAX_ACTIVE_BADGES))
-            ? [ ...x.wornBadgeCodes, badge.code ]
-            : x.wornBadgeCodes;
 
-        return { badges, badgeCodes: badges.map(held => held.code), wornBadgeCodes };
+        if (index !== -1) {
+            const held = x.badges[index];
+            // `Badge.updateMetadata`: the owner count and rarity. The numeric id is kept once known -
+            // `HabboUserBadges` sends none - and the mark stays as it was.
+            const badge: InventoryBadge = { ...held, ownerCount: incoming.ownerCount, rarityId: incoming.badgeRarityId, badgeNumberId: (held.badgeNumberId > 0) ? held.badgeNumberId : incoming.badgeId };
+            const worn = x.wornBadgeCodes.includes(badge.code);
+            // `isInUse != wear`: put on, or taken off, to match.
+            const wornBadgeCodes = (worn === wear) ? x.wornBadgeCodes : (wear ? [ ...x.wornBadgeCodes, badge.code ] : x.wornBadgeCodes.filter(code => code !== badge.code));
+
+            return { badges: x.badges.map((other, at) => ((at === index) ? badge : other)), wornBadgeCodes };
+        }
+
+        // A new badge asks the tracker, once, and goes on if the message says it is worn.
+        const unseen = isUnseenItem(x.unseenItems, UnseenItemCategory.BADGE, incoming.badgeId);
+        const badge = toBadge(incoming, unseen);
+        const badges = unseen ? [ badge, ...x.badges ] : [ ...x.badges, badge ];
+
+        return { badges, badgeCodes: badges.map(held => held.code), wornBadgeCodes: wear ? [ ...x.wornBadgeCodes, badge.code ] : x.wornBadgeCodes };
     }),
     removeBadge: code => set((x) => {
         if (!x.badges.some(badge => badge.code === code)) return x;

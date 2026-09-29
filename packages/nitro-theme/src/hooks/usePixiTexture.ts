@@ -21,9 +21,24 @@ import { getThemeSliceCanvas, ThemeSliceEffect, themeSliceEffectId } from '../ut
 
 const themeTextures = new Map<string, Texture>();
 const croppedTextures = new Map<string, Texture>();
+/** The keys of the textures derived from the theme's art (`theme:*`): dropped with it (`resetThemeTextures`). */
+const themeDerivedKeys = new Set<string>();
 
 export const registerThemeTexture = (key: string, texture: Texture): void => {
     themeTextures.set(key, texture);
+};
+
+/**
+ * Forgets the theme's textures - its keys' and every one derived from them - for art loaded again
+ * (`resetThemeArtCaches`): the next request for a key finds the new art, not the old.
+ */
+export const resetThemeTextures = (): void => {
+    themeTextures.clear();
+    croppedTextures.clear();
+
+    for (const key of themeDerivedKeys) GetAssetManager().removeTexture(key);
+
+    themeDerivedKeys.clear();
 };
 
 /** The atlas-backed texture of a theme key, if the atlas has loaded. */
@@ -56,6 +71,8 @@ export const getOrBuildTexture = (key: string, build: () => HTMLCanvasElement | 
     const texture = textureFromCanvas(canvas, key);
 
     assetManager.setTexture(key, texture);
+
+    if (key.startsWith('theme:')) themeDerivedKeys.add(key);
 
     return texture;
 };

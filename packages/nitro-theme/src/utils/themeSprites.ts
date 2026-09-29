@@ -44,6 +44,13 @@ export const themeTextureKeys = (spriteNames: string[], aliases: Record<string, 
 ];
 
 /** Registers the sheet and every sprite rect it holds. Called once by `preloadThemeAssets`. */
+/** Forgets the sheet, its sprites and every slice cut from them, for art loaded again (`resetThemeArtCaches`). */
+export const resetThemeSprites = (): void => {
+    atlas = undefined;
+    sprites.clear();
+    sliceCanvases.clear();
+};
+
 export const registerThemeAtlas = (sheet: { image: CanvasImageSource; width: number; height: number }, frames: Record<string, { frame: { x: number; y: number; w: number; h: number } }>, aliases: Record<string, string>): void => {
     atlas = sheet;
 

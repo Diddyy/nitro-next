@@ -268,7 +268,9 @@ export class RoomPlane implements IRoomPlane {
                 // GPU coverage samples pixel centres. Align the matrix-drawn edges with the
                 // integer rows used by BitmapData.copyPixels above; otherwise a 2:1 edge leaves
                 // an uncovered pixel every second column where a wall meets its top face.
-                matrix.ty += 0.5;
+                // Floors keep Flash's sampling: shifted, the 2:1 texture's tile lines cross in a
+                // doubled, flat junction instead of a single step.
+                if (this._type !== RoomPlane.TYPE_FLOOR) matrix.ty += 0.5;
                 TextureUtils.getRenderer().render({ target: this._planeTexture, container, transform: matrix, clear: true });
             }
 
