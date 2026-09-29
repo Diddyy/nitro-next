@@ -13,8 +13,7 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
-import { loadAssetBundle } from '#base/utils';
-
+import { themeHost } from '../../host';
 import { NativeFontBundle } from './air32/types';
 import { FLASH_FONT_FACES } from './flashFontFaces';
 import { registerNativeFontBundle } from './FlashTextRenderer';
@@ -58,7 +57,7 @@ let preloadPromise: Promise<void> | undefined;
  * `@font-face` fetch finished.
  */
 const registerBrowserFonts = async (): Promise<void> => {
-    if (!await loadAssetBundle(FACE_BUNDLE)) {
+    if (!await themeHost().loadAssetBundle(FACE_BUNDLE)) {
         NitroLogger.error(`Font faces failed to load: ${FACE_BUNDLE}`);
 
         return;
@@ -92,7 +91,7 @@ export const preloadFlashFonts = (): Promise<void> => {
         // The browser faces are only a fallback - started here, never waited on. See the module docblock.
         void registerBrowserFonts();
 
-        if (!await loadAssetBundle(FONT_BUNDLE)) {
+        if (!await themeHost().loadAssetBundle(FONT_BUNDLE)) {
             NitroLogger.error(`Font bundle failed to load: ${FONT_BUNDLE}`);
 
             return;

@@ -1,10 +1,9 @@
 import { FederatedPointerEvent, Rectangle, Sprite as PixiSprite, Texture } from 'pixi.js';
 import { useEffect, useMemo, useState } from 'react';
 
-import { destroyOwnedTexture } from '#base/utils';
-
 import { BoxLayout } from '../Box';
 import { useLayoutSize } from '../hooks/useLayoutEvent';
+import { destroyOwnedTexture } from '../utils/destroyOwnedTexture';
 import { insetStretchAxes } from '../utils/layoutInsetStretch';
 import { FlashTextCanvas, flashTextLinkAtPoint } from './flash-text';
 

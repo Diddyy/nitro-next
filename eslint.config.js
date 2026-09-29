@@ -134,7 +134,7 @@ const config = [
         },
     },
     {
-        files: ['packages/nitro-react/**/*.{ts,tsx}', 'packages/nitro-studio/src/**/*.{ts,tsx}'],
+        files: ['packages/nitro-react/**/*.{ts,tsx}', 'packages/nitro-theme/**/*.{ts,tsx}', 'packages/nitro-studio/src/**/*.{ts,tsx}'],
         plugins: {
             ...reactHooks.configs.flat['recommended-latest'].plugins,
             'react-refresh': reactRefresh,

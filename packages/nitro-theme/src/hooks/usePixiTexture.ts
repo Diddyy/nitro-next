@@ -2,8 +2,8 @@ import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Assets, groupD8, Rectangle, Texture } from 'pixi.js';
 import { useSyncExternalStore } from 'react';
 
-import { isAssetName, lazyBundleForAsset, loadAssetBundle } from '#base/utils';
-
+import { themeHost } from '../host';
+import { isAssetName } from '../utils/isAssetName';
 import { SpriteFrame } from '../utils/spriteFrame';
 import { getThemeSliceCanvas, ThemeSliceEffect, themeSliceEffectId } from '../utils/themeSprites';
 
@@ -362,9 +362,9 @@ export const loadTexture = (url: string): Promise<Texture | undefined> => {
         // once and is found on the way out. A name in neither is a typo or a missing build, and
         // the `undefined` stays cached so the retry loop below doesn't chase it.
         if (!texture && isAssetName(url)) {
-            const bundle = lazyBundleForAsset(url);
+            const bundle = themeHost().lazyBundleForAsset(url);
 
-            if (bundle && await loadAssetBundle(bundle)) texture = GetAssetManager().getTexture(url);
+            if (bundle && await themeHost().loadAssetBundle(bundle)) texture = GetAssetManager().getTexture(url);
 
             return texture;
         }

@@ -1,10 +1,9 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
-import { useWindowActions, useWindowZIndex } from '#base/context/system';
-import { getStoredFramePosition, setStoredFramePosition } from '#base/utils';
-
+import { themeHost, useThemeWindowZIndex } from '../host';
 import { getGlobalRect } from '../utils';
+import { getStoredFramePosition, setStoredFramePosition } from '../utils/framePositionStorage';
 import { useLayoutEvent } from './useLayoutEvent';
 import { useRevealWhenSettled } from './useRevealWhenSettled';
 
@@ -93,8 +92,8 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
 
         return !latest || !(frameNode instanceof PixiContainer) || ((frameNode.x === latest.dx) && (frameNode.y === latest.dy));
     });
-    const zIndex = useWindowZIndex(stackId);
-    const { bringWindowToFront } = useWindowActions();
+    const zIndex = useThemeWindowZIndex(stackId);
+    const { bringWindowToFront } = themeHost();
 
     useEffect(() => {
         bringWindowToFront(stackId);

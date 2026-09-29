@@ -1,14 +1,13 @@
 import { CanvasTextMetrics, TextDropShadow, TextStyleOptions } from 'pixi.js';
 import { useMemo } from 'react';
 
-import { GetPixelRatio } from '#base/utils';
-
 import { BoxLayout } from './Box';
 import { useDynamicStyleEffect } from './dynamicstyle';
 import { DEFAULT_FLASH_TEXT_FORMAT, FlashTextFieldOverrides, parseFlashTextMarkup } from './font/flash-text';
 import { FlashText } from './font/FlashText';
 import { FlashTextCanvasConfig, FlashTextOverflowReplace, useFlashTextCanvas } from './hooks/useFlashTextCanvas';
 import { browserFaceOverride, DEFAULT_TEXT_STYLE, DynamicStyleRole, flashFaceOverride, getPixiTextStyle, insetStretchAxes, resolveFlashStyle, TEXT_DROP_SHADOW, TEXT_STYLES, textObjectPosition, TextStyleKey, TextVerticalAlign, ThemeLayoutMeta, transformColor } from './utils';
+import { GetPixelRatio } from './utils/GetPixelRatio';
 
 export type TextConfig = {
     text: string;

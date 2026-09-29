@@ -1,9 +1,8 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 
-import { clearStoredFrameSize, FrameSize, getStoredFrameSize, setStoredFrameSize } from '#base/utils';
-
 import { getGlobalRect } from '../utils';
+import { clearStoredFrameSize, FrameSize, getStoredFrameSize, setStoredFrameSize } from '../utils/frameSizeStorage';
 
 export type FrameResizeDirection = 'x' | 'y' | 'all' | 'none';
 

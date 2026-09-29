@@ -1,0 +1,22 @@
+{
+    "name": "@nitrodevco/nitro-theme",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts",
+        "./flash-text": "./src/font/flash-text/index.ts",
+        "./utils/*": "./src/utils/*.ts",
+        "./flash-text/*": "./src/font/flash-text/*.ts"
+    },
+    "dependencies": {
+        "@nitrodevco/nitro-api": "workspace:*",
+        "@nitrodevco/nitro-renderer": "workspace:*",
+        "@pixi/layout": "^3.2.1",
+        "@pixi/react": "^8.0.5",
+        "pixi.js": "^8.18.1",
+        "react": "^19.2.6"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.17"
+    }
+}

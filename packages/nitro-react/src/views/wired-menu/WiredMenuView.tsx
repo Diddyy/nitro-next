@@ -36,6 +36,14 @@ const TAB_TICK_MS = 100;
 const HEADER_PATTERN = [ 8, 78, 148, 218, 288, 358, 428 ];
 
 const ENABLED_TABS = WIRED_MENU_TABS.filter(tab => tab.enabled);
+/** `_SELECTOR`: the tab context's width less the 8 it is inset by at either end. */
+const SELECTOR_WIDTH = FRAME_WIDTH - 16;
+/**
+ * `alignTabs`: `parent.width / enabled`, stored in a window's `int` width - so each tab is the
+ * truncated share (96 of 484 for five), and the strip is whole pixels. A fractional share put
+ * the tabs' skin pieces a pixel apart where the rounding of their edges disagreed.
+ */
+const TAB_WIDTH = Math.trunc(SELECTOR_WIDTH / ENABLED_TABS.length);
 
 /** `isLoading` of the active tab: its `isDataReady` is false. */
 const useWiredMenuTabLoading = (tabId: string): boolean => {
@@ -107,9 +115,7 @@ export const WiredMenuView = () => {
                         variant="3"
                         selected={tab.id === activeTab}
                         onPointerTap={() => selectWiredMenuTab(tab.id)}
-                        // `alignTabs` divides `tabItem.parent.width` - the `_SELECTOR`'s, which is
-                        // the strip less the 8 it starts and ends at, not the frame's own width.
-                        layout={{ flexGrow: 1, flexBasis: 0, height: 32 }}
+                        layout={{ width: TAB_WIDTH, flexShrink: 0, height: 32 }}
                     >
                         {t(`wiredmenu.${tab.id}.tab`, `wiredmenu.${tab.id}.tab`)}
                     </TabButton>

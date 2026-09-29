@@ -1,9 +1,8 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { SpritesheetData } from 'pixi.js';
 
-import { loadAssetBundle } from '#base/utils';
-
 import { registerThemeTexture } from '../hooks/usePixiTexture';
+import { themeHost } from '../host';
 import { registerThemeVariants, themeTextureAliases, ThemeVariantsData } from './themeRegistry';
 import { registerThemeAtlas, themeTextureKeys } from './themeSprites';
 
@@ -37,7 +36,7 @@ const BUNDLE_NAME = 'theme';
 const THEME_VARIANTS_FILE = 'theme-variants';
 
 export const preloadThemeAssets = async (): Promise<void> => {
-    if (!await loadAssetBundle(BUNDLE_NAME)) return;
+    if (!await themeHost().loadAssetBundle(BUNDLE_NAME)) return;
 
     const assetManager = GetAssetManager();
     const manifest = assetManager.getBundleFile<SpritesheetData>(BUNDLE_NAME, `${BUNDLE_NAME}_spritesheet`);

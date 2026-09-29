@@ -16,11 +16,11 @@
  */
 import { useEffect } from 'react';
 
-import { useWindowActions, useWindowZIndex } from '#base/context/system';
+import { themeHost, useThemeWindowZIndex } from '../host';
 
 export const useWindowActivation = (id: string) => {
-    const zIndex = useWindowZIndex(id);
-    const { bringWindowToFront } = useWindowActions();
+    const zIndex = useThemeWindowZIndex(id);
+    const { bringWindowToFront } = themeHost();
 
     useEffect(() => {
         bringWindowToFront(id);

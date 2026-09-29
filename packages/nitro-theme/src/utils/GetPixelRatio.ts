@@ -1,0 +1,1 @@
+export const GetPixelRatio = () => Math.round(window.devicePixelRatio ?? 1);

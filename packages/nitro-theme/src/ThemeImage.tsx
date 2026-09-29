@@ -1,13 +1,12 @@
 import { BLEND_MODES, Container as PixiContainer, EventMode, FederatedPointerEvent, Texture } from 'pixi.js';
 import { forwardRef, Ref } from 'react';
 
-import { useConfigValue } from '#base/context/system';
-
 import { BoxLayout } from './Box';
 import { useDragTrigger } from './drag/useDragTrigger';
 import { useDynamicStyleEffect } from './dynamicstyle';
 import { FlashBitmap } from './FlashBitmap';
 import { alphaAt, getCroppedTexture, getMirroredTexture, getTextureAlpha, getTextureGreyscale, getTextureSilhouette, usePixiTexture, useTextureFromUrl } from './hooks';
+import { useThemeConfigValue } from './host';
 import { useTooltipHandlers } from './tooltip/useTooltipHandlers';
 import { compose, cursorForHandlers, DynamicStyleRole, FlashBitmapVars, insetStretchAxes, multiplyAlphas, multiplyTints, resolveEventMode, SpriteFrame, ThemeLayoutMeta } from './utils';
 
@@ -140,7 +139,7 @@ export const ThemeImage = forwardRef<PixiContainer, ImageProps>(({
     const urlTexture = useTextureFromUrl(ownTexture || textureKey ? undefined : src);
     const baseTexture = ownTexture ?? themeTexture ?? urlTexture;
 
-    const loadingIconUrl = useConfigValue<string>('loading.icon.url') ?? '';
+    const loadingIconUrl = useThemeConfigValue<string>('loading.icon.url') ?? '';
     const loadingTexture = useTextureFromUrl(showLoadingPlaceholder && !frame && !baseTexture ? (loadingIconUrl || undefined) : undefined);
     const effect = useDynamicStyleEffect(dynamicRole);
 

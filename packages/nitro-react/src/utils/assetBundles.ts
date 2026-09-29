@@ -37,12 +37,8 @@ const LAZY_BUNDLE_PREFIXES: [prefix: string, bundle: string][] = [
     [ 'effect-icons-', 'effect-icons' ],
 ];
 
-/**
- * Tells a bundle asset name from a url. A name is a flat `<component>-<file>` token - no scheme,
- * no path separator, no extension - which nothing the client passes as a url ever is
- * (`https://...`, `//images.habbo.com/...`, `/assets/...`, `data:`, `blob:`).
- */
-export const isAssetName = (value: string | undefined): value is string => !!value && !/[:/.]/.test(value);
+/** Tells a bundle asset name from a url - the theme's own. */
+export { isAssetName } from '@nitrodevco/nitro-theme';
 
 /** The not-preloaded bundle an asset belongs to, or `undefined` when it is in a preloaded one. */
 export const lazyBundleForAsset = (name: string): string | undefined => LAZY_BUNDLE_PREFIXES.find(([ prefix ]) => name.startsWith(prefix))?.[1];

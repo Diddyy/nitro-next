@@ -1,11 +1,10 @@
 import { BLEND_MODES, Container as PixiContainer } from 'pixi.js';
 import { forwardRef, ReactNode, useEffect, useMemo, useState } from 'react';
 
-import { destroyOwnedTexture } from '#base/utils';
-
 import { Box, BoxLayout } from './Box';
 import { textureFromCanvas, useLayoutSize } from './hooks';
 import { ThemeLayoutMeta } from './utils';
+import { destroyOwnedTexture } from './utils/destroyOwnedTexture';
 import { GradientDirection, GradientMode, rasterizeGradient } from './utils/gradientRaster';
 
 export type { GradientDirection, GradientMode } from './utils/gradientRaster';

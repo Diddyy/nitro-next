@@ -1,6 +1,5 @@
+import { HABBO_TEXT_STYLES, normalizeFlashTextFormat, parseFlashTextMarkup, renderBrowserTextCanvas, renderFlashTextCanvas } from '@nitrodevco/nitro-theme/flash-text';
 import { Texture } from 'pixi.js';
-
-import { HABBO_TEXT_STYLES, normalizeFlashTextFormat, parseFlashTextMarkup, renderBrowserTextCanvas, renderFlashTextCanvas } from '#base/theme/font/flash-text';
 
 export interface ChatBubbleTextRender {
     texture: Texture;

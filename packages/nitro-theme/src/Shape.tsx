@@ -1,11 +1,10 @@
 import { BLEND_MODES, Container as PixiContainer } from 'pixi.js';
 import { forwardRef, useEffect, useMemo, useState } from 'react';
 
-import { destroyOwnedTexture } from '#base/utils';
-
 import { Box, BoxLayout } from './Box';
 import { textureFromCanvas, useLayoutSize } from './hooks';
 import { deriveHsvLayerColor, ThemeLayoutMeta } from './utils';
+import { destroyOwnedTexture } from './utils/destroyOwnedTexture';
 import { flashColorFromString, rasterizeShape, ShapeKind } from './utils/shapeRaster';
 
 export type { ShapeKind } from './utils/shapeRaster';

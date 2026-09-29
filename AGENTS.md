@@ -7,6 +7,7 @@ A Habbo Flash client port using Pixi v8 and React, with Yarn workspaces under `p
 | `nitro-api` | Shared interfaces, enums, events and utilities; no runtime state |
 | `nitro-packets` | Incoming parsers, outgoing composers and header maps |
 | `nitro-renderer` | Room engine, object logic, visualizations and asset loading |
+| `nitro-theme` | The themed UI components (window skins, buttons, text, layers) shared by `nitro-react` and `nitro-studio`; holds no app state - the app supplies bundles, config and window stacking through `configureThemeHost` |
 | `nitro-react` | Client UI rendered through Pixi |
 | `nitro-studio` | Asset imports/conversion, versioned workspaces, gamedata and Turbo catalog integration; separate web application in its own git repository, checked out here |
 
@@ -61,6 +62,7 @@ For code changes, run these gates on the assembled candidate:
 ```sh
 # Repository root
 npx tsc -p packages/nitro-react/tsconfig.typecheck.json --noEmit
+npx tsc -p packages/nitro-theme/tsconfig.json --noEmit
 npx eslint <changed-code-files>
 
 # From packages/nitro-react

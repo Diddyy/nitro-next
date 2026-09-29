@@ -18,6 +18,10 @@ const LAYOUT_CONTAINER_RIGHT = 200 + 360;
 /** `CatalogViewer.setLeftPaneVisibility(_container.x >= 130)`. */
 const LEFT_PANE_MIN_X = 130;
 
+/** `tab_context`'s width, and its `_SELECTOR`'s: the context less the 8 its style insets it by at either end. */
+const TAB_CONTEXT_WIDTH = 568;
+const TAB_SELECTOR_WIDTH = TAB_CONTEXT_WIDTH - 16;
+
 /**
  * `catalog_ubuntu`, the Builders Club catalogue's window: 640 high (`height_min` 540) and 15px
  * taller again (`createCatalogWindowState` adds them), with no `tab_context` - the header starts at
@@ -62,6 +66,9 @@ export const CatalogView = () => {
     const layoutWidth = activeLayout ? CATALOG_LAYOUT_WIDTHS[activeLayout] : 360;
     const layoutLeft = LAYOUT_CONTAINER_RIGHT - layoutWidth;
     const leftPaneVisible = (layoutLeft >= LEFT_PANE_MIN_X);
+    // `TopViewSelector.alignTabs`: `parent.width / numTabItems` into a window's `int` width - each
+    // tab the truncated share, so the strip is whole pixels and the tabs' skin pieces meet.
+    const tabWidth = Math.trunc(TAB_SELECTOR_WIDTH / Math.max(1, rootNode.children.filter(x => x.visible).length));
 
     return (
         <>
@@ -96,7 +103,7 @@ export const CatalogView = () => {
                     <TabContext
                         variant="3"
                         name="tab_context"
-                        layout={{ position: 'absolute', left: 0, width: 568, top: 5, height: 30 }}
+                        layout={{ position: 'absolute', left: 0, width: TAB_CONTEXT_WIDTH, top: 5, height: 30 }}
                     >
                         {rootNode.children.map((x, index) => (x.visible
                             ? (
@@ -106,7 +113,7 @@ export const CatalogView = () => {
                                         name={x.pageName}
                                         selected={activeNodes.includes(x)}
                                         onPointerTap={() => activateNode(x)}
-                                        layout={{ flexGrow: 1, flexBasis: 0 }}
+                                        layout={{ width: tabWidth, flexShrink: 0 }}
                                     >
                                         {x.localization.length ? x.localization : x.pageName}
                                     </TabButton>

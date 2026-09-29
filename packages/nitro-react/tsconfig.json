@@ -39,6 +39,9 @@
         },
         {
             "path": "../nitro-renderer"
+        },
+        {
+            "path": "../nitro-theme"
         }
     ],
     "include": [

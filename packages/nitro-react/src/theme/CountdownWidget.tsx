@@ -13,13 +13,9 @@
  * `clock_base`'s own format. The unit and the separator are `COLORABLE`, so a landing view
  * widget's `CommonWidgetSettings` reach them - `colorableFormat`.
  */
-import { useTranslation } from '#base/context/system';
+import { Box, BoxLayout, FlashTextFieldOverrides, LayoutImage, ThemeImage, ThemeText } from '@nitrodevco/nitro-theme';
 
-import { Box, BoxLayout } from './Box';
-import { FlashTextFieldOverrides } from './font/flash-text';
-import { LayoutImage } from './LayoutImage';
-import { ThemeImage } from './ThemeImage';
-import { ThemeText } from './ThemeText';
+import { useTranslation } from '#base/context/system';
 
 const UNIT_NAMES = [ 'weeks', 'days', 'hours', 'minutes', 'seconds' ] as const;
 const UNIT_SECONDS = [ 604800, 86400, 3600, 60, 1 ] as const;

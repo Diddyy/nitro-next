@@ -86,7 +86,7 @@ const pruneBundledAssets = (): Plugin => ({
  * Either way the React Compiler only runs on this package's sources: the others have no
  * components, and compiling them was pure transform cost on every file.
  */
-const WORKSPACE_PACKAGES = [ '@nitrodevco/nitro-api', '@nitrodevco/nitro-packets', '@nitrodevco/nitro-renderer' ];
+const WORKSPACE_PACKAGES = [ '@nitrodevco/nitro-api', '@nitrodevco/nitro-packets', '@nitrodevco/nitro-renderer', '@nitrodevco/nitro-theme' ];
 
 export default defineConfig(({ mode }) => {
     const prebundleWorkspace = mode === 'prebundle';
@@ -144,7 +144,8 @@ export default defineConfig(({ mode }) => {
             plugins: ['babel-plugin-react-compiler'],
             // Replaces the plugin's default (every script file anywhere), so it has to keep
             // the script-extension part of that default - without it babel is handed CSS too.
-            include: [ /[\\/]packages[\\/]nitro-react[\\/]src[\\/].*\.(?:[jt]sx?|[cm][jt]s)(?:$|\?)/ ],
+            // The theme's components are compiled with the client's: they are the same React tree.
+            include: [ /[\\/]packages[\\/]nitro-(?:react|theme)[\\/]src[\\/].*\.(?:[jt]sx?|[cm][jt]s)(?:$|\?)/ ],
         }),
         tailwindcss(),
     ],
@@ -162,6 +163,11 @@ export default defineConfig(({ mode }) => {
                         { find: '@nitrodevco/nitro-api', replacement: r('../nitro-api/src') },
                         { find: '@nitrodevco/nitro-renderer', replacement: r('../nitro-renderer/src') },
                         { find: '@nitrodevco/nitro-packets', replacement: r('../nitro-packets/src') },
+                        // The theme's entry points, as its `exports` name them - its sub-paths are not its folders.
+                        { find: /^@nitrodevco\/nitro-theme\/flash-text\/(.*)$/, replacement: r('../nitro-theme/src/font/flash-text/$1') },
+                        { find: /^@nitrodevco\/nitro-theme\/flash-text$/, replacement: r('../nitro-theme/src/font/flash-text/index.ts') },
+                        { find: /^@nitrodevco\/nitro-theme\/utils\/(.*)$/, replacement: r('../nitro-theme/src/utils/$1') },
+                        { find: /^@nitrodevco\/nitro-theme$/, replacement: r('../nitro-theme/src/index.ts') },
                     ]),
         ],
     },
