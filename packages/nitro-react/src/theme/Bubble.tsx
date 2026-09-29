@@ -28,8 +28,8 @@ import { Box, BoxLayout } from './Box';
 import { BubblePointer } from './BubblePointer';
 import { VariantCascadeProvider } from './cascade';
 import { useLayoutSize, useThemeVariant } from './hooks';
-import { BackgroundLayer, NineSlice } from './layer';
-import { expandSides, ThemeProps, ThemeVariant, ThemeVariants, wrapTextChildren } from './utils';
+import { BackgroundLayer } from './layer';
+import { expandSides, ThemeProps, ThemeVariant, wrapTextChildren } from './utils';
 
 export type PointerDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -40,12 +40,6 @@ const POINTER_FLEX_DIRECTION: Record<PointerDirection, 'row' | 'row-reverse' | '
     up: 'column-reverse',
     left: 'row-reverse',
     right: 'row',
-};
-
-const BUBBLE_VARIANTS: ThemeVariants<BubbleVariant> = {
-    0: { layer: NineSlice('bubble-0-default-src', 5, 5, 5, 6), layout: { minWidth: 21, minHeight: 21 } },
-    // ubuntu/habbo-style (habbo_skin_bubble_7_xml): 7px corners (8 at the bottom) inside a 6px transparent margin, so a bubble of any size keeps its rounding.
-    7: { layer: NineSlice('bubble-7-default-src', 13, 13, 13, 14), layout: { minWidth: 27, minHeight: 38 } },
 };
 
 /** How a pointer follows its bubble's size on one axis: the `relative_*_scale_*` param of its template row. */
@@ -66,24 +60,20 @@ interface BubbleWindowLayout {
     height: number;
     /** The `content_area`'s insets (`FrameController.margins`): left, top, right, bottom. */
     margins: readonly [ number, number, number, number ];
-    /** Where the skin's body sits in the window - the transparent border its skin layout keeps around it: left, top, right, bottom. */
-    bodyInsets: readonly [ number, number, number, number ];
     pointers: Record<PointerDirection, PointerTemplate>;
 }
 
 /**
  * `habbo_window_layout_bubble_xml` and `habbo_window_layout_bubble_7_xml`: the pointer rows
  * (params 208 = centre / fixed, 1232 = centre / move, 3088 = fixed / centre, 3152 = move /
- * centre, each with 16) and the `content_area` of each style. Style 0's sheet is the bare body,
- * which `habbo_skin_bubble_xml` lays 6px in from every edge; style 7's sheet already carries that
- * border, so it covers the whole rect.
+ * centre, each with 16) and the `content_area` of each style. Both skins carry the transparent border
+ * their layouts keep around the body (6px in from every edge), so the art covers the whole rect.
  */
 const BUBBLE_WINDOW_LAYOUTS: Record<'0' | '7', BubbleWindowLayout> = {
     0: {
         width: 21,
         height: 21,
         margins: [ 8, 8, 8, 8 ],
-        bodyInsets: [ 6, 6, 6, 6 ],
         pointers: {
             up: { x: 4, y: 0, width: 13, height: 9, horizontal: 'center', vertical: 'fixed' },
             down: { x: 4, y: 12, width: 13, height: 9, horizontal: 'center', vertical: 'move' },
@@ -95,7 +85,6 @@ const BUBBLE_WINDOW_LAYOUTS: Record<'0' | '7', BubbleWindowLayout> = {
         width: 23,
         height: 23,
         margins: [ 8, 8, 10, 10 ],
-        bodyInsets: [ 0, 0, 0, 0 ],
         pointers: {
             up: { x: 4, y: -2, width: 16, height: 10, horizontal: 'center', vertical: 'fixed' },
             down: { x: 4, y: 14, width: 16, height: 11, horizontal: 'center', vertical: 'move' },
@@ -175,7 +164,7 @@ export interface BubbleProps extends ThemeProps<BubbleVariant> {
 export const Bubble: ForwardRefExoticComponent<BubbleProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, BubbleProps>(
     ({ variant, defaultVariant, tooltip, layout, tintColor, textStyle, textColor, visible, usePointer = true, pointer = 'down', alpha, margins, pointerOffset, children, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
         const { resolvedVariant, ownCascade, config, handlers, resolvedLayer, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<BubbleVariant>({
-            cascadeKey: 'bubble', variants: BUBBLE_VARIANTS, variant, defaultVariant, tooltip, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
+            cascadeKey: 'bubble', variant, defaultVariant, tooltip, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
         const [ host, setHost ] = useState<PixiContainer | null>(null);
         const measured = useLayoutSize(host);
@@ -214,7 +203,6 @@ export const Bubble: ForwardRefExoticComponent<BubbleProps & RefAttributes<PixiC
 
         const windowLayout = BUBBLE_WINDOW_LAYOUTS[(String(resolvedVariant) === '7') ? '7' : '0'];
         const [ left, top, right, bottom ] = margins ?? windowLayout.margins;
-        const [ bodyLeft, bodyTop, bodyRight, bodyBottom ] = windowLayout.bodyInsets;
         const template = windowLayout.pointers[pointer];
         let pointerPlacement = pointerLayout(template, windowLayout);
 
@@ -257,7 +245,7 @@ export const Bubble: ForwardRefExoticComponent<BubbleProps & RefAttributes<PixiC
                 <Box
                     // Art, like the layer it holds: it answers no press of its own.
                     pointerTransparent
-                    layout={{ position: 'absolute', left: bodyLeft, top: bodyTop, right: bodyRight, bottom: bodyBottom }}
+                    layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
                 >
                     <BackgroundLayer
                         layer={resolvedLayer}

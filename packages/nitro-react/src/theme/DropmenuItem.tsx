@@ -3,7 +3,7 @@ import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 
 
 import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
-import { DROPMENU_ITEM_VARIANTS, DropmenuItemVariant } from './dropmenuItemVariants';
+import { DropmenuItemVariant } from './dropmenuItemVariants';
 import { useThemeVariant } from './hooks';
 import { BackgroundLayer } from './layer';
 import { ThemeProps, wrapTextChildren } from './utils';
@@ -19,8 +19,8 @@ export const DropmenuItem: ForwardRefExoticComponent<DropmenuItemProps & RefAttr
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, selected, children,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
-        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
-            cascadeKey: 'dropmenuItem', variants: DROPMENU_ITEM_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, selected,
+        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<DropmenuItemVariant>({
+            cascadeKey: 'dropmenuItem', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, selected,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 

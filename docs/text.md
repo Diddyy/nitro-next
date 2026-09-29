@@ -8,7 +8,7 @@ one spelling is the key of `HABBO_TEXT_STYLES`, the `textStyle` prop a view pass
 layout's `text_style` var carries. `TEXT_STYLES` in `theme/utils/textStyles.ts` is derived from
 `HABBO_TEXT_STYLES` rather than listed beside it (it only adds the browser-text face each style
 falls back to), so a style added to the generated table is a theme style the moment it lands. There
-is no second `text-style-*` spelling any more; `theme_skin.py` fails on one.
+is no second `text-style-*` spelling any more.
 
 **A text's format is its style plus the `TextField` vars its layout declares over it**, the way
 `TextController.setTextFormatting` layers them. Three of those vars have Pixi equivalents and ride

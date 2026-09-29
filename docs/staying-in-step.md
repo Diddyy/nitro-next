@@ -26,7 +26,7 @@ accumulate as "known noise"; that is how seventeen missing variable keys went un
 | `IncomingHeader.ts` / `OutgoingHeader.ts` and the packet classes | the packet generator output directory | see Packets; `packets.py` checks names, ids and registration, `wire.py` what each packet reads and writes |
 | Which incoming packets the client acts on (`handlers/**`, and the window hooks that use `useMessageListener`) | the Flash component that constructs the message id's `*MessageEvent` - `addHabboConnectionMessageEvent(new XMessageEvent(onX))` | by hand; `handlers.py` reports a registered packet nothing subscribes to (naming the Flash class that handles it, so the gap is read as a missing feature), a `known.HANDLERS_UNHANDLED` entry that has gone stale, and a listener on a packet Flash never acts on (`known.HANDLERS_PORT_ONLY`) |
 | `nitro-api` enums, constant classes and event classes that mirror a Flash constant class (`RoomObjectVariableEnum`, `RoomWidgetEnum`, `RoomObjectWidgetRequestEvent`, `PetType`, ...), and same-named constant classes in nitro-renderer / nitro-react | the `.as` class - same name, or paired in `known.PAIRED` / `MERGED` (obfuscated or renamed), or by value overlap (`enums.py -v` lists the pairs) | by hand; the *values* must be Flash's strings, typos and case included (`furniture_expirty_timestamp`, `GAME_TOKEN`, `ROWRE__STICKIE`). A nitro-api class that pairs with nothing is drift until `known.ENUMS_UNPAIRED` says why; every `RoomObjectWidgetRequestEvent` member needs a widget or handler case, or a `known.WIDGET_REQUESTS_UNHANDLED` reason |
-| `nitro-react/scripts/flash-js-resources/<component>/` (git-ignored; the input of `generate-layout-views.ts`, `extract-skin-assets.ts`, `generate-habbo-text-styles.ts` and of the hand-written views that cite a layout) | the component bundles `flash-js` loads, of the revision `production.version` names | by refreshing the folder from the client. `binary_data.py` holds each bundled asset against the decompiled client by published name and reports one whose bytes differ - the two references being different builds - unless `known.REFERENCE_BUILD_SKEW` says which side the port follows. Then regenerate what reads them and re-read the views whose layout changed |
+| `nitro-react/scripts/flash-js-resources/<component>/` (git-ignored; the input of `generate-layout-views.ts`, `generate-habbo-text-styles.ts` and of the hand-written views that cite a layout) | the component bundles `flash-js` loads, of the revision `production.version` names | by refreshing the folder from the client. `binary_data.py` holds each bundled asset against the decompiled client by published name and reports one whose bytes differ - the two references being different builds - unless `known.REFERENCE_BUILD_SKEW` says which side the port follows. Then regenerate what reads them and re-read the views whose layout changed |
 | `nitro-react/scripts/layouts/**` (git-ignored) and `public/assets/<component>/*.png` - the client's `<layout>` assets converted to React, the reference every hand-written view is drawn from | the `*.xml` of each `nitro-react/scripts/flash-js-resources/<component>/` | `nitro-react/scripts/generate-layout-views.ts` (`yarn workspace @nitrodevco/nitro-react generate-layout-views`) - regenerate, never edit; `layouts.py` compares each registry entry's `xml` hash with its asset, and `layout_views.py` compares the client's controls with the hand-written views |
 | Which reference file each shipped layout bitmap is, recorded in `public/assets/layout-images.json` | the bundle file carrying the published name, in the folder of the library that owns the layout | by the generator (see "Widget views from Flash layouts"); `layout_images.py` holds every shipped bitmap to its recorded bundle file byte for byte (a manifest crop to its region's size) and reports one shipped from a differently-named file where a bundle carries the exact name - another library's art under a shared embedded name. A name that settles neither way goes in `known.LAYOUT_IMAGES_AMBIGUOUS` with why the one shipped is kept |
 | A port class's constants where the Flash class has them (`AvatarLogic`, `AvatarVisualization`, `AnimationFrame`, `LayerData`), and the tables lifted out of a Flash method (the post-it colours, the dimmer colours, ...) | the `.as` class | by hand, under Flash's names; `constants.py` compares every static const of the paired class (an obfuscated Flash name maps through its `rename`, one the port leaves out needs a `skip` reason) and, for `AvatarLogic`, the timeouts Flash writes as literals |
@@ -39,7 +39,7 @@ accumulate as "known noise"; that is how seventeen missing variable keys went un
 | The hotel view's run-time keys in `nitro-config.json` - `landing.view.dynamic.slot.<n>.*`, `landing.view.common.*`, `landing.view.background_<name>.*`, and `landing.view.<code>.widget/.conf/.layout` for every code a slot's schedule names | the hotel's `external_variables` | by hand; `config_keys.py` holds each one the hotel sets to the hotel's value. The keys are built at run time, where the literal-read check above cannot see them; a schedule the hotel moved on from shows old promotions, and a code with no keys leaves its slot empty |
 | Class constants mirrored whole outside nitro-api (`AvatarVisualization`, `AnimationFrame`, `LayerData`, the Variable FX tables and paint colours) and module tables copied out of a Flash array or switch (post-it colours, pet/bot placing and friend list error texts, visitor steps, thumbnail `DRAW_ORDER`, `PRODUCT_IMAGES`, dimmer colours, trophy themes, mannequin clothing, ...) | the `.as` class or method named in each docblock | by hand; `constants.py` reads both sides and compares them. A file whose docblock names `drift/constants.py` is left out of `enums.py`; add a table to `constants.py` when you carry a new one |
 | `public/assets/chat-styles/<assetId>/chat_definition.json` and its `*.png`; `ChatMarkup.ts` palettes, `ChatConstants.ts` bubble widths | `chatstyles_xml`, every `style_<assetId>_regpoints` and bitmap of `HabboFreeFlowChatCom.as` (read as `ChatStyleLibrary.as` reads them); `ChatMarkup.as`, `ChatBubbleWidth.as` | by hand, bitmaps copied from the SWF images; `chat_styles.py` diffs every style's flags, regpoints keys and pixels, a regpoints key the library starts reading, the palettes and the width mapping |
-| The theme's skin tables: every `*_VARIANTS` table under `nitro-react/src/theme`, `theme/utils/windowLayouts.ts`, `theme/utils/iconSetFrames.ts` + `public/assets/images/icon-set.png`, and `TEXT_STYLES` in `theme/utils/textStyles.ts` | the `(type, style)` rows of `habbo_element_description_xml`, the window layouts they name (`HabboWindowManagerCom.as`), `habbo_skin_icon_set_xml` + `habbo_icons_png`, `styles_css` | by hand, art cut from the skin sheets (`scripts/extract-skin-assets.ts`, then `yarn build-asset-bundles`); `theme_skin.py` diffs the style ids per type, button layouts, frame minimum sizes, row tints, icon rects and pixels, and holds `TEXT_STYLES` to deriving its entries from `HABBO_TEXT_STYLES`, `TextStyleKey` to being `HabboTextStyleName`, and every `textStyle` prop in the tree to a style that table has. A style left out or added goes in `known.THEME_STYLES_NOT_PORTED` / `THEME_STYLES_PORT_ONLY` |
+| The UI theme - every theme component's variants, their art, the cascade and the icon set - and `TEXT_STYLES` in `theme/utils/textStyles.ts` | the `(type, style)` rows of `habbo_element_description_xml`, the window layouts and skins they name, `habbo_skin_icon_set_xml` + `habbo_icons_png` (the client release's `habbo-window-manager-com.hab`), `styles_css` | not carried: Nitro Studio builds the theme from the client release (`server/theme/` there, with the port's own fields in `theme-rules.json`), compares it a component at a time on Changes -> From Habbo (UI theme), and publishes `theme.nitro`, which nitro-react loads from `ui.theme.url` into `themeRegistry`. `TEXT_STYLES` derives its entries from `HABBO_TEXT_STYLES` |
 | `nitro-react/src/context/catalog/page/CatalogLayouts.ts` (which widgets each layout code creates, the layout widths and aliases), `CatalogWidgetEnum`, the `PageLocalization` tables, and the slots each registered layout view draws | `CatalogPage.createWidgets`'s walk over each `layout_*_xml`, the layouts' manifest refs, `CatalogWidgetEnum.as`, `PageLocalization.as` | by hand; `catalog_layouts.py` holds the tables to the layout XML and manifest, the enum to Flash's `createWidget` cases and each registered layout view's slots to its layout, and `constants.py` the localization tables |
 | `nitro-react/src/theme/utils/dynamicStyles.ts` - the hover/press/disabled effects a layout names with `dynamic_style` (`lifted_hover`, `brightness_and_shadow_under`, `_gentle`, `reward_track_item`, `button`), and the generator's `DYNAMIC_STYLE_NAMES` | `DynamicStyleManager.fillStyleTable()` and `DynamicStyle`'s constructor defaults | by hand; `dynamic_styles.py` compares every style's effective rule for the host and each `#icon` / `#bg` child in every state, through the port's own `resolveDynamicStyleRule`. A name the port lacks draws nothing and fails nothing - that is how `button` went missing |
 | The text keys the port asks for (`t('...')`, `'${...}'`, any key literal inside a `t(...)` call, and the key-shaped strings of a file that hands `t()` a variable) | the embedded `default_localizations` + the hotel's external texts (Nitro Studio's `gamedata/DefaultLocalizations_en.json`, `ExternalTexts.json`) and the keys Flash's classes and layouts name | `localization_keys.py` reports a key in neither file that no Flash class or layout names |
@@ -74,44 +74,35 @@ Rules that come out of that:
   Data with no check is data that will drift.
 - Refresh Nitro Studio's gamedata after a revision bump - scan habbo.com, import Hotel data and
   Changed texts, and import the client release's categories (Client data, Chat styles, Renderer
-  assets, Avatar tables): `config_keys.py` and `localization_keys.py` read
+  assets, UI theme, Avatar tables): `config_keys.py` and `localization_keys.py` read
   its workspace's gamedata, and say so when it is missing.
 - **The avatar data is loaded, not compiled in.** `useAvatarLoader` reads `avatar.data.url` with the
   renderer's `LoadAvatarData` and starts the avatar manager from it (`init(data)`) before the figure
   map, effect map and figure data; `init` applies the baked-in `HabboAvatarActionsDefault` first and
   the hotel's actions over it, which is Flash's `initActions` then `updateActions`. After a revision
   bump, import Client data and Hotel data in Nitro Studio and publish - the renderer does not change.
-- Theme skin art is cut from the Flash skin bitmap along its skin XML's entities (`habbo_skin_*_xml`
-  in `flash-js-resources/habbo-window-manager-com`), one image per entity that moves or stretches
-  on its own - the
-  `dropmenu` arrow was once baked into its frame, and stretched with it. Rebuild the bundles
-  (`yarn build-asset-bundles` in nitro-react) after adding or replacing one.
+- **The UI theme is loaded, not compiled in.** Nitro Studio builds every variant from the client
+  release's window manager library: its fields from the element description row and the window
+  layout it names, its art from its skin, as `BitmapSkinRenderer` draws it (`server/theme/skinArt.ts`
+  there). Where the port draws a field the client's files do not give (`captionTop`, a pointer's
+  margin), `theme-rules.json` holds it, with a note; the art is always the client's. After a
+  revision bump, import the UI theme on Changes -> From Habbo and publish.
 - An entity marked `colorize="false"` is one `BitmapSkinRenderer.draw` copies *without* the
-  window's colour, so it never goes into a sheet the theme tints. Where only some of a layout's
-  entities carry the flag, `extract-skin-assets.ts`'s `plainOverlay` cuts them out - `'sheet'` for
-  a same-size `-plain` sheet, `'pieces'` for one PNG per entity when the layout moves or centres
-  it - and the variant draws them as an untinted `overlay` (`ThemeWithStatesVariant.overlays`), or
-  as `plain` where it needs all three at once, as the ubuntu frames do: a tinted title bar, the
-  pale body under it and a shine over both. A skin with no job at all loses those pieces entirely
-  rather than mistinting them - `habbo_skin_frame_3` and `_7` had none, so every style 3, 4 and 7
-  window shipped a title bar with no sides or bottom, and the drift suite's own check passed
-  because the variant's shine already satisfied "has an untinted layer";
-  `exclude` does the same for a *colorizing* entity a nine-slice cannot carry. Where **every**
-  entity carries it the skin is simply never tinted: the variant says `colorize: false`
-  (`ThemeBase`, honoured by `useThemeVariant`), and a `tintColor` a call site passes is dropped
-  too - that is what stopped the wired dialog's `_frame.color = style.frameColor` from darkening
-  the light frame Flash leaves alone. `theme_skin.py` holds every row with untintable entities to
-  one of those two shapes and reads the pixels back to prove it.
+  window's colour, so it never goes into a layer the theme tints: the builder draws such pieces as
+  an untinted `overlay` (`ThemeWithStatesVariant.overlays`), or as `plain` where a frame needs all
+  three at once - a tinted title bar, the pale body under it and a shine over both. Where **every**
+  entity carries it the skin is never tinted: the variant says `colorize: false` (`ThemeBase`,
+  honoured by `useThemeVariant`), and a `tintColor` a call site passes is dropped too - that is
+  what keeps the wired dialog's `_frame.color = style.frameColor` from darkening the light frame
+  Flash leaves alone.
 - An entity's `<scale>` says how the client *re-places* it, not only how it resizes: only `strech`
   and `tiled` resize, while `move` follows the right/bottom edge and `center` sits in the middle of
-  the **rendered** window. A sheet is one size, so a `center` entity cut at its layout rect is
-  wrong everywhere - the segmented picker's side gradient landed on its rounded bottom corner and
-  squared it off, in the face's own colour, so it looked right until the picker tinted the selected
-  segment. The extractor now throws on that: either `exclude` it and let the theme centre the piece
-  (`CompositePiece`'s `alignSelf`), or `centeredInSheet` to keep it in the sheet centred for the
-  sheet's own size. Check a skin change against the client **with a tint applied** - an untinted
-  screenshot hides every tint-dependent defect, which is how this one survived a screenshot that
-  passed.
+  the **rendered** window, and `fixed` stays where it is at its own size. A skin that is one clean
+  grid becomes a nine-slice (repeating its centre where the centre tiles); one that is not becomes
+  a composite of every entity, each placed by its own scale mode - never a nine-slice stretched
+  whole. A skin is as big as its entities' far edge from (0, 0): its transparent margins (a
+  bubble's 6px, the illumina header's 12px) are part of it. Check a skin change against the client
+  **with a tint applied** - an untinted screenshot hides every tint-dependent defect.
 - "No drift." only covers what the checks look at. When asked to look for drift, run the suite
   and then ask what it cannot see - that is where the wire format findings came from, in a tree
   the suite had just passed. A blind spot that is found becomes a check, not a one-off fix.

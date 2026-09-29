@@ -9,13 +9,9 @@ import { useDragTrigger } from './drag/useDragTrigger';
 import { dynamicStyleBoxProps, DynamicStyleProvider, useDynamicStyleEffect, useHostDynamicStyleEffect } from './dynamicstyle';
 import { useThemeVariant } from './hooks';
 import { ColorLayer, ShadowLayer } from './layer';
-import { compose, DynamicStyleRole, expandSides, ThemeProps, ThemeVariant, ThemeVariants, wrapTextChildren } from './utils';
+import { compose, DynamicStyleRole, expandSides, ThemeProps, ThemeVariant, wrapTextChildren } from './utils';
 
 export type RegionVariant = ThemeVariant;
-
-const REGION_VARIANTS: ThemeVariants<RegionVariant> = {
-    0: {},
-};
 
 export interface RegionProps extends ThemeProps<RegionVariant> {
     /** The Flash `background="true"` + `color` pair: a flat fill behind the children. */
@@ -94,8 +90,8 @@ export const Region: ForwardRefExoticComponent<RegionProps & RefAttributes<PixiC
         const drag = useDragTarget(dragTarget, { boundToParentRect });
         const startDrag = useDragTrigger(dragTrigger, drag.controller);
         const onPointerDown = compose(onPointerDownProp, startDrag);
-        const { ownCascade, config, state, handlers, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
-            cascadeKey: 'region', variants: REGION_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled, interactive: interactive || !!dynamicStyle,
+        const { ownCascade, config, state, handlers, resolvedTextStyle, resolvedTextColor } = useThemeVariant<RegionVariant>({
+            cascadeKey: 'region', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled, interactive: interactive || !!dynamicStyle,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
         const hostEffect = useHostDynamicStyleEffect(dynamicStyle, state);

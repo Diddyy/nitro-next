@@ -5,21 +5,9 @@ import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { useThemeVariant } from './hooks';
 import { BackgroundLayer } from './layer';
-import { expandSides, ThemeProps, ThemeVariant, ThemeVariants, wrapTextChildren } from './utils';
+import { expandSides, ThemeProps, ThemeVariant, wrapTextChildren } from './utils';
 
 export type TabContextVariant = ThemeVariant;
-
-/**
- * `TabContext` variants. The padding is the `tab_selector` of the context's window layout - where
- * its buttons start, and how far they reach: `habbo_window_layout_tab_context`'s selector is
- * `x="6" y="0" width="88"` of a 100 wide layout (6 in from either side, flush with the top) and
- * `_3`'s is `x="8" y="0" width="48"` of 64. Neither has a top inset: the selector is the full
- * button height (21 and 32) and overhangs the `tab_content` under it, which starts at y 20 / 30.
- */
-const TAB_CONTEXT_VARIANTS: ThemeVariants<TabContextVariant> = {
-    0: { layout: { minHeight: 22, maxHeight: 22, paddingLeft: 6, paddingRight: 6 } },
-    3: { layout: { paddingLeft: 8, paddingRight: 8 } },
-};
 
 export interface TabContextProps extends ThemeProps<TabContextVariant> {
     children?: ReactNode;
@@ -27,8 +15,8 @@ export interface TabContextProps extends ThemeProps<TabContextVariant> {
 
 export const TabContext: ForwardRefExoticComponent<TabContextProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TabContextProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, children, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
-        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
-            cascadeKey: 'tabContext', variants: TAB_CONTEXT_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
+        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<TabContextVariant>({
+            cascadeKey: 'tabContext', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 
         return (

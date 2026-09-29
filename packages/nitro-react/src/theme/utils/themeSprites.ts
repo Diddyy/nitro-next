@@ -1,12 +1,11 @@
 import { boxBlurAlpha } from './boxBlur';
-import { THEME_ASSETS } from './themeAssets';
 
 /**
- * One theme asset's rect inside the packed sheet the `theme` bundle carries (`theme.png`, built
- * by scripts/build-asset-bundles.ts from every `THEME_ASSETS` entry).
+ * One theme asset's rect inside the packed sheet the `theme` bundle carries (`theme.png`, which Nitro
+ * Studio packs from the client release's skins).
  */
 export interface ThemeSprite {
-    /** The `THEME_ASSETS` key. */
+    /** The texture key (`themeTextureKeys`). */
     key: string;
     x: number;
     y: number;
@@ -32,11 +31,23 @@ const sprites = new Map<string, ThemeSprite>();
  */
 const sliceCanvases = new Map<string, HTMLCanvasElement>();
 
+/** The sprite name prefix of the theme's sheet: `theme-border-0-default` is the texture key `border-0-default-src`. */
+const SPRITE_PREFIX = 'theme-';
+
+/**
+ * Every texture key the sheet draws, with the sprite it is: each sprite's own key, and the keys the
+ * theme's `textures` name another sprite for (a hotel's own art in place of the client's).
+ */
+export const themeTextureKeys = (spriteNames: string[], aliases: Record<string, string>): [ key: string, sprite: string ][] => [
+    ...spriteNames.filter(name => name.startsWith(SPRITE_PREFIX)).map(name => [ `${name.slice(SPRITE_PREFIX.length)}-src`, name ] as [ string, string ]),
+    ...Object.entries(aliases),
+];
+
 /** Registers the sheet and every sprite rect it holds. Called once by `preloadThemeAssets`. */
-export const registerThemeAtlas = (sheet: { image: CanvasImageSource; width: number; height: number }, frames: Record<string, { frame: { x: number; y: number; w: number; h: number } }>): void => {
+export const registerThemeAtlas = (sheet: { image: CanvasImageSource; width: number; height: number }, frames: Record<string, { frame: { x: number; y: number; w: number; h: number } }>, aliases: Record<string, string>): void => {
     atlas = sheet;
 
-    for (const [ key, asset ] of Object.entries(THEME_ASSETS)) {
+    for (const [ key, asset ] of themeTextureKeys(Object.keys(frames), aliases)) {
         const rect = frames[asset]?.frame;
 
         if (rect) sprites.set(key, { key, x: rect.x, y: rect.y, width: rect.w, height: rect.h });

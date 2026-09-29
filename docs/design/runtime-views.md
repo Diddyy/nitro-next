@@ -73,8 +73,9 @@ Three layers, in order of risk and effort. Each layer is useful on its own.
 The `*_VARIANTS` tables are already data wearing TS syntax: a sheet id, a `windowLayout(...)`
 name, a tint colour, a text style (see `theme/Button.tsx`). Move them to JSON:
 
-- The built-in variant tables are generated JSON in the `theme` bundle. `theme_skin.py` checks
-  the JSON instead of the TS.
+- The built-in variant tables are generated JSON in the `theme` bundle. (Done: Nitro Studio builds
+  it from the client release's window manager library, `server/theme/` there, and nitro-react
+  reads it into `themeRegistry`.)
 - A pack adds or overrides entries by `(type, style id)` and ships its own art atlas. Asset
   names are already globally unique by path, so the pack gets its own prefix
   (`pack-<id>-...`).
@@ -124,8 +125,8 @@ the hotel's assets, and has a preview surface (`src/preview`). Pages:
 
 - **Theme editor:** pick a `(type, style)`, see it rendered at several sizes and states with a
   tint applied (an untinted preview hides tint-dependent defects; see `docs/staying-in-step.md`),
-  then edit the entry or import art. It cuts
-  sheets with the same `extract-skin-assets` rules.
+  then edit the entry or import art. Its art is cut by the same rules as the client's theme
+  (`server/theme/skinArt.ts`).
 - **Template editor:** a tree plus property panel and a live preview. The preview is a real
   nitro-react page mounted with mock slot data from each window's slot schema. Validation runs
   as you edit: unknown slot, missing required slot, unknown style id.

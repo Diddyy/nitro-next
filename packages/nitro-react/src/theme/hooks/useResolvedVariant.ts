@@ -1,4 +1,6 @@
-import { useCascadedVariant, VARIANT_CASCADE_CONFIG, VariantCascadeMap } from '#base/theme';
+import { useCascadedVariant, VariantCascadeMap } from '#base/theme';
+
+import { themeCascadeOf } from '../utils/themeRegistry';
 
 export interface ResolvedVariant {
     resolvedVariant: string;
@@ -17,7 +19,7 @@ export interface ResolvedVariant {
 export const useResolvedVariant = (cascadeKey: string, variant: string | undefined, defaultVariant: string | undefined): ResolvedVariant => {
     const cascadedVariant = useCascadedVariant(cascadeKey);
     const resolvedVariant = variant ?? cascadedVariant ?? defaultVariant ?? '0';
-    const ownCascade = VARIANT_CASCADE_CONFIG[cascadeKey]?.[resolvedVariant];
+    const ownCascade = themeCascadeOf(cascadeKey, resolvedVariant);
 
     return { resolvedVariant, ownCascade };
 };

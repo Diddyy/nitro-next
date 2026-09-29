@@ -15,7 +15,7 @@
 import { GetConfigValue, NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
-/** Used when the hotel's config names no bundle url - the bundles this repo builds and ships. */
+/** Where the bundles this repo builds and ships are, when the hotel's config names no other place. */
 const DEFAULT_BUNDLE_URL = '/assets/bundles/%name%.nitro';
 
 /**
@@ -48,13 +48,19 @@ export const isAssetName = (value: string | undefined): value is string => !!val
 export const lazyBundleForAsset = (name: string): string | undefined => LAZY_BUNDLE_PREFIXES.find(([ prefix ]) => name.startsWith(prefix))?.[1];
 
 /**
- * The bundles the hotel serves, by the config key naming them: the chat styles (`chat.styles.url`)
- * and the renderer's bitmaps - the avatar additions and the Variable FX art (`renderer.assets.url`) -
- * which Nitro Studio builds from the client release and the hotel's own and publishes. The client
- * ships no copy of either: with its key unset, the bundle is not loaded. Nitro's own keys - Flash's
- * came in its SWF.
+ * The bundles the hotel serves, by the config key naming them: the UI theme - every window skin's
+ * art and variants (`ui.theme.url`), the chat styles (`chat.styles.url`), the renderer's bitmaps -
+ * the avatar additions and the Variable FX art (`renderer.assets.url`) - and the effect icons
+ * (`effect.icons.url`), which Nitro Studio builds from the client release and the hotel's own and
+ * publishes. The client ships no copy of any: with its key unset, the bundle is not loaded. Nitro's
+ * own keys - Flash's came in its SWF.
  */
-const HOTEL_BUNDLE_KEYS: Record<string, string> = { 'chat-styles': 'chat.styles.url', 'room-object-visualization': 'renderer.assets.url' };
+const HOTEL_BUNDLE_KEYS: Record<string, string> = {
+    theme: 'ui.theme.url',
+    'chat-styles': 'chat.styles.url',
+    'room-object-visualization': 'renderer.assets.url',
+    'effect-icons': 'effect.icons.url',
+};
 
 /** Where a bundle is fetched from; `undefined` for a hotel bundle whose config key is unset. */
 export const assetBundleUrl = (name: string): string | undefined => (Object.hasOwn(HOTEL_BUNDLE_KEYS, name)

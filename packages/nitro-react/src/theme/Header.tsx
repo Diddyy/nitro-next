@@ -5,9 +5,9 @@ import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { CloseButton } from './CloseButton';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, ColorLayer, NineSlice, Stretch, Tiled } from './layer';
+import { BackgroundLayer, ColorLayer } from './layer';
 import { ThemeText } from './ThemeText';
-import { expandSides, ThemeProps, ThemeVariant, ThemeVariants } from './utils';
+import { expandSides, ThemeProps, ThemeVariant } from './utils';
 
 export type HeaderVariant = ThemeVariant & {
     needsBgChip?: boolean;
@@ -47,176 +47,6 @@ export type HeaderVariant = ThemeVariant & {
 /** `spacing` of the header layouts' `_CONTROLS` item list. */
 const CONTROLS_SPACING = 5;
 
-const HEADER_0_VARIANT: HeaderVariant = {
-    layer: Tiled('header-0-default-src'),
-    overlay: Tiled('header-0-default-shine-src'),
-    layout: {
-        minHeight: 15,
-        margin: 6,
-        padding: 0,
-    },
-    textStyle: 'frame_title',
-    needsBgChip: true,
-    // `habbo_window_layout_header` (and `_black`, which style 1 uses): the title label at `y="0"`
-    // with `margins.top` of 1, and the `_CONTROLS` item list at `y="0"`.
-    captionTop: 1,
-    controlsTop: 0,
-    menuButton: { variant: '5', left: 1, top: 0 },
-};
-
-/** `habbo_window_layout_header_leaderboard`, which every leaderboard style (10000-10007) shares. */
-const HEADER_LEADERBOARD: HeaderVariant = {
-    layout: {
-        minHeight: 40,
-        paddingLeft: 8,
-        paddingRight: 8,
-    },
-    textStyle: 'u_frame_title',
-    textColor: '#ffffff',
-    // `habbo_window_layout_header_leaderboard` puts its label at `y="6"` with `margins.top` 1, and
-    // has no `_CONTROLS` item list at all - so the buttons keep their centring.
-    captionTop: 7,
-};
-
-/**
- * `Header` variants - the `type="header"` rows of `habbo_element_description_xml`, keyed by their
- * `style`. 100, 101 and 103 have no row: the illumina frames draw their title bar from the
- * frame's own window layout (`illumina_light_frame`, `_modal`, `illumina_purple_frame`), and the
- * frame of that style cascades to the header of the same number to carry it.
- */
-const HEADER_VARIANTS: ThemeVariants<HeaderVariant> = {
-    0: {
-        ...HEADER_0_VARIANT,
-        tintColor: '#418db0',
-        textStyle: 'frame_title',
-        textColor: '#ffffff',
-    },
-    1: {
-        ...HEADER_0_VARIANT,
-        tintColor: '#4c4c4c',
-        textStyle: 'frame_title',
-        textColor: '#ffffff',
-    },
-    2: {
-        ...HEADER_0_VARIANT,
-        tintColor: '#fac200',
-        textStyle: 'frame_title',
-        textColor: '#ffffff',
-    },
-    /*
-     * `habbo_window_layout_frame_3` puts `titlebar` at (6, 6) 50 wide in a 64 wide template - 6 in
-     * from the left, 8 from the right - and 27 tall, so it ends at 33 where the frame's tinted top
-     * slice does. Its own layout (`habbo_window_layout_header_3`) then fixes `header_title_text`
-     * at `y="2"`, 15 tall, centred across the bar.
-     */
-    3: {
-        layout: {
-            position: 'relative',
-            marginTop: 6,
-            marginLeft: 6,
-            marginRight: 8,
-            height: 27,
-        },
-        textStyle: 'u_frame_title',
-        textColor: '#ffffff',
-        captionTop: 3,
-        controlsTop: 2,
-        helpButton: '4',
-    },
-    4: {
-        layer: Stretch('header-3-default-src'),
-        layout: {
-            minHeight: 20,
-            paddingLeft: 8,
-            paddingTop: 1,
-            paddingRight: 8,
-            paddingBottom: 1,
-        },
-        textStyle: 'u_frame_title',
-        textColor: '#ffffff',
-    },
-    // `habbo_window_layout_frame_7` places its `titlebar` exactly as `_3` does, and its own layout
-    // fixes the title at the same `y="2"`, 15 tall.
-    7: {
-        layout: {
-            position: 'relative',
-            marginTop: 6,
-            marginLeft: 6,
-            marginRight: 8,
-            height: 27,
-        },
-        textStyle: 'u_frame_title',
-        textColor: '#000000',
-        captionTop: 3,
-        controlsTop: 2,
-        helpButton: '4',
-    },
-    /*
-     * illumina light (`illumina_light_frame`, and `illumina_light_frame_wired` for frame 102): a
-     * 30px title bar whose layout pins `header_title_text` at (8, 11) with `auto_size="left"`,
-     * `header_button_close` at (22, 9) of the 50px layout - 8px from the right - and, in the
-     * wired layout, `header_button_menu` (close button 101) at (8, 9).
-     */
-    100: {
-        layout: {
-            minHeight: 30,
-            padding: 0,
-        },
-        textStyle: 'il_frame_title',
-        textColor: '#000000',
-        captionAt: { left: 8, top: 11 },
-        menuButton: { variant: '101', left: 8, top: 9 },
-        closeAt: { right: 8, top: 9 },
-    },
-    // illumina purple - `illumina_purple_frame` pins the same geometry as the light frame, with a white title
-    103: {
-        layout: {
-            minHeight: 30,
-            padding: 0,
-        },
-        textStyle: 'il_frame_title_white',
-        captionAt: { left: 8, top: 11 },
-        closeAt: { right: 8, top: 9 },
-    },
-    /*
-     * illumina modal (`illumina_light_frame_modal`, a frame with no skin of its own): a 40px band
-     * above the panel carries the title in `il_frame_modal_title`, then a 30px title bar with the
-     * close button at (22, 49) of the 50px layout, i.e. 8px from the right.
-     */
-    101: {
-        layout: {
-            height: 70,
-            padding: 0,
-        },
-        textStyle: 'il_frame_modal_title',
-        captionAt: { left: 8, top: 0 },
-        closeAt: { right: 8, top: 49 },
-    },
-    // leaderboard frames - the title sits in the frame art's own 87px top band
-    10000: HEADER_LEADERBOARD,
-    10001: HEADER_LEADERBOARD,
-    10002: HEADER_LEADERBOARD,
-    10003: HEADER_LEADERBOARD,
-    10004: HEADER_LEADERBOARD,
-    10005: HEADER_LEADERBOARD,
-    10006: HEADER_LEADERBOARD,
-    10007: HEADER_LEADERBOARD,
-    // illumina dark - `illumina_dark_skin_header`, every entity `colorize="false"`
-    200: {
-        layer: NineSlice('border-200-default-src', 3, 3, 3, 3),
-        colorize: false,
-        layout: {
-            minHeight: 30,
-            padding: 0,
-        },
-        textStyle: 'id_frame_title',
-        textColor: '#ffffff',
-        // `illumina_dark_header`: the label at `y="2"` with `margins.top` of 2, and no
-        // `_CONTROLS` item list - so the close button keeps its centring.
-        captionTop: 4,
-    },
-};
-
 export interface HeaderProps extends ThemeProps<HeaderVariant> {
     caption?: string;
     onClose?: () => void;
@@ -238,8 +68,8 @@ export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiC
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, caption, onClose, closeButtonVisible = true, onMenu, helpPage, onHelp,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
-        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
-            cascadeKey: 'header', variants: HEADER_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
+        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<HeaderVariant>({
+            cascadeKey: 'header', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 

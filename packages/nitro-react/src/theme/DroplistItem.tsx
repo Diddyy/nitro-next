@@ -4,28 +4,10 @@ import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 
 import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, Stretch } from './layer';
-import { expandSides, ThemeProps, ThemeVariants, ThemeWithStatesVariant, wrapTextChildren } from './utils';
+import { BackgroundLayer } from './layer';
+import { expandSides, ThemeProps, ThemeWithStatesVariant, wrapTextChildren } from './utils';
 
 export type DroplistItemVariant = ThemeWithStatesVariant;
-
-const DROPLIST_ITEM_0_VARIANT: DroplistItemVariant = {
-    states: {
-        default: Stretch('dropmenuitem-0-default-src'),
-        hovering: Stretch('dropmenuitem-0-hovering-src'),
-        selected: Stretch('dropmenuitem-0-selected-src'),
-    },
-    layout: {
-        minWidth: 5,
-        minHeight: 19,
-    },
-};
-
-/** `DroplistItem` variants - `type="droplist_item"`: both styles are `habbo_skin_droplist`'s `droplist_item` layout. */
-const DROPLIST_ITEM_VARIANTS: ThemeVariants<DroplistItemVariant> = {
-    0: DROPLIST_ITEM_0_VARIANT,
-    1: DROPLIST_ITEM_0_VARIANT,
-};
 
 export interface DroplistItemProps extends ThemeProps<DroplistItemVariant> {
     selected?: boolean;
@@ -37,8 +19,8 @@ export const DroplistItem: ForwardRefExoticComponent<DroplistItemProps & RefAttr
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, selected, children,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
-        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
-            cascadeKey: 'droplistItem', variants: DROPLIST_ITEM_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, selected,
+        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<DroplistItemVariant>({
+            cascadeKey: 'droplistItem', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, selected,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 

@@ -2,48 +2,10 @@ import { Container as PixiContainer } from 'pixi.js';
 import { forwardRef, ForwardRefExoticComponent, RefAttributes } from 'react';
 
 import { useThemeVariant } from './hooks';
-import { Stretch } from './layer';
 import { ThemeImage } from './ThemeImage';
-import { expandSides, ThemeProps, ThemeVariants, ThemeWithStatesVariant } from './utils';
+import { expandSides, ThemeProps, ThemeWithStatesVariant } from './utils';
 
 export type ScrollbarSliderButtonDownVariant = ThemeWithStatesVariant;
-
-/**
- * The scrollbar's "down" step button: one PNG per variant and state under
- * `public/assets/theme/scrollbarsliderbuttondown/`, cut from `habbo_skin_scrollbar`'s
- * `scrollbar_button_down` layout (and the `_black` / `_3` skins' own). Variants 0/1 have no
- * distinct hover art - the skins' `active` state is commented out, so hovering repeats the
- * default piece, the same pattern as `CloseButton`'s 1/2.
- */
-const SCROLLBAR_SLIDER_BUTTON_DOWN_VARIANTS: ThemeVariants<ScrollbarSliderButtonDownVariant> = {
-    0: {
-        states: {
-            default: Stretch('scrollbarsliderbuttondown-0-default-src'),
-            hovering: Stretch('scrollbarsliderbuttondown-0-default-src'),
-            pressed: Stretch('scrollbarsliderbuttondown-0-pressed-src'),
-            disabled: Stretch('scrollbarsliderbuttondown-0-disabled-src'),
-        },
-        layout: { width: 17, height: 16 },
-    },
-    1: {
-        states: {
-            default: Stretch('scrollbarsliderbuttondown-1-default-src'),
-            hovering: Stretch('scrollbarsliderbuttondown-1-default-src'),
-            pressed: Stretch('scrollbarsliderbuttondown-1-pressed-src'),
-            disabled: Stretch('scrollbarsliderbuttondown-1-disabled-src'),
-        },
-        layout: { width: 17, height: 16 },
-    },
-    3: {
-        states: {
-            default: Stretch('scrollbarsliderbuttondown-3-default-src'),
-            hovering: Stretch('scrollbarsliderbuttondown-3-hovering-src'),
-            pressed: Stretch('scrollbarsliderbuttondown-3-pressed-src'),
-            disabled: Stretch('scrollbarsliderbuttondown-3-disabled-src'),
-        },
-        layout: { width: 17, height: 16 },
-    },
-};
 
 export interface ScrollbarSliderButtonDownProps extends ThemeProps<ScrollbarSliderButtonDownVariant> {
     disabled?: boolean;
@@ -55,8 +17,8 @@ export interface ScrollbarSliderButtonDownProps extends ThemeProps<ScrollbarSlid
  */
 export const ScrollbarSliderButtonDown: ForwardRefExoticComponent<ScrollbarSliderButtonDownProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, ScrollbarSliderButtonDownProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, disabled, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
-        const { config, handlers, resolvedLayer, resolvedTint } = useThemeVariant({
-            cascadeKey: 'scrollbarSliderButtonDown', variants: SCROLLBAR_SLIDER_BUTTON_DOWN_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled,
+        const { config, handlers, resolvedLayer, resolvedTint } = useThemeVariant<ScrollbarSliderButtonDownVariant>({
+            cascadeKey: 'scrollbarSliderButtonDown', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 

@@ -4,19 +4,10 @@ import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 
 import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, NineSlice } from './layer';
-import { expandSides, ThemeProps, ThemeVariant, ThemeVariants, wrapTextChildren } from './utils';
+import { BackgroundLayer } from './layer';
+import { expandSides, ThemeProps, ThemeVariant, wrapTextChildren } from './utils';
 
 export type TooltipVariant = ThemeVariant;
-
-const TOOLTIP_VARIANTS: ThemeVariants<TooltipVariant> = {
-    // default
-    0: {
-        layer: NineSlice('tooltip-0-default-src', 6, 6, 6, 6),
-        layout: { minWidth: 20, minHeight: 22, paddingLeft: 6, paddingRight: 6, flex: 1, justifyContent: 'center', alignItems: 'center' },
-        textStyle: 'u_tool_tip',
-    },
-};
 
 export interface TooltipProps extends ThemeProps<TooltipVariant> {
     children?: ReactNode;
@@ -24,8 +15,8 @@ export interface TooltipProps extends ThemeProps<TooltipVariant> {
 
 export const Tooltip: ForwardRefExoticComponent<TooltipProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TooltipProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, children, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
-        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
-            cascadeKey: 'tooltip', variants: TOOLTIP_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
+        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<TooltipVariant>({
+            cascadeKey: 'tooltip', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 
         return (

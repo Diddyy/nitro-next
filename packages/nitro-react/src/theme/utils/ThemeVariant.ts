@@ -51,7 +51,7 @@ export type ThemeBase = {
      * `_frame.color = style.frameColor` (`FramePreset`) from darkening the illumina light
      * frame the client never tints. A skin where only *some* entities are `colorize="false"`
      * is not this: those pieces are cut into their own sheet and drawn as an untinted `overlay`
-     * or `plain` (see `scripts/extract-skin-assets.ts`).
+     * or `plain` (Nitro Studio's theme builder, `server/theme/skinArt.ts` there).
      */
     colorize?: boolean;
     textStyle?: TextStyleKey;
@@ -62,8 +62,8 @@ export type ThemeBase = {
 export type ThemeVariant = {
     layer?: BackgroundLayerConfig;
     /**
-     * The skin's `colorize="false"` pieces, cut into their own sheet by
-     * `scripts/extract-skin-assets.ts` and drawn over `layer` without the window's colour - what
+     * The skin's `colorize="false"` pieces, cut into their own sheet by Nitro Studio's theme
+     * builder and drawn over `layer` without the window's colour - what
      * `BitmapSkinRenderer.draw` does for an entity the client copies rather than tints. A variant
      * whose untinted pieces are all it has puts them in `overlay` instead (the leaderboard
      * frames); this is for one that needs both, as the ubuntu frames do - a tinted title bar, the
@@ -88,8 +88,8 @@ export type ThemeProps<T extends AnyThemeVariant> = {
 } & ThemeBase & PointerHandlerProps;
 
 export type ThemeOptions<T extends AnyThemeVariant = AnyThemeVariant> = {
+    /** The component's key in the theme (`themeRegistry.ts`): its variants, and what cascades to it. */
     cascadeKey: string;
-    variants: ThemeVariants<T>;
     variant?: keyof ThemeVariants<T>;
     defaultVariant?: keyof ThemeVariants<T>;
     tintColor?: string;

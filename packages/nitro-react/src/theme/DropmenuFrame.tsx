@@ -16,9 +16,9 @@ import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 
 import { Box, BoxLayout } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, NineSlice, Stretch } from './layer';
+import { BackgroundLayer, Stretch } from './layer';
 import { ScrollArea } from './ScrollArea';
-import { DROPMENU_EXPANDED_MARGIN, DROPMENU_EXPANDED_PADDING_ITEM_HEIGHT, ThemeProps, ThemeVariant, ThemeVariants, ThemeWithStatesVariant, wrapTextChildren } from './utils';
+import { DROPMENU_EXPANDED_MARGIN, DROPMENU_EXPANDED_PADDING_ITEM_HEIGHT, ThemeProps, ThemeVariant, ThemeWithStatesVariant, wrapTextChildren } from './utils';
 
 /** Where the skin layout puts `_DROPLIST_ITEMLIST`: its left/top/right inset in the frame. */
 export interface DropmenuListInset {
@@ -38,25 +38,6 @@ export type DropmenuVariant = (ThemeVariant | ThemeWithStatesVariant) & {
 
 const DEFAULT_ARROW_LAYOUT: BoxLayout = { right: 5, top: 2, width: 16, height: 16 };
 
-const DROPMENU_VARIANTS: ThemeVariants<DropmenuVariant> = {
-    0: { layer: NineSlice('dropmenu-0-default-src', 3, 3, 3, 3), arrowTextureKey: 'dropmenu-0-default-arrow-src', layout: { minWidth: 40, minHeight: 22 }, textStyle: 'regular', textColor: '#000000', listInset: { left: 6, top: 2, right: 6 } },
-    1: { layer: NineSlice('button-1-default-src', 3, 3, 3, 3), arrowTextureKey: 'dropmenu-1-default-arrow-src', layout: { minWidth: 40, minHeight: 22 }, textStyle: 'regular', textColor: '#ffffff', listInset: { left: 6, top: 2, right: 6 } },
-    // `habbo_skin_dropmenu_3`: `dropmenu_frame_3` is a 6px-cornered white frame (the same in both
-    // states) and a 22x20 `arrow` entity at x = width - 24, y = 2 that changes on hover.
-    3: {
-        layer: NineSlice('dropmenu-3-frame-src', 6, 6, 6, 6),
-        arrowTextureKey: 'dropmenu-3-default-arrow-src',
-        arrowHoveringTextureKey: 'dropmenu-3-hovering-arrow-src',
-        arrowLayout: { right: 2, top: 2, width: 22, height: 20 },
-        layout: {
-            minWidth: 40, minHeight: 23,
-        },
-        textStyle: 'u_regular', textColor: '#000000',
-        listInset: { left: 2, top: 2, right: 2 },
-    },
-    100: { layer: NineSlice('dropmenu-0-default-src', 3, 3, 3, 3), arrowTextureKey: 'dropmenu-0-default-arrow-src', layout: { minWidth: 40, minHeight: 22 }, textStyle: 'il_regular', textColor: '#000000', listInset: { left: 6, top: 2, right: 6 } },
-};
-
 export interface DropmenuFrameProps extends ThemeProps<DropmenuVariant> {
     /** Draw the open list: the children are the items, stacked inside the frame. */
     expanded?: boolean;
@@ -70,8 +51,8 @@ export const DropmenuFrame: ForwardRefExoticComponent<DropmenuFrameProps & RefAt
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, zIndex, expanded = false, listHeight, children,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
-        const { ownCascade, config, state, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
-            cascadeKey: 'dropmenu', variants: DROPMENU_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
+        const { ownCascade, config, state, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<DropmenuVariant>({
+            cascadeKey: 'dropmenu', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 

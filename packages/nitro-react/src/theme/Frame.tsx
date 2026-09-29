@@ -6,192 +6,11 @@ import { VariantCascadeProvider } from './cascade';
 import { ContentArea } from './ContentArea';
 import { Header } from './Header';
 import { ChildBounds, ReflectResizeContext, useChildBounds, useFrameDrag, useFrameResize, useReflectResizeHost, useThemeVariant } from './hooks';
-import { BackgroundLayer, Composite, CompositePiece, NineSlice, ShadowLayer } from './layer';
+import { BackgroundLayer, ShadowLayer } from './layer';
 import { Scaler, ScalerDirection } from './Scaler';
-import { compose, DropShadowConfig, expandSides, getWindowLayer, subscribeWindowLayer, ThemeProps, ThemeVariant, ThemeVariants, WindowPlacedContext } from './utils';
+import { compose, DropShadowConfig, expandSides, getWindowLayer, subscribeWindowLayer, ThemeProps, ThemeVariant, WindowPlacedContext } from './utils';
 
 export type FrameVariant = ThemeVariant;
-
-const BLUE_FRAME_SHINE = Composite([
-    CompositePiece('frame-0-default-shine-top-left-src', 1, 1, undefined, undefined, 7, 7),
-    CompositePiece('frame-0-default-shine-top-center-src', 2, 8, 8, undefined, undefined, 1),
-    CompositePiece('frame-0-default-shine-top-right-src', 1, undefined, 1, undefined, 7, 7),
-    CompositePiece('frame-0-default-shine-top-center-src', 8, 2, undefined, 8, 1),
-    CompositePiece('frame-0-default-shine-top-center-src', 8, undefined, 2, 7, 1),
-    CompositePiece('frame-0-default-shine-bottom-left-src', undefined, 1, undefined, 1, 7, 7),
-    CompositePiece('frame-0-default-shine-top-center-src', undefined, 8, 7, 2, undefined, 1),
-    CompositePiece('frame-0-default-shine-bottom-right-src', undefined, undefined, 1, 1, 6, 6),
-]);
-
-const FRAME_3_SHINE = NineSlice('frame-3-default-shine-src', 10, 33, 10, 10);
-
-/**
- * `habbo_window_layout_frame`, the 40x40 template styles 0, 1 and 2 share. It insets nothing of
- * its own: `titlebar` sits at (6, 6) - which is the header variant's own margin - and
- * `_FRAME_SCALER` at (25, 25) 15x15, flush with the frame's bottom right corner. A frame padding
- * here is in front of both, and the 2px one this carried put the title bar, and the resize
- * corner, two pixels in from where the client draws them.
- */
-const FRAME_0_VARIANT: FrameVariant = {
-    layer: NineSlice('frame-0-default-src', 13, 13, 13, 13),
-    overlay: BLUE_FRAME_SHINE,
-    dropShadow: { distance: 4, angle: 45, color: '#000000', alpha: 0.35, blur: 4 },
-    layout: {
-        minWidth: 40,
-        minHeight: 40,
-    },
-};
-
-/**
- * `habbo_skin_frame_3`: only `top_left` and `top_right` take the window's colour, and the six
- * `center_*` / `bottom_*` pieces - the pale body down the sides and across the bottom - are
- * `colorize="false"`, so they are cut into their own sheet and drawn untinted over the title bar.
- * Without them every ubuntu window drew a title bar and nothing else.
- */
-const FRAME_UBUNTU_VARIANT: FrameVariant = {
-    layer: NineSlice('frame-3-default-src', 10, 33, 10, 10),
-    plain: NineSlice('frame-3-default-plain-src', 10, 33, 10, 10),
-    overlay: FRAME_3_SHINE,
-    dropShadow: { distance: 4, angle: 45, color: '#000000', alpha: 0.35, blur: 4 },
-    layout: {
-        minWidth: 64,
-        minHeight: 64,
-    },
-};
-
-/**
- * `illumina_light_skin_frame` (the art of border style 101), `top` pixels down from the frame's
- * edge - 0 for the plain frame, 40 for the modal one, whose layout puts the panel under a band
- * that carries the title.
- */
-const illuminaLightFrame = (top: number) => Composite([
-    CompositePiece('border-101-default-top-left-src', top, 0, undefined, undefined, 4, 4),
-    CompositePiece('border-101-default-top-center-src', top, 4, 4, undefined, undefined, 4),
-    CompositePiece('border-101-default-top-right-src', top, undefined, 0, undefined, 4, 4),
-    CompositePiece('border-101-default-center-left-src', top + 4, 0, undefined, 7, 1),
-    CompositePiece('border-101-default-center-center-src', top + 4, 1, 1, 7),
-    CompositePiece('border-101-default-center-left-src', top + 4, undefined, 0, 7, 1),
-    CompositePiece('border-101-default-bottom-left-src', undefined, 0, undefined, 0, 4, 7),
-    CompositePiece('border-101-default-bottom-center-src', undefined, 4, 4, 0, undefined, 7),
-    CompositePiece('border-101-default-bottom-right-src', undefined, undefined, 0, 0, 4, 7),
-]);
-
-/**
- * A leaderboard frame: one 193x130 sheet per style, cut 96/87/96/42 (`frame_leaderboard`). Its
- * six `bottom_*` / `center_*` entities - the pale panel the list sits on - are `colorize="false"`,
- * so they are cut into the `-plain` sheet of the same size and metrics and drawn untinted over
- * the colorizing border.
- */
-const leaderboardFrame = (style: number): FrameVariant => ({
-    layer: NineSlice(`frame-${style}-default-src`, 96, 87, 96, 42),
-    overlay: NineSlice(`frame-${style}-default-plain-src`, 96, 87, 96, 42),
-    layout: {
-        minWidth: 193,
-        minHeight: 130,
-    },
-});
-
-/**
- * `Frame` variants - the `type="frame"` rows of `habbo_element_description_xml`, keyed by their
- * `style`; the minimum size is the size of the window layout the row names.
- */
-const FRAME_VARIANTS: ThemeVariants<FrameVariant> = {
-    // blue
-    0: {
-        ...FRAME_0_VARIANT,
-        tintColor: '#418db0',
-    },
-    // black
-    1: {
-        ...FRAME_0_VARIANT,
-        tintColor: '#4c4c4c',
-    },
-    // yellow
-    2: {
-        ...FRAME_0_VARIANT,
-        tintColor: '#fac200',
-    },
-    // ubuntu
-    3: {
-        ...FRAME_UBUNTU_VARIANT,
-        tintColor: '#418db0',
-    },
-    4: {
-        ...FRAME_UBUNTU_VARIANT,
-        tintColor: '#67a3bf',
-    },
-    /*
-     * `habbo_skin_frame_7` - the same nine pieces cut from its own 64x73 template, not style 3's,
-     * and with no shine: its layout has none, where style 3's is drawn over the title bar.
-     */
-    7: {
-        layer: NineSlice('frame-7-default-src', 10, 33, 10, 10),
-        plain: NineSlice('frame-7-default-plain-src', 10, 33, 10, 10),
-        dropShadow: { distance: 4, angle: 45, color: '#000000', alpha: 0.35, blur: 4 },
-        layout: {
-            minWidth: 64,
-            minHeight: 73,
-        },
-    },
-    // `illumina_light_skin_frame` - every one of its nine entities is `colorize="false"`, so the
-    // window's own `color` never reaches the art. `FramePreset` still sets it
-    // (`_frame.color = style.frameColor`), and honouring that here multiplied the light panel by
-    // the wired dialog's own #e2e2e2 and made the whole window a shade darker than Flash's.
-    100: {
-        layer: illuminaLightFrame(0),
-        colorize: false,
-        layout: {
-            minWidth: 50,
-            minHeight: 50,
-        },
-    },
-    // illumina modal: `renderer="null"`, its layout draws the light frame 40px down under a title band
-    101: {
-        layer: illuminaLightFrame(40),
-        colorize: false,
-        dropShadow: { distance: 0, angle: 0, color: '#000000', alpha: 0.75, blur: 80 },
-        layout: {
-            minWidth: 50,
-            minHeight: 80,
-        },
-    },
-    // illumina "wired" - the light frame art with the wired window layout
-    102: {
-        layer: illuminaLightFrame(0),
-        colorize: false,
-        layout: {
-            minWidth: 50,
-            minHeight: 50,
-        },
-    },
-    // illumina purple - `illumina_purple_skin_frame`, every entity `colorize="false"`
-    103: {
-        layer: NineSlice('frame-103-default-src', 4, 4, 4, 7),
-        colorize: false,
-        layout: {
-            minWidth: 50,
-            minHeight: 50,
-        },
-    },
-    // illumina dark - `illumina_dark_skin_frame`, every entity `colorize="false"`
-    200: {
-        layer: NineSlice('frame-200-default-src', 4, 4, 4, 5),
-        colorize: false,
-        layout: {
-            minWidth: 50,
-            minHeight: 50,
-        },
-    },
-    // leaderboards: total badges, achievement level, rare, very rare, mythical, legendary, unique, uncommon
-    10000: leaderboardFrame(10000),
-    10001: leaderboardFrame(10001),
-    10002: leaderboardFrame(10002),
-    10003: leaderboardFrame(10003),
-    10004: leaderboardFrame(10004),
-    10005: leaderboardFrame(10005),
-    10006: leaderboardFrame(10006),
-    10007: leaderboardFrame(10007),
-};
 
 export interface FrameProps extends Omit<ThemeProps<FrameVariant>, 'dropShadow'> {
     id?: string;
@@ -328,8 +147,8 @@ export const Frame = ({
     const placed = useContext(WindowPlacedContext);
     const windowLayer = useSyncExternalStore(subscribeWindowLayer, getWindowLayer);
     const hostRef = useRef<PixiContainer>(null);
-    const { ownCascade, config, handlers, resolvedLayer, resolvedPlain, resolvedOverlay, resolvedShadow, resolvedTint } = useThemeVariant({
-        cascadeKey: 'frame', variants: FRAME_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, dropShadow, onPointerOver, onPointerOut, onPointerDown: compose(onPointerDown, onPointerDownProp), onPointerUp, onPointerUpOutside, onPointerTap,
+    const { ownCascade, config, handlers, resolvedLayer, resolvedPlain, resolvedOverlay, resolvedShadow, resolvedTint } = useThemeVariant<FrameVariant>({
+        cascadeKey: 'frame', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, dropShadow, onPointerOver, onPointerOut, onPointerDown: compose(onPointerDown, onPointerDownProp), onPointerUp, onPointerUpOutside, onPointerTap,
     });
     const minWidth = layout?.minWidth ?? config.layout?.minWidth ?? 20;
     const minHeight = layout?.minHeight ?? config.layout?.minHeight ?? 20;

@@ -7,13 +7,11 @@ them from anywhere. `scripts/build-asset-bundles.ts` writes them:
 
 ```sh
 yarn workspace @nitrodevco/nitro-react build-asset-bundles     # all of them
-node scripts/build-asset-bundles.ts theme effect-icons         # or just these
+node scripts/build-asset-bundles.ts nitro-wired fonts          # or just these
 ```
 
 | Bundle | Mode | Holds |
 |---|---|---|
-| `theme` | atlas | `assets/theme` - the skin chrome `THEME_ASSETS` names |
-| `effect-icons` | atlas | `assets/effect-icons` |
 | `nitro-wired` | atlas | `assets/wired` |
 | `nitro-layouts` | loose | every `assets/<component>` layout folder, the catalog's included |
 | `fonts` | loose | the captured `*.air51.json` AIR bundles |
@@ -22,11 +20,19 @@ node scripts/build-asset-bundles.ts theme effect-icons         # or just these
 | `loading-screen-photos` | loose | `assets/loading-screen-photos` - the loading screen's photos |
 | `sounds` | loose | the `.mp3` sounds under `assets/sounds`, loaded by name the first time one plays |
 
-`chat-styles` and `nitro-renderer` (the avatar additions and the Variable FX bitmaps with their
-tables) are not built here: Nitro Studio builds and publishes them from the client release's art
-and the hotel's own, and the client loads them from `chat.styles.url` and `renderer.assets.url`
-(see [Nitro Studio](nitro-studio.md)). The client ships no copy: with a key unset, that bundle is
-not loaded.
+Four bundles are not built here: Nitro Studio builds and publishes them from the client release's
+art and the hotel's own (see [Nitro Studio](nitro-studio.md)), and the client loads each from its
+own config key (`HOTEL_BUNDLE_KEYS` in `utils/assetBundles.ts`):
+
+| Bundle | Key | Holds |
+|---|---|---|
+| `theme` | `ui.theme.url` | the UI theme: every window skin's sprites, and `theme-variants.json` - every variant, the cascade and the icon set's rects (`themeRegistry.ts`) |
+| `chat-styles` | `chat.styles.url` | the chat bubble styles |
+| `room-object-visualization` | `renderer.assets.url` | the avatar additions and the Variable FX bitmaps with their tables |
+| `effect-icons` | `effect.icons.url` | the effect icons, `effect-icons-fx_icon_<id>` |
+
+The client ships no copy: with a key unset, that bundle is not loaded - and without `theme`, no
+window has its chrome.
 
 An **atlas** bundle packs its PNGs into one sheet plus a Pixi `SpritesheetData` manifest
 (`<name>.png` + `<name>_spritesheet.json`), which is one GPU upload the per-asset textures share.
@@ -47,7 +53,7 @@ Rules that come out of that:
   unique across every bundle by construction, and the build fails on a collision. `LayoutImage`
   builds exactly that name, so a call site still names the file the Flash layout named. The dot
   matters: `GraphicAssetCollection.removeFileExtension` cuts a name at its last dot, which is how
-  `border/15-default-shade-0.12.png` and its `0.2` sibling would arrive as one asset.
+  `x-0.12.png` and its `x-0.2.png` sibling would arrive as one asset.
 - **The loose PNGs are build input, not files the client fetches.** They stay under
   `public/assets/<component>/` - the layout generator writes them there, and the drift checks read
   them - but `vite.config.ts`'s `pruneBundledAssets` deletes every one of them from `dist/` after

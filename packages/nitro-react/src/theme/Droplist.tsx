@@ -4,18 +4,13 @@ import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 
 import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, NineSlice, Stretch } from './layer';
-import { ThemeProps, ThemeVariant, ThemeVariants, wrapTextChildren } from './utils';
+import { BackgroundLayer, Stretch } from './layer';
+import { ThemeProps, ThemeVariant, wrapTextChildren } from './utils';
 
 export type DroplistVariant = ThemeVariant & {
     arrowTextureKey: string;
     arrowTop: number;
     arrowRight: number;
-};
-
-const DROPLIST_VARIANTS: ThemeVariants<DroplistVariant> = {
-    0: { layer: NineSlice('dropmenu-0-default-src', 3, 3, 3, 3), arrowTextureKey: 'dropmenu-0-default-arrow-src', arrowTop: 2, arrowRight: 5 },
-    1: { layer: NineSlice('droplist-1-default-src', 6, 6, 6, 6), arrowTextureKey: 'droplist-1-default-arrow-src', arrowTop: 10, arrowRight: 4 },
 };
 
 export interface DroplistProps extends ThemeProps<DroplistVariant> {
@@ -24,8 +19,8 @@ export interface DroplistProps extends ThemeProps<DroplistVariant> {
 
 export const Droplist: ForwardRefExoticComponent<DroplistProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, DroplistProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, children }, ref) => {
-        const { ownCascade, config, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant({
-            cascadeKey: 'droplist', variants: DROPLIST_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
+        const { ownCascade, config, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<DroplistVariant>({
+            cascadeKey: 'droplist', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
         });
 
         return (

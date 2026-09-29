@@ -3,9 +3,9 @@ import { forwardRef, ForwardRefExoticComponent, RefAttributes } from 'react';
 
 import { Box } from './Box';
 import { usePixiTexture, useThemeVariant } from './hooks';
-import { BackgroundLayer, Stretch } from './layer';
+import { BackgroundLayer } from './layer';
 import { ThemeImage } from './ThemeImage';
-import { expandSides, ThemeProps, ThemeVariant, ThemeVariants } from './utils';
+import { expandSides, ThemeProps, ThemeVariant } from './utils';
 
 export type ScalerVariant = ThemeVariant;
 
@@ -22,52 +22,6 @@ const CURSOR_BY_DIRECTION: Record<ScalerDirection, string> = {
     none: 'default',
 };
 
-/*
- * The layout is where the frame's window layout puts `_FRAME_SCALER`, as insets from the frame's
- * own edges: `habbo_window_layout_frame` has it at (25, 25) 15x15 of 40x40 and `_3` at (41, 40)
- * 20x20 of 64x64. Each is tagged `_COLORIZE`, so the piece takes the window's colour, which
- * `Frame` hands down; `habbo_skin_scaler`'s `shine` is the one piece left out of it
- * (`colorize="false"`), so it is an untinted overlay.
- *
- * Written out per style rather than built by a helper: `theme_skin.py` reads these tables for the
- * texture key each layer names, and a helper's parameter hides it.
- */
-const SCALER_VARIANTS: ThemeVariants<ScalerVariant> = {
-    0: {
-        layer: Stretch('scaler-0-default-src'),
-        overlay: Stretch('scaler-0-default-shine-src'),
-        layout: { position: 'absolute', right: 0, bottom: 0, width: 15, height: 15 },
-    },
-    1: {
-        layer: Stretch('scaler-0-default-src'),
-        overlay: Stretch('scaler-0-default-shine-src'),
-        layout: { position: 'absolute', right: 0, bottom: 0, width: 15, height: 15 },
-    },
-    2: {
-        layer: Stretch('scaler-0-default-src'),
-        overlay: Stretch('scaler-0-default-shine-src'),
-        layout: { position: 'absolute', right: 0, bottom: 0, width: 15, height: 15 },
-    },
-    3: {
-        layer: Stretch('scaler-3-default-src'),
-        layout: { position: 'absolute', right: 3, bottom: 4, width: 20, height: 20 },
-    },
-    /*
-     * Style 4 is `habbo_skin_scaler_3` as well, so it draws style 3's piece - and so does a style 7
-     * frame, which cascades to this style: Flash has no scaler row of its own for 7, only a taller
-     * frame template (`habbo_window_layout_frame_7`) that sits the same piece 13 up from its
-     * bottom instead of 4.
-     */
-    4: {
-        layer: Stretch('scaler-3-default-src'),
-        layout: { position: 'absolute', right: 3, bottom: 4, width: 20, height: 20 },
-    },
-    // `renderer="null"`: a scaler with no art, as big as its layout makes it
-    100: {
-        zIndex: 20,
-    },
-};
-
 export type ScalerDirection = 'x' | 'y' | 'all' | 'none';
 
 export interface ScalerProps extends ThemeProps<ScalerVariant> {
@@ -79,8 +33,8 @@ export const Scaler: ForwardRefExoticComponent<ScalerProps & RefAttributes<PixiC
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, direction = 'all',
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
-        const { config, handlers, resolvedLayer, resolvedOverlay, resolvedTint } = useThemeVariant({
-            cascadeKey: 'scaler', variants: SCALER_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
+        const { config, handlers, resolvedLayer, resolvedOverlay, resolvedTint } = useThemeVariant<ScalerVariant>({
+            cascadeKey: 'scaler', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 

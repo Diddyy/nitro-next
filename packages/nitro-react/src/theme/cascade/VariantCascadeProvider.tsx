@@ -9,7 +9,7 @@ export const VariantCascadeProvider = ({ map, children }: { map: VariantCascadeM
     // Merging into a new object on every render would otherwise re-render every consumer of
     // this context on every render of this provider, regardless of whether `inherited`/`map`
     // actually changed - both are referentially stable across renders in normal use (`map`
-    // comes from the static, module-level `VARIANT_CASCADE_CONFIG`), so this memo is a real win.
+    // comes from the theme registry, which holds each cascade map for the session), so this memo is a real win.
     const value = useMemo(() => ({ ...inherited, ...map }), [ inherited, map ]);
 
     if (!children) return null;

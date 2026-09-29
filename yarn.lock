@@ -1554,6 +1554,8 @@ __metadata:
     "@hono/node-server": "npm:^2.0.10"
     "@nitrodevco/nitro-api": "workspace:*"
     "@nitrodevco/nitro-renderer": "workspace:*"
+    "@pixi/layout": "npm:^3.2.1"
+    "@pixi/react": "npm:^8.0.5"
     "@rolldown/plugin-babel": "npm:^0.2.3"
     "@tailwindcss/vite": "npm:^4.3.2"
     "@tanstack/react-query": "npm:^5.90.0"
@@ -1581,6 +1583,7 @@ __metadata:
     lzma-native: "npm:^8.0.6"
     mysql2: "npm:^3.15.0"
     node-fetch: "npm:^3.3.2"
+    pixi-filters: "npm:^6.1.5"
     pixi.js: "npm:^8.18.1"
     png-stream: "npm:^1.0.5"
     pngjs: "npm:^7.0.0"
@@ -1597,6 +1600,8 @@ __metadata:
     vite: "npm:^8.1.2"
     xml2js: "npm:^0.6.2"
     yazl: "npm:^3.3.1"
+    yoga-layout: "npm:^3.2.1"
+    zustand: "npm:^5.0.13"
   languageName: unknown
   linkType: soft
 

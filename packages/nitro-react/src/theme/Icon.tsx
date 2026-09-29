@@ -1,7 +1,7 @@
 /**
  * The client's `<icon style="N">`: template `icon_N` of `habbo_skin_icon_set_xml`, one rect of
- * the SWF's `habbo_icons_png` - bundled as the theme asset `icon-set-src` (see
- * `utils/themeAssets.ts`) and cut by `utils/iconSetFrames.ts`. That sheet and its rects are the
+ * `habbo_icons_png` - the theme's sprite `icon-set-src` and its `icons` rects (`themeIconFrame`),
+ * both taken from the client release with the rest of the theme. That sheet and its rects are the
  * authority on what a style shows and how big it is; the numbering is the skin's own, so a call
  * site names the style the Flash layout names, never a made-up word for the picture.
  *
@@ -23,7 +23,8 @@ import { forwardRef } from 'react';
 
 import { BoxLayout } from './Box';
 import { ThemeImage } from './ThemeImage';
-import { DynamicStyleRole, ICON_SET_FRAMES, ThemeLayoutMeta } from './utils';
+import { DynamicStyleRole, ThemeLayoutMeta } from './utils';
+import { themeIconFrame } from './utils/themeRegistry';
 
 export interface IconProps extends ThemeLayoutMeta {
     /** The `icon_set` template number (`<icon style="N">`). */
@@ -38,7 +39,7 @@ export interface IconProps extends ThemeLayoutMeta {
 }
 
 export const Icon = forwardRef<PixiContainer, IconProps>(({ variant, tintColor, alpha, dynamicRole, tooltip, layout }, ref) => {
-    const frame = ICON_SET_FRAMES[String(variant)];
+    const frame = themeIconFrame(String(variant));
 
     if (!frame) return null;
 

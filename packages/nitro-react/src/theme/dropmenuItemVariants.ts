@@ -1,79 +1,15 @@
 /**
- * The `dropmenu_item` rows of `habbo_element_description` - each style's item skin states, its
+ * A `dropmenu_item` variant - the theme's `dropmenuItem`: each style's item skin states, its
  * `_BTN_TEXT` label margins (`habbo_window_layout_dropmenu_item*`) and text style - and the height
  * Flash gives an item. Kept out of `DropmenuItem.tsx` so the dropmenu can size its list without
  * importing a component module for a function.
  */
 import { FLASH_TEXT_GUTTER, FlashTextRenderer, HABBO_TEXT_STYLES, resolveFlashTextFormat } from './font/flash-text';
-import { Stretch } from './layer';
 import { expandSides, ThemeVariants, ThemeWithStatesVariant } from './utils';
 import { TextStyleKey } from './utils/textStyles';
+import { themeVariantOf } from './utils/themeRegistry';
 
 export type DropmenuItemVariant = ThemeWithStatesVariant;
-
-export const DROPMENU_ITEM_VARIANTS: ThemeVariants<DropmenuItemVariant> = {
-    0: {
-        states: {
-            default: Stretch('dropmenuitem-0-default-src'),
-            hovering: Stretch('dropmenuitem-0-hovering-src'),
-            pressed: Stretch('dropmenuitem-0-selected-src'),
-            selected: Stretch('dropmenuitem-0-selected-src'),
-        },
-        layout: {
-            paddingLeft: 4,
-            paddingTop: 1,
-            paddingRight: 4,
-            paddingBottom: 2,
-        },
-        textStyle: 'regular',
-    },
-    1: {
-        states: {
-            default: Stretch('dropmenuitem-1-default-src'),
-            hovering: Stretch('dropmenuitem-1-hovering-src'),
-            pressed: Stretch('dropmenuitem-1-selected-src'),
-            selected: Stretch('dropmenuitem-1-selected-src'),
-        },
-        layout: {
-            paddingLeft: 4,
-            paddingTop: 1,
-            paddingRight: 4,
-            paddingBottom: 2,
-        },
-        textStyle: 'regular',
-        textColor: '#ffffff',
-    },
-    3: {
-        states: {
-            default: Stretch('dropmenuitem-0-default-src'),
-            hovering: Stretch('dropmenuitem-3-hovering-src'),
-            pressed: Stretch('dropmenuitem-3-selected-src'),
-            selected: Stretch('dropmenuitem-3-selected-src'),
-        },
-        layout: {
-            paddingLeft: 4,
-            paddingTop: 2,
-            paddingRight: 4,
-            paddingBottom: 4,
-        },
-        textStyle: 'u_regular',
-    },
-    100: {
-        states: {
-            default: Stretch('dropmenuitem-0-default-src'),
-            hovering: Stretch('dropmenuitem-3-hovering-src'),
-            pressed: Stretch('dropmenuitem-3-selected-src'),
-            selected: Stretch('dropmenuitem-3-selected-src'),
-        },
-        layout: {
-            paddingLeft: 4,
-            paddingTop: 1,
-            paddingRight: 4,
-            paddingBottom: 2,
-        },
-        textStyle: 'il_regular',
-    },
-};
 
 /** The height an item falls back to while its face's metrics are not in yet. */
 const FALLBACK_ITEM_HEIGHT = 19;
@@ -86,7 +22,7 @@ const FALLBACK_ITEM_HEIGHT = 19;
  * item comes to 16, the spacing of Flash's open list.
  */
 export const dropmenuItemHeight = (variant: keyof ThemeVariants<DropmenuItemVariant> | undefined, textStyle?: TextStyleKey): number => {
-    const config = ((variant !== undefined) ? DROPMENU_ITEM_VARIANTS[variant] : undefined) ?? DROPMENU_ITEM_VARIANTS[0];
+    const config = ((variant !== undefined) ? themeVariantOf<DropmenuItemVariant>('dropmenuItem', String(variant)) : undefined) ?? themeVariantOf<DropmenuItemVariant>('dropmenuItem', '0') ?? {};
     const style = textStyle ?? (config.textStyle) ?? 'regular';
     const metrics = FlashTextRenderer.metrics(resolveFlashTextFormat({ style: HABBO_TEXT_STYLES[style] }));
 

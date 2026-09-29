@@ -10,30 +10,11 @@ import { forwardRef, ForwardRefExoticComponent, RefAttributes } from 'react';
 
 import { Box } from './Box';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, Stretch } from './layer';
+import { BackgroundLayer } from './layer';
 import { ThemeImage } from './ThemeImage';
-import { expandSides, ThemeProps, ThemeVariants, ThemeWithStatesVariant } from './utils';
+import { expandSides, ThemeProps, ThemeWithStatesVariant } from './utils';
 
 export type IconButtonVariant = ThemeWithStatesVariant;
-
-/** Both skins are the same shape: four 22x22 states on one row of the ubuntu sheet. */
-const ubuntuIconVariant = (style: string): IconButtonVariant => ({
-    states: {
-        default: Stretch(`iconbutton-${style}-default-src`),
-        hovering: Stretch(`iconbutton-${style}-hovering-src`),
-        pressed: Stretch(`iconbutton-${style}-pressed-src`),
-        disabled: Stretch(`iconbutton-${style}-disabled-src`),
-    },
-    layout: { width: 22, height: 22, flexShrink: 0 },
-});
-
-/** `IconButton` variants - the `type="iconbutton"` rows of `habbo_element_description_xml`, keyed by their `style`. */
-const ICON_BUTTON_VARIANTS: ThemeVariants<IconButtonVariant> = {
-    // intent "plus"
-    3: ubuntuIconVariant('3'),
-    // intent "minus"
-    4: ubuntuIconVariant('4'),
-};
 
 export interface IconButtonProps extends ThemeProps<IconButtonVariant> {
     disabled?: boolean;
@@ -46,8 +27,8 @@ export const IconButton: ForwardRefExoticComponent<IconButtonProps & RefAttribut
         variant, defaultVariant = '3', tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, disabled, selected,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
-        const { config, handlers, resolvedLayer, resolvedOverlay, resolvedTint } = useThemeVariant({
-            cascadeKey: 'iconButton', variants: ICON_BUTTON_VARIANTS, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled, selected,
+        const { config, handlers, resolvedLayer, resolvedOverlay, resolvedTint } = useThemeVariant<IconButtonVariant>({
+            cascadeKey: 'iconButton', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled, selected,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
 

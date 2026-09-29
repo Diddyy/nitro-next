@@ -1,17 +1,19 @@
 import { useTooltipHandlers } from '../tooltip/useTooltipHandlers';
 import { AnyThemeVariant, themeDefaultTextStyle, ThemeOptions, ThemeResult, ThemeVariant, ThemeWithStatesVariant } from '../utils';
 import { compose } from '../utils/interaction';
+import { themeVariantsOf } from '../utils/themeRegistry';
 import { resolveByState, useInteractionState } from './useInteractionState';
 import { useResolvedVariant } from './useResolvedVariant';
 
 export const useThemeVariant = <T extends AnyThemeVariant>({
-    cascadeKey, variants, variant, defaultVariant = '0', tintColor, textStyle, textColor, dropShadow, tooltip, tooltipDelay, disabled, selected, interactive, stopsPropagation,
+    cascadeKey, variant, defaultVariant = '0', tintColor, textStyle, textColor, dropShadow, tooltip, tooltipDelay, disabled, selected, interactive, stopsPropagation,
     onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
 }: ThemeOptions<T>): ThemeResult<T> => {
     const { resolvedVariant, ownCascade } = useResolvedVariant(cascadeKey, variant, defaultVariant);
     // The Flash skins define many more `style` ids than have art here (border style 15, button
     // style 5, ...) - a layout port passing one through verbatim must degrade to the default
     // variant's chrome, not crash on `undefined.layout`.
+    const variants = themeVariantsOf<T>(cascadeKey);
     const config = variants[resolvedVariant] ?? variants[defaultVariant] ?? ({} as T);
     // A tooltip rides on the same hover the state tracking uses; because `useInteractionState`
     // reads the cursor off the click handlers alone, a component hovered only for its tooltip
