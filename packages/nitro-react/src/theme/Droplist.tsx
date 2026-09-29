@@ -4,8 +4,11 @@ import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 
 import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, Stretch } from './layer';
+import { BackgroundLayer, SpriteLayer } from './layer';
 import { ThemeProps, ThemeVariant, wrapTextChildren } from './utils';
+
+/** The skin's `arrow` entity: a fixed 16px square. */
+const ARROW_SIZE = 16;
 
 export type DroplistVariant = ThemeVariant & {
     arrowTextureKey: string;
@@ -23,11 +26,14 @@ export const Droplist: ForwardRefExoticComponent<DroplistProps & RefAttributes<P
             cascadeKey: 'droplist', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
         });
 
+        // The caption stops short of the arrow, which keeps its distance to the top right corner.
+        const arrowSpace = config.arrowTextureKey ? (config.arrowRight ?? 0) + ARROW_SIZE + 2 : 2;
+
         return (
             <Box
                 ref={ref}
                 visible={visible}
-                layout={{ minWidth: 40, minHeight: 22, paddingLeft: 2, paddingRight: 2, ...config.layout, ...layout }}
+                layout={{ position: 'relative', minWidth: 40, minHeight: 22, paddingLeft: 2, paddingRight: arrowSpace, ...config.layout, ...layout }}
             >
                 {resolvedLayer && (
                     <BackgroundLayer
@@ -37,13 +43,15 @@ export const Droplist: ForwardRefExoticComponent<DroplistProps & RefAttributes<P
                 )}
                 {resolvedOverlay && <BackgroundLayer layer={resolvedOverlay} />}
                 {config.arrowTextureKey && (
-                    <BackgroundLayer
-                        layer={Stretch(config.arrowTextureKey)}
+                    <SpriteLayer
+                        textureKey={config.arrowTextureKey}
                         layout={{
+                            // Out of the row: at the skin's distance from the top right corner, not placed after the caption.
+                            position: 'absolute',
                             right: config.arrowRight,
                             top: config.arrowTop,
-                            width: 16,
-                            height: 16,
+                            width: ARROW_SIZE,
+                            height: ARROW_SIZE,
                         }}
                     />
                 )}

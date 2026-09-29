@@ -54,9 +54,6 @@ export const registerThemeAtlas = (sheet: { image: CanvasImageSource; width: num
     }
 };
 
-/** The sheet rect of a theme key, or `undefined` while the `theme` bundle hasn't loaded. */
-export const getThemeSprite = (key: string | undefined): ThemeSprite | undefined => (key ? sprites.get(key) : undefined);
-
 export type ThemeSliceEffect
     = | { kind: 'plain' }
         | { kind: 'tint'; color: string }

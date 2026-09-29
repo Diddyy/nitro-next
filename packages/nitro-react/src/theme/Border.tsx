@@ -5,7 +5,7 @@ import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { dynamicStyleBoxProps, useDynamicStyleEffect } from './dynamicstyle';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, ColorLayer } from './layer';
+import { BackgroundLayer, ColorLayer, isSingleNodeLayer, leafBoxLayout } from './layer';
 import { DynamicStyleRole, expandSides, FillLayout, ThemeProps, ThemeVariant, wrapTextChildren } from './utils';
 
 /**
@@ -67,6 +67,29 @@ export const Border: ForwardRefExoticComponent<BorderProps & RefAttributes<PixiC
             cascadeKey: 'border', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
         const roleEffect = useDynamicStyleEffect(dynamicRole);
+        const boxLayout = { ...expandSides(config.layout), ...expandSides(layout) };
+        // A skin drawn as one display object (a nine-slice, most borders) with no fill or overlay
+        // takes the blend itself - the same as a group alpha over one object - with no container
+        // around it; and a border given no children, which nothing interacts with, is that object.
+        // Whether it is decided by what the call site passes, not by what the children render to:
+        // a node that changes from one kind to another while mounted is not laid out again.
+        const alone = isSingleNodeLayer(resolvedLayer) && !backgroundColor && !resolvedOverlay;
+        const interactive = !!tooltip || !!dynamicRole || !!(onPointerOver || onPointerOut || onPointerDown || onPointerUp || onPointerUpOutside || onPointerTap);
+
+        if (alone && !interactive && (children === undefined)) {
+            return (
+                <BackgroundLayer
+                    ref={ref}
+                    layer={resolvedLayer}
+                    tintColor={resolvedTint}
+                    alpha={blend}
+                    visible={visible}
+                    layout={leafBoxLayout(boxLayout)}
+                />
+            );
+        }
+
+        const skinBlend = (blend !== undefined) && !ownGraphicContext ? blend : undefined;
         // The fill is part of the skin buffer, so it blends with it.
         const skin = (
             <>
@@ -76,13 +99,12 @@ export const Border: ForwardRefExoticComponent<BorderProps & RefAttributes<PixiC
                         alpha={backgroundAlpha}
                     />
                 )}
-                {resolvedLayer && (
-                    <BackgroundLayer
-                        layer={resolvedLayer}
-                        tintColor={resolvedTint}
-                    />
-                )}
-                {resolvedOverlay && <BackgroundLayer layer={resolvedOverlay} />}
+                <BackgroundLayer
+                    layer={resolvedLayer}
+                    tintColor={resolvedTint}
+                    alpha={alone ? skinBlend : undefined}
+                />
+                <BackgroundLayer layer={resolvedOverlay} />
             </>
         );
 
@@ -90,18 +112,17 @@ export const Border: ForwardRefExoticComponent<BorderProps & RefAttributes<PixiC
             <Box
                 ref={ref}
                 visible={visible}
-                layout={{ ...expandSides(config.layout), ...expandSides(layout) }}
+                layout={boxLayout}
                 {...dynamicStyleBoxProps(roleEffect, ownGraphicContext ? blend : undefined)}
                 {...handlers}
             >
-                {(blend === undefined || ownGraphicContext)
+                {((skinBlend === undefined) || alone)
                     ? skin
                     : (
-                            // The skin alone at `blend` (a group alpha - identical to a per-sprite one for
-                            // the single-sprite and non-overlapping composite skins). Children stay outside it.
+                            // A skin of several objects at `blend`, as one group. Children stay outside it.
                             <Box
                                 layout={FillLayout}
-                                alpha={blend}
+                                alpha={skinBlend}
                                 eventMode="none"
                             >
                                 {skin}

@@ -5,6 +5,7 @@ import { boxBlurAlpha } from '../utils/boxBlur';
 import { ThemeSliceEffect } from '../utils/themeSprites';
 import { DropShadowConfig } from '../utils/ThemeVariant';
 import { BackgroundLayerConfig } from './BackgroundLayer';
+import { insetLayout } from './layerLayout';
 
 /**
  * A layout's `<DropShadowFilter>` (`flash.filters.DropShadowFilter`), baked instead of
@@ -94,8 +95,12 @@ const rectShadowTexture = (blur: number, color: string, alpha: number): { textur
     return texture ? { texture, pad } : undefined;
 };
 
-/** The box, grown by `pad` on every side and shifted by the offset - what both bakes fill. */
-const shadowBoxLayout = (x: number, y: number, pad: number) => ({ position: 'absolute' as const, left: x - pad, top: y - pad, right: -x - pad, bottom: -y - pad });
+/**
+ * The box, grown by `pad` on every side and shifted by the offset - what both bakes fill. The
+ * nine-slice takes it itself: its size is `'auto'`, so Yoga sizes it from the insets rather than
+ * from the leaf default, its texture's own size (see `insetLayout`).
+ */
+const shadowBoxLayout = (x: number, y: number, pad: number) => insetLayout({ left: x - pad, top: y - pad, right: -x - pad, bottom: -y - pad });
 
 interface ResolvedShadow {
     x: number;
@@ -135,20 +140,15 @@ const SkinShadow = ({ skin, plain, shadow }: { skin: NineSliceSkin; plain?: Back
     if (!texture) return null;
 
     return (
-        <pixiContainer
+        <pixiNineSliceSprite
+            texture={texture}
+            leftWidth={skin.leftWidth + pad}
+            topHeight={skin.topHeight + pad}
+            rightWidth={skin.rightWidth + pad}
+            bottomHeight={skin.bottomHeight + pad}
             eventMode="none"
             layout={shadowBoxLayout(shadow.x, shadow.y, pad)}
-        >
-            <pixiNineSliceSprite
-                texture={texture}
-                leftWidth={skin.leftWidth + pad}
-                topHeight={skin.topHeight + pad}
-                rightWidth={skin.rightWidth + pad}
-                bottomHeight={skin.bottomHeight + pad}
-                eventMode="none"
-                layout={{ width: '100%', height: '100%' }}
-            />
-        </pixiContainer>
+        />
     );
 };
 
@@ -159,23 +159,16 @@ const RectShadow = ({ shadow }: { shadow: ResolvedShadow }) => {
 
     const { texture, pad } = baked;
 
-    // The host container is what the insets size (a Yoga leaf keeps its intrinsic texture size
-    // when only insets are given); the nine-slice then fills it.
     return (
-        <pixiContainer
+        <pixiNineSliceSprite
+            texture={texture}
+            leftWidth={pad * 2}
+            topHeight={pad * 2}
+            rightWidth={pad * 2}
+            bottomHeight={pad * 2}
             eventMode="none"
             layout={shadowBoxLayout(shadow.x, shadow.y, pad)}
-        >
-            <pixiNineSliceSprite
-                texture={texture}
-                leftWidth={pad * 2}
-                topHeight={pad * 2}
-                rightWidth={pad * 2}
-                bottomHeight={pad * 2}
-                eventMode="none"
-                layout={{ width: '100%', height: '100%' }}
-            />
-        </pixiContainer>
+        />
     );
 };
 

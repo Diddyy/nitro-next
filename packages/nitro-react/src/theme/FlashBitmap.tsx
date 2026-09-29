@@ -3,6 +3,7 @@ import { forwardRef, Fragment, useState } from 'react';
 
 import { BoxLayout } from './Box';
 import { alphaAt, getTextureAlpha, getTextureRotated, getTextureSilhouette, useLayoutSize } from './hooks';
+import { leafBoxLayout } from './layer';
 import { DynamicStyleEffect, FlashBitmapVars, isHitTarget, multiplyAlphas, multiplyTints, PIVOT_POINTS } from './utils';
 
 export interface FlashBitmapProps {
@@ -16,6 +17,8 @@ export interface FlashBitmapProps {
     alpha?: number;
     blendMode?: BLEND_MODES;
     effect?: DynamicStyleEffect;
+    /** The bitmap takes a dynamic style role, so `effect` can come and go with its host's state. */
+    dynamic?: boolean;
     layout?: BoxLayout;
     visible?: boolean;
     zIndex?: number;
@@ -97,7 +100,7 @@ const placeTile = (pivotPlace: number, window: number, drawn: number, flip: bool
  * `FlashBitmap` is what `ThemeImage` renders when it is given `bitmap` vars; see there.
  */
 export const FlashBitmap = forwardRef<PixiContainer, FlashBitmapProps>(({
-    texture, vars, tint, greyscale = false, alpha, blendMode, effect, layout, visible, zIndex, hitThreshold: hitThresholdProp = 0, eventMode, cursor,
+    texture, vars, tint, greyscale = false, alpha, blendMode, effect, dynamic = false, layout, visible, zIndex, hitThreshold: hitThresholdProp = 0, eventMode, cursor,
     onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
 }, ref) => {
     const [ host, setHost ] = useState<PixiContainer | null>(null);
@@ -109,6 +112,19 @@ export const FlashBitmap = forwardRef<PixiContainer, FlashBitmapProps>(({
     const fitWidth = vars.fitSizeToContents ? Math.trunc(Math.abs(texture.width * zoomX)) : undefined;
     const fitHeight = vars.fitSizeToContents ? Math.trunc(Math.abs(texture.height * zoomY)) : undefined;
     const ownLayout: BoxLayout = { ...layout, ...(fitWidth !== undefined && { width: fitWidth }), ...(fitHeight !== undefined && { height: fitHeight }) };
+    /*
+     * The plain bitmap: at zoom 1, unmirrored, unwrapped, with no etching, dynamic style or alpha
+     * threshold, and on each axis either stretched or in a window the bitmap's own size. Whatever
+     * size its window gets, it is one tile covering the window exactly with nothing drawn around
+     * it - a single sprite stretched over the window's box. Its own bounds are that box, so it is
+     * hit exactly where the rectangle below would be, and not at all when passive.
+     *
+     * Decided from the vars and the stated size, never from the measured one: a node that changed
+     * from a container to a sprite once its size came in was not laid out again, and drew nothing.
+     */
+    const plain = (zoomX === 1) && (zoomY === 1) && ((vars.stretchedX ?? true) || (ownLayout.width === source.width)) && ((vars.stretchedY ?? true) || (ownLayout.height === source.height))
+        && !vars.flipX && !vars.flipY && !vars.wrapX && !vars.wrapY && !(((vars.etchingColor ?? 0) >>> 24) & 0xFF)
+        && !dynamic && !(hitThresholdProp > 0);
     // A size the layout states is known before Yoga runs; one it spans between insets is read back.
     const width = (typeof ownLayout.width === 'number') ? ownLayout.width : measured.width;
     const height = (typeof ownLayout.height === 'number') ? ownLayout.height : measured.height;
@@ -216,6 +232,30 @@ export const FlashBitmap = forwardRef<PixiContainer, FlashBitmapProps>(({
             }
         : (isHitTarget(eventMode) ? new Rectangle(0, 0, width, height) : undefined);
 
+    const setRef = (node: PixiContainer | null) => {
+        setHost(node);
+
+        if (typeof ref === 'function') ref(node);
+        else if (ref) (ref as { current: PixiContainer | null }).current = node;
+    };
+    const pointer = { eventMode, cursor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap };
+
+    if (plain) {
+        return (
+            <pixiSprite
+                ref={setRef}
+                texture={source}
+                tint={resolvedTint}
+                visible={visible}
+                zIndex={zIndex}
+                alpha={resolvedAlpha}
+                blendMode={blendMode}
+                {...pointer}
+                layout={{ ...leafBoxLayout(ownLayout), objectFit: 'fill' }}
+            />
+        );
+    }
+
     const sprite = (key: string, spriteTexture: Texture, x: number, y: number, props: { tint?: string; alpha?: number; blendMode?: BLEND_MODES }) => (
         <pixiSprite
             key={key}
@@ -230,12 +270,7 @@ export const FlashBitmap = forwardRef<PixiContainer, FlashBitmapProps>(({
 
     return (
         <pixiContainer
-            ref={(node) => {
-                setHost(node);
-
-                if (typeof ref === 'function') ref(node);
-                else if (ref) (ref as { current: PixiContainer | null }).current = node;
-            }}
+            ref={setRef}
             visible={visible}
             zIndex={zIndex}
             alpha={resolvedAlpha}
@@ -244,14 +279,7 @@ export const FlashBitmap = forwardRef<PixiContainer, FlashBitmapProps>(({
             y={effect?.y}
             mask={(overflows && mask) ? mask : undefined}
             hitArea={hitArea}
-            eventMode={eventMode}
-            cursor={cursor}
-            onPointerOver={onPointerOver}
-            onPointerOut={onPointerOut}
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
-            onPointerUpOutside={onPointerUpOutside}
-            onPointerTap={onPointerTap}
+            {...pointer}
             layout={ownLayout}
         >
             {overflows && (

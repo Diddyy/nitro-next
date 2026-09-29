@@ -4,6 +4,7 @@ import { Texture } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
 import { PetImageRequest } from '#base/context/catalog';
+import { destroyOwnedTexture } from '#base/utils';
 
 /**
  * `RoomEngine.getPetImage`'s figure string: type, palette and colour in hex, then - only when
@@ -56,7 +57,7 @@ export const usePetImageTexture = (request: PetImageRequest | undefined, onImage
             if (!next) return;
 
             if (cancelled) {
-                next.destroy(true);
+                destroyOwnedTexture(next);
 
                 return;
             }
@@ -98,12 +99,12 @@ export const usePetImageTexture = (request: PetImageRequest | undefined, onImage
             if ((owned === texture) || (owned === latestRef.current)) continue;
 
             ownedRef.current.delete(owned);
-            owned.destroy(true);
+            destroyOwnedTexture(owned);
         }
     });
 
     useEffect(() => () => {
-        for (const owned of ownedRef.current) owned.destroy(true);
+        for (const owned of ownedRef.current) destroyOwnedTexture(owned);
 
         ownedRef.current.clear();
         latestRef.current = undefined;

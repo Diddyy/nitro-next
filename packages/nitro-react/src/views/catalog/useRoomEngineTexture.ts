@@ -2,6 +2,8 @@ import { IGetImageListener } from '@nitrodevco/nitro-api';
 import { Texture } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
+import { destroyOwnedTexture } from '#base/utils';
+
 /**
  * A room engine render taken as a texture - the `getRoomTexture` / `getGenericRoomObjectTexture`
  * counterpart of `useFurnitureImageTexture`, for a render the caller describes itself: `request`
@@ -33,7 +35,7 @@ export const useRoomEngineTexture = (key: string | undefined, request: (listener
             if (!next) return;
 
             if (cancelled) {
-                next.destroy(true);
+                destroyOwnedTexture(next);
 
                 return;
             }
@@ -55,12 +57,12 @@ export const useRoomEngineTexture = (key: string | undefined, request: (listener
             if ((owned === texture) || (owned === latestRef.current)) continue;
 
             ownedRef.current.delete(owned);
-            owned.destroy(true);
+            destroyOwnedTexture(owned);
         }
     });
 
     useEffect(() => () => {
-        for (const owned of ownedRef.current) owned.destroy(true);
+        for (const owned of ownedRef.current) destroyOwnedTexture(owned);
 
         ownedRef.current.clear();
         latestRef.current = undefined;

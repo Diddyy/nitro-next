@@ -4,6 +4,7 @@ import { Texture } from 'pixi.js';
 import { useSyncExternalStore } from 'react';
 
 import { useRoom } from '#base/context/room';
+import { destroyOwnedTexture } from '#base/utils';
 
 /** How big and which way round a pet render is wanted. */
 export interface PetFaceOptions {
@@ -36,7 +37,7 @@ const evictFace = (cacheKey: string) => {
 
     cache.delete(cacheKey);
     GetAssetManager().removeTexture(faceKey(cacheKey));
-    texture.destroy(true);
+    destroyOwnedTexture(texture);
 };
 
 const storeFace = (cacheKey: string, texture: Texture) => {

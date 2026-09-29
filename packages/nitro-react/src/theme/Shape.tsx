@@ -1,6 +1,8 @@
 import { BLEND_MODES, Container as PixiContainer } from 'pixi.js';
 import { forwardRef, useEffect, useMemo, useState } from 'react';
 
+import { destroyOwnedTexture } from '#base/utils';
+
 import { Box, BoxLayout } from './Box';
 import { textureFromCanvas, useLayoutSize } from './hooks';
 import { deriveHsvLayerColor, ThemeLayoutMeta } from './utils';
@@ -51,7 +53,7 @@ export const Shape = forwardRef<PixiContainer, ShapeProps>(({
     }, [ shape, width, height, fill, stroke, strokeThickness, radius ]);
 
     // Owned here: destroyed once the sprite showing its replacement has committed.
-    useEffect(() => () => texture?.destroy(true), [ texture ]);
+    useEffect(() => () => destroyOwnedTexture(texture), [ texture ]);
 
     return (
         <Box

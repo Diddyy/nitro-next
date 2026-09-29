@@ -1,6 +1,8 @@
 import { FederatedPointerEvent, Rectangle, Sprite as PixiSprite, Texture } from 'pixi.js';
 import { useEffect, useMemo, useState } from 'react';
 
+import { destroyOwnedTexture } from '#base/utils';
+
 import { BoxLayout } from '../Box';
 import { useLayoutSize } from '../hooks/useLayoutEvent';
 import { insetStretchAxes } from '../utils/layoutInsetStretch';
@@ -67,7 +69,7 @@ export const FlashText = ({ rendered, layout, visible, alpha, x, y, clipWidth: o
         return new Texture({ source: created.source, frame: new Rectangle(0, 0, width, height) });
     }, [ rendered, clipWidth, clipHeight ]);
 
-    useEffect(() => () => texture.destroy(true), [ texture ]);
+    useEffect(() => () => destroyOwnedTexture(texture), [ texture ]);
 
     const stretchAxes = insetStretchAxes(layout);
     const linked = !!onLink && !!rendered.links?.length;

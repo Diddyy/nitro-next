@@ -1,6 +1,8 @@
 import { BLEND_MODES, Container as PixiContainer } from 'pixi.js';
 import { forwardRef, ReactNode, useEffect, useMemo, useState } from 'react';
 
+import { destroyOwnedTexture } from '#base/utils';
+
 import { Box, BoxLayout } from './Box';
 import { textureFromCanvas, useLayoutSize } from './hooks';
 import { ThemeLayoutMeta } from './utils';
@@ -46,7 +48,7 @@ export const Gradient = forwardRef<PixiContainer, GradientProps>(({
     }, [ width, height, color1, color2, resolvedMode, direction ]);
 
     // Owned here: destroyed once the sprite showing its replacement has committed.
-    useEffect(() => () => texture?.destroy(true), [ texture ]);
+    useEffect(() => () => destroyOwnedTexture(texture), [ texture ]);
 
     return (
         <Box

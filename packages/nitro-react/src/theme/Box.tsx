@@ -115,34 +115,21 @@ export const Box: ForwardRefExoticComponent<BoxProps & RefAttributes<Container>>
                 mask={mask ?? (clips ? (overflowMask ?? undefined) : undefined)}
                 {...props}
             >
-                {clips && !mask && (clipOutset
-                    ? (
-                            // The insets go on a plain container with the rectangle filling it:
-                            // `@pixi/layout` sizes a Graphics from the geometry it holds unless its
-                            // style states a size, so insets on the mask itself leave it the 1x1 it
-                            // draws - and a 1x1 mask hides everything the box holds.
-                            <pixiContainer
-                                eventMode="none"
-                                layout={{ position: 'absolute', left: -clipOutset[0], top: -clipOutset[1], right: -clipOutset[2], bottom: -clipOutset[3] }}
-                            >
-                                <pixiGraphics
-                                    ref={setOverflowMask}
-                                    eventMode="none"
-                                    roundPixels
-                                    layout={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
-                                    draw={(g: Graphics) => { g.clear().rect(0, 0, 1, 1).fill(0xffffff); }}
-                                />
-                            </pixiContainer>
-                        )
-                    : (
-                            <pixiGraphics
-                                ref={setOverflowMask}
-                                eventMode="none"
-                                roundPixels
-                                layout={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
-                                draw={(g: Graphics) => { g.clear().rect(0, 0, 1, 1).fill(0xffffff); }}
-                            />
-                        ))}
+                {clips && !mask && (
+                    <pixiGraphics
+                        ref={setOverflowMask}
+                        eventMode="none"
+                        roundPixels
+                        // With an outset the mask reaches past the box by it on each side. Its size
+                        // is stated as `'auto'` so Yoga takes it from the insets: left unstated it
+                        // would be `@pixi/layout`'s leaf default, `'intrinsic'` - the 1x1 the
+                        // rectangle draws - and a 1x1 mask hides everything the box holds.
+                        layout={clipOutset
+                            ? { position: 'absolute', left: -clipOutset[0], top: -clipOutset[1], right: -clipOutset[2], bottom: -clipOutset[3], width: 'auto', height: 'auto' }
+                            : { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+                        draw={(g: Graphics) => { g.clear().rect(0, 0, 1, 1).fill(0xffffff); }}
+                    />
+                )}
                 {wrapTextChildren(children as ReactNode)}
             </pixiContainer>
         );

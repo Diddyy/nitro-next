@@ -20,6 +20,8 @@
 import { GetVariableFxAssetLibrary, VariableFxRendererRegistry, VariableFxVisualizer } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 
+import { destroyOwnedTexture } from '#base/utils';
+
 import { VariableFxPreviewStatus } from './model/VariableFxPreviewStatus';
 import { variableFxRuntimeConfig, VariableFxState } from './model/VariableFxState';
 
@@ -103,7 +105,7 @@ export class VariableFxPreviewController {
 
     /** Destroys the textures a newer snapshot replaced - call after React committed that snapshot. */
     public releaseRetired(): void {
-        for (const texture of this._retired) texture.destroy(true);
+        for (const texture of this._retired) destroyOwnedTexture(texture);
 
         this._retired = [];
     }

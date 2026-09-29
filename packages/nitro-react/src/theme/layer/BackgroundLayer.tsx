@@ -1,82 +1,51 @@
 import { BoxLayout } from '../Box';
 import { deriveHsvLayerColor, SpriteFrame } from '../utils';
 import { CompositeLayer, CompositeLayerPieceProps } from './CompositeLayer';
-import { NineSliceBorderWidth, NineSliceLayer, NineSliceRepeatAxis } from './NineSliceLayer';
+import { insetLayout, LayerInsets, LayerNodeProps } from './layerLayout';
+import { NineSliceLayer, NineSliceRepeatAxis } from './NineSliceLayer';
 import { SpriteLayer } from './SpriteLayer';
-import { TileInsets, TileLayer } from './TileLayer';
+import { TileLayer } from './TileLayer';
 
+/** One layer of a theme variant's art, as the `theme` bundle's `theme-variants.json` describes it. */
 export type BackgroundLayerConfig
-    = | { kind: 'nineSlice'; textureKey: string; leftWidth: number; topHeight: number; rightWidth: number; bottomHeight: number; borderWidth?: NineSliceBorderWidth; repeat?: NineSliceRepeatAxis }
+    = | { kind: 'nineSlice'; textureKey: string; leftWidth: number; topHeight: number; rightWidth: number; bottomHeight: number; repeat?: NineSliceRepeatAxis }
         | { kind: 'sprite'; textureKey: string; frame?: SpriteFrame }
-        | ({ kind: 'tile'; textureKey: string } & TileInsets)
+        | ({ kind: 'tile'; textureKey: string } & LayerInsets)
         | { kind: 'composite'; pieces: CompositeLayerPieceProps[] }
         /** A recolourable skin (`colorizeMethod="hsv_layer"`): one nine-slice sheet per shade, stacked in order, each tinted with the client's derived colour for its shade. */
         | { kind: 'hsvNineSlice'; layers: { textureKey: string; shade: number }[]; leftWidth: number; topHeight: number; rightWidth: number; bottomHeight: number };
 
-export const BackgroundLayer = ({ layer, tintColor, layout }: {
+/**
+ * Draws one layer. `layout` sizes the layer kinds that fill a box (nine-slice, sprite, a tile
+ * with no insets); a tile placed by insets (a scrollbar lift's grip) and a composite's pieces
+ * place themselves inside the component's box instead. The node props reach the drawn object of
+ * a single-node layer (`isSingleNodeLayer`).
+ */
+export const BackgroundLayer = ({ layer, tintColor, layout, ref, alpha, visible }: {
     layer: BackgroundLayerConfig | undefined;
     tintColor?: string;
     layout?: BoxLayout;
-}) => {
+} & LayerNodeProps) => {
     if (!layer) return null;
 
-    // Each shade layer is an ordinary nine-slice with its own derived tint - on both targets.
-    if (layer.kind === 'hsvNineSlice') {
-        return (
+    switch (layer.kind) {
+        case 'hsvNineSlice': return (
+            // Each shade layer is an ordinary nine-slice with its own derived tint.
             <>
                 {layer.layers.map(shadeLayer => (
-                    <BackgroundLayer
+                    <NineSliceLayer
                         key={shadeLayer.textureKey}
-                        layer={{ kind: 'nineSlice', textureKey: shadeLayer.textureKey, leftWidth: layer.leftWidth, topHeight: layer.topHeight, rightWidth: layer.rightWidth, bottomHeight: layer.bottomHeight }}
+                        textureKey={shadeLayer.textureKey}
+                        leftWidth={layer.leftWidth}
+                        topHeight={layer.topHeight}
+                        rightWidth={layer.rightWidth}
+                        bottomHeight={layer.bottomHeight}
                         tintColor={deriveHsvLayerColor(tintColor, shadeLayer.shade)}
                         layout={layout}
                     />
                 ))}
             </>
         );
-    }
-
-    // A `tile` layer with an explicit `width` (set by `Tiled(...)`, e.g. `ScrollbarSliderBarVertical`'s
-    // grip overlay) positions itself from its own `left`/`top`/`bottom`/`width` inset fields as a
-    // fixed-width strip, on both backends - the `layout` prop passed to this component is for the
-    // other layer kinds (and for a widthless tile), which fill it directly. A `tile` layer with no
-    // `width` (e.g. `Header`'s full-bleed background/shine, built as a raw `{ kind: 'tile', textureKey }`
-    // literal, not through `Tiled(...)`) means "fill the box" - forcing it through the same inset
-    // math would default `width` to `0` and collapse it to nothing.
-    //
-    // The un-declared axis (`height`, here - `Tiled(...)` never takes one) is NOT safe to leave
-    // for Yoga to infer from the opposing `top`/`bottom` insets on the Pixi side: `@pixi/layout`'s
-    // `Layout.defaultStyle` defaults a leaf node's `height` to `"intrinsic"` (its texture's own
-    // natural size) whenever it isn't explicitly set - there's no CSS-style "both offsets set,
-    // height auto -> height = container - top - bottom" behavior for a `pixiTilingSprite`. DOM's
-    // `position: absolute` genuinely does compute that from CSS alone, so this only ever silently
-    // broke Pixi - the grip overlay collapsed to ~10px (the grd texture's own native height)
-    // instead of spanning the thumb, tall thumbs included. Computing it explicitly here (from the
-    // caller's own `layout.height`, when it's a plain number - the caller is the one component
-    // that actually knows the real container size) sidesteps the Yoga default entirely, on both
-    // backends, rather than depending on it.
-    const containerWidth = typeof layout?.width === 'number' ? layout.width : undefined;
-    const containerHeight = typeof layout?.height === 'number' ? layout.height : undefined;
-    const isStrip = layer.kind === 'tile' && (layer.width !== undefined || layer.height !== undefined || layer.left !== undefined || layer.top !== undefined);
-    const tileInsetLayout = layer.kind === 'tile' && isStrip
-        ? {
-                position: 'absolute' as const,
-                left: layer.left ?? 0,
-                top: layer.top ?? 0,
-                ...(layer.width !== undefined
-                    ? { width: layer.width }
-                    : containerWidth !== undefined
-                        ? { width: containerWidth - (layer.left ?? 0) - (layer.right ?? 0) }
-                        : { right: layer.right ?? 0 }),
-                ...(layer.height !== undefined
-                    ? { height: layer.height }
-                    : containerHeight !== undefined
-                        ? { height: containerHeight - (layer.top ?? 0) - (layer.bottom ?? 0) }
-                        : { bottom: layer.bottom ?? 0 }),
-            }
-        : undefined;
-
-    switch (layer.kind) {
         case 'composite': return (
             <CompositeLayer
                 pieces={layer.pieces}
@@ -89,15 +58,37 @@ export const BackgroundLayer = ({ layer, tintColor, layout }: {
                 frame={layer.frame}
                 tintColor={tintColor}
                 layout={layout}
+                ref={ref}
+                alpha={alpha}
+                visible={visible}
             />
         );
-        case 'tile': return (
-            <TileLayer
-                textureKey={layer.textureKey}
-                tintColor={tintColor}
-                layout={tileInsetLayout ?? layout}
-            />
-        );
+        case 'tile': {
+            // A tile with no insets (a header's full-bleed background) fills the box; one with
+            // insets is a strip at them - an axis it gives no size stretches between its edges.
+            const { left, top, right, bottom, width, height } = layer;
+            const placed = [ left, top, right, bottom, width, height ].some(value => value !== undefined);
+
+            return (
+                <TileLayer
+                    textureKey={layer.textureKey}
+                    tintColor={tintColor}
+                    ref={ref}
+                    alpha={alpha}
+                    visible={visible}
+                    layout={placed
+                        ? insetLayout({
+                                left: left ?? 0,
+                                top: top ?? 0,
+                                right: (width === undefined) ? (right ?? 0) : undefined,
+                                bottom: (height === undefined) ? (bottom ?? 0) : undefined,
+                                width,
+                                height,
+                            })
+                        : layout}
+                />
+            );
+        }
         case 'nineSlice': return (
             <NineSliceLayer
                 textureKey={layer.textureKey}
@@ -108,6 +99,9 @@ export const BackgroundLayer = ({ layer, tintColor, layout }: {
                 repeat={layer.repeat}
                 tintColor={tintColor}
                 layout={layout}
+                ref={ref}
+                alpha={alpha}
+                visible={visible}
             />
         );
         default: return null;

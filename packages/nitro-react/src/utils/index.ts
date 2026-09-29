@@ -9,6 +9,7 @@ export * from './catalogSeasonalCurrency';
 export * from './clubCenter';
 export * from './clubOffers';
 export * from './configReader';
+export * from './destroyOwnedTexture';
 export * from './FixedSizeStack';
 export * from './flatCategoryName';
 export * from './floorPlanModel';

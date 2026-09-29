@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 
 import { ChatBubbleTextRender, renderChatBubbleText } from '#base/chat';
+import { destroyOwnedTexture } from '#base/utils';
 
 /**
  * Rasterises a bubble's markup through the Flash text renderer and owns the resulting texture -
@@ -9,7 +10,7 @@ import { ChatBubbleTextRender, renderChatBubbleText } from '#base/chat';
 export const useChatBubbleText = (markup: string, fontFace: string, fontSize: number, color: number, wrapWidth: number): ChatBubbleTextRender | undefined => {
     const render = useMemo(() => renderChatBubbleText(markup, fontFace, fontSize, color, wrapWidth), [ markup, fontFace, fontSize, color, wrapWidth ]);
 
-    useEffect(() => () => render?.texture.destroy(true), [ render ]);
+    useEffect(() => () => destroyOwnedTexture(render?.texture), [ render ]);
 
     return render;
 };

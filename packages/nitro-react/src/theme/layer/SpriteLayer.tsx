@@ -1,9 +1,11 @@
+import { Ref } from 'react';
+
 import { BoxLayout } from '../Box';
 import { getCroppedTexture, usePixiTexture } from '../hooks';
 import { FillLayout, SpriteFrame, spriteLayoutFromFrame } from '../utils';
-import { BackgroundLayerConfig } from './BackgroundLayer';
+import { LayerNodeProps } from './layerLayout';
 
-export interface SpriteLayerProps {
+export interface SpriteLayerProps extends LayerNodeProps {
     textureKey: string | undefined;
     /** Crop a sub-region out of the texture (a shared spritesheet) instead of showing it whole -
      *  the same cutout `ThemeImage`/`BubblePointer` already do their own way, exposed here so a
@@ -14,7 +16,7 @@ export interface SpriteLayerProps {
     layout?: BoxLayout;
 }
 
-const SpriteLayer = ({ textureKey, frame, tintColor, layout }: SpriteLayerProps) => {
+export const SpriteLayer = ({ textureKey, frame, tintColor, layout, ref, alpha, visible }: SpriteLayerProps) => {
     const baseTexture = usePixiTexture(textureKey);
     // A sub-frame shares the base's source; `getCroppedTexture` hands back the same Texture
     // object for the same rect every time, so remounts allocate nothing.
@@ -24,14 +26,13 @@ const SpriteLayer = ({ textureKey, frame, tintColor, layout }: SpriteLayerProps)
 
     return (
         <pixiSprite
+            ref={ref as Ref<never>}
             texture={texture}
             tint={tintColor}
+            alpha={alpha}
+            visible={visible}
             eventMode="none"
             layout={spriteLayoutFromFrame(frame, layout) ?? FillLayout}
         />
     );
 };
-
-const Stretch = (textureKey: string, frame?: SpriteFrame): BackgroundLayerConfig => ({ kind: 'sprite', textureKey, frame });
-
-export { SpriteLayer, Stretch };

@@ -1,7 +1,7 @@
 import { Container as PixiContainer } from 'pixi.js';
 import { forwardRef, ForwardRefExoticComponent, RefAttributes } from 'react';
 
-import { Box } from './Box';
+import { Box, BoxLayout } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { CloseButton } from './CloseButton';
 import { useThemeVariant } from './hooks';
@@ -92,38 +92,36 @@ export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiC
          * whatever else the header carries, and a control that joined it would push the caption
          * off the header's centre.
          */
+        // `header_title_text`'s vertical place - see `captionTop` - and its own `margins`, which
+        // both `habbo_window_layout_header` and `_3` give as 8 either side. `@pixi/layout` defaults
+        // `flexDirection` to `row`, so the vertical placement is `alignItems`.
+        const captionPlacement: BoxLayout = {
+            ...(config.captionTop !== undefined
+                ? { alignItems: 'flex-start', paddingTop: config.captionTop }
+                : { alignItems: 'center' }),
+            paddingLeft: 8,
+            paddingRight: 8,
+        };
         const titleNode = config.captionAt
             ? title && <Box layout={{ position: 'absolute', left: config.captionAt.left, top: config.captionAt.top }}>{title}</Box>
-            : (
-                    <Box layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch' }}>
-                        {title && (
-                            <Box layout={{
-                                position: 'relative',
-                                height: '100%',
-                                // `@pixi/layout` defaults `flexDirection` to `row`, so the caption's
-                                // vertical placement is `alignItems` - `justifyContent` is across
-                                // the box, and setting the offset on that one left the caption
-                                // centred inside a box the padding had merely shortened.
-                                justifyContent: 'center',
-                                // At the variant's own offset down the header where its layout has
-                                // been read, and centred in the header where it has not - see
-                                // `captionTop`. Either way the box spans the header, so a
-                                // `background="true"` label's chip is the full title bar.
-                                ...(config.captionTop !== undefined
-                                    ? { alignItems: 'flex-start', paddingTop: config.captionTop }
-                                    : { alignItems: 'center' }),
-                                // `header_title_text`'s own `margins`, which both
-                                // `habbo_window_layout_header` and `_3` give as 8 either side.
-                                paddingLeft: 8,
-                                paddingRight: 8,
-                            }}
-                            >
-                                { config.needsBgChip && <ColorLayer color={resolvedTint} /> }
+            : title && (config.needsBgChip
+                ? (
+                        // A `background="true"` label's chip is the caption's own box - the text and
+                        // its margins - so the caption keeps a box of its own, centred in the header.
+                        <Box layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch' }}>
+                            <Box layout={{ position: 'relative', height: '100%', justifyContent: 'center', ...captionPlacement }}>
+                                <ColorLayer color={resolvedTint} />
                                 {title}
                             </Box>
-                        )}
-                    </Box>
-                );
+                        </Box>
+                    )
+                : (
+                        // Centred across the header inside equal margins: the same place as a
+                        // caption box centred in the header, with no box of its own.
+                        <Box layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, flexDirection: 'row', justifyContent: 'center', ...captionPlacement }}>
+                            {title}
+                        </Box>
+                    ));
         // `helpPage`'s setter: the help button is visible while there is a page. The item list it
         // shares with the close button keeps its right edge (`on_resize_align_right`), so the help
         // button sits `spacing` left of the close button.
@@ -134,36 +132,34 @@ export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiC
                 layout={{ marginRight: CONTROLS_SPACING }}
             />
         );
-        const closeNode = config.closeAt
+        // The `_CONTROLS` item list: at the variant's pinned place, or on the right edge at the
+        // list's own `y` (see `controlsTop`) - a header layout with no item list leaves that out,
+        // and the buttons centre in the header. A variant with a close button and nothing else to
+        // list places the close button there itself - by the variant, not by whether a help page
+        // is set now, so the button is not swapped for another node while the header is mounted.
+        const controlsAt: BoxLayout = config.closeAt
+            ? { position: 'absolute', right: config.closeAt.right, top: config.closeAt.top }
+            : { position: 'absolute', right: 0, ...(config.controlsTop !== undefined && { top: config.controlsTop }) };
+        const listed = !!config.helpButton || (!config.closeAt && !!config.needsBgChip);
+        const closeNode = listed
             ? (
-                    <Box layout={{ position: 'absolute', right: config.closeAt.right, top: config.closeAt.top, flexDirection: 'row' }}>
+                    <Box layout={{ ...controlsAt, flexDirection: 'row', ...(!config.closeAt && { paddingLeft: 2, alignItems: 'center' }) }}>
+                        { !config.closeAt && config.needsBgChip && <ColorLayer color={resolvedTint} /> }
                         {helpNode}
                         {closeButtonVisible && <CloseButton onPointerTap={onClose} />}
                     </Box>
                 )
-            : (
-                    <Box layout={{
-                        position: 'absolute',
-                        right: 0,
-                        // The `_CONTROLS` item list's own `y` - see `controlsTop`. A header layout
-                        // with no item list leaves it out, and the buttons centre in the header.
-                        ...(config.controlsTop !== undefined && { top: config.controlsTop }),
-                        paddingLeft: 2,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                    }}
-                    >
-                        { config.needsBgChip && <ColorLayer color={resolvedTint} /> }
-                        {helpNode}
-                        {closeButtonVisible && <CloseButton onPointerTap={onClose} />}
-                    </Box>
-                );
+            : closeButtonVisible && (
+                <CloseButton
+                    onPointerTap={onClose}
+                    layout={controlsAt}
+                />
+            );
 
         return (
             <Box
                 ref={ref}
                 visible={visible}
-                {...handlers}
                 layout={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -173,22 +169,19 @@ export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiC
                 }}
                 {...handlers}
             >
-                {resolvedLayer && (
-                    <BackgroundLayer
-                        layer={resolvedLayer}
-                        tintColor={resolvedTint}
-                    />
-                )}
-                {resolvedOverlay && <BackgroundLayer layer={resolvedOverlay} />}
+                <BackgroundLayer
+                    layer={resolvedLayer}
+                    tintColor={resolvedTint}
+                />
+                <BackgroundLayer layer={resolvedOverlay} />
                 <VariantCascadeProvider map={ownCascade}>
                     {titleNode}
                     {onMenu && config.menuButton && (
-                        <Box layout={{ position: 'absolute', left: config.menuButton.left, top: config.menuButton.top }}>
-                            <CloseButton
-                                variant={config.menuButton.variant}
-                                onPointerTap={onMenu}
-                            />
-                        </Box>
+                        <CloseButton
+                            variant={config.menuButton.variant}
+                            onPointerTap={onMenu}
+                            layout={{ position: 'absolute', left: config.menuButton.left, top: config.menuButton.top }}
+                        />
                     )}
                     {closeNode}
                 </VariantCascadeProvider>

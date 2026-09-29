@@ -171,6 +171,7 @@ export const ThemeImage = forwardRef<PixiContainer, ImageProps>(({
                 alpha={alpha}
                 blendMode={blendMode}
                 effect={effect}
+                dynamic={!!dynamicRole}
                 layout={layout}
                 visible={visible}
                 zIndex={zIndex}

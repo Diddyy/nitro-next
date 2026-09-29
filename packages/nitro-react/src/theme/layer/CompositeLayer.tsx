@@ -1,14 +1,8 @@
 import { usePixiTexture } from '../hooks';
-import { BackgroundLayerConfig } from './BackgroundLayer';
+import { insetLayout, LayerInsets } from './layerLayout';
 
-export interface CompositeLayerPieceProps {
+export interface CompositeLayerPieceProps extends LayerInsets {
     textureKey: string;
-    top?: number;
-    left?: number;
-    right?: number;
-    bottom?: number;
-    width?: number;
-    height?: number;
     /** Centre on the axis that has no inset (a Flash skin entity scaled `center`) instead of pinning it to the start. */
     alignSelf?: 'center';
 }
@@ -33,25 +27,12 @@ const CompositeLayerPieceSprite = ({ piece, tintColor }: { piece: CompositeLayer
             texture={texture}
             tint={tintColor}
             eventMode="none"
-            layout={{ position: 'absolute', top, left, right: piece.right, bottom: piece.bottom, width: piece.width, height: piece.height, alignSelf: piece.alignSelf }}
+            layout={{ ...insetLayout({ ...piece, left, top }), alignSelf: piece.alignSelf }}
         />
     );
 };
 
-const Composite = (pieces: CompositeLayerPieceProps[]): BackgroundLayerConfig => ({ kind: 'composite', pieces });
-
-const CompositePiece = (textureKey: string, top?: number, left?: number, right?: number, bottom?: number, width?: number, height?: number, alignSelf?: 'center'): CompositeLayerPieceProps => ({
-    textureKey,
-    top,
-    left,
-    right,
-    bottom,
-    width,
-    height,
-    alignSelf,
-});
-
-const CompositeLayer = ({ pieces, tintColor }: {
+export const CompositeLayer = ({ pieces, tintColor }: {
     pieces: CompositeLayerPieceProps[];
     tintColor?: string;
 }) => (
@@ -65,5 +46,3 @@ const CompositeLayer = ({ pieces, tintColor }: {
         ))}
     </>
 );
-
-export { Composite, CompositeLayer, CompositePiece };

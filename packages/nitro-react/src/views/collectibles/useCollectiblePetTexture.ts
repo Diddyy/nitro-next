@@ -3,6 +3,8 @@ import { GetRoomContentLoader, GetRoomEngine, PetFigureData } from '@nitrodevco/
 import { Texture } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
+import { destroyOwnedTexture } from '#base/utils';
+
 /** `PetImageWidget`'s defaults: `pet_image:direction` southeast (2, so 90 degrees), `pet_image:scale` 64, posture `std`. */
 export const COLLECTIBLE_PET_DIRECTION_DEFAULT = 90;
 const PET_POSTURE = 'std';
@@ -40,7 +42,7 @@ export const useCollectiblePetTexture = (figure: string | undefined, direction: 
             if (!next) return;
 
             if (cancelled) {
-                next.destroy(true);
+                destroyOwnedTexture(next);
 
                 return;
             }
@@ -63,12 +65,12 @@ export const useCollectiblePetTexture = (figure: string | undefined, direction: 
             if ((owned === texture) || (owned === latestRef.current)) continue;
 
             ownedRef.current.delete(owned);
-            owned.destroy(true);
+            destroyOwnedTexture(owned);
         }
     });
 
     useEffect(() => () => {
-        for (const owned of ownedRef.current) owned.destroy(true);
+        for (const owned of ownedRef.current) destroyOwnedTexture(owned);
 
         ownedRef.current.clear();
         latestRef.current = undefined;

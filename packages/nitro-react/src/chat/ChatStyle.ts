@@ -1,6 +1,8 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Point, Rectangle, Texture } from 'pixi.js';
 
+import { destroyOwnedTexture } from '#base/utils';
+
 import { ChatStyleDefinition } from './ChatStyleDefinitions';
 
 /** Tinted backgrounds kept per style - past this the least recently used colour is rebuilt on demand. */
@@ -154,7 +156,7 @@ export class ChatStyle implements IChatStyle {
 
         this._tintedBackgrounds.delete(color);
         GetAssetManager().removeTexture(this.tintedBackgroundKey(color));
-        texture.destroy(true);
+        destroyOwnedTexture(texture);
     }
 
     public get id(): number {

@@ -1,21 +1,14 @@
 import { Texture } from 'pixi.js';
-import { useMemo } from 'react';
+import { Ref, useMemo } from 'react';
 
 import { BoxLayout } from '../Box';
 import { getCroppedTexture, usePixiTexture } from '../hooks';
 import { FillLayout } from '../utils';
-import { BackgroundLayerConfig } from './BackgroundLayer';
+import { LayerNodeProps } from './layerLayout';
 
 export type NineSliceRepeatAxis = 'x' | 'y';
 
-export interface NineSliceBorderWidth {
-    top?: number;
-    right?: number;
-    bottom?: number;
-    left?: number;
-}
-
-export interface NineSliceLayerProps {
+export interface NineSliceLayerProps extends LayerNodeProps {
     textureKey: string | undefined;
     leftWidth: number;
     topHeight: number;
@@ -28,7 +21,7 @@ export interface NineSliceLayerProps {
 
 const cropTexture = (base: Texture, x: number, y: number, w: number, h: number): Texture => getCroppedTexture(base, { x, y, width: Math.max(1, w), height: Math.max(1, h) });
 
-const TiledNineSlice = ({ texture, leftWidth, topHeight, rightWidth, bottomHeight, repeat, tintColor, layout }: { texture: Texture; leftWidth: number; topHeight: number; rightWidth: number; bottomHeight: number; repeat: NineSliceRepeatAxis; tintColor?: string; layout?: BoxLayout }) => {
+const TiledNineSlice = ({ texture, leftWidth, topHeight, rightWidth, bottomHeight, repeat, tintColor, layout, ref, alpha, visible }: { texture: Texture; leftWidth: number; topHeight: number; rightWidth: number; bottomHeight: number; repeat: NineSliceRepeatAxis; tintColor?: string; layout?: BoxLayout } & LayerNodeProps) => {
     const { width, height } = texture;
 
     const pieces = useMemo(() => {
@@ -51,7 +44,12 @@ const TiledNineSlice = ({ texture, leftWidth, topHeight, rightWidth, bottomHeigh
     // the same container the caller's layout sizes, not a nested one.
     if (repeat === 'y') {
         return (
-            <pixiContainer layout={{ flexDirection: 'column', ...(layout ?? FillLayout) }}>
+            <pixiContainer
+                ref={ref}
+                alpha={alpha}
+                visible={visible}
+                layout={{ flexDirection: 'column', ...(layout ?? FillLayout) }}
+            >
                 <pixiSprite
                     texture={pieces.start}
                     tint={tintColor}
@@ -75,7 +73,12 @@ const TiledNineSlice = ({ texture, leftWidth, topHeight, rightWidth, bottomHeigh
     }
 
     return (
-        <pixiContainer layout={{ flexDirection: 'row', ...(layout ?? FillLayout) }}>
+        <pixiContainer
+            ref={ref}
+            alpha={alpha}
+            visible={visible}
+            layout={{ flexDirection: 'row', ...(layout ?? FillLayout) }}
+        >
             <pixiSprite
                 texture={pieces.start}
                 tint={tintColor}
@@ -98,7 +101,7 @@ const TiledNineSlice = ({ texture, leftWidth, topHeight, rightWidth, bottomHeigh
     );
 };
 
-const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, bottomHeight, tintColor, layout, repeat }: NineSliceLayerProps) => {
+export const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, bottomHeight, tintColor, layout, repeat, ref, alpha, visible }: NineSliceLayerProps) => {
     // A repeating middle piece goes through `TilingSprite`, which needs a texture that is its
     // own source (see `getStandaloneThemeTexture`); the plain `NineSliceSprite` is happy with
     // the atlas-backed region.
@@ -117,33 +120,26 @@ const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, bottomHe
                 repeat={repeat}
                 tintColor={tintColor}
                 layout={layout}
+                ref={ref}
+                alpha={alpha}
+                visible={visible}
             />
         );
     }
 
     return (
         <pixiNineSliceSprite
+            ref={ref as Ref<never>}
             texture={texture}
             leftWidth={leftWidth}
             topHeight={topHeight}
             rightWidth={rightWidth}
             bottomHeight={bottomHeight}
             tint={tintColor}
+            alpha={alpha}
+            visible={visible}
             eventMode="none"
             layout={layout ?? FillLayout}
         />
     );
 };
-const NineSlice = (textureKey: string, leftWidth: number, topHeight: number, rightWidth: number, bottomHeight: number, borderWidth?: NineSliceBorderWidth, repeat?: NineSliceRepeatAxis): BackgroundLayerConfig => (
-    { kind: 'nineSlice', textureKey, leftWidth, topHeight, rightWidth, bottomHeight, borderWidth, repeat }
-);
-
-/**
- * A recolourable border (`colorizeMethod="hsv_layer"` in the skin): `shades` in the skin's layout
- * order (bottom first), each drawn from `<baseKey>-shade-<shade>-src` and tinted with the
- * client's derived colour for that shade (see utils/hsvLayerColor.ts).
- */
-const HsvNineSlice = (baseKey: string, shades: number[], leftWidth: number, topHeight: number, rightWidth: number, bottomHeight: number): BackgroundLayerConfig => (
-    { kind: 'hsvNineSlice', layers: shades.map(shade => ({ textureKey: `${baseKey}-shade-${shade}-src`, shade })), leftWidth, topHeight, rightWidth, bottomHeight }
-);
-export { HsvNineSlice, NineSlice, NineSliceLayer };

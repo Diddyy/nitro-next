@@ -16,7 +16,7 @@ import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 
 import { Box, BoxLayout } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, Stretch } from './layer';
+import { BackgroundLayer, SpriteLayer } from './layer';
 import { ScrollArea } from './ScrollArea';
 import { DROPMENU_EXPANDED_MARGIN, DROPMENU_EXPANDED_PADDING_ITEM_HEIGHT, ThemeProps, ThemeVariant, ThemeWithStatesVariant, wrapTextChildren } from './utils';
 
@@ -86,8 +86,8 @@ export const DropmenuFrame: ForwardRefExoticComponent<DropmenuFrameProps & RefAt
                     />
                 )}
                 {arrowTextureKey && (
-                    <BackgroundLayer
-                        layer={Stretch(arrowTextureKey)}
+                    <SpriteLayer
+                        textureKey={arrowTextureKey}
                         layout={{ position: 'absolute', ...(config.arrowLayout ?? DEFAULT_ARROW_LAYOUT) }}
                     />
                 )}
