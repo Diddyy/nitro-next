@@ -2,9 +2,11 @@ import { ISimpleRoomObjectData, RoomObjectCategoryEnum, RoomObjectUserType, Room
 import { ReactNode, useState } from 'react';
 
 import { useOwnRoomObjectId, useRoom, useRoomBotsActions, useRoomFurnitureContextMenu, useRoomIsPlayingGame, useRoomObjectIdByWebId, useRoomStore } from '#base/context/room';
+import { useConfigValue } from '#base/context/system';
 import { useWiredStore } from '#base/context/wired';
 import { useRoomEventDispatcher } from '#base/hooks';
 import { FurnitureContextMenuView } from '#base/views/room-widgets/furniture/FurnitureContextMenuView';
+import { AvatarMenuTemplateView } from '#base/views/room-widgets/object-menu/AvatarMenuTemplateView';
 import { DecorateModeBubbleView } from '#base/views/room-widgets/object-menu/DecorateModeBubbleView';
 import { InfoBubbleAvatarView } from '#base/views/room-widgets/object-menu/InfoBubbleAvatarView';
 import { InfoBubbleOwnAvatarView } from '#base/views/room-widgets/object-menu/InfoBubbleOwnAvatarView';
@@ -37,6 +39,8 @@ export const RoomObjectMenuWidget = () => {
     const isDecorating = useRoomStore(x => x.isDecorating);
     const isPlayingGame = useRoomIsPlayingGame();
     const forcedBotMenuId = useRoomStore(x => x.forcedBotMenuId);
+    // The window templates spike: the menu over another user drawn from its Flash template.
+    const templateAvatarMenu = useConfigValue<boolean>('ui.templates.avatarMenu') === true;
     // The room object's type is a pet's breed name, not its kind; the user list knows the kind.
     const selectedUserType = useRoomStore(x => (selectedData ? x.usersByRoomObjectId[selectedData.objectId]?.userType : undefined));
     const { setForcedBotMenuId } = useRoomBotsActions();
@@ -164,12 +168,19 @@ export const RoomObjectMenuWidget = () => {
                             );
                         }
 
-                        return bubble(
-                            <InfoBubbleAvatarView
-                                objectData={selectedData}
-                                onClose={onClose}
-                            />,
-                        );
+                        return bubble(templateAvatarMenu
+                            ? (
+                                    <AvatarMenuTemplateView
+                                        objectData={selectedData}
+                                        onClose={onClose}
+                                    />
+                                )
+                            : (
+                                    <InfoBubbleAvatarView
+                                        objectData={selectedData}
+                                        onClose={onClose}
+                                    />
+                                ));
                 }
 
                 return null;

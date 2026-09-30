@@ -7,6 +7,8 @@
 import './themeHost';
 
 export * from './CountdownWidget';
+export * from './TemplateWindow';
+export * from './useTemplate';
 export * from '@nitrodevco/nitro-theme';
 // Over the theme's own: the client's puts its room stage under the UI.
 export { PixiApplicationRoot } from './PixiApplicationRoot';

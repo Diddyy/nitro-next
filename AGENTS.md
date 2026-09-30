@@ -40,6 +40,7 @@ Use the relevant references below; a small edit does not require reading every g
 | Parsers, composers or packet registration | [Packets](docs/packets.md) |
 | Wired definitions, setup views or stores | [Wired](docs/wired.md) |
 | Revision updates or copied reference tables | [Staying in step](docs/staying-in-step.md) |
+| Unported or partly ported features, and picking work | [Feature gaps](docs/feature-gaps.md) |
 | Room rendering, water, zoom or GPU behavior | [Renderer verification](docs/renderer-parity.md) |
 | Shared test and diagnostic commands | [Developer tools directory](tools/) |
 

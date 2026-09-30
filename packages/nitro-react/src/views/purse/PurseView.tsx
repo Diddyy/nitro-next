@@ -32,18 +32,7 @@ export const PurseView = () => {
     const earningsIndicatorVisible = useEarningsStore(x => x.showingIndicator);
     const { send } = useWebSocketContext();
     const t = useTranslation();
-    const { showWindow } = useWindowActions();
     const [ settingsVisible, setSettingsVisible ] = useState(false);
-    // `SettingsExtension`'s two optional rows: `getBoolean` defaults to false, so a hotel that
-    // does not set the key does not get the row.
-    const discordEnabled = useConfigValue<boolean>('discord.enabled') === true;
-    const wordFilterEnabled = useConfigValue<boolean>('user.custom.filter.enabled') === true;
-
-    /** Every pick opens its window and folds the list away (`toggleSettingVisibility`). */
-    const openSetting = (open: () => void) => () => {
-        open();
-        setSettingsVisible(false);
-    };
 
     // `purse_itemlist`'s three rows, in the layout's order.
     const kinds = [
@@ -219,41 +208,62 @@ export const PurseView = () => {
                     </ContainerButton>
                 </Box>
             </Region>
-            {settingsVisible && (
-                <ToolbarSettingsView entries={[
-                    {
-                        key: 'sound',
-                        label: t('widget.memenu.settings.audio', 'Sound settings'),
-                        onSelect: openSetting(() => showWindow('toolbar_sound_settings')),
-                    },
-                    ...(discordEnabled
-                        ? [ {
-                                key: 'discord',
-                                label: t('widget.memenu.settings.discord', 'Discord settings'),
-                                // `openDiscordSettingsWindow` is a link event, not a window of its own.
-                                onSelect: openSetting(() => openClientLink(send, 'discord/settings/open')),
-                            } ]
-                        : []),
-                    {
-                        key: 'chat',
-                        label: t('widget.memenu.settings.chat', 'Chat settings'),
-                        onSelect: openSetting(() => showWindow('toolbar_chat_settings')),
-                    },
-                    {
-                        key: 'other',
-                        label: t('widget.memenu.settings.other', 'Other settings'),
-                        onSelect: openSetting(() => showWindow('toolbar_other_settings')),
-                    },
-                    ...(wordFilterEnabled
-                        ? [ {
-                                key: 'word_filter',
-                                label: t('word_filter.settings.title', 'Word filter'),
-                                onSelect: openSetting(() => showWindow('toolbar_word_filter')),
-                            } ]
-                        : []),
-                ]}
-                />
-            )}
+            {settingsVisible && <PurseSettingsList onClose={() => setSettingsVisible(false)} />}
         </>
+    );
+};
+
+/**
+ * The settings list the purse's settings button drops (`HabboToolbar.toggleSettingVisibility`):
+ * every pick opens its window and folds the list away.
+ */
+export const PurseSettingsList = ({ onClose }: { onClose: () => void }) => {
+    const { send } = useWebSocketContext();
+    const t = useTranslation();
+    const { showWindow } = useWindowActions();
+    // `SettingsExtension`'s two optional rows: `getBoolean` defaults to false, so a hotel that
+    // does not set the key does not get the row.
+    const discordEnabled = useConfigValue<boolean>('discord.enabled') === true;
+    const wordFilterEnabled = useConfigValue<boolean>('user.custom.filter.enabled') === true;
+
+    const openSetting = (open: () => void) => () => {
+        open();
+        onClose();
+    };
+
+    return (
+        <ToolbarSettingsView entries={[
+            {
+                key: 'sound',
+                label: t('widget.memenu.settings.audio', 'Sound settings'),
+                onSelect: openSetting(() => showWindow('toolbar_sound_settings')),
+            },
+            ...(discordEnabled
+                ? [ {
+                        key: 'discord',
+                        label: t('widget.memenu.settings.discord', 'Discord settings'),
+                        // `openDiscordSettingsWindow` is a link event, not a window of its own.
+                        onSelect: openSetting(() => openClientLink(send, 'discord/settings/open')),
+                    } ]
+                : []),
+            {
+                key: 'chat',
+                label: t('widget.memenu.settings.chat', 'Chat settings'),
+                onSelect: openSetting(() => showWindow('toolbar_chat_settings')),
+            },
+            {
+                key: 'other',
+                label: t('widget.memenu.settings.other', 'Other settings'),
+                onSelect: openSetting(() => showWindow('toolbar_other_settings')),
+            },
+            ...(wordFilterEnabled
+                ? [ {
+                        key: 'word_filter',
+                        label: t('word_filter.settings.title', 'Word filter'),
+                        onSelect: openSetting(() => showWindow('toolbar_word_filter')),
+                    } ]
+                : []),
+        ]}
+        />
     );
 };

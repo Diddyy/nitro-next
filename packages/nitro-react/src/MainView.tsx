@@ -28,14 +28,18 @@ import { NotificationsExtensionAnchor } from './views/notifications/Notification
 import { NotificationsView } from './views/notifications/NotificationsView';
 import { SafetyLockedNotificationView } from './views/notifications/SafetyLockedNotificationView';
 import { ActivityPointsView } from './views/purse/ActivityPointsView';
+import { PurseTemplateView } from './views/purse/PurseTemplateView';
 import { PurseView } from './views/purse/PurseView';
 import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInputView';
 import { SystemDialogsView } from './views/system/SystemDialogsView';
+import { TemplatePreviewView } from './views/system/TemplatePreviewView';
 import { ToolbarView } from './views/toolbar/ToolbarView';
 
 export const MainView = () => {
     const { setReady, send } = useWebSocketContext();
     const maxFPS = useConfigValue<number>('fps.limit') ?? 60;
+    // The window templates spike: the purse drawn from its Flash template instead of `PurseView`.
+    const templatePurse = useConfigValue<boolean>('ui.templates.purse') === true;
 
     // Every connection-lifetime packet handler, attached before the effect below lets the queued packets through.
     useRegisterHandlers(registerHandlers);
@@ -74,7 +78,7 @@ export const MainView = () => {
                     alignItems: 'flex-end',
                 }}
                 >
-                    <PurseView />
+                    {templatePurse ? <PurseTemplateView /> : <PurseView />}
                     <Box layout={{
                         flex: 1,
                         flexDirection: 'column',
@@ -93,6 +97,7 @@ export const MainView = () => {
                     <NotificationsExtensionAnchor />
                 </Box>
                 <AvatarEditorComponent />
+                <TemplatePreviewView />
                 <CatalogWrapper catalogType={CatalogTypeEnum.Normal} />
                 <CatalogWrapper catalogType={CatalogTypeEnum.BuildersClub} />
                 <InventoryComponent />

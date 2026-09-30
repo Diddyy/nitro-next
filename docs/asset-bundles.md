@@ -31,6 +31,13 @@ own config key (`HOTEL_BUNDLE_KEYS` in `utils/assetBundles.ts`):
 | `room-object-visualization` | `renderer.assets.url` | the avatar additions and the Variable FX bitmaps with their tables |
 | `effect-icons` | `effect.icons.url` | the effect icons, `effect-icons-fx_icon_<id>` |
 
+The window templates are Studio's too, one bundle per Flash library rather than one file:
+`templates-<library>`, from `ui.templates.url` with `%libname%` the library (`loadTemplateBundle`).
+Each holds `templates.json` - the library's `<layout>`s converted by the theme's `layoutToTemplate`,
+keyed `<library>/<asset>` (`habbo-toolbar-com/purse_xml`) - and the library's own bitmaps, named
+`<library>-<asset>`. A bitmap a layout finds in the window manager's library is in
+`templates-habbo-window-manager-com` only, which `useTemplate` loads with any library's.
+
 The client ships no copy: with a key unset, that bundle is not loaded - and without `theme`, no
 window has its chrome.
 

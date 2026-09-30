@@ -75,6 +75,18 @@ export const loadAssetBundle = async (name: string): Promise<boolean> => {
 };
 
 /**
+ * A Flash library's window templates, `templates-<library>` - which Nitro Studio publishes from the
+ * client release, one bundle per library, at `ui.templates.url` with `%libname%` the library. Loaded
+ * the first time a template of the library is drawn (`useTemplate`). `false` without a request when
+ * the config names no url: the client ships none.
+ */
+export const loadTemplateBundle = async (library: string): Promise<boolean> => {
+    const url = GetConfigValue<string>('ui.templates.url');
+
+    return !!url && !!await GetAssetManager().downloadAssetBundle(`templates-${library}`, url.replace('%libname%', library));
+};
+
+/**
  * The boot load. A bundle that fails is logged and skipped rather than failing the boot - the
  * client comes up missing that bundle's art, which is far easier to diagnose than a blank
  * screen, and every other bundle still lands.

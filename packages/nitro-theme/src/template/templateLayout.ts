@@ -1,0 +1,1310 @@
+/**
+ * Where each element of a template ends up once its window's rules have run: the rect a
+ * `WindowController` settles on after `WindowParser` builds it, rather than the rect its XML gives.
+ *
+ * It ports the part of Flash's window system that decides where windows end up, so a template is
+ * laid out by the same rules and in the same order: `WindowController`'s rectangle, parent/child
+ * and resize events, the text controllers' auto sizing, `ItemListController`'s arrangement and a
+ * frame's content area - built the way `WindowParser.parseSingleWindowEntity` builds a layout.
+ *
+ * Only what moves or sizes a window is kept: no drawing, graphics contexts, mouse or dynamic
+ * styles. The "pre" events (`WINDOW_EVENT_RESIZE`, `RELOCATE`) are left out, as nothing here
+ * prevents them. Each window type's own skin layout (`WindowFactory` element descriptions) is left
+ * to the theme's components, except a frame's content area, which children are placed in.
+ *
+ * Not yet: item grids and selector lists (the renderer flows their items), markup texts, a text's
+ * layout while its caption is still empty, and a scrollable list's scrollbar taking its width.
+ *
+ * Kept free of runtime imports so it runs under Node as it stands.
+ */
+import type { TemplateElement, TemplateValue } from './templateData';
+
+export interface TemplateRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** The window clips its children (`clipping`, true by default) and one reaches outside it: the renderer masks it. */
+    clip?: boolean;
+    /** A scrollable list's or grid's parts, which the renderer scrolls its items in. */
+    scroll?: TemplateScroll;
+}
+
+/**
+ * A scrollable window's parts as its window layout placed them, in its own coordinates: the inner list
+ * its items scroll in, the scrollbar while it shows, and the items' extent - the list's content.
+ */
+export interface TemplateScroll {
+    viewport: { x: number; y: number; width: number; height: number };
+    scrollbar?: { x: number; y: number; width: number; height: number; style?: string };
+    content: { width: number; height: number };
+}
+
+/** A text field's size as Flash lays it out: `TextField.width` / `height`, gutters included. */
+export interface TemplateTextSize {
+    width: number;
+    height: number;
+    /** `TextField.textWidth`: the text alone, without the gutters. */
+    textWidth?: number;
+}
+
+export interface TemplateLayoutInput {
+    /** The text an element shows: its bound or layout caption, texts resolved. */
+    captionOf: (element: TemplateElement) => string;
+    /** The text field of `text` in `element`'s style; `wrapWidth` is the field's width when it wraps. */
+    measure: (element: TemplateElement, text: string, wrapWidth: number | undefined) => TemplateTextSize | undefined;
+    /** Whether the element shows: its binding or list `show` over the layout's `visible`. */
+    visibleOf?: (element: TemplateElement) => boolean;
+    /** A composite window's window layout (`Template.skins`, by `<type>:<style>` - `templateSkinKey`); without one it is laid out as its plain kind. */
+    skinOf?: (element: TemplateElement) => { width: number; height: number; elements: TemplateElement[] } | undefined;
+}
+
+/** `WindowParam`'s layout bits. */
+const P = {
+    parentGraphics: 16,
+    boundToParent: 32,
+    hMove: 64,
+    hStretch: 128,
+    hCenter: 192,
+    vMove: 1024,
+    vStretch: 2048,
+    vCenter: 3072,
+    resizeShrink: 16384,
+    expandToAccommodate: 131072,
+    resizeToAccommodate: 147456,
+    alignRight: 262144,
+    alignCenter: 786432,
+    alignBottom: 1048576,
+    alignMiddle: 3145728,
+    reflectH: 4194304,
+    reflectV: 8388608,
+    reflect: 12582912,
+} as const;
+
+/** An element's layout params as the `uint` `WindowParser` read, rebuilt from its decoded `params`. */
+export const templateParamBits = (element: TemplateElement): number => {
+    const params = element.params;
+
+    if (!params) return 0;
+
+    let bits = 0;
+    const scale = { fixed: 0, move: 1, stretch: 2, center: 3 };
+
+    if (params.parentGraphics) bits |= P.parentGraphics;
+    if (params.boundToParent) bits |= P.boundToParent;
+    if (params.scale) bits |= (scale[params.scale[0]] << 6) | (scale[params.scale[1]] << 10);
+    if (params.accommodate) bits |= params.accommodate === 'resize' ? P.resizeToAccommodate : P.expandToAccommodate;
+    if (params.unnamedBits?.includes(14)) bits |= P.resizeShrink;
+    if (params.align?.[0] === 'right') bits |= P.alignRight;
+    if (params.align?.[0] === 'center') bits |= P.alignCenter;
+    if (params.align?.[1] === 'bottom') bits |= P.alignBottom;
+    if (params.align?.[1] === 'middle') bits |= P.alignMiddle;
+    if (params.reflectToParent?.[0]) bits |= P.reflectH;
+    if (params.reflectToParent?.[1]) bits |= P.reflectV;
+
+    return bits >>> 0;
+};
+
+type WindowEventType = 'RESIZED' | 'RELOCATED' | 'PARENT_ADDED' | 'PARENT_RESIZED' | 'CHILD_ADDED' | 'CHILD_REMOVED' | 'CHILD_RESIZED' | 'CHILD_RELOCATED';
+
+/** AS3's `int(...)` of a coordinate: towards zero. */
+const int = (value: number) => Math.trunc(value);
+
+/** `WindowController`: a window's rect, its parent and children, and the events that move them. */
+export class LayoutWindow {
+    public x: number;
+    public y: number;
+    public width: number;
+    public height: number;
+    /** `_previousRect`: the rect before the last move or resize. */
+    public previous: TemplateRect;
+    /** `_Str_5110`: the parent's rect a relative scale measures its change from. */
+    public parentRect: TemplateRect = { x: 0, y: 0, width: 0, height: 0 };
+    public param: number;
+    public parent: LayoutWindow | undefined;
+    public children: LayoutWindow[] = [];
+    public visible = true;
+    public minWidth = -Infinity;
+    public maxWidth = Infinity;
+    public minHeight = -Infinity;
+    public maxHeight = Infinity;
+    public readonly element: TemplateElement | undefined;
+    /** A frame's content area: the `Frame` component places its children in it, so a rect is given within it. */
+    public frameContent = false;
+    /** A part of a composite window's window layout (a scrollable list's `_ITEMLIST`): no element of the template. */
+    public skinPart = false;
+    /** A scrollable window's content: its items' rects are given within it, which the renderer scrolls. */
+    public scrollContent = false;
+
+    /**
+     * The constructor with a parent sets `_parent` first, so the `addChild` it makes finds the
+     * parent already set and no `WINDOW_EVENT_PARENT_ADDED` follows - only the parent's
+     * `WINDOW_EVENT_CHILD_ADDED`.
+     */
+    constructor(element: TemplateElement | undefined, rect: TemplateRect, param: number, parent?: LayoutWindow) {
+        this.element = element;
+        this.x = int(rect.x);
+        this.y = int(rect.y);
+        this.width = int(rect.width);
+        this.height = int(rect.height);
+        this.previous = { x: this.x, y: this.y, width: this.width, height: this.height };
+        this.param = param;
+
+        if (parent) {
+            this.parent = parent;
+            parent.addChild(this);
+        }
+    }
+
+    /** Whether the type has an `iterator` (`ContainerController` and its kin): its XML children are pushed onto it. */
+    public get iterable(): boolean {
+        return !!this.element && ITERABLE_TAGS.has(this.element.tag);
+    }
+
+    public get rect(): TemplateRect {
+        return { x: this.x, y: this.y, width: this.width, height: this.height };
+    }
+
+    /** `testParamFlag(flag, mask)`: every bit of `flag` set - within `mask`, exactly `flag`. */
+    public testParam(flag: number, mask = 0): boolean {
+        return mask > 0 ? ((this.param & mask) ^ flag) === 0 : (this.param & flag) === flag;
+    }
+
+    public setParamFlag(flag: number, on: boolean): void {
+        this.param = (on ? (this.param | flag) : (this.param & ~flag)) >>> 0;
+    }
+
+    /** `ContainerIterator`: an XML child pushed onto this window - added as its child. */
+    public push(child: LayoutWindow): void {
+        this.addChildAt(child, this.children.length);
+    }
+
+    public addChild(child: LayoutWindow): LayoutWindow {
+        return this.addChildAt(child, this.children.length);
+    }
+
+    public addChildAt(child: LayoutWindow, index: number): LayoutWindow {
+        if (child.parent) child.parent.removeChild(child);
+
+        this.children.splice(index, 0, child);
+        child.setParent(this);
+        this.update(this, 'CHILD_ADDED', child);
+
+        return child;
+    }
+
+    public removeChild(child: LayoutWindow): LayoutWindow | undefined {
+        const index = this.children.indexOf(child);
+
+        if (index < 0) return undefined;
+
+        this.children.splice(index, 1);
+        child.setParent(undefined);
+        this.update(this, 'CHILD_REMOVED', child);
+
+        return child;
+    }
+
+    /** `set parent`: a new parent is remembered with its rect, and the window hears it was added. */
+    public setParent(parent: LayoutWindow | undefined): void {
+        if (this.parent === parent) return;
+
+        this.parent = parent;
+
+        if (parent) {
+            this.parentRect = parent.rect;
+            this.previous = this.rect;
+            this.update(this, 'PARENT_ADDED');
+        } else {
+            this.parentRect = { x: 0, y: 0, width: 0, height: 0 };
+        }
+    }
+
+    public setX(x: number): void {
+        if (int(x) !== this.x) this.setRectangle(x, this.y, this.width, this.height);
+    }
+
+    public setY(y: number): void {
+        if (int(y) !== this.y) this.setRectangle(this.x, y, this.width, this.height);
+    }
+
+    public setWidth(width: number): void {
+        if (int(width) !== this.width) this.setRectangle(this.x, this.y, width, this.height);
+    }
+
+    public setHeight(height: number): void {
+        if (int(height) !== this.height) this.setRectangle(this.x, this.y, this.width, height);
+    }
+
+    public offset(dx: number, dy: number): void {
+        this.setRectangle(this.x + dx, this.y + dy, this.width, this.height);
+    }
+
+    /** `WindowRectLimits.limit`: the window's size clamped to its limits. */
+    public limit(): void {
+        if (this.width < this.minWidth) this.setWidth(this.minWidth);
+        else if (this.width > this.maxWidth) this.setWidth(this.maxWidth);
+
+        if (this.height < this.minHeight) this.setHeight(this.minHeight);
+        else if (this.height > this.maxHeight) this.setHeight(this.maxHeight);
+    }
+
+    /**
+     * `WindowController.setRectangle`: the limits; then, when the size changes and the position does
+     * not, the `on_resize_align_*` params keeping the edge they name; then `bound_to_parent_rect`;
+     * then the move and resize, and their events.
+     */
+    public setRectangle(x: number, y: number, width: number, height: number): void {
+        x = int(x);
+        y = int(y);
+        width = int(width);
+        height = int(height);
+        height = Math.min(this.maxHeight, Math.max(this.minHeight, height));
+        width = Math.min(this.maxWidth, Math.max(this.minWidth, width));
+
+        let moved = x !== this.x || y !== this.y;
+        let resized = width !== this.width || height !== this.height;
+
+        if (resized && !moved) {
+            const alignH = this.param & P.alignCenter;
+            const alignV = this.param & P.alignMiddle;
+
+            if (alignH === P.alignCenter) {
+                x = int(x - ((width - this.width) / 2));
+                moved = true;
+            } else if (alignH === P.alignRight) {
+                x = x - (width - this.width);
+                moved = true;
+            }
+
+            if (alignV === P.alignMiddle) {
+                y = int(y - ((height - this.height) / 2));
+                moved = true;
+            } else if (alignV === P.alignBottom) {
+                y = y - (height - this.height);
+                moved = true;
+            }
+        }
+
+        if (this.testParam(P.boundToParent) && this.parent) {
+            x = x < 0 ? 0 : x;
+            y = y < 0 ? 0 : y;
+
+            if (moved) {
+                x -= (x + width) > this.parent.width ? (x + width) - this.parent.width : 0;
+                y -= (y + height) > this.parent.height ? (y + height) - this.parent.height : 0;
+                moved = x !== this.x || y !== this.y;
+            } else {
+                width -= (x + width) > this.parent.width ? (x + width) - this.parent.width : 0;
+                height -= (y + height) > this.parent.height ? (y + height) - this.parent.height : 0;
+                resized = width !== this.width || height !== this.height;
+            }
+        }
+
+        if (!moved && !resized) return;
+
+        if (moved) {
+            this.previous = this.rect;
+            this.x = x;
+            this.y = y;
+        }
+
+        if (resized) {
+            this.previous = { ...this.previous, width: this.width, height: this.height };
+            this.width = width;
+            this.height = height;
+        }
+
+        if (moved) this.update(this, 'RELOCATED');
+        if (resized) this.update(this, 'RESIZED');
+    }
+
+    /** `WindowController.update`: the events that move and size windows. */
+    public update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
+        switch (type) {
+            case 'RESIZED': {
+                if (source !== this) return;
+
+                for (const child of [ ...this.children ]) child.update(this, 'PARENT_RESIZED');
+
+                if (this.testParam(P.hCenter, P.hCenter) || this.testParam(P.vCenter, P.vCenter)) this.relativeScale();
+
+                if (this.parent) {
+                    const saved = this.param;
+
+                    this.param = (this.param & ~(P.hCenter | P.vCenter)) >>> 0;
+
+                    if (this.testParam(P.reflectH)) this.parent.setWidth(this.parent.width + (this.width - this.previous.width));
+                    if (this.testParam(P.reflectV)) this.parent.setHeight(this.parent.height + (this.height - this.previous.height));
+
+                    this.param = saved;
+                    this.parent.update(this, 'CHILD_RESIZED', this);
+                }
+
+                return;
+            }
+            case 'RELOCATED':
+                if (source === this && this.parent) this.parent.update(this, 'CHILD_RELOCATED', this);
+
+                return;
+            case 'PARENT_ADDED':
+                if (this.testParam(P.hCenter, P.hCenter) || this.testParam(P.vCenter, P.vCenter)) this.relativeScale();
+
+                return;
+            case 'PARENT_RESIZED':
+                if (this.parent) this.parentRect = { ...this.parent.previous };
+
+                this.relativeScale();
+
+                return;
+            case 'CHILD_ADDED':
+            case 'CHILD_RESIZED':
+            case 'CHILD_RELOCATED':
+                if (this.testParam(P.resizeToAccommodate)) this.resizeToAccommodateChildren();
+                else if (this.testParam(P.expandToAccommodate) && related) this.expandToAccommodate(related);
+
+                return;
+            case 'CHILD_REMOVED':
+                if (this.testParam(P.resizeToAccommodate)) this.resizeToAccommodateChildren();
+        }
+    }
+
+    /**
+     * `WindowController._Str_10618`: a window following its parent's change of size since
+     * `parentRect` - moved or stretched by it, or centred in the parent - with the centring and
+     * reflect params cleared for the `setRectangle` it makes; or, with no relative scale, kept
+     * inside a parent it is bound to.
+     */
+    public relativeScale(): void {
+        if (!this.parent) return;
+
+        const horizontal = !this.testParam(0, P.hCenter);
+        const vertical = !this.testParam(0, P.vCenter);
+        let { x, y, width, height } = this;
+
+        if (horizontal || vertical) {
+            if (horizontal) {
+                const change = this.parent.width - this.parentRect.width;
+                const scale = this.param & P.hCenter;
+
+                if (scale === P.hStretch) width += change;
+                else if (scale === P.hMove) x += change;
+                else if (scale === P.hCenter) x = (this.parent.width < width && this.testParam(P.parentGraphics)) ? 0 : Math.floor(this.parent.width / 2) - Math.floor(width / 2);
+            }
+
+            if (vertical) {
+                const change = this.parent.height - this.parentRect.height;
+                const scale = this.param & P.vCenter;
+
+                if (scale === P.vStretch) height += change;
+                else if (scale === P.vMove) y += change;
+                else if (scale === P.vCenter) y = (this.parent.height < height && this.testParam(P.parentGraphics)) ? 0 : Math.floor(this.parent.height / 2) - Math.floor(height / 2);
+            }
+
+            const saved = this.param;
+
+            this.param = (this.param & ~(P.reflect | P.hCenter | P.vCenter)) >>> 0;
+            this.setRectangle(x, y, width, height);
+            this.param = saved;
+
+            return;
+        }
+
+        if (this.testParam(P.boundToParent)) {
+            x = x < 0 ? 0 : x;
+            y = y < 0 ? 0 : y;
+            x -= (x + width) > this.parent.width ? (x + width) - this.parent.width : 0;
+            y -= (y + height) > this.parent.height ? (y + height) - this.parent.height : 0;
+            width -= (x + width) > this.parent.width ? (x + width) - this.parent.width : 0;
+            height -= (y + height) > this.parent.height ? (y + height) - this.parent.height : 0;
+
+            if (x !== this.x || y !== this.y || width !== this.width || height !== this.height) {
+                const saved = this.param;
+
+                this.param = (this.param & ~(P.reflect | P.hCenter | P.vCenter)) >>> 0;
+                this.setRectangle(x, y, width, height);
+                this.param = saved;
+            }
+        }
+    }
+
+    /**
+     * `WindowController._Str_14067` (`resize_to_accommodate_children`): the window takes its
+     * children's extent from its own origin - growing or shrinking - moved by any child left or above
+     * it, the children offset back, their centring held off meanwhile.
+     */
+    public resizeToAccommodateChildren(): void {
+        if (!this.children.length) return;
+
+        let left = 0;
+        let top = 0;
+        let right = 0;
+        let bottom = 0;
+        let changed = false;
+
+        for (const child of this.children) {
+            if (child.x < left) {
+                right -= child.x - left;
+                left = child.x;
+                changed = true;
+            }
+
+            if (child.x + child.width > right) {
+                right = child.x + child.width;
+                changed = true;
+            }
+
+            if (child.y < top) {
+                bottom -= child.y - top;
+                top = child.y;
+                changed = true;
+            }
+
+            if (child.y + child.height > bottom) {
+                bottom = child.y + child.height;
+                changed = true;
+            }
+        }
+
+        if (!changed) return;
+
+        const own = this.param & (P.expandToAccommodate | P.resizeToAccommodate);
+        const centring = this.children.map((child) => {
+            const bits = child.param & (P.hCenter | P.vCenter);
+
+            child.setParamFlag(bits, false);
+
+            return bits;
+        });
+
+        if (own) this.setParamFlag(own, false);
+
+        this.setRectangle(this.x + left, this.y + top, right, bottom);
+
+        for (const [ index, child ] of [ ...this.children ].entries()) {
+            child.offset(-left, -top);
+            child.setParamFlag(centring[index] ?? 0, true);
+        }
+
+        if (own) this.setParamFlag(own, true);
+    }
+
+    /**
+     * `WindowController._Str_9294` (`expand_to_accommodate_children`): the window grows - never
+     * shrinks - to take in `child`, moved by any part of it left or above, the children offset back.
+     */
+    public expandToAccommodate(child: LayoutWindow): void {
+        let dx = 0;
+        let dy = 0;
+        let width = this.width;
+        let height = this.height;
+        let changed = false;
+
+        if (child.x < 0) {
+            dx = child.x;
+            width -= dx;
+            child.x = 0;
+            changed = true;
+        }
+
+        if (child.x + child.width > width) {
+            width = child.x + child.width;
+            changed = true;
+        }
+
+        if (child.y < 0) {
+            dy = child.y;
+            height -= dy;
+            child.y = 0;
+            changed = true;
+        }
+
+        if (child.y + child.height > height) {
+            height = child.y + child.height;
+            changed = true;
+        }
+
+        if (!changed) return;
+
+        const own = this.param & (P.expandToAccommodate | P.resizeToAccommodate);
+
+        if (own) this.setParamFlag(own, false);
+
+        this.setRectangle(this.x + dx, this.y + dy, width, height);
+
+        if (dx !== 0 || dy !== 0) {
+            for (const other of [ ...this.children ]) {
+                if (other !== child) other.offset(-dx, -dy);
+            }
+        }
+
+        if (own) this.setParamFlag(own, true);
+    }
+
+    /** `ITextWindow.textWidth`: the width of a text window's text; 0 for any other window. */
+    public get textWidth(): number {
+        return 0;
+    }
+
+    /** A caption set on the window (`WindowController.caption`): the text controllers lay theirs out. */
+    public setCaption(_caption: string, _input: TemplateLayoutInput): void {}
+}
+
+/** The window types that have an `iterator` - `ContainerController` and those built on it. */
+const ITERABLE_TAGS = new Set([
+    'background', 'border', 'boxsizer', 'bubble', 'container', 'container_button', 'droplist', 'droplist_item', 'frame', 'header',
+    'itemlist', 'itemlist_horizontal', 'itemlist_vertical', 'itemgrid', 'itemgrid_horizontal', 'itemgrid_vertical', 'region',
+    'scrollable_itemlist_vertical', 'scrollable_itemgrid_vertical', 'selector', 'selector_list', 'tab_container_button', 'tab_content',
+    'tab_context', 'tab_selector', 'widget',
+]);
+
+const flashBool = (value: TemplateValue | undefined) => value === true || value === 'true';
+
+/** A text window's `margins` variable (`{ left, top, right, bottom }`), as `int(...)` of each. */
+const marginsOf = (element: TemplateElement) => {
+    const margins = element.vars.margins;
+    const side = (key: string) => (margins && typeof margins === 'object' && !Array.isArray(margins) ? int(Number(margins[key]) || 0) : 0);
+
+    return { horizontal: side('left') + side('right'), vertical: side('top') + side('bottom') };
+};
+
+/** A text's width as its field lays it out: `textWidth`, or the field less its two 2px gutters. */
+const measuredTextWidth = (element: TemplateElement | undefined, caption: string, input: TemplateLayoutInput | undefined, wrapWidth: number | undefined): number => {
+    const field = element && input && caption ? input.measure(element, caption, wrapWidth) : undefined;
+
+    return field ? (field.textWidth ?? Math.max(0, field.width - 4)) : 0;
+};
+
+/** `TextLabelController`: the window takes its text field's size on every `refresh`. */
+class LabelWindow extends LayoutWindow {
+    private _caption = '';
+    private _input: TemplateLayoutInput | undefined;
+    private _refreshing = false;
+
+    public override setCaption(caption: string, input: TemplateLayoutInput): void {
+        this._caption = caption;
+        this._input = input;
+        this.refresh();
+    }
+
+    public override get textWidth(): number {
+        return measuredTextWidth(this.element, this._caption, this._input, undefined);
+    }
+
+    /** `TextLabelController.refresh`. */
+    public refresh(): void {
+        if (this._refreshing || !this.element || !this._input || !this._caption) return;
+
+        const field = this._input.measure(this.element, this._caption, undefined);
+
+        if (!field) return;
+
+        this._refreshing = true;
+
+        const margins = marginsOf(this.element);
+        const fieldWidth = Math.floor(field.width);
+        const fieldHeight = Math.floor(field.height);
+        const innerWidth = this.width - margins.horizontal;
+        const innerHeight = this.height - margins.vertical;
+
+        if (fieldWidth !== innerWidth) this.setRectangle(this.x, this.y, fieldWidth + margins.horizontal, fieldHeight + margins.vertical);
+        if (fieldHeight > innerHeight) this.setRectangle(this.x, this.y, fieldWidth + margins.horizontal, fieldHeight + margins.vertical);
+
+        this._refreshing = false;
+    }
+}
+
+/**
+ * `TextController`: with an `auto_size` other than `none` the field follows the text - `left` takes
+ * its width and height, `center` and `right` its height - and a resize from outside is followed by
+ * one (`setRectangle` sets `autoSize` to `none` and back, which refreshes).
+ */
+class TextWindow extends LayoutWindow {
+    private _caption = '';
+    private _input: TemplateLayoutInput | undefined;
+    private _refreshing = false;
+
+    private get autoSize(): string {
+        const value = this.element?.vars.auto_size;
+
+        return typeof value === 'string' ? value : 'none';
+    }
+
+    public override setCaption(caption: string, input: TemplateLayoutInput): void {
+        this._caption = caption;
+        this._input = input;
+        this.refreshTextImage();
+    }
+
+    public override get textWidth(): number {
+        const element = this.element;
+        const wraps = !!element && flashBool(element.vars.word_wrap);
+
+        return measuredTextWidth(element, this._caption, this._input, wraps && element ? Math.max(1, this.width - marginsOf(element).horizontal) : undefined);
+    }
+
+    public override setRectangle(x: number, y: number, width: number, height: number): void {
+        super.setRectangle(x, y, width, height);
+
+        if (!this._refreshing && this.autoSize !== 'none') this.refreshTextImage();
+    }
+
+    /** `TextController.refreshTextImage`. */
+    public refreshTextImage(): void {
+        const autoSize = this.autoSize;
+
+        if (this._refreshing || !this.element || !this._input || !this._caption || autoSize === 'none') return;
+
+        const margins = marginsOf(this.element);
+        const wraps = flashBool(this.element.vars.word_wrap);
+        const field = this._input.measure(this.element, this._caption, wraps ? Math.max(1, this.width - margins.horizontal) : undefined);
+
+        if (!field) return;
+
+        this._refreshing = true;
+
+        const fieldWidth = Math.floor(field.width);
+        const fieldHeight = Math.floor(field.height);
+        const innerWidth = this.width - margins.horizontal;
+        const innerHeight = this.height - margins.vertical;
+
+        if (fieldWidth !== innerWidth && autoSize === 'left') this.setRectangle(this.x, this.y, fieldWidth + margins.horizontal, fieldHeight + margins.vertical);
+        if (fieldHeight !== innerHeight) this.setHeight(fieldHeight + margins.vertical);
+
+        this._refreshing = false;
+    }
+}
+
+/**
+ * `ItemListController`: its items in an inner `_CONTAINER`, one after another along the list with
+ * `spacing` between, only the visible ones placed; with `resize_on_item_update` the container's
+ * change of length is reflected to the list.
+ */
+/** What an item list is made with, over what its element's variables and type give. */
+interface ListOptions {
+    horizontal?: boolean;
+    spacing?: number;
+    scaleToFit?: boolean;
+    /**
+     * The axis `resize_on_item_update` reflects the container's change on: the list's own as the
+     * `ItemListController` constructor sets it - which `ItemGridController` only makes horizontal after.
+     */
+    reflectHorizontal?: boolean;
+}
+
+class ListWindow extends LayoutWindow {
+    public readonly container: LayoutWindow;
+    protected readonly _horizontal: boolean;
+    protected readonly _spacing: number;
+    private readonly _autoArrange: boolean;
+    private readonly _scaleToFit: boolean;
+    private _length = 0;
+    private _breadth = 0;
+    private _arranging = false;
+    private _resizing = false;
+
+    constructor(element: TemplateElement | undefined, rect: TemplateRect, param: number, parent?: LayoutWindow, options: ListOptions = {}) {
+        super(element, rect, param, parent);
+
+        const vars = element?.vars ?? {};
+
+        this._horizontal = options.horizontal ?? element?.tag === 'itemlist_horizontal';
+        // `ThemeManager`'s defaults, over which the layout's variables go.
+        this._spacing = options.spacing ?? (typeof vars.spacing === 'number' ? int(vars.spacing) : 0);
+        this._autoArrange = vars.auto_arrange_items === undefined ? true : flashBool(vars.auto_arrange_items);
+        this._scaleToFit = options.scaleToFit ?? flashBool(vars.scale_to_fit_items);
+
+        const reflectHorizontal = options.reflectHorizontal ?? this._horizontal;
+        const reflect = flashBool(vars.resize_on_item_update) ? (reflectHorizontal ? P.reflectH : P.reflectV) : 0;
+
+        this.container = new ListContainer(this, { x: 0, y: 0, width: this.width, height: this.height }, (P.parentGraphics | reflect) >>> 0);
+    }
+
+    /**
+     * `ItemListIterator`: an XML child is added at the end - `addListItemAt`, which re-arranges the whole
+     * list (`updateScrollAreaRegion`), so an item the layout hides takes no room from the start. Code
+     * adding an item calls `addListItem`, which places it after the last whatever it shows.
+     */
+    public override push(child: LayoutWindow): void {
+        this.addListItemAt(child, this.container.children.length);
+    }
+
+    /** `ItemListController.addListItemAt`. */
+    public addListItemAt(item: LayoutWindow, index: number): void {
+        this.container.addChildAt(item, index);
+        this.arrange();
+    }
+
+    /** `ItemListController.addListItem`. */
+    public addListItem(item: LayoutWindow): void {
+        this._arranging = true;
+
+        const count = this.container.children.length;
+
+        if (this._horizontal) {
+            item.setX(this._length + (count > 0 ? this._spacing : 0));
+            this._length = item.x + item.width;
+            this.container.setWidth(this._length);
+        } else {
+            if (this._autoArrange) {
+                item.setY(this._breadth + (count > 0 ? this._spacing : 0));
+                this._breadth = item.y + item.height;
+            } else {
+                this._breadth = Math.max(this._breadth, item.y + item.height);
+            }
+
+            this.container.setHeight(this._breadth);
+        }
+
+        this.container.addChild(item);
+        this._arranging = false;
+    }
+
+    public override setRectangle(x: number, y: number, width: number, height: number): void {
+        this._resizing = int(width) !== this.width || int(height) !== this.height;
+        super.setRectangle(x, y, width, height);
+        this._resizing = false;
+    }
+
+    public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
+        super.update(source, type, related);
+
+        if (type === 'RESIZED' && source === this) {
+            if (!this._scaleToFit) {
+                if (this._horizontal) this.container.setHeight(this.height);
+                else this.container.setWidth(this.width);
+            }
+
+            this.arrange();
+        }
+    }
+
+    /** The container's events, heard before its own handling (`_Str_6611`). */
+    public containerEvent(type: WindowEventType): void {
+        if (type === 'CHILD_REMOVED' || type === 'CHILD_RELOCATED' || (type === 'CHILD_RESIZED' && !this._resizing)) this.arrange();
+    }
+
+    /** `ItemListController._Str_4024`: the visible items placed along the list, the container sized to them. */
+    public arrange(): void {
+        if (!this._autoArrange || this._arranging) return;
+
+        this._arranging = true;
+
+        const items = this.container.children;
+
+        if (this._horizontal) {
+            this._length = 0;
+            this._breadth = this.height;
+
+            for (const item of items) {
+                if (!item.visible) continue;
+
+                item.setX(this._length);
+                this._length += item.width + this._spacing;
+
+                if (this._scaleToFit) this._breadth = Math.max(this._breadth, item.height + item.y);
+            }
+
+            if (items.length > 0) this._length -= this._spacing;
+        } else {
+            this._length = this.width;
+            this._breadth = 0;
+
+            for (const item of items) {
+                if (!item.visible) continue;
+
+                item.setY(this._breadth);
+                this._breadth += item.height + this._spacing;
+
+                if (this._scaleToFit) this._length = Math.max(this._length, item.width + item.x);
+            }
+
+            if (items.length > 0) this._breadth -= this._spacing;
+        }
+
+        this.container.setHeight(this._breadth);
+        this.container.setWidth(this._length);
+        this._arranging = false;
+    }
+}
+
+/** An `ItemListController`'s `_CONTAINER`: its events reach the list first, as its listeners do. */
+class ListContainer extends LayoutWindow {
+    private _list: ListWindow | undefined;
+
+    constructor(list: ListWindow, rect: TemplateRect, param: number) {
+        super(undefined, rect, param, list);
+        this._list = list;
+    }
+
+    public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
+        if (source === this || type.startsWith('CHILD_')) this._list?.containerEvent(type);
+
+        super.update(source, type, related);
+    }
+}
+
+/**
+ * `ItemGridController` (`itemgrid`, `itemgrid_vertical`): a horizontal item list of vertical item
+ * lists, its columns - fitted to their items (`scale_to_fit_items`) - its items filled in row by row.
+ * The first row makes a column for each item while the next still fits the grid's width; after it,
+ * item `n` goes into column `n % columns`.
+ */
+class GridWindow extends ListWindow {
+    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent?: LayoutWindow) {
+        super(element, rect, param, parent, { horizontal: true, scaleToFit: true, reflectHorizontal: false });
+    }
+
+    /**
+     * `ItemGridIterator`: an XML child is added at the end - `addGridItemAt` (`_Str_22897`): placed as
+     * `addGridItem` places it, then each column re-arranged and sized to its items, and the grid's
+     * container to its tallest column.
+     */
+    public override push(child: LayoutWindow): void {
+        this.addGridItem(child);
+
+        let tallest = 0;
+
+        for (const column of this.columns) {
+            column.arrange();
+            column.setHeight(column.container.height);
+            tallest = Math.max(tallest, column.height);
+        }
+
+        this.container.setHeight(tallest);
+    }
+
+    private get columns(): ListWindow[] {
+        return this.container.children.filter((child): child is ListWindow => child instanceof ListWindow);
+    }
+
+    /** `ItemGridController._Str_16044`. */
+    public addGridItem(item: LayoutWindow): void {
+        const columns = this.columns;
+
+        if (!columns.length) {
+            this.addColumn(item);
+
+            return;
+        }
+
+        const count = columns.reduce((total, column) => total + column.container.children.length, 0);
+        let target = columns[0];
+
+        if (count > 0) {
+            const last = columns[(count - 1) % columns.length];
+            const index = columns.indexOf(last);
+            const rowDone = index === columns.length - 1;
+
+            // Still the first row, and room across for one more: a new column.
+            if (rowDone && last.container.children.length === 1 && (last.x + last.width + item.width) <= this.width) {
+                this.addColumn(item);
+
+                return;
+            }
+
+            target = columns[rowDone ? 0 : index + 1];
+        }
+
+        target.addListItem(item);
+
+        if (item.width > target.width) target.setWidth(item.width);
+        if (item.y + item.height > target.height) target.setHeight(item.y + item.height);
+    }
+
+    /** `ItemGridController._Str_14060`: a column, sized to its first item, spaced as the grid. */
+    private addColumn(item: LayoutWindow): void {
+        const column = new ListWindow(undefined, { x: 0, y: 0, width: Math.max(item.width, 0), height: Math.max(item.height, 0) }, P.parentGraphics, undefined, { spacing: this._spacing });
+
+        this.addListItem(column);
+        column.addListItem(item);
+    }
+}
+
+/**
+ * `FrameController` (and `BubbleController`, which extends it): its XML children go into its
+ * content area, which stretches with it - and whose own change of size is the frame's
+ * (`reflect_resize_to_parent`), so a child growing its content area grows the frame. Every frame and
+ * bubble window layout of the client gives its `content_area` those same params.
+ */
+class FrameWindow extends LayoutWindow {
+    public readonly content: LayoutWindow;
+
+    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent?: LayoutWindow) {
+        super(element, rect, param, parent);
+
+        const [ left, top, right, bottom ] = element.margins ?? [ 0, 0, 0, 0 ];
+
+        this.content = new LayoutWindow(undefined, { x: left, y: top, width: this.width - left - right, height: this.height - top - bottom }, (P.hStretch | P.vStretch | P.parentGraphics | P.reflect) >>> 0, this);
+        this.content.frameContent = true;
+    }
+
+    public override push(child: LayoutWindow): void {
+        this.content.push(child);
+    }
+}
+
+/**
+ * `ScrollableItemListWindow` / `ScrollableItemGridWindow`: built from its window layout (`skin`) - an
+ * inner list (`_ITEMLIST` / `_ITEMGRID`) and a scrollbar (`_SCROLLBAR`) made at the layout's size,
+ * then resized to its own rect, which moves and stretches them by their params. Its XML children go
+ * into the inner list. The scrollbar hides while the items fit, giving the list the whole width, and
+ * shows - taking its width back - once they do not.
+ */
+class ScrollableWindow extends LayoutWindow {
+    private _list: ListWindow | undefined;
+    private _scrollbar: LayoutWindow | undefined;
+
+    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent: LayoutWindow | undefined, skin: SkinTemplate, input: TemplateLayoutInput) {
+        // The `WindowController` constructor: at the window layout's size, its parts built in it...
+        super(element, { x: 0, y: 0, width: skin.width, height: skin.height }, param);
+
+        for (const part of skin.elements) {
+            const window = createWindow(part, { x: part.x, y: part.y, width: part.width, height: part.height }, templateParamBits(part), undefined, input);
+
+            window.skinPart = true;
+            this.addChild(window);
+
+            if (window instanceof ListWindow && (part.tags?.includes('_ITEMLIST') || part.tags?.includes('_ITEMGRID'))) {
+                this._list = window;
+                window.container.scrollContent = true;
+            }
+            if (part.tags?.includes('_SCROLLBAR')) this._scrollbar = window;
+        }
+
+        // ...then its own rect, the reflect params held off, and it is its previous rect.
+        const saved = this.param;
+
+        this.param = (this.param & ~P.reflect) >>> 0;
+        this.setRectangle(rect.x, rect.y, rect.width, rect.height);
+        this.param = saved;
+        this.previous = this.rect;
+
+        // `scrollbar.scrollable = list`: disabled with nothing to scroll, so hidden.
+        this.updateScrollbar();
+
+        if (parent) {
+            this.parent = parent;
+            parent.addChild(this);
+        }
+    }
+
+    public get list(): ListWindow | undefined {
+        return this._list;
+    }
+
+    public get scrollbar(): LayoutWindow | undefined {
+        return this._scrollbar;
+    }
+
+    /** `IScrollableListWindow.iterator`: the inner list's. */
+    public override push(child: LayoutWindow): void {
+        if (this._list) this._list.push(child);
+        else super.push(child);
+
+        this.updateScrollbar();
+    }
+
+    /**
+     * `ScrollableItemListWindow._Str_6204` on the scrollbar's `ENABLED` / `DISABLED`: it is enabled
+     * while the list's content is taller than the list.
+     */
+    public updateScrollbar(): void {
+        const list = this._list;
+        const scrollbar = this._scrollbar;
+
+        if (!list || !scrollbar) return;
+
+        const overflows = list.container.height > list.height;
+
+        if (overflows && !scrollbar.visible) {
+            scrollbar.visible = true;
+            list.setWidth(this.width - scrollbar.width);
+        } else if (!overflows && scrollbar.visible) {
+            scrollbar.visible = false;
+            list.setWidth(this.width);
+        }
+    }
+}
+
+/** A window layout a composite window is built from - `Template` as the publisher gives it. */
+interface SkinTemplate {
+    width: number;
+    height: number;
+    elements: TemplateElement[];
+}
+
+/**
+ * `SelectorListController` (`selector_list`, a tab context's `tab_selector`): on a child added,
+ * resized or moved, every child is packed along it - `spacing` apart, across unless `vertical` -
+ * whatever the layout placed it at.
+ */
+class SelectorListWindow extends LayoutWindow {
+    private readonly _spacing: number;
+    private readonly _vertical: boolean;
+    private _packing = false;
+
+    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent?: LayoutWindow) {
+        super(element, rect, param, parent);
+        this._spacing = typeof element.vars.spacing === 'number' ? int(element.vars.spacing) : 0;
+        this._vertical = flashBool(element.vars.vertical);
+    }
+
+    public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
+        if (type === 'CHILD_ADDED' || type === 'CHILD_RESIZED' || type === 'CHILD_RELOCATED') this.pack();
+
+        super.update(source, type, related);
+    }
+
+    /** `_Str_11558`. */
+    private pack(): void {
+        if (this._packing) return;
+
+        this._packing = true;
+
+        let offset = 0;
+
+        for (const child of this.children) {
+            if (this._vertical) {
+                child.setY(offset);
+                offset += child.height + this._spacing;
+            } else {
+                child.setX(offset);
+                offset += child.width + this._spacing;
+            }
+        }
+
+        this._packing = false;
+    }
+}
+
+/**
+ * `TabContextController`: built from its window layout (`skin`) - a `_SELECTOR` the buttons go in and
+ * a `_CONTENT` under it, made at the layout's size and then resized to its own rect, which stretches
+ * them by their params. Its XML children go onto the selector (`iterator` is `selector.iterator`),
+ * which packs them from its own inset, not the context's edge.
+ */
+class TabContextWindow extends LayoutWindow {
+    private _selector: LayoutWindow | undefined;
+
+    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent: LayoutWindow | undefined, skin: SkinTemplate, input: TemplateLayoutInput) {
+        super(element, { x: 0, y: 0, width: skin.width, height: skin.height }, param);
+
+        for (const part of skin.elements) {
+            const window = createWindow(part, { x: part.x, y: part.y, width: part.width, height: part.height }, templateParamBits(part), undefined, input);
+
+            window.skinPart = true;
+            this.addChild(window);
+
+            if (part.tags?.includes('_SELECTOR')) this._selector = window;
+        }
+
+        const saved = this.param;
+
+        this.param = (this.param & ~P.reflect) >>> 0;
+        this.setRectangle(rect.x, rect.y, rect.width, rect.height);
+        this.param = saved;
+        this.previous = this.rect;
+
+        if (parent) {
+            this.parent = parent;
+            parent.addChild(this);
+        }
+    }
+
+    public override push(child: LayoutWindow): void {
+        if (this._selector) this._selector.addChild(child);
+        else super.push(child);
+    }
+}
+
+const LIST_TAGS = new Set([ 'itemlist', 'itemlist_vertical', 'itemlist_horizontal', 'scrollable_itemlist_vertical' ]);
+const GRID_TAGS = new Set([ 'itemgrid', 'itemgrid_vertical', 'scrollable_itemgrid_vertical' ]);
+const SCROLLABLE_TAGS = new Set([ 'scrollable_itemlist_vertical', 'scrollable_itemgrid_vertical' ]);
+
+const createWindow = (element: TemplateElement, rect: TemplateRect, param: number, parent: LayoutWindow | undefined, input: TemplateLayoutInput): LayoutWindow => {
+    const skin = SCROLLABLE_TAGS.has(element.tag) ? input.skinOf?.(element) : undefined;
+
+    if (skin) return new ScrollableWindow(element, rect, param, parent, skin, input);
+
+    const tabSkin = element.tag === 'tab_context' ? input.skinOf?.(element) : undefined;
+
+    if (tabSkin) return new TabContextWindow(element, rect, param, parent, tabSkin, input);
+    if (element.tag === 'tab_selector' || element.tag === 'selector_list') return new SelectorListWindow(element, rect, param, parent);
+    if (element.tag === 'label') return new LabelWindow(element, rect, param, parent);
+    if (element.tag === 'text' || element.tag === 'link') return new TextWindow(element, rect, param, parent);
+    // Without its window layout, a scrollable list or grid is laid out as the plain one.
+    if (LIST_TAGS.has(element.tag)) return new ListWindow(element, rect, param, parent);
+    if (GRID_TAGS.has(element.tag)) return new GridWindow(element, rect, param, parent);
+    // A bubble is a `FrameController` too (`BubbleController`).
+    if (element.tag === 'frame' || element.tag === 'bubble') return new FrameWindow(element, rect, param, parent);
+
+    return new LayoutWindow(element, rect, param, parent);
+};
+
+/**
+ * `WindowParser.parseSingleWindowEntity`: the window made with no caption and - under an iterable
+ * parent - no parent; its limits applied; its caption set; then, under an iterable parent, a
+ * centred window that moved while it was made put back at its layout position and pushed onto the
+ * parent; then its children, in order.
+ */
+const build = (element: TemplateElement, parent: LayoutWindow | undefined, input: TemplateLayoutInput, windows: Map<TemplateElement, LayoutWindow>): LayoutWindow => {
+    const layoutRect = { x: element.x, y: element.y, width: element.width, height: element.height };
+    const param = templateParamBits(element);
+    const underIterable = !!parent?.iterable;
+    const window = createWindow(element, layoutRect, param, underIterable ? undefined : parent, input);
+    const [ minWidth, maxWidth, minHeight, maxHeight ] = element.limits ?? [ null, null, null, null ];
+
+    if (minWidth !== null) window.minWidth = minWidth;
+    if (maxWidth !== null) window.maxWidth = maxWidth;
+    if (minHeight !== null) window.minHeight = minHeight;
+    if (maxHeight !== null) window.maxHeight = maxHeight;
+
+    window.limit();
+    window.setCaption(input.captionOf(element), input);
+    window.visible = !element.hidden;
+
+    if (parent && underIterable) {
+        if (window.x !== layoutRect.x || window.y !== layoutRect.y || window.width !== layoutRect.width || window.height !== layoutRect.height) {
+            if ((param & P.hCenter) === P.hCenter) window.setX(layoutRect.x);
+            if ((param & P.vCenter) === P.vCenter) window.setY(layoutRect.y);
+        }
+
+        parent.push(window);
+    }
+
+    windows.set(element, window);
+
+    for (const child of element.children) build(child, window, input, windows);
+
+    return window;
+};
+
+/**
+ * Every element's window, built as `WindowParser` builds a layout; then the visibility the window's
+ * code gives (bindings, a list's `show`) applied and each list re-arranged, as code that hides and
+ * shows list items does (`autoArrangeItems` off and on again).
+ */
+export const buildTemplateWindows = (elements: readonly TemplateElement[], input: TemplateLayoutInput): Map<TemplateElement, LayoutWindow> => {
+    const windows = new Map<TemplateElement, LayoutWindow>();
+
+    for (const element of elements) build(element, undefined, input, windows);
+
+    if (input.visibleOf) {
+        const lists = new Set<ListWindow>();
+
+        for (const [ element, window ] of windows) {
+            const visible = input.visibleOf(element);
+
+            if (visible === window.visible) continue;
+
+            window.visible = visible;
+
+            const list = window.parent instanceof ListContainer ? window.parent.parent : undefined;
+
+            if (list instanceof ListWindow) lists.add(list);
+        }
+
+        for (const list of lists) list.arrange();
+    }
+
+    for (const window of windows.values()) {
+        if (window instanceof ScrollableWindow) window.updateScrollbar();
+    }
+
+    return windows;
+};
+
+/**
+ * The lists (`ItemListController`, `ItemGridController`, `SelectorListController`): they place
+ * their items themselves, one after another down or along, or in rows - not at the items' own x/y.
+ * `arranged` ones are placed by the window model; the others the renderer flows.
+ */
+export const TEMPLATE_LISTS: Readonly<Record<string, { direction: 'column' | 'row'; wrap?: boolean; scroll?: boolean; arranged?: boolean }>> = {
+    itemlist: { direction: 'column', arranged: true },
+    itemlist_vertical: { direction: 'column', arranged: true },
+    itemlist_horizontal: { direction: 'row', arranged: true },
+    itemgrid: { direction: 'row', wrap: true, arranged: true },
+    itemgrid_vertical: { direction: 'row', wrap: true, arranged: true },
+    scrollable_itemlist_vertical: { direction: 'column', scroll: true, arranged: true },
+    scrollable_itemgrid_vertical: { direction: 'row', wrap: true, scroll: true, arranged: true },
+    selector_list: { direction: 'row' },
+};
+
+/**
+ * A window's rect in its parent element's: the windows between them that are no element of the
+ * template - a list's container, a grid's columns - added in, but not a frame's content area, which
+ * the `Frame` component places its children in itself.
+ */
+const rectInParentElement = (window: LayoutWindow): TemplateRect => {
+    const rect = window.rect;
+
+    for (let parent = window.parent; parent && (!parent.element || parent.skinPart) && !parent.frameContent && !parent.scrollContent; parent = parent.parent) {
+        rect.x += parent.x;
+        rect.y += parent.y;
+    }
+
+    return rect;
+};
+
+/**
+ * What a window's code does once its layout is built (after `buildFromXML`): moves and sizes windows by
+ * what it measures - a menu's arrow put after its label's text (`label.textWidth`) - through each
+ * window's `setRectangle`, so its events run as the client's would. `windowOf` is an element's window.
+ */
+export type TemplateArrange = (windowOf: (element: TemplateElement) => LayoutWindow | undefined) => void;
+
+/**
+ * Every element's rect, by element: an arranged list's items in its content, a frame's children in
+ * its content area. With `size`, each root window is then resized to it - the window's code setting
+ * its size, or the user dragging its scaler - and its children follow by their relative scale.
+ */
+export const layoutTemplate = (elements: readonly TemplateElement[], input: TemplateLayoutInput, size?: { width: number; height: number }, arrange?: TemplateArrange): Map<TemplateElement, TemplateRect> => {
+    const rects = new Map<TemplateElement, TemplateRect>();
+    const windows = buildTemplateWindows(elements, input);
+
+    if (size) {
+        for (const element of elements) {
+            const window = windows.get(element);
+
+            window?.setRectangle(window.x, window.y, size.width, size.height);
+        }
+    }
+
+    // The window's code, once it is built and sized: what it places by what it measures.
+    arrange?.(element => windows.get(element));
+
+    for (const [ element, window ] of windows) {
+        const rect = rectInParentElement(window);
+
+        if (window instanceof ScrollableWindow && window.list) {
+            const { list, scrollbar } = window;
+
+            rect.scroll = {
+                viewport: list.rect,
+                scrollbar: scrollbar?.visible ? { ...scrollbar.rect, style: scrollbar.element?.style } : undefined,
+                content: { width: list.container.width, height: list.container.height },
+            };
+        }
+
+        rects.set(element, rect);
+    }
+
+    // Clipping (`WindowController.clipping`, true unless the layout says otherwise) cuts what reaches
+    // outside a window - an avatar menu row's 143 x 35 button in its 137 x 26 row. Marked only where
+    // something does, so the renderer masks no window it need not. A frame's and a bubble's children
+    // are in their content area, which their components place and clip.
+    for (const [ element, rect ] of rects) {
+        if (element.clipping === false || element.tag === 'frame' || element.tag === 'bubble' || rect.scroll) continue;
+
+        const outside = element.children.some((child) => {
+            const inner = rects.get(child);
+
+            return !!inner && (inner.x < 0 || inner.y < 0 || inner.x + inner.width > rect.width || inner.y + inner.height > rect.height);
+        });
+
+        if (outside) rect.clip = true;
+    }
+
+    return rects;
+};

@@ -6,6 +6,7 @@
         ".": "./src/index.ts",
         "./flash-text": "./src/font/flash-text/index.ts",
         "./utils/*": "./src/utils/*.ts",
+        "./template/*": "./src/template/*.ts",
         "./flash-text/*": "./src/font/flash-text/*.ts"
     },
     "dependencies": {
