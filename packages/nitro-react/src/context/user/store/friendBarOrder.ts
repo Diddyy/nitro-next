@@ -57,3 +57,50 @@ export const friendBarAfterUpdates = (ids: readonly number[], updates: readonly 
 
     return next;
 };
+
+/** `setFriendAt(friend, 0)`: a friend moved to the front of the bar, if the bar holds them. */
+export const friendBarMovedToFront = (ids: readonly number[], friendId: number): number[] =>
+    (ids.includes(friendId) ? [ friendId, ...ids.filter(id => id !== friendId) ] : [ ...ids ]);
+
+/** `FriendNotification`: one of a friend's notifications on the bar. */
+export interface FriendBarNotification {
+    typeCode: number;
+    message: string;
+    /** Dropped once the friend's tab has been opened and closed again (`Token.viewOnce`). */
+    viewOnce: boolean;
+}
+
+/** `FriendNotification.TYPE_PLAYING_GAME` / `TYPE_FINISHED_GAME`. */
+export const FRIEND_NOTIFICATION_PLAYING_GAME = 3;
+export const FRIEND_NOTIFICATION_FINISHED_GAME = 4;
+
+/**
+ * `makeNotification` for a `FriendNotificationMessage`, and what the friend's tab then does with it
+ * (`NewFriendEntityTab.addNotificationToken`): a notification of a type the friend already has
+ * replaces its message and `viewOnce`, a new one is added, and a finished game takes the playing
+ * game notification away with it. Every type but playing a game is shown once, and every type but
+ * a finished game moves the friend to the front - except a playing game notification the friend
+ * already has, whose message is updated and nothing else (`_arg_6` false). `undefined` when the
+ * bar does not hold the friend.
+ */
+export const friendBarAfterNotification = (ids: readonly number[], notifications: readonly FriendBarNotification[], friendId: number, typeCode: number, message: string): { ids: number[]; notifications: FriendBarNotification[] } | undefined => {
+    if (!ids.includes(friendId)) return undefined;
+
+    const viewOnce = typeCode !== FRIEND_NOTIFICATION_PLAYING_GAME;
+    const existing = notifications.find(notification => notification.typeCode === typeCode);
+
+    let next = existing
+        ? notifications.map(notification => ((notification === existing) ? { typeCode, message, viewOnce } : notification))
+        : [ ...notifications, { typeCode, message, viewOnce } ];
+
+    if (typeCode === FRIEND_NOTIFICATION_FINISHED_GAME) {
+        next = next.filter(notification => (notification.typeCode !== FRIEND_NOTIFICATION_PLAYING_GAME) && (notification.typeCode !== FRIEND_NOTIFICATION_FINISHED_GAME));
+    }
+
+    if (existing && (typeCode === FRIEND_NOTIFICATION_PLAYING_GAME)) return { ids: [ ...ids ], notifications: next };
+
+    return {
+        ids: (typeCode !== FRIEND_NOTIFICATION_FINISHED_GAME) ? friendBarMovedToFront(ids, friendId) : [ ...ids ],
+        notifications: next,
+    };
+};

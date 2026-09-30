@@ -14,6 +14,8 @@ const actions = {
     processFriendRequests: state.processFriendRequests,
     removeFriendRequests: state.removeFriendRequests,
     setSearchResults: state.setSearchResults,
+    addFriendBarNotification: state.addFriendBarNotification,
+    clearViewedFriendBarNotifications: state.clearViewedFriendBarNotifications,
 };
 
 export const useUserMessengerActions = () => actions;

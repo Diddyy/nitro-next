@@ -63,6 +63,8 @@
     "ui.theme.url": "https://images.nitrodev.co/ui/theme.nitro",
     "loading.icon.url": "shared-common_loading_icon",
     "wired.menu.enabled": true,
+    "friendbar.notifications.enabled": true,
+    "friendbar.requests.enabled": true,
     "wired.variables.context_visible": true,
     "wired.variablefx.campaign.icons.enabled": false,
     "wired.chests_starter_infix": "_starter",

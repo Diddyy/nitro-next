@@ -1,7 +1,7 @@
 import { FriendListUpdateActionType, IFriendRequest, IMessengerCategory, IMessengerFriend, IMessengerSearchResult, IMessengerUpdate } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
-import { friendBarAfterFragment, friendBarAfterUpdates } from './friendBarOrder';
+import { friendBarAfterFragment, friendBarAfterNotification, friendBarAfterUpdates, FriendBarNotification } from './friendBarOrder';
 
 type State = {
     userFriendLimit: number;
@@ -12,6 +12,8 @@ type State = {
     requests: Record<number, IFriendRequest>;
     /** The friend bar's friends - the online ones, in `HabboFriendBarData`'s order (`friendBarOrder`). */
     friendBarIds: number[];
+    /** Each bar friend's notifications (`IFriendEntity.notifications`), in the order they came. */
+    friendBarNotifications: Record<number, FriendBarNotification[]>;
     /** `AvatarSearchResults.friends` / `others`: the last `HabboSearchResultMessage`. */
     searchFriends: IMessengerSearchResult[];
     searchOthers: IMessengerSearchResult[];
@@ -25,6 +27,10 @@ type Actions = {
     processFriendRequests: (requests: IFriendRequest[]) => void;
     /** Drops requests the user has answered (accept/decline) without waiting for the server's next friend-list update. */
     removeFriendRequests: (playerIds: number[]) => void;
+    /** `HabboFriendBarData.makeNotification` for a `FriendNotificationMessage` (see `friendBarAfterNotification`). */
+    addFriendBarNotification: (friendId: number, typeCode: number, message: string) => void;
+    /** `NewFriendEntityTab.deselect`: the shown-once notifications go once the tab closes. */
+    clearViewedFriendBarNotifications: (friendId: number) => void;
     /** `AvatarSearchResults.searchReceived`. */
     setSearchResults: (friends: IMessengerSearchResult[], others: IMessengerSearchResult[]) => void;
 };
@@ -43,6 +49,7 @@ export const UserFriendsSlice: State = {
     friends: {},
     requests: {},
     friendBarIds: [],
+    friendBarNotifications: {},
     searchFriends: [],
     searchOthers: [],
 };
@@ -80,7 +87,25 @@ export const createUserFriendsSlice: StateCreator<UserFriendsSlice, [], [], User
             if (update.friend) friends[update.friendId] = update.friend;
         }
 
-        return { friends, friendBarIds: friendBarAfterUpdates(x.friendBarIds, updates) };
+        const friendBarIds = friendBarAfterUpdates(x.friendBarIds, updates);
+        // A friend the bar lets go of goes with their notifications: coming back is a new `FriendEntity`.
+        const friendBarNotifications = Object.fromEntries(Object.entries(x.friendBarNotifications).filter(([ id ]) => friendBarIds.includes(Number(id))));
+
+        return { friends, friendBarIds, friendBarNotifications };
+    }),
+    addFriendBarNotification: (friendId: number, typeCode: number, message: string) => set((x) => {
+        const next = friendBarAfterNotification(x.friendBarIds, x.friendBarNotifications[friendId] ?? [], friendId, typeCode, message);
+
+        if (!next) return x;
+
+        return { friendBarIds: next.ids, friendBarNotifications: { ...x.friendBarNotifications, [friendId]: next.notifications } };
+    }),
+    clearViewedFriendBarNotifications: (friendId: number) => set((x) => {
+        const notifications = x.friendBarNotifications[friendId];
+
+        if (!notifications?.some(notification => notification.viewOnce)) return x;
+
+        return { friendBarNotifications: { ...x.friendBarNotifications, [friendId]: notifications.filter(notification => !notification.viewOnce) } };
     }),
     processFriendRequests: (requests: IFriendRequest[]) => set((x) => {
         const updates = requests.reduce((acc, data) => ({

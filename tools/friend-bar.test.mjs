@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-const { friendBarAfterFragment, friendBarAfterUpdates } = await import('../packages/nitro-react/src/context/user/store/friendBarOrder.ts');
+const { friendBarAfterFragment, friendBarAfterNotification, friendBarAfterUpdates, friendBarMovedToFront } = await import('../packages/nitro-react/src/context/user/store/friendBarOrder.ts');
 const { friendBarWidth, layoutFriendBar, maxFriendBarTabs, pageFriendBar } = await import('../packages/nitro-react/src/views/friend-bar/friendBarLayout.ts');
 
 const friend = (playerId, isOnline = true) => ({ playerId, isOnline });
@@ -74,4 +74,41 @@ await test('arrangeWindows: the bar is as wide as what it shows', () => {
     // Collapsed, collapse_right is hidden; the arrows add 28 and 29.
     assert.equal(friendBarWidth(2, true, true), 150 + 28 + 29 + (2 * 127) + 3);
     assert.equal(friendBarWidth(0, false, false), 150 + 15);
+});
+
+await test('makeNotification: added, shown once, and the friend moved to the front', () => {
+    const next = friendBarAfterNotification([ 1, 2, 3 ], [], 3, 1, 'ACH_Login1');
+
+    assert.deepEqual([ ...next.ids ], [ 3, 1, 2 ]);
+    assert.deepEqual(next.notifications.map(n => ({ ...n })), [ { typeCode: 1, message: 'ACH_Login1', viewOnce: true } ]);
+    // Not a friend the bar holds (offline): nothing.
+    assert.equal(friendBarAfterNotification([ 1 ], [], 9, 0, 'x'), undefined);
+});
+
+await test('a notification of a type the friend has replaces it', () => {
+    const next = friendBarAfterNotification([ 1 ], [ { typeCode: 0, message: 'old', viewOnce: true } ], 1, 0, 'new');
+
+    assert.deepEqual(next.notifications.map(n => ({ ...n })), [ { typeCode: 0, message: 'new', viewOnce: true } ]);
+});
+
+await test('playing a game stays until the game ends, and a repeat does not move the friend', () => {
+    const playing = friendBarAfterNotification([ 1, 2 ], [], 2, 3, 'snowwar');
+
+    assert.deepEqual([ ...playing.ids ], [ 2, 1 ]);
+    assert.equal(playing.notifications[0].viewOnce, false);
+
+    const repeat = friendBarAfterNotification([ 1, 2 ], playing.notifications, 2, 3, 'basejump');
+
+    assert.deepEqual([ ...repeat.ids ], [ 1, 2 ]);
+    assert.equal(repeat.notifications[0].message, 'basejump');
+
+    const finished = friendBarAfterNotification([ 1, 2 ], playing.notifications, 2, 4, '');
+
+    assert.deepEqual([ ...finished.ids ], [ 1, 2 ]);
+    assert.deepEqual([ ...finished.notifications ], []);
+});
+
+await test('setFriendAt(friend, 0)', () => {
+    assert.deepEqual([ ...friendBarMovedToFront([ 1, 2, 3 ], 3) ], [ 3, 1, 2 ]);
+    assert.deepEqual([ ...friendBarMovedToFront([ 1, 2 ], 9) ], [ 1, 2 ]);
 });

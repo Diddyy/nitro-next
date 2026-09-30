@@ -32,7 +32,7 @@ import { forwardRef, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useIsWindowVisible, useSystemActions, useToolbarAreaWidth, useTranslation } from '#base/context/system';
-import { UiFlagEnum, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserActions } from '#base/context/user';
+import { UiFlagEnum, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserActions, useUserMessengerActions } from '#base/context/user';
 import { easeOutCubic, useTween, useViewportSize } from '#base/hooks';
 import { Box, Icon, LayoutImage, Region, ThemeImage } from '#base/theme';
 import { RoomToolsMinimizeButton } from '#base/views/room-widgets/room-tools/RoomToolsMinimizeButton';
@@ -103,7 +103,17 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
     const toolbarAreaWidth = useToolbarAreaWidth();
     const { width: viewportWidth } = useViewportSize();
     const [ startIndex, setStartIndex ] = useState(0);
-    const [ selected, setSelected ] = useState<SelectedTab>(null);
+    const [ selected, setSelectedTab ] = useState<SelectedTab>(null);
+    const { clearViewedFriendBarNotifications } = useUserMessengerActions();
+
+    /** `selectTab` / `deSelect`: a friend's tab that closes drops its shown-once tokens (`NewFriendEntityTab.deselect`). */
+    const setSelected = (next: SelectedTab) => {
+        const closing = (selected && ('friendId' in selected)) ? selected.friendId : undefined;
+
+        if ((closing !== undefined) && !(next && ('friendId' in next) && (next.friendId === closing))) clearViewedFriendBarNotifications(closing);
+
+        setSelectedTab(next);
+    };
     // 0 open, 1 collapsed, and in between while `onCollapseAnimationTimer` runs.
     const collapseProgress = useTween(collapsed ? 1 : 0, FRIEND_BAR_COLLAPSE_MS, easeOutCubic);
 
