@@ -21,6 +21,7 @@ export * from './collectiblesCommands';
 export * from './connectionCommands';
 export * from './earningsCommands';
 export * from './floorPlanCommands';
+export * from './friendBarCommands';
 export * from './friendListCommands';
 export * from './gameTokensCommands';
 export * from './groupCommands';

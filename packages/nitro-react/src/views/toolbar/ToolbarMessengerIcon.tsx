@@ -4,8 +4,7 @@
  * `notify` frames every 500 ms while a conversation has an unread message (`notifyMessenger`,
  * on its `Timer(500)`), and toggling the messenger when pressed (`onOpenMessenger`).
  *
- * Only the icon is carried from `HabboFriendBarView`: the friend tabs, their notification tokens
- * and the rest of the bar are the port's existing friend icons or not ported.
+ * `FriendBarView` places it in `friendtools`.
  *
  * Flash stops the blinking on a press until the next conversation update; here it blinks while
  * there is an unread conversation and the messenger is closed, which is the same whenever the

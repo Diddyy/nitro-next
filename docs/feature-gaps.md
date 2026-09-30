@@ -28,7 +28,7 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 
 | Feature | What is missing | Packet areas |
 |---|---|---|
-| Messenger and friend bar | Conversations and their history, instant-message errors, mini mail, friend notifications, room invites. The friend list is ported; its "start conversation" buttons do nothing (`FriendListSearch`, `FriendListSearchItem`). | `FriendList` |
+| Messenger and friend bar | Conversations and their history, instant-message errors, mini mail, friend notifications, room invites. The friend list is ported; its "start conversation" buttons do nothing (`FriendListSearch`, `FriendListSearchItem`). The friend bar is ported (`views/friend-bar`) without its notification tokens and game invite bubble, which wait on a `FriendNotificationMessage` listener. | `FriendList` |
 | Moderation tool | Issues, chat logs, room and user info, room visits, sanctions. No window, no store, and nothing sends its requests. | `Moderation`, `Moderator` |
 | Help, call for help and guides | Reporting a user or room, pending calls, guide sessions, chat review, the safety quiz. | `Help`, `Callforhelp` |
 | Quests, achievements and talent track | The achievements window, achievement score, badge points progress, daily and seasonal quests, community goals, talent track levels. | `Quest`, `Talent`, `Inventory` (achievements) |

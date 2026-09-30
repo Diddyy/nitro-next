@@ -1,6 +1,8 @@
 import { FriendListUpdateActionType, IFriendRequest, IMessengerCategory, IMessengerFriend, IMessengerSearchResult, IMessengerUpdate } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
+import { friendBarAfterFragment, friendBarAfterUpdates } from './friendBarOrder';
+
 type State = {
     userFriendLimit: number;
     normalFriendLimit: number;
@@ -8,6 +10,8 @@ type State = {
     categories: IMessengerCategory[];
     friends: Record<number, IMessengerFriend>;
     requests: Record<number, IFriendRequest>;
+    /** The friend bar's friends - the online ones, in `HabboFriendBarData`'s order (`friendBarOrder`). */
+    friendBarIds: number[];
     /** `AvatarSearchResults.friends` / `others`: the last `HabboSearchResultMessage`. */
     searchFriends: IMessengerSearchResult[];
     searchOthers: IMessengerSearchResult[];
@@ -38,6 +42,7 @@ export const UserFriendsSlice: State = {
     categories: [],
     friends: {},
     requests: {},
+    friendBarIds: [],
     searchFriends: [],
     searchOthers: [],
 };
@@ -57,6 +62,7 @@ export const createUserFriendsSlice: StateCreator<UserFriendsSlice, [], [], User
 
         return {
             friends: { ...x.friends, ...updates },
+            friendBarIds: friendBarAfterFragment(x.friendBarIds, friends),
         };
     }),
     processFriendUpdates: (updates: IMessengerUpdate[]) => set((x) => {
@@ -74,7 +80,7 @@ export const createUserFriendsSlice: StateCreator<UserFriendsSlice, [], [], User
             if (update.friend) friends[update.friendId] = update.friend;
         }
 
-        return { friends };
+        return { friends, friendBarIds: friendBarAfterUpdates(x.friendBarIds, updates) };
     }),
     processFriendRequests: (requests: IFriendRequest[]) => set((x) => {
         const updates = requests.reduce((acc, data) => ({

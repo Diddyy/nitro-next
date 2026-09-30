@@ -11,9 +11,8 @@
  * room tools' `roomtools_minimizebutton` in a 13x45 box at (1, 0) of a 15-wide region at (0, -1)
  * - over the unnamed style 2 border in `0x3b3933` at (-6, 0), 20x43, of which the window's left
  * edge leaves the right 14 with its rounded corners. Expanded it points left; collapsed it is
- * `icons_toolbar_collapse_right`, mirrored and etched. The right-hand group is a stand-in for the
- * friend bar's `friendtools` (`new_bar` of `habbo-friend-bar-com`), which has no port yet, and
- * keeps its own flex placement; its arrow is `new_bar`'s `collapse_right` / `collapse_left`.
+ * `icons_toolbar_collapse_right`, mirrored and etched. The right-hand end is the friend bar
+ * (`FriendBarView`).
  *
  * The inventory icon carries the unseen item count (`HabboToolbar.onUnseenItemsUpdate` ->
  * `BottomBarLeft.setUnseenItemCount('HTIE_ICON_INVENTORY', inventoryCount)`): the window manager's
@@ -43,11 +42,11 @@ import { useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useTween } from '#base/hooks';
 import { Border, Box, LayoutImage, Region, ThemeImage, useLayoutEvent } from '#base/theme';
+import { FriendBarView } from '#base/views/friend-bar/FriendBarView';
 import { RoomToolsMinimizeButton } from '#base/views/room-widgets/room-tools/RoomToolsMinimizeButton';
 import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
 
 import { ME_MENU_HEIGHT, PROG_MENU_HEIGHT, ToolbarExtendedMenu } from './ToolbarExtendedMenu';
-import { ToolbarMessengerIcon } from './ToolbarMessengerIcon';
 
 /** `bottom_background_border`: 54 high, 3 of it below the desktop (`updatePosition`). */
 const BACKGROUND_HEIGHT = 54;
@@ -133,7 +132,6 @@ export const ToolbarView = () => {
     const expandedOnlyShown = 1 - collapseProgress;
     // `checkSize` swaps the arrows when the new state is set, at the end of the run.
     const arrowCollapsed = collapseRunning ? !leftSideCollapsed : leftSideCollapsed;
-    const [ rightSideCollapsed, setRightSideCollapsed ] = useState(false);
     const ownFigure = useOwnUserFigure();
     const ownGender = useOwnUserGender();
     const ownUserId = useOwnUserId();
@@ -326,50 +324,7 @@ export const ToolbarView = () => {
                         />
                     </Region>
                 </Region>
-                <Region
-                    ref={setRightGroup}
-                    layout={{ position: 'absolute', right: 0, top: 0, height: BACKGROUND_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 15 }}
-                >
-                    <ThemeImage
-                        name="line"
-                        src={LayoutImage('shared/bottom_bar_divider_1px.png')}
-                        bitmap={{}}
-                        layout={{ width: 1, height: 40 }}
-                    />
-                    <Region
-                        dynamicStyle="lifted_hover"
-                        onPointerTap={() => toggleWindow('friendlist')}
-                        tooltip={t('friend.bar.friends.title')}
-                    >
-                        <ThemeImage
-                            dynamicRole="icon"
-                            src={LayoutImage('friend-bar/friend_bar_all_friends.png')}
-                            bitmap={{ etchingColor: 0x48000000 }}
-                            layout={{ width: 32, height: 33 }}
-                        />
-                    </Region>
-                    <Region
-                        dynamicStyle="lifted_hover"
-                        onPointerTap={() => toggleWindow('friendlist', { tab: 'search' })}
-                        tooltip={t('friend.bar.search.title')}
-                    >
-                        <ThemeImage
-                            dynamicRole="icon"
-                            src={LayoutImage('friend-bar/friend_bar_search_habbos.png')}
-                            bitmap={{ etchingColor: 0x48000000 }}
-                            layout={{ width: 29, height: 33 }}
-                        />
-                    </Region>
-                    <ToolbarMessengerIcon />
-                    {/* `new_bar`: `collapse_right` (mirrored) while the bar is open, `collapse_left` once it is shut. */}
-                    <RoomToolsMinimizeButton
-                        layout={{ width: 15, height: 46, flexShrink: 0 }}
-                        border={[ 0, 1, 20, 43 ]}
-                        arrow={[ 1, 0, 13, 45 ]}
-                        mirrored={!rightSideCollapsed}
-                        onPress={() => setRightSideCollapsed(prev => !prev)}
-                    />
-                </Region>
+                <FriendBarView ref={setRightGroup} />
             </Region>
             {isMeExpanded && (
                 <ToolbarExtendedMenu
