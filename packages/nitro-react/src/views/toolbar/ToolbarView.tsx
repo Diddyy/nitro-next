@@ -6,8 +6,15 @@
  * The me menu and progression buttons open `ToolbarExtendedMenu` (`MeMenuNewController` /
  * `ProgMenuController`).
  *
- * Which icons show follows the port's own collapse and landing view state, not `setToolbarState`'s
- * tag groups. The collapse arrow is the layout's own: `collapse_left` / `collapse_right` - the
+ * Which icons show follows `BottomBarLeft.setToolbarState`: each `bottom_bar_left` region is
+ * tagged with the states it shows in, and the port reads them off its own landing view and
+ * collapse state. On the hotel view (`VISIBLE_HOTEL`) that is home, navigator, catalogue,
+ * Builders Club and the me menu; in a room (`VISIBLE_ROOM`) reception replaces home and
+ * progression, inventory, wired menu and camera join; collapsed (`VISIBLE_COLLAPSED`) keeps
+ * catalogue, Builders Club, inventory, me menu, wired menu and camera. On top of the tags,
+ * Builders Club needs `builders.club.enabled` (unless collapsed) and the camera needs a room,
+ * `camera.launch.ui.position` of `bottom-icons` and the `CAMERA` perk. Games and stories
+ * (`games_icon_enabled`, `toolbar.stories.enabled`) are not ported. The collapse arrow is the layout's own: `collapse_left` / `collapse_right` - the
  * room tools' `roomtools_minimizebutton` in a 13x45 box at (1, 0) of a 15-wide region at (0, -1)
  * - over the unnamed style 2 border in `0x3b3933` at (-6, 0), 20x43, of which the window's left
  * edge leaves the right 14 with its rounded corners. Expanded it points left; collapsed it is
@@ -37,6 +44,8 @@ import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog 
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
+import { useMessengerStore } from '#base/context/messenger';
+import { useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useIsLandingViewVisible, useSystemActions, useTranslation } from '#base/context/system';
 import { useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
@@ -144,6 +153,12 @@ export const ToolbarView = () => {
     useLayoutEvent(leftGroup, reportWidths);
     useLayoutEvent(rightGroup, reportWidths);
     const landingViewVisible = useIsLandingViewVisible();
+    // `setToolbarState`'s `_local_4`: a room state, or collapsed from one.
+    const inRoom = !landingViewVisible;
+    const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
+    const cameraLaunchPosition = useConfigValue<string>('camera.launch.ui.position');
+    const cameraPerkAllowed = useNavigatorStore(x => x.perks.some(perk => (perk.code === 'CAMERA') && perk.isAllowed));
+    const showCamera = inRoom && (cameraLaunchPosition === 'bottom-icons') && cameraPerkAllowed;
     // `BottomBarLeft`: the wired menu icon is a room icon, and only for someone `showToolbarMenuButton` lets see it.
     const showWiredMenuButton = useWiredShowToolbarMenuButton() && !landingViewVisible;
     const { send } = useWebSocketContext();
@@ -152,6 +167,7 @@ export const ToolbarView = () => {
     const classicCollectiblesHubEnabled = useConfigValue<boolean>('classic.collectibles.hub.enabled') === true;
     const collectiblesHubEnabled = useConfigValue<boolean>('collectibles.hub.enabled') === true;
     const unseenInventoryCount = useInventoryUnseenTotalCount();
+    const unseenMiniMailCount = useMessengerStore(x => x.miniMailUnreadCount);
 
     // HabboLandingView.onToolbarClick HTIE_ICON_RECEPTION: quit and dispose the room session right away (RSE_ENDED shows the hotel view)
     const goToHotelView = () => {
@@ -232,7 +248,8 @@ export const ToolbarView = () => {
                                 />
                             </ToolbarToggleSlot>
                         )}
-                        {(expandedOnlyShown > 0) && (
+                        {/* `PROGRESSION` is tagged `VISIBLE_ROOM` only. */}
+                        {(expandedOnlyShown > 0) && inRoom && (
                             <ToolbarToggleSlot
                                 shown={expandedOnlyShown}
                                 index={2}
@@ -251,24 +268,30 @@ export const ToolbarView = () => {
                             src="toolbar/bottom_bar_shop.png"
                             icon={[ 4, 1, 37, 37 ]}
                         />
-                        <ToolbarItem
-                            tooltip={t('toolbar.icon.label.builder')}
-                            onPointerTap={() => toggleCatalog(CatalogTypeEnum.BuildersClub)}
-                            src="toolbar/bottom_bar_buildersclub.png"
-                            icon={[ 5, 1, 35, 37 ]}
-                        />
-                        <ToolbarItem
-                            tooltip={t('toolbar.icon.label.inventory')}
-                            onPointerTap={() => toggleWindow('inventory')}
-                            src="toolbar/bottom_bar_inventory.png"
-                            height={43}
-                            icon={[ 0, 0, 44, 41 ]}
-                        >
-                            <UnseenItemCounterView
-                                count={unseenInventoryCount}
-                                layout={{ position: 'absolute', right: 0, top: 0 }}
+                        {/* `BUILDER`: `builders.club.enabled` decides it, except in the collapsed bar. */}
+                        {(leftSideCollapsed || buildersClubEnabled) && (
+                            <ToolbarItem
+                                tooltip={t('toolbar.icon.label.builder')}
+                                onPointerTap={() => toggleCatalog(CatalogTypeEnum.BuildersClub)}
+                                src="toolbar/bottom_bar_buildersclub.png"
+                                icon={[ 5, 1, 35, 37 ]}
                             />
-                        </ToolbarItem>
+                        )}
+                        {/* `INVENTORY` is tagged `VISIBLE_ROOM` and `VISIBLE_COLLAPSED`, not `VISIBLE_HOTEL`. */}
+                        {(inRoom || leftSideCollapsed) && (
+                            <ToolbarItem
+                                tooltip={t('toolbar.icon.label.inventory')}
+                                onPointerTap={() => toggleWindow('inventory')}
+                                src="toolbar/bottom_bar_inventory.png"
+                                height={43}
+                                icon={[ 0, 0, 44, 41 ]}
+                            >
+                                <UnseenItemCounterView
+                                    count={unseenInventoryCount}
+                                    layout={{ position: 'absolute', right: 0, top: 0 }}
+                                />
+                            </ToolbarItem>
+                        )}
                         <Region
                             dynamicStyle="lifted_hover"
                             onPointerTap={() => toggleMenu('me')}
@@ -300,6 +323,11 @@ export const ToolbarView = () => {
                                 bitmap={{ stretchedX: false, stretchedY: false }}
                                 layout={{ position: 'absolute', left: 0, top: -1, width: 45, height: 45 }}
                             />
+                            {/* `setUnseenItemCount('HTIE_ICON_MEMENU', unseenMeMenuCount)`: unread mini mail (the forums' count is not ported). */}
+                            <UnseenItemCounterView
+                                count={unseenMiniMailCount}
+                                layout={{ position: 'absolute', right: 0, top: 0 }}
+                            />
                         </Region>
                         {showWiredMenuButton && (
                             <ToolbarItem
@@ -310,12 +338,14 @@ export const ToolbarView = () => {
                                 icon={[ 3, 0, 38, 45 ]}
                             />
                         )}
-                        <ToolbarItem
-                            tooltip={t('camera.interface.title')}
-                            src="toolbar/bottom_bar_camera.png"
-                            height={45}
-                            icon={[ 3, 0, 38, 45 ]}
-                        />
+                        {showCamera && (
+                            <ToolbarItem
+                                tooltip={t('camera.interface.title')}
+                                src="toolbar/bottom_bar_camera.png"
+                                height={45}
+                                icon={[ 3, 0, 38, 45 ]}
+                            />
+                        )}
                         <ThemeImage
                             name="line"
                             src={LayoutImage('shared/bottom_bar_divider_1px.png')}
