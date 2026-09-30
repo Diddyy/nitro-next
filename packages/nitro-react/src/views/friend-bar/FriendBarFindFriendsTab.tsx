@@ -7,9 +7,6 @@
  * (`DATA.findNewFriends`), which it answers with `FindFriendsProcessResult` - the alert the friend
  * list's handler shows. Hovered, it lightens and underlines its title (`expose`: `0x91E1F9` over
  * the default `0x7FC8DE`).
- *
- * Flash draws `find_friends_icon_png` over the layout's `add_friends_icon_png` at runtime; that
- * bitmap is not in the client's layout bundle, so the layout's own icon is drawn.
  */
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useRef, useState } from 'react';
@@ -69,7 +66,8 @@ const FriendBarFindFriendsTabBody = ({ height, exposed, selected, onToggle, onEx
                 >
                     <ThemeImage
                         name="icon"
-                        src={LayoutImage('friend-bar/add_friends_icon.png')}
+                        // `allocateEntityWindow` swaps in `find_friends_icon_png` for the layout's `add_friends_icon_png`.
+                        src={LayoutImage('friend-bar/find_friends_icon.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', left: -2, top: -5, width: 31, height: 34 }}
                     />
