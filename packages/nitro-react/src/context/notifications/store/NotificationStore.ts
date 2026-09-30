@@ -1,3 +1,4 @@
+import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { createStore } from 'zustand';
 
 import type { CollectibleProductInfo } from '#base/context/collectibles';
@@ -53,6 +54,13 @@ export interface NotificationOptions {
      * stopped and `false` when resumed.
      */
     toggleCallback?: (stopped: boolean) => void;
+    /**
+     * `friendonline` style only: the friend whose face the bubble's circle shows. Flash hands
+     * `addItemWithBitmap` the face itself (`HabboFaceFocuser.focusUserFace(image, "head", 2)`);
+     * here the bubble draws it from the figure.
+     */
+    figure?: string;
+    gender?: AvatarGenderType;
 }
 
 /** `HabboNotificationItem` with its `HabboNotificationItemStyle` folded in. */

@@ -1,10 +1,10 @@
 import { RoomObjectCategoryEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
-import { AcceptFriendComposer, DeclineFriendComposer, GetExtendedProfileComposer } from '@nitrodevco/nitro-packets';
+import { GetExtendedProfileComposer } from '@nitrodevco/nitro-packets';
 import { ReactNode } from 'react';
 
+import { acceptFriendRequest, declineFriendRequest } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomFriendRequestActions, useRoomFriendRequests, useRoomObjectIdByWebId } from '#base/context/room';
-import { useUserMessengerActions } from '#base/context/user';
 import { RoomFriendRequestView } from '#base/views/room-widgets/friend-request/RoomFriendRequestView';
 
 import { RoomObjectMenuBubble } from '../object-menu/RoomObjectMenuBubble';
@@ -18,17 +18,19 @@ import { RoomObjectMenuBubble } from '../object-menu/RoomObjectMenuBubble';
 export const RoomFriendRequestWidget = () => {
     const requests = useRoomFriendRequests();
     const { removeRoomFriendRequest } = useRoomFriendRequestActions();
-    const { removeFriendRequests } = useUserMessengerActions();
     const { send } = useWebSocketContext();
 
     if (!requests.length) return null;
 
+    /**
+     * `HabboFriendBarData.acceptFriendRequest` / `declineFriendRequest`: the bubble goes, and the
+     * answer is the friend list's (`FriendRequestsView.acceptRequest` / `declineRequest`), limit
+     * check and request state included.
+     */
     const answer = (requestId: number, accept: boolean) => {
-        send(accept
-            ? new AcceptFriendComposer({ playerIds: [ requestId ] })
-            : new DeclineFriendComposer({ declineAll: false, playerIds: [ requestId ] }));
+        if (accept) acceptFriendRequest(send, requestId);
+        else declineFriendRequest(send, requestId);
 
-        removeFriendRequests([ requestId ]);
         removeRoomFriendRequest(requestId);
     };
 

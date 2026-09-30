@@ -10,6 +10,7 @@ export interface FriendListSearchItemProps {
     showStartChat: boolean;
     showAskForFriend: boolean;
     onAskForFriend: () => void;
+    onStartChat: () => void;
     onPress: () => void;
     zebraColor?: string;
 }
@@ -18,10 +19,10 @@ export interface FriendListSearchItemProps {
  * A result's `search_entry` row (`SearchView.refreshEntry`): the face of anyone with a figure
  * (`refreshFigure`), the name, and the buttons its caller works out. `SearchView` fills the row's
  * two `<bitmap>` slots from the friend list's asset library - `start_chat_png` (right 4, y 3) and
- * `ask_for_friend_png` (right 5, y 2). Neither is an icon-set style. The chat button has no press
- * of its own: it opens a messenger conversation, and the messenger is not ported.
+ * `ask_for_friend_png` (right 5, y 2). Neither is an icon-set style. The chat button opens a
+ * messenger conversation (`SearchView.onChatButtonClick`).
  */
-export const FriendListSearchItem = ({ result, showStartChat, showAskForFriend, onAskForFriend, onPress, zebraColor }: FriendListSearchItemProps) => {
+export const FriendListSearchItem = ({ result, showStartChat, showAskForFriend, onAskForFriend, onStartChat, onPress, zebraColor }: FriendListSearchItemProps) => {
     const { tooltipHandlers } = useFriendsActions();
     const chatHover = tooltipHandlers('friendlist.tip.im');
     const askHover = tooltipHandlers('friendlist.tip.addfriend');
@@ -43,6 +44,10 @@ export const FriendListSearchItem = ({ result, showStartChat, showAskForFriend, 
                     cursor="pointer"
                     onPointerOver={chatHover.onMouseEnter}
                     onPointerOut={chatHover.onMouseLeave}
+                    onPointerTap={(event) => {
+                        event.stopPropagation();
+                        onStartChat();
+                    }}
                     layout={{ position: 'absolute', right: 4, top: 3, width: 16, height: 14 }}
                 />
             )}

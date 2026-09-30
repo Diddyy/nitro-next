@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
+
 import { useFriendsStore } from '#base/context/friend';
 import { useSystemActions, useTranslation, useWindowParams } from '#base/context/system';
-import { useFriendRequests } from '#base/context/user';
+import { useFriendRequests, userStore, useUserMessengerActions } from '#base/context/user';
 import { Accordion, Box, ColorLayer, Frame, ThemeText } from '#base/theme';
 
 import { FriendListFriends } from './FriendListFriends';
@@ -42,9 +44,23 @@ export const FriendListView = () => {
 
     const t = useTranslation();
 
+    const { clearAnsweredFriendRequests, markFriendRequestsListShown } = useUserMessengerActions();
+
+    /**
+     * `FriendListTabsView.onTabClick`: every tab hears it, and the requests tab lets its answered
+     * requests go (`tabClicked`) - once its list has been built, which happens after the click
+     * that first opens it.
+     */
     const setActiveTab = (tab: string) => {
+        if (userStore.getState().friendRequestsListShown) clearAnsweredFriendRequests();
+
         updateWindowParams('friendlist', { tab: tab as FriendListViewWindowParams['tab'] });
     };
+
+    // `FriendRequestsView.fillList`: the requests list exists from the first time the tab is shown.
+    useEffect(() => {
+        if (activeTab === 'requests') markFriendRequestsListShown();
+    }, [ activeTab, markFriendRequestsListShown ]);
 
     // `FriendListTabsView.isTabVisible`: the requests tab only while there are requests.
     const visibleTabs = Object.keys(requests).length ? 3 : 2;

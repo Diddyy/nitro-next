@@ -26,7 +26,7 @@
  * counts them then. Not carried: the dimmer over the bar while the room entry effect runs, and the
  * `friendbar/` link tracker.
  */
-import { SetUIFlagsComposer } from '@nitrodevco/nitro-packets';
+import { FriendRequestStateType, SetUIFlagsComposer } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer } from 'pixi.js';
 import { forwardRef, useState } from 'react';
 
@@ -117,7 +117,8 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
     // 0 open, 1 collapsed, and in between while `onCollapseAnimationTimer` runs.
     const collapseProgress = useTween(collapsed ? 1 : 0, FRIEND_BAR_COLLAPSE_MS, easeOutCubic);
 
-    const numRequests = requestsEnabled ? Object.keys(requests).length : 0;
+    // `HabboFriendBarData.onFriendRequestEvent`: an accepted or declined request leaves the bar's own list at once.
+    const numRequests = requestsEnabled ? Object.values(requests).filter(request => request.state === FriendRequestStateType.Open).length : 0;
     // `resizeAndPopulate` gives the bar the desktop right of the toolbar before it counts the tabs.
     const maxTabs = maxFriendBarTabs(viewportWidth - toolbarAreaWidth);
     const bar = layoutFriendBar(friends.length, maxTabs, startIndex);

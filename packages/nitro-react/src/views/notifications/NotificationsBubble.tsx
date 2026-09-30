@@ -1,7 +1,9 @@
+import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { Container as PixiContainer } from 'pixi.js';
 import { useState } from 'react';
 
 import { getCollectiblePreviewIcon } from '#base/commands';
+import { AvatarFaceImage } from '#base/components';
 import { NOTIFICATION_ASSETS, NotificationAssetName, NotificationItem } from '#base/context/notifications';
 import { useInterpolate, useTranslation } from '#base/context/system';
 import { Border, Box, Button, LayoutImage, Region, ThemeImage, ThemeText, useLayoutEvent } from '#base/theme';
@@ -395,7 +397,15 @@ const FriendOnlineBubble = ({ item, onSwipe }: { item: NotificationItem; onSwipe
                     layout={{ position: 'absolute', left: -10, top: 3 }}
                 />
                 <Box layout={{ position: 'absolute', left: -8, top: 4 }}>
-                    <BubbleIcon image={item.image} />
+                    {item.options.figure
+                        ? (
+                                <AvatarFaceImage
+                                    figure={item.options.figure}
+                                    gender={item.options.gender ?? AvatarGenderType.Male}
+                                    direction={2}
+                                />
+                            )
+                        : <BubbleIcon image={item.image} />}
                 </Box>
                 <ThemeImage
                     src={LayoutImage('notifications/notification_friendonline_circle.png')}

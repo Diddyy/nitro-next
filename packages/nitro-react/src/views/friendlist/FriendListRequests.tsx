@@ -1,3 +1,5 @@
+import { FriendRequestStateType } from '@nitrodevco/nitro-packets';
+
 import { useFriendRequests } from '#base/context/user';
 import { ScrollArea } from '#base/theme';
 
@@ -14,6 +16,8 @@ export interface FriendListRequestsProps {
  * The friend requests tab (tab 2, `FriendRequestsView`), shown only while there are requests
  * (`FriendListTabsView.isTabVisible`): `hdr_friend_requests`, `0xf6f6f6` caption text, a white
  * `tab_content`. `FriendRequests.refreshShading` starts the shading on an even (`0xffeeeeee`) row.
+ * The caption counts the open requests (`getEntryCount` -> `getCountOfOpenRequests`); the answered
+ * ones stay listed until a tab is clicked.
  */
 export const FriendListRequests = ({ value }: FriendListRequestsProps) => {
     const requests = useFriendRequests();
@@ -25,7 +29,7 @@ export const FriendListRequests = ({ value }: FriendListRequestsProps) => {
         <FriendListTab
             value={value}
             caption="friendlist.tab.friendrequests"
-            count={list.length}
+            count={list.filter(request => request.state === FriendRequestStateType.Open).length}
             headerColors={[ '#ff9302', '#ea8000', '#914c00' ]}
             textColor="#f6f6f6"
             contentBackgroundColor="#ffffff"

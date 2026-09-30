@@ -122,6 +122,7 @@
     "groupRoomInfo.badge.enabled": true,
     "groupRoomInfo.attach.enabled": true,
     "friend_list.persistent_message_status.enabled": true,
+    "friend_online_indicator.enabled": true,
     "seasonalcurrency.acorn.color": "brown",
     "seasonalcurrency.acorns.color": "brown",
     "seasonalcurrency.balloons.color": "light_blue",

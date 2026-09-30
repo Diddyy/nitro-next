@@ -1,6 +1,6 @@
 import { IMessengerSearchResult } from '@nitrodevco/nitro-packets';
 
-import { askForAFriend, openProfile, showFriendLimitReachedAlert, showFriendRequestSentAlert } from '#base/commands';
+import { askForAFriend, openMessengerConversation, openProfile, showFriendLimitReachedAlert, showFriendRequestSentAlert } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useOwnUserId, useUserStore } from '#base/context/user';
@@ -37,7 +37,7 @@ interface FriendListSearchGroupData {
  * (`isMessagesPersisted`); anyone else found gets the ask-for-friend button unless it is the user or
  * someone already asked. Asking goes through `askForAFriend` and answers with its alert
  * (`onAskForFriendButtonClick`); a row opens the extended profile (`onSearchEntry`). The chat
- * button starts a conversation in Flash's messenger, which is not ported, so it does nothing.
+ * button starts a conversation (`onChatButtonClick` -> `messenger.startConversation`).
  */
 export const FriendListSearch = ({ value }: FriendListSearchProps) => {
     const searchFriends = useUserStore(x => x.searchFriends);
@@ -96,6 +96,7 @@ export const FriendListSearch = ({ value }: FriendListSearchProps) => {
                                     showStartChat={(group.value === 'friends') && (result.isOnline || messagesPersisted)}
                                     showAskForFriend={(group.value === 'others') && (result.playerId !== ownUserId) && !sentFriendRequestIds.includes(result.playerId)}
                                     onAskForFriend={() => askForFriend(result)}
+                                    onStartChat={() => openMessengerConversation(send, result.playerId)}
                                     onPress={() => openProfile(send, result.playerId)}
                                     zebraColor={rowShading(captionIndex(groupIndex) + 1 + i)}
                                 />

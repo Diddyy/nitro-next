@@ -104,6 +104,11 @@ interface State {
     avatarScrollOffset: number;
     /** `HabboMessenger.followingToGroupRoom`: a group chat's follow is waiting for the group's details, for its room. */
     followingToGroupRoom: boolean;
+    /**
+     * `HabboMessenger._SafeStr_8752` (`getUnseenMiniMailMessageCount`): mail waiting on the web
+     * mini mail, counted only while `client.minimail.embed.enabled` is on.
+     */
+    miniMailUnreadCount: number;
 }
 
 interface Actions {
@@ -116,6 +121,10 @@ interface Actions {
     setHistoryFetch: (chatId: number, messageId: string, time: number) => void;
     setAvatarScrollOffset: (offset: number) => void;
     setFollowingToGroupRoom: (following: boolean) => void;
+    /** `HabboMessenger.onMiniMailUnreadCount`. */
+    setMiniMailUnreadCount: (count: number) => void;
+    /** `HabboMessenger.onMiniMailMessage`: one more unread. */
+    addMiniMailUnread: () => void;
     resetMessenger: () => void;
 }
 
@@ -131,6 +140,7 @@ const initialState: State = {
     historyFetches: {},
     avatarScrollOffset: 0,
     followingToGroupRoom: false,
+    miniMailUnreadCount: 0,
 };
 
 export const createMessengerStore = () => createStore<MessengerStore>()((set, get) => ({
@@ -150,6 +160,8 @@ export const createMessengerStore = () => createStore<MessengerStore>()((set, ge
     setHistoryFetch: (chatId, messageId, time) => set(state => ({ historyFetches: { ...state.historyFetches, [chatId]: { messageId, time } } })),
     setAvatarScrollOffset: avatarScrollOffset => set({ avatarScrollOffset }),
     setFollowingToGroupRoom: followingToGroupRoom => set({ followingToGroupRoom }),
+    setMiniMailUnreadCount: miniMailUnreadCount => set({ miniMailUnreadCount }),
+    addMiniMailUnread: () => set(state => ({ miniMailUnreadCount: state.miniMailUnreadCount + 1 })),
     resetMessenger: () => set(initialState),
 }));
 
