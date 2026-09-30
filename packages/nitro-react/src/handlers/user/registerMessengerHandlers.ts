@@ -1,6 +1,6 @@
 import {
     AcceptFriendResultMessage, ConsoleMessageHistoryMessage, FindFriendsProcessResultMessage, FollowFriendErrorCodeType, FollowFriendFailedMessage, FriendListErrorCodeType, FriendListFragmentMessage, FriendListUpdateMessage,
-    FriendRequestsMessage, HabboGroupDetailsMessage, HabboSearchResultMessage, InstantMessageErrorMessage, MessengerErrorMessage, MessengerInitMessage, NewConsoleMessageMessage, NewFriendRequestMessage, RoomInviteErrorMessage,
+    FriendRequestsMessage, GetFriendRequestsComposer, HabboGroupDetailsMessage, HabboSearchResultMessage, InstantMessageErrorMessage, MessengerErrorMessage, MessengerInitMessage, NewConsoleMessageMessage, NewFriendRequestMessage, RoomInviteErrorMessage,
     RoomInviteMessage,
 } from '@nitrodevco/nitro-packets';
 
@@ -129,6 +129,10 @@ export const registerMessengerHandlers = ({ send, subscribe }: WebSocketConnecti
             setFriendLimits(data.userFriendLimit, data.normalFriendLimit, data.extendedFriendLimit);
 
             if (data.friendCategories) setFriendCategories(data.friendCategories);
+
+            // `HabboFriendList.onMessengerInit` -> `getFriendRequests`: the requests waiting since the
+            // last session come only when asked; `NewFriendRequest` brings just the ones sent live.
+            send(new GetFriendRequestsComposer({}));
         }),
 
         on(NewFriendRequestMessage, (data) => {
