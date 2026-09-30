@@ -7,7 +7,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
 import { useOwnControllerLevel, useRoom, useRoomStore } from '#base/context/room';
 import { useConfigValue, useSystemActions } from '#base/context/system';
-import { useOwnSecurityLevel, useOwnUserId } from '#base/context/user';
+import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useRoomFurnitureData, useRoomObjectInteraction, useRoomObjectModify, useSecondsClock } from '#base/hooks';
 import { InfostandFurniDetails, InfostandFurniView } from '#base/views/room-widgets/object-infostand/InfostandFurniView';
@@ -16,10 +16,6 @@ type InfostandFurniProps = {
     objectData: ISimpleRoomObjectData;
     onClose: () => void;
 };
-
-/** `SecurityLevelEnum`: staff who count as a controller of every room, and who may save branding. */
-const ANY_ROOM_CONTROLLER_SECURITY = 5;
-const SAVE_BRANDING_SECURITY = 4;
 
 /** `PickupMode`: none, eject someone else's furni, pick up your own. */
 export const PICKUP_NONE = 0;
@@ -37,7 +33,10 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const room = useRoom();
     const furniData = useRoomFurnitureData(objectId, category);
     const ownUserId = useOwnUserId();
-    const securityLevel = useOwnSecurityLevel();
+    const isAnyRoomController = useClientGate(ClientGates.AnyRoomController);
+    const canSaveBranding = useClientGate(ClientGates.FurniBranding);
+    // `createWindow` disposes `custom_variables` without `hasSecurity(5)`.
+    const canSeeCustomVariables = useClientGate(ClientGates.FurniCustomVariables);
     const controllerLevel = useOwnControllerLevel();
     const isRoomOwner = useRoomStore(x => x.isRoomOwner);
     const isFreeFurniMovementsMode = useRoomStore(x => x.isFreeFurniMovementsMode);
@@ -80,7 +79,6 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     if (!roomObject) return null;
 
     const isOwner = furniData.ownerId === ownUserId;
-    const isAnyRoomController = Number(securityLevel) >= ANY_ROOM_CONTROLLER_SECURITY;
     const hasRights = controllerLevel >= RoomControllerLevelEnum.Guest;
     // Free furni movements mode (a wired configuration item) hands move, rotate and use to everyone; play test mode takes them from the rest.
     const canMove = isFreeFurniMovementsMode || (!playTestMode && (hasRights || isOwner || isRoomOwner || isAnyRoomController));
@@ -139,7 +137,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
         group: (groupId > 0) ? { name: groupDetails?.groupName ?? '', badge: groupDetails?.badgeCode ?? '' } : undefined,
         uniqueSerial: stuffData.isUnique ? { number: stuffData.uniqueNumber, series: stuffData.uniqueSeries } : undefined,
         chest: (mapData && mapData.chestName.length) ? { name: mapData.chestName, contents: mapData.getValue('contents_count'), isCoins: furniData.furnitureData?.category === 'coin_chest', isWiredEnabled: mapData.getValue('is_wired_enabled') === '1', isLocked: mapData.getValue('locked') === '1' } : undefined,
-        customVariables: customVariableNames.map(name => ({ name, value: furnitureDataMap[name] ?? '' })),
+        customVariables: !canSeeCustomVariables ? [] : customVariableNames.map(name => ({ name, value: furnitureDataMap[name] ?? '' })),
         staffDetails: isAnyRoomController ? { id: objectId, branding: brandingOptions } : undefined,
         crackable: (isCrackable && (stuffData instanceof CrackableDataType)) ? { hits: stuffData.hits, target: stuffData.target } : undefined,
         jukebox: (extraParam === RoomWidgetEnumItemExtradataParameter.JUKEBOX) ? { playing: nowPlayingSongId >= 0, songName: song?.songName ?? '', creator: song?.creator ?? '' } : undefined,
@@ -159,7 +157,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
             canUse={canUse}
             canWiredInspect={!playTestMode && showWiredInspectButton}
             pickupMode={pickupMode}
-            canSaveBranding={Number(securityLevel) >= SAVE_BRANDING_SECURITY}
+            canSaveBranding={canSaveBranding}
             onMove={() => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_MOVE)}
             onRotate={() => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_ROTATE_POSITIVE)}
             onPickup={() => {

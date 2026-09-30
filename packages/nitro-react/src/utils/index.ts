@@ -17,6 +17,7 @@ export * from './floorPlanTiles';
 export * from './framePositionStorage';
 export * from './frameSizeStorage';
 export * from './FriendlyTime';
+export * from './furnitureOwner';
 export * from './GetBrowserZoom';
 export * from './GetLaunchParameter';
 export * from './GetPixelRatio';

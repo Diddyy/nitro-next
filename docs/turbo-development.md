@@ -91,6 +91,26 @@ Keep Turbo handlers focused on orchestration. Domain/grain code owns runtime sta
 do not update database rows directly to bypass grain-owned state. Keep client-specific display logic
 in Nitro. Check Turbo's architecture contract for the relevant domain before implementing a fix.
 
+## Turbo protocol extensions
+
+The client stays a plain Habbo client against any server. Where Habbo's protocol cannot say
+something, Turbo offers opt-in extensions: after the user object the client sends
+`TurboClientCapabilitiesComposer` (header 30000), and a Turbo server answers with
+`TurboServerCapabilitiesMessage` (30000), which `userStore.turboCapabilities` keeps. Headers
+30000-30099 are reserved for these on both sides; another server ignores the unknown packet and
+never answers. A hotel whose server objects to unknown packets sets `turbo.extensions.disabled`
+and the client never asks. An extension's packets are taken only once the server has accepted it,
+so a server using the same headers for something else cannot feed them in. Turbo's
+`docs/client-capabilities.md` owns the wire format.
+
+`permission.nodes` is the one extension so far: Turbo sends the user's client-facing permission
+nodes (`TurboPermissionNodesMessage`, 30001) after `UserRights` and on every change, into
+`userStore.permissionNodes`. Every security-level check goes through a `ClientGates` entry
+(`src/context/user/gates/ClientGate.ts`) and `useClientGate` / `hasClientGate`: the gate asks its
+node when the store has nodes, and the Flash `hasSecurity` level otherwise. Add a new staff-only
+feature as a gate there, with the Flash level it ports and the Turbo node behind it - never as a
+bare `securityLevel` comparison - and register the node in Turbo with the same client level.
+
 ## Verify the complete change
 
 Run Nitro's applicable [code gates](../AGENTS.md) and focused regressions. For Turbo code changes,

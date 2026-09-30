@@ -1,4 +1,5 @@
 import { ClubLevelEnum, NoobnessLevelEnum, RoomChatBubbleWidthType, RoomChatModeType, RoomChatScrollSpeedType, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { IPerk } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 import { createUserEffectsSlice, UserEffectsSlice } from './UserEffectsSlice';
@@ -14,6 +15,17 @@ type State = {
     clubLevel: ClubLevelEnum;
     securityLevel: SecurityLevelEnum;
     isAmbassador: boolean;
+    /**
+     * Not Flash's: the client-facing permission nodes a Turbo server says the user holds (its
+     * `permission.nodes` extension), or `null` when the server never sent them - any other server,
+     * or a Turbo that declined. With them, every `ClientGate` asks its node; without, its
+     * `securityLevel` threshold, as Flash does.
+     */
+    permissionNodes: ReadonlySet<string> | null;
+    /** Not Flash's: the Turbo extensions the server accepted (`TurboServerCapabilitiesMessage`), by name, at the agreed version. */
+    turboCapabilities: ReadonlyMap<string, number>;
+    /** `PerkManager` - every perk the server sent, by code. */
+    perks: ReadonlyMap<string, IPerk>;
     noobnessLevel: number;
     isEmailVerified: boolean;
     systemOpen: boolean;
@@ -80,6 +92,10 @@ type Actions = {
     /** `SessionDataManager.onAvailabilityStatus`: whether the hotel is open, shutting down, and the account authentic. */
     setAvailabilityStatus: (systemOpen: boolean, systemShutdown: boolean, isAuthenticHabbo: boolean) => void;
     setRights: (clubLevel: ClubLevelEnum, securityLevel: SecurityLevelEnum, isAmbassador: boolean) => void;
+    setPermissionNodes: (permissionNodes: ReadonlySet<string> | null) => void;
+    setTurboCapabilities: (turboCapabilities: ReadonlyMap<string, number>) => void;
+    /** `PerkManager.onPerkAllowances` merges: a message carrying some perks updates those and keeps the rest. */
+    mergePerks: (perks: IPerk[]) => void;
     setNoobnessLevel: (noobnessLevel: NoobnessLevelEnum) => void;
     increasePetRespects: () => void;
     decreasePetRespects: () => void;
@@ -108,6 +124,9 @@ const initialState: State = {
     clubLevel: ClubLevelEnum.Club,
     securityLevel: 0,
     isAmbassador: false,
+    permissionNodes: null,
+    turboCapabilities: new Map(),
+    perks: new Map(),
     noobnessLevel: -1,
     isEmailVerified: false,
     systemOpen: false,
@@ -136,6 +155,9 @@ export type UserStore = State & Actions & UserInfoSlice & UserFriendsSlice & Use
 export const createUserStore = () => createStore<UserStore>()((set, get, store) => ({
     ...initialState,
     setRights: (clubLevel: ClubLevelEnum, securityLevel: SecurityLevelEnum, isAmbassador: boolean) => set({ clubLevel, securityLevel, isAmbassador }),
+    setPermissionNodes: (permissionNodes: ReadonlySet<string> | null) => set({ permissionNodes }),
+    setTurboCapabilities: (turboCapabilities: ReadonlyMap<string, number>) => set({ turboCapabilities }),
+    mergePerks: (perks: IPerk[]) => set(state => ({ perks: new Map([ ...state.perks, ...perks.map(perk => [ perk.code, perk ] as const) ]) })),
     setNoobnessLevel: (noobnessLevel: NoobnessLevelEnum) => set({ noobnessLevel }),
     increasePetRespects: () => set(state => ({ petRespectLeft: state.petRespectLeft + 1 })),
     decreasePetRespects: () => set(state => ({ petRespectLeft: state.petRespectLeft - 1 })),

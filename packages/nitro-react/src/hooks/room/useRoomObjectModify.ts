@@ -1,10 +1,11 @@
-import { IRoomObject, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectUserTypeName, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
+import { IRoomObject, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectUserTypeName, Vector3d } from '@nitrodevco/nitro-api';
 import { MoveEntityInFlatComposer, MoveObjectComposer, MovePetComposer, MoveWallItemComposer, PickupObjectComposer, RemoveBotFromFlatComposer, RemovePetFromFlatComposer } from '@nitrodevco/nitro-packets';
 import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { roomStore, useRoom, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
-import { useOwnIsModerator, useOwnUserId } from '#base/context/user';
+import { useOwnIsAnyRoomController, useOwnUserId } from '#base/context/user';
+import { isFurnitureOwnedBy } from '#base/utils';
 
 import { useRoomObjectSelect } from './useRoomObjectSelect';
 import { useRoomObjectValidation } from './useRoomObjectValidation';
@@ -19,7 +20,7 @@ import { useRoomObjectValidation } from './useRoomObjectValidation';
 export const useRoomObjectModify = () => {
     const room = useRoom();
     const ownUserId = useOwnUserId();
-    const isModerator = useOwnIsModerator();
+    const isAnyRoomController = useOwnIsAnyRoomController();
     const selectedObject = useRoomSelectedObject();
     const controllerLevel = useRoomStore(x => x.controllerLevel);
     const isRoomOwner = useRoomStore(x => x.isRoomOwner);
@@ -55,10 +56,8 @@ export const useRoomObjectModify = () => {
         if (petId) send(new MovePetComposer({ petId, x, y, direction }));
     };
 
-    const isFurnitureOwner = (object: IRoomObject | undefined) => object && (ownUserId === object.model.getValue<number>(RoomObjectVariableEnum.FurnitureOwnerId));
-
     /** `RoomDesktop.checkFurniManipulationRights`: rights, ownership, or a room whose configuration items free the furni for everyone. */
-    const canManipulateFurniture = (objectId: number, category: RoomObjectCategoryEnum) => room && (isRoomOwner || isModerator || (controllerLevel >= RoomControllerLevelEnum.Guest) || isFreeFurniMovementsMode || isFurnitureOwner(room.getRoomObject(objectId, category)));
+    const canManipulateFurniture = (objectId: number, category: RoomObjectCategoryEnum) => room && (isRoomOwner || isAnyRoomController || (controllerLevel >= RoomControllerLevelEnum.Guest) || isFreeFurniMovementsMode || isFurnitureOwnedBy(room.getRoomObject(objectId, category), ownUserId));
 
     const modifyRoomObject = (objectId: number, category: RoomObjectCategoryEnum, operation: RoomObjectOperationType) => {
         if (!room) return false;

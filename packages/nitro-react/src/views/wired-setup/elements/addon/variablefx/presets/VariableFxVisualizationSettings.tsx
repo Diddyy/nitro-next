@@ -20,7 +20,7 @@
  */
 import { VariableFxPaintColors } from '@nitrodevco/nitro-renderer';
 
-import { useOwnSecurityLevel } from '#base/context/user';
+import { ClientGates, useClientGate } from '#base/context/user';
 import { getVariableFxCategory, getVariableFxSubRendererOptions, VARIABLE_FX_CATEGORY_NUMBER_DISPLAY, variableFxCategoryUsesColorSelector, variableFxCategoryUsesIconSelector, variableFxCategoryUsesRendererSelector, variableFxCategoryUsesSegmentsSelector, variableFxCategoryUsesSubRendererSelector, variableFxCategoryUsesWidthSelector, variableFxCurrentStyle, VariableFxOption, variableFxRendererSupportsSegments, variableFxSegmentRendererId, VariableFxState, WiredDropdownOption, WiredElementContext } from '#base/wired';
 
 import { useWiredCaption } from '../../../../kit/useWiredCaption';
@@ -39,8 +39,6 @@ const METALLIC_COLOR_PREFIX_KEY = 'wiredfurni.params.variablefx.color.prefix.met
 const DYNAMIC_COLOR_PREFIX_KEY = 'wiredfurni.params.variablefx.color.prefix.dynamic';
 const ICON_LOCALIZATION_PREFIX = 'wiredfurni.params.variablefx.icon.';
 const CAMPAIGN_ICONS_ENABLED_KEY = 'wired.variablefx.campaign.icons.enabled';
-/** `hasSecurity(4)`. */
-const CAMPAIGN_ICONS_SECURITY_LEVEL = 4;
 
 const STANDARD_ICON_IDS = [ '', 'battery', 'burning', 'cash', 'cooldown', 'droplet', 'energy', 'eye', 'fish', 'food', 'freezing', 'gems', 'gold', 'health', 'honor', 'magic', 'mana', 'poison', 'repairing', 'reputation', 'shield', 'stamina', 'star_power', 'stealth', 'timeleft', 'upgrading', 'wooden_logs' ];
 /** `§_-N26§`. */
@@ -109,8 +107,8 @@ export interface VariableFxVisualizationSettingsProps {
 export const VariableFxVisualizationSettings = ({ state, previewKey, ctx, onChange }: VariableFxVisualizationSettingsProps) => {
     const style = useWiredStyle();
     const caption = useWiredCaption();
-    const securityLevel = useOwnSecurityLevel();
-    const icons = (ctx.configBoolean(CAMPAIGN_ICONS_ENABLED_KEY) || (Number(securityLevel) >= CAMPAIGN_ICONS_SECURITY_LEVEL)) ? [ ...STANDARD_ICON_IDS, ...CAMPAIGN_ICON_IDS ] : STANDARD_ICON_IDS;
+    const campaignIconsAllowed = useClientGate(ClientGates.VariableFxCampaignIcons);
+    const icons = (ctx.configBoolean(CAMPAIGN_ICONS_ENABLED_KEY) || campaignIconsAllowed) ? [ ...STANDARD_ICON_IDS, ...CAMPAIGN_ICON_IDS ] : STANDARD_ICON_IDS;
     const iconOptions = icons.map((icon, index) => ({ id: index, label: (icon === '') ? '${wiredfurni.params.variablefx.icon.none}' : iconDisplayString(icon) }));
     const iconOptionId = Math.max(0, icons.indexOf(state.icon));
 

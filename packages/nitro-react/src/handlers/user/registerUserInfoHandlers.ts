@@ -1,9 +1,11 @@
 import { ChangeUserNameResultMessageCode } from '@nitrodevco/nitro-api';
-import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetSoundSettingsComposer, GetUserNftChatStylesComposer, NoobnessLevelMessage, PetRespectFailedMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
+import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetSoundSettingsComposer, GetUserNftChatStylesComposer, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
-import { SOUND_VOLUME_SCALE, userStore } from '#base/context/user';
+import { systemStore } from '#base/context/system';
+import { SOUND_VOLUME_SCALE, TURBO_PERMISSION_NODES_CAPABILITY, userStore } from '#base/context/user';
+import { configReader } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -14,9 +16,15 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * back when the server refuses one (`onPetRespectFailed`): the respect was spent when it was sent,
  * and follows the account's safety lock (`onAccountSafetyLockStatusChanged`: locked while the status is 0)
  * and the hotel's availability (`onAvailabilityStatus`), which trading checks for a shutdown.
+ *
+ * Not Flash's: after the user object it asks the server for Turbo's `permission.nodes` extension,
+ * unless `turbo.extensions.disabled` is set. A Turbo server answers and sends the nodes the user
+ * holds, which every `ClientGate` then asks; any other server ignores the unknown packet and the
+ * gates keep to `securityLevel`. Nodes are taken only once the server has accepted the extension,
+ * so a server that happens to use the same header for something else cannot feed the gates.
  */
 export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { setAvailabilityStatus, setRights, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
+    const { setAvailabilityStatus, setRights, setPermissionNodes, setTurboCapabilities, mergePerks, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
 
     return subscribeAll(subscribe, [
         on(FigureUpdateEventMessage, (data) => {
@@ -29,7 +37,24 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             send(new GetUserNftChatStylesComposer({}));
             // `HabboSoundManagerFlash10.initComponent`: asks for the sound settings `AccountPreferences` answers.
             send(new GetSoundSettingsComposer({}));
+            if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 } ] }));
         }),
+
+        // A Turbo server that declined `permission.nodes` leaves the gates on the level.
+        on(TurboServerCapabilitiesMessage, (data) => {
+            const capabilities = new Map(data.capabilities.map(x => [ x.name, x.version ]));
+
+            setTurboCapabilities(capabilities);
+
+            if (!capabilities.has(TURBO_PERMISSION_NODES_CAPABILITY)) setPermissionNodes(null);
+        }),
+
+        on(TurboPermissionNodesMessage, (data) => {
+            if (userStore.getState().turboCapabilities.has(TURBO_PERMISSION_NODES_CAPABILITY)) setPermissionNodes(new Set(data.nodes));
+        }),
+
+        // `PerkManager.onPerkAllowances`.
+        on(PerkAllowancesMessage, data => mergePerks(data.perks)),
 
         on(UserNftChatStylesMessage, (data) => {
             setNftChatStyles(data.chatStyleIds);

@@ -1,4 +1,4 @@
-import { ClubLevelEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { ClubLevelEnum } from '@nitrodevco/nitro-api';
 import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer, WhisperComposer } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer } from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -8,7 +8,7 @@ import { runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle } from 
 import { useWebSocketContext } from '#base/context/communication';
 import { roomStore, useRoom, useRoomChatActions, useRoomStore } from '#base/context/room';
 import { useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
-import { useOwnClubLevel, useOwnIsAmbassador, useOwnSecurityLevel, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
+import { ClientGates, useClientGate, useOwnClubLevel, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
 import { useChatStyles, useViewportSize } from '#base/hooks';
 import { Border, Box, getGlobalRect, GlobalRect, Icon, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
 import { roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
@@ -54,7 +54,7 @@ export const RoomChatInputView = () => {
     const preferredChatStyle = useUserStore(x => x.preferredChatStyle);
     const chatSizePreference = useUserStore(x => x.chatSizePreference);
     const clubLevel = useOwnClubLevel();
-    const securityLevel = useOwnSecurityLevel();
+    const isStaff = useClientGate(ClientGates.StaffChatStyles);
     const isAmbassador = useOwnIsAmbassador();
     const nftChatStyles = useUserStore(x => x.nftChatStyles);
     const purchasableChatStyles = useUserStore(x => x.purchasableChatStyles);
@@ -109,7 +109,6 @@ export const RoomChatInputView = () => {
         if (!customStylesEnabled) return [];
 
         const disabled = disabledStyles.split(',');
-        const isStaff = (securityLevel >= SecurityLevelEnum.Employee);
         const hasClub = (clubLevel >= ClubLevelEnum.Club);
         const styles: IChatStyle[] = [];
 
@@ -147,7 +146,7 @@ export const RoomChatInputView = () => {
         }
 
         return styles;
-    }, [ allStyles, customStylesEnabled, disabledStyles, securityLevel, clubLevel, isAmbassador, nftChatStyles, purchasableChatStyles ]);
+    }, [ allStyles, customStylesEnabled, disabledStyles, isStaff, clubLevel, isAmbassador, nftChatStyles, purchasableChatStyles ]);
 
     const sendTypingStatus = () => {
         if (isFloodBlocked) return;

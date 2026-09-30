@@ -1,4 +1,4 @@
-import { SecurityLevelEnum, StringDataType } from '@nitrodevco/nitro-api';
+import { StringDataType } from '@nitrodevco/nitro-api';
 import type { IHabboGroupEntryData } from '@nitrodevco/nitro-packets';
 import { useEffect, useRef, useState } from 'react';
 
@@ -6,7 +6,7 @@ import { registerGuildSelectorWidget } from '#base/commands';
 import { CATALOG_NO_GUILD_SELECTED, CatalogGuildSelector, CatalogPage, CatalogWidgetEventEnum, useCatalogGuildActions, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
-import { useOwnSecurityLevel, useOwnUserId } from '#base/context/user';
+import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { Border, Button, Dropmenu, Region, ThemeText } from '#base/theme';
 
@@ -88,7 +88,7 @@ const GuildSelector = ({ page, forum }: GuildSelectorProps) => {
     const { unregisterGuildSelectorWidget } = useCatalogGuildActions();
     const { send } = useWebSocketContext();
     const userId = useOwnUserId();
-    const securityLevel = useOwnSecurityLevel();
+    const anyGroup = useClientGate(ClientGates.GuildAnyGroup);
     const t = useTranslation();
 
     /** `filterGroupMemberships`: every group, or for a forum the ones one can be bought for. */
@@ -96,7 +96,6 @@ const GuildSelector = ({ page, forum }: GuildSelectorProps) => {
         if (!forum) return all;
 
         // `hasSecurity(4)`: staff may buy a forum for any of their groups.
-        const anyGroup = (securityLevel >= SecurityLevelEnum.Employee);
 
         return all.filter(guild => (guild.hasForum || (guild.ownerId === userId) || anyGroup));
     };

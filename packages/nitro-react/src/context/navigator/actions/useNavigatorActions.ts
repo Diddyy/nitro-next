@@ -10,7 +10,6 @@ const actions = {
     setTopLevelContexts: state.setTopLevelContexts,
     setTopLevelContext: state.setTopLevelContext,
     setSavedSearches: state.setSavedSearches,
-    setPerks: state.setPerks,
     setPreferences: state.setPreferences,
     setFlatCategories: state.setFlatCategories,
     setEventCategories: state.setEventCategories,

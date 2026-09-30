@@ -1,9 +1,9 @@
-import { RoomControllerLevelEnum, RoomEngineRoomAdEvent, RoomObjectVariableEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { RoomControllerLevelEnum, RoomEngineRoomAdEvent, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import { useState } from 'react';
 
 import { useOwnControllerLevel, useRoom } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
-import { useOwnSecurityLevel } from '#base/context/user';
+import { ClientGates, useClientGate } from '#base/context/user';
 import { useRoomEventDispatcher } from '#base/hooks';
 import { RoomAdTooltipView } from '#base/views/room-widgets/room-ad/RoomAdTooltipView';
 
@@ -21,11 +21,11 @@ import { RoomAdTooltipView } from '#base/views/room-widgets/room-ad/RoomAdToolti
 export const RoomAdWidget = () => {
     const room = useRoom();
     const controllerLevel = useOwnControllerLevel();
-    const securityLevel = useOwnSecurityLevel();
+    const isAnyRoomController = useClientGate(ClientGates.AnyRoomController);
     const t = useTranslation();
     const [ tooltip, setTooltip ] = useState<string | undefined>(undefined);
 
-    const isController = (controllerLevel >= RoomControllerLevelEnum.Guest) || (Number(securityLevel) >= Number(SecurityLevelEnum.Moderator));
+    const isController = (controllerLevel >= RoomControllerLevelEnum.Guest) || isAnyRoomController;
 
     useRoomEventDispatcher<RoomEngineRoomAdEvent>([
         RoomEngineRoomAdEvent.FURNI_CLICK,
