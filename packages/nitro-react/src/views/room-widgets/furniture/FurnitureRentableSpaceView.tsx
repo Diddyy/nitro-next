@@ -4,8 +4,8 @@ import { GetFriendlyTime } from '#base/utils';
 
 export interface FurnitureRentableSpaceViewProps {
     rented: boolean;
-    /** Whether the space is yours, which is what turns renting into cancelling. */
-    isOwnRent: boolean;
+    /** Whether the rented view offers `cancel_rent_button`: the space's owner, or staff. */
+    canCancelRent: boolean;
     canRent: boolean;
     /** Zero while it can be rented; otherwise the server's reason. */
     canRentErrorCode: number;
@@ -57,10 +57,10 @@ const NOT_ENOUGH_CREDITS = 200;
  * Not here: `error_view`, which `showErrorView` raises for a failed rent - the handler answers a
  * failure by asking for the status again, so the widget never holds an error to show. Flash
  * offers the cancel button to the furni's owner and to moderators (`isOwnerOfFurniture ||
- * hasSecurity(MODERATOR)`); the widget passes whether you are the renter.
+ * hasSecurity(MODERATOR)`), which the widget works out.
  */
 export const FurnitureRentableSpaceView = ({
-    rented, isOwnRent, canRent, canRentErrorCode, canAfford, renterName, timeRemaining, price, onRent, onCancelRent, onClose,
+    rented, canCancelRent, canRent, canRentErrorCode, canAfford, renterName, timeRemaining, price, onRent, onCancelRent, onClose,
 }: FurnitureRentableSpaceViewProps) => {
     const t = useTranslation();
     const errorCode = !canRent ? canRentErrorCode : (!canAfford ? NOT_ENOUGH_CREDITS : undefined);
@@ -169,7 +169,7 @@ export const FurnitureRentableSpaceView = ({
                             verticalAlign="top"
                         />
                     </Region>
-                    {isOwnRent && (
+                    {canCancelRent && (
                         <Button
                             variant="3"
                             onPointerTap={onCancelRent}

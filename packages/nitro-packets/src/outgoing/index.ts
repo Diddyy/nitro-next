@@ -454,6 +454,7 @@ export * from './Tracking/LagWarningReportComposer';
 export * from './Tracking/LatencyPingReportComposer';
 export * from './Tracking/LatencyPingRequestComposer';
 export * from './Tracking/PerformanceLogComposer';
+export * from './Turbo/TurboClientCapabilitiesComposer';
 export * from './Userclassification/PeerUsersClassificationComposer';
 export * from './Userclassification/RoomUsersClassificationComposer';
 export * from './Userdefinedroomevents/ApplySnapshotComposer';

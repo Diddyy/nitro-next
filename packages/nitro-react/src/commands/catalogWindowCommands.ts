@@ -9,16 +9,16 @@
  * time it opens (`CatalogComponent`), opens its front page (`useCatalogPageRequest`) and refreshes
  * the builder status (`CatalogHeaderView`).
  */
-import { CatalogTypeEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
 
 import { getCatalogWindowName } from '#base/context/catalog';
 import { systemStore } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { ClientGates, hasClientGate } from '#base/context/user';
 
 export const toggleCatalog = (catalogType: CatalogTypeEnum) => {
     const { config, visibleWindows, showWindow, hideWindow } = systemStore.getState();
 
-    if ((Number(userStore.getState().securityLevel) < Number(SecurityLevelEnum.Moderator)) && (config['builders.club.enabled'] !== true)) catalogType = CatalogTypeEnum.Normal;
+    if (!hasClientGate(ClientGates.BuildersClubCatalog) && (config['builders.club.enabled'] !== true)) catalogType = CatalogTypeEnum.Normal;
 
     const name = getCatalogWindowName(catalogType);
     const otherName = getCatalogWindowName((catalogType === CatalogTypeEnum.BuildersClub) ? CatalogTypeEnum.Normal : CatalogTypeEnum.BuildersClub);

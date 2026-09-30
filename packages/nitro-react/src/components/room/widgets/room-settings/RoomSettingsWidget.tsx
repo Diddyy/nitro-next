@@ -1,4 +1,4 @@
-import { RoomDoorModeEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { RoomDoorModeEnum } from '@nitrodevco/nitro-api';
 import { AssignRightsComposer, DeleteRoomComposer, GetBannedUsersFromRoomComposer, GetFlatControllersComposer, GetRoomSettingsComposer, RemoveAllRightsComposer, RemoveRightsComposer, RoomSettingsDataEventMessageType, SaveRoomSettingsComposer, UnbanUserFromRoomComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
@@ -6,7 +6,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorStore } from '#base/context/navigator';
 import { RoomSettingsErrorField, RoomSettingsFormError, useRoomSettingsFormActions, useRoomStore } from '#base/context/room';
 import { useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
-import { useFriends, useOwnHasClub, useUserStore } from '#base/context/user';
+import { ClientGates, useClientGate, useFriends, useOwnHasClub, useUserStore } from '#base/context/user';
 import { RoomSettingsView } from '#base/views/room-widgets/room-settings/RoomSettingsView';
 
 /** The first tab, which the window always opens on. */
@@ -88,7 +88,7 @@ export const RoomSettingsWidget = () => {
     // The friend list is kept by id; the rights tab wants it as a list to filter.
     const friends = useFriends();
     const hasClub = useOwnHasClub();
-    const securityLevel = useUserStore(x => x.securityLevel);
+    const isStaff = useClientGate(ClientGates.RoomSettingsStaff);
     const accountSafetyLocked = useUserStore(x => x.accountSafetyLocked);
     const homeRoomId = useHomeRoomId();
     const { hideWindow, showAlert, showConfirm } = useWindowActions();
@@ -296,7 +296,7 @@ export const RoomSettingsWidget = () => {
             // `prepareWindow`: the delete link only exists while standing in the room it would delete.
             canDelete={!!enteredRoom && (enteredRoom.info.roomId === form.roomId)}
             deleteDisabled={accountSafetyLocked}
-            isStaff={Number(securityLevel) >= Number(SecurityLevelEnum.Employee)}
+            isStaff={isStaff}
             tab={tab}
             removeTabsForNavigatorView={removeTabsForNavigatorView}
             error={error}

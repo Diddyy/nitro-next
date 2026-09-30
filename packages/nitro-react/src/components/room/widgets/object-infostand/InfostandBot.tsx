@@ -3,12 +3,9 @@ import { RemoveBotFromFlatComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useOwnControllerLevel, useRoom, useRoomStore } from '#base/context/room';
-import { useOwnSecurityLevel } from '#base/context/user';
+import { ClientGates, useClientGate } from '#base/context/user';
 import { useRoomObjectModify } from '#base/hooks';
 import { InfostandBotView } from '#base/views/room-widgets/object-infostand/InfostandBotView';
-
-/** `SessionDataManager.isAnyRoomController`: staff count as a controller everywhere. */
-const ANY_ROOM_CONTROLLER_SECURITY = 5;
 
 /**
  * The bot panel - `InfoStandBotView` and `InfoStandRentableBotView`. Everything it shows arrives
@@ -23,16 +20,15 @@ export const InfostandBot = ({ objectData, onClose }: { objectData: ISimpleRoomO
     const isRoomOwner = useRoomStore(x => x.isRoomOwner);
     const playTestMode = useRoomStore(x => x.playTestMode);
     const controllerLevel = useOwnControllerLevel();
-    const securityLevel = useOwnSecurityLevel();
     const { modifyRoomObject } = useRoomObjectModify();
     const { send } = useWebSocketContext();
+    const isAnyRoomController = useClientGate(ClientGates.AnyRoomController);
 
     if (!userData) return null;
 
     const roomObject = room?.getRoomObject(objectData.objectId, RoomObjectCategoryEnum.Unit);
     const isRentable = Number(userData.userType) === Number(RoomObjectUserType.RentableBot);
     const hasOwner = isRentable && (userData.ownerId > -1);
-    const isAnyRoomController = Number(securityLevel) >= ANY_ROOM_CONTROLLER_SECURITY;
 
     return (
         <InfostandBotView

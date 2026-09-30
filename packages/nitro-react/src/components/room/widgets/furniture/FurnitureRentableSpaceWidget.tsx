@@ -1,19 +1,24 @@
-import { RoomWidgetEnum } from '@nitrodevco/nitro-api';
+import { RoomObjectCategoryEnum, RoomWidgetEnum } from '@nitrodevco/nitro-api';
 import { RentableSpaceCancelRentComposer, RentableSpaceRentComposer, RentableSpaceStatusMessageType } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useOwnUserId, useUserStore } from '#base/context/user';
+import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
+import { ClientGates, useClientGate, useOwnUserId, useUserStore } from '#base/context/user';
+import { isFurnitureOwnedBy } from '#base/utils';
 import { FurnitureRentableSpaceView } from '#base/views/room-widgets/furniture/FurnitureRentableSpaceView';
 
 /**
  * A rentable space. Everything it shows belongs to the server rather than to the furni - who
  * holds it, for how long and at what price - so the request handler asks as the widget opens
- * and nothing is drawn until that answer arrives.
+ * and nothing is drawn until that answer arrives. `RentableSpaceDisplayWidget.populateRentInfo`
+ * offers the cancel button to the space's owner or `hasSecurity(5)`
+ * (`ClientGates.RentCancelAny`) - not to the renter.
  */
 export const FurnitureRentableSpaceWidget = () => {
     const request = useRoomWidget<RentableSpaceStatusMessageType>(RoomWidgetEnum.RENTABLESPACE);
     const ownUserId = useOwnUserId();
+    const room = useRoom();
+    const cancelsAny = useClientGate(ClientGates.RentCancelAny);
     const credits = useUserStore(x => x.credits);
     const { closeRoomWidget } = useRoomWidgetActions();
     const { send } = useWebSocketContext();
@@ -27,7 +32,7 @@ export const FurnitureRentableSpaceWidget = () => {
     return (
         <FurnitureRentableSpaceView
             rented={data.rented}
-            isOwnRent={data.rented && (data.renterId === ownUserId)}
+            canCancelRent={data.rented && (isFurnitureOwnedBy(room?.getRoomObject(request.objectId, RoomObjectCategoryEnum.Floor), ownUserId) || cancelsAny)}
             canRent={data.canRent}
             canRentErrorCode={data.canRentErrorCode}
             canAfford={data.price <= credits}

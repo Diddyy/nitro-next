@@ -1,10 +1,10 @@
-import { RoomObjectVariableEnum, RoomWidgetEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { RoomObjectVariableEnum, RoomWidgetEnum } from '@nitrodevco/nitro-api';
 import { SetObjectDataComposer } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useOwnSecurityLevel } from '#base/context/user';
+import { ClientGates, useClientGate } from '#base/context/user';
 import { FurnitureVimeoView } from '#base/views/room-widgets/furniture/FurnitureVimeoView';
 
 /** `VimeoDisplayWidgetHandler.VIDEO_ID_KEY` - where the screen's map stuff data keeps its video. */
@@ -19,7 +19,7 @@ const VIDEO_ID_KEY = 'videoId';
 export const FurnitureVimeoWidget = () => {
     const request = useRoomWidget(RoomWidgetEnum.VIMEO);
     const room = useRoom();
-    const securityLevel = useOwnSecurityLevel();
+    const canEdit = useClientGate(ClientGates.VimeoEdit);
     const { closeRoomWidget } = useRoomWidgetActions();
     const { send } = useWebSocketContext();
     const [ shown, setShown ] = useState<{ sequenceKey: string; videoId: number } | undefined>(undefined);
@@ -44,7 +44,7 @@ export const FurnitureVimeoWidget = () => {
         <FurnitureVimeoView
             key={request.objectId}
             videoId={videoId}
-            canEdit={Number(securityLevel) >= Number(SecurityLevelEnum.Moderator)}
+            canEdit={canEdit}
             onSetVideo={setVideo}
             onClose={() => closeRoomWidget(RoomWidgetEnum.VIMEO)}
         />

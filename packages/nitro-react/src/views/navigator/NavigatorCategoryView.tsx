@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 
 import { useNavigatorStore } from '#base/context/navigator';
 import { useInterpolate, useTranslation } from '#base/context/system';
+import { PerkCodes, useOwnPerkAllowed } from '#base/context/user';
 import { LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
 
 import { ALTERNATING_COLOR_MOD, ALTERNATING_COLOR_NONE, getModulatedBackgroundColor, ROW_BASE_COLOR, TILE_BASE_COLOR } from './NavigatorRoomEntryUtils';
@@ -76,7 +77,8 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
     const collapsedCategories = useNavigatorStore(x => x.collapsedCategories);
     const searchResult = useNavigatorStore(x => x.searchResult);
     const viewModes = useNavigatorStore(x => x.viewModes);
-    const perks = useNavigatorStore(x => x.perks);
+    // `CategoryElementFactory` removes both view toggles without the thumbnail camera perk.
+    const canToggleView = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);
     const interpolate = useInterpolate();
     const t = useTranslation();
 
@@ -84,7 +86,6 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
     const isCollapsed = (collapsedCategories.includes(block.searchCode) && !isSingleBlock) || block.forceClosed;
     const storedMode = viewModes[block.searchCode] ?? block.viewMode;
     const isOfficialView = (searchResult?.searchCodeOriginal ?? '').indexOf('official_view') !== -1;
-    const canToggleView = perks.some(x => x.code === 'NAVIGATOR_ROOM_THUMBNAIL_CAMERA' && x.isAllowed);
 
     const title = block.text === '' ? `\${navigator.searchcode.title.${block.searchCode}}` : block.text;
     const mode = (!canToggleView && searchResult?.searchCodeOriginal !== 'official_view') ? RESULTS_MODE_ROWS : storedMode;

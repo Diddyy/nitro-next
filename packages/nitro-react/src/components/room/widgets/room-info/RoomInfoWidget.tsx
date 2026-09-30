@@ -1,4 +1,4 @@
-import { RoomControllerLevelEnum, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, GetExtendedProfileComposer, MuteAllInRoomComposer, RateFlatComposer, RemoveOwnRoomRightsRoomComposer, ToggleStaffPickComposer, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
 
 import { searchRoomTag } from '#base/commands';
@@ -6,7 +6,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useOwnControllerLevel } from '#base/context/room';
 import { useConfigValue, useHomeRoomId, useIsWindowVisible, useWindowActions } from '#base/context/system';
-import { useOwnSecurityLevel } from '#base/context/user';
+import { ClientGates, useClientGate } from '#base/context/user';
 import { RoomInfoView } from '#base/views/room-widgets/room-info/RoomInfoView';
 
 /** `RateFlatMessageComposer(1)` - a like only ever adds one. */
@@ -30,7 +30,9 @@ export const RoomInfoWidget = () => {
     const homeRoomId = useHomeRoomId();
     const { showWindow, hideWindow } = useWindowActions();
     const controllerLevel = useOwnControllerLevel();
-    const securityLevel = useOwnSecurityLevel();
+    const isAnyRoomController = useClientGate(ClientGates.AnyRoomController);
+    /* `NavigatorData.roomPicker`, set by `IncomingMessages.onUserRights` at `securityLevel >= 7`. */
+    const canStaffPick = useClientGate(ClientGates.StaffPick);
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     // `RoomInfoViewCtrl.layoutButtons`: the mute-all button needs the hotel's flag as well as the right.
@@ -44,9 +46,7 @@ export const RoomInfoWidget = () => {
     const { roomId } = currentRoomInfo;
     const isFavourite = favouriteRoomIds.includes(roomId);
     /* `NavigatorData.canEditRoomSettings` - the room's owner, or staff from `hasSecurity(5)`. */
-    const canEditRoomSettings = isOwner || (Number(securityLevel) >= Number(SecurityLevelEnum.Moderator));
-    /* `NavigatorData.roomPicker`, set by `IncomingMessages.onUserRights` at `securityLevel >= 7`. */
-    const canStaffPick = Number(securityLevel) >= Number(SecurityLevelEnum.Community);
+    const canEditRoomSettings = isOwner || isAnyRoomController;
 
     const thumbnailUrl = currentRoomInfo.officialRoomPicRef.length
         ? `${imageLibraryUrl}${currentRoomInfo.officialRoomPicRef}`

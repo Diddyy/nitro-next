@@ -1,12 +1,11 @@
-import { RoomControllerLevelEnum, RoomThicknessType, SecurityLevelEnum } from '@nitrodevco/nitro-api';
+import { RoomControllerLevelEnum, RoomThicknessType } from '@nitrodevco/nitro-api';
 import { useEffect, useMemo, useState } from 'react';
 
 import { requestFloorPlanData, saveFloorPlan, saveFloorPlanImport } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useNavigatorStore } from '#base/context/navigator';
 import { useOwnControllerLevel, useRoomFloorPlanActions, useRoomStore } from '#base/context/room';
 import { useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
-import { useOwnSecurityLevel, useUserActions, useUserStore } from '#base/context/user';
+import { ClientGates, PerkCodes, useClientGate, useOwnPerkAllowed, useUserActions, useUserStore } from '#base/context/user';
 import { createFloorPlanModel, floorPlanModelText, FloorPlanTile } from '#base/utils';
 import { FloorPlanEditorView } from '#base/views/room-widgets/floor-plan-editor/FloorPlanEditorView';
 
@@ -29,9 +28,6 @@ import { FloorPlanEditorView } from '#base/views/room-widgets/floor-plan-editor/
  * map itself never - the room already sent it on the way in. That is kept.
  */
 
-/** `BCFloorPlanEditor.onPerkAllowances` - the perk that lifts `FloorPlanCache`'s area cap. */
-const LARGE_FLOOR_PLANS_PERK = 'BUILDER_AT_WORK';
-
 /** `BCFloorPlanEditor._bcSecondsCountdownTimer` ticks every ten seconds and takes ten off. */
 const BC_COUNTDOWN_MS = 10000;
 const BC_COUNTDOWN_SECONDS = 10;
@@ -41,7 +37,7 @@ export const FloorPlanEditorWidget = () => {
     const { send } = useWebSocketContext();
     const isVisible = useIsWindowVisible('floor_plan_editor');
     const controllerLevel = useOwnControllerLevel();
-    const securityLevel = useOwnSecurityLevel();
+    const saveWithoutClub = useClientGate(ClientGates.FloorPlanSaveWithoutClub);
 
     const rows = useRoomStore(x => x.floorPlanRows);
     const receivedModel = useRoomStore(x => x.floorPlanReceivedModel);
@@ -52,7 +48,8 @@ export const FloorPlanEditorWidget = () => {
     const wallThickness = useRoomStore(x => x.floorPlanWallThickness);
     const floorThickness = useRoomStore(x => x.floorPlanFloorThickness);
 
-    const perks = useNavigatorStore(x => x.perks);
+    // `BCFloorPlanEditor.onPerkAllowances` - the perk that lifts `FloorPlanCache`'s area cap.
+    const largeFloorPlansAllowed = useOwnPerkAllowed(PerkCodes.BuilderAtWork);
     const buildersClubSecondsLeft = useUserStore(x => x.buildersClubSecondsLeft);
 
     const { hideWindow, showSimpleAlert } = useWindowActions();
@@ -62,7 +59,6 @@ export const FloorPlanEditorWidget = () => {
     /** `FloorPlanCache._showedPopup` - one alert per received map, however many times the limit is hit. */
     const [ alertedFor, setAlertedFor ] = useState<string | undefined>(undefined);
 
-    const largeFloorPlansAllowed = perks.some(perk => ((perk.code === LARGE_FLOOR_PLANS_PERK) && perk.isAllowed));
     const model = useMemo(
         () => createFloorPlanModel(rows.map(row => `${row}\r`).join(''), { reserved: occupiedTiles, largeFloorPlansAllowed }),
         [ rows, occupiedTiles, largeFloorPlansAllowed ],
@@ -88,7 +84,7 @@ export const FloorPlanEditorWidget = () => {
     if (Number(controllerLevel) < Number(RoomControllerLevelEnum.Guest)) return null;
 
     /* `createEditorWindow` / `onBcCountdownTimerEvent`: Builder's Club, or `hasSecurity(4)`. */
-    const canSave = (buildersClubSecondsLeft > 0) || (Number(securityLevel) >= Number(SecurityLevelEnum.Employee));
+    const canSave = (buildersClubSecondsLeft > 0) || saveWithoutClub;
     const modelData = floorPlanModelText(model);
 
     const onCommit = (nextRows: string[], nextEntryPoint: FloorPlanTile | null) => {

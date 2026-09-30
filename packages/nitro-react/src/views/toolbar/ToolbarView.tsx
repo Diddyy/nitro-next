@@ -45,9 +45,8 @@ import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
-import { useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useIsLandingViewVisible, useSystemActions, useTranslation } from '#base/context/system';
-import { useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
+import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useTween } from '#base/hooks';
 import { Border, Box, LayoutImage, Region, ThemeImage, useLayoutEvent } from '#base/theme';
@@ -156,11 +155,12 @@ export const ToolbarView = () => {
     // `setToolbarState`'s `_local_4`: a room state, or collapsed from one.
     const inRoom = !landingViewVisible;
     const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
-    const cameraLaunchPosition = useConfigValue<string>('camera.launch.ui.position');
-    const cameraPerkAllowed = useNavigatorStore(x => x.perks.some(perk => (perk.code === 'CAMERA') && perk.isAllowed));
-    const showCamera = inRoom && (cameraLaunchPosition === 'bottom-icons') && cameraPerkAllowed;
     // `BottomBarLeft`: the wired menu icon is a room icon, and only for someone `showToolbarMenuButton` lets see it.
     const showWiredMenuButton = useWiredShowToolbarMenuButton() && !landingViewVisible;
+    // `BottomBarLeft`: the camera icon too is a room icon, drawn only where `camera.launch.ui.position` puts it and with the `CAMERA` perk.
+    const cameraLaunchPosition = useConfigValue<string>('camera.launch.ui.position');
+    const cameraAllowed = useOwnPerkAllowed(PerkCodes.Camera);
+    const showCameraButton = !landingViewVisible && (cameraLaunchPosition === 'bottom-icons') && cameraAllowed;
     const { send } = useWebSocketContext();
     const t = useTranslation();
     // `MeMenuNewController`: the collectibles button is hidden unless both hub flags are on.
@@ -338,7 +338,7 @@ export const ToolbarView = () => {
                                 icon={[ 3, 0, 38, 45 ]}
                             />
                         )}
-                        {showCamera && (
+                        {showCameraButton && (
                             <ToolbarItem
                                 tooltip={t('camera.interface.title')}
                                 src="toolbar/bottom_bar_camera.png"
