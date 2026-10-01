@@ -14,6 +14,7 @@ export * from './catalogRentCommands';
 export * from './catalogRoomAdCommands';
 export * from './catalogVoucherCommands';
 export * from './catalogWindowCommands';
+export * from './chatCommandCommands';
 export * from './chatPreferencesCommands';
 export * from './chatSettingsCommands';
 export * from './clientLinkCommands';
