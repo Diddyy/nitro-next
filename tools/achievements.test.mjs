@@ -99,37 +99,44 @@ await test('offsets describe in-level progress; final target counts as earned', 
     assert.equal(model.achievementProgress(achievement({ finalLevel: true })).earned, 3);
     assert.equal(model.achievedBadgeCode(achievement()), 'ACH_Login2');
     assert.equal(model.achievedBadgeCode(achievement({ finalLevel: true })), 'ACH_Login3');
+    assert.equal(model.achievedBadgeCode(achievement({ level: 1, badgeId: 'ACH_Login1' })), 'ACH_Login1');
+    assert.equal(model.firstLevelAchieved(achievement({ level: 1 })), false);
+    assert.equal(model.firstLevelAchieved(achievement({ level: 1, finalLevel: true })), true);
 });
 
 await test('a zero first threshold has finite empty progress before authoritative attainment', () => {
     const progress = model.achievementProgress(achievement({ level: 1, badgeId: 'ACH_VipHC1', scoreAtStartOfLevel: 0, field_V1O: 0, field_EX: 0, levelCount: 5 }));
 
     assert.deepEqual(plain(progress), { current: 0, limit: 1, earned: 0 });
-    assert.ok(Number.isFinite(progress.current / progress.limit));
 });
 
-await test('higher edited thresholds clamp display progress while preserving earned levels', () => {
+await test('raised thresholds keep AS3 raw values; the bar width never goes below zero', () => {
     const revised = achievement({ level: 4, badgeId: 'ACH_PetLevelUp4', scoreAtStartOfLevel: 20, field_V1O: 30, field_EX: 3 });
 
-    assert.deepEqual(plain(model.achievementProgress(revised)), { current: 0, limit: 10, earned: 3 });
+    assert.deepEqual(plain(model.achievementProgress(revised)), { current: -17, limit: 10, earned: 3 });
     assert.equal(model.achievedBadgeCode(revised), 'ACH_PetLevelUp3');
-    const store = createAchievementsStore();
-
-    store.getState().setScore(30);
-    store.getState().setList([ revised ], 'pets');
-    assert.equal(store.getState().score, 30);
-    assert.equal(store.getState().achievements[0].level, 4);
 });
 
-await test('category order, archive, new configuration and room-controlled filtering', () => {
-    const categories = model.achievementCategories([
+await test('categories follow AS3: misc last, archive and wired_games always, new only with entries', () => {
+    const categories = model.buildCategories([
         achievement({ category: 'misc' }), achievement({ category: 'social' }),
         achievement({ category: 'pets', state: 2 }), achievement({ category: 'identity', state: 0 }),
         achievement({ category: 'identity', state: 4 }), achievement({ category: 'wired_games', state: 4 }),
+        achievement({ category: '' }),
     ], [ 'Login' ]);
 
-    assert.deepEqual(plain(categories.map(entry => entry.code)), [ 'social', 'misc', 'archive', 'wired_games', 'new' ]);
+    assert.deepEqual(plain(categories.map(entry => entry.code)), [ 'social', 'identity', 'misc', 'archive', 'wired_games', 'new' ]);
     assert.equal(categories.find(entry => entry.code === 'archive').achievements[0].category, 'pets');
+    assert.equal(model.buildCategories([ achievement() ]).some(entry => entry.code === 'new'), false);
+    assert.deepEqual(plain(model.buildCategories([]).map(entry => entry.code)), [ 'archive', 'wired_games' ]);
+    assert.deepEqual(plain(model.buildCategories([ achievement() ]).filter(model.categoryVisibleInList).map(entry => entry.code)), [ 'identity', 'archive' ]);
+});
+
+await test('category and total progress sum earned levels, the total including new and wired_games', () => {
+    const categories = model.buildCategories([ achievement({ code: 'Login' }), achievement({ achievementId: 2, level: 2, code: 'Other' }) ], [ 'Login' ]);
+
+    assert.deepEqual(plain(model.categoryProgress(categories[0])), { progress: 3, max: 40 });
+    assert.deepEqual(plain(model.totalProgress(categories)), { progress: 5, max: 60 });
 });
 
 await test('requests only once per session and cache reset allows another request', () => {
@@ -143,69 +150,101 @@ await test('requests only once per session and cache reset allows another reques
     assert.equal(store.getState().request(), true);
 });
 
-await test('selected crossed level fills its old bar and queues latest progress until transition', () => {
+await test('the list is built once; the default category applies only when the window asked for it', () => {
     const store = createAchievementsStore();
 
     store.getState().setList([ achievement() ], 'identity');
-    assert.equal(store.getState().update(achievement({ level: 4, field_EX: 5 }), true, []), true);
-    assert.equal(store.getState().achievements[0].field_EX, 5);
-    assert.equal(store.getState().achievements[0].level, 3);
-    assert.equal(store.getState().update(achievement({ level: 4, field_EX: 6 }), true, []), false);
+    assert.equal(store.getState().category, '');
+    store.getState().setList([ achievement({ achievementId: 7, category: 'pets' }) ], 'pets');
+    assert.equal(store.getState().categories.flatMap(entry => entry.achievements).some(entry => entry.achievementId === 7), false);
+    const asked = createAchievementsStore();
+
+    asked.getState().show();
+    asked.getState().setList([ achievement() ], 'identity');
+    assert.equal(asked.getState().category, 'identity');
+    assert.equal(asked.getState().selectedId, 1001);
+    const unknown = createAchievementsStore();
+
+    unknown.getState().show();
+    unknown.getState().setList([ achievement() ], 'missing');
+    assert.equal(unknown.getState().category, '');
+});
+
+await test('category links wait for the list and win over the default category', () => {
+    const store = createAchievementsStore();
+
+    store.getState().show();
+    store.getState().selectCategoryLink('pets');
+    assert.equal(store.getState().pendingCategory, 'pets');
+    store.getState().setList([ achievement(), achievement({ achievementId: 7, category: 'pets', badgeId: 'ACH_Pet1' }) ], 'identity');
+    assert.equal(store.getState().category, 'pets');
+    assert.equal(store.getState().selectedId, 7);
+    assert.equal(store.getState().pendingCategory, undefined);
+    store.getState().selectCategoryLink('identity');
+    assert.equal(store.getState().category, 'identity');
+});
+
+await test('selected crossed level fills its old bar and queues latest progress until transition', () => {
+    const store = createAchievementsStore();
+    const level = () => store.getState().categories.find(entry => entry.code === 'identity').achievements[0];
+
+    store.getState().setList([ achievement() ], 'identity');
+    store.getState().pickCategory('identity');
+    assert.equal(store.getState().update(achievement({ level: 4, field_EX: 5 })), true);
+    assert.equal(level().field_EX, 5);
+    assert.equal(level().level, 3);
+    assert.equal(store.getState().update(achievement({ level: 4, field_EX: 6 })), false);
+    assert.equal(store.getState().pending.field_EX, 6);
     store.getState().finishTransition();
-    assert.equal(store.getState().achievements[0].level, 4);
-    assert.equal(store.getState().achievements[0].field_EX, 6);
+    assert.equal(level().level, 4);
+    assert.equal(level().field_EX, 6);
     assert.equal(store.getState().pending, undefined);
 });
 
-await test('stale updates do not replace earned progress or queued progress', () => {
+await test('an update for an unselected achievement is unseen; a selected one is not, even with the window closed', () => {
     const store = createAchievementsStore();
 
     store.getState().setList([ achievement() ], 'identity');
-    store.getState().update(achievement({ level: 4, field_EX: 5 }), true, []);
-    store.getState().update(achievement({ level: 2, field_EX: 2 }), true, []);
-    store.getState().finishTransition();
-    assert.equal(store.getState().achievements[0].level, 4);
-});
-
-await test('unseen IDs deduplicate, exclusions apply and close clears them', () => {
-    const store = createAchievementsStore();
-
-    store.getState().setList([ achievement() ], 'identity');
-    store.getState().update(achievement({ field_EX: 4 }), false, []);
-    store.getState().update(achievement({ field_EX: 4 }), false, []);
-    assert.deepEqual(plain(store.getState().unseen), [ 1001 ]);
+    store.getState().update(achievement({ field_EX: 4 }));
+    store.getState().update(achievement({ field_EX: 4 }));
+    assert.deepEqual(plain(store.getState().unseen.map(entry => entry.achievementId)), [ 1001 ]);
     store.getState().close();
-    store.getState().update(achievement({ field_EX: 5 }), false, [ 'Login' ]);
+    assert.equal(store.getState().unseen.length, 0);
+    store.getState().pickCategory('identity');
+    store.getState().update(achievement({ field_EX: 5 }));
     assert.equal(store.getState().unseen.length, 0);
 });
 
-await test('dialog flags and repeated notifications deduplicate independently of score', () => {
+await test('back clears only that category unseen entries and returns to the overview', () => {
     const store = createAchievementsStore();
-    const award = { achievementID: 1001, level: 1, showDialogToUser: false };
 
-    assert.equal(store.getState().present(award), true);
-    assert.equal(store.getState().present(award), false);
-    assert.equal(store.getState().congratulations.length, 0);
-    store.getState().present({ ...award, level: 2, showDialogToUser: true });
-    assert.equal(store.getState().congratulations.length, 1);
-    store.getState().setScore(20);
-    assert.equal(store.getState().score, 20);
-    store.getState().dismissCongratulations();
-    assert.equal(store.getState().congratulations.length, 0);
-    store.getState().reset();
-    assert.equal(store.getState().present(award), true);
-    assert.equal(store.getState().score, 0);
+    store.getState().setList([ achievement({ achievementId: 1 }), achievement({ achievementId: 2, category: 'pets' }) ], 'identity');
+    store.getState().update(achievement({ achievementId: 1, field_EX: 4 }));
+    store.getState().update(achievement({ achievementId: 2, category: 'pets', field_EX: 4 }));
+    store.getState().pickCategory('identity');
+    store.getState().back();
+    assert.equal(store.getState().category, '');
+    assert.equal(store.getState().selectedId, undefined);
+    assert.deepEqual(plain(store.getState().unseen.map(entry => entry.achievementId)), [ 2 ]);
 });
 
-await test('account reset discards pending level transition, cache and unseen IDs', () => {
+await test('unseen exclusions affect only the toolbar count, never the stored entries', () => {
+    assert.equal(model.unseenSkipped('ACH_Login3', [ 'Login' ]), true);
+    assert.equal(model.unseenSkipped('ACH_Pets3', [ 'Login' ]), false);
+    assert.equal(model.unseenSkipped('ACH_Login3', [ '' ]), true);
+    assert.equal(model.unseenSkipped('ACH_Login3', [ '(' ]), false);
+});
+
+await test('account reset discards pending level transition, cache and unseen entries', () => {
     const store = createAchievementsStore();
 
     store.getState().setList([ achievement() ], 'identity');
-    store.getState().update(achievement({ level: 4, field_EX: 5 }), true, []);
+    store.getState().pickCategory('identity');
+    store.getState().update(achievement({ level: 4, field_EX: 5 }));
     store.getState().reset();
     store.getState().finishTransition();
     assert.equal(store.getState().pending, undefined);
-    assert.equal(store.getState().achievements.length, 0);
+    assert.equal(store.getState().categories, undefined);
     assert.equal(store.getState().unseen.length, 0);
 });
 
@@ -219,33 +258,40 @@ await test('shared final-level fixture retains cumulative boundaries and final t
     input.complete();
 });
 
-await test('wired achievements require the room-enabler binding', () => {
-    assert.equal(model.achievementVisibleInRoom(achievement({ category: 'wired_games', code: 'WF_Custom' }), []), false);
-    assert.equal(model.achievementVisibleInRoom(achievement({ category: 'wired_games', code: 'WF_Custom' }), [ 'Custom' ]), true);
-    assert.equal(model.achievementVisibleInRoom(achievement(), []), true);
+await test('wired achievements require the room-enabler binding in the wired_games category only', () => {
+    const wired = achievement({ category: 'wired_games', code: 'WF_Custom' });
+
+    assert.equal(model.achievementVisibleInCategory('wired_games', wired, []), false);
+    assert.equal(model.achievementVisibleInCategory('wired_games', wired, [ 'Custom' ]), true);
+    assert.equal(model.achievementVisibleInCategory('wired_games', achievement(), [ 'Custom' ]), false);
+    assert.equal(model.achievementVisibleInCategory('new', wired, []), true);
 });
 
-await test('handler list never opens a window, transition waits 2000ms and disconnect cancels work', () => {
+await test('handler list never opens a window, transition waits 2000ms, room exit closes and disconnect cancels work', () => {
     const store = createAchievementsStore();
-    const packets = { AchievementEventMessage, AchievementsEventMessage, AchievementsScoreEventMessage, HabboAchievementNotificationMessage: class {}, UserObjectMessage: class {} };
+    class EventLogComposer { constructor(params) { this.params = params; } }
+    const packets = { AchievementEventMessage, AchievementsEventMessage, AchievementsScoreEventMessage, EventLogComposer, HabboAchievementNotificationMessage: class {}, UserObjectMessage: class {} };
     const listeners = new Map();
     const timers = new Map();
     const system = { config: {}, visibleWindows: {}, hideWindow: (name) => {
         delete system.visibleWindows[name];
     }, getLocalizationValue: key => key };
+    const room = createStore(() => ({ room: undefined }));
     const badges = [];
+    const removed = [];
     const notifications = [];
+    const sent = [];
     let nextTimer = 0;
     let requests = 0;
     const { registerAchievementHandlers } = load('nitro-react/src/handlers/achievements/registerAchievementHandlers', {
         '@nitrodevco/nitro-packets': packets,
         '#base/commands': { requestAchievements: () => { if (store.getState().request()) requests++; } },
         '#base/context/achievements': { achievementsStore: store },
-        '#base/context/inventory': { inventoryStore: { getState: () => ({ updateBadge: badge => badges.push(badge), wornBadgeCodes: [] }) } },
+        '#base/context/inventory': { inventoryStore: { getState: () => ({ updateBadge: badge => badges.push(badge), removeBadge: code => removed.push(code) }) } },
         '#base/context/notifications': { notificationStore: { getState: () => ({ addNotification: (...args) => notifications.push(args) }) } },
+        '#base/context/room': { roomStore: room },
         '#base/context/system': { systemStore: { getState: () => system } },
-        '#base/context/wired': { wiredStore: { getState: () => ({ wiredAchievements: [] }) } },
-        '#base/utils': { getBadgeName: (_t, code) => code },
+        '#base/utils': { getBadgeName: (_t, code) => code, getBadgeBaseAndLevel: code => ({ base: code.replace(/\d+$/, ''), level: 1 }) },
         '../packetSubscriptions': { on: (packet, handler) => ({ packet, handler }), subscribeAll: (subscribe, subscriptions) => {
             const stops = subscriptions.map(({ packet, handler }) => subscribe(packet, handler));
 
@@ -261,7 +307,7 @@ await test('handler list never opens a window, transition waits 2000ms and disco
         },
         clearTimeout: id => timers.delete(id),
     });
-    const unsubscribe = registerAchievementHandlers({ send: () => {}, subscribe: (packet, handler) => {
+    const unsubscribe = registerAchievementHandlers({ send: packet => sent.push(packet), subscribe: (packet, handler) => {
         listeners.set(packet, handler);
 
         return () => listeners.delete(packet);
@@ -274,27 +320,37 @@ await test('handler list never opens a window, transition waits 2000ms and disco
     assert.equal(requests, 1);
     listeners.get(packets.AchievementsEventMessage)({ achievements: [ achievement() ], defaultCategory: 'identity' });
     assert.equal(system.visibleWindows.achievements, undefined);
+    assert.equal(store.getState().category, '');
+    store.getState().pickCategory('identity');
     system.visibleWindows.achievements = {};
     listeners.get(packets.AchievementEventMessage)({ achievement: achievement({ level: 4, field_EX: 5 }) });
     assert.equal(timers.size, 1);
     const timer = Array.from(timers.values())[0];
+
     assert.equal(timer.delay, 2000);
-    assert.equal(store.getState().achievements[0].level, 3);
+    assert.equal(store.getState().categories[0].achievements[0].level, 3);
     timer.callback();
-    assert.equal(store.getState().achievements[0].level, 4);
-    const award = { achievementID: 1001, level: 4, badgeCode: 'ACH_Login4', showDialogToUser: true };
-    listeners.get(packets.HabboAchievementNotificationMessage)({ data: award });
+    assert.equal(store.getState().categories[0].achievements[0].level, 4);
+    const award = { achievementID: 1001, level: 4, badgeCode: 'ACH_Login4', removedBadgeCode: 'ACH_Login3', category: 'identity', showDialogToUser: true };
+
     listeners.get(packets.HabboAchievementNotificationMessage)({ data: award });
     assert.equal(badges.length, 1);
+    assert.deepEqual(removed, [ 'ACH_Login3' ]);
     assert.equal(notifications.length, 1);
-    assert.equal(store.getState().congratulations.length, 1);
+    assert.deepEqual(plain(sent[0].params), { event: 'Achievements', data: 'ACH_Login', action: 'Leveled', extraString: '', extraInt: 4 });
+    system.visibleWindows.achievements = {};
+    store.getState().update(achievement({ achievementId: 5, category: 'pets', field_EX: 4 }));
+    room.setState({ room: {} });
+    assert.equal(system.visibleWindows.achievements !== undefined, true);
+    room.setState({ room: undefined });
+    assert.equal(system.visibleWindows.achievements, undefined);
+    assert.equal(store.getState().unseen.length, 0);
     listeners.get(packets.UserObjectMessage)({ userInfo: { userId: 2 } });
     assert.equal(store.getState().score, 0);
-    assert.equal(store.getState().congratulations.length, 0);
     assert.equal(requests, 2);
     unsubscribe();
     assert.equal(timers.size, 0);
     assert.equal(listeners.size, 0);
-    assert.equal(store.getState().loaded, false);
+    assert.equal(store.getState().categories, undefined);
     assert.equal(system.visibleWindows.achievements, undefined);
 });

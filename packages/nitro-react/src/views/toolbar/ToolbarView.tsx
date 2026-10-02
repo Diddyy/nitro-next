@@ -42,7 +42,7 @@ import { ReactNode, useState } from 'react';
 
 import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog } from '#base/commands';
 import { AvatarImage } from '#base/components';
-import { useAchievementsStore } from '#base/context/achievements';
+import { unseenSkipped, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
@@ -176,7 +176,9 @@ export const ToolbarView = () => {
         endRoomSession();
     };
 
-    const unseenAchievements = useAchievementsStore(x => x.unseen.length);
+    const skippedBadges = useConfigValue<string>('toolbar.unseen_notification.skipped_badge_ids');
+    // `broadcastUnseenAchievementsCount`: unseen entries whose badge is not skipped.
+    const unseenAchievements = useAchievementsStore(x => x.unseen.filter(entry => !unseenSkipped(entry.badgeId, skippedBadges === undefined ? [] : skippedBadges.split(','))).length);
 
     const toggleMenu = (menu: 'me' | 'progression') => {
         setMeExpanded(menu === 'me' && !isMeExpanded);
