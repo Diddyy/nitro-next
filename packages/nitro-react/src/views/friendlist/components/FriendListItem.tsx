@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 
 import { useFriendsActions } from '#base/context/friend';
 import { BoxLayout, Icon, Region, ThemeText, useAvatarImageTexture } from '#base/theme';
+import { GroupBadgeImage } from '#base/views/groups/GroupBadgeImage';
 
 interface FriendListItemUser {
     readonly name: string;
@@ -38,6 +39,8 @@ export interface FriendListItemProps {
     selected?: boolean;
     hideAvatarElement?: boolean;
     showAvatarHead?: boolean;
+    /** A group chat's entry (`Friend.isGroupFriend`): its `figure` is the group's badge code. */
+    groupBadge?: boolean;
     /** The row's `color` - `FriendListLaf.getRowShadingColor` for its index in the list. */
     zebraColor?: string;
     onPress?: () => void;
@@ -56,10 +59,10 @@ export interface FriendListItemProps {
  * `getAvatarFaceBitmap` (the `h`/`sh` head image) into a 20x20 bitmap instead, so the head's own
  * crop is the renderer's rather than Flash's.
  */
-export const FriendListItem = ({ user, entry, selected = false, hideAvatarElement = false, showAvatarHead = true, zebraColor, onPress, children }: FriendListItemProps) => {
+export const FriendListItem = ({ user, entry, selected = false, hideAvatarElement = false, showAvatarHead = true, groupBadge = false, zebraColor, onPress, children }: FriendListItemProps) => {
     const { tooltipHandlers } = useFriendsActions();
     const profileHover = tooltipHandlers('infostand.profile.link.tooltip');
-    const { texture: avatarTexture } = useAvatarImageTexture(showAvatarHead ? user.figure : undefined, user.gender ?? AvatarGenderType.Unisex, { headOnly: true, direction: 2 });
+    const { texture: avatarTexture } = useAvatarImageTexture((showAvatarHead && !groupBadge) ? user.figure : undefined, user.gender ?? AvatarGenderType.Unisex, { headOnly: true, direction: 2 });
     const geometry = ENTRY_GEOMETRY[entry];
 
     return (
@@ -78,7 +81,15 @@ export const FriendListItem = ({ user, entry, selected = false, hideAvatarElemen
                 verticalAlign="top"
                 layout={{ position: 'absolute', ...geometry.name }}
             />
-            {!hideAvatarElement && avatarTexture && (
+            {/* `FriendsView.refreshFigure`: a group friend's face is `getSmallGroupBadgeBitmap`, here the badge at half size in the 20x20 slot. */}
+            {!hideAvatarElement && groupBadge && (
+                <GroupBadgeImage
+                    badgeCode={user.figure}
+                    zoom={0.5}
+                    layout={{ position: 'absolute', left: -2, top: 0, width: 20, height: 20 }}
+                />
+            )}
+            {!hideAvatarElement && !groupBadge && avatarTexture && (
                 <pixiSprite
                     texture={avatarTexture}
                     width={20}

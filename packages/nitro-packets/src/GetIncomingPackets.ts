@@ -389,6 +389,8 @@ import {
     TradingOtherNotAllowedEventMessage,
     TradingYouAreNotAllowedEventMessage,
     TraxSongInfoMessage,
+    TurboCommandSuggestionsMessage,
+    TurboCommandTreeMessage,
     TurboPermissionNodesMessage,
     TurboServerCapabilitiesMessage,
     UniqueMachineIdMessage,
@@ -978,5 +980,7 @@ export const GetIncomingPackets = () => {
         // Turbo extensions (not Habbo's): only a Turbo server that was asked sends these.
         [IncomingHeader.TurboServerCapabilitiesMessage]: TurboServerCapabilitiesMessage,
         [IncomingHeader.TurboPermissionNodesMessage]: TurboPermissionNodesMessage,
+        [IncomingHeader.TurboCommandTreeMessage]: TurboCommandTreeMessage,
+        [IncomingHeader.TurboCommandSuggestionsMessage]: TurboCommandSuggestionsMessage,
     } as Record<number, IncomingPacketConstructor>;
 };

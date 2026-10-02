@@ -661,6 +661,8 @@ export * from './Talent/TalentTrackLevelMessage';
 export * from './Talent/TalentTrackMessage';
 export * from './Tracking/LatencyPingResponseMessage';
 export * from './Turbo/ITurboCapability';
+export * from './Turbo/TurboCommandSuggestionsMessage';
+export * from './Turbo/TurboCommandTreeMessage';
 export * from './Turbo/TurboPermissionNodesMessage';
 export * from './Turbo/TurboServerCapabilitiesMessage';
 export * from './Userclassification/UserClassificationMessage';

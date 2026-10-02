@@ -21,7 +21,7 @@ import {
 import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
 import { registerSpecialItemsHandlers } from './special-items';
 import { registerHotelViewHandlers } from './system';
-import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerMessengerHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
+import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerChatCommandHandlers, registerFriendBarHandlers, registerMessengerHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
 import { registerProfileHandlers } from './user-profile';
 import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
 import { bridgeWiredTradingLifecycle, registerSelfDonationHandlers, registerWiredChestHandlers, registerWiredContractHandlers, registerWiredTradeHandlers, registerWiredTransactionHandlers, registerWiredTransactionNotificationHandlers } from './wired-trading';
@@ -81,6 +81,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerAlertDialogHandlers(socket),
         registerSingularNotificationHandlers(socket),
         registerUserInfoHandlers(socket),
+        registerChatCommandHandlers(socket),
         registerUserSocialHandlers(socket),
         registerProfileHandlers(socket),
         // Groups: the details cache the infostand also reads, and every group window's own answers.
@@ -88,6 +89,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerAvatarEffectsHandlers(socket),
         registerAvatarEditorHandlers(socket),
         registerMessengerHandlers(socket),
+        registerFriendBarHandlers(socket),
         registerWalletHandlers(socket),
         // The account's own word filter, whose list the settings window asks for when it opens.
         registerWordFilterHandlers(socket),

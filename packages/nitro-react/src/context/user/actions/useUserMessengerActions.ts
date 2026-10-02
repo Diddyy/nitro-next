@@ -12,8 +12,13 @@ const actions = {
     processFriends: state.processFriends,
     processFriendUpdates: state.processFriendUpdates,
     processFriendRequests: state.processFriendRequests,
-    removeFriendRequests: state.removeFriendRequests,
+    replaceFriendRequests: state.replaceFriendRequests,
+    setFriendRequestsState: state.setFriendRequestsState,
+    clearAnsweredFriendRequests: state.clearAnsweredFriendRequests,
+    markFriendRequestsListShown: state.markFriendRequestsListShown,
     setSearchResults: state.setSearchResults,
+    addFriendBarNotification: state.addFriendBarNotification,
+    clearViewedFriendBarNotifications: state.clearViewedFriendBarNotifications,
 };
 
 export const useUserMessengerActions = () => actions;

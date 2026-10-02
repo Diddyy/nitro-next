@@ -775,7 +775,15 @@ const RUNTIME_IMAGES: { name: string; component: string }[] = [
     // The hotel broadcast's `simpleAlert` illustration (`IncomingMessages.onBroadcastMessageEvent`
     // and `HotelAlertTool` pass it as the `illustration` bitmap's `assetUri`).
     'illumina_alert_illustrations_frank_neutral',
+    // The friend bar's notification tokens (`Token.prepare`): each token's icon is a static bitmap
+    // given its `assetUri` from code - the event icon for a room event, achievement or quest
+    // (`RoomEventToken`, `AchievementToken`, `QuestToken`) and the snowball for a game (`GameToken`).
+    'friend_bar_event_notification_icon', 'game_center_snowball_notification_icon',
 ].map(name => ({ name, component: 'window-manager' }))).concat([
+    // `AddFriendsTab.allocateEntityWindow` draws `find_friends_icon_png` over the layout's
+    // `add_friends_icon_png` from code.
+    { name: 'find_friends_icon', component: 'friend-bar' },
+]).concat([
     // `HabboCatalog.getSubscriptionProductIcon`: the club product's icon, drawn from code by
     // `HabboCatalogUtils.displayProductIcon` (the offer centre's reward rows).
     { name: 'icon_hc', component: 'catalog' },

@@ -1,3 +1,5 @@
+import { acceptAllFriendRequests, declineAllFriendRequests } from '#base/commands';
+import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
 import { Border, ContainerButton, Icon, Region, ThemeText } from '#base/theme';
 
@@ -9,6 +11,7 @@ import { Border, ContainerButton, Icon, Region, ThemeText } from '#base/theme';
  * colour - the layout's `text_color="0"` is no var at all.
  */
 export const FriendListRequestsFooter = () => {
+    const { send } = useWebSocketContext();
     const t = useTranslation();
 
     return (
@@ -23,6 +26,7 @@ export const FriendListRequestsFooter = () => {
             >
                 <ContainerButton
                     variant="0"
+                    onPointerTap={() => declineAllFriendRequests(send)}
                     layout={{ position: 'absolute', left: 5, right: 5, top: 30, height: 21, overflow: 'hidden' }}
                 >
                     <Icon
@@ -41,6 +45,7 @@ export const FriendListRequestsFooter = () => {
                 </ContainerButton>
                 <ContainerButton
                     variant="0"
+                    onPointerTap={() => acceptAllFriendRequests(send)}
                     layout={{ position: 'absolute', left: 5, right: 5, top: 5, height: 21, overflow: 'hidden' }}
                 >
                     <Icon

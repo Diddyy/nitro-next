@@ -1,6 +1,6 @@
-import { SendRoomInviteComposer } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
+import { sendRoomInvite } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsStore } from '#base/context/friend';
 import { useIsWindowVisible, useSystemActions, useTranslation } from '#base/context/system';
@@ -22,11 +22,11 @@ export const FriendListRoomInviteView = () => {
 
     const t = useTranslation();
 
-    const sendRoomInvite = () => {
-        if (selectedFriendIds.length < 1 || !message?.length || message.length > 255) return;
+    /** `RoomInviteView.sendMsg`: the view is disposed once it is sent, so the next one starts empty. */
+    const onSend = () => {
+        if (!sendRoomInvite(send, selectedFriendIds, message)) return;
 
-        send(new SendRoomInviteComposer({ message, playerIds: selectedFriendIds }));
-
+        setMessage('');
         toggleWindow('friendlist_invite');
     };
 
@@ -86,7 +86,7 @@ export const FriendListRoomInviteView = () => {
             </Button>
             <ButtonThick
                 variant="0"
-                onPointerTap={sendRoomInvite}
+                onPointerTap={onSend}
                 layout={{ position: 'absolute', left: 0, top: 122, width: 60, height: 21, minWidth: 60, maxWidth: 60 }}
             >
                 {t('friendlist.invite.send')}

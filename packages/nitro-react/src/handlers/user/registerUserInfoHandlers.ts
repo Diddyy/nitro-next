@@ -4,7 +4,7 @@ import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, A
 import { clampChatFontSizeMode } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
-import { SOUND_VOLUME_SCALE, TURBO_PERMISSION_NODES_CAPABILITY, userStore } from '#base/context/user';
+import { SOUND_VOLUME_SCALE, TURBO_CHAT_COMMANDS_CAPABILITY, TURBO_PERMISSION_NODES_CAPABILITY, userStore } from '#base/context/user';
 import { configReader } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -17,14 +17,14 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * and follows the account's safety lock (`onAccountSafetyLockStatusChanged`: locked while the status is 0)
  * and the hotel's availability (`onAvailabilityStatus`), which trading checks for a shutdown.
  *
- * Not Flash's: after the user object it asks the server for Turbo's `permission.nodes` extension,
- * unless `turbo.extensions.disabled` is set. A Turbo server answers and sends the nodes the user
+ * Not Flash's: after the user object it asks the server for Turbo's `permission.nodes` and
+ * `chat.commands` extensions, unless `turbo.extensions.disabled` is set. A Turbo server answers and sends the nodes the user
  * holds, which every `ClientGate` then asks; any other server ignores the unknown packet and the
  * gates keep to `securityLevel`. Nodes are taken only once the server has accepted the extension,
  * so a server that happens to use the same header for something else cannot feed the gates.
  */
 export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { setAvailabilityStatus, setRights, setPermissionNodes, setTurboCapabilities, mergePerks, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
+    const { setAvailabilityStatus, setRights, setPermissionNodes, setChatCommands, setTurboCapabilities, mergePerks, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
 
     return subscribeAll(subscribe, [
         on(FigureUpdateEventMessage, (data) => {
@@ -37,7 +37,7 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             send(new GetUserNftChatStylesComposer({}));
             // `HabboSoundManagerFlash10.initComponent`: asks for the sound settings `AccountPreferences` answers.
             send(new GetSoundSettingsComposer({}));
-            if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 } ] }));
+            if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 }, { name: TURBO_CHAT_COMMANDS_CAPABILITY, version: 1 } ] }));
         }),
 
         // A Turbo server that declined `permission.nodes` leaves the gates on the level.
@@ -47,6 +47,8 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             setTurboCapabilities(capabilities);
 
             if (!capabilities.has(TURBO_PERMISSION_NODES_CAPABILITY)) setPermissionNodes(null);
+            // One that declined `chat.commands` leaves the chat input completing nothing, as Flash's.
+            if (!capabilities.has(TURBO_CHAT_COMMANDS_CAPABILITY)) setChatCommands(null);
         }),
 
         on(TurboPermissionNodesMessage, (data) => {
