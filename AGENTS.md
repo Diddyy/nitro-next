@@ -2,6 +2,18 @@
 
 A Habbo Flash client port using Pixi v8 and React, with Yarn workspaces under `packages/`.
 
+## Contribution workflow
+
+Read [Fork contribution workflow](docs/fork-workflow.md) before starting Git work.
+In a checkout configured for this workflow, `dev` is the personal integration branch.
+Create focused feature worktrees from `origin/pixi-render` for independent changes; preserve
+uncommitted work, validate the feature, and integrate completed changes into `dev` within
+the task's authorization. Submit upstream PRs from feature branches, never from `dev`.
+Normal pushes go to `fork`; upstream merges require their own authorization.
+Keep personal `dev` on the fork, with PRs directly targeting upstream `pixi-render`.
+Use `git sync-dev` from clean personal `dev` after upstream merges; do not create upstream
+`dev` or default to feature-to-feature PR targets. See the guide for dependencies and cleanup.
+
 | Package | Responsibility |
 | --- | --- |
 | `nitro-api` | Shared interfaces, enums, events and utilities; no runtime state |
