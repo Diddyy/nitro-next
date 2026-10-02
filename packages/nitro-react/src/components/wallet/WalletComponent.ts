@@ -3,7 +3,7 @@
  * NFT credits and the club subscription (`ScrGetUserInfoMessageComposer("habbo_club")`, answered
  * with `ScrSendUserInfo`; Turbo sends the account's preferences with it).
  *
- * Not sent yet: `GetSilverMessageComposer` and `GetBadgePointLimitsComposer` (see `docs/feature-gaps.md`).
+ * Not sent yet: `GetSilverMessageComposer` (see `docs/feature-gaps.md`). Achievement initialization requests badge point limits.
  */
 import { GetCreditsInfoComposer, GetNftCreditsComposer, ScrGetUserInfoComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';

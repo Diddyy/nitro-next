@@ -8,6 +8,7 @@ import { useConfigValue } from '#base/context/system';
 import { useWindowVisibility } from '#base/hooks';
 
 import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, NavigatorComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTradeComponent, WiredTransactionsComponent } from './components';
+import { AchievementsComponent } from './components/achievements';
 import { TargetedOfferComponent } from './components/catalog/TargetedOfferComponent';
 import { CollectiblesComponent } from './components/collectibles';
 import { EarningsComponent } from './components/earnings';
@@ -119,6 +120,7 @@ export const MainView = () => {
                 <WiredSelfDonationComponent />
                 <WiredRewardNotificationsComponent />
                 <EarningsComponent />
+                <AchievementsComponent />
                 <SpecialItemsComponent />
                 <GroupInfoComponent />
                 <GroupMembersComponent />

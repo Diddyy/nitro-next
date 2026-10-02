@@ -11,6 +11,7 @@ import type { RoomSettingsViewWindowParams } from '#base/views/room-widgets/room
  * params)`. A new window registers its name and params type here.
  */
 export type WindowRegistry = {
+    achievements: NoWindowParams;
     avatar_editor: AvatarEditorViewWindowParams;
     catalog: CatalogViewWindowParams;
     /** The Builders Club catalogue (`toggleCatalog("BUILDERS_CLUB")`) - see `getCatalogWindowName`. */

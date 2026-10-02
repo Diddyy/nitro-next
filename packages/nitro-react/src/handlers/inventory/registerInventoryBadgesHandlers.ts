@@ -12,15 +12,15 @@
  *   list, and on the other occasions it sends the user's badges; one for anyone else is left to the
  *   infostand and the profile.
  * - `BadgeReceived` is `updateBadge(code, false)`: one badge added, or updated and taken off.
- * - `HabboAchievementNotification` (`onAchievementReceived`): the level's badge is added the same
- *   way and the level it replaces (`removedBadgeCode`) is removed.
+ * - Achievement badge notifications are coordinated by `registerAchievementHandlers`; the
+ *   refreshed badge directory describes retained independent entitlements and worn slots.
  * - `BadgePointLimits` is `onBadgePointLimits`: each badge's point limit goes to the localization,
  *   which fills a description's `%limit%` with it (`utils/badgeLocalization`).
  *
  * Who asks for the list: `HabboInventory.getAllMyBadgeIds` the first time it finds the model empty,
  * and the badges tab when it opens (`commands/inventoryBadgeCommands`).
  */
-import { BadgePointLimitsEventMessage, BadgeReceivedEventMessage, BadgesEventMessage, HabboAchievementNotificationMessage, HabboUserBadgesMessage, IInventoryBadge } from '@nitrodevco/nitro-packets';
+import { BadgePointLimitsEventMessage, BadgeReceivedEventMessage, BadgesEventMessage, HabboUserBadgesMessage, IInventoryBadge } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
@@ -30,7 +30,7 @@ import { userStore } from '#base/context/user';
 import { on, subscribeAll } from '../packetSubscriptions';
 
 export const registerInventoryBadgesHandlers = ({ subscribe }: WebSocketConnection) => {
-    const { initBadges, updateBadge, removeBadge } = inventoryStore.getState();
+    const { initBadges, updateBadge } = inventoryStore.getState();
     const { setBadgePointLimits } = systemStore.getState();
     // `IncomingMessages`' badge fragment buffer: the fragments of the list on its way in.
     let fragments: (IInventoryBadge[] | undefined)[] | undefined;
@@ -65,11 +65,6 @@ export const registerInventoryBadgesHandlers = ({ subscribe }: WebSocketConnecti
         }),
 
         on(BadgeReceivedEventMessage, data => updateBadge(data, false)),
-
-        on(HabboAchievementNotificationMessage, ({ data }) => {
-            updateBadge({ badgeId: data.badgeId, badgeCode: data.badgeCode, ownerCount: data.ownerCount, badgeRarityId: data.badgeRarityId }, false);
-            removeBadge(data.removedBadgeCode);
-        }),
 
         on(BadgePointLimitsEventMessage, data => setBadgePointLimits(Object.fromEntries(data.data.map(entry => [ entry.badgeId, entry.limit ])))),
     ]);

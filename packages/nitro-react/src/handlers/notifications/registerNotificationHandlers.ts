@@ -5,7 +5,7 @@
  * `NotificationConfig`) or in an alert dialog.
  *
  * Only the part of that class whose packet the port parses and whose destination exists is here:
- * `onLevelUp`, `onBadgeReceived`, `onPetLevelNotification`, `onRoomMessagesNotification`,
+ * `onBadgeReceived`, `onPetLevelNotification`, `onRoomMessagesNotification`,
  * `onInfoFeedEnable`, `onBroadcastMessageEvent`, `onClaimProductResult` and
  * `onNotificationDialogMessageEvent` (`showNotification`, in `commands/notificationCommands`,
  * with `showCallCreatedNotification` for `cfh.created`). The MOTD, club gift and safety lock
@@ -20,7 +20,7 @@
  * does. The pet bubbles have no image: a pet picture needs the avatar renderer, which only
  * answers for a pet that is in the room, and the pet a level-up names need not be.
  */
-import { BadgeReceivedEventMessage, ClaimProductResultMessage, HabboAchievementNotificationMessage, HabboBroadcastMessage, InfoFeedEnableMessage, NotificationDialogMessage, PetLevelNotificationEventMessage, RoomMessageNotificationMessage } from '@nitrodevco/nitro-packets';
+import { BadgeReceivedEventMessage, ClaimProductResultMessage, HabboBroadcastMessage, InfoFeedEnableMessage, NotificationDialogMessage, PetLevelNotificationEventMessage, RoomMessageNotificationMessage } from '@nitrodevco/nitro-packets';
 
 import { showNotification } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -59,12 +59,6 @@ export const registerNotificationHandlers = ({ subscribe }: WebSocketConnection)
     };
 
     return subscribeAll(subscribe, [
-        on(HabboAchievementNotificationMessage, (data) => {
-            const text = localize('notification.new.achievement', { achievement_name: badgeName(data.data.badgeCode) });
-
-            addNotification(text, 'achievement', badgeImage(data.data.badgeCode), `questengine/achievements/${data.data.category}`);
-        }),
-
         on(BadgeReceivedEventMessage, (data) => {
             const text = localize('notification.new.badge', { badge_name: badgeName(data.badgeCode) });
 

@@ -1,5 +1,6 @@
 import { WebSocketConnection } from '#base/context/communication';
 
+import { registerAchievementHandlers } from './achievements';
 import { bridgeRecyclerRoomSession, registerCatalogPlacementHandlers, registerCatalogRecyclerHandlers, registerCatalogRentHandlers, registerCatalogVoucherHandlers, registerTargetedOfferHandlers } from './catalog';
 import { bridgeCollectiblesInventoryAndPurse, registerCollectiblesHandlers } from './collectibles';
 import { registerEarningsHandlers } from './earnings';
@@ -129,6 +130,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         bridgeWiredTradingLifecycle(socket),
         registerInventoryFurniHandlers(socket),
         registerInventoryBadgesHandlers(socket),
+        registerAchievementHandlers(socket),
         registerInventoryPetsHandlers(socket),
         registerInventoryBotsHandlers(socket),
         registerInventoryUnseenHandlers(socket),
