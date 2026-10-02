@@ -35,6 +35,8 @@ export type WindowRegistry = {
     floor_plan_editor: NoWindowParams;
 
     navigator: NavigatorViewWindowParams;
+    /** Messenger conversations (`MessengerView`), opened from the toolbar. */
+    messenger: NoWindowParams;
 
     /** Room creation (`RoomCreateViewCtrl`), from the navigator's create room button - `HabboNewNavigator.createRoom`. */
     navigator_room_create: NoWindowParams;

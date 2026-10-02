@@ -1,3 +1,4 @@
+import { canOpenRoomInvite } from '#base/commands';
 import { useFriendsActions, useFriendsStore } from '#base/context/friend';
 import { useSystemActions } from '#base/context/system';
 import { Border, ContainerButton, LayoutImage, Region, TextInput, ThemeImage } from '#base/theme';
@@ -22,7 +23,7 @@ export const FriendListFriendsFooter = () => {
     const showListSearchInput = useFriendsStore(x => x.showListSearchInput);
     const listSearchValue = useFriendsStore(x => x.listSearchValue);
     const { setListSearchValue, toggleListSearchInput, tooltipHandlers, setFilterValue } = useFriendsActions();
-    const { toggleWindow } = useSystemActions();
+    const { showWindow, toggleWindow } = useSystemActions();
 
     const inviteHover = tooltipHandlers('friendlist.tip.invite');
     const homeHover = tooltipHandlers('friendlist.tip.home');
@@ -42,7 +43,7 @@ export const FriendListFriendsFooter = () => {
                 <ContainerButton
                     variant="0"
                     disabled={selectedFriendIds.length < 1}
-                    onPointerTap={() => toggleWindow('friendlist_invite')}
+                    onPointerTap={() => canOpenRoomInvite() && showWindow('friendlist_invite')}
                     onPointerOver={inviteHover.onMouseEnter}
                     onPointerOut={inviteHover.onMouseLeave}
                     layout={{ position: 'absolute', left: 5, top: 4, width: 32, height: 22 }}

@@ -3,10 +3,12 @@ import { ForwardToSomeRoomComposer, GetHabboGroupDetailsComposer } from '@nitrod
 
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore, WindowParams } from '#base/context/system';
+import { userStore } from '#base/context/user';
 import { getWiredHasReadPermission, getWiredMenuEnabled } from '#base/context/wired';
 
 import { showEarnings } from './earningsCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
+import { openMessengerConversation } from './messengerCommands';
 import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './navigatorCommands';
 import { openSpecialItemsDisplay } from './specialItemsCommands';
 import { openWiredRewardView, openWiredSelfDonation } from './wiredTradingCommands';
@@ -243,7 +245,7 @@ export const openClientLink = (send: Send, link: string) => {
 
             return;
         }
-        // `HabboFriendList.linkReceived`; `openchat` needs the messenger, which has no window yet.
+        // `HabboFriendList.linkReceived`: `open`, and `openchat/<a>:<b>` - a conversation with whichever id is not the user's own.
         case 'friendlist': {
             if (parts[1] === 'open') {
                 showWindow('friendlist');
@@ -251,7 +253,28 @@ export const openClientLink = (send: Send, link: string) => {
                 return;
             }
 
+            if (parts[1] === 'openchat') {
+                const ids = (parts[2] ?? '').split(':');
+
+                if (ids.length < 2) return;
+
+                const other = Number((ids[0] === String(userStore.getState().userId)) ? ids[1] : ids[0]);
+
+                if (other > 0) {
+                    showWindow('friendlist');
+                    openMessengerConversation(send, other);
+                }
+
+                return;
+            }
+
             break;
+        }
+        // `HabboMessenger.linkReceived`: `messenger/<id>` opens a conversation.
+        case 'messenger': {
+            if (parts.length >= 2) openMessengerConversation(send, Number(parts[1]) | 0);
+
+            return;
         }
     }
 

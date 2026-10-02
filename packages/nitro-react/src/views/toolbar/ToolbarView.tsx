@@ -6,14 +6,20 @@
  * The me menu and progression buttons open `ToolbarExtendedMenu` (`MeMenuNewController` /
  * `ProgMenuController`).
  *
- * Which icons show follows the port's own collapse and landing view state, not `setToolbarState`'s
- * tag groups. The collapse arrow is the layout's own: `collapse_left` / `collapse_right` - the
+ * Which icons show follows `BottomBarLeft.setToolbarState`: each `bottom_bar_left` region is
+ * tagged with the states it shows in, and the port reads them off its own landing view and
+ * collapse state. On the hotel view (`VISIBLE_HOTEL`) that is home, navigator, catalogue,
+ * Builders Club and the me menu; in a room (`VISIBLE_ROOM`) reception replaces home and
+ * progression, inventory, wired menu and camera join; collapsed (`VISIBLE_COLLAPSED`) keeps
+ * catalogue, Builders Club, inventory, me menu, wired menu and camera. On top of the tags,
+ * Builders Club needs `builders.club.enabled` (unless collapsed) and the camera needs a room,
+ * `camera.launch.ui.position` of `bottom-icons` and the `CAMERA` perk. Games and stories
+ * (`games_icon_enabled`, `toolbar.stories.enabled`) are not ported. The collapse arrow is the layout's own: `collapse_left` / `collapse_right` - the
  * room tools' `roomtools_minimizebutton` in a 13x45 box at (1, 0) of a 15-wide region at (0, -1)
  * - over the unnamed style 2 border in `0x3b3933` at (-6, 0), 20x43, of which the window's left
  * edge leaves the right 14 with its rounded corners. Expanded it points left; collapsed it is
- * `icons_toolbar_collapse_right`, mirrored and etched. The right-hand group is a stand-in for the
- * friend bar's `friendtools` (`new_bar` of `habbo-friend-bar-com`), which has no port yet, and
- * keeps its own flex placement; its arrow is `new_bar`'s `collapse_right` / `collapse_left`.
+ * `icons_toolbar_collapse_right`, mirrored and etched. The right-hand end is the friend bar
+ * (`FriendBarView`).
  *
  * The inventory icon carries the unseen item count (`HabboToolbar.onUnseenItemsUpdate` ->
  * `BottomBarLeft.setUnseenItemCount('HTIE_ICON_INVENTORY', inventoryCount)`): the window manager's
@@ -38,11 +44,13 @@ import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog 
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
+import { useMessengerStore } from '#base/context/messenger';
 import { useConfigValue, useIsLandingViewVisible, useSystemActions, useTranslation } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useTween } from '#base/hooks';
 import { Border, Box, LayoutImage, Region, ThemeImage, useLayoutEvent } from '#base/theme';
+import { FriendBarView } from '#base/views/friend-bar/FriendBarView';
 import { RoomToolsMinimizeButton } from '#base/views/room-widgets/room-tools/RoomToolsMinimizeButton';
 import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
 
@@ -132,7 +140,6 @@ export const ToolbarView = () => {
     const expandedOnlyShown = 1 - collapseProgress;
     // `checkSize` swaps the arrows when the new state is set, at the end of the run.
     const arrowCollapsed = collapseRunning ? !leftSideCollapsed : leftSideCollapsed;
-    const [ rightSideCollapsed, setRightSideCollapsed ] = useState(false);
     const ownFigure = useOwnUserFigure();
     const ownGender = useOwnUserGender();
     const ownUserId = useOwnUserId();
@@ -145,6 +152,9 @@ export const ToolbarView = () => {
     useLayoutEvent(leftGroup, reportWidths);
     useLayoutEvent(rightGroup, reportWidths);
     const landingViewVisible = useIsLandingViewVisible();
+    // `setToolbarState`'s `_local_4`: a room state, or collapsed from one.
+    const inRoom = !landingViewVisible;
+    const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
     // `BottomBarLeft`: the wired menu icon is a room icon, and only for someone `showToolbarMenuButton` lets see it.
     const showWiredMenuButton = useWiredShowToolbarMenuButton() && !landingViewVisible;
     // `BottomBarLeft`: the camera icon too is a room icon, drawn only where `camera.launch.ui.position` puts it and with the `CAMERA` perk.
@@ -157,6 +167,7 @@ export const ToolbarView = () => {
     const classicCollectiblesHubEnabled = useConfigValue<boolean>('classic.collectibles.hub.enabled') === true;
     const collectiblesHubEnabled = useConfigValue<boolean>('collectibles.hub.enabled') === true;
     const unseenInventoryCount = useInventoryUnseenTotalCount();
+    const unseenMiniMailCount = useMessengerStore(x => x.miniMailUnreadCount);
 
     // HabboLandingView.onToolbarClick HTIE_ICON_RECEPTION: quit and dispose the room session right away (RSE_ENDED shows the hotel view)
     const goToHotelView = () => {
@@ -237,7 +248,8 @@ export const ToolbarView = () => {
                                 />
                             </ToolbarToggleSlot>
                         )}
-                        {(expandedOnlyShown > 0) && (
+                        {/* `PROGRESSION` is tagged `VISIBLE_ROOM` only. */}
+                        {(expandedOnlyShown > 0) && inRoom && (
                             <ToolbarToggleSlot
                                 shown={expandedOnlyShown}
                                 index={2}
@@ -256,24 +268,30 @@ export const ToolbarView = () => {
                             src="toolbar/bottom_bar_shop.png"
                             icon={[ 4, 1, 37, 37 ]}
                         />
-                        <ToolbarItem
-                            tooltip={t('toolbar.icon.label.builder')}
-                            onPointerTap={() => toggleCatalog(CatalogTypeEnum.BuildersClub)}
-                            src="toolbar/bottom_bar_buildersclub.png"
-                            icon={[ 5, 1, 35, 37 ]}
-                        />
-                        <ToolbarItem
-                            tooltip={t('toolbar.icon.label.inventory')}
-                            onPointerTap={() => toggleWindow('inventory')}
-                            src="toolbar/bottom_bar_inventory.png"
-                            height={43}
-                            icon={[ 0, 0, 44, 41 ]}
-                        >
-                            <UnseenItemCounterView
-                                count={unseenInventoryCount}
-                                layout={{ position: 'absolute', right: 0, top: 0 }}
+                        {/* `BUILDER`: `builders.club.enabled` decides it, except in the collapsed bar. */}
+                        {(leftSideCollapsed || buildersClubEnabled) && (
+                            <ToolbarItem
+                                tooltip={t('toolbar.icon.label.builder')}
+                                onPointerTap={() => toggleCatalog(CatalogTypeEnum.BuildersClub)}
+                                src="toolbar/bottom_bar_buildersclub.png"
+                                icon={[ 5, 1, 35, 37 ]}
                             />
-                        </ToolbarItem>
+                        )}
+                        {/* `INVENTORY` is tagged `VISIBLE_ROOM` and `VISIBLE_COLLAPSED`, not `VISIBLE_HOTEL`. */}
+                        {(inRoom || leftSideCollapsed) && (
+                            <ToolbarItem
+                                tooltip={t('toolbar.icon.label.inventory')}
+                                onPointerTap={() => toggleWindow('inventory')}
+                                src="toolbar/bottom_bar_inventory.png"
+                                height={43}
+                                icon={[ 0, 0, 44, 41 ]}
+                            >
+                                <UnseenItemCounterView
+                                    count={unseenInventoryCount}
+                                    layout={{ position: 'absolute', right: 0, top: 0 }}
+                                />
+                            </ToolbarItem>
+                        )}
                         <Region
                             dynamicStyle="lifted_hover"
                             onPointerTap={() => toggleMenu('me')}
@@ -305,6 +323,11 @@ export const ToolbarView = () => {
                                 bitmap={{ stretchedX: false, stretchedY: false }}
                                 layout={{ position: 'absolute', left: 0, top: -1, width: 45, height: 45 }}
                             />
+                            {/* `setUnseenItemCount('HTIE_ICON_MEMENU', unseenMeMenuCount)`: unread mini mail (the forums' count is not ported). */}
+                            <UnseenItemCounterView
+                                count={unseenMiniMailCount}
+                                layout={{ position: 'absolute', right: 0, top: 0 }}
+                            />
                         </Region>
                         {showWiredMenuButton && (
                             <ToolbarItem
@@ -331,49 +354,7 @@ export const ToolbarView = () => {
                         />
                     </Region>
                 </Region>
-                <Region
-                    ref={setRightGroup}
-                    layout={{ position: 'absolute', right: 0, top: 0, height: BACKGROUND_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 15 }}
-                >
-                    <ThemeImage
-                        name="line"
-                        src={LayoutImage('shared/bottom_bar_divider_1px.png')}
-                        bitmap={{}}
-                        layout={{ width: 1, height: 40 }}
-                    />
-                    <Region
-                        dynamicStyle="lifted_hover"
-                        onPointerTap={() => toggleWindow('friendlist')}
-                        tooltip={t('friend.bar.friends.title')}
-                    >
-                        <ThemeImage
-                            dynamicRole="icon"
-                            src={LayoutImage('friend-bar/friend_bar_all_friends.png')}
-                            bitmap={{ etchingColor: 0x48000000 }}
-                            layout={{ width: 32, height: 33 }}
-                        />
-                    </Region>
-                    <Region
-                        dynamicStyle="lifted_hover"
-                        onPointerTap={() => toggleWindow('friendlist', { tab: 'search' })}
-                        tooltip={t('friend.bar.search.title')}
-                    >
-                        <ThemeImage
-                            dynamicRole="icon"
-                            src={LayoutImage('friend-bar/friend_bar_search_habbos.png')}
-                            bitmap={{ etchingColor: 0x48000000 }}
-                            layout={{ width: 29, height: 33 }}
-                        />
-                    </Region>
-                    {/* `new_bar`: `collapse_right` (mirrored) while the bar is open, `collapse_left` once it is shut. */}
-                    <RoomToolsMinimizeButton
-                        layout={{ width: 15, height: 46, flexShrink: 0 }}
-                        border={[ 0, 1, 20, 43 ]}
-                        arrow={[ 1, 0, 13, 45 ]}
-                        mirrored={!rightSideCollapsed}
-                        onPress={() => setRightSideCollapsed(prev => !prev)}
-                    />
-                </Region>
+                <FriendBarView ref={setRightGroup} />
             </Region>
             {isMeExpanded && (
                 <ToolbarExtendedMenu

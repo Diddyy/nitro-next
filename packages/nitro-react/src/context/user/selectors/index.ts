@@ -2,6 +2,7 @@
 export * from './friends';
 export * from './useAvatarEffects';
 export * from './useClientGate';
+export * from './useFriendBarCollapsed';
 export * from './useIsSystemShutdown';
 export * from './useOwnClubLevel';
 export * from './useOwnHasClub';

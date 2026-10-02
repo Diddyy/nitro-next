@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue } from '#base/context/system';
+import { useWindowVisibility } from '#base/hooks';
 
 import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, NavigatorComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTradeComponent, WiredTransactionsComponent } from './components';
 import { TargetedOfferComponent } from './components/catalog/TargetedOfferComponent';
@@ -22,6 +23,7 @@ import { registerHandlers } from './handlers';
 import { useRegisterHandlers } from './hooks';
 import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
+import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
 import { NotificationPopupsView } from './views/notifications/NotificationPopupsView';
 import { NotificationsExtensionAnchor } from './views/notifications/NotificationsExtensionAnchor';
@@ -40,6 +42,7 @@ export const MainView = () => {
     const maxFPS = useConfigValue<number>('fps.limit') ?? 60;
     // The window templates spike: the purse drawn from its Flash template instead of `PurseView`.
     const templatePurse = useConfigValue<boolean>('ui.templates.purse') === true;
+    const { isWindowVisible: isMessengerVisible } = useWindowVisibility('messenger');
 
     // Every connection-lifetime packet handler, attached before the effect below lets the queued packets through.
     useRegisterHandlers(registerHandlers);
@@ -103,6 +106,7 @@ export const MainView = () => {
                 <InventoryComponent />
                 <FriendListWrapper />
                 <NavigatorComponent />
+                {isMessengerVisible && <MessengerView />}
                 {/* `RoomSettingsCtrl` is the navigator's, not the room's: it also edits a room you are not in. */}
                 <RoomSettingsWidget />
                 <WalletComponent />

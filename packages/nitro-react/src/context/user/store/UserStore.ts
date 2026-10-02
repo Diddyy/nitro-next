@@ -74,6 +74,8 @@ type State = {
 
 /** The bits of `uiFlags` this client knows about (`SessionDataManager.setUIFlag`). */
 export enum UiFlagEnum {
+    /** Set while the friend bar is open; cleared while it is folded to its tools (`setFriendBarState`). */
+    FriendBarExpanded = 1,
     /** Set while the room tools are expanded; cleared while they are collapsed. */
     RoomToolsExpanded = 2,
 }
