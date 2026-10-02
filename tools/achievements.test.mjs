@@ -101,6 +101,26 @@ await test('offsets describe in-level progress; final target counts as earned', 
     assert.equal(model.achievedBadgeCode(achievement({ finalLevel: true })), 'ACH_Login3');
 });
 
+await test('a zero first threshold has finite empty progress before authoritative attainment', () => {
+    const progress = model.achievementProgress(achievement({ level: 1, badgeId: 'ACH_VipHC1', scoreAtStartOfLevel: 0, field_V1O: 0, field_EX: 0, levelCount: 5 }));
+
+    assert.deepEqual(plain(progress), { current: 0, limit: 1, earned: 0 });
+    assert.ok(Number.isFinite(progress.current / progress.limit));
+});
+
+await test('higher edited thresholds clamp display progress while preserving earned levels', () => {
+    const revised = achievement({ level: 4, badgeId: 'ACH_PetLevelUp4', scoreAtStartOfLevel: 20, field_V1O: 30, field_EX: 3 });
+
+    assert.deepEqual(plain(model.achievementProgress(revised)), { current: 0, limit: 10, earned: 3 });
+    assert.equal(model.achievedBadgeCode(revised), 'ACH_PetLevelUp3');
+    const store = createAchievementsStore();
+
+    store.getState().setScore(30);
+    store.getState().setList([ revised ], 'pets');
+    assert.equal(store.getState().score, 30);
+    assert.equal(store.getState().achievements[0].level, 4);
+});
+
 await test('category order, archive, new configuration and room-controlled filtering', () => {
     const categories = model.achievementCategories([
         achievement({ category: 'misc' }), achievement({ category: 'social' }),
