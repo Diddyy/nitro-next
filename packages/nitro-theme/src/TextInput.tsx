@@ -8,9 +8,39 @@ import { ColorLayer } from './layer';
 import { ThemeText } from './ThemeText';
 import { DEFAULT_TEXT_STYLE, flashFaceOverride, getPixiTextStyle, resolveFlashStyle, TextStyleKey } from './utils';
 
+/** A run of a `TextInput`'s value, `start` to `end` (exclusive), drawn in `color` (`#rrggbb`). */
+export interface TextInputMark {
+    start: number;
+    end: number;
+    color: string;
+}
+
+const escapeMarkup = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** The value as markup with each mark in a `<font color>`; marks are taken in order and may not overlap. */
+const markedValue = (value: string, marks: readonly TextInputMark[]): string => {
+    let markup = '';
+    let at = 0;
+
+    for (const mark of [ ...marks ].sort((a, b) => a.start - b.start)) {
+        const start = Math.max(at, Math.min(mark.start, value.length));
+        const end = Math.max(start, Math.min(mark.end, value.length));
+
+        if (end <= start) continue;
+
+        markup += `${escapeMarkup(value.slice(at, start))}<font color="${mark.color}">${escapeMarkup(value.slice(start, end))}</font>`;
+        at = end;
+    }
+
+    return markup + escapeMarkup(value.slice(at));
+};
+
 export interface TextInputProps {
     value: string;
     onChange: (value: string) => void;
+    onSelectionChange?: (start: number, end: number) => void;
+    selectionAfterChange?: number | null;
+    selectionRequestId?: number;
     /** Enter pressed (single-line, or Shift+Enter in multiline). The keyboard event is passed so a caller can read `shiftKey` (the chat input shouts on Shift+Enter). */
     onEnter?: (event: KeyboardEvent) => void;
     /**
@@ -63,6 +93,13 @@ export interface TextInputProps {
     restrict?: string;
     /** `false` for a field that shows and selects its text but cannot be edited (a non-`input` `TextField`); no caret. */
     editable?: boolean;
+    /**
+     * Runs of the value drawn in another colour, as a `TextField` does with `setTextFormat(color,
+     * start, end)` - the chat input marking a command argument the server would refuse. Only the
+     * colour changes, so the glyphs, the caret and the selection stay where they are. Ignored for
+     * a password field and the placeholder.
+     */
+    marks?: readonly TextInputMark[];
     /**
      * `TextField.alwaysShowSelection`: the selection stays drawn while the field is not focused,
      * in the grey Sulake's `TextField` uses for it (`#888888` at 35%).
@@ -190,7 +227,7 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
  * to someone - and a caller can intercept keys (`onKeyDown`) before the browser edits.
  */
 export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TextInputProps>(
-    ({ value, onChange, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
+    ({ value, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
         const [ internalFocused, setInternalFocused ] = useState(false);
         const [ boxNode, setBoxNode ] = useState<PixiContainer | null>(null);
         const [ selection, setSelection ] = useState({ start: value.length, end: value.length });
@@ -201,6 +238,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const focused = isControlled ? controlledFocused : internalFocused;
         const focusedRef = useRef(focused);
         const onChangeRef = useRef(onChange);
+        const onSelectionChangeRef = useRef(onSelectionChange);
         const onEnterRef = useRef(onEnter);
         const onKeyDownRef = useRef(onKeyDown);
         const onFocusChangeRef = useRef(onFocusChange);
@@ -212,6 +250,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         useEffect(() => {
             focusedRef.current = focused;
             onChangeRef.current = onChange;
+            onSelectionChangeRef.current = onSelectionChange;
             onEnterRef.current = onEnter;
             onKeyDownRef.current = onKeyDown;
             onFocusChangeRef.current = onFocusChange;
@@ -245,6 +284,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             const end = input.selectionEnd ?? start;
 
             setSelection(prev => ((prev.start === start && prev.end === end) ? prev : { start, end }));
+            onSelectionChangeRef.current?.(start, end);
         }, []);
 
         // The hidden native element that actually does the editing.
@@ -369,12 +409,23 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         useEffect(() => {
             const input = inputRef.current;
 
-            if (!input || input.value === value) return;
+            if (!input) return;
+
+            if (input.value === value) {
+                if (selectionAfterChange != null) {
+                    const caret = Math.max(0, Math.min(selectionAfterChange, value.length));
+                    input.setSelectionRange(caret, caret);
+                    readSelection();
+                }
+
+                return;
+            }
 
             input.value = value;
-            input.setSelectionRange(value.length, value.length);
+            const caret = (selectionAfterChange == null) ? value.length : Math.max(0, Math.min(selectionAfterChange, value.length));
+            input.setSelectionRange(caret, caret);
             readSelection();
-        }, [ value, readSelection ]);
+        }, [ value, readSelection, selectionAfterChange, selectionRequestId ]);
 
         useEffect(() => {
             const input = inputRef.current;
@@ -499,6 +550,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
         const displayValue = password ? '•'.repeat(value.length) : value;
         const showPlaceholder = !value.length && !focused && !!placeholder;
+        const showMarks = !password && !!marks?.length;
         const selectionStart = Math.min(selection.start, value.length);
         const selectionEnd = Math.min(selection.end, value.length);
         const caret = useMemo(() => measureCaret(displayValue, selectionEnd), [ measureCaret, displayValue, selectionEnd ]);
@@ -594,7 +646,8 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                         />
                     ))}
                     <ThemeText
-                        text={showPlaceholder ? placeholder : displayValue}
+                        text={showPlaceholder ? placeholder : (showMarks ? markedValue(displayValue, marks ?? []) : displayValue)}
+                        markup={!showPlaceholder && showMarks}
                         textStyle={textStyle ?? DEFAULT_TEXT_STYLE}
                         textOptions={showPlaceholder ? { ...textOptions, fill: placeholderColor } : textOptions}
                         flashFormat={fieldFormat}

@@ -2,6 +2,7 @@ import { ClubLevelEnum, NoobnessLevelEnum, RoomChatBubbleWidthType, RoomChatMode
 import { IPerk } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
+import { createUserChatCommandsSlice, UserChatCommandsSlice } from './UserChatCommandsSlice';
 import { createUserEffectsSlice, UserEffectsSlice } from './UserEffectsSlice';
 import { createUserFriendsSlice, UserFriendsSlice } from './UserFriendsSlice';
 import { createUserInfoSlice, UserInfoSlice } from './UserInfoSlice';
@@ -152,7 +153,7 @@ const initialState: State = {
     buildersClubMaxFurniLimit: 0,
 };
 
-export type UserStore = State & Actions & UserInfoSlice & UserFriendsSlice & UserWalletSlice & UserEffectsSlice & UserSocialSlice & UserSoundSettingsSlice & UserWordFilterSlice;
+export type UserStore = State & Actions & UserInfoSlice & UserFriendsSlice & UserWalletSlice & UserEffectsSlice & UserSocialSlice & UserSoundSettingsSlice & UserWordFilterSlice & UserChatCommandsSlice;
 
 export const createUserStore = () => createStore<UserStore>()((set, get, store) => ({
     ...initialState,
@@ -196,6 +197,7 @@ export const createUserStore = () => createStore<UserStore>()((set, get, store) 
     ...createUserSocialSlice(set, get, store),
     ...createUserSoundSettingsSlice(set, get, store),
     ...createUserWordFilterSlice(set, get, store),
+    ...createUserChatCommandsSlice(set, get, store),
 }));
 
 /**

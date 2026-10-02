@@ -494,6 +494,8 @@ export class IncomingHeader {
     public static TreasureHuntUpdateMessage = 1509;
     public static TryPhoneNumberResultMessage = 108;
     public static TryVerificationCodeResultMessage = 2956;
+    public static TurboCommandSuggestionsMessage = 30004;
+    public static TurboCommandTreeMessage = 30002;
     public static TurboPermissionNodesMessage = 30001;
     public static TurboServerCapabilitiesMessage = 30000;
     public static UniqueMachineIDMessage = 3003;

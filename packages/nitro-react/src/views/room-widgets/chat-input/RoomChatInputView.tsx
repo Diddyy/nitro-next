@@ -1,18 +1,21 @@
-import { ClubLevelEnum } from '@nitrodevco/nitro-api';
+import { ClubLevelEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer, WhisperComposer } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer } from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
-import { runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle } from '#base/commands';
+import { requestChatCommandSuggestions, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { roomStore, useRoom, useRoomChatActions, useRoomStore } from '#base/context/room';
 import { useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnClubLevel, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
 import { useChatStyles, useViewportSize } from '#base/hooks';
 import { Border, Box, getGlobalRect, GlobalRect, Icon, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { completeChatCommand, findInvalidArguments, IChatCommandCompletion, mergeChatCommands } from '#base/utils';
 import { roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 
+import { ChatCommandSuggestionsView } from './ChatCommandSuggestionsView';
+import { chatInputClientCommands } from './chatInputClientCommands';
 import { ChatStyleSelectorView } from './ChatStyleSelectorView';
 
 /** `RoomChatInputView.updatePosition` - the gap kept from whatever sits left of the chat bar. */
@@ -34,6 +37,14 @@ const TYPING_DELAY_MS = 1000;
 const IDLE_DELAY_MS = 10000;
 /** No style picked in this session yet - send whatever the account preference says (`ChatStyleSelector._Str_22824`). */
 const NO_STYLE_SELECTED = -1;
+/** `input_border`: 11 in, 400 wide - the command list stands on it, as wide. */
+const INPUT_BORDER_LEFT = 11;
+const INPUT_BORDER_WIDTH = 400;
+/** How long typing pauses before the server is asked what to offer (`chat.commands.v2`). */
+const SUGGEST_DELAY_MS = 120;
+const NO_COMPLETION: IChatCommandCompletion = { suggestions: [], request: null };
+/** An argument the server would refuse: the red of the field's own flood warning (`block_text`). */
+const INVALID_ARGUMENT_COLOR = '#ff0000';
 
 /**
  * The Flash `RoomChatInputWidget` + `RoomChatInputView` (`chatinput_window_new`): the bar above
@@ -42,6 +53,12 @@ const NO_STYLE_SELECTED = -1;
  * mode (Space after `:whisper` fills in the selected avatar's name); typing status is sent
  * after a second and cancelled after ten idle; a flood-control block swaps the field for the
  * countdown; the avatar menu's "whisper" pre-fills the field through the room store.
+ *
+ * Not Flash's: with a Turbo server's `chat.commands.v2`, a `:command` being typed is completed from
+ * the commands the user may use (`ChatCommandSuggestionsView`), with the keys of Habbo's gift
+ * window's friend suggestions (`PurchaseConfirmationDialog.onNameInputKeyUp`): Up and Down move
+ * the highlight round the list, Enter takes it - when it would change the line; a line already
+ * whole is still sent - and Tab always does. Escape puts the list away until the line changes.
  */
 export const RoomChatInputView = () => {
     const t = useTranslation();
@@ -55,6 +72,7 @@ export const RoomChatInputView = () => {
     const chatSizePreference = useUserStore(x => x.chatSizePreference);
     const clubLevel = useOwnClubLevel();
     const isStaff = useClientGate(ClientGates.StaffChatStyles);
+    const mayUseWired = useClientGate(ClientGates.WiredMenu);
     const isAmbassador = useOwnIsAmbassador();
     const nftChatStyles = useUserStore(x => x.nftChatStyles);
     const purchasableChatStyles = useUserStore(x => x.purchasableChatStyles);
@@ -63,19 +81,31 @@ export const RoomChatInputView = () => {
     const customStylesEnabled = useConfigValue<boolean>('custom.chat.styles.enabled') === true;
     const habbiconsEnabled = useConfigValue<boolean>('habbicons.enabled') === true;
     const disabledStyles = useConfigValue<string>('disabled.custom.chat.styles') ?? '';
+    const chatCommands = useUserStore(x => x.chatCommands);
+    const chatCommandSuggestions = useUserStore(x => x.chatCommandSuggestions);
+    const controllerLevel = useRoomStore(x => x.controllerLevel);
+    const usersByRoomObjectId = useRoomStore(x => x.usersByRoomObjectId);
     // The bar starts where the room tools end, as `RoomToolsWidget.getWidgetAreaWidth` told it to.
     const roomToolsCollapsed = useRoomToolsCollapsed();
-    const { width: viewportWidth } = useViewportSize();
+    const { width: viewportWidth, height: viewportHeight } = useViewportSize();
     const toolbarAreaWidth = useToolbarAreaWidth();
     const friendBarWidth = useFriendBarWidth();
 
     const [ value, setValue ] = useState('');
+    const [ cursor, setCursor ] = useState(0);
+    const [ replacementCursor, setReplacementCursor ] = useState<number | null>(null);
+    const [ selectionRequestId, setSelectionRequestId ] = useState(0);
     const [ focused, setFocused ] = useState(false);
     const [ floodRemaining, setFloodRemaining ] = useState(0);
     // Where the `styles` button is on screen while its menu is open (the menu floats above it), or null while it is shut.
     const [ stylesAnchor, setStylesAnchor ] = useState<GlobalRect | null>(null);
     const stylesButtonRef = useRef<PixiContainer | null>(null);
     const [ selectedStyleId, setSelectedStyleId ] = useState(NO_STYLE_SELECTED);
+    const [ highlightIndex, setHighlightIndex ] = useState(0);
+    // The suggestions shown last, so the highlight goes back to the top when they change.
+    const [ highlightFor, setHighlightFor ] = useState('');
+    // The line the command list was put away on (Escape, a click elsewhere); it stays away until the line changes.
+    const [ suggestionsDismissedFor, setSuggestionsDismissedFor ] = useState<string | null>(null);
 
     const isTypingRef = useRef(false);
     const typingStartedSentRef = useRef(false);
@@ -92,6 +122,47 @@ export const RoomChatInputView = () => {
         valueRef.current = value;
         focusedRef.current = focused;
     });
+
+    const roomUserNames = useMemo(() => Object.values(usersByRoomObjectId).filter(x => x.userType === RoomObjectUserType.User).map(x => x.name), [ usersByRoomObjectId ]);
+
+    // The client's own `:words` and, from a Turbo server, the commands it says the user may use.
+    const commands = useMemo(() => mergeChatCommands(chatInputClientCommands({
+        whisperMode: t('widgets.chatinput.mode.whisper', ':whisper'),
+        shoutMode: t('widgets.chatinput.mode.shout', ':shout'),
+        speakMode: t('widgets.chatinput.mode.speak', ':speak'),
+        whisper: t('widgets.chatinput.command.whisper', 'Whisper to someone in the room'),
+        shout: t('widgets.chatinput.command.shout', 'Shout to the whole room'),
+        speak: t('widgets.chatinput.command.speak', 'Talk normally'),
+        wiredMenu: t('widgets.chatinput.command.wired', 'Open the wired menu'),
+        variables: t('widgets.chatinput.command.variables', 'Open the wired variables'),
+        inspection: t('widgets.chatinput.command.inspection', 'Open the wired inspection'),
+        playTest: t('widgets.chatinput.command.playtest', 'Turn wired play test on or off'),
+        wiredReset: t('widgets.chatinput.command.wiredreset', 'Close the wired setup'),
+    }, mayUseWired), chatCommands ?? []), [ t, mayUseWired, chatCommands ]);
+
+    const completion = useMemo<IChatCommandCompletion>(() => (focused
+        ? completeChatCommand({ text: value, cursor, commands, controllerLevel, roomUserNames, serverValues: chatCommandSuggestions })
+        : NO_COMPLETION), [ commands, focused, value, cursor, controllerLevel, roomUserNames, chatCommandSuggestions ]);
+    // What the server would refuse, drawn in red as it is typed (`TextField.setTextFormat`).
+    const invalidArguments = useMemo(() => findInvalidArguments({ text: value, commands, controllerLevel, roomUserNames })
+        .map(x => ({ ...x, color: INVALID_ARGUMENT_COLOR })), [ value, commands, controllerLevel, roomUserNames ]);
+    const suggestions = completion.suggestions;
+    const suggestionsKey = suggestions.map(x => x.label).join('\n');
+
+    // `updateSuggestions` highlights the first row each time the list is rebuilt.
+    if (highlightFor !== suggestionsKey) {
+        setHighlightFor(suggestionsKey);
+        setHighlightIndex(0);
+    }
+
+    const showSuggestions = (suggestions.length > 0) && (suggestionsDismissedFor !== value);
+    const selectableSuggestions = suggestions.filter(x => x.replacement !== null).length;
+    // The request by its parts: a new object asking the same thing is the same request.
+    const requestCommand = completion.request?.command ?? null;
+    const requestParameter = completion.request?.parameter ?? -1;
+    const requestPrefix = completion.request?.prefix ?? '';
+    const requestSyntax = completion.request?.syntax ?? '';
+    const requestArgumentText = completion.request?.argumentText ?? '';
 
     const whisperMode = t('widgets.chatinput.mode.whisper', ':whisper');
     const shoutMode = t('widgets.chatinput.mode.shout', ':shout');
@@ -199,6 +270,7 @@ export const RoomChatInputView = () => {
         }
 
         lastContentRef.current = next;
+        setReplacementCursor(null);
         setValue(next);
     };
 
@@ -288,11 +360,76 @@ export const RoomChatInputView = () => {
 
         typingStartedSentRef.current = false;
         lastContentRef.current = remainder;
+        setReplacementCursor(null);
         setValue(remainder);
+    };
+
+    /** A suggestion taken: the line becomes what it completes to, and the field keeps the keyboard. */
+    const takeSuggestion = (index: number) => {
+        const replacement = suggestions[index]?.replacement;
+
+        if (replacement === null || replacement === undefined) return;
+
+        const next = replacement;
+        const nextCursor = suggestions[index]?.replacementCursor ?? next.length;
+        onChange(next);
+        setReplacementCursor(nextCursor);
+        setSelectionRequestId(current => current + 1);
+    };
+
+    /** `highlightSuggestion`: wraps past either end of the list. */
+    const moveHighlight = (step: number) => {
+        let next = highlightIndex + step;
+
+        if (next < 0) next = suggestions.length - 1;
+        if (next >= suggestions.length) next = 0;
+
+        setHighlightIndex(next);
+    };
+
+    /** `onNameInputKeyUp`, on the chat field: the command list's keys, before the field's own. */
+    const onSuggestionKey = (event: KeyboardEvent): boolean => {
+        if (!showSuggestions || !selectableSuggestions) {
+            if (showSuggestions && (event.key === 'Escape')) {
+                setSuggestionsDismissedFor(valueRef.current);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        switch (event.key) {
+            case 'ArrowUp':
+                moveHighlight(-1);
+                return true;
+            case 'ArrowDown':
+                moveHighlight(1);
+                return true;
+            case 'Tab':
+                takeSuggestion(highlightIndex);
+                return true;
+            case 'Enter': {
+                // A line that taking the row would not change goes as it is.
+                const replacement = suggestions[highlightIndex]?.replacement;
+
+                if (!replacement || (replacement.trim() === valueRef.current.trim()) || event.shiftKey) return false;
+
+                takeSuggestion(highlightIndex);
+                return true;
+            }
+            case 'Escape':
+                setSuggestionsDismissedFor(valueRef.current);
+                return true;
+        }
+
+        return false;
     };
 
     /** `_Str_10572` - Space autocompletes the whisper target, Backspace clears a bare `:whisper name `. */
     const onKeyDown = (event: KeyboardEvent): boolean | void => {
+        if (onSuggestionKey(event)) return true;
+
         const current = valueRef.current;
 
         if (event.key === ' ') {
@@ -341,6 +478,7 @@ export const RoomChatInputView = () => {
         const prefix = (chatInputContent.mode === 'whisper') ? whisperMode : shoutMode;
         const next = `${prefix} ${chatInputContent.userName.length ? `${chatInputContent.userName} ` : ''}`;
 
+        setReplacementCursor(null);
         setValue(next);
         lastContentRef.current = next;
         setFocused(true);
@@ -373,6 +511,15 @@ export const RoomChatInputView = () => {
     }, [ isFloodBlocked ]);
 
     useEffect(() => () => clearTimers(), []);
+
+    // What only the server knows is asked for once typing pauses; the answer lands in the user store.
+    useEffect(() => {
+        if (requestCommand === null) return;
+
+        const timer = setTimeout(() => requestChatCommandSuggestions(send, requestCommand, requestParameter, requestPrefix, requestSyntax, requestArgumentText), SUGGEST_DELAY_MS);
+
+        return () => clearTimeout(timer);
+    }, [ send, requestCommand, requestParameter, requestPrefix, requestSyntax, requestArgumentText ]);
 
     if (!room) return null;
 
@@ -412,8 +559,15 @@ export const RoomChatInputView = () => {
                     <TextInput
                         value={value}
                         onChange={onChange}
+                        onSelectionChange={(_start, end) => {
+                            if (end !== cursor) setSuggestionsDismissedFor(null);
+                            setCursor(end);
+                        }}
+                        selectionAfterChange={replacementCursor}
+                        selectionRequestId={selectionRequestId}
                         onEnter={event => sendChat(event.shiftKey)}
                         onKeyDown={onKeyDown}
+                        marks={invalidArguments}
                         focused={focused}
                         onFocusChange={setFocused}
                         placeholder={t('widgets.chatinput.default')}
@@ -474,6 +628,21 @@ export const RoomChatInputView = () => {
                     />
                 )}
             </Region>
+            {showSuggestions && !isFloodBlocked && (
+                <ChatCommandSuggestionsView
+                    x={left + INPUT_BORDER_LEFT}
+                    bottom={viewportHeight - bottom - CHAT_INPUT_ROW_HEIGHT}
+                    width={INPUT_BORDER_WIDTH}
+                    suggestions={suggestions}
+                    highlightIndex={highlightIndex}
+                    onHover={setHighlightIndex}
+                    onSelect={(index) => {
+                        takeSuggestion(index);
+                        setFocused(true);
+                    }}
+                    onClose={() => setSuggestionsDismissedFor(value)}
+                />
+            )}
             {/*
               * `chat_extra_button` opens the habbicon selector, which is not ported. Flash shows it
               * only under `habbicons.enabled` (`RoomChatInputView.habbiconsEnabled`). Its
