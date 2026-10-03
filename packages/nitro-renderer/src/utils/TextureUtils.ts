@@ -1,10 +1,19 @@
-import { Container, ExtractImageOptions, ExtractOptions, GenerateTextureOptions, ImageSource, Matrix, RenderTexture, Sprite, Texture } from 'pixi.js';
+import { BindGroup, Container, ExtractImageOptions, ExtractOptions, GenerateTextureOptions, ImageSource, Matrix, RenderTexture, Sprite, Texture, TextureSource } from 'pixi.js';
 
 import { GetRenderer } from './GetRenderer';
 import { TexturePool } from './TexturePool';
 
 /** The strength (`k = 8`) of the sharpen the Flash `AvatarImage` ran over a reduced-size render. */
 const REDUCED_TEXTURE_SHARPEN = 8;
+
+/** An eventemitter3 listener record, as Pixi's emitters store them. */
+type BindListener = { fn: () => void; context: unknown };
+
+/** A texture source or style, seen through the eventemitter3 internals that hold its listeners. */
+type BindEmitter = {
+    _events?: Record<string, BindListener | BindListener[]>;
+    off(event: string, fn: () => void, context: unknown): void;
+};
 
 export class TextureUtils {
     /** Containers whose render groups draw room textures (`RoomSpriteCanvas`'s): `destroyTexture` rebuilds their batches. */
@@ -42,7 +51,43 @@ export class TextureUtils {
             if (group) group.structureDidChange = true;
         }
 
+        if (destroySource) this.releaseBatchBindGroups(texture.source);
+
         texture.destroy(destroySource);
+    }
+
+    /**
+     * Detaches a source, and its style, from Pixi's batch bind groups before the source is destroyed.
+     * The WebGPU batcher caches a bind group for every texture combination it has drawn and never evicts
+     * one, so a pooled texture reused across frames ends up subscribed to hundreds of them. Destroying the
+     * source then warns once per group (`a 'textureSampler' was destroyed while still bound`), flooding the
+     * console and stalling the frame. This does what `BindGroup.onResourceChange` would - clears the slot
+     * and marks the key dirty - without the warning; the groups are unreachable once the source is gone.
+     */
+    private static releaseBatchBindGroups(source: TextureSource): void {
+        if (!source || source.destroyed) return;
+
+        const handler = (BindGroup.prototype as unknown as { onResourceChange: () => void }).onResourceChange;
+
+        for (const emitter of [ source, source.style ] as unknown as BindEmitter[]) {
+            if (!emitter) continue;
+
+            const events = emitter._events?.change;
+
+            if (!events) continue;
+
+            for (const { fn, context } of Array.isArray(events) ? [ ...events ] : [ events ]) {
+                if ((fn !== handler) || !(context instanceof BindGroup)) continue;
+
+                emitter.off('change', fn, context);
+
+                for (const key in context.resources) {
+                    if (context.resources[key] === emitter) delete context.resources[key];
+                }
+
+                (context as unknown as { _dirty: boolean })._dirty = true;
+            }
+        }
     }
 
     public static generateTexture(options: GenerateTextureOptions | Container) {

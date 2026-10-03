@@ -58,8 +58,11 @@ export class TexturePool {
                 const style = texture.source.style;
                 const scaleMode = TextureSource.defaultOptions.scaleMode ?? 'linear';
 
-                style.scaleMode = scaleMode;
-                style.update();
+                // Only when it differs: `update` notifies every batch bind group still subscribed to the style.
+                if ((style.magFilter !== scaleMode) || (style.minFilter !== scaleMode) || (style.mipmapFilter !== scaleMode)) {
+                    style.scaleMode = scaleMode;
+                    style.update();
+                }
 
                 return texture;
             }
