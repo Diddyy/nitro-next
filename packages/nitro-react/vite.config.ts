@@ -93,6 +93,8 @@ export default defineConfig(({ mode }) => {
     const bundledDev = mode === 'bundled';
 
     return {
+    // The repository root's `.env` - where a host such as Ploi writes the site's environment.
+    envDir: r('../..'),
     experimental: {
         bundledDev,
     },

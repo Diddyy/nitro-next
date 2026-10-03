@@ -32,6 +32,12 @@ declare global {
 
 window.NitroConfig = window.NitroConfig || {};
 
+// A deployment's socket, baked in at build time from `VITE_SOCKET_URL`. `NitroConfig` overrides
+// `nitro-config.json`, so this wins over the file; a page that sets `socket.url` itself keeps it.
+const pageConfig = window.NitroConfig as Record<string, unknown>;
+
+if (import.meta.env.VITE_SOCKET_URL && !pageConfig['socket.url']) pageConfig['socket.url'] = import.meta.env.VITE_SOCKET_URL;
+
 const element = document.getElementById('root');
 
 // The system, user and navigator stores are app-wide singletons, so only the socket needs a provider.
