@@ -27,6 +27,7 @@ export class TexturePool {
             if (this._framesSinceCheck >= this._checkInterval) {
                 this._framesSinceCheck = 0;
                 this.cleanUpTextures();
+                TextureUtils.pruneBatchBindGroups();
             }
         };
 

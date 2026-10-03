@@ -1,10 +1,13 @@
-import { BindGroup, Container, ExtractImageOptions, ExtractOptions, GenerateTextureOptions, ImageSource, Matrix, RenderTexture, Sprite, Texture, TextureSource } from 'pixi.js';
+import { BindGroup, Container, ExtractImageOptions, ExtractOptions, GenerateTextureOptions, ImageSource, Matrix, pruneTextureBatchBindGroups, RenderTexture, Sprite, Texture, TextureSource } from 'pixi.js';
 
 import { GetRenderer } from './GetRenderer';
 import { TexturePool } from './TexturePool';
 
 /** The strength (`k = 8`) of the sharpen the Flash `AvatarImage` ran over a reduced-size render. */
 const REDUCED_TEXTURE_SHARPEN = 8;
+
+/** How long, in ms, a batch bind group may go undrawn before `pruneBatchBindGroups` drops it. */
+const BATCH_BIND_GROUP_MAX_IDLE = 30_000;
 
 /** An eventemitter3 listener record, as Pixi's emitters store them. */
 type BindListener = { fn: () => void; context: unknown };
@@ -88,6 +91,18 @@ export class TextureUtils {
                 (context as unknown as { _dirty: boolean })._dirty = true;
             }
         }
+    }
+
+    /**
+     * Lets textures the room no longer draws be garbage collected. Pixi's WebGPU batcher caches a bind
+     * group for every texture combination it has drawn and never evicts one, so every avatar frame,
+     * chat bubble and furniture texture of a busy room stayed reachable - with its pixels and hit map -
+     * for the rest of the session, even after leaving. The patched `pixi.js` (`.yarn/patches`) adds
+     * `pruneTextureBatchBindGroups`, which drops the groups not drawn recently; a dropped group that is
+     * drawn again rejoins the cache, so nothing still on screen is affected.
+     */
+    public static pruneBatchBindGroups(): number {
+        return pruneTextureBatchBindGroups(performance.now(), BATCH_BIND_GROUP_MAX_IDLE);
     }
 
     public static generateTexture(options: GenerateTextureOptions | Container) {

@@ -153,9 +153,11 @@ export class AvatarVisualization
     public override dispose(): void {
         if (this._disposed) return;
 
-        super.dispose();
+        // AS3 disposes every cached scale/effect image, not just the current one: they are held by
+        // `AvatarRenderManager` until disposed, so skipping them leaked each avatar's render textures.
+        this.resetAvatar();
 
-        if (this._avatarImage) this._avatarImage.dispose();
+        super.dispose();
 
         for (const addition of this._additions.values()) addition.dispose();
 

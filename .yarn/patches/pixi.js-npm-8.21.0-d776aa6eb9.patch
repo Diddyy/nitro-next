@@ -1,0 +1,291 @@
+diff --git a/lib/index.js b/lib/index.js
+index d05452eef05d5dd4fb6b0fabea40165e2270d3b7..49f95e837cc0619013769632da64c7d168980df1 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -829,6 +829,7 @@ exports.getMaxTexturesPerBatch = maxRecommendedTextures.getMaxTexturesPerBatch;
+ exports.generateGPULayout = generateGPULayout.generateGPULayout;
+ exports.generateLayout = generateLayout.generateLayout;
+ exports.getTextureBatchBindGroup = getTextureBatchBindGroup.getTextureBatchBindGroup;
++exports.pruneTextureBatchBindGroups = getTextureBatchBindGroup.pruneTextureBatchBindGroups;
+ exports.GpuBatchAdaptor = GpuBatchAdaptor.GpuBatchAdaptor;
+ exports.Batch = Batcher.Batch;
+ exports.Batcher = Batcher.Batcher;
+diff --git a/lib/index.mjs b/lib/index.mjs
+index 19eddc0fa2d0b4d2745bc00a0851b8185181d1a8..7c3d3e414b64aba439de59a95366a35ec732b641 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -190,7 +190,7 @@ export { checkMaxIfStatementsInShader } from './rendering/batcher/gl/utils/check
+ export { getMaxTexturesPerBatch } from './rendering/batcher/gl/utils/maxRecommendedTextures.mjs';
+ export { generateGPULayout } from './rendering/batcher/gpu/generateGPULayout.mjs';
+ export { generateLayout } from './rendering/batcher/gpu/generateLayout.mjs';
+-export { getTextureBatchBindGroup } from './rendering/batcher/gpu/getTextureBatchBindGroup.mjs';
++export { getTextureBatchBindGroup, pruneTextureBatchBindGroups } from './rendering/batcher/gpu/getTextureBatchBindGroup.mjs';
+ export { GpuBatchAdaptor } from './rendering/batcher/gpu/GpuBatchAdaptor.mjs';
+ export { Batch, Batcher } from './rendering/batcher/shared/Batcher.mjs';
+ export { BatcherPipe } from './rendering/batcher/shared/BatcherPipe.mjs';
+diff --git a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts
+index 90fec795cbc9b37aba921921be58b1681b630c4e..2f39a2db31fe3a7bb1885ae0a2ba2e53ed266918 100644
+--- a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts
++++ b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts
+@@ -6,4 +6,11 @@ import type { TextureSource } from '../../renderers/shared/texture/sources/Textu
+  * @param maxTextures
+  * @internal
+  */
++/**
++ * Drops the texture batch bind groups that have not been drawn for `maxIdle` ms (nitro patch).
++ * @param now - The current time, as `performance.now()`.
++ * @param maxIdle - How long, in ms, a group may go undrawn before it is dropped.
++ * @returns The number of groups dropped.
++ */
++export declare function pruneTextureBatchBindGroups(now: number, maxIdle: number): number;
+ export declare function getTextureBatchBindGroup(textures: TextureSource[], size: number, maxTextures: number): BindGroup;
+diff --git a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
+index c87625041835cbaf9d1280d6eaef70a3feccf4d2..339611f58fe071347c4cc9ac8e94c29d12c85061 100644
+--- a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
++++ b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
+@@ -5,6 +5,30 @@ var Texture = require('../../renderers/shared/texture/Texture.js');
+ 
+ "use strict";
+ const cachedGroups = {};
++const attachedGroups = /* @__PURE__ */ new Set();
++function recacheTextureBatchBindGroup(bindGroup) {
++  attachedGroups.add(bindGroup);
++  if (!cachedGroups[bindGroup._batchKey]) cachedGroups[bindGroup._batchKey] = bindGroup;
++}
++/**
++ * Drops the texture batch bind groups that have not been drawn for `maxIdle` ms. The cache otherwise
++ * keeps every texture combination ever batched - and through it every texture source - alive forever.
++ * A dropped group stays valid for whatever still holds it and rejoins the cache on its next draw.
++ * @param now - The current time, as `performance.now()`.
++ * @param maxIdle - How long, in ms, a group may go undrawn before it is dropped.
++ * @returns The number of groups dropped.
++ */
++function pruneTextureBatchBindGroups(now, maxIdle) {
++  let pruned = 0;
++  for (const bindGroup of attachedGroups) {
++    if (now - bindGroup._lastUsed <= maxIdle) continue;
++    attachedGroups.delete(bindGroup);
++    if (cachedGroups[bindGroup._batchKey] === bindGroup) delete cachedGroups[bindGroup._batchKey];
++    bindGroup._detach();
++    pruned++;
++  }
++  return pruned;
++}
+ function getTextureBatchBindGroup(textures, size, maxTextures) {
+   let uid = 2166136261;
+   for (let i = 0; i < size; i++) {
+@@ -23,9 +47,14 @@ function generateTextureBatchBindGroup(textures, size, key, maxTextures) {
+     bindGroupResources[bindIndex++] = texture.style;
+   }
+   const bindGroup = new BindGroup.BindGroup(bindGroupResources);
++  bindGroup._batchKey = key;
++  bindGroup._lastUsed = performance.now();
++  bindGroup._onReattach = recacheTextureBatchBindGroup;
++  attachedGroups.add(bindGroup);
+   cachedGroups[key] = bindGroup;
+   return bindGroup;
+ }
+ 
+ exports.getTextureBatchBindGroup = getTextureBatchBindGroup;
++exports.pruneTextureBatchBindGroups = pruneTextureBatchBindGroups;
+ //# sourceMappingURL=getTextureBatchBindGroup.js.map
+diff --git a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
+index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..406db8c0f373c9df7e268fd489d776826d22e7f9 100644
+--- a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
++++ b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
+@@ -3,6 +3,30 @@ import { Texture } from '../../renderers/shared/texture/Texture.mjs';
+ 
+ "use strict";
+ const cachedGroups = {};
++const attachedGroups = /* @__PURE__ */ new Set();
++function recacheTextureBatchBindGroup(bindGroup) {
++  attachedGroups.add(bindGroup);
++  if (!cachedGroups[bindGroup._batchKey]) cachedGroups[bindGroup._batchKey] = bindGroup;
++}
++/**
++ * Drops the texture batch bind groups that have not been drawn for `maxIdle` ms. The cache otherwise
++ * keeps every texture combination ever batched - and through it every texture source - alive forever.
++ * A dropped group stays valid for whatever still holds it and rejoins the cache on its next draw.
++ * @param now - The current time, as `performance.now()`.
++ * @param maxIdle - How long, in ms, a group may go undrawn before it is dropped.
++ * @returns The number of groups dropped.
++ */
++function pruneTextureBatchBindGroups(now, maxIdle) {
++  let pruned = 0;
++  for (const bindGroup of attachedGroups) {
++    if (now - bindGroup._lastUsed <= maxIdle) continue;
++    attachedGroups.delete(bindGroup);
++    if (cachedGroups[bindGroup._batchKey] === bindGroup) delete cachedGroups[bindGroup._batchKey];
++    bindGroup._detach();
++    pruned++;
++  }
++  return pruned;
++}
+ function getTextureBatchBindGroup(textures, size, maxTextures) {
+   let uid = 2166136261;
+   for (let i = 0; i < size; i++) {
+@@ -21,9 +45,13 @@ function generateTextureBatchBindGroup(textures, size, key, maxTextures) {
+     bindGroupResources[bindIndex++] = texture.style;
+   }
+   const bindGroup = new BindGroup(bindGroupResources);
++  bindGroup._batchKey = key;
++  bindGroup._lastUsed = performance.now();
++  bindGroup._onReattach = recacheTextureBatchBindGroup;
++  attachedGroups.add(bindGroup);
+   cachedGroups[key] = bindGroup;
+   return bindGroup;
+ }
+ 
+-export { getTextureBatchBindGroup };
++export { getTextureBatchBindGroup, pruneTextureBatchBindGroups };
+ //# sourceMappingURL=getTextureBatchBindGroup.mjs.map
+diff --git a/lib/rendering/index.js b/lib/rendering/index.js
+index e078f85c4a469e7e5b8195db6df86a407bd7ee3f..85df4be4d95ac20e0a9a90d0d074be5c67bbb357 100644
+--- a/lib/rendering/index.js
++++ b/lib/rendering/index.js
+@@ -250,6 +250,7 @@ exports.getMaxTexturesPerBatch = maxRecommendedTextures.getMaxTexturesPerBatch;
+ exports.generateGPULayout = generateGPULayout.generateGPULayout;
+ exports.generateLayout = generateLayout.generateLayout;
+ exports.getTextureBatchBindGroup = getTextureBatchBindGroup.getTextureBatchBindGroup;
++exports.pruneTextureBatchBindGroups = getTextureBatchBindGroup.pruneTextureBatchBindGroups;
+ exports.GpuBatchAdaptor = GpuBatchAdaptor.GpuBatchAdaptor;
+ exports.Batch = Batcher.Batch;
+ exports.Batcher = Batcher.Batcher;
+diff --git a/lib/rendering/index.mjs b/lib/rendering/index.mjs
+index 75de38551df6130b63ee6495562813c42ef9a24c..6d254712f8a6c9a0653ad7b7b42d10fbc4cf92d8 100644
+--- a/lib/rendering/index.mjs
++++ b/lib/rendering/index.mjs
+@@ -4,7 +4,7 @@ export { checkMaxIfStatementsInShader } from './batcher/gl/utils/checkMaxIfState
+ export { getMaxTexturesPerBatch } from './batcher/gl/utils/maxRecommendedTextures.mjs';
+ export { generateGPULayout } from './batcher/gpu/generateGPULayout.mjs';
+ export { generateLayout } from './batcher/gpu/generateLayout.mjs';
+-export { getTextureBatchBindGroup } from './batcher/gpu/getTextureBatchBindGroup.mjs';
++export { getTextureBatchBindGroup, pruneTextureBatchBindGroups } from './batcher/gpu/getTextureBatchBindGroup.mjs';
+ export { GpuBatchAdaptor } from './batcher/gpu/GpuBatchAdaptor.mjs';
+ export { Batch, Batcher } from './batcher/shared/Batcher.mjs';
+ export { BatcherPipe } from './batcher/shared/BatcherPipe.mjs';
+diff --git a/lib/rendering/renderers/gpu/shader/BindGroup.d.ts b/lib/rendering/renderers/gpu/shader/BindGroup.d.ts
+index 89d340f065e87f6d84bcef4c2eabb6e07635433e..c0982cf3247118d9ca3e02224cf6c2e8d38e7e82 100644
+--- a/lib/rendering/renderers/gpu/shader/BindGroup.d.ts
++++ b/lib/rendering/renderers/gpu/shader/BindGroup.d.ts
+@@ -63,6 +63,10 @@ export declare class BindGroup {
+      * @internal
+      */
+     _touch(now: number): void;
++    /** @internal */
++    _detach(): void;
++    /** @internal */
++    _reattach(): void;
+     /** Destroys this bind group and removes all listeners. */
+     destroy(): void;
+     protected onResourceChange(resource: BindResource): void;
+diff --git a/lib/rendering/renderers/gpu/shader/BindGroup.js b/lib/rendering/renderers/gpu/shader/BindGroup.js
+index 54aee731d5bf4d2451525f3b26906aaf6b76ef20..6386507d633c4d74539f3756833edca9e12faaaf 100644
+--- a/lib/rendering/renderers/gpu/shader/BindGroup.js
++++ b/lib/rendering/renderers/gpu/shader/BindGroup.js
+@@ -24,7 +24,7 @@ class BindGroup {
+    * @internal
+    */
+   get _key() {
+-    if (this._dirty) {
++    if (this._dirty || this._detached) {
+       this._dirty = false;
+       const keyParts = [];
+       let index = 0;
+@@ -67,6 +67,8 @@ class BindGroup {
+    * @internal
+    */
+   _touch(now) {
++    this._lastUsed = now;
++    if (this._detached) this._reattach();
+     const resources = this.resources;
+     for (const i in resources) {
+       const resource = resources[i];
+@@ -75,6 +77,32 @@ class BindGroup {
+     }
+   }
+   /** Destroys this bind group and removes all listeners. */
++  /**
++   * Stops listening to its resources, so they no longer keep this group alive. The group stays
++   * usable: its key is recomputed on every use, and it listens again on its next draw.
++   * @internal
++   */
++  _detach() {
++    if (this._detached || !this.resources) return;
++    for (const i in this.resources) {
++      this.resources[i]?.off?.("change", this.onResourceChange, this);
++    }
++    this._detached = true;
++  }
++  /** @internal */
++  _reattach() {
++    this._detached = false;
++    this._dirty = true;
++    const resources = this.resources;
++    if (!resources) return;
++    for (const i in resources) {
++      const resource = resources[i];
++      if (!resource) continue;
++      if (resource.destroyed) this.onResourceChange(resource);
++      else resource.on?.("change", this.onResourceChange, this);
++    }
++    this._onReattach?.(this);
++  }
+   destroy() {
+     const resources = this.resources;
+     for (const i in resources) {
+diff --git a/lib/rendering/renderers/gpu/shader/BindGroup.mjs b/lib/rendering/renderers/gpu/shader/BindGroup.mjs
+index 6c0d131c4eca916aaed87f4cb5098c00a426f579..66d19df4d945f3cc3b693f636e15f53f824c3200 100644
+--- a/lib/rendering/renderers/gpu/shader/BindGroup.mjs
++++ b/lib/rendering/renderers/gpu/shader/BindGroup.mjs
+@@ -22,7 +22,7 @@ class BindGroup {
+    * @internal
+    */
+   get _key() {
+-    if (this._dirty) {
++    if (this._dirty || this._detached) {
+       this._dirty = false;
+       const keyParts = [];
+       let index = 0;
+@@ -65,6 +65,8 @@ class BindGroup {
+    * @internal
+    */
+   _touch(now) {
++    this._lastUsed = now;
++    if (this._detached) this._reattach();
+     const resources = this.resources;
+     for (const i in resources) {
+       const resource = resources[i];
+@@ -73,6 +75,32 @@ class BindGroup {
+     }
+   }
+   /** Destroys this bind group and removes all listeners. */
++  /**
++   * Stops listening to its resources, so they no longer keep this group alive. The group stays
++   * usable: its key is recomputed on every use, and it listens again on its next draw.
++   * @internal
++   */
++  _detach() {
++    if (this._detached || !this.resources) return;
++    for (const i in this.resources) {
++      this.resources[i]?.off?.("change", this.onResourceChange, this);
++    }
++    this._detached = true;
++  }
++  /** @internal */
++  _reattach() {
++    this._detached = false;
++    this._dirty = true;
++    const resources = this.resources;
++    if (!resources) return;
++    for (const i in resources) {
++      const resource = resources[i];
++      if (!resource) continue;
++      if (resource.destroyed) this.onResourceChange(resource);
++      else resource.on?.("change", this.onResourceChange, this);
++    }
++    this._onReattach?.(this);
++  }
+   destroy() {
+     const resources = this.resources;
+     for (const i in resources) {
