@@ -81,14 +81,21 @@ export class ExtendedSprite extends Sprite {
     private static generateHitMapForTextureSource(textureSource: TextureSource): Uint8Array | undefined {
         if (!textureSource) return undefined;
 
-        const tmp = new Texture(textureSource);
-        const result = TextureUtils.getPixels(tmp);
+        // `GraphicAssetPalette.applyPalette` keeps the RGBA it drew on its source (a pet's coloured
+        // layers): read back through the GPU, that canvas texture comes out with no alpha at all.
+        let rgba: Uint8Array | Uint8ClampedArray | undefined = (textureSource as TextureSource & { hitMap?: Uint8ClampedArray }).hitMap;
 
-        tmp.destroy();
+        if (!rgba) {
+            const tmp = new Texture(textureSource);
+            const result = TextureUtils.getPixels(tmp);
 
-        if (!result?.pixels) return undefined;
+            tmp.destroy();
 
-        const rgba = result.pixels;
+            rgba = result?.pixels;
+        }
+
+        if (!rgba) return undefined;
+
         const alpha = new Uint8Array(rgba.length >> 2);
 
         for (let i = 0; i < alpha.length; i++) {
