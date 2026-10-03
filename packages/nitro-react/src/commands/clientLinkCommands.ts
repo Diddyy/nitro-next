@@ -6,6 +6,7 @@ import { systemStore, WindowParams } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { getWiredHasReadPermission, getWiredMenuEnabled } from '#base/context/wired';
 
+import { openAchievements } from './achievementCommands';
 import { showEarnings } from './earningsCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
@@ -153,6 +154,11 @@ export const openClientLink = (send: Send, link: string) => {
             return;
         }
         // `HabboInventory.linkReceived`: `open` alone means the furni tab.
+        case 'questengine': {
+            if (parts[1] === 'achievements') openAchievements(send, parts[2]);
+
+            return;
+        }
         case 'inventory': {
             if (parts[1] === 'open') {
                 const tab = INVENTORY_TABS.find(x => x === parts[2]);

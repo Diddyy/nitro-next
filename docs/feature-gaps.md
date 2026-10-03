@@ -31,7 +31,7 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Messenger and friend bar | Conversations and their history, instant-message errors, mini mail, friend notifications, room invites. The friend list is ported; its "start conversation" buttons do nothing (`FriendListSearch`, `FriendListSearchItem`). The friend bar is ported (`views/friend-bar`); Turbo only sends its room event notifications, as it has no achievements, quests or games to send the others for. | `FriendList` |
 | Moderation tool | Issues, chat logs, room and user info, room visits, sanctions. No window, no store, and nothing sends its requests. | `Moderation`, `Moderator` |
 | Help, call for help and guides | Reporting a user or room, pending calls, guide sessions, chat review, the safety quiz. | `Help`, `Callforhelp` |
-| Quests, achievements and talent track | The achievements window, achievement score, badge points progress, daily and seasonal quests, community goals, talent track levels. | `Quest`, `Talent`, `Inventory` (achievements) |
+| Quests and talent track | Daily and seasonal quests, community goals and talent track levels. The achievement browser, score and standard award packets are implemented; see [achievement client](achievements.md). | `Quest`, `Talent` |
 | Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. `commands/gameTokensCommands.ts` has nothing that calls it. | `Game` |
 | Group forums | Forum list, threads, posts, moderation, unread counts. Group info, management and profiles are ported (`GroupInfoView`'s `show_forum_link`). | `Groupforums` |
 | Room camera | Taking, buying and publishing photos, thumbnails, photo competitions. The mannequin and plane code note the missing camera render (`FurnitureMannequinVisualization`, `RoomPlane`). | `Camera` |
@@ -60,7 +60,7 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Marketplace | Redeeming the credits of sold offers (`RedeemMarketplaceOfferCreditsComposer`). | |
 | Catalogue | The next-limited-rare countdown, the page with the earliest expiry, the gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
-| Badges | Requesting a badge (`RequestABadgeComposer`); badge point limits are received but never asked for (`GetBadgePointLimitsComposer`). | |
+| Badges | Requesting a badge (`RequestABadgeComposer`). | |
 | Inventory | The 200-item pages (the grids scroll instead), merged rentable furni, paging through an external image wall item. | `InventoryFurniView`, `InventoryBadgesView`, `InventoryCollectiblesView`, `InventoryFurniPreview` |
 | Trading | The collectible (`nft_image`) layout of the item popup. | `InventoryTradingItemPopup` |
 | Wired | The hover popup in the wired trade view, and the limited-edition plaque on chest item icons. | `WiredTradeView`, `WiredChestItemCell` |

@@ -42,6 +42,7 @@ import { ReactNode, useState } from 'react';
 
 import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog } from '#base/commands';
 import { AvatarImage } from '#base/components';
+import { unseenSkipped, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
@@ -175,6 +176,10 @@ export const ToolbarView = () => {
         endRoomSession();
     };
 
+    const skippedBadges = useConfigValue<string>('toolbar.unseen_notification.skipped_badge_ids');
+    // `broadcastUnseenAchievementsCount`: unseen entries whose badge is not skipped.
+    const unseenAchievements = useAchievementsStore(x => x.unseen.filter(entry => !unseenSkipped(entry.badgeId, skippedBadges === undefined ? [] : skippedBadges.split(','))).length);
+
     const toggleMenu = (menu: 'me' | 'progression') => {
         setMeExpanded(menu === 'me' && !isMeExpanded);
         setProgressionExpanded(menu === 'progression' && !isProgressionExpanded);
@@ -259,7 +264,14 @@ export const ToolbarView = () => {
                                     onPointerTap={() => toggleMenu('progression')}
                                     src="toolbar/bottom_bar_progression.png"
                                     icon={[ 0, 0, 44, 37 ]}
-                                />
+                                >
+                                    {unseenAchievements > 0 && (
+                                        <UnseenItemCounterView
+                                            count={unseenAchievements}
+                                            layout={{ position: 'absolute', right: 0, top: 0 }}
+                                        />
+                                    )}
+                                </ToolbarItem>
                             </ToolbarToggleSlot>
                         )}
                         <ToolbarItem
@@ -377,7 +389,7 @@ export const ToolbarView = () => {
                     buttons={[
                         { icon: 'prog_menu_daily_tasks', caption: t('widget.progmenu.dailytasks') },
                         { icon: 'prog_menu_quests', caption: t('widget.progmenu.quests') },
-                        { icon: 'me_menu_me_achv', caption: t('widget.progmenu.achievements') },
+                        { icon: 'me_menu_me_achv', caption: t('widget.progmenu.achievements'), action: () => openClientLink(send, 'questengine/achievements') },
                         { icon: 'prog_menu_leaderboards', caption: t('widget.progmenu.leaderboards') },
                         { icon: 'prog_menu_introduction', caption: t('widget.progmenu.introduction') },
                     ]}

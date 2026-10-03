@@ -1,4 +1,4 @@
-// Body filled by hand from D:\Habbo\packet-tool\out - the generator has no preserve step, so re-apply after a regeneration.
+/** AS3 AchievementData: preserves cumulative offsets and the short state field. */
 import { IMessageDataWrapper } from '@nitrodevco/nitro-api';
 
 import { IAchievement } from './IAchievement';
