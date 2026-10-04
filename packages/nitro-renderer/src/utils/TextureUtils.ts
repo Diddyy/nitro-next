@@ -42,6 +42,24 @@ export class TextureUtils {
     public static destroyTexture(texture: Texture, destroySource: boolean = true): void {
         if (!texture || texture.destroyed) return;
 
+        this.rebuildWatchedBatches();
+
+        if (destroySource) this.releaseBatchBindGroups(texture.source);
+
+        texture.destroy(destroySource);
+    }
+
+    /** `destroyTexture` for a bare source - a collection's sheet, once its frames are gone. */
+    public static destroySource(source: TextureSource): void {
+        if (!source || source.destroyed) return;
+
+        this.rebuildWatchedBatches();
+        this.releaseBatchBindGroups(source);
+
+        source.destroy();
+    }
+
+    private static rebuildWatchedBatches(): void {
         for (const container of this._batchOwners) {
             if (container.destroyed) {
                 this._batchOwners.delete(container);
@@ -53,10 +71,6 @@ export class TextureUtils {
 
             if (group) group.structureDidChange = true;
         }
-
-        if (destroySource) this.releaseBatchBindGroups(texture.source);
-
-        texture.destroy(destroySource);
     }
 
     /**

@@ -676,6 +676,11 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
         return this._figure;
     }
 
+    /** The effect the image draws, or -1; `AvatarRenderManager.purgeAssets` keeps its libraries. */
+    public get effectIdInUse(): number {
+        return this._effectIdInUse;
+    }
+
     public getScale(): AvatarScaleType {
         return this._scale;
     }

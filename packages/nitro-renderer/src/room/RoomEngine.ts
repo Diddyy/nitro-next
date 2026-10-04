@@ -16,6 +16,7 @@ import {
 } from '@nitrodevco/nitro-api';
 import { ImageLike, Texture, Ticker, UPDATE_PRIORITY } from 'pixi.js';
 
+import { GetAvatarRenderManager } from '#renderer/avatar';
 import { PetFigureData } from '#renderer/session';
 import { GetTicker, NumberBank, PurgeTrigger, TextureUtils } from '#renderer/utils';
 
@@ -40,8 +41,13 @@ export class RoomEngine implements IRoomEngine {
         await GetRoomContentLoader().init();
 
         // Flash `CoreComponentContext` starts the purge trigger with the client; `Core.purge` reaches
-        // the room engine's `purge`, which purges the room content.
-        PurgeTrigger.start(() => this.purgeRoomContent());
+        // the room engine's `purge`, which purges the room content. The avatar render manager's
+        // `purge` was empty in Flash, so clothing and effect libraries stayed for the session; here
+        // they go too once no live avatar draws with them.
+        PurgeTrigger.start(() => {
+            this.purgeRoomContent();
+            GetAvatarRenderManager().purgeAssets();
+        });
 
         // The Variable FX atlas is not needed for the first frame; statuses that arrive before it
         // has loaded are kept by their stack additions and drawn once it is ready.
@@ -377,9 +383,12 @@ export class RoomEngine implements IRoomEngine {
 
         let geometry: IRoomGeometry | undefined = undefined;
         let scale: RoomGeometryScaleType = RoomGeometryScaleType.None;
+        const rendered: number[] = [];
 
         for (const roomObject of roomObjects) {
             if (!roomObject?.model || roomObject.type !== type) continue;
+
+            rendered.push(roomObject.id);
 
             const imageScale = roomObject.model.getValue<RoomGeometryScaleType>(RoomObjectVariableEnum.ImageQueryScale);
 
@@ -410,6 +419,14 @@ export class RoomEngine implements IRoomEngine {
         }
 
         geometry?.dispose();
+
+        // Flash removed each one once rendered and handed its id back; left in place, every delayed
+        // image kept a whole room object, and after 1000 the id bank ran dry and every image failed.
+        for (const objectId of rendered) {
+            room.removeRoomObject(objectId, objectCategory);
+
+            this._imageObjectIdBank.freeNumber(objectId - 1);
+        }
     }
 
     public getTemporaryRoom(): IRoom {

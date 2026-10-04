@@ -747,7 +747,8 @@ export class Room implements IRoom {
                     }
                 }
 
-                manager.removeObject(object.id);
+                // The whole removal: torn down and out of the room's index and the canvas cache too.
+                this.removeRoomObject(object.id, category);
             }
         }
     }

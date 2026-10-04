@@ -46,13 +46,29 @@ export class FurnitureParticleSystem {
 
         this._emitters.reset();
 
-        if (this._canvasTexture) this._canvasTexture.destroy();
+        this.destroyCanvas();
 
         if (this._blackOverlay) this._blackOverlay.destroy();
 
         if (this._emptySprite) this._emptySprite.destroy();
 
         if (this._particleSprite) this._particleSprite.destroy();
+
+        this._blackOverlayAlphaTransform.destroy();
+        this._particleColorTransform.destroy();
+    }
+
+    /**
+     * Frees the canvas, source and all: a plain `destroy()` kept the source - a room-sized render
+     * target - alive on every resize, zoom and removal. The room sprite lets go of it first, as a
+     * texture whose source is gone cannot be drawn.
+     */
+    private destroyCanvas(): void {
+        if (!this._canvasTexture) return;
+
+        if (this._roomSprite && (this._roomSprite.texture === this._canvasTexture)) this._roomSprite.texture = Texture.EMPTY;
+
+        TextureUtils.destroyTexture(this._canvasTexture);
 
         this._canvasTexture = undefined;
     }
@@ -90,8 +106,7 @@ export class FurnitureParticleSystem {
                 && (this._canvasTexture.width !== this._roomSprite.width
                     || this._canvasTexture.height !== this._roomSprite.height)
             ) {
-                this._canvasTexture.destroy();
-                this._canvasTexture = undefined;
+                this.destroyCanvas();
             }
 
             this.clearCanvas();
@@ -293,10 +308,7 @@ export class FurnitureParticleSystem {
         if (this._currentEmitter && particleSystem._currentEmitter)
             this._currentEmitter.copyStateFrom(particleSystem._currentEmitter, particleSystem._size / this._size);
 
-        if (this._canvasTexture) {
-            this._canvasTexture.destroy();
-            this._canvasTexture = undefined;
-        }
+        this.destroyCanvas();
     }
 
     private clearCanvas(): void {

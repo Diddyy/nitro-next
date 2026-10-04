@@ -93,11 +93,15 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
         return !latest || !(frameNode instanceof PixiContainer) || ((frameNode.x === latest.dx) && (frameNode.y === latest.dy));
     });
     const zIndex = useThemeWindowZIndex(stackId);
-    const { bringWindowToFront } = themeHost();
+    const { bringWindowToFront, releaseWindow } = themeHost();
 
     useEffect(() => {
         bringWindowToFront(stackId);
-    }, [ stackId, bringWindowToFront ]);
+
+        // A generated id is never seen again once the frame unmounts: without this, every such
+        // frame opened left an entry in the stack for the rest of the session.
+        if (!id) return () => releaseWindow(stackId);
+    }, [ id, stackId, bringWindowToFront, releaseWindow ]);
 
     const stopDragging = useCallback(() => {
         const listeners = activeListenersRef.current;

@@ -105,6 +105,31 @@ export class EffectAssetDownloadManager {
         this._isReady = true;
     }
 
+    /**
+     * Unloads the effect libraries nothing uses. Flash never unloaded one; here they would pile up
+     * for the session, one per effect anybody in any room wore. Kept: the mandatory dances, the
+     * effects in `inUse` (every live avatar's) and the effects still downloading, whose completion
+     * waits on all of their libraries being loaded.
+     */
+    public purge(inUse: Iterable<number>): void {
+        const keep = new Set<EffectAssetDownloadLibrary>();
+        const keepIds = [ ...EffectAssetDownloadManager.MANDATORY_LIBRARIES, ...[ ...inUse ].map(String) ];
+
+        for (const id of keepIds) {
+            for (const library of this._effectMap.get(id) ?? []) keep.add(library);
+        }
+
+        for (const libraries of this._incompleteEffects.values()) {
+            for (const library of libraries) keep.add(library);
+        }
+
+        for (const libraries of this._effectMap.values()) {
+            for (const library of libraries) {
+                if (library.isLoaded && !keep.has(library)) library.purge();
+            }
+        }
+    }
+
     /** Effect id -> the libraries holding it (Flash `effectMap`). */
     public get map(): Map<string, IEffectAssetDownloadLibrary[]> {
         return this._effectMap;

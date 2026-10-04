@@ -1,7 +1,7 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Point, Rectangle, Texture } from 'pixi.js';
 
-import { destroyOwnedTexture } from '#base/utils';
+import { destroyOwnedTexture, RetainedCache } from '#base/utils';
 
 import { ChatStyleDefinition } from './ChatStyleDefinitions';
 
@@ -47,6 +47,12 @@ export interface IChatStyle {
     readonly selectorPreviewTexture: Texture | undefined;
     /** The bitmap the background nine-slice is cut from; `color` tints the colour layer where the style has one. */
     getBackgroundTexture(color?: number): Texture;
+    /**
+     * Holds a background from `getBackgroundTexture` while it is drawn - the tinted ones are a capped
+     * cache, which would otherwise destroy one still on screen. `useChatBackgroundTexture` does this.
+     */
+    retainBackgroundTexture(texture: Texture): void;
+    releaseBackgroundTexture(texture: Texture): void;
     /** The nine-slice borders (`9sliceXY` / `9sliceWH`) for `getBackgroundTexture`. */
     readonly nineSliceBorders: ChatStyleNineSliceBorders;
     /**
@@ -125,7 +131,8 @@ export class ChatStyle implements IChatStyle {
     private readonly _faceOffset: Point | undefined;
     private readonly _emblemOffset: Point | undefined;
     private readonly _emblemMultilineOffset: Point | undefined;
-    private readonly _tintedBackgrounds: Map<number, Texture> = new Map();
+    /** By colour; past the cap the least recently used one nothing draws is rebuilt on demand. */
+    private readonly _tintedBackgrounds = new RetainedCache<number, Texture>(MAX_TINTED_BACKGROUNDS, (color, texture) => this.freeTintedBackground(color, texture));
 
     constructor(definition: ChatStyleDefinition, textures: ChatStyleTextures) {
         this._definition = definition;
@@ -142,21 +149,25 @@ export class ChatStyle implements IChatStyle {
     }
 
     public dispose(): void {
-        for (const key of this._tintedBackgrounds.keys()) this.evictTintedBackground(key);
+        this._tintedBackgrounds.clear();
     }
 
     private tintedBackgroundKey(color: number): string {
         return `chat:style:${this._definition.assetId}|${color.toString(16).padStart(6, '0')}`;
     }
 
-    private evictTintedBackground(color: number): void {
-        const texture = this._tintedBackgrounds.get(color);
+    private freeTintedBackground(color: number, texture: Texture): void {
+        if (GetAssetManager().getTexture(this.tintedBackgroundKey(color)) === texture) GetAssetManager().removeTexture(this.tintedBackgroundKey(color));
 
-        if (!texture) return;
-
-        this._tintedBackgrounds.delete(color);
-        GetAssetManager().removeTexture(this.tintedBackgroundKey(color));
         destroyOwnedTexture(texture);
+    }
+
+    public retainBackgroundTexture(texture: Texture): void {
+        if (texture !== this._textures.base) this._tintedBackgrounds.retain(texture);
+    }
+
+    public releaseBackgroundTexture(texture: Texture): void {
+        if (texture !== this._textures.base) this._tintedBackgrounds.release(texture);
     }
 
     public get id(): number {
@@ -302,13 +313,7 @@ export class ChatStyle implements IChatStyle {
         const key = color & 0xffffff;
         const cached = this._tintedBackgrounds.get(key);
 
-        if (cached) {
-            // Insertion order doubles as recency.
-            this._tintedBackgrounds.delete(key);
-            this._tintedBackgrounds.set(key, cached);
-
-            return cached;
-        }
+        if (cached) return cached;
 
         const width = this._textures.base.width;
         const height = this._textures.base.height;
@@ -358,14 +363,6 @@ export class ChatStyle implements IChatStyle {
         texture.source.scaleMode = 'nearest';
         GetAssetManager().setTexture(this.tintedBackgroundKey(key), texture);
         this._tintedBackgrounds.set(key, texture);
-
-        while (this._tintedBackgrounds.size > MAX_TINTED_BACKGROUNDS) {
-            const oldest = this._tintedBackgrounds.keys().next().value;
-
-            if (oldest === undefined) break;
-
-            this.evictTintedBackground(oldest);
-        }
 
         return texture;
     }

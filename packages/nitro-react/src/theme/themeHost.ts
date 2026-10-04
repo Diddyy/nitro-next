@@ -14,4 +14,5 @@ configureThemeHost({
     useConfigValue,
     useWindowZIndex,
     bringWindowToFront: id => systemStore.getState().bringWindowToFront(id),
+    releaseWindow: id => systemStore.getState().releaseWindow(id),
 });

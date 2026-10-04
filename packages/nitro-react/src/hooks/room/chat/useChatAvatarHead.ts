@@ -1,7 +1,9 @@
 import { AvatarFigurePartType, AvatarGenderType, AvatarScaleType, AvatarSetType } from '@nitrodevco/nitro-api';
 import { GetAssetManager, GetAvatarRenderManager, TexturePool } from '@nitrodevco/nitro-renderer';
 import { RenderTexture, Texture } from 'pixi.js';
-import { useSyncExternalStore } from 'react';
+import { useLayoutEffect, useSyncExternalStore } from 'react';
+
+import { RetainedCache } from '#base/utils';
 
 export interface ChatAvatarHead {
     texture: Texture | undefined;
@@ -16,8 +18,17 @@ const EMPTY: ChatAvatarHead = { texture: undefined, chestColor: undefined };
 /** Bounds GPU memory in a busy hotel - the oldest untouched figure's head is dropped past this many. */
 const MAX_CACHED_HEADS = 64;
 
-/** Insertion order doubles as recency: a hit re-inserts, an insert past the cap evicts the first entry. */
-const cache = new Map<string, ChatAvatarHead>();
+const headKey = (figure: string): string => `chat:head:${figure}`;
+
+/** The head is a pooled render texture (`getCroppedImage`): it goes back to the pool and out of the asset manager. */
+const releaseHead = (figure: string, entry: ChatAvatarHead) => {
+    if (GetAssetManager().getTexture(headKey(figure)) === entry.texture) GetAssetManager().removeTexture(headKey(figure));
+
+    if (entry.texture) TexturePool.releaseTexture(entry.texture as RenderTexture);
+};
+
+/** Least recently used past the cap - but never a head a bubble on screen still shows (`RetainedCache`). */
+const cache = new RetainedCache<string, ChatAvatarHead>(MAX_CACHED_HEADS, releaseHead);
 /**
  * The texture-less head a figure shows while its libraries download, one per figure. Kept so the
  * same object comes back on every read until the real head replaces it - React compares
@@ -26,28 +37,14 @@ const cache = new Map<string, ChatAvatarHead>();
 const placeholders = new Map<string, ChatAvatarHead>();
 const listeners = new Map<string, Set<() => void>>();
 
-const headKey = (figure: string): string => `chat:head:${figure}`;
-
 const notify = (figure: string) => {
     for (const listener of listeners.get(figure) ?? []) listener();
 };
 
-/** The head is a pooled render texture (`getCroppedImage`): it goes back to the pool and out of the asset manager. */
-const releaseHead = (figure: string, entry: ChatAvatarHead) => {
-    GetAssetManager().removeTexture(headKey(figure));
-
-    if (entry.texture) TexturePool.releaseTexture(entry.texture as RenderTexture);
-};
-
 const evictAvatarHead = (figure: string) => {
     placeholders.delete(figure);
-
-    const entry = cache.get(figure);
-
-    if (entry) {
-        cache.delete(figure);
-        releaseHead(figure, entry);
-    }
+    // A bubble still showing the old head keeps it until it re-renders with the new one.
+    cache.delete(figure);
 
     notify(figure);
 };
@@ -56,12 +53,7 @@ const evictAvatarHead = (figure: string) => {
 const renderAvatarHead = (figure: string, gender: AvatarGenderType): ChatAvatarHead => {
     const cached = cache.get(figure);
 
-    if (cached) {
-        cache.delete(figure);
-        cache.set(figure, cached);
-
-        return cached;
-    }
+    if (cached) return cached;
 
     const placeholder = placeholders.get(figure);
 
@@ -101,18 +93,6 @@ const renderAvatarHead = (figure: string, gender: AvatarGenderType): ChatAvatarH
 
     cache.set(figure, entry);
 
-    while (cache.size > MAX_CACHED_HEADS) {
-        const oldest = cache.keys().next().value;
-
-        if (oldest === undefined) break;
-
-        const evicted = cache.get(oldest);
-
-        cache.delete(oldest);
-
-        if (evicted) releaseHead(oldest, evicted);
-    }
-
     return entry;
 };
 
@@ -137,5 +117,16 @@ export const useChatAvatarHead = (figure: string | undefined, gender: AvatarGend
         };
     };
 
-    return useSyncExternalStore(subscribe, () => (figure ? renderAvatarHead(figure, gender) : EMPTY));
+    const head = useSyncExternalStore(subscribe, () => (figure ? renderAvatarHead(figure, gender) : EMPTY));
+
+    // Held while shown, so the cache cannot hand its texture back to the pool under the bubble.
+    useLayoutEffect(() => {
+        if (!head.texture) return;
+
+        cache.retain(head);
+
+        return () => cache.release(head);
+    }, [ head ]);
+
+    return head;
 };

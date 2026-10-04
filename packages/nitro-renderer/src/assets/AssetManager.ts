@@ -87,9 +87,7 @@ export class AssetManager implements IAssetManager {
 
         collection.dispose();
 
-        for (const source of sources) {
-            if (!source.destroyed) source.destroy();
-        }
+        for (const source of sources) TextureUtils.destroySource(source);
     }
 
     public createCollection(

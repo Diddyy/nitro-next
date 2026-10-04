@@ -6,7 +6,7 @@ import { buildChatBubbleMarkup, ChatBubbleData, ChatBubbleMotion, chatFontSizeSc
 import { useRoom, useRoomChatActions, useRoomStore } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
-import { useChatAvatarHead, useChatBubbleText, useChatFlow, useChatPetFace, useChatStyle } from '#base/hooks';
+import { useChatAvatarHead, useChatBackgroundTexture, useChatBubbleText, useChatFlow, useChatPetFace, useChatStyle } from '#base/hooks';
 
 interface ChatBubbleViewProps {
     data: ChatBubbleData;
@@ -73,7 +73,7 @@ export const ChatBubbleView = ({ data }: ChatBubbleViewProps) => {
             })
         : undefined), [ style, render, maxWidth, faceTexture, fontSizeScale, displayFontSizeScale ]);
 
-    const backgroundTexture = useMemo(() => style?.getBackgroundTexture(color), [ style, color ]);
+    const backgroundTexture = useChatBackgroundTexture(style, color);
 
     // Flash kept the bottom rows of an over-tall head: a sub-frame of the head texture, owned here.
     const shownFaceTexture = useMemo(() => {
@@ -112,6 +112,12 @@ export const ChatBubbleView = ({ data }: ChatBubbleViewProps) => {
         motion.setMetrics({ layout, overlap: style.overlap, pointerOffsetY: style.pointerOffsetY, useDesktopMargins: host.isLineByLineMode });
         motion.syncContainer();
     }, [ motion, style, layout, host ]);
+
+    // No style to draw it with (no chat style bundle served): it would never join the flow, so nothing
+    // would ever recycle it - every such message stayed mounted until the room was left.
+    useEffect(() => {
+        if (!style) removeChatBubble(data.id);
+    }, [ style, data.id, removeChatBubble ]);
 
     useEffect(() => {
         if (!style || !layout) return;

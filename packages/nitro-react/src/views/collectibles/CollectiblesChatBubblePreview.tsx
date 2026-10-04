@@ -13,7 +13,7 @@ import { RoomChatTypeEnum } from '@nitrodevco/nitro-api';
 import { useMemo } from 'react';
 
 import { buildChatBubbleMarkup, CHAT_BUBBLE_WIDTH_NORMAL, computeChatBubbleLayout, scaleChatFontSize } from '#base/chat';
-import { useChatBubbleText, useChatStyle } from '#base/hooks';
+import { useChatBackgroundTexture, useChatBubbleText, useChatStyle } from '#base/hooks';
 import { Box, BoxLayout } from '#base/theme';
 
 /** The background colour of a bubble no avatar's chest colour tints. */
@@ -51,7 +51,7 @@ export const CollectiblesChatBubblePreview = ({ styleId, userName, layout }: Col
             })
         : undefined), [ style, render, faceTexture ]);
 
-    const background = useMemo(() => style?.getBackgroundTexture(BUBBLE_COLOR), [ style ]);
+    const background = useChatBackgroundTexture(style, BUBBLE_COLOR);
 
     if (!style || !bubble || !background) return null;
 

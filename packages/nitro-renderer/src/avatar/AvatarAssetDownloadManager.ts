@@ -122,21 +122,41 @@ export class AvatarAssetDownloadManager {
         return this._missingMandatoryLibs.length > 0;
     }
 
-    /** Flash `purge`: unload every downloaded library except the mandatory ones. */
-    public purge(): void {
+    /**
+     * Flash `purge` unloaded every downloaded library except the mandatory ones - safe there only
+     * because nothing called it. Here it runs on the purge interval, so it keeps what is still in
+     * use: the libraries of `inUse` (every live figure) and of the figures still downloading, whose
+     * completion waits on all of theirs being loaded. The next figure needing a purged one downloads it again.
+     */
+    public purge(inUse: Iterable<IAvatarFigureContainer>): void {
+        const keep = new Set<AvatarAssetDownloadLibrary>();
+
+        for (const container of inUse) {
+            for (const library of this.getAvatarFigureLibraries(container)) keep.add(library);
+        }
+
+        for (const libraries of this._incompleteFigures.values()) {
+            for (const library of libraries) keep.add(library);
+        }
+
         for (const library of this._libraries.values()) {
-            if (library.isLoaded && !library.isMandatory) library.purge();
+            if (library.isLoaded && !library.isMandatory && !keep.has(library)) library.purge();
         }
     }
 
     private getAvatarFigurePendingLibraries(container: IAvatarFigureContainer): AvatarAssetDownloadLibrary[] {
-        const pendingLibraries: AvatarAssetDownloadLibrary[] = [];
+        return this.getAvatarFigureLibraries(container).filter(library => !library.isReady);
+    }
 
-        if (!container || !this._structure) return pendingLibraries;
+    /** Every library holding a part of the figure, loaded or not. */
+    private getAvatarFigureLibraries(container: IAvatarFigureContainer): AvatarAssetDownloadLibrary[] {
+        const libraries: AvatarAssetDownloadLibrary[] = [];
+
+        if (!container || !this._structure) return libraries;
 
         const figureData = this._structure.figureData;
 
-        if (!figureData) return pendingLibraries;
+        if (!figureData) return libraries;
 
         for (const partType of container.getPartTypeIds()) {
             const set = figureData.getSetType(partType);
@@ -148,19 +168,19 @@ export class AvatarAssetDownloadManager {
             if (!figurePartSet) continue;
 
             for (const part of figurePartSet.parts) {
-                const libraries = this._figureMap.get(`${part.type}:${part.id}`);
+                const partLibraries = this._figureMap.get(`${part.type}:${part.id}`);
 
-                if (!libraries) continue;
+                if (!partLibraries) continue;
 
-                for (const library of libraries) {
-                    if (!library || library.isReady || pendingLibraries.indexOf(library) >= 0) continue;
+                for (const library of partLibraries) {
+                    if (!library || libraries.indexOf(library) >= 0) continue;
 
-                    pendingLibraries.push(library);
+                    libraries.push(library);
                 }
             }
         }
 
-        return pendingLibraries;
+        return libraries;
     }
 
     private downloadLibrary(library: AvatarAssetDownloadLibrary): void {

@@ -28,6 +28,7 @@ export * from './localizationData';
 export * from './localizationParameters';
 export * from './marketplace';
 export * from './petTypeFromFigure';
+export * from './RetainedCache';
 export * from './targetedOfferTimeLeft';
 export * from './tradingNameScam';
 export * from './wiredChestItems';

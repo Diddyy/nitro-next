@@ -62,6 +62,7 @@ type Actions = {
     hideWindow: (name: WindowName) => void;
     updateWindowParams: <T extends WindowName>(name: T, params: Partial<WindowRegistry[T]>) => void;
     bringWindowToFront: (id: string) => void;
+    releaseWindow: (id: string) => void;
     setLandingViewVisible: (landingViewVisible: boolean) => void;
     setToolbarWidths: (toolbarAreaWidth: number, friendBarWidth: number) => void;
     setHomeRoomId: (homeRoomId: number) => void;
@@ -362,6 +363,13 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
             };
         });
     },
+    releaseWindow: (id: string) => set((state) => {
+        if (!(id in state.zIndexById)) return state;
+
+        const { [id]: _released, ...zIndexById } = state.zIndexById;
+
+        return { zIndexById, ...((state.topId === id) && { topId: undefined }) };
+    }),
     setLandingViewVisible: (landingViewVisible: boolean) => set({ landingViewVisible }),
     setToolbarWidths: (toolbarAreaWidth: number, friendBarWidth: number) => set(x => (((x.toolbarAreaWidth === toolbarAreaWidth) && (x.friendBarWidth === friendBarWidth)) ? x : { toolbarAreaWidth, friendBarWidth })),
     setHomeRoomId: (homeRoomId: number) => set({ homeRoomId }),

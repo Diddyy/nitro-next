@@ -65,6 +65,9 @@ export class AnimatedPetVisualization extends AnimatedFurnitureVisualization {
     public override dispose(): void {
         super.dispose();
 
+        this._experienceData?.dispose();
+        this._experienceData = undefined;
+
         if (this._animationStates) {
             while (this._animationStates.length) {
                 const animationState = this._animationStates[0];

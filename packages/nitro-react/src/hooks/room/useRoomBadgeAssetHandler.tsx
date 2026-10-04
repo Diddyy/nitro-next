@@ -13,8 +13,36 @@ import { loadTexture } from '#base/theme';
  */
 const badgeAssetName = (badgeId: string, groupBadge: boolean) => `badge_${groupBadge ? 'group_' : ''}${badgeId}`;
 
-/** Textures already fetched, by url, so a room full of the same guild furni fetches once. */
-const badgeTextures = new Map<string, Promise<Texture | undefined>>();
+type BadgeTextures = { texture: Texture; small: Texture | undefined };
+
+/**
+ * Each badge's texture and its half-size copy, by url, shared by every furni showing it - a room
+ * full of the same guild furni fetches and scales once. One entry per badge seen, as Flash's badge
+ * image manager kept them; the full-size texture is `loadTexture`'s, which caches it for the UI anyway.
+ * The half-size copy used to be redrawn per furni and was left behind when the furni's collection
+ * was purged (a collection does not destroy what was added to it).
+ */
+const badgeTextures = new Map<string, Promise<BadgeTextures | undefined>>();
+
+const loadBadgeTextures = (url: string): Promise<BadgeTextures | undefined> => {
+    let pending = badgeTextures.get(url);
+
+    if (!pending) {
+        pending = loadTexture(url).then((texture) => {
+            if (!texture) {
+                badgeTextures.delete(url);
+
+                return undefined;
+            }
+
+            return { texture, small: createSmallTexture(texture) };
+        });
+
+        badgeTextures.set(url, pending);
+    }
+
+    return pending;
+};
 
 /**
  * A furni can exist before its own asset bundle has finished downloading, and a badge can only
@@ -86,7 +114,7 @@ export const useRoomBadgeAssetHandler = () => {
         const collection = roomObject.type;
         const contentLoader = GetRoomContentLoader();
 
-        const apply = (texture: Texture, retriesLeft: number) => {
+        const apply = ({ texture, small }: BadgeTextures, retriesLeft: number) => {
             // The furni may well have gone by the time the badge arrives.
             if (!room.getRoomObject(event.objectId, category)) return;
 
@@ -97,12 +125,10 @@ export const useRoomBadgeAssetHandler = () => {
                     return;
                 }
 
-                setTimeout(() => apply(texture, retriesLeft - 1), COLLECTION_RETRY_DELAY);
+                setTimeout(() => apply({ texture, small }, retriesLeft - 1), COLLECTION_RETRY_DELAY);
 
                 return;
             }
-
-            const small = createSmallTexture(texture);
 
             if (small) contentLoader.addAssetToCollection(collection, `${assetName}_32`, small);
 
@@ -113,26 +139,17 @@ export const useRoomBadgeAssetHandler = () => {
             .replace('%badgename%', event.badgeId)
             .replace('%badgedata%', event.badgeId);
 
-        let pending = badgeTextures.get(url);
-
-        if (!pending) {
-            pending = loadTexture(url);
-
-            badgeTextures.set(url, pending);
-        }
-
         // Something to show while the download runs; the logic knows to ignore it.
         roomObject.logic?.processUpdateMessage(new ObjectGroupBadgeUpdateMessage(event.badgeId, 'loading_icon'));
 
-        void pending.then((texture) => {
-            if (!texture) {
-                badgeTextures.delete(url);
+        void loadBadgeTextures(url).then((textures) => {
+            if (!textures) {
                 NitroLogger.error('RoomBadgeAsset', `Could not load badge ${event.badgeId} from ${url}`);
 
                 return;
             }
 
-            apply(texture, COLLECTION_RETRIES);
+            apply(textures, COLLECTION_RETRIES);
         });
     };
 

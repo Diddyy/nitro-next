@@ -29,7 +29,9 @@ const DEFAULT_MIN_THUMB_SIZE = 17;
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 const computedSize = (node: PixiContainer | null, axis: 'width' | 'height'): number => {
-    if (!node) return 0;
+    // A destroyed node can still be held in state until React clears its ref; its `scale` is
+    // null by then, so the `width`/`height` getters would throw.
+    if (!node || node.destroyed) return 0;
 
     return node.layout?.computedLayout?.[axis] ?? node[axis] ?? 0;
 };

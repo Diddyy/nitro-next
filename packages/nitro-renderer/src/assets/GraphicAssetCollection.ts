@@ -138,7 +138,12 @@ export class GraphicAssetCollection implements IGraphicAssetCollection {
         if (asset) {
             if (!replace) return undefined;
 
-            this.disposeAsset(name);
+            // A shared texture registered again (a second guild furni of the type with the same
+            // badge): disposing would destroy the very texture being added, under every other user.
+            if (asset.texture === texture) {
+                this._assets.delete(name);
+                asset.recycle();
+            } else this.disposeAsset(name);
         }
 
         asset = GraphicAsset.createAsset(name, name, texture, x, y, flipH, flipV, usesPalette);

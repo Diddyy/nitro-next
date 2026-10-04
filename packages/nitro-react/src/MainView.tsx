@@ -42,7 +42,7 @@ export const MainView = () => {
     const { setReady, send } = useWebSocketContext();
     const maxFPS = useConfigValue<number>('fps.limit') ?? 60;
     // The window templates spike: the purse drawn from its Flash template instead of `PurseView`.
-    const templatePurse = useConfigValue<boolean>('ui.templates.purse') === true;
+    const templatePurse = true;
     const { isWindowVisible: isMessengerVisible } = useWindowVisibility('messenger');
 
     // Every connection-lifetime packet handler, attached before the effect below lets the queued packets through.

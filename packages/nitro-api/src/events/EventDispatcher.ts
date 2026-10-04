@@ -20,15 +20,12 @@ export class EventDispatcher implements IEventDispatcher {
             this._listeners.set(type, listeners);
         }
 
-        const index = listeners.push(cb) - 1;
+        listeners.push(cb);
 
         NitroLogger.events('Added Event Listener', type);
 
-        return () => {
-            listeners.splice(index, 1);
-
-            if (!listeners.length) this._listeners.delete(type);
-        };
+        // By identity, not by the index it was added at: that index is stale once an earlier listener goes.
+        return () => this.removeEventListener(type, cb);
     }
 
     public removeEventListener(type: string, cb: (event: INitroEvent) => void): void {
@@ -36,17 +33,15 @@ export class EventDispatcher implements IEventDispatcher {
 
         const existing = this._listeners.get(type);
 
-        if (!existing || !existing.length) return;
+        if (!existing) return;
 
-        for (const [ i, cb ] of existing.entries()) {
-            if (!cb || cb !== cb) continue;
+        const index = existing.indexOf(cb);
 
-            existing.splice(i, 1);
+        if (index < 0) return;
 
-            if (!existing.length) this._listeners.delete(type);
+        existing.splice(index, 1);
 
-            return;
-        }
+        if (!existing.length) this._listeners.delete(type);
     }
 
     public dispatchEvent(event: INitroEvent): boolean {

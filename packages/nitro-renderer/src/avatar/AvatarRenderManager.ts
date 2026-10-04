@@ -233,8 +233,31 @@ export class AvatarRenderManager implements IAvatarRenderManager {
         }
     }
 
+    /**
+     * Unloads the clothing and effect libraries no live avatar image needs. The placeholder and
+     * blocked figures are kept too: those images are not registered, and redraw from their libraries.
+     */
     public purgeAssets(): void {
-        this._avatarAssetDownloadManager.purge();
+        const figures: IAvatarFigureContainer[] = [];
+        const effects = new Set<number>();
+
+        for (const image of [ ...this._activeImages ]) {
+            if (image.disposed) {
+                this._activeImages.delete(image);
+
+                continue;
+            }
+
+            figures.push(image.getFigure());
+
+            if (image.effectIdInUse > -1) effects.add(image.effectIdInUse);
+        }
+
+        if (this._placeHolderFigure) figures.push(this._placeHolderFigure);
+        if (this._blockedFigure) figures.push(this._blockedFigure);
+
+        this._avatarAssetDownloadManager.purge(figures);
+        this._effectAssetDownloadManager.purge(effects);
     }
 
     public get effectMap(): Map<string, IEffectAssetDownloadLibrary[]> | undefined {

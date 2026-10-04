@@ -22,6 +22,8 @@ export interface ThemeHost {
     useWindowZIndex: (id: string) => number;
     /** Raises a window over the others. */
     bringWindowToFront: (id: string) => void;
+    /** Forgets a window that is gone for good (a frame with a generated id), so the stack does not keep it. */
+    releaseWindow: (id: string) => void;
 }
 
 /* ---------------------------------------------------------------- the theme's own window stack */
@@ -46,6 +48,9 @@ const DEFAULT_HOST: ThemeHost = {
         zIndexes.set(id, ++top);
 
         for (const listener of listeners) listener();
+    },
+    releaseWindow: (id) => {
+        zIndexes.delete(id);
     },
 };
 

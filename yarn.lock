@@ -1512,7 +1512,7 @@ __metadata:
     "@nitrodevco/nitro-renderer": "workspace:*"
     "@nitrodevco/nitro-theme": "workspace:*"
     "@pixi/layout": "npm:^3.2.1"
-    "@pixi/react": "npm:^8.0.5"
+    "@pixi/react": "patch:@pixi/react@npm%3A8.0.5#~/.yarn/patches/@pixi-react-npm-8.0.5-b9686ce1cd.patch"
     "@rolldown/plugin-babel": "npm:^0.2.3"
     "@stylistic/eslint-plugin": "npm:^5.10.0"
     "@tailwindcss/vite": "npm:^4.3.2"
@@ -1580,7 +1580,7 @@ __metadata:
     "@nitrodevco/nitro-theme": "workspace:*"
     "@node-rs/argon2": "npm:^2.2.1"
     "@pixi/layout": "npm:^3.2.1"
-    "@pixi/react": "npm:^8.0.5"
+    "@pixi/react": "patch:@pixi/react@npm%3A8.0.5#~/.yarn/patches/@pixi-react-npm-8.0.5-b9686ce1cd.patch"
     "@rolldown/plugin-babel": "npm:^0.2.3"
     "@simplewebauthn/browser": "npm:^14.0.0"
     "@simplewebauthn/server": "npm:^14.0.3"
@@ -1647,7 +1647,7 @@ __metadata:
     "@nitrodevco/nitro-api": "workspace:*"
     "@nitrodevco/nitro-renderer": "workspace:*"
     "@pixi/layout": "npm:^3.2.1"
-    "@pixi/react": "npm:^8.0.5"
+    "@pixi/react": "patch:@pixi/react@npm%3A8.0.5#~/.yarn/patches/@pixi-react-npm-8.0.5-b9686ce1cd.patch"
     "@types/react": "npm:^19.2.17"
     pixi.js: "npm:^8.18.1"
     react: "npm:^19.2.6"
@@ -2022,7 +2022,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pixi/react@npm:^8.0.0, @pixi/react@npm:^8.0.5":
+"@pixi/react@npm:8.0.5":
   version: 8.0.5
   resolution: "@pixi/react@npm:8.0.5"
   dependencies:
@@ -2032,6 +2032,19 @@ __metadata:
     pixi.js: ^8.2.6
     react: ">=19.0.0"
   checksum: 10c0/ca139da0f57c122d7db8cc71e94fcf009987b11efb2e940d96afb2f2501b518112c7d7336ddc4ceb03500358f5c510fe8480bd8c4935dc04e5554e03a885fad8
+  languageName: node
+  linkType: hard
+
+"@pixi/react@patch:@pixi/react@npm%3A8.0.5#~/.yarn/patches/@pixi-react-npm-8.0.5-b9686ce1cd.patch":
+  version: 8.0.5
+  resolution: "@pixi/react@patch:@pixi/react@npm%3A8.0.5#~/.yarn/patches/@pixi-react-npm-8.0.5-b9686ce1cd.patch::version=8.0.5&hash=7d0b66"
+  dependencies:
+    its-fine: "npm:^2.0.0"
+    react-reconciler: "npm:0.31.0"
+  peerDependencies:
+    pixi.js: ^8.2.6
+    react: ">=19.0.0"
+  checksum: 10c0/ca2f3d43ccb9b9db904b13acb14cba8deaea9321d1ae3701600f56d6753079d11cafbe00bde25ae2c18653b2de3c959fc9e7a5487d69dc64049fe166bd4d018a
   languageName: node
   linkType: hard
 

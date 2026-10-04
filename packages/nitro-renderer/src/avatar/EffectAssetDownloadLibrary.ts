@@ -74,6 +74,18 @@ export class EffectAssetDownloadLibrary implements IEffectAssetDownloadLibrary {
         if (collection) this._animations = collection.data?.animations ?? [];
     }
 
+    /**
+     * Unloads the library; the next effect needing it downloads it again. Its animations stay
+     * registered on the structure - they are small, and a reload registers them over themselves.
+     */
+    public purge(): void {
+        if (this._state !== AvatarAssetDownloadStatus.Loaded) return;
+
+        GetAssetManager().removeCollection(this._libraryName);
+
+        this._state = AvatarAssetDownloadStatus.NotLoaded;
+    }
+
     public get libraryName(): string {
         return this._libraryName;
     }

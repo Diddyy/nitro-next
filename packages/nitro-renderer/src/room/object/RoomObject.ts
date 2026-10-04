@@ -129,6 +129,9 @@ export class RoomObject implements IRoomObjectController {
         if (eventHandler) {
             this._logic = null!;
 
+            // Its room event listeners go with it: a placeholder's logic replaced when the furni
+            // loads otherwise stayed subscribed for the life of the room.
+            eventHandler.tearDown();
             eventHandler.setObject(null!);
         }
 

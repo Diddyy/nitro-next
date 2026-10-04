@@ -97,6 +97,8 @@ export class FurniIconImageManager {
             })
             .catch((error) => {
                 this._loadingInfo.delete(name);
+                // Nothing will ever answer them: holding on kept the furni - and their rooms - alive.
+                this._listeners.delete(FurniIconImageManager.furniIconListenerKey(wallItem, typeId, extra));
 
                 NitroLogger.warn('Failed to load furni icon', url, error);
             });

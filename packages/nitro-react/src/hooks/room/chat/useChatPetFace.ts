@@ -1,10 +1,10 @@
 import { RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
 import { GetAssetManager, GetRoomContentLoader, GetRoomEngine, PetFigureData } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
-import { useSyncExternalStore } from 'react';
+import { useLayoutEffect, useSyncExternalStore } from 'react';
 
 import { useRoom } from '#base/context/room';
-import { destroyOwnedTexture } from '#base/utils';
+import { destroyOwnedTexture, RetainedCache } from '#base/utils';
 
 /** How big and which way round a pet render is wanted. */
 export interface PetFaceOptions {
@@ -24,33 +24,24 @@ const EMPTY: ChatPetFace = { texture: undefined, color: undefined };
 /** Bounds the faces kept - the least recently shown pet is dropped past this many. */
 const MAX_CACHED_FACES = 64;
 
-/** Insertion order doubles as recency: a hit re-inserts, an insert past the cap evicts the first entry. */
-const cache = new Map<string, Texture>();
-const pending = new Map<string, Promise<Texture | undefined>>();
-
 const faceKey = (cacheKey: string): string => `chat:pet:${cacheKey}`;
 
-const evictFace = (cacheKey: string) => {
-    const texture = cache.get(cacheKey);
+const freeFace = (cacheKey: string, texture: Texture) => {
+    if (GetAssetManager().getTexture(faceKey(cacheKey)) === texture) GetAssetManager().removeTexture(faceKey(cacheKey));
 
-    if (!texture) return;
-
-    cache.delete(cacheKey);
-    GetAssetManager().removeTexture(faceKey(cacheKey));
     destroyOwnedTexture(texture);
 };
+
+/**
+ * Least recently used past the cap - but never a face something on screen still shows
+ * (`RetainedCache`): it used to be destroyed under the bubble, which stops the ticker.
+ */
+const cache = new RetainedCache<string, Texture>(MAX_CACHED_FACES, freeFace);
+const pending = new Map<string, Promise<Texture | undefined>>();
 
 const storeFace = (cacheKey: string, texture: Texture) => {
     GetAssetManager().setTexture(faceKey(cacheKey), texture);
     cache.set(cacheKey, texture);
-
-    while (cache.size > MAX_CACHED_FACES) {
-        const oldest = cache.keys().next().value;
-
-        if (oldest === undefined) break;
-
-        evictFace(oldest);
-    }
 };
 
 /**
@@ -91,14 +82,7 @@ export const useChatPetFace = (figure: string | undefined, posture: string | und
     const getSnapshot = () => {
         if (!canRender) return undefined;
 
-        const cached = cache.get(cacheKey);
-
-        if (cached) {
-            cache.delete(cacheKey);
-            cache.set(cacheKey, cached);
-        }
-
-        return cached;
+        return cache.get(cacheKey);
     };
 
     // Subscribing is what starts the render; the face landing in the cache is the change to re-read.
@@ -110,15 +94,13 @@ export const useChatPetFace = (figure: string | undefined, posture: string | und
 
         if (!promise) {
             promise = renderPetFace(new PetFigureData(figure), posture, scale, direction).then((texture) => {
-                pending.delete(cacheKey);
-
                 if (!texture) return undefined;
 
                 texture.source.scaleMode = 'nearest';
                 storeFace(cacheKey, texture);
 
                 return texture;
-            });
+            }, () => undefined).finally(() => pending.delete(cacheKey));
 
             pending.set(cacheKey, promise);
         }
@@ -133,6 +115,15 @@ export const useChatPetFace = (figure: string | undefined, posture: string | und
     };
 
     const texture = useSyncExternalStore(subscribe, getSnapshot);
+
+    // Held while shown, so the cache cannot destroy it under whatever draws it.
+    useLayoutEffect(() => {
+        if (!texture) return;
+
+        cache.retain(texture);
+
+        return () => cache.release(texture);
+    }, [ texture ]);
 
     if (!canRender) return EMPTY;
 

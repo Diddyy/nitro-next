@@ -185,9 +185,13 @@ export const RoomCanvas = () => {
             const width = window.innerWidth;
             const height = window.innerHeight;
 
+            /*
+             * `RoomEngine.modifyRoomCanvas` only re-initializes the canvas; the next tick's camera
+             * update sees the new size and eases to it. Updating with time -1 here marked the scale
+             * as changed, so every resize event snapped the camera onto its half-tile-rounded
+             * target and the room jittered from side to side while the window was dragged.
+             */
             room.canvas.initialize(width, height);
-
-            updateCameraRef.current(-1);
         };
 
         renderer.on('resize', resizeCanvas);

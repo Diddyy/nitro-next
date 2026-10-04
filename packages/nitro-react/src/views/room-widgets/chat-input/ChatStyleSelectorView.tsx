@@ -201,13 +201,14 @@ export const ChatStyleSelectorView = ({ anchor, styles, selectedStyleId, onSelec
         >
             <Region
                 name="chatstyles_menu"
-                dropShadow={{ distance: 4, alpha: 0.6 }}
                 layout={{ position: 'absolute', left: 0, top: 0, width: MENU_WIDTH + moveX, height: menuHeight }}
             >
+                {/* The shadow is the rounded skin's: a region's would be a square box showing through the 0.8 blend at the corners. */}
                 <Border
                     variant="2"
                     tintColor="#24231e"
                     blend={0.8}
+                    dropShadow={{ distance: 4, alpha: 0.6 }}
                     layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
                 />
                 <Region
