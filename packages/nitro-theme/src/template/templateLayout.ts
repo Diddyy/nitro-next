@@ -13,7 +13,8 @@
  * to the theme's components, except a frame's content area, which children are placed in.
  *
  * Not yet: item grids and selector lists (the renderer flows their items), markup texts, a text's
- * layout while its caption is still empty, and a scrollable list's scrollbar taking its width.
+ * layout while its caption is still empty, a scrollable list's scrollbar taking its width, and a
+ * standalone scrollbar scrolling a text.
  *
  * Kept free of runtime imports so it runs under Node as it stands.
  */
@@ -28,6 +29,11 @@ export interface TemplateRect {
     clip?: boolean;
     /** A scrollable list's or grid's parts, which the renderer scrolls its items in. */
     scroll?: TemplateScroll;
+    /**
+     * An item list or grid a standalone scrollbar scrolls (`linkTemplateScrollbars`): its items' extent
+     * (`scrollableRegion`), which the renderer scrolls in the list's own rect (`visibleRegion`).
+     */
+    scrollContent?: { width: number; height: number };
 }
 
 /**
@@ -57,6 +63,8 @@ export interface TemplateLayoutInput {
     visibleOf?: (element: TemplateElement) => boolean;
     /** A composite window's window layout (`Template.skins`, by `<type>:<style>` - `templateSkinKey`); without one it is laid out as its plain kind. */
     skinOf?: (element: TemplateElement) => { width: number; height: number; elements: TemplateElement[] } | undefined;
+    /** The lists a standalone scrollbar scrolls, whose content extent their rects carry (`scrollContent`). */
+    scrollTargets?: ReadonlySet<TemplateElement>;
 }
 
 /** `WindowParam`'s layout bits. */
@@ -1122,6 +1130,65 @@ const LIST_TAGS = new Set([ 'itemlist', 'itemlist_vertical', 'itemlist_horizonta
 const GRID_TAGS = new Set([ 'itemgrid', 'itemgrid_vertical', 'scrollable_itemgrid_vertical' ]);
 const SCROLLABLE_TAGS = new Set([ 'scrollable_itemlist_vertical', 'scrollable_itemgrid_vertical' ]);
 
+/** `WindowController.findChildByName` - `findTemplateChild`, kept here so this module has no runtime imports. */
+const findChildByName = (children: readonly TemplateElement[], name: string): TemplateElement | undefined => children.find(child => child.name === name)
+    ?? children.reduce<TemplateElement | undefined>((found, child) => found ?? findChildByName(child.children, name), undefined);
+
+/** The `IItemListWindow` / `IItemGridWindow`s a standalone scrollbar scrolls here. */
+const ITEM_LIST_TAGS = new Set([ 'itemlist', 'itemlist_vertical', 'itemlist_horizontal', 'itemgrid', 'itemgrid_vertical' ]);
+
+/** Every `IScrollableWindow`: the item lists and grids, the scrollable lists, and the texts (`ITextWindow`). */
+const SCROLLABLE_WINDOW_TAGS = new Set([ ...ITEM_LIST_TAGS, ...SCROLLABLE_TAGS, 'text', 'input', 'html', 'formatted_text' ]);
+
+/** A layout's own scrollbars (`ScrollBarController`). */
+export const TEMPLATE_SCROLLBAR_TAGS: Readonly<Record<string, 'vertical' | 'horizontal'>> = {
+    scrollbar_vertical: 'vertical',
+    scrollbar_horizontal: 'horizontal',
+};
+
+/**
+ * Each standalone scrollbar's target, as `ScrollBarController.resolveScrollTarget` finds it: the window
+ * its `scrollable` var names - an ancestor of that name, else one under its parent
+ * (`findChildByName`) - else its parent, when that scrolls, else the parent's first child that does.
+ * Only an item list or grid is kept as a target: a text is not scrolled yet, and its scrollbar is
+ * linked to nothing.
+ */
+export const linkTemplateScrollbars = (elements: readonly TemplateElement[]): Map<TemplateElement, TemplateElement> => {
+    const links = new Map<TemplateElement, TemplateElement>();
+    const resolve = (name: string | undefined, ancestors: readonly TemplateElement[]): TemplateElement | undefined => {
+        const parent = ancestors[ancestors.length - 1];
+
+        if (name) {
+            const named = ancestors.findLast(ancestor => ancestor.name === name)
+                ?? findChildByName(parent?.children ?? elements, name);
+
+            if (named && SCROLLABLE_WINDOW_TAGS.has(named.tag)) return named;
+        }
+
+        if (parent && SCROLLABLE_WINDOW_TAGS.has(parent.tag)) return parent;
+
+        return (parent?.children ?? elements).find(child => SCROLLABLE_WINDOW_TAGS.has(child.tag));
+    };
+    const walk = (element: TemplateElement, ancestors: TemplateElement[]) => {
+        if (TEMPLATE_SCROLLBAR_TAGS[element.tag]) {
+            const scrollable = element.vars.scrollable;
+            const target = resolve(typeof scrollable === 'string' ? scrollable : undefined, ancestors);
+
+            if (target && ITEM_LIST_TAGS.has(target.tag)) links.set(element, target);
+        }
+
+        ancestors.push(element);
+
+        for (const child of element.children) walk(child, ancestors);
+
+        ancestors.pop();
+    };
+
+    for (const element of elements) walk(element, []);
+
+    return links;
+};
+
 const createWindow = (element: TemplateElement, rect: TemplateRect, param: number, parent: LayoutWindow | undefined, input: TemplateLayoutInput): LayoutWindow => {
     const skin = SCROLLABLE_TAGS.has(element.tag) ? input.skinOf?.(element) : undefined;
 
@@ -1287,6 +1354,8 @@ export const layoutTemplate = (elements: readonly TemplateElement[], input: Temp
             };
         }
 
+        if (window instanceof ListWindow && input.scrollTargets?.has(element)) rect.scrollContent = { width: window.container.width, height: window.container.height };
+
         rects.set(element, rect);
     }
 
@@ -1295,7 +1364,7 @@ export const layoutTemplate = (elements: readonly TemplateElement[], input: Temp
     // something does, so the renderer masks no window it need not. A frame's and a bubble's children
     // are in their content area, which their components place and clip.
     for (const [ element, rect ] of rects) {
-        if (element.clipping === false || element.tag === 'frame' || element.tag === 'bubble' || rect.scroll) continue;
+        if (element.clipping === false || element.tag === 'frame' || element.tag === 'bubble' || rect.scroll || rect.scrollContent) continue;
 
         const outside = element.children.some((child) => {
             const inner = rects.get(child);

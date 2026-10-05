@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-const { LayoutWindow, buildTemplateWindows, layoutTemplate } = await import('../packages/nitro-theme/src/template/templateLayout.ts');
+const { LayoutWindow, buildTemplateWindows, layoutTemplate, linkTemplateScrollbars } = await import('../packages/nitro-theme/src/template/templateLayout.ts');
 
 const element = (tag, rect, extra = {}) => ({ tag, x: rect[0], y: rect[1], width: rect[2], height: rect[3], vars: {}, children: [], ...extra });
 const rectOf = window => ({ x: window.x, y: window.y, width: window.width, height: window.height });
@@ -355,4 +355,51 @@ await test('arrange runs once the layout is built: it reads a text\'s width and 
     assert.equal(textWidth, 48);
     assert.equal(rects.get(icon).x, 150);
     assert.equal(rects.get(button).width, 155);
+});
+
+await test('a standalone scrollbar scrolls the window its scrollable var names, found under its parent', () => {
+    const list = element('itemlist_vertical', [ 0, 0, 367, 10 ], { name: 'achievements_scrollarea' });
+    const bar = element('scrollbar_vertical', [ 350, 0, 18, 50 ], { name: 'achievements_scrollbar', vars: { scrollable: 'achievements_scrollarea' } });
+    const other = element('itemlist_vertical', [ 0, 0, 10, 10 ], { name: 'first' });
+    const root = element('container', [ 0, 0, 367, 100 ], { children: [ other, list, bar ] });
+
+    assert.equal(linkTemplateScrollbars([ root ]).get(bar), list);
+});
+
+await test('without a name it scrolls its parent when that scrolls, else the parent\'s first scrollable child', () => {
+    const inner = element('scrollbar_vertical', [ 0, 0, 18, 50 ]);
+    const parentList = element('itemlist', [ 0, 0, 100, 100 ], { children: [ inner ] });
+    const sibling = element('scrollbar_vertical', [ 0, 0, 18, 50 ]);
+    const firstList = element('itemgrid_vertical', [ 0, 0, 100, 100 ]);
+    const root = element('container', [ 0, 0, 200, 200 ], { children: [ parentList, sibling, firstList ] });
+    const links = linkTemplateScrollbars([ root ]);
+
+    assert.equal(links.get(inner), parentList);
+    // The parent's first scrollable child is `parentList`, before `firstList`.
+    assert.equal(links.get(sibling), parentList);
+});
+
+await test('a scrollbar whose target is a text is linked to nothing (a text is not scrolled yet)', () => {
+    const text = element('input', [ 0, 0, 100, 100 ], { name: 'data' });
+    const bar = element('scrollbar_vertical', [ 100, 0, 18, 100 ], { vars: { scrollable: 'data' } });
+    const list = element('itemlist', [ 0, 0, 100, 100 ]);
+
+    assert.equal(linkTemplateScrollbars([ element('container', [ 0, 0, 200, 100 ], { children: [ text, bar, list ] }) ]).size, 0);
+});
+
+await test('a scrolled list keeps its own rect and carries its items\' extent', () => {
+    const items = element('container', [ 0, 0, 367, 10 ], { name: 'achievements_cont' });
+    const list = element('itemlist_vertical', [ 0, 0, 367, 10 ], { name: 'achievements_scrollarea', limits: [ null, null, null, 245 ], children: [ items ] });
+    const bar = element('scrollbar_vertical', [ 350, 0, 18, 50 ], { vars: { scrollable: 'achievements_scrollarea' } });
+    const root = element('container', [ 0, 0, 367, 100 ], { children: [ list, bar ] });
+    const rects = layoutTemplate([ root ], { ...input(undefined), scrollTargets: new Set([ list ]) }, undefined, (windowOf) => {
+        // `refreshAchievementList`: five rows of slots, the list as tall as they are, to its limit.
+        windowOf(items).setHeight(303);
+        windowOf(list).setHeight(304);
+    });
+
+    assert.deepEqual(rects.get(list).scrollContent, { width: 367, height: 303 });
+    assert.equal(rects.get(list).height, 245);
+    assert.equal(rects.get(list).clip, undefined);
+    assert.equal(rects.get(bar).scrollContent, undefined);
 });

@@ -10,7 +10,8 @@ import type { TemplateRect } from './templateLayout';
 
 const sameTemplateRect = (a: TemplateRect | undefined, b: TemplateRect | undefined) => a === b
     || (!!a && !!b && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height && a.clip === b.clip
-        && JSON.stringify(a.scroll) === JSON.stringify(b.scroll));
+        && JSON.stringify(a.scroll) === JSON.stringify(b.scroll)
+        && a.scrollContent?.width === b.scrollContent?.width && a.scrollContent?.height === b.scrollContent?.height);
 
 export interface TemplateBinding {
     /** Over the layout's `visible`. */

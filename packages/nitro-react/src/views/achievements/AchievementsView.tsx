@@ -18,7 +18,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData, useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredStore } from '#base/context/wired';
 import { useViewportSize } from '#base/hooks';
-import { LayoutWindow, ScrollArea, TemplateFrameOptions, TemplateWindow, TemplateWindows } from '#base/theme';
+import { LayoutWindow, TemplateFrameOptions, TemplateWindow, TemplateWindows } from '#base/theme';
 import { getBadgeDesc, getBadgeName, getCurrencyIconStyle } from '#base/utils';
 
 import { AchievementCategoryEntry, CATEGORY_HEIGHT, CATEGORY_WIDTH } from './AchievementCategoryEntry';
@@ -48,10 +48,6 @@ const REWARD_SPACING = 3;
 const REWARD_ROW = [ 'reward_caption_txt', 'reward_amount_txt', 'currency_icon' ];
 /** The `Achievements` layout's width, which `_window.center()` centres. */
 const WINDOW_WIDTH = 389;
-/** `achievements_list`'s `limits` (its max height) and the layout's `achievements_scrollbar` rect. */
-const LIST_HEIGHT_MAX = 245;
-const LIST_WIDTH = 367;
-const SCROLLBAR_RECT = { x: 350, width: 18 };
 /** `refreshMouseOver(-999)`: no tile hovered. */
 const NO_HOVER = -999;
 
@@ -137,7 +133,6 @@ export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
         y: (ACHIEVEMENT_HEIGHT * Math.floor(index / columns)) + ACHIEVEMENT_TOP_SPACING,
     });
     const achievementsHeight = slotCount ? slotPosition(slotCount - 1).y + ACHIEVEMENT_HEIGHT : 0;
-    const listHeight = Math.min(LIST_HEIGHT_MAX, achievementsHeight + 1);
 
     const total = totalProgress(categories);
     const levels = selected && achievementProgress(selected);
@@ -222,37 +217,25 @@ export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
                 // `HabboQuestEngine.setupAchievementCategoryImage(window, category, false)`.
                 'achievements_header_cont/category_pic_bitmap': { asset: category && `\${image.library.questing.url}achicon_${category.code}.png` },
 
-                // `refreshAchievementList`. The slots go in a scroll area over the list's own - the
-                // layout's `achievements_scrollbar` names `achievements_scrollarea` as what it scrolls.
-                achievements_list: {
-                    visible: !!category,
-                    children: category && (
-                        <ScrollArea
-                            orientation="vertical"
-                            variant="3"
-                            scrollResetKey={category.code}
-                            layout={{ position: 'absolute', left: 0, top: 0, width: LIST_WIDTH, height: listHeight, gap: 0 }}
-                            viewportLayout={{ position: 'absolute', left: 0, top: 0, width: LIST_WIDTH, height: listHeight }}
-                            scrollbarLayout={{ position: 'absolute', left: SCROLLBAR_RECT.x, top: 0, width: SCROLLBAR_RECT.width, height: listHeight }}
-                            contentLayout={{ position: 'relative', width: LIST_WIDTH, height: achievementsHeight }}
-                        >
-                            {Array.from({ length: slotCount }, (_, index) => {
-                                const entry = shownAchievements[index];
+                // `refreshAchievementList`: the slots added to `achievements_cont`, which the list's
+                // own `achievements_scrollbar` scrolls once there are more than four rows.
+                achievements_list: { visible: !!category },
+                achievements_cont: {
+                    children: Array.from({ length: slotCount }, (_, index) => {
+                        const entry = shownAchievements[index];
 
-                                return (
-                                    <AchievementEntry
-                                        key={entry?.achievementId ?? `empty-${index}`}
-                                        {...slotPosition(index)}
-                                        achievement={entry}
-                                        selected={!!entry && entry.achievementId === selected?.achievementId}
-                                        unseen={!!entry && unseen.some(item => item.achievementId === entry.achievementId)}
-                                        badgeUrl={badgeUrl}
-                                        onPick={id => pickAchievement(send, id)}
-                                    />
-                                );
-                            })}
-                        </ScrollArea>
-                    ),
+                        return (
+                            <AchievementEntry
+                                key={entry?.achievementId ?? `empty-${index}`}
+                                {...slotPosition(index)}
+                                achievement={entry}
+                                selected={!!entry && entry.achievementId === selected?.achievementId}
+                                unseen={!!entry && unseen.some(item => item.achievementId === entry.achievementId)}
+                                badgeUrl={badgeUrl}
+                                onPick={id => pickAchievement(send, id)}
+                            />
+                        );
+                    }),
                 },
                 achievements_scrollbar: { visible: scrolling },
 

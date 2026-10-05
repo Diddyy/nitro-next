@@ -53,7 +53,9 @@ import { FlashBitmapVars, WindowPlacedContext } from '../utils';
 import { measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { bindElements, resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
-import { layoutTemplate, LayoutWindow, TEMPLATE_LISTS, TemplateRect } from './templateLayout';
+import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateRect } from './templateLayout';
+import { TemplateScrollbar, TemplateScrollTarget } from './TemplateScroll';
+import { TemplateScrollAxis, TemplateScrollStore } from './templateScrollStore';
 
 export type { Template, TemplateElement } from './templateData';
 
@@ -195,6 +197,10 @@ interface Context {
     showHidden: boolean;
     idPrefix: string;
     frame?: TemplateFrameOptions;
+    /** Each standalone scrollbar's target (`linkTemplateScrollbars`), the axes each target scrolls on, and their shared scroll. */
+    scrollbars: ReadonlyMap<TemplateElement, TemplateElement>;
+    scrollAxes: ReadonlyMap<TemplateElement, ReadonlySet<TemplateScrollAxis>>;
+    scroll: TemplateScrollStore;
 }
 
 /** A `#icon` / `#bg` tag: the part of its `dynamicStyle` host's look it takes. */
@@ -528,6 +534,41 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
         </>
     );
 
+    // A layout's own scrollbar, and the list it scrolls (`ScrollBarController.resolveScrollTarget`).
+    const scrollTarget = context.scrollbars.get(element);
+
+    if (scrollTarget) {
+        return (
+            <TemplateScrollbar
+                element={element}
+                target={scrollTarget}
+                axis={TEMPLATE_SCROLLBAR_TAGS[element.tag]}
+                store={context.scroll}
+                layout={rectOf(rect, flow)}
+                alpha={alpha}
+            />
+        );
+    }
+
+    const scrollAxes = context.scrollAxes.get(element);
+
+    if (scrollAxes && rect.scrollContent) {
+        return (
+            <TemplateScrollTarget
+                element={element}
+                rect={rect}
+                content={rect.scrollContent}
+                axes={scrollAxes}
+                store={context.scroll}
+                layout={rectOf(rect, flow)}
+                alpha={alpha}
+                face={faceOf(element, rect, context, binding)}
+            >
+                {children}
+            </TemplateScrollTarget>
+        );
+    }
+
     if (isRegion(element, binding)) {
         return (
             <Region
@@ -670,6 +711,16 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
     const elements = useMemo(() => (template.elements.length === 1 ? [ { ...template.elements[0], x: 0, y: 0 } ] : template.elements), [ template ]);
     const keys = Object.keys(bindings ?? {}).sort().join('\n');
     const names = useMemo(() => resolveTemplateNames(elements, keys ? keys.split('\n') : []), [ elements, keys ]);
+    const [ scroll ] = useState(() => new TemplateScrollStore());
+    const scrollbars = useMemo(() => linkTemplateScrollbars(elements), [ elements ]);
+    const scrollAxes = useMemo(() => {
+        const axes = new Map<TemplateElement, Set<TemplateScrollAxis>>();
+
+        for (const [ scrollbar, target ] of scrollbars) axes.set(target, new Set([ ...(axes.get(target) ?? []), TEMPLATE_SCROLLBAR_TAGS[scrollbar.tag] ]));
+
+        return axes;
+    }, [ scrollbars ]);
+    const scrollTargets = useMemo(() => new Set(scrollAxes.keys()), [ scrollAxes ]);
     const missing = names.missing.join('\n');
 
     const context = useMemo<Context>(() => ({
@@ -686,7 +737,10 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
         showHidden,
         idPrefix,
         frame,
-    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame ]);
+        scrollbars,
+        scrollAxes,
+        scroll,
+    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame, scrollbars, scrollAxes, scroll ]);
 
     const byElement = bindElements(names.targets, bindings);
     // A list's `show` over its items; otherwise the binding, over the layout.
@@ -704,6 +758,7 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
         measure: measureTemplateText,
         visibleOf: element => shownBy.get(element) ?? byElement.get(element)?.visible ?? !element.hidden,
         skinOf: element => template.skins?.[templateSkinKey(element.tag, element.style)],
+        scrollTargets,
     }, (width !== undefined || height !== undefined) ? { width: width ?? template.width, height: height ?? template.height } : undefined, arrange && (windowOf => arrange({
         find: (key) => {
             const element = resolveTemplateNames(elements, [ key ]).targets.get(key);
