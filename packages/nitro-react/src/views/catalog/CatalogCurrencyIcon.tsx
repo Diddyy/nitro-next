@@ -12,59 +12,7 @@
  */
 import { useConfigData } from '#base/context/system';
 import { BoxLayout, Icon } from '#base/theme';
-
-const SEASONAL_CURRENCY_ICONS: Record<string, [ number, number ]> = {
-    snowflakes: [ 27, 27 ],
-    horseshoes: [ 31, 30 ],
-    nuts: [ 39, 38 ],
-    stars: [ 45, 44 ],
-    clouds: [ 46, 47 ],
-    plain_pumpkins: [ 49, 50 ],
-    seashells: [ 55, 55 ],
-    flowers: [ 59, 58 ],
-    candy: [ 61, 60 ],
-    popsicles: [ 63, 62 ],
-    golden_fishes: [ 65, 64 ],
-    balloons: [ 67, 66 ],
-    pumpkins: [ 69, 68 ],
-    easter_eggs: [ 73, 72 ],
-    truffles: [ 75, 74 ],
-    blue_balloons: [ 77, 76 ],
-    mushrooms: [ 79, 78 ],
-    acorn: [ 81, 80 ],
-    coconuts: [ 83, 82 ],
-    cards: [ 85, 84 ],
-    letter: [ 87, 86 ],
-};
-
-/** A hotel variable as the text `getProperty` returns, empty when it is not set. */
-const configText = (value: unknown): string => (((typeof value === 'string') || (typeof value === 'number') || (typeof value === 'boolean')) ? String(value) : '');
-
-/** `§_-u1R§.getIconStyleFor`: `config` is the hotel's variables, read the way `getBoolean` / `getProperty` / `getInteger` read them. */
-const getCurrencyIconStyle = (type: number, config: Record<string, unknown>, big: boolean, combo: boolean = false): number => {
-    if ((type === -1) || (type === 7)) return big ? 34 : 35;
-    if (type === 0) return big ? 32 : 33;
-    if (type === 3) return big ? 36 : 37;
-
-    if (type === 5) {
-        if (configText(config['diamonds.enabled']) === 'true') return big ? 41 : 42;
-
-        return big ? 53 : 54;
-    }
-
-    if (type === 1000) return big ? 56 : 57;
-    if (type === 1001) return big ? 70 : 71;
-
-    if ((type >= 101) && (type <= 105)) {
-        const icons = SEASONAL_CURRENCY_ICONS[configText(config[`seasonalcurrency.id.${type}`])];
-
-        if (icons) return big ? icons[1] : icons[0];
-    }
-
-    const style = parseInt(configText(config[`currencyiconstyle.${big ? 'big' : 'small'}.${type}${combo ? '.combo' : ''}`]));
-
-    return isNaN(style) ? 0 : style;
-};
+import { getCurrencyIconStyle } from '#base/utils';
 
 export interface CatalogCurrencyIconProps {
     /** The activity point type, `-1` for credits. */

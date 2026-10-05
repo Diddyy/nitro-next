@@ -10,24 +10,31 @@ import { useSystemStore, useTranslation } from '#base/context/system';
 
 import { useTemplate } from './useTemplate';
 
-/** A bitmap the template names is a bundled asset already: `ThemeImage` reads the name as it is. */
-const imageUrl = (asset: string) => asset;
-
 export interface TemplateWindowProps {
     id: string;
     bindings?: TemplateBindings;
     /** What the window's code does once the layout is built (`TemplateView`'s `arrange`). */
     arrange?: TemplateViewProps['arrange'];
+    /** How the root frame opens, when the template is a window of its own (`TemplateView`'s `frame`). */
+    frame?: TemplateViewProps['frame'];
 }
 
 /** Draws nothing until the template is loaded, as a Flash window opens once its library is in. */
-export const TemplateWindow = ({ id, bindings, arrange }: TemplateWindowProps) => {
+export const TemplateWindow = ({ id, bindings, arrange, frame }: TemplateWindowProps) => {
     const template = useTemplate(id);
     const t = useTranslation();
     // The texts' identity: a new table (texts loaded, or another language) is a new `resolveText`,
     // which redraws every text of the template. Between those it stays the same function.
     const localizations = useSystemStore(x => x.localizations);
     const resolveText = useCallback((key: string) => (localizations[key] !== undefined ? t(key) : undefined), [ t, localizations ]);
+    // A bitmap the template names is a bundled asset already: `ThemeImage` reads the name as it is.
+    // A `${key}` in it is a hotel variable (`${image.library.questing.url}ach_category_pets.png`).
+    const config = useSystemStore(x => x.config);
+    const imageUrl = useCallback((asset: string) => asset.replace(/\$\{([^}]+)\}/g, (_, key: string) => {
+        const value = config[key];
+
+        return (typeof value === 'string' || typeof value === 'number') ? String(value) : '';
+    }), [ config ]);
 
     if (!template) return null;
 
@@ -36,6 +43,7 @@ export const TemplateWindow = ({ id, bindings, arrange }: TemplateWindowProps) =
             template={template}
             bindings={bindings}
             arrange={arrange}
+            frame={frame}
             resolveText={resolveText}
             imageUrl={imageUrl}
         />

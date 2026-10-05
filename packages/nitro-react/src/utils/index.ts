@@ -10,6 +10,7 @@ export * from './chatCommandCompletion';
 export * from './clubCenter';
 export * from './clubOffers';
 export * from './configReader';
+export * from './currencyIconStyle';
 export * from './destroyOwnedTexture';
 export * from './FixedSizeStack';
 export * from './flatCategoryName';

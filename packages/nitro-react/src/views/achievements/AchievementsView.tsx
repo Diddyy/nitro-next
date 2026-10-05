@@ -1,10 +1,12 @@
 /**
- * Pixi achievement browser, porting AS3 `AchievementController` and the `Achievements`,
- * `AchievementCategory` and `Achievement` layouts of `habbo-quest-engine-com`. The sections are
- * stacked by `moveAllChildrenToColumn(content, 0, 4)` and the frame is `lowest point + 45` high,
- * as `refresh` leaves it; every number below is a layout attribute or a controller constant.
+ * The achievement browser: AS3 `AchievementController` over the `habbo-quest-engine-com/Achievements`
+ * window template. `prepareWindow` opens it centred at `y = 20`; each `refresh*` is a set of bindings
+ * - the category grid's `AchievementCategory` tiles and the list's `Achievement` slots added to their
+ * containers, the two `ProgressBar`s to theirs - and `refresh`'s geometry is the `arrange`: the
+ * containers sized to what was added, stacked by `moveAllChildrenToColumn(content, 0, 4)`, and the
+ * frame `getLowestPoint(content) + 45` high.
  */
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { pickAchievement, pickAchievementCategory } from '#base/commands';
 import type { AchievementCategory } from '#base/context/achievements';
@@ -13,14 +15,15 @@ import {
     selectedAchievement, totalProgress, useAchievementsActions, useAchievementsStore,
 } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
+import { useConfigData, useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredStore } from '#base/context/wired';
 import { useViewportSize } from '#base/hooks';
-import { Border, Box, Frame, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
-import { getBadgeDesc, getBadgeName } from '#base/utils';
-import { CatalogCurrencyIcon } from '#base/views/catalog/CatalogCurrencyIcon';
+import { LayoutWindow, ScrollArea, TemplateFrameOptions, TemplateWindow, TemplateWindows } from '#base/theme';
+import { getBadgeDesc, getBadgeName, getCurrencyIconStyle } from '#base/utils';
 
-import { AchievementProgressBar } from './AchievementProgressBar';
+import { AchievementCategoryEntry, CATEGORY_HEIGHT, CATEGORY_WIDTH } from './AchievementCategoryEntry';
+import { ACHIEVEMENT_HEIGHT, ACHIEVEMENT_WIDTH, AchievementEntry } from './AchievementEntry';
+import { QuestProgressBar } from './QuestProgressBar';
 
 // `AchievementController` constants.
 const CATEGORIES_COLUMN_COUNT = 3;
@@ -32,53 +35,74 @@ const ACHIEVEMENT_ROWS_MIN = 2;
 const ACHIEVEMENT_ROWS_MAX = 4;
 const ACHIEVEMENT_COLUMNS = 6;
 const ACHIEVEMENT_TOP_SPACING = 3;
-const UNSEEN_TINT = '#c4ff7f';
-// Layout sizes.
+const IN_LEVEL_PROGRESS_BAR_WIDTH = 180;
+const TOTAL_PROGRESS_BAR_WIDTH = 246;
+const IN_LEVEL_PROGRESS_BAR_LOC = { x: 115, y: 93 };
+const TOTAL_PROGRESS_BAR_LOC = { x: 72, y: 1 };
+/** `refresh`: the frame is this much taller than its content's lowest point. */
+const WINDOW_BOTTOM_SPACING = 45;
+/** `moveAllChildrenToColumn(_window.content, 0, 4)`. */
+const CONTENT_SPACING = 4;
+/** `HabboQuestEngine.refreshReward`'s `moveChildrenToRow` spacing. */
+const REWARD_SPACING = 3;
+const REWARD_ROW = [ 'reward_caption_txt', 'reward_amount_txt', 'currency_icon' ];
+/** The `Achievements` layout's width, which `_window.center()` centres. */
 const WINDOW_WIDTH = 389;
-const CATEGORY_WIDTH = 112;
-const CATEGORY_HEIGHT = 105;
-const ACHIEVEMENT_WIDTH = 62;
-const ACHIEVEMENT_HEIGHT = 60;
+/** `achievements_list`'s `limits` (its max height) and the layout's `achievements_scrollbar` rect. */
 const LIST_HEIGHT_MAX = 245;
-const HEADER_HEIGHT = 75;
-const FOOTER_HEIGHT = 37;
-const DETAILS_HEIGHT = 129;
-const COLUMN_SPACING = 4;
+const LIST_WIDTH = 367;
+const SCROLLBAR_RECT = { x: 350, width: 18 };
+/** `refreshMouseOver(-999)`: no tile hovered. */
+const NO_HOVER = -999;
 
-type Slot = { kind: 'category'; category: AchievementCategory } | { kind: 'placeholder' } | { kind: 'hole' };
+/** `AchievementController.moveAllChildrenToColumn`: each visible child with a height under the last, `spacing` apart. */
+const moveAllChildrenToColumn = (window: LayoutWindow, y: number, spacing: number) => {
+    for (const child of window.children) {
+        if (!child.visible || child.height <= 0) continue;
 
-/** `refreshCategoryList`: entries are keyed by their index in the whole list, hidden categories leave a gap. */
-const categorySlots = (categories: AchievementCategory[]): Slot[] => {
-    const slots: Slot[] = categories.map(category => categoryVisibleInList(category) ? { kind: 'category', category } : { kind: 'hole' });
-
-    // Empty tiles follow until a fourth row would start.
-    while (Math.floor(slots.length / CATEGORIES_COLUMN_COUNT) < CATEGORY_ROWS_MAX) slots.push({ kind: 'placeholder' });
-
-    return slots;
+        child.setY(y);
+        y += child.height + spacing;
+    }
 };
 
-/** `moveAllChildrenToColumn`: visible sections with a height stack with a gap of 4; `lowest` is the bottom of the lowest. */
-const stackColumn = (sections: { visible: boolean; height: number }[]) => {
-    let top = 0;
-    let lowest = 0;
-    const tops = sections.map(({ visible, height }) => {
-        if (!visible || height <= 0) return 0;
+/** `AchievementController.getLowestPoint`: the bottom of the lowest visible child. */
+const getLowestPoint = (window: LayoutWindow) => window.children.reduce((lowest, child) => (child.visible ? Math.max(lowest, child.y + child.height) : lowest), 0);
 
-        const at = top;
+/** `HabboQuestEngine.moveChildrenToRow`: each visible window after the last, from `x`, `spacing` apart. */
+const moveChildrenToRow = (windows: (LayoutWindow | undefined)[], x: number, spacing: number) => {
+    for (const window of windows) {
+        if (!window?.visible) continue;
 
-        top += height + COLUMN_SPACING;
-        lowest = Math.max(lowest, at + height);
+        window.setX(x);
+        x += window.width + spacing;
+    }
+};
 
-        return at;
+/**
+ * `refreshCategoryList`: a tile per category the list shows, at its index in the whole list (a hidden
+ * category leaves its place empty), then empty tiles until a fourth row would start.
+ */
+const categoryTiles = (categories: AchievementCategory[]) => {
+    const tiles: { index: number; category?: AchievementCategory }[] = [];
+
+    categories.forEach((category, index) => {
+        if (categoryVisibleInList(category)) tiles.push({ index, category });
     });
 
-    return { tops, lowest };
+    for (let index = categories.length; Math.floor(index / CATEGORIES_COLUMN_COUNT) < CATEGORY_ROWS_MAX; index++) tiles.push({ index });
+
+    return tiles;
 };
+
+const categoryTilePosition = (index: number) => ({
+    x: (CATEGORY_WIDTH + CATEGORY_SPACING_X) * (index % CATEGORIES_COLUMN_COUNT),
+    y: ((CATEGORY_HEIGHT + CATEGORY_SPACING_Y) * Math.floor(index / CATEGORIES_COLUMN_COUNT)) + CATEGORY_SPACING_TOP,
+});
 
 export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
     const t = useTranslation();
-    const questingLibrary = useConfigValue<string>('image.library.questing.url') ?? '';
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const config = useConfigData();
+    const badgeAssetUrl = useConfigValue<string>('badge.asset.url') ?? '';
     const badgeLimits = useSystemStore(x => x.badgePointLimits);
     const categories = useAchievementsStore(x => x.categories);
     const categoryCode = useAchievementsStore(x => x.category);
@@ -89,330 +113,178 @@ export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
     const { back } = useAchievementsActions();
     const { send } = useWebSocketContext();
     const viewport = useViewportSize();
-    const [ hover, setHover ] = useState(-999);
-    const category = categories?.find(entry => entry.code === categoryCode);
+    const [ hover, setHover ] = useState(NO_HOVER);
+    // `prepareWindow`: `_window.center(); _window.y = 20`, once.
+    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'achievements', defaultPosition: { x: Math.round((viewport.width - WINDOW_WIDTH) / 2), y: 20 }, onClose }));
+    const badgeUrl = useCallback((code: string) => badgeAssetUrl.replace('%badgename%', code), [ badgeAssetUrl ]);
 
-    // `getAchievementCategoryName`: the key is its own fallback.
-    const categoryName = (code: string) => t(`quests.${code}.name`, `quests.${code}.name`);
-    const questing = (file: string) => `${questingLibrary}${file}`;
-    const badgeImage = (code: string) => badgeUrl.replace('%badgename%', code);
+    // `onAchievements` opens the window once the list is in.
+    if (!categories) return null;
 
-    // The visible sections in layout order and their heights.
-    const slots = categories && !category ? categorySlots(categories) : [];
-    // `getLowestPoint`: the last tile that exists, not a gap.
-    const lastSlot = slots.findLastIndex(slot => slot.kind !== 'hole');
-    const categoriesHeight = lastSlot >= 0 ? Math.floor(lastSlot / CATEGORIES_COLUMN_COUNT) * (CATEGORY_HEIGHT + CATEGORY_SPACING_Y) + CATEGORY_SPACING_TOP + CATEGORY_HEIGHT : 0;
-    const visibleAchievements = category ? category.achievements.filter(entry => achievementVisibleInCategory(category.code, entry, roomCodes)) : [];
+    const category = categories.find(entry => entry.code === categoryCode);
+
+    // `refreshCategoryList`, and `getLowestPoint(categories_cont)`.
+    const tiles = category ? [] : categoryTiles(categories);
+    const categoriesHeight = tiles.reduce((lowest, tile) => Math.max(lowest, categoryTilePosition(tile.index).y + CATEGORY_HEIGHT), 0);
+
+    // `refreshAchievementList`: the achievements the category shows, then empty slots to fill two rows.
     const scrolling = !!category && category.achievements.length > ACHIEVEMENT_ROWS_MAX * ACHIEVEMENT_COLUMNS;
     const columns = scrolling ? ACHIEVEMENT_COLUMNS - 1 : ACHIEVEMENT_COLUMNS;
-    const achievementSlots = category ? Math.max(visibleAchievements.length, ACHIEVEMENT_ROWS_MIN * columns) : 0;
-    const contentHeight = Math.ceil(achievementSlots / columns) * ACHIEVEMENT_HEIGHT + ACHIEVEMENT_TOP_SPACING;
-    const listHeight = Math.min(LIST_HEIGHT_MAX, contentHeight + 1);
-    const tiles: (typeof visibleAchievements[number] | undefined)[] = Array.from({ length: achievementSlots }, (_, index) => visibleAchievements[index]);
-    // `moveAllChildrenToColumn(content, 0, 4)` and `getLowestPoint(content)`.
-    const column = stackColumn([
-        { visible: !!categories && !category, height: categoriesHeight },
-        { visible: !!categories && !category, height: FOOTER_HEIGHT },
-        { visible: !!category, height: HEADER_HEIGHT },
-        { visible: !!category, height: listHeight },
-        { visible: !!category && !!selected, height: DETAILS_HEIGHT },
-    ]);
-    const [ categoriesTop, footerTop, headerTop, listTop, detailsTop ] = column.tops;
-    const lowest = column.lowest;
-    const total = categories ? totalProgress(categories) : { progress: 0, max: 0 };
+    const shownAchievements = category ? category.achievements.filter(entry => achievementVisibleInCategory(category.code, entry, roomCodes)) : [];
+    const slotCount = category ? Math.max(shownAchievements.length, ACHIEVEMENT_ROWS_MIN * columns) : 0;
+    const slotPosition = (index: number) => ({
+        x: (ACHIEVEMENT_WIDTH + (scrolling ? 5 : 0)) * (index % columns),
+        y: (ACHIEVEMENT_HEIGHT * Math.floor(index / columns)) + ACHIEVEMENT_TOP_SPACING,
+    });
+    const achievementsHeight = slotCount ? slotPosition(slotCount - 1).y + ACHIEVEMENT_HEIGHT : 0;
+    const listHeight = Math.min(LIST_HEIGHT_MAX, achievementsHeight + 1);
+
+    const total = totalProgress(categories);
     const levels = selected && achievementProgress(selected);
     const achievedCode = selected && achievedBadgeCode(selected);
+    // `HabboQuestEngine.refreshReward(!finalLevel, ...)`.
+    const rewardShown = !!selected && !selected.finalLevel && selected.levelRewardPointType >= 0 && selected.levelRewardPoints >= 1;
+
+    const arrange = ({ find }: TemplateWindows) => {
+        const window = find('quest_main_window');
+        const content = window?.children.find(child => child.frameContent);
+
+        if (!window || !content) return;
+
+        find('categories_cont')?.setHeight(categoriesHeight);
+
+        // `refreshAchievementList`: the list as tall as its slots (to its limit), the scroll area and bar with it.
+        const list = find('achievements_list');
+
+        find('achievements_cont')?.setHeight(achievementsHeight);
+        list?.setHeight(achievementsHeight + 1);
+
+        if (list) {
+            find('achievements_scrollarea')?.setHeight(list.height);
+            find('achievements_scrollbar')?.setHeight(list.height);
+        }
+
+        const caption = find('achievement_cont/reward_caption_txt');
+
+        if (rewardShown && caption) moveChildrenToRow(REWARD_ROW.map(name => find(`achievement_cont/${name}`)), caption.x, REWARD_SPACING);
+
+        moveAllChildrenToColumn(content, 0, CONTENT_SPACING);
+        window.setHeight(getLowestPoint(content) + WINDOW_BOTTOM_SPACING);
+    };
 
     return (
-        <Frame
-            id="achievements"
-            variant="3"
-            caption={t('inventory.achievements')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={onClose}
-            resizeDirection="none"
-            margins={[ 0, 33, 0, 3 ]}
-            // `_window.center(); _window.y = 20`.
-            defaultPosition={{ x: Math.round((viewport.width - WINDOW_WIDTH) / 2), y: 20 }}
-            layout={{ width: WINDOW_WIDTH, height: (categories ? lowest : 0) + 45 }}
-        >
-            {!categories && (
-                <ThemeText
-                    text={t('generic.loading', 'Loading')}
-                    textOptions={{ fontFamily: 'Ubuntu', fontSize: 13 }}
-                    layout={{ position: 'absolute', left: 19, top: 10 }}
-                />
-            )}
-            {categories && !category && (
-                <>
-                    <Region layout={{ position: 'absolute', left: 19, top: categoriesTop, width: 371, height: categoriesHeight }}>
-                        {slots.map((slot, index) => {
-                            if (slot.kind === 'hole') return null;
+        <TemplateWindow
+            id="habbo-quest-engine-com/Achievements"
+            frame={frame}
+            arrange={arrange}
+            bindings={{
+                back_button: { onPointerTap: back },
 
-                            const left = (CATEGORY_WIDTH + CATEGORY_SPACING_X) * (index % CATEGORIES_COLUMN_COUNT);
-                            const tileTop = (CATEGORY_HEIGHT + CATEGORY_SPACING_Y) * Math.floor(index / CATEGORIES_COLUMN_COUNT) + CATEGORY_SPACING_TOP;
+                // `refreshCategoryList`.
+                categories_cont: {
+                    visible: !category,
+                    children: tiles.map(({ index, category: entry }) => (
+                        <AchievementCategoryEntry
+                            key={index}
+                            {...categoryTilePosition(index)}
+                            category={entry}
+                            unseenCount={entry ? unseen.filter(item => item.category === entry.code).length : 0}
+                            hovered={hover === index}
+                            onPick={code => pickAchievementCategory(send, code)}
+                            onHover={hovered => setHover(hovered ? index : NO_HOVER)}
+                        />
+                    )),
+                },
 
-                            if (slot.kind === 'placeholder') {
-                                return (
-                                    <ThemeImage
-                                        key={`empty-${index}`}
-                                        src={questing('achievement_category_bkg_empty_3.png')}
-                                        bitmap={{}}
-                                        layout={{ position: 'absolute', left, top: tileTop + 1, width: 110, height: 103 }}
-                                    />
-                                );
-                            }
-
-                            const entry = slot.category;
-                            const hovered = hover === index;
-                            const { progress, max } = categoryProgress(entry);
-                            const count = unseen.filter(item => item.category === entry.code).length;
-                            const inset = hovered ? 0 : 1;
-
-                            return (
-                                <Region
-                                    key={entry.code}
-                                    layout={{ position: 'absolute', left, top: tileTop, width: CATEGORY_WIDTH, height: CATEGORY_HEIGHT }}
-                                >
-                                    <ThemeImage
-                                        src={questing(hovered ? 'achievement_background_active_2.png' : 'achievement_background_active_1.png')}
-                                        bitmap={{}}
-                                        layout={{ position: 'absolute', left: 0, top: 0, width: CATEGORY_WIDTH, height: CATEGORY_HEIGHT }}
-                                    />
-                                    <Region layout={{ position: 'absolute', left: inset, top: inset, width: 115, height: 104 }}>
-                                        <ThemeText
-                                            text={categoryName(entry.code)}
-                                            textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, align: 'center' }}
-                                            flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                                            verticalAlign="top"
-                                            layout={{ position: 'absolute', left: -2, width: 115, top: 7 }}
-                                        />
-                                        <ThemeImage
-                                            src={questing(`ach_category_${entry.code}.png`)}
-                                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                                            layout={{ position: 'absolute', left: 12, top: 27, width: 86, height: 72 }}
-                                        />
-                                        <ThemeText
-                                            text={`${progress}/${max}`}
-                                            textOptions={{ fill: '#ffffff', fontFamily: 'Ubuntu', fontSize: 12, align: 'center' }}
-                                            flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                                            verticalAlign="top"
-                                            layout={{ position: 'absolute', left: -2.5, width: 115, top: 70 }}
-                                        />
-                                    </Region>
-                                    <Region
-                                        cursor="pointer"
-                                        onPointerOver={() => setHover(index)}
-                                        onPointerOut={() => setHover(-999)}
-                                        onPointerTap={() => pickAchievementCategory(send, entry.code)}
-                                        layout={{ position: 'absolute', left: 0, top: 0, width: 110, height: 103 }}
-                                    />
-                                    {count > 0 && (
-                                        <Border
-                                            variant="7"
-                                            tintColor="#de4537"
-                                            layout={{ position: 'absolute', left: 71, top: 27, height: 20, minWidth: 18 }}
-                                        >
-                                            <ThemeText
-                                                text={String(count)}
-                                                textStyle="u_bold"
-                                                textOptions={{ fill: '#ffffff' }}
-                                                layout={{ marginLeft: 3, marginTop: 1, marginRight: 5, marginBottom: 2 }}
-                                            />
-                                        </Border>
-                                    )}
-                                </Region>
-                            );
-                        })}
-                    </Region>
-                    <Region layout={{ position: 'absolute', left: 0, top: footerTop, width: WINDOW_WIDTH, height: FOOTER_HEIGHT }}>
-                        <AchievementProgressBar
-                            x={72}
-                            y={1}
-                            width={246}
+                // `refreshCategoryListFooter`.
+                categories_footer_cont: {
+                    visible: !category,
+                    children: !category && (
+                        <QuestProgressBar
+                            {...TOTAL_PROGRESS_BAR_LOC}
+                            width={TOTAL_PROGRESS_BAR_WIDTH}
                             current={total.progress}
                             max={total.max}
                             levelKey={0}
                             scoreAtStartOfLevel={0}
                             caption={(progress, limit) => t('achievements.categories.totalprogress', undefined, { progress: String(progress), limit: String(limit) })}
                         />
-                        <ThemeText
-                            text={t('achievements.categories.score', undefined, { score: String(score) })}
-                            textOptions={{ fill: '#444444', fontFamily: 'Ubuntu', fontSize: 13, align: 'center' }}
-                            flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 5, width: 379, top: 23 }}
-                        />
-                    </Region>
-                </>
-            )}
-            {category && (
-                <>
-                    <Region layout={{ position: 'absolute', left: 0, top: headerTop, width: WINDOW_WIDTH, height: HEADER_HEIGHT }}>
-                        <Region
-                            backgroundColor="#8899a2"
-                            layout={{ position: 'absolute', left: 1, top: 0, width: 387, height: HEADER_HEIGHT }}
-                        />
-                        <Region
-                            backgroundColor="#000000"
-                            layout={{ position: 'absolute', left: 0, top: 74, width: 387, height: 1 }}
-                        />
-                        <ThemeImage
-                            src={questing(`achicon_${category.code}.png`)}
-                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            layout={{ position: 'absolute', left: 297, top: 3, width: 84, height: 72 }}
-                        />
-                        <ThemeText
-                            text={categoryName(category.code)}
-                            textOptions={{ fill: '#ffffff', fontFamily: 'Ubuntu', fontSize: 20 }}
-                            flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                            markup
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 78, top: 13, width: 286, height: 24 }}
-                        />
-                        <ThemeText
-                            text={t('achievements.details.categoryprogress', undefined, { progress: String(categoryProgress(category).progress), limit: String(categoryProgress(category).max) })}
-                            textOptions={{ fill: '#ffffff', fontFamily: 'Ubuntu', fontSize: 13 }}
-                            flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 78, top: 40, width: 245, height: 24 }}
-                        />
-                        <Region
-                            cursor="pointer"
-                            onPointerTap={back}
-                            layout={{ position: 'absolute', left: 14, top: 21, width: 33, height: 34 }}
-                        >
-                            <ThemeImage
-                                src={LayoutImage('habbo-window-manager-com/icons_back.png')}
-                                bitmap={{ fitSizeToContents: true }}
-                                layout={{ position: 'absolute', left: 0, top: 0 }}
-                            />
-                        </Region>
-                    </Region>
-                    <Region layout={{ position: 'absolute', left: 10, top: listTop, width: 367, height: listHeight }}>
-                        {tiles.map((entry, index) => {
-                            const left = (ACHIEVEMENT_WIDTH + (scrolling ? 5 : 0)) * (index % columns);
-                            const tileTop = ACHIEVEMENT_HEIGHT * Math.floor(index / columns) + ACHIEVEMENT_TOP_SPACING;
+                    ),
+                },
+                achievement_score_txt: { caption: t('achievements.categories.score', undefined, { score: String(score) }) },
 
-                            if (!entry) {
+                // `refreshAchievementsHeader`.
+                achievements_header_cont: { visible: !!category },
+                category_name_txt: { caption: category && t(`quests.${category.code}.name`, `quests.${category.code}.name`) },
+                category_progress_txt: category
+                    ? { caption: t('achievements.details.categoryprogress', undefined, { progress: String(categoryProgress(category).progress), limit: String(categoryProgress(category).max) }) }
+                    : {},
+                // `HabboQuestEngine.setupAchievementCategoryImage(window, category, false)`.
+                'achievements_header_cont/category_pic_bitmap': { asset: category && `\${image.library.questing.url}achicon_${category.code}.png` },
+
+                // `refreshAchievementList`. The slots go in a scroll area over the list's own - the
+                // layout's `achievements_scrollbar` names `achievements_scrollarea` as what it scrolls.
+                achievements_list: {
+                    visible: !!category,
+                    children: category && (
+                        <ScrollArea
+                            orientation="vertical"
+                            variant="3"
+                            scrollResetKey={category.code}
+                            layout={{ position: 'absolute', left: 0, top: 0, width: LIST_WIDTH, height: listHeight, gap: 0 }}
+                            viewportLayout={{ position: 'absolute', left: 0, top: 0, width: LIST_WIDTH, height: listHeight }}
+                            scrollbarLayout={{ position: 'absolute', left: SCROLLBAR_RECT.x, top: 0, width: SCROLLBAR_RECT.width, height: listHeight }}
+                            contentLayout={{ position: 'relative', width: LIST_WIDTH, height: achievementsHeight }}
+                        >
+                            {Array.from({ length: slotCount }, (_, index) => {
+                                const entry = shownAchievements[index];
+
                                 return (
-                                    <ThemeImage
-                                        key={`empty-${index}`}
-                                        src={questing('achievement_inactive.png')}
-                                        bitmap={{}}
-                                        layout={{ position: 'absolute', left, top: tileTop, width: ACHIEVEMENT_WIDTH, height: ACHIEVEMENT_HEIGHT }}
+                                    <AchievementEntry
+                                        key={entry?.achievementId ?? `empty-${index}`}
+                                        {...slotPosition(index)}
+                                        achievement={entry}
+                                        selected={!!entry && entry.achievementId === selected?.achievementId}
+                                        unseen={!!entry && unseen.some(item => item.achievementId === entry.achievementId)}
+                                        badgeUrl={badgeUrl}
+                                        onPick={id => pickAchievement(send, id)}
                                     />
                                 );
-                            }
+                            })}
+                        </ScrollArea>
+                    ),
+                },
+                achievements_scrollbar: { visible: scrolling },
 
-                            const isSelected = entry.achievementId === selected?.achievementId;
-
-                            return (
-                                <Region
-                                    key={entry.achievementId}
-                                    layout={{ position: 'absolute', left, top: tileTop, width: ACHIEVEMENT_WIDTH, height: ACHIEVEMENT_HEIGHT }}
-                                >
-                                    <ThemeImage
-                                        src={questing(isSelected ? 'achievement_active.png' : 'achievement_inactive.png')}
-                                        tint={!isSelected && unseen.some(item => item.achievementId === entry.achievementId) ? UNSEEN_TINT : '#ffffff'}
-                                        bitmap={{}}
-                                        layout={{ position: 'absolute', left: 0, top: 0, width: ACHIEVEMENT_WIDTH, height: ACHIEVEMENT_HEIGHT }}
-                                    />
-                                    <ThemeImage
-                                        src={badgeImage(achievedBadgeCode(entry))}
-                                        greyscale={!firstLevelAchieved(entry)}
-                                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                                        layout={{ position: 'absolute', left: 11, top: 10, width: 40, height: 40 }}
-                                    />
-                                    <Region
-                                        cursor="pointer"
-                                        onPointerTap={() => pickAchievement(send, entry.achievementId)}
-                                        layout={{ position: 'absolute', left: 0, top: 0, width: ACHIEVEMENT_WIDTH, height: ACHIEVEMENT_HEIGHT }}
-                                    />
-                                </Region>
-                            );
-                        })}
-                    </Region>
-                    {selected && levels && achievedCode && (
-                        <Border
-                            variant="0"
-                            tintColor="#cccccc"
-                            layout={{ position: 'absolute', left: 15, top: detailsTop, width: 360, height: DETAILS_HEIGHT }}
-                        >
-                            <ThemeText
-                                text={getBadgeName(t, achievedCode)}
-                                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12 }}
-                                flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                                markup
-                                clip
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 114, top: 18, width: 238, height: 17 }}
-                            />
-                            <ThemeImage
-                                src={badgeImage(achievedCode)}
-                                greyscale={!firstLevelAchieved(selected)}
-                                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', zoomX: 2, zoomY: 2 }}
-                                layout={{ position: 'absolute', left: 10, top: 12, width: 85, height: 85 }}
-                            />
-                            <ThemeText
-                                text={getBadgeDesc(t, achievedCode, badgeLimits)}
-                                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, wordWrap: true, wordWrapWidth: 234 }}
-                                flashFormat={{ antiAliasType: 'advanced' }}
-                                markup
-                                clip
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 114, top: 34, width: 238, height: 47 }}
-                            />
-                            {/* `refreshReward`: hidden on the final level, for a negative type or fewer than one point; the three move to one row at the caption's x with a gap of 3. */}
-                            {!selected.finalLevel && selected.levelRewardPointType >= 0 && selected.levelRewardPoints >= 1 && (
-                                <Box layout={{ position: 'absolute', left: 113, top: 70, flexDirection: 'row', gap: 3 }}>
-                                    <ThemeText
-                                        text={t('achievements.details.reward')}
-                                        textOptions={{ fontFamily: 'Ubuntu', fontSize: 12 }}
-                                        flashFormat={{ antiAliasType: 'advanced' }}
-                                        verticalAlign="top"
-                                        layout={{ marginTop: 4 }}
-                                    />
-                                    <ThemeText
-                                        text={String(selected.levelRewardPoints)}
-                                        textOptions={{ fontFamily: 'Ubuntu', fontSize: 12 }}
-                                        flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                                        verticalAlign="top"
-                                        layout={{ marginTop: 4 }}
-                                    />
-                                    <CatalogCurrencyIcon
-                                        type={selected.levelRewardPointType}
-                                        big
-                                        layout={{ width: 23, height: 26 }}
-                                    />
-                                </Box>
-                            )}
-                            <ThemeText
-                                text={t('achievements.details.level', undefined, { level: String(levels.earned), limit: String(selected.levelCount) })}
-                                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, align: 'center' }}
-                                flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 4, top: 97, width: 95 }}
-                            />
-                            {selected.displayMethod !== 1 && !selected.finalLevel && (
-                                <AchievementProgressBar
-                                    x={115}
-                                    y={93}
-                                    width={180}
-                                    current={levels.current}
-                                    max={levels.limit}
-                                    levelKey={selected.achievementId * 10000 + selected.level}
-                                    scoreAtStartOfLevel={selected.scoreAtStartOfLevel}
-                                    caption={(progress, limit) => t('achievements.details.progress', undefined, { progress: String(progress), limit: String(limit) })}
-                                />
-                            )}
-                        </Border>
-                    )}
-                </>
-            )}
-        </Frame>
+                // `refreshAchievementDetails`.
+                achievement_cont: {
+                    visible: !!selected,
+                    children: selected && levels && (
+                        <QuestProgressBar
+                            {...IN_LEVEL_PROGRESS_BAR_LOC}
+                            width={IN_LEVEL_PROGRESS_BAR_WIDTH}
+                            current={levels.current}
+                            max={levels.limit}
+                            levelKey={(selected.achievementId * 10000) + selected.level}
+                            scoreAtStartOfLevel={selected.scoreAtStartOfLevel}
+                            visible={selected.displayMethod !== 1 && !selected.finalLevel}
+                            caption={(progress, limit) => t('achievements.details.progress', undefined, { progress: String(progress), limit: String(limit) })}
+                        />
+                    ),
+                },
+                achievement_name_txt: { caption: achievedCode ? getBadgeName(t, achievedCode) : undefined },
+                achievement_desc_txt: { caption: achievedCode ? getBadgeDesc(t, achievedCode, badgeLimits) ?? '' : undefined },
+                'achievement_cont/achievement_pic_bitmap': selected && achievedCode
+                    ? { asset: badgeUrl(achievedCode), greyscale: !firstLevelAchieved(selected) }
+                    : {},
+                level_txt: selected && levels
+                    ? { caption: t('achievements.details.level', undefined, { level: String(levels.earned), limit: String(selected.levelCount) }) }
+                    : {},
+                reward_caption_txt: { visible: rewardShown },
+                reward_amount_txt: { visible: rewardShown, caption: selected ? String(selected.levelRewardPoints) : undefined },
+                // `HabboQuestEngine.setupRewardImage`: the big icon of the reward's currency.
+                currency_icon: { visible: rewardShown, style: selected ? String(getCurrencyIconStyle(selected.levelRewardPointType, config, true)) : undefined },
+            }}
+        />
     );
 };

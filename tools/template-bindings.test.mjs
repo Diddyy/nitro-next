@@ -112,6 +112,34 @@ await test('a handler is one stable function that calls the latest one bound', (
     assert.deepEqual(calls, [ 'second' ]);
 });
 
+await test('the hover handlers are stable each to their own latest, apart from the tap', () => {
+    const store = new TemplateBindingStore();
+    const calls = [];
+    const bind = round => ({ onPointerTap: () => calls.push(`tap ${round}`), onPointerOver: () => calls.push(`over ${round}`), onPointerOut: () => calls.push(`out ${round}`) });
+
+    store.update(new Map([ [ label, bind(1) ] ]));
+
+    const { onPointerTap, onPointerOver, onPointerOut } = store.get(label).binding;
+
+    store.update(new Map([ [ label, bind(2) ] ]));
+
+    const binding = store.get(label).binding;
+
+    assert.equal(binding.onPointerOver, onPointerOver);
+    assert.equal(binding.onPointerOut, onPointerOut);
+    onPointerOver();
+    onPointerOut();
+    onPointerTap();
+    assert.deepEqual(calls, [ 'over 2', 'out 2', 'tap 2' ]);
+});
+
+await test('added children are compared by identity', () => {
+    const children = {};
+
+    assert.ok(sameTemplateBinding({ children }, { children }));
+    assert.ok(!sameTemplateBinding({ children }, { children: {} }));
+});
+
 await test('a binding that goes away is a change', () => {
     const store = new TemplateBindingStore();
     let notified = 0;

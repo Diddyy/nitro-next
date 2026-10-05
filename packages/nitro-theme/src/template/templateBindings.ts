@@ -3,6 +3,8 @@
  * click on it does - handed to `TemplateView` as props by element name, the way Flash window code
  * reaches them with `findChildByName`.
  */
+import type { ReactNode } from 'react';
+
 import type { TemplateElement } from './templateData';
 import type { TemplateRect } from './templateLayout';
 
@@ -22,15 +24,32 @@ export interface TemplateBinding {
      * (`IWindow.color`) over its `color`.
      */
     color?: number;
-    /** A bitmap's asset, over the layout's `asset_uri` - what code sets with `IBitmapWrapperWindow.bitmap` or `assetUri`. */
+    /**
+     * A bitmap's asset, over the layout's `asset_uri` - what code sets with `IBitmapWrapperWindow.bitmap` or `assetUri`;
+     * a `badge_image` widget's badge (`BadgeImageWidget.badgeId`), as its image's url.
+     */
     asset?: string;
+    /** A `badge_image` widget's `greyscale`. */
+    greyscale?: boolean;
+    /** Over the layout's `style` (`IWindow.style`) - an icon's icon-set style. */
+    style?: string;
+    /** `IWindow.blend`, over the layout's. */
+    alpha?: number;
     disabled?: boolean;
     onPointerTap?: () => void;
+    /** `WME_OVER` / `WME_OUT` on the element. */
+    onPointerOver?: () => void;
+    onPointerOut?: () => void;
     /**
      * A list's items that show, by name; every other item of the list is hidden. The AS3 pattern of
      * hiding every list item and showing some (`AvatarMenuView.updateButtons`).
      */
     show?: readonly string[];
+    /**
+     * The windows the code adds to it (`addChild`) - other templates built with `buildFromXML` and
+     * placed by their own `x`/`y` - drawn over its own children.
+     */
+    children?: ReactNode;
 }
 
 /**
@@ -111,6 +130,11 @@ export const bindElements = (targets: ReadonlyMap<string, TemplateElement>, bind
     return byElement;
 };
 
+/** The handlers a binding carries: each is handed to the element as one stable function that calls the latest. */
+const HANDLERS = [ 'onPointerTap', 'onPointerOver', 'onPointerOut' ] as const;
+
+type TemplateHandler = typeof HANDLERS[number];
+
 /**
  * Whether two bindings draw the same: every value equal, `show` by its names, a handler only by
  * whether there is one - the store hands elements a stable handler that calls the latest.
@@ -123,9 +147,13 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.caption === b.caption
         && a.tooltip === b.tooltip
         && a.asset === b.asset
+        && a.greyscale === b.greyscale
+        && a.style === b.style
+        && a.alpha === b.alpha
         && a.color === b.color
         && a.disabled === b.disabled
-        && !a.onPointerTap === !b.onPointerTap
+        && a.children === b.children
+        && HANDLERS.every(handler => !a[handler] === !b[handler])
         && (a.show === b.show || (!!a.show && !!b.show && a.show.length === b.show.length && a.show.every((name, index) => name === b.show?.[index])));
 };
 
@@ -148,7 +176,7 @@ export interface TemplateElementState {
 export class TemplateBindingStore {
     private _current = new Map<TemplateElement, TemplateElementState>();
     private _latest = new Map<TemplateElement, TemplateBinding>();
-    private _handlers = new Map<TemplateElement, () => void>();
+    private _handlers = new Map<TemplateElement, Partial<Record<TemplateHandler, () => void>>>();
     private _listeners = new Set<() => void>();
     private _changed = false;
 
@@ -172,7 +200,7 @@ export class TemplateBindingStore {
         for (const element of new Set([ ...byElement.keys(), ...rects.keys() ])) {
             const previous = this._current.get(element);
             const binding = byElement.get(element);
-            const stableBinding = binding?.onPointerTap ? { ...binding, onPointerTap: this.handlerFor(element) } : binding;
+            const stableBinding = binding && HANDLERS.some(handler => binding[handler]) ? this.stabilise(element, binding) : binding;
             const rect = rects.get(element);
             const keptBinding = sameTemplateBinding(previous?.binding, stableBinding) ? previous?.binding : stableBinding;
             const keptRect = sameTemplateRect(previous?.rect, rect) ? previous?.rect : rect;
@@ -193,14 +221,25 @@ export class TemplateBindingStore {
         for (const listener of this._listeners) listener();
     }
 
-    private handlerFor(element: TemplateElement): () => void {
-        let handler = this._handlers.get(element);
+    /** The binding with each of its handlers swapped for the element's stable one. */
+    private stabilise(element: TemplateElement, binding: TemplateBinding): TemplateBinding {
+        const stable = { ...binding };
 
-        if (!handler) {
-            handler = () => this._latest.get(element)?.onPointerTap?.();
-            this._handlers.set(element, handler);
+        for (const handler of HANDLERS) {
+            if (binding[handler]) stable[handler] = this.handlerFor(element, handler);
         }
 
-        return handler;
+        return stable;
+    }
+
+    private handlerFor(element: TemplateElement, kind: TemplateHandler): () => void {
+        let handlers = this._handlers.get(element);
+
+        if (!handlers) {
+            handlers = {};
+            this._handlers.set(element, handlers);
+        }
+
+        return handlers[kind] ??= () => this._latest.get(element)?.[kind]?.();
     }
 }

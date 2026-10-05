@@ -35,7 +35,7 @@ import { CheckBox } from '../CheckBox';
 import { CloseButton } from '../CloseButton';
 import { ContainerButton } from '../ContainerButton';
 import { Droplist } from '../Droplist';
-import { Frame } from '../Frame';
+import { Frame, FrameProps } from '../Frame';
 import { Header } from '../Header';
 import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
@@ -49,7 +49,7 @@ import { TabContent } from '../TabContent';
 import { TabContext } from '../TabContext';
 import { ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
-import { FlashBitmapVars } from '../utils';
+import { FlashBitmapVars, WindowPlacedContext } from '../utils';
 import { measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { bindElements, resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
@@ -80,7 +80,16 @@ export interface TemplateViewProps {
      * through the window model (`LayoutWindow.setRectangle`, `textWidth`). Runs on every layout.
      */
     arrange?: (windows: TemplateWindows) => void;
+    /**
+     * How the window manager opens the root frame, when the template is a window of its own
+     * (`buildFromXML(xml, 1)`): its id on the desktop, where it opens, and what its close button
+     * does (`findChildByTag("close").procedure`). It is dragged like any window. Without it, a root
+     * frame is drawn where the template is, fixed.
+     */
+    frame?: TemplateFrameOptions;
 }
+
+export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose'>;
 
 /** The windows of a laid-out template, found as bindings find elements (a name, or a `/` path). */
 export interface TemplateWindows {
@@ -167,6 +176,13 @@ const bitmapVars = (vars: Record<string, TemplateValue>): FlashBitmapVars => {
     return bitmap;
 };
 
+/** A widget's own vars, `<type>:`-prefixed in the layout (`badge_image:zoom_x`), without the prefix. */
+const widgetVars = (vars: Record<string, TemplateValue>, type: string): Record<string, TemplateValue> => {
+    const prefix = `${type}:`;
+
+    return Object.fromEntries(Object.entries(vars).filter(([ key ]) => key.startsWith(prefix)).map(([ key, value ]) => [ key.slice(prefix.length), value ]));
+};
+
 /**
  * What every element of one `TemplateView` shares. Kept the same object while its inputs are, so a
  * memoised element only redraws when its own binding changes - or when this does (the texts changed
@@ -178,6 +194,7 @@ interface Context {
     store: TemplateBindingStore;
     showHidden: boolean;
     idPrefix: string;
+    frame?: TemplateFrameOptions;
 }
 
 /** A `#icon` / `#bg` tag: the part of its `dynamicStyle` host's look it takes. */
@@ -241,7 +258,7 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
 
 /** What an element draws of its own, filling its rect, under its children. */
 const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, binding: TemplateBinding | undefined): ReactNode => {
-    const variant = element.style;
+    const variant = binding?.style ?? element.style;
     const tintColor = tintOf(element, binding);
     const caption = captionOf(element, context, binding);
     const text = caption ? <ThemeText text={caption} /> : undefined;
@@ -251,13 +268,31 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     if (BITMAP_TAGS.has(element.tag)) {
         const asset = binding?.asset ?? (flashString(element.vars.asset_uri) || flashString(element.vars.bitmap_asset_name));
 
-        if (!asset || asset.includes('$') || !context.imageUrl) return null;
+        // A `${key}` in it is the client's to fill (`${image.library.questing.url}`); any other `$` is
+        // an embedded asset's hashed name, which no bundle carries.
+        if (!asset || /\$(?!\{)/.test(asset) || !context.imageUrl) return null;
 
         return (
             <ThemeImage
                 src={context.imageUrl(asset)}
+                // A colour the code sets (`IWindow.color`); the layout's own is not drawn on a bitmap.
+                tint={binding?.color !== undefined ? flashColor(binding.color)?.hex : undefined}
                 bitmap={bitmapVars(element.vars)}
                 dynamicRole={dynamicRoleOf(element)}
+                layout={{ ...FILL, width: rect.width, height: rect.height }}
+            />
+        );
+    }
+
+    // `BadgeImageWidget`: the badge the code names, drawn with the widget's `badge_image:` bitmap vars.
+    if (element.tag === 'widget' && element.vars.widget_type === 'badge_image') {
+        if (!binding?.asset || !context.imageUrl) return null;
+
+        return (
+            <ThemeImage
+                src={context.imageUrl(binding.asset)}
+                greyscale={binding.greyscale}
+                bitmap={bitmapVars(widgetVars(element.vars, 'badge_image'))}
                 layout={{ ...FILL, width: rect.width, height: rect.height }}
             />
         );
@@ -441,9 +476,14 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
  */
 const isRegion = (element: TemplateElement, binding: TemplateBinding | undefined) => element.tag === 'region'
     || !!element.dynamicStyle
+    || !!binding?.onPointerOver
+    || !!binding?.onPointerOut
     || (!!binding?.onPointerTap && !CLICKABLE_FACES.has(element.tag));
 
 const CLICKABLE_FACES = new Set([ 'button', 'button_thick', 'container_button' ]);
+
+/** The view id of a template's (first) root element - the window, when it is a frame. */
+const ROOT_ID = '0';
 
 interface ElementViewProps {
     element: TemplateElement;
@@ -468,20 +508,25 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
 
     if (hidden && !context.showHidden) return null;
 
-    const alpha = (hidden ? 0.4 : 1) * (element.blend ?? 1);
+    const alpha = (hidden ? 0.4 : 1) * (binding?.alpha ?? element.blend ?? 1);
     const list = TEMPLATE_LISTS[element.tag];
     const childFlow = FLOWS[element.tag];
     const show = list ? binding?.show : undefined;
-    const children = element.children.map((child, index) => (
-        <ElementView
-            key={`${id}.${index}`}
-            element={child}
-            context={context}
-            id={`${id}.${index}`}
-            flow={childFlow}
-            shown={show ? show.includes(child.name ?? '') : undefined}
-        />
-    ));
+    const children = (
+        <>
+            {element.children.map((child, index) => (
+                <ElementView
+                    key={`${id}.${index}`}
+                    element={child}
+                    context={context}
+                    id={`${id}.${index}`}
+                    flow={childFlow}
+                    shown={show ? show.includes(child.name ?? '') : undefined}
+                />
+            ))}
+            {binding?.children}
+        </>
+    );
 
     if (isRegion(element, binding)) {
         return (
@@ -492,6 +537,8 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
                 interactive={element.params?.events?.includes('input') || undefined}
                 disabled={binding?.disabled}
                 onPointerTap={binding?.onPointerTap}
+                onPointerOver={binding?.onPointerOver}
+                onPointerOut={binding?.onPointerOut}
                 alpha={alpha}
                 layout={{ ...rectOf(rect, flow), overflow: rect.clip ? 'hidden' : undefined }}
             >
@@ -502,27 +549,37 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
     }
 
     // A frame is a window: its skin and title, and its children in its content area - placed from there,
-    // as the client adds a frame's children to its `_CONTENT` container.
+    // as the client adds a frame's children to its `_CONTENT` container. The root one opens as the
+    // window `frame` describes, when there is one.
     if (element.tag === 'frame') {
+        const window = id === ROOT_ID ? context.frame : undefined;
+        const frame = (
+            <Frame
+                id={window?.id ?? `${context.idPrefix}${id}`}
+                variant={element.style}
+                caption={context.resolveText(element.caption)}
+                tintColor={tintOf(element, binding)}
+                margins={element.margins ?? [ 0, 0, 0, 0 ]}
+                defaultPosition={window ? window.defaultPosition : { x: 0, y: 0 }}
+                centered={window?.centered}
+                rememberPosition={!!window}
+                draggable={!!window}
+                onClose={window?.onClose}
+                resizeDirection="none"
+                layout={{ width: rect.width, height: rect.height }}
+            >
+                {children}
+            </Frame>
+        );
+
         return (
             <Box
                 layout={rectOf(rect, flow)}
                 alpha={alpha}
             >
-                <Frame
-                    id={`${context.idPrefix}${id}`}
-                    variant={element.style}
-                    caption={context.resolveText(element.caption)}
-                    tintColor={tintOf(element, binding)}
-                    margins={element.margins ?? [ 0, 0, 0, 0 ]}
-                    defaultPosition={{ x: 0, y: 0 }}
-                    rememberPosition={false}
-                    draggable={false}
-                    resizeDirection="none"
-                    layout={{ width: rect.width, height: rect.height }}
-                >
-                    {children}
-                </Frame>
+                {/* A window is the desktop's own child, sorted among the others as it is activated: not
+                    placed here, so the frame moves its container onto the desktop. */}
+                {window ? <WindowPlacedContext.Provider value={false}>{frame}</WindowPlacedContext.Provider> : frame}
             </Box>
         );
     }
@@ -606,7 +663,7 @@ ElementView.displayName = 'TemplateElementView';
  * binding draws differently redraw (`TemplateBindingStore`). `resolveText` and `imageUrl` should be
  * stable: a new one redraws every element, which is what a change of language needs.
  */
-export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHidden = false, idPrefix = 'template-', width, height, arrange }: TemplateViewProps) => {
+export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHidden = false, idPrefix = 'template-', width, height, arrange, frame }: TemplateViewProps) => {
     const [ store ] = useState(() => new TemplateBindingStore());
     // A template's one root window is drawn at its origin; the copy is made once, so it stays the
     // element bindings resolve to and a memoised view keeps.
@@ -628,7 +685,8 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
         store,
         showHidden,
         idPrefix,
-    }), [ resolveText, imageUrl, store, showHidden, idPrefix ]);
+        frame,
+    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame ]);
 
     const byElement = bindElements(names.targets, bindings);
     // A list's `show` over its items; otherwise the binding, over the layout.
@@ -670,7 +728,8 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
     }, [ template.name, missing ]);
 
     return (
-        <Box layout={{ position: 'relative', width: rootRect?.width ?? template.width, height: rootRect?.height ?? template.height }}>
+        // Opened as a window, the frame is on the desktop and this box holds nothing in its flow.
+        <Box layout={{ position: frame ? 'absolute' : 'relative', width: rootRect?.width ?? template.width, height: rootRect?.height ?? template.height }}>
             {elements.map((element, index) => (
                 <ElementView
                     key={String(index)}

@@ -11,12 +11,15 @@ received order, with miscellaneous entries last, then archive. The configured ne
 room-controlled categories are available through category links. Disabled entries are hidden. Room-controlled entries require
 their `WF_` code to be enabled by the current room's Wired environment.
 
-The window is written from the quest engine's `Achievements`, `AchievementCategory`, `Achievement` and
-`ProgressBar` layouts (389 wide; sections stacked by `moveAllChildrenToColumn(content, 0, 4)`, height
-`lowest point + 45`). Tiles, category pictures (`ach_category_<code>`, `achicon_<code>`) and the unseen
-tint come from `image.library.questing.url`; the progress bar art ships in the `shared` bundle and its
-fill animates with the AS3 step formula. Selecting an achievement uses the visible entry, where AS3 indexes
-the unfiltered list in `wired_games`.
+The window draws the quest engine's window templates (`habbo-quest-engine-com` from `ui.templates.url`)
+as `AchievementController` builds them: `Achievements` is the window, an `AchievementCategory` per grid
+tile and an `Achievement` per list slot are added to its containers, and a `ProgressBar` to the footer
+and the details. `refresh`'s geometry is the template's `arrange` (sections stacked by
+`moveAllChildrenToColumn(content, 0, 4)`, height `lowest point + 45`). Tiles, category pictures
+(`ach_category_<code>`, `achicon_<code>`) and the slot backgrounds are the templates'
+`${image.library.questing.url}` bitmaps; the bar's fill animates with the AS3 step formula. A category
+of more than 24 achievements scrolls in five columns. Selecting an achievement uses the visible entry,
+where AS3 indexes the unfiltered list in `wired_games`.
 
 The packet contracts follow AS3 `AchievementData`, `AchievementsMessageParser`,
 `AchievementMessageParser` and `AchievementLevelUpData`. Limits and current points on the wire
