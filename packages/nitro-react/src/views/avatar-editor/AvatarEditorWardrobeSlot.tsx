@@ -48,7 +48,7 @@ export const AvatarEditorWardrobeSlot = ({ figure, gender = AvatarGenderType.Mal
                     layout={{ position: 'absolute', left: 3, width: 22, top: 3, height: 26 }}
                 >
                     <ThemeImage
-                        src={LayoutImage('avatar-editor/icons_forward_small.png')}
+                        src={LayoutImage('habbo-window-manager-com/icons_forward_small.png')}
                         bitmap={CENTERED}
                         layout={{ position: 'absolute', left: 0, width: 22, top: 9, height: 15 }}
                     />
@@ -61,7 +61,7 @@ export const AvatarEditorWardrobeSlot = ({ figure, gender = AvatarGenderType.Mal
                     layout={{ position: 'absolute', left: 2, width: 22, top: 28, height: 26 }}
                 >
                     <ThemeImage
-                        src={LayoutImage('avatar-editor/icons_back_small.png')}
+                        src={LayoutImage('habbo-window-manager-com/icons_back_small.png')}
                         bitmap={CENTERED}
                         layout={{ position: 'absolute', left: 0, width: 22, top: 0, height: 15 }}
                     />

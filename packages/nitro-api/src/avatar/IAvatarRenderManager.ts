@@ -8,7 +8,7 @@ import { IEffectAssetDownloadLibrary } from './IEffectAssetDownloadLibrary';
 import { IAvatarStructure, IStructureData } from './structure';
 
 export interface IAvatarRenderManager {
-    /** Starts from the hotel's avatar data (`avatar.data.url`, read by the renderer's `LoadAvatarData`). */
+    /** Starts from the hotel's avatar data (the avatar render library's bundle, read by the renderer's `LoadAvatarData`). */
     init(data: IAvatarRenderData): void;
     processFigureMap(data: IFigureMapLibrary[], assetUrl: string);
     processEffectMap(data: IEffectMapLibrary[], assetUrl: string);

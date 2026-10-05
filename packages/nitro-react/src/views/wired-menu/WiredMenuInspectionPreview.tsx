@@ -112,7 +112,7 @@ export const WiredMenuInspectionPreview = ({ preview, showHighlightButton, highl
             {/* `global_placeholder`: `setGlobalPlaceholder` shows it where the layout put it (10,64), which its 120x97 bitmap fills. */}
             {(preview.kind === 'global') && (
                 <ThemeImage
-                    src={LayoutImage('wired/wired_global_placeholder.png')}
+                    src={LayoutImage('habbo-window-manager-com/wired_global_placeholder.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                     layout={{ position: 'absolute', left: 10, top: 64, width: 120, height: 97 }}
                 />

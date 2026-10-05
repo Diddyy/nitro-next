@@ -199,7 +199,7 @@ export const WiredChestFurniContentsView = ({ chestId, canWithdraw }: WiredChest
                                 layout={{ position: 'absolute', left: 222, top: 2, width: 20, height: 20 }}
                             >
                                 <ThemeImage
-                                    src={LayoutImage('shared/icons_close.png')}
+                                    src={LayoutImage('habbo-window-manager-com/icons_close.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                     layout={{ position: 'absolute', left: 4, top: 4, width: 11, height: 12 }}
                                 />
@@ -247,7 +247,7 @@ export const WiredChestFurniContentsView = ({ chestId, canWithdraw }: WiredChest
                             )
                         : (
                                 <ThemeImage
-                                    src={LayoutImage('wired/wired_chests_images_classic_furni_chest_empty.png')}
+                                    src={LayoutImage('habbo-window-manager-com/wired_chests_images_classic_furni_chest_empty.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                     layout={{ position: 'absolute', left: 0, top: 10, width: 175, height: 201 }}
                                 />

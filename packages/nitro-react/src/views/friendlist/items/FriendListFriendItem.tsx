@@ -14,10 +14,10 @@ import { FriendListItem } from '../components/FriendListItem';
  * one of the four `relationship_status_*` library assets, picked by `relationshipStatus - 1`.
  */
 const RELATIONSHIP_IMAGES = {
-    none: LayoutImage('friend-list/relationship_status_none.png'),
-    heart: LayoutImage('shared/relationship_status_heart.png'),
-    smile: LayoutImage('shared/relationship_status_smile.png'),
-    bobba: LayoutImage('shared/relationship_status_bobba.png'),
+    none: LayoutImage('habbo-window-manager-com/relationship_status_none.png'),
+    heart: LayoutImage('habbo-window-manager-com/relationship_status_heart.png'),
+    smile: LayoutImage('habbo-window-manager-com/relationship_status_smile.png'),
+    bobba: LayoutImage('habbo-window-manager-com/relationship_status_bobba.png'),
 } as const;
 
 const relationshipImage = (type: MessengerFriendRelationType): string => {
@@ -107,7 +107,7 @@ export const FriendListFriendItem = memo(({ friend, showRelationshipIcon = true,
                     {/* `refreshButton(_, "start_chat")`: the `start_chat_png` speech bubble. */}
                     <ThemeImage
                         name="start_chat"
-                        src={LayoutImage('friend-list/friendlist_start_chat.png')}
+                        src={LayoutImage('habbo-friend-list-com/start_chat.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', right: 0, top: 0, width: 16, height: 14 }}
                     />
@@ -124,7 +124,7 @@ export const FriendListFriendItem = memo(({ friend, showRelationshipIcon = true,
                     {/* `refreshButton(_, "follow_friend")`: the `follow_friend_png` library bitmap. */}
                     <ThemeImage
                         name="follow_friend"
-                        src={LayoutImage('friend-list/friendlist_follow_friend.png')}
+                        src={LayoutImage('habbo-friend-list-com/follow_friend.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', right: 0, top: 0, width: 16, height: 14 }}
                     />

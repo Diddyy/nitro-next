@@ -248,7 +248,7 @@ export const CatalogSongDiskProductViewWidgetView = ({ page }: CatalogWidgetProp
                 >
                     <ThemeImage
                         name="asset_image"
-                        src={LayoutImage('catalog/catalogue_badge_background.png')}
+                        src={LayoutImage('habbo-window-manager-com/catalogue_badge_background.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 0, top: 0 }}
                     />

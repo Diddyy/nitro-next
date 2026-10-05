@@ -31,19 +31,19 @@ export const GroupColorGrid = ({ colors, selectedColorId, onSelect, layout }: Gr
             >
                 <ThemeImage
                     name="background"
-                    src={LayoutImage('groups/color_chooser_bg.png')}
+                    src={LayoutImage('habbo-groups-com/color_chooser_bg.png')}
                     layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
                 />
                 <ThemeImage
                     name="foreground"
-                    src={LayoutImage('groups/color_chooser_fg.png')}
+                    src={LayoutImage('habbo-groups-com/color_chooser_fg.png')}
                     tint={`#${color.color.toString(16).padStart(6, '0')}`}
                     layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
                 />
                 {(color.id === selectedColorId) && (
                     <ThemeImage
                         name="selected"
-                        src={LayoutImage('groups/color_chooser_selected.png')}
+                        src={LayoutImage('habbo-groups-com/color_chooser_selected.png')}
                         layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
                     />
                 )}

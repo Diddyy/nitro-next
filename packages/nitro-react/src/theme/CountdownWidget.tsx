@@ -81,7 +81,7 @@ export const CountdownWidget = ({ seconds, digits = 3, colorableFormat, layout, 
                         layout={{ width: COUNTER_WIDTH, height: 37 }}
                     >
                         <ThemeImage
-                            src={LayoutImage('window-manager/illumina_light_clock_background.png')}
+                            src={LayoutImage('habbo-window-manager-com/illumina_light_clock_background.png')}
                             layout={{ position: 'absolute', left: 0, top: 0 }}
                         />
                         <ThemeText

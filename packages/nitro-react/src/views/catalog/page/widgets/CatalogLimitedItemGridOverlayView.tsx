@@ -73,13 +73,13 @@ export const CatalogLimitedItemGridOverlayView = ({ serialNumber }: CatalogLimit
         >
             <ThemeImage
                 name="unique_item_overlay_plaque_background_bitmap"
-                src={LayoutImage('window-manager/unique_item_label_plaque_metal.png')}
+                src={LayoutImage('habbo-window-manager-com/unique_item_label_plaque_metal.png')}
                 frame={{ x: 0, y: offset, width: PLAQUE_WIDTH, height: PLAQUE_HEIGHT }}
                 layout={{ position: 'absolute', left: 1, top: 28 }}
             />
             <ThemeImage
                 name="unique_item_plaque_foreground_bitmap"
-                src={LayoutImage('window-manager/unique_item_label_plaque_border.png')}
+                src={LayoutImage('habbo-window-manager-com/unique_item_label_plaque_border.png')}
                 bitmap={{ stretchedX: false, stretchedY: false }}
                 layout={{ position: 'absolute', left: 0, width: 36, top: 27, height: 9 }}
             />
@@ -90,13 +90,13 @@ export const CatalogLimitedItemGridOverlayView = ({ serialNumber }: CatalogLimit
             />
             <ThemeImage
                 name="unique_item_plaque_studs_bitmap"
-                src={LayoutImage('window-manager/unique_item_label_studs.png')}
+                src={LayoutImage('habbo-window-manager-com/unique_item_label_studs.png')}
                 bitmap={{ stretchedX: false, stretchedY: false }}
                 layout={{ position: 'absolute', left: 0, width: 36, top: 27, height: 9 }}
             />
             <ThemeImage
                 name="unique_item_overlay_glaze_bitmap"
-                src={LayoutImage('window-manager/unique_item_label_glass_shine.png')}
+                src={LayoutImage('habbo-window-manager-com/unique_item_label_glass_shine.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 0, width: 36, top: 0, height: 36 }}
             />

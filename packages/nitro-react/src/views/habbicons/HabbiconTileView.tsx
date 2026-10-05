@@ -68,14 +68,14 @@ export const HabbiconTileView = ({ entry, active, onClick }: HabbiconTileViewPro
             )}
             {entry.owned && entry.favorite && (
                 <ThemeImage
-                    src={LayoutImage('catalog/icon_habbicon_fav.png')}
+                    src={LayoutImage('habbo-window-manager-com/icon_habbicon_fav.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 2, top: 2, width: 14, height: 14 }}
                 />
             )}
             {entry.claimable && !entry.owned && (
                 <ThemeImage
-                    src={LayoutImage('catalog/icon_notification_corner_mid.png')}
+                    src={LayoutImage('habbo-window-manager-com/icon_notification_corner_mid.png')}
                     bitmap={{ stretchedX: false, stretchedY: false }}
                     layout={{ position: 'absolute', left: 31, top: 1, width: 18, height: 18 }}
                 />

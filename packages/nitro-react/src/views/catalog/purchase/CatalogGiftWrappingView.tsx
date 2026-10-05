@@ -25,7 +25,7 @@ const VALENTINES_RIBBON_INDEX = 10;
 const PREVIEW_DIRECTION = 4;
 
 /** `updateUnknownSenderAvatarImage`: a moderator hiding their face shows the incognito head. */
-const GIFT_INCOGNITO = LayoutImage('catalog/gift_incognito.png');
+const GIFT_INCOGNITO = LayoutImage('habbo-catalog-com/gift_incognito.png');
 
 /** The box and ribbon indices after `updatePreview`'s wrap-around and its valentine rule. */
 const normalizeSelection = (boxIndex: number, ribbonIndex: number, boxTypes: readonly number[], ribbonTypes: readonly number[]) => {
@@ -297,13 +297,13 @@ export const CatalogGiftWrappingView = ({ purchase }: CatalogGiftWrappingViewPro
                 </Border>
                 <ThemeImage
                     name="write_deco"
-                    src={LayoutImage('shared/common_small_pen.png')}
+                    src={LayoutImage('habbo-window-manager-com/common_small_pen.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 301, width: 17, top: 15, height: 18 }}
                 />
                 <ThemeImage
                     name="gift_card"
-                    src={giftCard.length ? interpolate(`\${image.library.url}Giftcards/${giftCard}.png`) : LayoutImage('shared/catalogue_giftcard_blank.png')}
+                    src={giftCard.length ? interpolate(`\${image.library.url}Giftcards/${giftCard}.png`) : LayoutImage('habbo-window-manager-com/catalogue_giftcard_blank.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 10, width: 306, top: 56, height: 149 }}
                 />
@@ -436,7 +436,7 @@ export const CatalogGiftWrappingView = ({ purchase }: CatalogGiftWrappingViewPro
                         {!isDefaultBox && (
                             <ThemeImage
                                 name="small_coin"
-                                src={LayoutImage('catalog/common_small_coin.png')}
+                                src={LayoutImage('habbo-window-manager-com/common_small_coin.png')}
                                 bitmap={{}}
                                 layout={{ width: 16, height: 16, marginTop: 1, flexShrink: 0 }}
                             />

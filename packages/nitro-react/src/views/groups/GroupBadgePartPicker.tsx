@@ -103,7 +103,7 @@ export const GroupBadgePartPicker = ({ options, editorData, onSelect }: GroupBad
                                                     )
                                                 : (
                                                         <ThemeImage
-                                                            src={LayoutImage('groups/badge_part_empty.png')}
+                                                            src={LayoutImage('habbo-groups-com/badge_part_empty.png')}
                                                             layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
                                                         />
                                                     )}
@@ -111,7 +111,7 @@ export const GroupBadgePartPicker = ({ options, editorData, onSelect }: GroupBad
                                         {(partIndex === options.partIndex) && (
                                             <ThemeImage
                                                 name="selected"
-                                                src={LayoutImage('groups/badge_part_picker.png')}
+                                                src={LayoutImage('habbo-groups-com/badge_part_picker.png')}
                                                 layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
                                             />
                                         )}

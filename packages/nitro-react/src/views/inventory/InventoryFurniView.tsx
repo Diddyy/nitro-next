@@ -117,7 +117,7 @@ const FurniCountIcon = ({ count, iconWidth, numberLeft, icon, noIcon, tooltipSom
             layout={{ width: 52, height: 16, flexShrink: 0 }}
         >
             <ThemeImage
-                src={LayoutImage(`shared/${some ? icon : noIcon}.png`)}
+                src={LayoutImage(`habbo-window-manager-com/${some ? icon : noIcon}.png`)}
                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                 layout={{ position: 'absolute', left: 0, top: 0, width: iconWidth, height: 16 }}
             />
@@ -208,7 +208,7 @@ const FurniThumb = ({ group, selected, showRecyclable, onSelect, onAction, onDra
                 {recyclable && (
                     <ThemeImage
                         name="recyclable_container"
-                        src={LayoutImage('inventory/inventory_thumb_icon_recycle.png')}
+                        src={LayoutImage('habbo-window-manager-com/inventory_thumb_icon_recycle.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', left: 2, top: 3, width: 16, height: 16 }}
                     />
@@ -232,7 +232,7 @@ const FurniThumb = ({ group, selected, showRecyclable, onSelect, onAction, onDra
             </Border>
             {selected && (
                 <ThemeImage
-                    src={LayoutImage('shared/inventory_thumb_selected_outline.png')}
+                    src={LayoutImage('habbo-window-manager-com/inventory_thumb_selected_outline.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 0, top: 0, width: THUMB_SIZE, height: THUMB_SIZE }}
                 />

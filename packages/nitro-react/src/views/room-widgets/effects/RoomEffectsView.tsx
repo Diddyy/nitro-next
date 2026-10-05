@@ -21,8 +21,8 @@ export interface RoomEffectsViewProps {
 const effectIcon = (type: number) => LayoutImage(`effect-icons/fx_icon_${type}.png`);
 
 /** `EffectView.update`: `effect_hilite` carries `memenu_fx_pause` over the effect being worn, `memenu_fx_play` over one that is only running. */
-const FX_PAUSE = LayoutImage('room-ui/memenu_fx_pause.png');
-const FX_PLAY = LayoutImage('room-ui/memenu_fx_play.png');
+const FX_PAUSE = LayoutImage('habbo-room-ui-com/memenu_fx_pause.png');
+const FX_PLAY = LayoutImage('habbo-room-ui-com/memenu_fx_play.png');
 
 /** `EffectsWidget.LIST_HEIGHT_MAX` / `LIST_HEIGHT_MIN`: `update` grows the list to what it holds, between these. */
 const LIST_HEIGHT_MAX = 320;

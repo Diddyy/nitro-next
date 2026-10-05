@@ -66,7 +66,7 @@ export const GroupBadgeLayerRow = ({ options, editorData, onPickPart, onPosition
                             )
                         : (
                                 <ThemeImage
-                                    src={LayoutImage('groups/badge_part_add.png')}
+                                    src={LayoutImage('habbo-groups-com/badge_part_add.png')}
                                     layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
                                 />
                             )}
@@ -79,12 +79,12 @@ export const GroupBadgeLayerRow = ({ options, editorData, onPickPart, onPosition
                 >
                     <ThemeImage
                         name="position_grid"
-                        src={LayoutImage('groups/position_grid.png')}
+                        src={LayoutImage('habbo-groups-com/position_grid.png')}
                         layout={{ position: 'absolute', left: 0, width: 43, top: 0, height: 43 }}
                     />
                     <ThemeImage
                         name="position_picker"
-                        src={LayoutImage('groups/position_picker.png')}
+                        src={LayoutImage('habbo-groups-com/position_picker.png')}
                         layout={{
                             position: 'absolute',
                             left: PICKER_INSET + (Math.max(0, options.gridX) * BADGE_POSITION_CELL),

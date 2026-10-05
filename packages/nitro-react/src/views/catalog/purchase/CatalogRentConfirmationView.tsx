@@ -118,7 +118,7 @@ export const CatalogRentConfirmationView = () => {
                     />
                     <ThemeImage
                         name="price_type"
-                        src={paysCredits ? LayoutImage('toolbar/toolbar_credit_icon_0.png') : LayoutImage('shared/toolbar_duckat_icon_0.png')}
+                        src={paysCredits ? LayoutImage('habbo-window-manager-com/toolbar_credit_icon_0.png') : LayoutImage('habbo-window-manager-com/toolbar_duckat_icon_0.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ width: 17, height: 18, flexShrink: 0 }}
                     />

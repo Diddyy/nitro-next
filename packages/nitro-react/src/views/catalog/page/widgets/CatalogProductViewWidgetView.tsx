@@ -115,7 +115,7 @@ const isBundle = (offer: IPurchasableOffer) => (Number(offer.pricingModel) === N
 const ProductExtraView = ({ offer }: { offer: IPurchasableOffer }) => {
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
 
-    let background = 'catalog/catalogue_badge_background.png';
+    let background = 'habbo-window-manager-com/catalogue_badge_background.png';
     let width = 42;
     let content: ReactNode = null;
 
@@ -131,7 +131,7 @@ const ProductExtraView = ({ offer }: { offer: IPurchasableOffer }) => {
     } else if (offer.extraChatStyleCode) {
         const preview = GetChatStyleLibrary().getStyle(parseInt(offer.extraChatStyleCode))?.selectorPreviewTexture;
 
-        background = 'catalog/catalogue_chatstyle_background.png';
+        background = 'habbo-window-manager-com/catalogue_chatstyle_background.png';
         width = 60;
         content = preview && (
             <ThemeImage
@@ -742,7 +742,7 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
             {(previewImage?.kind === 'deal') && (
                 <ThemeImage
                     name="ctlg_teaserimg_1"
-                    src={LayoutImage('catalog/ctlg_dyndeal_background.png')}
+                    src={LayoutImage('habbo-catalog-com/ctlg_dyndeal_background.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
                 />
@@ -847,7 +847,7 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
                 layout={{ position: 'absolute', right: 9, width: 20, top: 37, height: 22 }}
             >
                 <ThemeImage
-                    src={LayoutImage('shared/roomtools_magnifier.png')}
+                    src={LayoutImage('habbo-window-manager-com/roomtools_magnifier.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                     dynamicRole="icon"
                     layout={{ position: 'absolute', left: 3, top: 0 }}
@@ -863,7 +863,7 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
                 layout={{ position: 'absolute', right: 7, width: 22, top: 63, height: 22, overflow: 'hidden' }}
             >
                 <ThemeImage
-                    src={LayoutImage('avatar-editor/avatar_editor_tabs_ae_tabs_generic.png')}
+                    src={LayoutImage('habbo-window-manager-com/avatar_editor_tabs_ae_tabs_generic.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                     dynamicRole="icon"
                     layout={{ position: 'absolute', left: -10, top: 0 }}
@@ -906,7 +906,7 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
                 {availabilityShown && !furnitureData.tradeable && (
                     <ThemeImage
                         name="tradeable_icon"
-                        src={LayoutImage('shared/inventory_furni_no_trade_icon.png')}
+                        src={LayoutImage('habbo-window-manager-com/inventory_furni_no_trade_icon.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ height: 16, width: 40, marginLeft: 5, flexShrink: 0 }}
                     />
@@ -914,7 +914,7 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
                 {availabilityShown && (!furnitureData.recyclable || !furnitureData.tradeable) && (
                     <ThemeImage
                         name="recyclable_icon"
-                        src={LayoutImage('shared/inventory_furni_no_recycle_icon.png')}
+                        src={LayoutImage('habbo-window-manager-com/inventory_furni_no_recycle_icon.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ height: 16, width: 28, marginLeft: 5, flexShrink: 0 }}
                     />

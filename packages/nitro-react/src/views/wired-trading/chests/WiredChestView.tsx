@@ -251,7 +251,7 @@ export const WiredChestView = ({ view, furni, onClose }: WiredChestViewProps) =>
                         {canRead && (
                             <>
                                 <HeaderIconButton
-                                    icon="wired/wired_chests_bell_icon.png"
+                                    icon="habbo-window-manager-com/wired_chests_bell_icon.png"
                                     iconLeft={6}
                                     iconTop={4}
                                     iconWidth={12}
@@ -262,7 +262,7 @@ export const WiredChestView = ({ view, furni, onClose }: WiredChestViewProps) =>
                                     onPress={() => setChestNotificationSettings({ chestId, chestType })}
                                 />
                                 <HeaderIconButton
-                                    icon="wired/wired_chests_gear_icon.png"
+                                    icon="habbo-window-manager-com/wired_chests_gear_icon.png"
                                     iconLeft={5}
                                     iconTop={5}
                                     iconWidth={14}
@@ -401,7 +401,7 @@ export const WiredChestView = ({ view, furni, onClose }: WiredChestViewProps) =>
                                 layout={{ position: 'absolute', right: 19, top: 6, width: 18, height: 18 }}
                             >
                                 <ThemeImage
-                                    src={LayoutImage('shared/icons_info_grey.png')}
+                                    src={LayoutImage('habbo-window-manager-com/icons_info_grey.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                     layout={{ position: 'absolute', left: 0, top: 0, width: 18, height: 18 }}
                                 />

@@ -45,8 +45,8 @@ const PURCHASE_PREVIEW_ROOM_ID = 1003;
 /** `product_image.xml` in the 126 x 152 `nft_image` widget. */
 const NFT_IMAGE_SLOTS: CollectiblesPreviewSlots = {
     productPreview: { left: 0, top: 0, width: 126, height: 152 },
-    placeholder: { left: 0, top: 0, width: 126, height: 152, src: LayoutImage('shared/collectables_collection_default.png'), centered: true },
-    unknown: { left: 0, top: 0, width: 126, height: 152, src: LayoutImage('shared/collectables_icon_curator_stamp_large.png'), stretched: false },
+    placeholder: { left: 0, top: 0, width: 126, height: 152, src: LayoutImage('habbo-window-manager-com/collectables_collection_default.png'), centered: true },
+    unknown: { left: 0, top: 0, width: 126, height: 152, src: LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_large.png'), stretched: false },
     badge: { left: 0, top: 0, width: 126, height: 152, zoom: 2 },
     pet: { left: 0, top: 0, width: 126, height: 152, zoom: 1, shrinkOnOverflow: false },
     avatar: { left: 18, top: 11, width: 90, height: 130 },
@@ -95,7 +95,7 @@ export const CollectiblesPurchaseConfirmationView = () => {
                     {(purchaseOffer.kind === 'mint_token') && (
                         <ThemeImage
                             name="product_image"
-                            src={LayoutImage('catalog/minting_token_large.png')}
+                            src={LayoutImage('habbo-catalog-com/minting_token_large.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: 1, width: 126, top: 1, height: 152 }}
                         />

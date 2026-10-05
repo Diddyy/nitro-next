@@ -8,7 +8,7 @@
  * (`%{NUM_MONTHS|...}`). The gift button shows only for a giftable offer.
  *
  * `vip_icon_medium` is a GIF, which the bundle builder (PNG only) cannot pack, so
- * it ships converted as `catalog/vip_icon_medium.png`, pixel for pixel.
+ * it ships converted as `habbo-catalog-com/vip_icon_medium.png`, pixel for pixel.
  */
 import { ClubBuyOfferData } from '#base/context/catalog';
 import { useTranslation } from '#base/context/system';
@@ -54,7 +54,7 @@ export const CatalogVipBuyItemView = ({ offer, onBuy, onGift }: CatalogVipBuyIte
                 />
                 <ThemeImage
                     name="vip_icon"
-                    src={LayoutImage('catalog/vip_icon_medium.png')}
+                    src={LayoutImage('habbo-catalog-com/vip_icon_medium.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 6, width: 33, top: 4, height: 17 }}
                 />

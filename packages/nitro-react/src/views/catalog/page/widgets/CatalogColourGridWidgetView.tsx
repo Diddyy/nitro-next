@@ -17,7 +17,7 @@ interface ColourGridState {
 }
 
 /** The catalogue art a colour event names (`ctlg_clr_27x22_*`, `ctlg_clr_40x32_*`), as its bundled asset. */
-const catalogAsset = (name: string) => LayoutImage(`catalog/${name}.png`);
+const catalogAsset = (name: string) => LayoutImage(`habbo-catalog-com/${name}.png`);
 
 /** `0xRRGGBB` as a tint, white (no change) for a negative colour - `createColorContainer`'s 255s. */
 const toTint = (colour: number) => ((colour < 0) ? '#ffffff' : `#${(colour & 0xFFFFFF).toString(16).padStart(6, '0')}`);

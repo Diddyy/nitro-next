@@ -151,7 +151,7 @@ export type WiredStyleSourceTypeSelectorTemplate
         /** The icons' `x` inside the left / middle / right button. */
         leftIconX: number; middleIconX: number; rightIconX: number;
         splitterColor: string; splitterShadowColor: string;
-        /** `wired_styles_illumina_icon_source_<type>`. */
+        /** `<library>/<prefix>` of the `<type>` icons, for `LayoutImage`: `habbo-window-manager-com/wired_styles_illumina_icon_source_`. */
         assetPrefix: string;
         /** The three button templates' `dynamic_style` (`button` in illumina's), each around its `#icon` `type_image`. */
         dynamicStyle?: DynamicStyleName;
@@ -163,7 +163,7 @@ export type WiredStyleSourceTypeSelectorTemplate
         borderColor: string;
         /** `source_options_cont`'s fill, behind the options. */
         backgroundColor: string;
-        /** `icon_source_<type>` of the room events component. */
+        /** `<library>/<prefix>` of the `<type>` icons, for `LayoutImage`: the room events component's `icon_source_<type>`. */
         assetPrefix: string;
         /** The icon's tint - the light volters draw the white icons black. */
         iconTint: string | null;

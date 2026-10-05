@@ -41,7 +41,7 @@ export const FriendListGroup = ({ value, caption, color, children, showArrows = 
                                     {/* `arrow_down_black_png` / `arrow_right_black_png`, the friend list's own library bitmaps. */}
                                     <ThemeImage
                                         name={isOpen ? 'arrow_down_black' : 'arrow_right_black'}
-                                        src={LayoutImage(isOpen ? 'friend-list/friendlist_arrow_down_black.png' : 'friend-list/friendlist_arrow_right_black.png')}
+                                        src={LayoutImage(isOpen ? 'habbo-friend-list-com/arrow_down_black.png' : 'habbo-friend-list-com/arrow_right_black.png')}
                                         layout={isOpen ? { marginLeft: 2, marginTop: 8 } : { marginLeft: 5, marginTop: 5 }}
                                     />
                                 </Box>

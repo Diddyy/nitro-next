@@ -9,8 +9,9 @@
  * anywhere - the same contract furniture, pet and figure libraries have always had.
  *
  * An asset's name is its path under `public/assets` with the extension dropped and `/` turned
- * into `-` (`room-ui/roomtools_gear.png` -> `room-ui-roomtools_gear`). `LayoutImage` builds
- * exactly that, so a call site still names the file the Flash layout named.
+ * into `-` (`window-manager/tile_preview_0.png` -> `window-manager-tile_preview_0`). A Flash library's own bitmaps are
+ * not here: Nitro Studio publishes each library's in its template bundle (`loadTemplateBundle`),
+ * named `<library>-<asset>` - the name `LayoutImage` builds from `<library>/<asset>.png`.
  */
 import { GetConfigValue, NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
@@ -23,9 +24,13 @@ const DEFAULT_BUNDLE_URL = '/assets/bundles/%name%.nitro';
  * absent: it is not on screen at boot, and the one view that draws it asks for it
  * (`loadAssetBundle`) when it opens. `font-faces` is absent for the same reason plus one more -
  * it is only the browser's fallback for a string the exact text renderer cannot take, so
- * `preloadFlashFonts` starts it in the background instead of blocking on it.
+ * `preloadFlashFonts` starts it in the background instead of blocking on it. The window
+ * manager's library bundle is in it - it carries the UI theme, and most of the art the views draw
+ * by name is that library's - and the chat styles' and the avatar render library's, which the room
+ * cannot draw its chat and avatar additions without. The room object visualization library's is the room engine's to load
+ * (`VariableFxAssetLibrary`).
  */
-const DEFAULT_PRELOAD = [ 'theme', 'fonts', 'chat-styles', 'room-object-visualization', 'nitro-wired', 'nitro-layouts' ];
+const DEFAULT_PRELOAD = [ 'fonts', 'nitro-layouts', 'habbo-window-manager-com', 'habbo-free-flow-chat-com', 'habbo-avatar-render-lib' ];
 
 /**
  * The bundles left out of the preload, by the asset-name prefix that belongs to each. A texture
@@ -40,28 +45,50 @@ const LAZY_BUNDLE_PREFIXES: [prefix: string, bundle: string][] = [
 /** Tells a bundle asset name from a url - the theme's own. */
 export { isAssetName } from '@nitrodevco/nitro-theme';
 
-/** The not-preloaded bundle an asset belongs to, or `undefined` when it is in a preloaded one. */
-export const lazyBundleForAsset = (name: string): string | undefined => LAZY_BUNDLE_PREFIXES.find(([ prefix ]) => name.startsWith(prefix))?.[1];
+/**
+ * A Flash library's bundle is named after the library (`loadTemplateBundle`), and every library's
+ * name starts with this - none of the client's own bundles' does.
+ */
+const LIBRARY_PREFIX = 'habbo-';
 
 /**
- * The bundles the hotel serves, by the config key naming them: the UI theme - every window skin's
- * art and variants (`ui.theme.url`), the chat styles (`chat.styles.url`), the renderer's bitmaps -
- * the avatar additions and the Variable FX art (`renderer.assets.url`) - and the effect icons
- * (`effect.icons.url`), which Nitro Studio builds from the client release and the hotel's own and
+ * The library bundle a Flash library's bitmap is in: `habbo-room-ui-com-roomtools_gear` is
+ * `habbo-room-ui-com`'s. A Flash asset name has no `-`, so the library is everything before the
+ * last one. `undefined` for any other name.
+ */
+const libraryBundleForAsset = (name: string): string | undefined => {
+    const end = name.lastIndexOf('-');
+
+    return (name.startsWith(LIBRARY_PREFIX) && (end > 0)) ? name.slice(0, end) : undefined;
+};
+
+/**
+ * The not-preloaded bundle an asset belongs to, or `undefined` when it is in a preloaded one. A
+ * library's bitmap pulls in its template bundle, the way a view drawing a library's template does.
+ */
+export const lazyBundleForAsset = (name: string): string | undefined => LAZY_BUNDLE_PREFIXES.find(([ prefix ]) => name.startsWith(prefix))?.[1] ?? libraryBundleForAsset(name);
+
+/**
+ * The bundles the hotel serves by a config key of their own, rather than as a library's (`ui.templates.url`):
+ * the effect icons (`effect.icons.url`), which Nitro Studio builds from the client release and the hotel's own and
  * publishes. The client ships no copy of any: with its key unset, the bundle is not loaded. Nitro's
  * own keys - Flash's came in its SWF.
  */
 const HOTEL_BUNDLE_KEYS: Record<string, string> = {
-    theme: 'ui.theme.url',
-    'chat-styles': 'chat.styles.url',
-    'room-object-visualization': 'renderer.assets.url',
     'effect-icons': 'effect.icons.url',
 };
 
-/** Where a bundle is fetched from; `undefined` for a hotel bundle whose config key is unset. */
-export const assetBundleUrl = (name: string): string | undefined => (Object.hasOwn(HOTEL_BUNDLE_KEYS, name)
-    ? (GetConfigValue<string>(HOTEL_BUNDLE_KEYS[name]) || undefined)
-    : (GetConfigValue<string>('asset.bundles.url') ?? DEFAULT_BUNDLE_URL).replace('%name%', name));
+/**
+ * Where a bundle is fetched from; `undefined` for a hotel bundle whose config key is unset. A
+ * library's bundle is `ui.templates.url`'s, with `%libname%` the library.
+ */
+export const assetBundleUrl = (name: string): string | undefined => {
+    if (name.startsWith(LIBRARY_PREFIX)) return GetConfigValue<string>('ui.templates.url')?.replace('%libname%', name) || undefined;
+
+    return Object.hasOwn(HOTEL_BUNDLE_KEYS, name)
+        ? (GetConfigValue<string>(HOTEL_BUNDLE_KEYS[name]) || undefined)
+        : (GetConfigValue<string>('asset.bundles.url') ?? DEFAULT_BUNDLE_URL).replace('%name%', name);
+};
 
 /**
  * Fetches a bundle, or joins the fetch already in flight for it. Safe to call on every render
@@ -75,16 +102,14 @@ export const loadAssetBundle = async (name: string): Promise<boolean> => {
 };
 
 /**
- * A Flash library's window templates, `templates-<library>` - which Nitro Studio publishes from the
- * client release, one bundle per library, at `ui.templates.url` with `%libname%` the library. Loaded
- * the first time a template of the library is drawn (`useTemplate`). `false` without a request when
- * the config names no url: the client ships none.
+ * A Flash library's window templates and every bitmap of the library's, in a bundle named after it -
+ * which Nitro Studio publishes from the client release, one bundle per library, at
+ * `ui.templates.url` with `%libname%` the library. Loaded the first time a template of the library
+ * is drawn (`useTemplate`) or one of its bitmaps is asked for (`lazyBundleForAsset`); the window
+ * manager's, which holds most of the art the views draw, is preloaded. `false` without a request
+ * when the config names no url: the client ships none.
  */
-export const loadTemplateBundle = async (library: string): Promise<boolean> => {
-    const url = GetConfigValue<string>('ui.templates.url');
-
-    return !!url && !!await GetAssetManager().downloadAssetBundle(`templates-${library}`, url.replace('%libname%', library));
-};
+export const loadTemplateBundle = (library: string): Promise<boolean> => loadAssetBundle(library);
 
 /**
  * The boot load. A bundle that fails is logged and skipped rather than failing the boot - the

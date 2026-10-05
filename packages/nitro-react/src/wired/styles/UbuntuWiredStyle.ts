@@ -81,7 +81,7 @@ export const UBUNTU_WIRED_STYLE: WiredStyle = {
         sourceTypeSelector: {
             kind: 'flat', height: 17, optionWidth: 13,
             borderColor: '#000000', backgroundColor: '#181818',
-            assetPrefix: 'wired_icon_source_', iconTint: null,
+            assetPrefix: 'habbo-user-defined-room-events-com/icon_source_', iconTint: null,
         },
         slider: {
             width: 148, height: 18, baseAsset: 'wired_styles_volter_slider_bg', baseHeight: 19, baseTint: '#999999',

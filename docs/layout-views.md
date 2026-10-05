@@ -3,35 +3,28 @@
 `packages/nitro-react/scripts/layouts/` holds the Flash window layouts already converted to React.
 Read the generated layout for geometry and text styles, then write the view by hand under
 `views/`, keeping the numbers and dropping the scaffolding (lorem-ipsum defaults, per-element
-`visible*` props, one-file-per-region). Bitmaps come from the owning component's folder under
-`scripts/flash-js-resources/` into `public/assets/<component>/<name>.png`, referenced with
-`LayoutImage('<component>/<name>.png')` - which is the *asset name* of the bitmap in its `.nitro`
-bundle, not a url. See Asset bundles.
+`visible*` props, one-file-per-region). A bitmap is the Flash library's own, referenced with
+`LayoutImage('<library>/<asset>.png')` - `habbo-room-ui-com/roomtools_gear.png` - which is the
+*asset name* of the bitmap (`habbo-room-ui-com-roomtools_gear`), not a url. The client ships none
+of them: Nitro Studio packs every bitmap of a library into that library's template bundle
+(named after the library, from `ui.templates.url`), and asking for one loads its bundle. See Asset
+bundles.
 
-The component is the client's own, kebab-cased, one folder per library beside the theme's own art:
-`room-ui`, `catalog`, `toolbar`, `navigator` (`navigator` + `newnavigator`), `wired`
-(`userdefinedroomevents`), `window-manager` (`windowmanager` + the `window/utils` layouts),
-`friend-bar`, `friend-list`, `avatar-editor`, `quest-engine`, `help`, `games`, `groups`,
-`inventory`, `messenger`, `moderation`, `notifications`, `discord`, `communication-demo` -
-`ASSET_FOLDERS` in the generator maps a layout's folder onto it. A bitmap two components draw is
-in `shared/` (one copy, never two), and a new layout bitmap goes in the folder of the component
-that names it. The file name stays the Flash asset name.
+The library is where the client finds the bitmap, the way `getAssetByName` does: the library the
+layout is in when it has the bitmap - a file of its own or a manifest alias (a region of a sheet) -
+and else the window manager's, which every library draws from. The asset name is the library's,
+without the `_png`. The generator writes its `layoutImage()` calls that way (`resolveImage`), so a
+conversion already names the right library.
 
 An asset name is **not unique across the client**: every library embeds its own art, so there are
-a dozen `heart_png`, four `camera_png`, three `slider_obj_png`. `flash-js-resources` answers that
-by construction - an asset sits in the folder of the library that embeds it, so `zoom_in` under
-`habbo-room-ui-com` is the room tools' own and nothing else. Take a bitmap from the folder of the
-component whose layout names it, never from whichever folder happens to have the name.
+a dozen `heart_png`, four `camera_png`, three `slider_obj_png`. The library in the name answers
+that by construction: `habbo-room-ui-com/zoom_in.png` is the room tools' own and nothing else.
+Name the library whose layout draws the bitmap (or the window manager's, where that one has no
+such bitmap), never whichever library happens to have the name. `assets.py` holds every literal
+`LayoutImage('<library>/...')` to the library as `scripts/flash-js-resources` has it.
 
-That question used to be a guess, and it is worth knowing why the auditing exists: the art used to
-arrive as one flat dump of the whole SWF, every file prefixed with the decompiler's running number,
-which names no library and orders nothing. "Whichever file readdir yielded last" lost seventeen
-times - the room tools toolbar drew the 43x44 camera-mode `zoom_in` beside its own 18x18
-`zoom_out`. So `public/assets/layout-images.json` records the bundle file behind every bitmap
-written (`<component>/<file>` -> `<library>/<file>`), and `layout_images.py` holds the shipped bytes
-to it and checks that where a bundle carries the exact name, that is the file shipped. A name that
-still settles neither way needs a `known.LAYOUT_IMAGES_AMBIGUOUS` reason: a wrong bitmap fails
-nothing, it just draws wrong.
+The art no library has - the floor plan editor's tiles, the avatar editor's remove-selection icon -
+is the client's own, under `public/assets/<folder>/` and named after its path (`window-manager/tile_preview_0.png`).
 
 The conversions follow the component XML under `scripts/flash-js-resources/`: after a refresh of
 that, regenerate them with `yarn workspace @nitrodevco/nitro-react generate-layout-views` and read
@@ -63,9 +56,5 @@ description, icon set and illumina border the theme is cut from - are listed in
 fine for everything else; for those, the drift checks and the theme follow `scripts-deob`.
 
 The generator owns its output folder and rewrites it whole: an edit made to a converted layout is
-gone on the next run, so a fix belongs in the generator or in the hand-written view. What it does
-protect is the art under `public/assets/<component>/`, which holds hand-placed bitmaps beside the
-ones it copies (a view names many of them at runtime, out of a table). It prunes only what
-`public/assets/layout-images.json` says it wrote - by that file's `<component>/<file>` path - and
-leaves a hand-placed file untouched even when an asset of the same name exists in the reference
-material.
+gone on the next run, so a fix belongs in the generator or in the hand-written view. It writes
+nothing else - no art: the bitmaps are the libraries', in their template bundles.

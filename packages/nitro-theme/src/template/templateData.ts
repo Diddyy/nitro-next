@@ -99,7 +99,7 @@ export interface Template {
 export const templateSkinKey = (tag: string, style: string | undefined) => `${tag}:${style ?? '0'}`;
 
 /**
- * One Flash library's templates, as its `templates-<library>` bundle carries them: by id,
+ * One Flash library's templates, as its bundle (named after the library) carries them: by id,
  * `<library>/<asset>` - the asset the client's code builds the window from
  * (`getAssetByName("purse_xml")` is `habbo-toolbar-com/purse_xml`).
  */

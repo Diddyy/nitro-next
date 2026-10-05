@@ -5,8 +5,7 @@
  *
  * The output is reference material, not app code: a view under `src/views` is written by hand
  * from the layout it ports (see AGENTS.md, "Widget views from Flash layouts"). The whole output
- * folder is rewritten on every run, so nothing there survives a hand edit - only the layout
- * bitmaps a hand-written view names are protected (`protectHandWrittenImages`).
+ * folder is rewritten on every run, so nothing there survives a hand edit.
  *
  * Every XML element tag maps to the theme component of the same role (`frame` -> `Frame`,
  * `border` -> `Border`, `button` -> `Button`, `text` -> `ThemeText`, ...), its `style` attribute
@@ -14,19 +13,16 @@
  * `color` becomes `tintColor`, `${key}` captions become `t('key')` calls, and the `x/y/width/
  * height` + `<scale>` anchoring becomes an absolute `layout`. Elements the client filled at
  * runtime (`widget`) become `WidgetSlot` placeholders; interactive elements get an `on<Name>`
- * callback prop; text inputs get local state. Bitmaps referenced by `asset_uri`/
- * `bitmap_asset_name` are copied out of `scripts/images` into `public/assets/<component>/`, the
- * component being the client library/package the layout that names the bitmap belongs to
- * (`ASSET_FOLDERS`); a bitmap two components name goes to `public/assets/shared/`. An asset name
- * is not unique across the client's libraries, so which file a name means is decided - never
- * guessed - by `resolveImage`/`pickImage`, and `public/assets/layout-images.json` records the
- * source file of every bitmap written.
+ * callback prop; text inputs get local state. A bitmap referenced by `asset_uri`/
+ * `bitmap_asset_name` becomes `layoutImage('<library>/<asset>.png')`, the library being the one
+ * the layout is in when it has the bitmap and else the window manager's - as `getAssetByName`
+ * finds it, and as Nitro Studio's template bundles carry and name it (`resolveImage`). Nothing
+ * is copied: the client loads a library's bitmaps from its template bundle.
  *
  *   yarn workspace @nitrodevco/nitro-react generate-layout-views
  */
 import { createHash } from 'node:crypto';
-import { createCanvas, loadImage } from 'canvas';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -69,88 +65,6 @@ const AS3_ROOT = process.env.NITRO_AS3_ROOT ?? join('D:', 'Habbo', REVISION, 'sc
  * if one were ever moved into the app.
  */
 const OUT_DIR = join(__dirname, 'layouts');
-/** Hand-written views live here, and they use `LayoutImage()` too - see `protectHandWrittenImages`. */
-const HAND_WRITTEN_DIR = join(__dirname, '../src');
-/** Layout bitmaps land under `public/assets/<component>/` - one folder per client component, beside the theme's own. */
-const IMAGE_OUT_DIR = join(__dirname, '../public/assets');
-/** Which bitmaps under `IMAGE_OUT_DIR` this script owns, by `<component>/<file>` - the rest were hand-placed and are never pruned. */
-const IMAGE_MANIFEST = join(IMAGE_OUT_DIR, 'layout-images.json');
-
-/**
- * The component folder a layout's bitmaps are filed under, by the head of the layout's own output
- * folder (`layoutFolder`: the client library that embeds it, then its driving class' package).
- * Kebab-case, one per client component, and the client's own name for it: `roomui/widget/infostand`
- * -> `room-ui`, `userdefinedroomevents` -> `wired` (the client's name for the same feature in every
- * text key and in `views/wired-*`). `navigator` and `newnavigator` are one navigator, and the
- * `window/utils/*` layouts (habbopedia, floor plan editor, profiler) belong to the same
- * `com.sulake.habbo.window` library as `windowmanager`.
- */
-const ASSET_FOLDERS: Record<string, string> = {
-    avatareditor: 'avatar-editor',
-    catalog: 'catalog',
-    communicationdemo: 'communication-demo',
-    discord: 'discord',
-    friendbar: 'friend-bar',
-    friendlist: 'friend-list',
-    games: 'games',
-    groups: 'groups',
-    help: 'help',
-    inventory: 'inventory',
-    messenger: 'messenger',
-    moderation: 'moderation',
-    navigator: 'navigator',
-    newnavigator: 'navigator',
-    notifications: 'notifications',
-    questengine: 'quest-engine',
-    roomui: 'room-ui',
-    toolbar: 'toolbar',
-    userdefinedroomevents: 'wired',
-    window: 'window-manager',
-    windowmanager: 'window-manager',
-};
-
-/**
- * The `flash-js-resources` folder(s) holding the library behind each art folder - the inverse of
- * `ASSET_FOLDERS`. This is what makes a bitmap name unambiguous: `zoom_in` asked for by a
- * `room-ui` layout is the one in `habbo-room-ui-com`, whatever else exports that name.
- */
-const RESOURCE_FOR_FOLDER: Record<string, string[]> = {
-    'avatar-editor': [ 'habbo-avatar-editor-com' ],
-    catalog: [ 'habbo-catalog-com' ],
-    'communication-demo': [ 'habbo-communication-demo-com' ],
-    'friend-bar': [ 'habbo-friend-bar-com' ],
-    'friend-list': [ 'habbo-friend-list-com' ],
-    games: [ 'habbo-games-com' ],
-    groups: [ 'habbo-groups-com' ],
-    help: [ 'habbo-help-com' ],
-    inventory: [ 'habbo-inventory-com' ],
-    messenger: [ 'habbo-messenger-com' ],
-    moderation: [ 'habbo-moderation-com' ],
-    navigator: [ 'habbo-navigator-com', 'habbo-new-navigator' ],
-    notifications: [ 'habbo-notifications-com' ],
-    'quest-engine': [ 'habbo-quest-engine-com' ],
-    'room-ui': [ 'habbo-room-ui-com' ],
-    toolbar: [ 'habbo-toolbar-com' ],
-    wired: [ 'habbo-user-defined-room-events-com' ],
-    'window-manager': [ 'habbo-window-manager-com' ],
-};
-
-/** The resource folders a call site's `component` (an art folder, or a `<component>/<file>` pin) points at. */
-const preferredComponents = (component: string | undefined): string[] =>
-    (component ? RESOURCE_FOR_FOLDER[component.split('/')[0]] ?? [] : []);
-
-/** Bitmaps two components name have no owner - one copy, here, referenced by both. */
-const SHARED_FOLDER = 'shared';
-
-/**
- * Where a layout with no library and no driving class (`unassigned`) would file its art. None of
- * the six does today - they are the feed, list-tester, room-settings and raid-protection layouts,
- * and not one names a bitmap - so this is a fallback, not a folder: the window manager is where
- * a layout nothing embeds is built from.
- */
-const UNASSIGNED_FOLDER = 'window-manager';
-
-const assetFolder = (layoutFolder: string): string => ASSET_FOLDERS[layoutFolder.split('/')[0]] ?? UNASSIGNED_FOLDER;
 const HABBO_TEXT_STYLES_FILE = join(__dirname, '../src/theme/font/flash-text/habboTextStyles.ts');
 
 // ---------------------------------------------------------------------------------------------
@@ -458,492 +372,55 @@ const themeTextStyle = (el: Element): string => {
 };
 
 // ---------------------------------------------------------------------------------------------
-// Image lookup - `scripts/images` files are `<id>_<asset_name>$<hash>.<ext>`; the XML refers
-// to them by `<asset_name>` (with or without the `_png` suffix).
-//
-// An asset name is NOT unique: every client library embeds its own art, and a dozen of them
-// export a `heart_png`, a `close_png`, a `logo_png`, a `zoom_in_png`. The id prefix is the
-// decompiler's running number over the whole SWF, so it says nothing about which library a file
-// came from - the `roomui` bitmaps alone are scattered over ids 1749-2856. Picking "the last one
-// readdir yielded" therefore picked a different library's art at random: the room tools toolbar
-// drew the 43x44 camera-mode `zoom_in` beside the 18x18 `zoom_out`. Every name keeps all its
-// files here, and `resolveImage` chooses between them - see `pickImage`.
+// Image lookup - a layout names a bitmap by its asset name (`asset_uri`, `bitmap_asset_name`),
+// with or without the `_png`. The client finds it the way `getAssetByName` does: in the library
+// the layout is in - a bitmap of its own, or a manifest alias of one (a region of a sheet) - and
+// else in the window manager's, which every library draws from. Nitro Studio packs every
+// library's bitmaps into its template bundle the same way, named `<library>-<asset>`.
 // ---------------------------------------------------------------------------------------------
 
-/** Every `<component>/<file>` a bitmap name answers to, across every library that embeds one. */
-const imageFiles = new Map<string, string[]>();
+/** The library every other one falls back to. */
+const WINDOW_MANAGER_LIBRARY = 'habbo-window-manager-com';
 
-/** `<component>/<file>` -> the component folder it came from, which is the library that embeds it. */
-const imageComponent = new Map<string, string>();
+/** An image asset's name without its type token: `zoom_in_png` is `zoom_in`. */
+const bitmapName = (asset: string): string => asset.replace(/_(png|gif|jpg)$/i, '');
+
+/** Every library's bitmap names: its image files, and its manifest's aliases of an image. */
+const libraryBitmaps = new Map<string, Set<string>>();
 
 for (const component of RESOURCE_COMPONENTS) {
+    const names = new Set<string>();
+
     for (const file of resourceFiles(component)) {
-        if (!/\.(png|gif|jpg)$/i.test(file)) continue;
-
-        const name = assetNameOf(file.slice(component.length + 1));
-
-        imageComponent.set(file, component);
-
-        // A layout names a bitmap with or without its type token, so both keys answer.
-        for (const key of new Set([ name, name.replace(/_(png|gif|jpg)$/i, '') ])) {
-            const files = imageFiles.get(key);
-
-            if (files) files.push(file);
-            else imageFiles.set(key, [ file ]);
-        }
+        if (/\.(png|gif|jpg)$/i.test(file)) names.add(file.slice(component.length + 1).replace(/\.\w+$/, ''));
     }
+
+    const manifest = join(RESOURCE_DIR, component, '_manifest.xml');
+    const aliases = existsSync(manifest) ? [ ...readFileSync(manifest, 'utf8').matchAll(/<asset [^>]*name="([^"]+)"[^>]*ref="([^"]+)"/g) ] : [];
+
+    for (const [ , name, ref ] of aliases) {
+        if (/_(png|gif|jpg)$/i.test(ref) || names.has(bitmapName(ref))) names.add(bitmapName(name));
+    }
+
+    libraryBitmaps.set(component, names);
 }
 
-/** Content hash of a `scripts/images` file - what tells two ids holding the same art from two different bitmaps. */
-const imageHashes = new Map<string, string>();
-const imageHash = (file: string): string => {
-    let hash = imageHashes.get(file);
-
-    if (hash === undefined) {
-        hash = createHash('sha1').update(readFileSync(resourcePath(file))).digest('hex');
-        imageHashes.set(file, hash);
-    }
-
-    return hash;
-};
-
-/** A bitmap's pixel size, read out of its own header - no decoding, and `canvas` is async. */
-const imageSizes = new Map<string, { width: number; height: number } | undefined>();
-const imageSize = (file: string): { width: number; height: number } | undefined => {
-    if (imageSizes.has(file)) return imageSizes.get(file);
-
-    const data = readFileSync(resourcePath(file));
-    let size: { width: number; height: number } | undefined;
-
-    if (data.length > 24 && data.readUInt32BE(0) === 0x89504e47) size = { width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
-    else if (data.length > 10 && data.toString('latin1', 0, 3) === 'GIF') size = { width: data.readUInt16LE(6), height: data.readUInt16LE(8) };
-    else if (data.length > 4 && data.readUInt16BE(0) === 0xffd8) {
-        // JPEG: walk the markers to the start-of-frame, which carries the dimensions.
-        for (let at = 2; at + 9 < data.length;) {
-            if (data[at] !== 0xff) { at++; continue; }
-
-            const marker = data[at + 1];
-
-            if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
-                size = { width: data.readUInt16BE(at + 7), height: data.readUInt16BE(at + 5) };
-                break;
-            }
-
-            at += 2 + data.readUInt16BE(at + 2);
-        }
-    }
-
-    imageSizes.set(file, size);
-
-    return size;
-};
-
-/** The distinct arts among these files, each as the files that hold it - several ids often hold identical bytes, which is harmless. */
-const distinctArts = (files: string[]): string[][] => {
-    const arts = new Map<string, string[]>();
-
-    for (const file of files) {
-        const art = arts.get(imageHash(file));
-
-        if (art) art.push(file);
-        else arts.set(imageHash(file), [ file ]);
-    }
-
-    return [ ...arts.values() ];
-};
-
-const copiedImages = new Map<string, string>();
+/** `<library>: <asset>` of every bitmap a layout names that neither its library nor the window manager has. */
 const unresolvedImages = new Set<string>();
 
-/**
- * Where each bitmap comes from and which components name it. Nothing is copied while the layouts
- * are generated: the second component that names a bitmap is what turns it into a `shared/` one,
- * and that is only known once every layout has been read (`placeImages`).
- */
-interface ImageJob {
-    /** File in `scripts/images` to copy, or to crop `region` out of. */
-    source: string;
-    region?: NonNullable<ManifestAsset['region']>;
-    components: Set<string>;
-    /** A bitmap a hand-written view names by path decides its own folder - no layout speaks for it. */
-    pinned?: string;
-}
+/** `<library>/<asset>.png` for `layoutImage()` - where the client finds the bitmap a `library` layout names. */
+const resolveImage = (name: string, library: string): string | undefined => {
+    const asset = bitmapName(name);
+    const found = [ library, WINDOW_MANAGER_LIBRARY ].find(source => libraryBitmaps.get(source)?.has(asset));
 
-const imageJobs = new Map<string, ImageJob>();
-
-/** Marks an emitted `layoutImage()` argument whose component folder is filled in by `resolveTokens`. */
-const IMAGE_TOKEN = '__LAYOUT_IMAGE__';
-
-/**
- * A family whose members a hand-written view builds names inside (`mysterybox_${type}_base.png`)
- * has to stay in one folder, or the template points at a folder the file is not in. Each of these
- * is a bitmap the layouts alone would file elsewhere - the pin names the view that builds it.
- */
-const PINNED_IMAGES: Record<string, string> = {
-    // views/avatar-editor/AvatarEditor.tsx: `avatar_editor_tabs_ae_tabs_${category}.png`, and a catalog layout draws the generic tab too.
-    'avatar_editor_tabs_ae_tabs_generic.png': 'avatar-editor',
-    // views/room-widgets/furniture/FurnitureMysteryBoxView.tsx: `mysterybox_${box|key}_base|overlay.png`; the key pair is in a notifications layout as well.
-    'mysterybox_key_base.png': 'room-ui',
-    'mysterybox_key_overlay.png': 'room-ui',
-    // views/wired-trading/trade/WiredTradeView.tsx: `wired_chests_images_${layoutType}_payments.png`; the generic one is in an inventory layout.
-    'wired_chests_images_generic_payments.png': 'wired',
-};
-
-/**
- * The asset manifests (`*_manifest_xml`) publish named sub-regions of a sheet:
- * `<asset name="progress_disk_etched_off" ref="illumina_light_progress_indicator_etched_png"><param key="region" value="0,0,10,11"/></asset>`.
- * The region is cropped out of the referenced file into its own PNG (see `cropJobs`).
- */
-interface ManifestAsset {
-    ref: string;
-    region?: { x: number; y: number; width: number; height: number };
-}
-
-const manifestAssets = new Map<string, ManifestAsset>();
-
-for (const component of RESOURCE_COMPONENTS) {
-    const manifest = join(RESOURCE_DIR, component, '_manifest.xml');
-
-    if (!existsSync(manifest)) continue;
-
-    const source = readFileSync(manifest, 'utf8');
-    const pattern = /<asset [^>]*name="([^"]+)"[^>]*ref="([^"]+)"[^>]*(?:\/>|>([\s\S]*?)<\/asset>)/g;
-
-    for (let match = pattern.exec(source); match; match = pattern.exec(source)) {
-        const [ , name, ref, body ] = match;
-        const region = body && /<param key="region" value="(\d+),(\d+),(\d+),(\d+)"/.exec(body);
-
-        if (!manifestAssets.has(name)) {
-            manifestAssets.set(name, region ? { ref, region: { x: num(region[1]), y: num(region[2]), width: num(region[3]), height: num(region[4]) } } : { ref });
-        }
-    }
-}
-
-
-/**
- * The client's asset-library classes (`HabboWindowManagerCom.as`, `HabboInventoryCom.as`, ...)
- * publish their embedded bitmaps by name, often a different one than the embedded file's:
- * `public static var roomtools_zoom_in:Class = zoom_in_png$1d108f3d…;`. A layout's `asset_uri`
- * is that published name, and the right-hand side is `<embedded name>$<hash>` - the whole
- * identity, not just the name, so it picks one `zoom_in_png` out of the several the SWF holds.
- *
- * This is the client's own answer to "which file does this name mean", so `resolveImage` asks it
- * first. Entries where the published name equals the embedded one are kept too: they carry no
- * renaming, but they still name an exact file.
- */
-const imageIdentities = new Map<string, Set<string>>();
-
-const AS3_LIBRARY_DIR = AS3_ROOT;
-
-if (existsSync(AS3_LIBRARY_DIR)) {
-    for (const file of readdirSync(AS3_LIBRARY_DIR)) {
-        if (!file.endsWith('.as')) continue;
-
-        const source = readFileSync(join(AS3_LIBRARY_DIR, file), 'utf8');
-        const pattern = /public static var (\w+):Class = §?([\w-]+?_(?:png|gif|jpg)\$[\w-]+)§?;/g;
-
-        for (let match = pattern.exec(source); match; match = pattern.exec(source)) {
-            const [ , alias, identity ] = match;
-            const identities = imageIdentities.get(alias);
-
-            if (identities) identities.add(identity);
-            else imageIdentities.set(alias, new Set([ identity ]));
-        }
-    }
-}
-
-/**
- * A bitmap name several libraries export different art under, where neither the library table nor
- * the layout's declared size settled which one this output is. The pick is then the one this
- * script has always made (the last file readdir yielded) - arbitrary, so it is printed at the end
- * beside the candidates, the way `unresolvedImages` is: wrong art does not fail, it just draws.
- */
-interface AmbiguousImage {
-    key: string;
-    chosen: string;
-    declared: string;
-    candidates: string[];
-}
-
-const ambiguousImages = new Map<string, AmbiguousImage>();
-
-/**
- * Which of `files` is the art `name` means. All the same bytes - the usual case, one asset
- * exported under several ids - and it does not matter; otherwise the layout's declared size
- * decides, and where that matches several candidates or none (a 9-slice, a stretched bar, a
- * bitmap no layout names) the pick is recorded as ambiguous rather than guessed at silently.
- */
-const pickImage = (name: string, key: string, files: string[], declared: { width: number; height: number } | undefined, prefer: string[] = []): string => {
-    // The library that embeds the bitmap answers first: a name several components export is one
-    // file per component, and the layout asking for it belongs to exactly one of them.
-    const owned = prefer.length ? files.filter(file => prefer.includes(imageComponent.get(file) ?? '')) : [];
-
-    if (owned.length) files = owned;
-
-    const fallback = files[files.length - 1];
-    const arts = distinctArts(files);
-
-    if (arts.length < 2) return fallback;
-
-    const matching = declared ? arts.filter(art => imageSize(art[0])?.width === declared.width && imageSize(art[0])?.height === declared.height) : [];
-
-    if (matching.length === 1) return matching[0][matching[0].length - 1];
-
-    const describe = (file: string): string => {
-        const size = imageSize(file);
-
-        return `${file.split('_')[0]} (${size ? `${size.width}x${size.height}` : 'unread'})`;
-    };
-
-    // First claim wins, the way `claimImage` does - the layout that names a bitmap is read before
-    // the hand-written views, so what is reported is the verdict of the call that fixed the source.
-    if (!ambiguousImages.has(name)) {
-        ambiguousImages.set(name, {
-            key,
-            chosen: describe(fallback),
-            declared: declared ? `${declared.width}x${declared.height}` : 'nothing',
-            candidates: arts.map(art => describe(art[0])),
-        });
-    }
-
-    return fallback;
-};
-
-/**
- * Bitmaps no layout names statically but the client assigned at runtime - MeMenuMainView.as's
- * `_icons` table (`<name>_white` default / `<name>_color` hover per me-menu tile). Copied so the
- * wired views can reference them through `layoutImage()` like everything else.
- */
-const RUNTIME_IMAGES: { name: string; component: string }[] = [
-    'gohome', 'dance', 'clothes', 'effects', 'badges', 'wave', 'settings', 'credits', 'minimail', 'profile', 'achievements', 'compass', 'lighthouse',
-].flatMap(name => [ `${name}_white`, `${name}_color` ]).map(name => ({ name, component: 'room-ui' })).concat([
-    // The dimmer and background colour widgets draw these from code (`DimmerFurniWidget` /
-    // `BackgroundColorFurniWidget`): the slider base and button, the colour grid's frame, button
-    // and selection, and the picture the dimmer shows while it is off.
-    'dimmer_slider_base', 'dimmer_slider_button', 'dimmer_color_frame', 'dimmer_color_button', 'dimmer_color_selected', 'dimmer_info',
-    // The pet infostand's respect button and skill levels (`InfoStandPetView`).
-    'icon_petrespect', 'pet_skill_level_0', 'pet_skill_level_1', 'pet_skill_level_2', 'pet_skill_level_3', 'pet_skill_level_4',
-    // The plant breeding window's backdrop (`PlantBreedingView`) and the effects list's hover art
-    // (`EffectView`), both set from code.
-    'breed_pets_preview_bg', 'memenu_fx_play', 'memenu_fx_pause',
-].map(name => ({ name, component: 'room-ui' }))).concat([
-    // The room info card's buttons and tag chips - `HabboNavigator.prepareButton` and the tag
-    // renderer take them from the navigator's own library, so they file under it.
-    'remove_rights', 'make_home', 'home', 'favourite', 'make_favourite', 'thumb_up', 'tag_l', 'tag_m', 'tag_r',
-    'tag_l_reactive', 'tag_m_reactive', 'tag_r_reactive',
-    // Room creation (`RoomCreateViewCtrl.refreshSelection` / `TextFieldManager.displayError`) fills
-    // the thumbnails' tile icons and bobbing arrow, and the name error's arrow, through
-    // `refreshButton` by the bitmap's own name.
-    'tile_icon_black', 'tile_icon_white', 'select_arrow', 'popup_arrow_down',
-    // `RoomInfoPopup.populate` sets the favourite and home toggles' "yes" state and the group
-    // owner / admin mode icon by asset name; the layout names only the "no" pair.
-    'newnavigator_icon_fav_yes', 'newnavigator_icon_home_yes', 'newnavigator_icon_group_owner', 'newnavigator_icon_group_admin',
-].map(name => ({ name, component: 'navigator' }))).concat([
-    // `FriendListTabsView.refreshHeader` draws the white arrows on every tab header but the
-    // friends tab's (the black pair is named by the layouts).
-    'friendlist_arrow_down_white', 'friendlist_arrow_right_white',
-].map(name => ({ name, component: 'friend-list' }))).concat([
-    // AvatarEditor tab icons: the layouts reference the `_off` state, TabUtils.setElementImage()
-    // strips `_off` for the active one; plus the runtime-only swatch/slot art the editor code loads.
-    'avatar_editor_tabs_gender_male', 'avatar_editor_tabs_gender_female', 'avatar_editor_tabs_head_hair', 'avatar_editor_tabs_head_hats',
-    'avatar_editor_tabs_head_accessories', 'avatar_editor_tabs_head_eyewear', 'avatar_editor_tabs_head_face_accessories', 'avatar_editor_tabs_top_shirt',
-    'avatar_editor_tabs_top_jacket', 'avatar_editor_tabs_top_prints', 'avatar_editor_tabs_top_accessories', 'avatar_editor_tabs_bottom_trousers',
-    'avatar_editor_tabs_bottom_shoes', 'avatar_editor_tabs_bottom_accessories', 'avatar_editor_tabs_icon_misc_pets', 'avatar_editor_tabs_icon_misc_misc',
-    // `WardrobeSlot.updateView` asks for `avatar_editor_wardrobe_empty_slot`, which no library
-    // publishes: HabboWindowManagerCom files that bitmap under its own prefix, as
-    // `avatar_editor_wardrobe_wardrobe_empty_slot`, so the client's own lookup finds nothing and
-    // an empty slot draws its border alone. Not copied, because nothing can draw it.
-    'avatar_editor_editor_clr_13x21_2', 'avatar_editor_editor_clr_13x21_3',
-].map(name => ({ name, component: 'avatar-editor' }))).concat([
-    // `SoundSettingsItem.updateSoundIcons` swaps each volume row's mute and full-volume icons
-    // between the white and the coloured pair as the row's volume reaches zero; the layout names
-    // only the white ones, so the coloured pair has nothing naming it statically.
-    'toolbar_memenu_settings_sounds_on_color', 'toolbar_memenu_settings_sounds_off_color',
-].map(name => ({ name, component: 'toolbar' }))).concat([
-    // The placeholder every badge draws while it loads: `AchievementController`,
-    // `AchievementsResolutionController` and the two resolution views all set
-    // `assetUri = "common_loading_icon"`, and the room logics send it as the `loading_icon`
-    // asset name (`FurnitureGuildCustomizedLogic`). Only the friend bar's layout names it
-    // statically, so without this row it would sit in that one component's folder.
-    { name: 'common_loading_icon', component: 'quest-engine' },
-    // The floor plan editor's five tool bitmaps. Its own layout (`floor_plan_editor_bc_xml`) is
-    // one the component bundles do not carry, so nothing names them statically, but the art is
-    // the window manager's and `FloorPlanEditorView` draws all five.
-]).concat([
-    'floor_plan_editor_add_tile', 'floor_plan_editor_remove_tile', 'floor_plan_editor_raise_tile',
-    'floor_plan_editor_sink_tile', 'floor_plan_editor_enter_tile',
-    // The hotel broadcast's `simpleAlert` illustration (`IncomingMessages.onBroadcastMessageEvent`
-    // and `HotelAlertTool` pass it as the `illustration` bitmap's `assetUri`).
-    'illumina_alert_illustrations_frank_neutral',
-    // The friend bar's notification tokens (`Token.prepare`): each token's icon is a static bitmap
-    // given its `assetUri` from code - the event icon for a room event, achievement or quest
-    // (`RoomEventToken`, `AchievementToken`, `QuestToken`) and the snowball for a game (`GameToken`).
-    'friend_bar_event_notification_icon', 'game_center_snowball_notification_icon',
-].map(name => ({ name, component: 'window-manager' }))).concat([
-    // `AddFriendsTab.allocateEntityWindow` draws `find_friends_icon_png` over the layout's
-    // `add_friends_icon_png` from code.
-    { name: 'find_friends_icon', component: 'friend-bar' },
-]).concat([
-    // `HabboCatalog.getSubscriptionProductIcon`: the club product's icon, drawn from code by
-    // `HabboCatalogUtils.displayProductIcon` (the offer centre's reward rows).
-    { name: 'icon_hc', component: 'catalog' },
-]).concat([
-    // `BuilderCatalogWidget.updateButtons`: the placement strip's error icon per refusing status
-    // (`builderWidget` names only `icons_builder_error_full`, which the others replace from code).
-    'icons_builder_error_furnilimit', 'icons_builder_error_notroom', 'icons_builder_error_room',
-    'icons_builder_error_grouproom', 'icons_builder_error_userinroom',
-].map(name => ({ name, component: 'catalog' }))).concat([
-    // `ClubExtendConfirmationDialog`: the credit icon of the normal price and the saving, and the
-    // seven frames of your price's spinning coin (`icon_credit_0` .. `icon_credit_6`).
-    'icon_credit_0', 'icon_credit_1', 'icon_credit_2', 'icon_credit_3', 'icon_credit_4', 'icon_credit_5', 'icon_credit_6',
-    // `BundleProductContainer`'s icon, which a bundle offer's product container draws (the club gifts).
-    'ctlg_pic_deal_icon_narrow',
-    // `club_center`'s `special_amount_icon` names `hc_center_icon_credits`, the embedded file of the
-    // published `hc_center_hc_center_icon_credits` (`HabboWindowManagerCom`), which the view draws.
-    'hc_center_hc_center_icon_credits',
-].map(name => ({ name, component: 'catalog' }))).concat([
-    // `PurchaseConfirmationDialog.updateUnknownSenderAvatarImage`: the head a moderator's gift
-    // shows when they hide their face, and `PRODUCT_IMAGES`' one picture the catalogue library
-    // ships (`showConfirmationDialog` draws it for the snowwar token offers).
-    'gift_incognito', 'snowwar_tokens_10',
-].map(name => ({ name, component: 'catalog' }))).concat([
-    // `ItemGridCatalogWidget.select` / the pets' colour events: the colour grid's cell art
-    // (`ColourGridCatalogWidget.createColorContainer`), the product view's bundle picture
-    // (`ctlg_dyndeal_background`) and the grid items' badge add-on (`ProductContainer.setAddOnIcon`).
-    'ctlg_clr_27x22_1', 'ctlg_clr_27x22_2', 'ctlg_clr_27x22_3', 'ctlg_clr_40x32_1', 'ctlg_clr_40x32_2', 'ctlg_clr_40x32_3',
-    'ctlg_dyndeal_background', 'catalog_icon_badge_included',
-    // `ProductContainer.setAddOnIcon`'s other add-on: a two-product offer carrying the ninja disappear effect.
-    'catalog_icon_ninja_effect_included',
-    // `HabboCatalogUtils.showExtraOnProduct`'s chat style background, set from code over `badgeDisplayWidget`.
-    'catalogue_chatstyle_background',
-].map(name => ({ name, component: 'catalog' }))).concat([
-    // The recycler: `RecyclerCatalogWidget.renderSlotGraphics`' slot art, the blush
-    // `FrankRecyclerEmotion` picks besides the template's heart, and the level stars
-    // `RecyclerPrizesCatalogWidget` sets by level (`star_small_<STAR_LEVELS>`; its layout names gold).
-    'ctlg_recycler_slot_bg', 'franks_emotions_blush',
-    'star_small_bronze', 'star_small_silver', 'star_small_diamond', 'star_small_ruby', 'star_small_pink', 'star_small_green', 'star_small_grey',
-].map(name => ({ name, component: 'catalog' }))).concat([
-    // `LimitedItemGridOverlayWidget`: the metal plaque behind a limited item's number, set from code.
-    { name: 'unique_item_label_plaque_metal', component: 'window-manager' },
-]).concat([
-    // `HabboCatalog.getMintTokenProductIcon`: the picture the purchase confirmation of a mint
-    // token pack shows (`PurchaseConfirmationDialog.showConfirmationDialog`, product type `MINT_TOKEN`).
-    { name: 'minting_token_large', component: 'catalog' },
-]).concat([
-    // The badge editor's own art, which its controllers load by name through
-    // `HabboGroupsManager.getButtonImage` rather than from a layout: the empty and add-a-part
-    // placeholders and the selection frame (`BadgeEditorPartItem`, `BadgeSelectPartCtrl`), the
-    // position picker and its grid (`BadgeLayerCtrl.createWindow`) and the colour swatch's three
-    // pieces (`ColorGridCtrl.createAndAttach`).
-    'badge_part_add', 'badge_part_empty', 'badge_part_picker', 'position_grid', 'position_picker',
-    'color_chooser_bg', 'color_chooser_fg', 'color_chooser_selected',
-].map(name => ({ name, component: 'groups' })));
-
-/**
- * Records that `component` draws `outName`, which the `scripts/images` file `source` holds (a
- * `region` of it, for a manifest sub-asset). The folder follows in `placeImages`.
- */
-const claimImage = (outName: string, source: string, component: string | undefined, region?: NonNullable<ManifestAsset['region']>): void => {
-    const job = imageJobs.get(outName) ?? { source, region, components: new Set<string>() };
-
-    if (component) {
-        if (component.includes('/')) job.pinned = component.slice(0, component.lastIndexOf('/'));
-        else job.components.add(component);
-    }
-
-    imageJobs.set(outName, job);
-};
-
-/**
- * `component` is the asset folder of the layout that names the bitmap, or - for a hand-written
- * view - the `<component>/<file>` path it names, which pins the folder itself. `declared` is the
- * size the layout gives the element drawing it, which is what tells one library's `zoom_in_png`
- * from another's when the library table has no entry for the name (see `pickImage`).
- */
-const resolveImage = (name: string, component?: string, declared?: { width: number; height: number }): string | undefined => {
-    let file: string | undefined;
-    const prefer = preferredComponents(component);
-    // A bundle file *is* the published asset name (`newnavigator_create_room.png`), so the name the
-    // layout asks for is looked up as-is first. That is the client's own answer, and it is exact.
-    const exact = imageFiles.get(name) ?? imageFiles.get(name.replace(/_(png|gif|jpg)$/i, ''));
-
-    if (exact) file = pickImage(name, name, exact, declared, prefer);
-
-    // Only a name no bundle carries goes through the library's alias table. Its right-hand side
-    // names the *embedded* file (`roomtools_zoom_in` -> `zoom_in_png$1d108f3d`), and without the
-    // hash - which the bundles do not carry - an embedded name is shared by several libraries'
-    // art, so trying it first picked a 23x23 icon for the 187x59 `newnavigator_create_room`.
-    if (!file) {
-        const identities = imageIdentities.get(name) ?? imageIdentities.get(`${name}_png`);
-        const named = [ ...identities ?? [] ]
-            .map(identity => identity.slice(0, identity.indexOf('$')))
-            .flatMap(embedded => imageFiles.get(embedded) ?? imageFiles.get(embedded.replace(/_(png|gif|jpg)$/i, '')) ?? []);
-
-        if (named.length) file = pickImage(name, `library alias -> ${named.length} file(s)`, named, declared, prefer);
-    }
-
-    // `asset_uri` names carry their library/folder as leading tokens (`avatar_editor_tabs_ae_tabs_head`
-    // is the file `ae_tabs_head`; `icons_hc_icon_small` is `hc_icon_small`) - strip tokens until one matches.
-    const tokens = name.split('_');
-
-    for (let skip = 0; skip < Math.min(4, tokens.length) && !file; skip++) {
-        const candidate = tokens.slice(skip).join('_');
-        const key = imageFiles.has(candidate) ? candidate : imageFiles.has(`${candidate}_png`) ? `${candidate}_png` : undefined;
-
-        if (key) file = pickImage(name, key, imageFiles.get(key)!, declared, prefer);
-    }
-
-    if (!file) {
-        const manifest = manifestAssets.get(name);
-        const refKey = manifest && (imageFiles.has(manifest.ref) ? manifest.ref : imageFiles.has(manifest.ref.replace(/_(png|gif|jpg)$/i, '')) ? manifest.ref.replace(/_(png|gif|jpg)$/i, '') : undefined);
-        // The region's own size is the crop, not the sheet's, so it cannot pick between sheets.
-        const refFile = refKey && pickImage(name, refKey, imageFiles.get(refKey)!, manifest?.region ? undefined : declared, prefer);
-
-        if (manifest && refFile && manifest.region) {
-            const outName = `${name}.png`;
-
-            claimImage(outName, refFile, component, manifest.region);
-
-            return outName;
-        }
-
-        file = refFile || undefined;
-    }
-
-    if (!file) {
-        unresolvedImages.add(name);
+    if (!found) {
+        unresolvedImages.add(`${library}: ${name}`);
 
         return undefined;
     }
 
-    const ext = file.slice(file.lastIndexOf('.'));
-    const outName = `${name.replace(/_(png|gif|jpg)$/i, '')}${ext}`;
-
-    claimImage(outName, file, component);
-
-    return outName;
+    return `${found}/${asset}.png`;
 };
-
-/**
- * Every claimed bitmap's folder, once every layout and every hand-written view has been read: the
- * one component that names it, `shared/` when two or more do, and the pin where a hand-written
- * view's template needs a family kept together.
- */
-const imageFolder = new Map<string, string>();
-
-const placeImages = (): void => {
-    for (const [ outName, job ] of imageJobs) {
-        // The layouts decide: a hand-written view's own path only speaks for art no layout names,
-        // so a view that points at the wrong folder reads as a missing file (scripts/drift/assets.py)
-        // instead of silently moving a bitmap out from under the layouts that share it.
-        const named = job.components.size === 1 ? [ ...job.components ][0] : job.components.size ? SHARED_FOLDER : undefined;
-
-        imageFolder.set(outName, PINNED_IMAGES[outName] ?? named ?? job.pinned ?? UNASSIGNED_FOLDER);
-    }
-};
-
-/** The `<component>/<file>` path of a claimed bitmap - only valid after `placeImages`. */
-const imagePath = (outName: string): string => `${imageFolder.get(outName) ?? UNASSIGNED_FOLDER}/${outName}`;
 
 // ---------------------------------------------------------------------------------------------
 // Emitter
@@ -952,6 +429,8 @@ const imagePath = (outName: string): string => `${imageFolder.get(outName) ?? UN
 /** State shared by every component emitted into one file (the layout plus its list-row sub-components). */
 interface FileContext {
     componentName: string;
+    /** The library the layout is in (`habbo-room-ui-com`), whose bitmaps it draws before the window manager's. */
+    library: string;
     /** Output folder under views/layouts (see `layoutFolder`). */
     folder: string;
     imports: Set<string>;
@@ -1986,20 +1465,6 @@ const emitText = (ctx: EmitContext, el: Element, parent: ParentBox, indent: stri
     return wrap('Region', regionProps, indent, child);
 };
 
-/**
- * The bitmap's own pixel size as the layout declares it - the discriminator between two libraries'
- * art of the same name (`resolveImage`). A stretched element (a 9-slice, a bar pulled across a
- * window) is drawn at a size that is not the art's, so it declares nothing.
- */
-const declaredBitmapSize = (el: Element): { width: number; height: number } | undefined => {
-    if (bool(el.vars.stretched_x) || bool(el.vars.stretched_y) || bool(el.vars.fit_size_to_contents) === false) return undefined;
-
-    const width = num(el.attrs.width);
-    const height = num(el.attrs.height);
-
-    return width > 0 && height > 0 ? { width, height } : undefined;
-};
-
 /** A `Boolean` var as `XMLPropertyArrayParser` reads one: `"true"`, or an integer above 0. */
 const flashBool = (value: string | undefined): boolean => value !== undefined && (value === 'true' || Math.trunc(Number(value)) > 0);
 
@@ -2047,13 +1512,8 @@ const emitBitmap = (ctx: EmitContext, el: Element, parent: ParentBox, indent: st
         src = quote(assetName);
         ctx.warnings.push(`external image ${assetName}`);
     } else if (assetName) {
-        const folder = assetFolder(ctx.file.folder);
-        const file = resolveImage(assetName, folder, declaredBitmapSize(el));
-
         ctx.imports.add('layoutImage');
-        // The component folder of a bitmap two layouts share is only known once every layout has
-        // been read, so the call is written as a token and resolved in `resolveTokens`.
-        src = `layoutImage(${quote(file ? `${IMAGE_TOKEN}${file}` : `${folder}/${assetName}.png`)})`;
+        src = `layoutImage(${quote(resolveImage(assetName, ctx.file.library) ?? `${ctx.file.library}/${bitmapName(assetName)}.png`)})`;
     }
 
     const override = overrideProp(ctx, el, 'src', 'string', parent.name);
@@ -2384,7 +1844,7 @@ const sharedWidget = (page: FileContext, el: Element, parent: ParentBox): string
     const widgetName = pascal(el.attrs.name!);
     const draft = `__SHARED_${widgetName}_DRAFT__`;
     const file: FileContext = {
-        componentName: draft, folder: WIDGETS_FOLDER, imports: new Set(), sharedImports: new Set(), scrollTargets: page.scrollTargets, warnings: page.warnings,
+        componentName: draft, library: page.library, folder: WIDGETS_FOLDER, imports: new Set(), sharedImports: new Set(), scrollTargets: page.scrollTargets, warnings: page.warnings,
         subComponents: [], subComponentNames: [], subComponentProps: {},
     };
 
@@ -2925,7 +2385,7 @@ const generateComponent = (componentName: string, sourceFile: string, root: XmlN
 
         return [ toElement(child) ];
     }));
-    const file: FileContext = { componentName, folder, imports: new Set(), sharedImports: new Set(), scrollTargets: new Map<string, ScrollTarget>(), warnings: [], subComponents: [], subComponentNames: [], subComponentProps: {} };
+    const file: FileContext = { componentName, library: sourceFile.slice(0, sourceFile.indexOf('/')), folder, imports: new Set(), sharedImports: new Set(), scrollTargets: new Map<string, ScrollTarget>(), warnings: [], subComponents: [], subComponentNames: [], subComponentProps: {} };
     const ctx = createEmitContext(file);
 
     for (const el of elements) collectScrollTargets(el, ctx.scrollTargets);
@@ -3083,7 +2543,6 @@ if (process.argv[2] === '--report') {
         }
     }
     for (const name of unresolvedImages) review.add(`Unresolved image: ${name}`);
-    for (const name of ambiguousImages.keys()) review.add(`Ambiguous image: ${name}`);
     for (const face of unportedFaces.keys()) review.add(`Unported font: ${face}`);
     if (!RESOURCE_COMPONENTS.length) review.add('Resource libraries unavailable: asset ownership and skin templates are unverified');
     console.log(JSON.stringify({
@@ -3100,9 +2559,6 @@ if (!RESOURCE_COMPONENTS.length || !existsSync(AS3_ROOT)) {
 
 rmSync(OUT_DIR, { recursive: true, force: true });
 mkdirSync(OUT_DIR, { recursive: true });
-mkdirSync(IMAGE_OUT_DIR, { recursive: true });
-
-for (const { name, component } of RUNTIME_IMAGES) resolveImage(name, component);
 
 interface Source { library: string; base: string; file: string; root: XmlNode; xml: string }
 
@@ -3296,10 +2752,6 @@ for (const { source, componentName, usage, folder } of planned) {
     for (const warning of warnings) warningCounts.set(warning, (warningCounts.get(warning) ?? 0) + 1);
 }
 
-// Every layout has been read, so which components name each bitmap - and with that its folder -
-// is settled, and `resolveTokens` can fill the folder into the emitted `layoutImage()` calls.
-placeImages();
-
 // Name the shared widget variants - the most-used markup of a widget id gets the plain name
 // (`PurchaseWidget`), the rest are numbered - then write their files and resolve the tokens.
 
@@ -3319,8 +2771,7 @@ for (const [ widgetName, variants ] of [ ...sharedWidgets.entries() ].sort(([ a 
 
 const resolveTokens = (text: string): string => text
     .replace(/catalog\/widgets\/(__SHARED_\w+?_[0-9a-f]{8}__)'/g, (_, token: string) => `${tokenPaths.get(token) ?? `${WIDGETS_FOLDER}/${tokenNames.get(token)}`}'`)
-    .replace(/__SHARED_\w+?_[0-9a-f]{8}__/g, token => tokenNames.get(token) ?? token)
-    .replace(new RegExp(`${IMAGE_TOKEN}([^']+)`, 'g'), (_, file: string) => imagePath(file));
+    .replace(/__SHARED_\w+?_[0-9a-f]{8}__/g, token => tokenNames.get(token) ?? token);
 
 for (const variants of sharedWidgets.values()) {
     for (const variant of variants.values()) {
@@ -3364,8 +2815,7 @@ for (const file of pendingFiles) {
 
 
 writeFileSync(join(OUT_DIR, 'layoutAssets.ts'), [
-    '/** Bitmaps referenced by the generated layouts - copied out of `scripts/images` by scripts/generate-layout-views.ts. */',
-    '/** `file` is `<component>/<asset name>`, the way `src/theme/LayoutImage.ts` takes it. */',
+    '/** A bitmap the generated layouts draw: `file` is `<library>/<asset name>.png`, the way `LayoutImage` takes it. */',
     'export const layoutImage = (file: string): string => `./assets/${file}`;',
     '',
     '/**',
@@ -3438,146 +2888,10 @@ writeFileSync(join(OUT_DIR, 'layoutRegistry.ts'), [
 
 console.log(`Generated ${exports.length} layout components into ${OUT_DIR}`);
 
-/** The bitmaps a previous run of this script copied, as `<component>/<file>` - everything else under the component folders is hand-placed. */
-const owned = new Set<string>(Object.keys(existsSync(IMAGE_MANIFEST) ? JSON.parse(readFileSync(IMAGE_MANIFEST, 'utf8')).files ?? {} : {}));
-
-/**
- * Every bitmap under the component folders right now, as `<component>/<file>`. Only those folders
- * are read: `public/assets` also holds the theme atlas, the fonts, the chat styles and the
- * currency art, none of which this script has any business listing - let alone pruning.
- */
-const placedImages: string[] = [ ...new Set([ ...Object.values(ASSET_FOLDERS), SHARED_FOLDER, UNASSIGNED_FOLDER ]) ]
-    .filter(folder => existsSync(join(IMAGE_OUT_DIR, folder)))
-    .flatMap(folder => readdirSync(join(IMAGE_OUT_DIR, folder)).filter(file => /\.(png|gif|jpg)$/i.test(file)).map(file => `${folder}/${file}`));
-
-/**
- * The bitmap already placed under this `<component>/<name>` (whatever its extension), or - for a
- * bare name, which is how the notification, trophy and variable-picker tables hold one - the first
- * component folder that has it.
- */
-const placedImage = (name: string): string | undefined => (name.includes('/')
-    ? [ 'png', 'gif', 'jpg' ].map(ext => `${name}.${ext}`).find(file => existsSync(join(IMAGE_OUT_DIR, file)))
-    : placedImages.find(file => /^[^/]+\/(.+)\.(?:png|gif|jpg)$/i.exec(file)?.[1] === name));
-
-/**
- * A bitmap the app names but this script did not write: it stays exactly as it is, and the prune
- * skips it. One this run did copy keeps its source, or the manifest would forget it owns the file.
- */
-const keepPlaced = (file: string): void => { if (!copiedImages.has(file)) copiedImages.set(file, '(hand-placed)'); };
-
-/**
- * Views written by hand draw these bitmaps as well, through the same `LayoutImage()` helper, and
- * no layout speaks for them - a room widget drawn against a Flash layout often needs a bitmap the
- * generated version of that layout never asked for. A name that resolves to a `scripts/images`
- * asset is copied if it is missing, into the component folder the call itself names; one already
- * placed that this script did not put there is left untouched, because its name may equally well
- * find an unrelated asset (token stripping makes `notifications_treasure_hunt_key_base` find
- * `treasure_hunt_key_base`) and the hand-placed file is the one the view was drawn against.
- *
- * Three shapes are read, because a bitmap is as often named away from the call: the literal call
- * (`LayoutImage('room-ui/icon_nft.png')`), any string literal that names a placed file (the
- * notification, trophy and variable-picker tables, which hold the bare Flash asset name), and the
- * literal head of a template (`LayoutImage(`wired/wired_misc_directional_system_${id}.png`)`),
- * which keeps every file that starts with it. The last is deliberately broad: keeping a stale
- * bitmap costs a few KB, deleting a live one breaks a view with no error anywhere.
- */
-const protectHandWrittenImages = (dir: string): void => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        const path = join(dir, entry.name);
-
-        if (entry.isDirectory()) {
-            protectHandWrittenImages(path);
-
-            continue;
-        }
-
-        if (!entry.name.endsWith('.tsx') && !entry.name.endsWith('.ts')) continue;
-
-        const text = readFileSync(path, 'utf8');
-
-        for (const match of text.matchAll(/\bLayoutImage\('([^']+)'\)/g)) {
-            const path = match[1].replace(/\.(png|gif|jpg)$/i, '');
-            const placed = placedImage(path);
-
-            if (placed && !owned.has(placed)) keepPlaced(placed);
-            // The call names `<component>/<file>`; `resolveImage` looks the asset up by its name
-            // and takes the folder from the path it was asked for.
-            else if (!resolveImage(path.slice(path.lastIndexOf('/') + 1), path)) unresolvedImages.add(path);
-        }
-
-        for (const match of text.matchAll(/['"`]([\w-]{4,}?)(?:\.(?:png|gif|jpg))?['"`]/g)) {
-            const placed = placedImage(match[1]);
-
-            if (placed && !owned.has(placed)) keepPlaced(placed);
-        }
-
-        // A template's head is `<component>/<stem>` in a hand-written view and a bare stem in a
-        // table of asset names, so both the path and the file name are tried.
-        for (const match of text.matchAll(/['"`]([\w/-]{6,})\$\{/g)) {
-            for (const file of placedImages) {
-                if ((file.startsWith(match[1]) || file.slice(file.indexOf('/') + 1).startsWith(match[1])) && !owned.has(file)) keepPlaced(file);
-            }
-        }
-    }
-};
-
-protectHandWrittenImages(HAND_WRITTEN_DIR);
-
-// A hand-written view may have claimed a bitmap no layout names; it decides its own folder.
-placeImages();
-
-let crops = 0;
-
-for (const [ outName, job ] of imageJobs) {
-    const out = join(IMAGE_OUT_DIR, imagePath(outName));
-
-    mkdirSync(dirname(out), { recursive: true });
-
-    if (job.region) {
-        const image = await loadImage(resourcePath(job.source));
-        const canvas = createCanvas(job.region.width, job.region.height);
-
-        canvas.getContext('2d').drawImage(image, job.region.x, job.region.y, job.region.width, job.region.height, 0, 0, job.region.width, job.region.height);
-        writeFileSync(out, canvas.toBuffer('image/png'));
-        crops++;
-    } else {
-        copyFileSync(resourcePath(job.source), out);
-    }
-
-    copiedImages.set(imagePath(outName), job.source);
-}
-
-// Only what a previous run of this script put there is pruned, by the `<component>/<file>` path
-// the manifest records. A hand-placed bitmap (the notification icons, the wired style sheets'
-// crops, the stickie and trophy art - named at runtime out of a table, so no literal names them)
-// is left alone: the earlier rule, "anything this run did not copy", deleted 111 of those the
-// first time the prune actually ran. A file this run wrote to a different folder than last run's
-// manifest names is stale under its old path and fresh under the new one.
-const stale = [ ...owned ].filter(file => !copiedImages.has(file));
-const handPlaced = placedImages.filter(file => !owned.has(file) && !copiedImages.has(file));
-
-for (const file of stale) rmSync(join(IMAGE_OUT_DIR, file), { force: true });
-if (stale.length) console.log(`Removed ${stale.length} stale images: ${stale.join(', ')}`);
-if (handPlaced.length) console.log(`Kept ${handPlaced.length} hand-placed images no layout names (not in ${IMAGE_MANIFEST})`);
-
-// `(hand-placed)` entries are in `copiedImages` to survive the prune, not because this script
-// wrote them - listing one here would hand it to the next run to overwrite and then delete.
-writeFileSync(IMAGE_MANIFEST, `${JSON.stringify({
-    note: 'Written by scripts/generate-layout-views.ts: the layout bitmaps under public/assets/<component>/ that the generator owns, and may replace or prune, each with the scripts/images file it was copied (or cropped) from. Anything under those folders that this file does not list was placed by hand and the generator leaves it alone.',
-    files: Object.fromEntries([ ...copiedImages ].filter(([ , source ]) => source !== '(hand-placed)').sort(([ a ], [ b ]) => a.localeCompare(b))),
-}, null, 4)}\n`);
-
-console.log(`Copied ${imageJobs.size} images into ${IMAGE_OUT_DIR} (${crops} cropped from manifest regions, ${unresolvedImages.size} referenced assets not found in scripts/images)`);
+// A bitmap a layout names that neither its library nor the window manager has: the view draws
+// nothing there, so every one is named.
+if (unresolvedImages.size) console.log(`${unresolvedImages.size} bitmap(s) neither the layout's library nor the window manager has:`);
 for (const name of [ ...unresolvedImages ].sort()) console.log(`  missing image: ${name}`);
-
-// A name several libraries export different art under, that neither the client's own library
-// table nor the layout's declared size settled. The pick is then arbitrary, and a wrong bitmap
-// never fails - it just draws wrong - so every one of them is named here, and `scripts/drift/
-// layout_images.py` holds them against `known.LAYOUT_IMAGES_AMBIGUOUS`.
-if (ambiguousImages.size) console.log(`${ambiguousImages.size} ambiguous image name(s) - several libraries export different art under the name and neither the library table nor the declared size chose:`);
-for (const [ name, info ] of [ ...ambiguousImages ].sort(([ a ], [ b ]) => a.localeCompare(b))) {
-    console.log(`  ambiguous image: ${name} [${info.key}] declares ${info.declared}, candidates ${info.candidates.join(', ')} - kept ${info.chosen}`);
-}
 
 // A `font_face` the theme has no captured AIR bundle and no `.ttf` for. The var is emitted all
 // the same - dropping it is the silent drift this table exists to stop - but the text renders in

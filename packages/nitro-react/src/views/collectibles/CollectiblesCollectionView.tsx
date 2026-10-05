@@ -45,26 +45,26 @@ const COMPLETION_BAR_WIDTH = 280;
 export const CollectiblesPreviewBackground = ({ starActive }: { starActive: boolean }) => (
     <>
         <ThemeImage
-            src={LayoutImage('catalog/collectables_score_background.png')}
+            src={LayoutImage('habbo-window-manager-com/collectables_score_background.png')}
             bitmap={{}}
             alpha={0.3}
             layout={{ position: 'absolute', left: -15, width: 166, top: -8, height: 286 }}
         />
         <ThemeImage
-            src={LayoutImage('catalog/collectables_score_background_right.png')}
+            src={LayoutImage('habbo-window-manager-com/collectables_score_background_right.png')}
             bitmap={{}}
             alpha={0.3}
             layout={{ position: 'absolute', left: 139, width: 166, top: -18, height: 286 }}
         />
         <ThemeImage
-            src={LayoutImage('catalog/collectables_score_background_gradient2.png')}
+            src={LayoutImage('habbo-window-manager-com/collectables_score_background_gradient2.png')}
             bitmap={{}}
             tint="#45ace2"
             alpha={0.7}
             layout={{ position: 'absolute', left: 0, width: 290, top: 0, height: 260 }}
         />
         <CollectiblesRotatingImage
-            src={LayoutImage('catalog/bg_star_300x300.png')}
+            src={LayoutImage('habbo-window-manager-com/bg_star_300x300.png')}
             speed={COLLECTIBLES_BG_STAR_ROTATE_SPEED}
             active={starActive}
             stretched={false}

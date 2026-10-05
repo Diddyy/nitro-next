@@ -84,7 +84,7 @@ export const CollectiblesCollectionsTab = () => {
                             {searching && (
                                 <ThemeImage
                                     name="search_icon"
-                                    src={LayoutImage('shared/icons_close.png')}
+                                    src={LayoutImage('habbo-window-manager-com/icons_close.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                     layout={{ position: 'absolute', left: 2, top: 2, width: 20, height: 20 }}
                                 />

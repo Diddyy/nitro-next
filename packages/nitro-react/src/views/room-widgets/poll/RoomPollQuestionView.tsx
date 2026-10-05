@@ -72,7 +72,7 @@ export const RoomPollQuestionView = ({
                 />
                 <ThemeImage
                     name="poll_prompt_image"
-                    src={LayoutImage('room-ui/poll_poll_prompt_question.png')}
+                    src={LayoutImage('habbo-window-manager-com/poll_poll_prompt_question.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 10, width: 40, top: 7, height: 40 }}
                 />
@@ -120,7 +120,7 @@ export const RoomPollQuestionView = ({
                                     />
                                     <ThemeImage
                                         name="write_deco"
-                                        src={LayoutImage('shared/common_small_pen.png')}
+                                        src={LayoutImage('habbo-window-manager-com/common_small_pen.png')}
                                         bitmap={{}}
                                         layout={{ position: 'absolute', left: 270, width: 17, top: 10, height: 18 }}
                                     />

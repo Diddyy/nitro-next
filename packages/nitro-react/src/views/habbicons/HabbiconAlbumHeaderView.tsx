@@ -56,13 +56,13 @@ export const HabbiconAlbumHeaderView = ({ stats, animate, resetKey }: HabbiconAl
                 layout={{ position: 'absolute', left: 2, top: 2, width: 554, height: 106, overflow: 'hidden' }}
             >
                 <ThemeImage
-                    src={LayoutImage('catalog/bg_pattern_001.png')}
+                    src={LayoutImage('habbo-window-manager-com/bg_pattern_001.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, wrapX: true, wrapY: true }}
                     alpha={0.16}
                     layout={{ position: 'absolute', left: -1, top: 2, width: 554, height: 110 }}
                 />
                 <ThemeImage
-                    src={LayoutImage('catalog/habbicons_habbicons_logo.png')}
+                    src={LayoutImage('habbo-window-manager-com/habbicons_habbicons_logo.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                     layout={{ position: 'absolute', left: 18, top: 20 }}
                 />

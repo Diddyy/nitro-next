@@ -131,7 +131,7 @@ const OfferCell = ({ group, onPress }: OfferCellProps) => {
                     {isCredits && (
                         <>
                             <ThemeImage
-                                src={LayoutImage('wired/inventory_furni_icon_credits.png')}
+                                src={LayoutImage('habbo-window-manager-com/inventory_furni_icon_credits.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'top center' }}
                                 layout={{ position: 'absolute', left: 1, top: 18, width: 38, height: 35 }}
                             />
@@ -370,7 +370,7 @@ export const WiredTradeView = () => {
                             onPressGroup={group => removeWiredTradeItem(send, group.items[0].itemId)}
                         />
                         <ThemeImage
-                            src={LayoutImage(locked ? 'inventory/inventory_trading_trading_locked_icon.png' : 'inventory/inventory_trading_trading_unlocked_icon.png')}
+                            src={LayoutImage(locked ? 'habbo-window-manager-com/inventory_trading_trading_locked_icon.png' : 'habbo-window-manager-com/inventory_trading_trading_unlocked_icon.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: 223, width: 32, top: 192, height: 34 }}
                         />
@@ -391,14 +391,14 @@ export const WiredTradeView = () => {
                         {isPayment && (
                             <Region layout={{ position: 'absolute', left: 263, width: 200, top: 29, height: 200 }}>
                                 <ThemeImage
-                                    src={LayoutImage(`wired/wired_chests_images_${requirement?.layoutType ?? 'generic'}_payments.png`)}
+                                    src={LayoutImage(`habbo-window-manager-com/wired_chests_images_${requirement?.layoutType ?? 'generic'}_payments.png`)}
                                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                                     layout={{ position: 'absolute', left: 20, width: 170, top: 9, height: 173 }}
                                 />
                             </Region>
                         )}
                         <ThemeImage
-                            src={LayoutImage(isPayment ? 'inventory/inventory_trading_trading_arrow_icon.png' : 'inventory/inventory_trading_trading_split_icon.png')}
+                            src={LayoutImage(isPayment ? 'habbo-window-manager-com/inventory_trading_trading_arrow_icon.png' : 'habbo-window-manager-com/inventory_trading_trading_split_icon.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: 212, width: 53, top: 95, height: 42 }}
                         />
@@ -412,7 +412,7 @@ export const WiredTradeView = () => {
                             layout={{ position: 'absolute', left: 453, width: 18, top: 6, height: 18 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('shared/icons_info_grey.png')}
+                                src={LayoutImage('habbo-window-manager-com/icons_info_grey.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                 layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 18 }}
                             />

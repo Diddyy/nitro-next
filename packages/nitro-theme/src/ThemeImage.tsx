@@ -12,8 +12,8 @@ import { compose, cursorForHandlers, DynamicStyleRole, FlashBitmapVars, insetStr
 
 export interface ImageProps extends ThemeLayoutMeta {
     /**
-     * A bundled bitmap's asset name (`LayoutImage('room-ui/roomtools_gear.png')` ->
-     * `room-ui-roomtools_gear`) or an arbitrary image URL (an avatar render, a room thumbnail,
+     * A bundled bitmap's asset name (`LayoutImage('habbo-window-manager-com/roomtools_gear.png')`
+     * -> `habbo-window-manager-com-roomtools_gear`) or an arbitrary image URL (an avatar render, a room thumbnail,
      * a badge). Ignored when `textureKey` is set.
      */
     src?: string | undefined;

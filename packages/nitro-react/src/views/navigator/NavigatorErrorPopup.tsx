@@ -39,7 +39,7 @@ export const NavigatorErrorPopup = ({ text, fieldLeft, fieldTop, fieldWidth }: N
         </Border>
         <ThemeImage
             name="popup_arrow_down"
-            src={LayoutImage('navigator/popup_arrow_down.png')}
+            src={LayoutImage('habbo-navigator-com/popup_arrow_down.png')}
             bitmap={{}}
             layout={{ width: 11, height: 11, marginTop: -1 }}
         />

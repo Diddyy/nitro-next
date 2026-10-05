@@ -242,7 +242,7 @@ export const WiredChestSettingsView = ({ request, data, onClose }: WiredChestSet
                                     </WiredSimpleList>
                                 </WiredAlignCenter>
                             </WiredContainerButton>
-                            {form.wiredEnabled && <WiredStaticBitmap asset="catalog/icon_checkmark_small" />}
+                            {form.wiredEnabled && <WiredStaticBitmap asset="habbo-window-manager-com/icon_checkmark_small" />}
                         </WiredSimpleList>
                     </WiredSection>,
                     <WiredTradingFooter

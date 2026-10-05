@@ -72,9 +72,9 @@ export const CatalogItemGridWidgetItemView = ({ offer, isActive, hilightColor, i
     const isBundle = (Number(offer.pricingModel) === Number(CatalogPricingModelEnum.Bundle));
     const isLimited = (Number(offer.pricingModel) === Number(CatalogPricingModelEnum.Single)) && !!product?.isUnique;
     const addOnIcon = (((!!offer.badgeCode || !!offer.extraChatStyleCode) && (offer.products.length > 1))
-        ? 'catalog/catalog_icon_badge_included.png'
+        ? 'habbo-catalog-com/catalog_icon_badge_included.png'
         : (((offer.products.length === 2) && offer.products.some(item => (item.productType === FurnitureTypeEnum.Effect) && (item.classId === EFFECT_CLASSID_NINJA_DISAPPEAR)))
-                ? 'catalog/catalog_icon_ninja_effect_included.png'
+                ? 'habbo-catalog-com/catalog_icon_ninja_effect_included.png'
                 : undefined));
 
     const badgeAddOn = addOnIcon && (
@@ -90,7 +90,7 @@ export const CatalogItemGridWidgetItemView = ({ offer, isActive, hilightColor, i
             {isLimited && (
                 <ThemeImage
                     name="unique_item_background_bitmap"
-                    src={LayoutImage('shared/unique_item_label_1.png')}
+                    src={LayoutImage('habbo-window-manager-com/unique_item_label_1.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 0, width: 36, top: 0, height: 36 }}
                 />
@@ -99,7 +99,7 @@ export const CatalogItemGridWidgetItemView = ({ offer, isActive, hilightColor, i
                 ? (
                         <ThemeImage
                             name="image"
-                            src={LayoutImage('catalog/ctlg_pic_deal_icon_narrow.png')}
+                            src={LayoutImage('habbo-catalog-com/ctlg_pic_deal_icon_narrow.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: 0, width: 36, top: 0, height: 36 }}
                         />
@@ -158,7 +158,7 @@ export const CatalogItemGridWidgetItemView = ({ offer, isActive, hilightColor, i
             {isLimited && product && (product.uniqueLeft === 0) && (
                 <ThemeImage
                     name="unique_item_sold_out_bitmap"
-                    src={LayoutImage('catalog/unique_item_sold_out_tile.png')}
+                    src={LayoutImage('habbo-window-manager-com/unique_item_sold_out_tile.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 0, width: 36, top: 7, height: 29 }}
                 />

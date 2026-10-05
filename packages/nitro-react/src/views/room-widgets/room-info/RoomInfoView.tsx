@@ -122,18 +122,18 @@ const RoomInfoTag = ({ tag, index, onSelect }: { tag: string; index: number; onS
         >
             <ThemeImage
                 name="bg_l"
-                src={hovered ? LayoutImage('navigator/tag_l_reactive.png') : LayoutImage('navigator/tag_l.png')}
+                src={hovered ? LayoutImage('habbo-navigator-com/tag_l_reactive.png') : LayoutImage('habbo-navigator-com/tag_l.png')}
                 layout={{ position: 'absolute', left: 0, top: 0, width: 4, height: 14 }}
             />
             <ThemeImage
                 name="bg_m"
-                src={hovered ? LayoutImage('navigator/tag_m_reactive.png') : LayoutImage('navigator/tag_m.png')}
+                src={hovered ? LayoutImage('habbo-navigator-com/tag_m_reactive.png') : LayoutImage('habbo-navigator-com/tag_m.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 4, right: 6, top: 0, height: 14 }}
             />
             <ThemeImage
                 name="bg_r"
-                src={hovered ? LayoutImage('navigator/tag_r_reactive.png') : LayoutImage('navigator/tag_r.png')}
+                src={hovered ? LayoutImage('habbo-navigator-com/tag_r_reactive.png') : LayoutImage('habbo-navigator-com/tag_r.png')}
                 layout={{ position: 'absolute', right: 1, top: 0, width: 5, height: 14 }}
             />
             <ThemeText
@@ -304,7 +304,7 @@ export const RoomInfoView = ({
                         >
                             <ThemeImage
                                 name="thumbnail_image"
-                                src={thumbnailUrl.length ? thumbnailUrl : LayoutImage('shared/newnavigator_default_room.png')}
+                                src={thumbnailUrl.length ? thumbnailUrl : LayoutImage('habbo-window-manager-com/newnavigator_default_room.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                 layout={{ position: 'absolute', left: 1, width: 110, top: 1, height: 110 }}
                             />
@@ -320,7 +320,7 @@ export const RoomInfoView = ({
                         >
                             <ThemeImage
                                 name="remove_rights"
-                                src={LayoutImage('navigator/remove_rights.png')}
+                                src={LayoutImage('habbo-navigator-com/remove_rights.png')}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 17, height: 22 }}
                             />
                         </Region>
@@ -335,7 +335,7 @@ export const RoomInfoView = ({
                         >
                             <ThemeImage
                                 name="make_home"
-                                src={LayoutImage('navigator/make_home.png')}
+                                src={LayoutImage('habbo-navigator-com/make_home.png')}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 19, height: 14 }}
                             />
                         </Region>
@@ -343,7 +343,7 @@ export const RoomInfoView = ({
                     {isHome && (
                         <ThemeImage
                             name="home"
-                            src={LayoutImage('navigator/home.png')}
+                            src={LayoutImage('habbo-navigator-com/home.png')}
                             layout={{ position: 'absolute', left: 185, top: 1, width: 19, height: 14 }}
                         />
                     )}
@@ -357,7 +357,7 @@ export const RoomInfoView = ({
                         >
                             <ThemeImage
                                 name={isFavourite ? 'favourite' : 'make_favourite'}
-                                src={LayoutImage(isFavourite ? 'navigator/favourite.png' : 'navigator/make_favourite.png')}
+                                src={LayoutImage(isFavourite ? 'habbo-navigator-com/favourite.png' : 'habbo-navigator-com/make_favourite.png')}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 18, height: 16 }}
                             />
                         </Region>

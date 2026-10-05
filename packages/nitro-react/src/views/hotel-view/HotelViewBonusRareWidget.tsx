@@ -90,33 +90,33 @@ export const HotelViewBonusRareWidget = ({ colorable }: HotelViewBonusRareWidget
                         >
                             <ThemeImage
                                 name="bar_l"
-                                src={LayoutImage('shared/achievement_ach_progressbar1.png')}
+                                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar1.png')}
                                 bitmap={{}}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 4, height: 23 }}
                             />
                             <ThemeImage
                                 name="bar_c"
-                                src={LayoutImage('shared/achievement_ach_progressbar2.png')}
+                                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar2.png')}
                                 bitmap={{}}
                                 layout={{ position: 'absolute', left: 4, top: 0, width: 291, height: 23 }}
                             />
                             <ThemeImage
                                 name="bar_r"
-                                src={LayoutImage('shared/achievement_ach_progressbar3.png')}
+                                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar3.png')}
                                 bitmap={{}}
                                 layout={{ position: 'absolute', left: 295, top: 0, width: 4, height: 23 }}
                             />
                             {fill > 0 && (
                                 <ThemeImage
                                     name="bar_a_c"
-                                    src={LayoutImage('shared/achievement_ach_progressbar4.png')}
+                                    src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar4.png')}
                                     bitmap={{}}
                                     layout={{ position: 'absolute', left: BAR_FILL_X, top: 3, width: fill, height: 17 }}
                                 />
                             )}
                             <ThemeImage
                                 name="bar_a_r"
-                                src={LayoutImage('shared/achievement_ach_progressbar5.png')}
+                                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar5.png')}
                                 bitmap={{}}
                                 layout={{ position: 'absolute', left: fill + BAR_FILL_X, top: 3, width: 2, height: 17 }}
                             />

@@ -40,7 +40,7 @@ export const PurseView = () => {
             name: 'diamond_count_button',
             amount: activityPoints[5] ?? 0,
             color: '#38caeb',
-            icon: 'shared/pursearea_diamond_icon.png',
+            icon: 'habbo-window-manager-com/pursearea_diamond_icon.png',
             tooltip: t('achievements.activitypoint.5'),
             height: 19,
         },
@@ -48,7 +48,7 @@ export const PurseView = () => {
             name: 'credit_count_button',
             amount: credits ?? 0,
             color: '#d5af22',
-            icon: 'shared/pursearea_credits_icon.png',
+            icon: 'habbo-window-manager-com/pursearea_credits_icon.png',
             tooltip: t('purse_coins'),
             height: 19,
         },
@@ -56,7 +56,7 @@ export const PurseView = () => {
             name: 'ducket_count_button',
             amount: activityPoints[0] ?? 0,
             color: '#d787d7',
-            icon: 'shared/pursearea_duckets_icon.png',
+            icon: 'habbo-window-manager-com/pursearea_duckets_icon.png',
             tooltip: t('achievements.activitypoint.0'),
             height: 17,
         },
@@ -120,7 +120,7 @@ export const PurseView = () => {
                         layout={{ position: 'absolute', left: 25, top: 4, maxWidth: 50, height: 28 }}
                     />
                     <ThemeImage
-                        src={LayoutImage('toolbar/pursearea_hc_icon.png')}
+                        src={LayoutImage('habbo-window-manager-com/pursearea_hc_icon.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
                         dynamicRole="icon"
                         layout={{ position: 'absolute', left: 5, top: 4, width: 20, height: 18 }}
@@ -148,7 +148,7 @@ export const PurseView = () => {
                         layout={{ position: 'absolute', left: 25, top: 4, height: 17 }}
                     />
                     <ThemeImage
-                        src={LayoutImage('toolbar/pursearea_icon_earnings.png')}
+                        src={LayoutImage('habbo-window-manager-com/pursearea_icon_earnings.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
                         dynamicRole="icon"
                         layout={{ position: 'absolute', left: 5, top: 4, width: 20, height: 18 }}
@@ -157,7 +157,7 @@ export const PurseView = () => {
                     {earningsIndicatorVisible && (
                         <ThemeImage
                             name="earnings_unseen_indicator"
-                            src={LayoutImage('toolbar/pursearea_unseen_indicator.png')}
+                            src={LayoutImage('habbo-window-manager-com/pursearea_unseen_indicator.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                             dynamicRole="icon"
                             layout={{ position: 'absolute', left: 1, top: 0 }}
@@ -188,7 +188,7 @@ export const PurseView = () => {
                         layout={{ width: 50, height: 19, flexShrink: 0, overflow: 'hidden' }}
                     >
                         <ThemeImage
-                            src={LayoutImage('toolbar/pursearea_logout_icon.png')}
+                            src={LayoutImage('habbo-window-manager-com/pursearea_logout_icon.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: 18, top: 0, width: 15, height: 20 }}
                         />
@@ -201,7 +201,7 @@ export const PurseView = () => {
                         layout={{ width: 50, height: 19, flexShrink: 0, overflow: 'hidden' }}
                     >
                         <ThemeImage
-                            src={LayoutImage('shared/pursearea_settings_icon.png')}
+                            src={LayoutImage('habbo-window-manager-com/pursearea_settings_icon.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: -5, top: 1, width: 61, height: 18 }}
                         />

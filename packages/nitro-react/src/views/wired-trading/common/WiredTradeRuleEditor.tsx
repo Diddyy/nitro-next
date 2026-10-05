@@ -54,7 +54,7 @@ const CloseButton = ({ onPress, etched = false, layout }: { onPress: () => void;
             layout={{ width: 15, height: 15 }}
         >
             <ThemeImage
-                src={LayoutImage('shared/common_close_x.png')}
+                src={LayoutImage('habbo-window-manager-com/common_close_x.png')}
                 bitmap={{ stretchedX: false, stretchedY: false, ...(etched && { etchingColor: 0x48000000 }), fitSizeToContents: true }}
                 tint="#777777"
                 dynamicRole="bg"
@@ -103,7 +103,7 @@ const NodeCell = ({ node, closable, onPress, onClose }: NodeCellProps) => {
                 )}
                 {!isFurni && (
                     <ThemeImage
-                        src={LayoutImage('wired/inventory_furni_icon_credits.png')}
+                        src={LayoutImage('habbo-window-manager-com/inventory_furni_icon_credits.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 8, top: 12, width: 25, height: 18 }}
                     />

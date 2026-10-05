@@ -145,7 +145,7 @@ export const CollectiblesShopTab = () => {
                                                 layout={{ width: 80, marginTop: 5, flexShrink: 0, minHeight: 25 }}
                                             />
                                             <ThemeImage
-                                                src={LayoutImage('shared/collectables_icon_curator_stamp_small.png')}
+                                                src={LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_small.png')}
                                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center right' }}
                                                 layout={{ width: 18, height: 30, flexShrink: 0 }}
                                             />

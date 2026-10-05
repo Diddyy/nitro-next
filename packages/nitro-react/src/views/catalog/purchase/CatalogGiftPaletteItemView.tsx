@@ -24,21 +24,21 @@ export const CatalogGiftPaletteItemView = ({ colour, selected, onSelect }: Catal
     >
         <ThemeImage
             name="color"
-            src={LayoutImage('catalog/catalogue_color_picker_27x22_color.png')}
+            src={LayoutImage('habbo-window-manager-com/catalogue_color_picker_27x22_color.png')}
             bitmap={{}}
             tint={`#${colour.toString(16).padStart(6, '0')}`}
             layout={{ position: 'absolute', left: 0, width: 27, top: 0, height: 22 }}
         />
         <ThemeImage
             name="border"
-            src={LayoutImage('catalog/catalogue_color_picker_27x22_border.png')}
+            src={LayoutImage('habbo-window-manager-com/catalogue_color_picker_27x22_border.png')}
             bitmap={{}}
             layout={{ position: 'absolute', left: 0, width: 27, top: 0, height: 22 }}
         />
         {selected && (
             <ThemeImage
                 name="selection"
-                src={LayoutImage('catalog/catalogue_color_picker_27x22_selection.png')}
+                src={LayoutImage('habbo-window-manager-com/catalogue_color_picker_27x22_selection.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 0, width: 27, top: 0, height: 22 }}
             />

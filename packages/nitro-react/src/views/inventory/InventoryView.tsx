@@ -153,7 +153,7 @@ export const InventoryView = () => {
                 {furniEmpty && (
                     <Region layout={{ position: 'absolute', left: 0, top: 20, width: 478, bottom: 3 }}>
                         <ThemeImage
-                            src={LayoutImage('inventory/inventory_inventory_empty.png')}
+                            src={LayoutImage('habbo-window-manager-com/inventory_inventory_empty.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: 46, top: 42, width: 180, height: 180 }}
                         />
@@ -185,7 +185,7 @@ export const InventoryView = () => {
                 )}
                 {furniLoading && (
                     <ThemeImage
-                        src={LayoutImage('inventory/inventory_download_icon.png')}
+                        src={LayoutImage('habbo-window-manager-com/inventory_download_icon.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 6, top: 27, width: 264, bottom: 6 }}
                     />

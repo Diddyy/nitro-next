@@ -3,7 +3,7 @@ import { Box, LayoutImage, Region, ThemeImage } from '#base/theme';
 /** The `unique_item_label_number_glyphs` strip: `x, width` of each digit, from the window manager manifest. */
 const GLYPHS: [number, number][] = [ [ 1, 5 ], [ 6, 3 ], [ 9, 5 ], [ 14, 5 ], [ 19, 5 ], [ 24, 5 ], [ 29, 5 ], [ 34, 5 ], [ 39, 5 ], [ 44, 5 ] ];
 const GLYPH_HEIGHT = 5;
-const GLYPH_STRIP = LayoutImage('room-ui/unique_item_label_number_glyphs.png');
+const GLYPH_STRIP = LayoutImage('habbo-window-manager-com/unique_item_label_number_glyphs.png');
 /** `LimitedItemNumberBitmap.createBitmap` draws nothing for anything it cannot fit in six digits. */
 const MAX_NUMBER = 999999;
 
@@ -43,7 +43,7 @@ export interface UniqueItemPlaqueViewProps {
 export const UniqueItemPlaqueView = ({ serialNumber, seriesSize, layout }: UniqueItemPlaqueViewProps) => (
     <Region layout={{ position: 'absolute', width: 40, height: 40, ...layout }}>
         <ThemeImage
-            src={LayoutImage('shared/unique_item_large_tile_upright.png')}
+            src={LayoutImage('habbo-window-manager-com/unique_item_large_tile_upright.png')}
             // A `static_bitmap` with no vars: the 34x37 plate stretched over its 30x30 window.
             bitmap={{}}
             layout={{ position: 'absolute', left: 5, top: 0, width: 30, height: 30 }}

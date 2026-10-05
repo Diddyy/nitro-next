@@ -181,13 +181,13 @@ export const SpecialItemsView = ({ onClose }: SpecialItemsViewProps) => {
                 >
                     <ThemeImage
                         name="platform_img"
-                        src={LayoutImage('catalog/special_items_item_platform.png')}
+                        src={LayoutImage('habbo-window-manager-com/special_items_item_platform.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 8, top: 41 }}
                     />
                     <ThemeImage
                         name="spotlight_base_img"
-                        src={LayoutImage('catalog/special_items_spotlight2.png')}
+                        src={LayoutImage('habbo-window-manager-com/special_items_spotlight2.png')}
                         alpha={rotation.spotlightBlend}
                         bitmap={{ stretchedX: false, stretchedY: false, zoomX: 1.5, zoomY: 1.5, fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 124, top: 118 }}
@@ -208,7 +208,7 @@ export const SpecialItemsView = ({ onClose }: SpecialItemsViewProps) => {
                     </Region>
                     <ThemeImage
                         name="spotlight_img"
-                        src={LayoutImage('catalog/special_items_spotlight1.png')}
+                        src={LayoutImage('habbo-window-manager-com/special_items_spotlight1.png')}
                         alpha={rotation.spotlightBlend}
                         bitmap={{ stretchedX: false, stretchedY: false, zoomX: 1.5, zoomY: 1.5, fitSizeToContents: true }}
                         blendMode="add"
@@ -223,7 +223,7 @@ export const SpecialItemsView = ({ onClose }: SpecialItemsViewProps) => {
                     layout={{ position: 'absolute', left: 8, width: 33, top: 97, height: 38 }}
                 >
                     <ThemeImage
-                        src={LayoutImage('shared/icons_back.png')}
+                        src={LayoutImage('habbo-window-manager-com/icons_back.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                         dynamicRole="icon"
                         layout={{ position: 'absolute', left: 0, top: 4 }}
@@ -237,7 +237,7 @@ export const SpecialItemsView = ({ onClose }: SpecialItemsViewProps) => {
                     layout={{ position: 'absolute', left: 379, width: 33, top: 97, height: 38 }}
                 >
                     <ThemeImage
-                        src={LayoutImage('shared/icons_forward.png')}
+                        src={LayoutImage('habbo-window-manager-com/icons_forward.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                         dynamicRole="icon"
                         layout={{ position: 'absolute', left: 0, top: 4 }}
@@ -262,7 +262,7 @@ export const SpecialItemsView = ({ onClose }: SpecialItemsViewProps) => {
                             >
                                 <ThemeImage
                                     name="page_image"
-                                    src={LayoutImage((item.index === rotation.target) ? 'catalog/progress_disk_etched_on.png' : 'catalog/progress_disk_etched_off.png')}
+                                    src={LayoutImage((item.index === rotation.target) ? 'habbo-window-manager-com/progress_disk_etched_on.png' : 'habbo-window-manager-com/progress_disk_etched_off.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                     layout={{ position: 'absolute', left: 0, top: 0 }}
                                 />

@@ -62,7 +62,7 @@ export const FurniturePetPackageWidget = () => {
                     layout={{ position: 'absolute', left: 7, top: 6, width: 380, height: 17 }}
                 />
                 <ThemeImage
-                    src={LayoutImage('shared/common_small_pen.png')}
+                    src={LayoutImage('habbo-window-manager-com/common_small_pen.png')}
                     bitmap={{ fitSizeToContents: true }}
                     layout={{ position: 'absolute', left: 393, top: 8 }}
                 />

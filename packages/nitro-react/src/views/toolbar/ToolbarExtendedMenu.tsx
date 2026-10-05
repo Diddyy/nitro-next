@@ -72,7 +72,7 @@ const ToolbarExtendedMenuItem = ({ button, onSelect }: { button: ToolbarExtended
             tooltip={button.tooltip?.length ? button.tooltip : undefined}
         >
             <ThemeImage
-                src={LayoutImage(`toolbar/${button.icon}.png`)}
+                src={LayoutImage(`habbo-window-manager-com/${button.icon}.png`)}
                 bitmap={pivot ? { stretchedX: false, stretchedY: false, pivot } : {}}
                 greyscale={!hovering}
                 layout={{ position: 'absolute', left: x, top: y, width, height }}

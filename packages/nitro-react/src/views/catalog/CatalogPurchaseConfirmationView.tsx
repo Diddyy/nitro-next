@@ -54,7 +54,7 @@ const CatalogPurchaseRaffleView = () => {
                 />
             </Border>
             <ThemeImage
-                src={LayoutImage('shared/unique_item_large_tile_upright.png')}
+                src={LayoutImage('habbo-window-manager-com/unique_item_large_tile_upright.png')}
                 bitmap={{ stretchedX: false, stretchedY: false }}
                 layout={{ position: 'absolute', left: 260, width: 34, top: 6, height: 37 }}
             />

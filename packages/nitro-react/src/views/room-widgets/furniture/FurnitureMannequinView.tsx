@@ -92,7 +92,7 @@ export const FurnitureMannequinView = ({
             <Region layout={{ position: 'absolute', left: 0, top: 0, width: 386, height: 180 }}>
                 <Region layout={{ position: 'absolute', left: 20, top: 10, width: 83, height: 130, overflow: 'hidden' }}>
                     <ThemeImage
-                        src={LayoutImage('room-ui/mannequin_preview_bg.png')}
+                        src={LayoutImage('habbo-room-ui-com/mannequin_preview_bg.png')}
                         bitmap={{ stretchedX: false, stretchedY: false }}
                         layout={{ position: 'absolute', left: 0, top: 0, width: 83, height: 130 }}
                     />
@@ -129,7 +129,7 @@ export const FurnitureMannequinView = ({
                             layout={{ position: 'absolute', left: 133, top: 25, width: 190, height: 21 }}
                         />
                         <ThemeImage
-                            src={LayoutImage('shared/common_small_pen.png')}
+                            src={LayoutImage('habbo-window-manager-com/common_small_pen.png')}
                             bitmap={{ stretchedX: false, stretchedY: false }}
                             layout={{ position: 'absolute', left: 330, top: 27, width: 17, height: 18 }}
                         />

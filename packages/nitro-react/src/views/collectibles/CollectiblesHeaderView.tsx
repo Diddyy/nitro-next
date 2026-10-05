@@ -35,14 +35,14 @@ export const CollectiblesHeaderView = ({ tabBackgroundVisible }: { tabBackground
                 layout={{ position: 'absolute', left: 0, width: 498, top: 0, height: 125, overflow: 'hidden' }}
             >
                 <ThemeImage
-                    src={LayoutImage('shared/collectables_score_background_gradient.png')}
+                    src={LayoutImage('habbo-window-manager-com/collectables_score_background_gradient.png')}
                     bitmap={{ stretchedY: false }}
                     tint="#804138"
                     layout={{ position: 'absolute', left: 0, width: 498, top: 0, height: 122 }}
                 />
                 <ThemeImage
                     name="collectable_bg_left"
-                    src={LayoutImage('catalog/collectables_score_background.png')}
+                    src={LayoutImage('habbo-window-manager-com/collectables_score_background.png')}
                     bitmap={{ stretchedX: false, stretchedY: false }}
                     tint="#fc7c5a"
                     alpha={0.25}
@@ -50,7 +50,7 @@ export const CollectiblesHeaderView = ({ tabBackgroundVisible }: { tabBackground
                 />
                 <ThemeImage
                     name="collectable_bg_right"
-                    src={LayoutImage('catalog/collectables_score_background_right.png')}
+                    src={LayoutImage('habbo-window-manager-com/collectables_score_background_right.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                     tint="#fc7c5a"
                     alpha={0.25}
@@ -58,20 +58,20 @@ export const CollectiblesHeaderView = ({ tabBackgroundVisible }: { tabBackground
                 />
                 <ThemeImage
                     name="collector_level_bg2"
-                    src={LayoutImage('catalog/collectables_score_element2.png')}
+                    src={LayoutImage('habbo-window-manager-com/collectables_score_element2.png')}
                     bitmap={{}}
                     tint={levelColor}
                     layout={{ position: 'absolute', left: 0, width: 300, top: 17, height: 54 }}
                 />
                 <ThemeImage
                     name="collector_level_bg"
-                    src={LayoutImage('catalog/collectables_score_element.png')}
+                    src={LayoutImage('habbo-window-manager-com/collectables_score_element.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                     tint={levelColor}
                     layout={{ position: 'absolute', left: 299, top: 17 }}
                 />
                 <ThemeImage
-                    src={LayoutImage('catalog/collectables_cabinet_element.png')}
+                    src={LayoutImage('habbo-window-manager-com/collectables_cabinet_element.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: -2, width: 130, top: -1, height: 128 }}
                 />
@@ -116,7 +116,7 @@ export const CollectiblesHeaderView = ({ tabBackgroundVisible }: { tabBackground
                     />
                 </Region>
                 <ThemeImage
-                    src={LayoutImage('catalog/collectables_level_bg.png')}
+                    src={LayoutImage('habbo-window-manager-com/collectables_level_bg.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                     layout={{ position: 'absolute', left: 335, top: 2 }}
                 />
@@ -168,7 +168,7 @@ export const CollectiblesHeaderView = ({ tabBackgroundVisible }: { tabBackground
                 </Border>
                 <ThemeImage
                     name="silver_currency_icon"
-                    src={LayoutImage('shared/pursearea_mid_silver_icon.png')}
+                    src={LayoutImage('habbo-window-manager-com/pursearea_mid_silver_icon.png')}
                     bitmap={{ pivot: 'center' }}
                     layout={{ position: 'absolute', left: 466, width: 24, top: 17, height: 24 }}
                 />
@@ -196,7 +196,7 @@ export const CollectiblesHeaderView = ({ tabBackgroundVisible }: { tabBackground
                 </Border>
                 <ThemeImage
                     name="emerald_currency_icon"
-                    src={LayoutImage('catalog/pursearea_mid_emerald_icon.png')}
+                    src={LayoutImage('habbo-window-manager-com/pursearea_mid_emerald_icon.png')}
                     bitmap={{ pivot: 'center' }}
                     layout={{ position: 'absolute', left: 466, width: 24, top: 47, height: 24 }}
                 />

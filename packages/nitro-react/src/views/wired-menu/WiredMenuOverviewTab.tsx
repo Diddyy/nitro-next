@@ -184,7 +184,7 @@ export const WiredMenuOverviewTab = () => {
                         layout={{ width: 25, height: 25 }}
                     >
                         <ThemeImage
-                            src={LayoutImage('shared/forum_forum_hide.png')}
+                            src={LayoutImage('habbo-window-manager-com/forum_forum_hide.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                             dynamicRole="icon"
                             eventMode="none"

@@ -54,7 +54,7 @@ export const FurnitureTrophyView = ({ color, title, ownerName, date, message, on
             }}
         >
             <ThemeImage
-                src={LayoutImage(`room-ui/${theme.background}`)}
+                src={LayoutImage(`habbo-room-ui-com/${theme.background}`)}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 0, top: 0, width: WIDTH, height: HEIGHT }}
             />

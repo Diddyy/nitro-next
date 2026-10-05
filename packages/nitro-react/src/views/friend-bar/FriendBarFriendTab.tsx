@@ -60,8 +60,8 @@ const TOKEN_TYPES = [ 0, 1, 2, 3 ];
 const GAME_TYPE = 3;
 
 const tokenIcon = (typeCode: number) => ((typeCode === GAME_TYPE)
-    ? 'window-manager/game_center_snowball_notification_icon.png'
-    : 'window-manager/friend_bar_event_notification_icon.png');
+    ? 'habbo-window-manager-com/game_center_snowball_notification_icon.png'
+    : 'habbo-window-manager-com/friend_bar_event_notification_icon.png');
 
 /** `DropBounce.getBounceOffset`: the classic bounce ease-out. */
 const bounceOffset = (progress: number): number => {
@@ -278,7 +278,7 @@ const FriendBarFriendTabBody = ({ friend, tokens, height, exposed, selected, onT
                         <FriendBarControl
                             name="btn_chat"
                             x={0}
-                            src="friend-bar/friend_bar_friendlist_chat.png"
+                            src="habbo-window-manager-com/friend_bar_friendlist_chat.png"
                             etched
                             onPress={act(() => startFriendBarConversation(send, friend.playerId))}
                         />
@@ -286,14 +286,14 @@ const FriendBarFriendTabBody = ({ friend, tokens, height, exposed, selected, onT
                             <FriendBarControl
                                 name="btn_visit"
                                 x={29}
-                                src="friend-bar/friend_bar_friendlist_go_room.png"
+                                src="habbo-window-manager-com/friend_bar_friendlist_go_room.png"
                                 onPress={act(() => followFriendFromBar(send, friend.playerId))}
                             />
                         )}
                         <FriendBarControl
                             name="button_profile"
                             x={58}
-                            src="shared/friend_bar_friendlist_eye.png"
+                            src="habbo-window-manager-com/friend_bar_friendlist_eye.png"
                             etched
                             onPress={act(() => openProfile(send, friend.playerId))}
                         />

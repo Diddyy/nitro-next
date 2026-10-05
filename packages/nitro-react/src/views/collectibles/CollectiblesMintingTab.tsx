@@ -188,7 +188,7 @@ export const CollectiblesMintingTab = () => {
                                                 layout={{ width: 3, height: 30, flexShrink: 0 }}
                                             />
                                             <ThemeImage
-                                                src={LayoutImage('shared/collectables_icon_curator_stamp_small.png')}
+                                                src={LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_small.png')}
                                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                                 layout={{ width: 18, height: 30, flexShrink: 0 }}
                                             />
@@ -261,7 +261,7 @@ export const CollectiblesMintingTab = () => {
                                     {!regionLocked && (
                                         <ThemeImage
                                             name="mint_lock_open_icon"
-                                            src={LayoutImage('catalog/collectables_lock_open.png')}
+                                            src={LayoutImage('habbo-window-manager-com/collectables_lock_open.png')}
                                             bitmap={{}}
                                             layout={{ position: 'absolute', left: 7, width: 51, top: 208, height: 46 }}
                                         />
@@ -269,7 +269,7 @@ export const CollectiblesMintingTab = () => {
                                     {regionLocked && (
                                         <ThemeImage
                                             name="mint_lock_closed_icon"
-                                            src={LayoutImage('catalog/collectables_lock_closed.png')}
+                                            src={LayoutImage('habbo-window-manager-com/collectables_lock_closed.png')}
                                             bitmap={{}}
                                             layout={{ position: 'absolute', left: 7, width: 52, top: 208, height: 46 }}
                                         />
@@ -300,7 +300,7 @@ export const CollectiblesMintingTab = () => {
                                         layout={{ position: 'absolute', left: 42, width: 200, top: 14, height: 72 }}
                                     >
                                         <ThemeImage
-                                            src={LayoutImage('shared/collectables_icon_curator_stamp_large.png')}
+                                            src={LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_large.png')}
                                             bitmap={{ stretchedX: false, stretchedY: false }}
                                             layout={{ position: 'absolute', left: 12, width: 48, top: 12, height: 48 }}
                                         />
@@ -360,7 +360,7 @@ export const CollectiblesMintingTab = () => {
                                                 layout={{ width: 4, height: 30, flexShrink: 0 }}
                                             />
                                             <ThemeImage
-                                                src={LayoutImage('shared/pursearea_mid_silver_icon.png')}
+                                                src={LayoutImage('habbo-window-manager-com/pursearea_mid_silver_icon.png')}
                                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                                 layout={{ width: 24, height: 30, flexShrink: 0 }}
                                             />
@@ -396,7 +396,7 @@ export const CollectiblesMintingTab = () => {
                                         layout={{ position: 'absolute', left: 10, width: 360, alignSelf: 'center', marginTop: -41.5, marginBottom: 41.5, minHeight: 0, maxHeight: 60 }}
                                     />
                                     <ThemeImage
-                                        src={LayoutImage('catalog/image_connection_problem.png')}
+                                        src={LayoutImage('habbo-window-manager-com/image_connection_problem.png')}
                                         bitmap={{ stretchedX: false, stretchedY: false }}
                                         layout={{ position: 'absolute', left: 380, width: 92, top: 5, height: 90 }}
                                     />

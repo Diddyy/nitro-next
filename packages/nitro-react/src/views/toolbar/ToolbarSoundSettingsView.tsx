@@ -140,21 +140,21 @@ const VolumeRow = ({ label, top, volume, onPreview }: VolumeRowProps) => {
                 layout={{ position: 'absolute', left: 60, top: 0, width: 29, height: 30 }}
             >
                 <ThemeImage
-                    src={LayoutImage(muted ? 'toolbar/toolbar_memenu_settings_sounds_off_color.png' : 'toolbar/toolbar_memenu_settings_sounds_off_white.png')}
+                    src={LayoutImage(muted ? 'habbo-window-manager-com/toolbar_memenu_settings_sounds_off_color.png' : 'habbo-window-manager-com/toolbar_memenu_settings_sounds_off_white.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 0, top: 4, width: 29, height: 22 }}
                 />
             </Region>
             <Box layout={{ position: 'absolute', left: 98, top: 0, width: MOVEMENT_AREA_WIDTH, height: 24 }}>
                 <ThemeImage
-                    src={LayoutImage('toolbar/toolbar_memenu_settings_slider_base.png')}
+                    src={LayoutImage('habbo-window-manager-com/toolbar_memenu_settings_slider_base.png')}
                     bitmap={{}}
                     eventMode="none"
                     layout={{ position: 'absolute', left: 2, top: 0, width: 139, height: 20 }}
                 />
                 <Box layout={{ position: 'absolute', left: 0, top: 9, width: MOVEMENT_AREA_WIDTH, height: 15 }}>
                     <ThemeImage
-                        src={LayoutImage('toolbar/toolbar_memenu_settings_slider_button.png')}
+                        src={LayoutImage('habbo-window-manager-com/toolbar_memenu_settings_slider_button.png')}
                         bitmap={{ stretchedX: false, stretchedY: false }}
                         cursor="pointer"
                         onPointerDown={onKnobPointerDown}
@@ -168,7 +168,7 @@ const VolumeRow = ({ label, top, volume, onPreview }: VolumeRowProps) => {
                 layout={{ position: 'absolute', left: 251, top: 0, width: 29, height: 30 }}
             >
                 <ThemeImage
-                    src={LayoutImage(muted ? 'toolbar/toolbar_memenu_settings_sounds_on_white.png' : 'toolbar/toolbar_memenu_settings_sounds_on_color.png')}
+                    src={LayoutImage(muted ? 'habbo-window-manager-com/toolbar_memenu_settings_sounds_on_white.png' : 'habbo-window-manager-com/toolbar_memenu_settings_sounds_on_color.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 0, top: 4, width: 29, height: 22 }}
                 />

@@ -132,7 +132,7 @@ export const FurnitureHighScoreView = ({ scoreType, clearType, entries }: Furnit
                 />
             </Region>
             <ThemeImage
-                src={LayoutImage('room-ui/high_score_highscore_cup.png')}
+                src={LayoutImage('habbo-window-manager-com/high_score_highscore_cup.png')}
                 bitmap={{ fitSizeToContents: true }}
                 layout={{ position: 'absolute', left: 0, top: 269 }}
             />

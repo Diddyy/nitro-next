@@ -40,7 +40,7 @@ export const RoomShareView = ({ embedCode, directLink, thumbnailUrl, onClose }: 
             >
                 <ThemeImage
                     name="thumbnail_image"
-                    src={thumbnailUrl.length ? thumbnailUrl : LayoutImage('shared/newnavigator_default_room.png')}
+                    src={thumbnailUrl.length ? thumbnailUrl : LayoutImage('habbo-window-manager-com/newnavigator_default_room.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 1, width: 110, top: 1, height: 110 }}
                 />

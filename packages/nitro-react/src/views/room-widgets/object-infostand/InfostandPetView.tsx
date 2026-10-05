@@ -246,7 +246,7 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, onR
                                 {showsSkill && (
                                     <ThemeImage
                                         name="skill_level_indicator"
-                                        src={LayoutImage(`room-ui/pet_skill_level_${getSkillLevelIndex(info.level, info.skillTresholds)}.png`)}
+                                        src={LayoutImage(`habbo-room-ui-com/pet_skill_level_${getSkillLevelIndex(info.level, info.skillTresholds)}.png`)}
                                         bitmap={{}}
                                         layout={{ position: 'absolute', left: 8, top: 47, width: 78, height: 18 }}
                                     />
@@ -260,21 +260,21 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, onR
                                 <Box layout={{ flexDirection: 'column', width: 170 }}>
                                     <StatusBar
                                         label={t('infostand.pet.text.happiness')}
-                                        icon={LayoutImage('room-ui/icon_pet_happiness.png')}
+                                        icon={LayoutImage('habbo-room-ui-com/icon_pet_happiness.png')}
                                         value={info.nutrition}
                                         max={info.maxNutrition}
                                         colors={HAPPINESS_COLORS}
                                     />
                                     <StatusBar
                                         label={t('infostand.pet.text.experience')}
-                                        icon={LayoutImage('room-ui/icon_pet_experience.png')}
+                                        icon={LayoutImage('habbo-room-ui-com/icon_pet_experience.png')}
                                         value={info.experience}
                                         max={info.experienceRequiredToLevel}
                                         colors={EXPERIENCE_COLORS}
                                     />
                                     <StatusBar
                                         label={t('infostand.pet.text.energy')}
-                                        icon={LayoutImage('room-ui/icon_pet_energy.png')}
+                                        icon={LayoutImage('habbo-room-ui-com/icon_pet_energy.png')}
                                         value={info.energy}
                                         max={info.maxEnergy}
                                         colors={ENERGY_COLORS}
@@ -297,7 +297,7 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, onR
                                 <Box layout={{ flexDirection: 'column', width: 170, gap: 2 }}>
                                     <StatusBar
                                         label={t('infostand.pet.text.wellbeing')}
-                                        icon={LayoutImage('room-ui/icon_pet_wellbeing.png')}
+                                        icon={LayoutImage('habbo-room-ui-com/icon_pet_wellbeing.png')}
                                         value={info.remainingWellBeingSeconds}
                                         max={info.maxWellBeingSeconds}
                                         colors={WELLBEING_COLORS}
@@ -353,7 +353,7 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, onR
                                     {/* `updatePetRespect`: `text.x + text.width + 2`; the negative right margin keeps the text alone centred. */}
                                     <ThemeImage
                                         name="petrespect_icon"
-                                        src={LayoutImage('room-ui/icon_petrespect.png')}
+                                        src={LayoutImage('habbo-room-ui-com/icon_petrespect.png')}
                                         bitmap={{}}
                                         layout={{ width: 13, height: 21, marginLeft: 2, marginRight: -15, marginTop: 3, flexShrink: 0 }}
                                     />

@@ -37,7 +37,7 @@ export const ToolbarMessengerIcon = () => {
 
     if (!open.length) return null;
 
-    const src = notify ? `friend-bar/friend_bar_friendlist_messenger_notify_${frame}.png` : 'friend-bar/friend_bar_friendlist_messenger.png';
+    const src = notify ? `habbo-window-manager-com/friend_bar_friendlist_messenger_notify_${frame}.png` : 'habbo-window-manager-com/friend_bar_friendlist_messenger.png';
 
     return (
         <Region

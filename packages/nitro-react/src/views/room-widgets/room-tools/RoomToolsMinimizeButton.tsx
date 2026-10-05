@@ -45,7 +45,7 @@ export const RoomToolsMinimizeButton = ({
             layout={{ position: 'absolute', left: borderX, top: borderY, width: borderWidth, height: borderHeight }}
         />
         <ThemeImage
-            src={LayoutImage('shared/roomtools_minimizebutton.png')}
+            src={LayoutImage('habbo-window-manager-com/roomtools_minimizebutton.png')}
             bitmap={{
                 stretchedX: false,
                 stretchedY: false,

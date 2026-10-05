@@ -128,7 +128,7 @@ export const FurnitureDimmerSliderView = ({ value, min, max, reportOnEveryEvent,
     return (
         <>
             <ThemeImage
-                src={LayoutImage('room-ui/dimmer_slider_base.png')}
+                src={LayoutImage('habbo-room-ui-com/dimmer_slider_base.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 2, top, width: 201, height: 12 }}
             />
@@ -137,7 +137,7 @@ export const FurnitureDimmerSliderView = ({ value, min, max, reportOnEveryEvent,
                 layout={{ position: 'absolute', left: 0, top: top + 1, width: 206, height: 17, overflow: 'hidden' }}
             >
                 <ThemeImage
-                    src={LayoutImage('room-ui/dimmer_slider_button.png')}
+                    src={LayoutImage('habbo-room-ui-com/dimmer_slider_button.png')}
                     bitmap={{}}
                     hitThreshold={10}
                     onPointerOver={reportOnEveryEvent ? () => report(x) : undefined}

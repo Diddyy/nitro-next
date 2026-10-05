@@ -96,7 +96,7 @@ export const RoomToolsWidget = () => {
     const buttons: RoomToolsButton[] = [
         {
             key: 'button_settings',
-            icon: LayoutImage('room-ui/roomtools_gear.png'),
+            icon: LayoutImage('habbo-window-manager-com/roomtools_gear.png'),
             iconLeft: 3,
             iconWidth: 25,
             labelTop: 4,
@@ -109,7 +109,7 @@ export const RoomToolsWidget = () => {
 
     if (canRateCurrentRoom) buttons.push({
         key: 'button_like',
-        icon: LayoutImage('room-ui/roomtools_like.png'),
+        icon: LayoutImage('habbo-window-manager-com/roomtools_like.png'),
         iconLeft: 2,
         iconWidth: 27,
         labelTop: 3,
@@ -120,7 +120,7 @@ export const RoomToolsWidget = () => {
 
     buttons.push({
         key: 'button_share',
-        icon: LayoutImage('room-ui/navigation_icon_weblink.png'),
+        icon: LayoutImage('habbo-window-manager-com/navigation_icon_weblink.png'),
         iconLeft: 2,
         iconWidth: 27,
         labelTop: 3,

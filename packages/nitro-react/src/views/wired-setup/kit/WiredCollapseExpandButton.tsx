@@ -33,7 +33,7 @@ export const WiredCollapseExpandButton = ({ expanded, onToggle, disabled = false
             layout={{ position: 'relative', width: expandCollapse.width, height: expandCollapse.height, marginTop: expandCollapse.offsetY, flexShrink: 0 }}
         >
             <ThemeImage
-                src={LayoutImage(`wired/${expanded ? expandCollapse.upAsset : expandCollapse.downAsset}.png`)}
+                src={LayoutImage(`habbo-window-manager-com/${expanded ? expandCollapse.upAsset : expandCollapse.downAsset}.png`)}
                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                 tint={expandCollapse.arrowTint ?? undefined}
                 alpha={wiredDisabledAlpha(isDisabled)}

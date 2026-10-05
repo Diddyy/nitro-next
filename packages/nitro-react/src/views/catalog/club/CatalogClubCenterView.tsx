@@ -134,7 +134,7 @@ export const CatalogClubCenterView = () => {
                     <Region layout={{ width: 459, height: 137, flexShrink: 0, overflow: 'hidden' }}>
                         <ThemeImage
                             name="coverpic"
-                            src={LayoutImage('catalog/hc_center_hc_center_cover.png')}
+                            src={LayoutImage('habbo-window-manager-com/hc_center_hc_center_cover.png')}
                             bitmap={{ stretchedX: false, stretchedY: false }}
                             layout={{ position: 'absolute', left: 0, width: 459, top: 1, height: 137 }}
                         />
@@ -318,7 +318,7 @@ export const CatalogClubCenterView = () => {
                         </Region>
                         <ThemeImage
                             name="hc_center_illustration"
-                            src={LayoutImage('catalog/hc_center_hc_center_illustration.png')}
+                            src={LayoutImage('habbo-window-manager-com/hc_center_hc_center_illustration.png')}
                             bitmap={{ stretchedX: false, stretchedY: false }}
                             layout={{ position: 'absolute', left: 256, width: 200, top: 10, height: 130 }}
                         />
@@ -346,7 +346,7 @@ export const CatalogClubCenterView = () => {
                     >
                         <ThemeImage
                             name="hc_postit_bg"
-                            src={LayoutImage('catalog/hc_center_hc_postit_bg.png')}
+                            src={LayoutImage('habbo-window-manager-com/hc_center_hc_postit_bg.png')}
                             bitmap={{ stretchedX: false, stretchedY: false }}
                             layout={{ position: 'absolute', left: 0, width: 222, top: 0, height: 150 }}
                         />
@@ -410,14 +410,14 @@ export const CatalogClubCenterView = () => {
                         )}
                         <ThemeImage
                             name="special_time_icon"
-                            src={LayoutImage('catalog/hc_center_hc_center_timer.png')}
+                            src={LayoutImage('habbo-window-manager-com/hc_center_hc_center_timer.png')}
                             bitmap={{}}
                             layout={{ position: 'absolute', left: 7, width: 24, top: 41, height: 24 }}
                         />
                         {showAmount && (
                             <ThemeImage
                                 name="special_amount_icon"
-                                src={LayoutImage('catalog/hc_center_hc_center_icon_credits.png')}
+                                src={LayoutImage('habbo-window-manager-com/hc_center_hc_center_icon_credits.png')}
                                 bitmap={{}}
                                 layout={{ position: 'absolute', left: 17, width: 24, top: 94, height: 24 }}
                             />

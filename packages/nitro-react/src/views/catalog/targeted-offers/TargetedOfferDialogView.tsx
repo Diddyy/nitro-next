@@ -73,7 +73,7 @@ export const TargetedOfferDialogView = ({ offer }: TargetedOfferDialogViewProps)
             </Border>
             <ThemeImage
                 name="pricebg"
-                src={LayoutImage('catalog/catalogue_ufo_pricebg.png')}
+                src={LayoutImage('habbo-window-manager-com/catalogue_ufo_pricebg.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 236, width: 136, top: 188, height: 138 }}
             />
@@ -96,7 +96,7 @@ export const TargetedOfferDialogView = ({ offer }: TargetedOfferDialogViewProps)
                 />
                 <ThemeImage
                     name="credit_icon"
-                    src={LayoutImage('shared/pursearea_credits_icon2.png')}
+                    src={LayoutImage('habbo-window-manager-com/pursearea_credits_icon2.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 87, width: 22, top: 43, height: 22 }}
                 />

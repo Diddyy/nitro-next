@@ -119,7 +119,7 @@ export const CatalogBuilderWidgetView = ({ page }: CatalogWidgetProps) => {
                     />
                     <ThemeImage
                         name="error_icon"
-                        src={LayoutImage(`catalog/${error.icon}.png`)}
+                        src={LayoutImage(`habbo-window-manager-com/${error.icon}.png`)}
                         bitmap={{ fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 4, top: 0 }}
                     />

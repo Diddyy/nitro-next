@@ -82,7 +82,7 @@ const ConversationTab = ({ conversation, selected, left, groupBadgeUrl, onSelect
                 )}
         {conversation.unread && (
             <ThemeImage
-                src={LayoutImage('messenger/common_chat_indicator.png')}
+                src={LayoutImage('habbo-window-manager-com/common_chat_indicator.png')}
                 layout={{ position: 'absolute', left: 19, top: 6, width: 13, height: 12 }}
                 eventMode="none"
             />
@@ -195,14 +195,14 @@ export const MessengerView = () => {
                             <NoticeItem
                                 key={key}
                                 text={message}
-                                icon="messenger/messenger_caution.png"
+                                icon="habbo-window-manager-com/messenger_caution.png"
                             />
                         )
                     : (
                             <NoticeItem
                                 key={key}
                                 text={message}
-                                icon="messenger/messenger_notification_icon.png"
+                                icon="habbo-window-manager-com/messenger_notification_icon.png"
                                 tintColor={INVITATION_COLOR}
                             />
                         );
@@ -258,7 +258,7 @@ export const MessengerView = () => {
                     layout={{ position: 'absolute', left: 0, top: 0, width: 15, height: 35 }}
                 >
                     <ThemeImage
-                        src={LayoutImage('shared/help_habboway_prev.png')}
+                        src={LayoutImage('habbo-window-manager-com/help_habboway_prev.png')}
                         bitmap={{ pivot: 'center left', stretchedX: false, stretchedY: false }}
                         layout={{ position: 'absolute', left: 7, top: 0, width: 8, height: 35 }}
                         eventMode="none"
@@ -273,7 +273,7 @@ export const MessengerView = () => {
                     layout={{ position: 'absolute', left: 265, top: 0, width: 15, height: 35 }}
                 >
                     <ThemeImage
-                        src={LayoutImage('shared/help_habboway_next.png')}
+                        src={LayoutImage('habbo-window-manager-com/help_habboway_next.png')}
                         bitmap={{ pivot: 'center left', stretchedX: false, stretchedY: false }}
                         layout={{ position: 'absolute', left: 1, top: 0, width: 8, height: 35 }}
                         eventMode="none"
@@ -296,7 +296,7 @@ export const MessengerView = () => {
                 )}
                 <Box layout={{ flexGrow: 1, height: 15 }}>
                     <ThemeImage
-                        src={LayoutImage('help/illumina_light_separator_horizontal.png')}
+                        src={LayoutImage('habbo-window-manager-com/illumina_light_separator_horizontal.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, wrapX: true }}
                         layout={{ position: 'absolute', left: 0, right: 0, top: 6, width: '100%', height: 2 }}
                         eventMode="none"
@@ -312,7 +312,7 @@ export const MessengerView = () => {
                 layout={{ position: 'absolute', left: 7, top: 57, width: 21, height: 20 }}
             >
                 <ThemeImage
-                    src={LayoutImage('messenger/messenger_visit_icon.png')}
+                    src={LayoutImage('habbo-window-manager-com/messenger_visit_icon.png')}
                     layout={{ position: 'absolute', left: 6, top: 5 }}
                     eventMode="none"
                 />
@@ -325,7 +325,7 @@ export const MessengerView = () => {
                 layout={{ position: 'absolute', left: 32, top: 57, width: 30, height: 20 }}
             >
                 <ThemeImage
-                    src={LayoutImage('messenger/messenger_profile_icon.png')}
+                    src={LayoutImage('habbo-window-manager-com/messenger_profile_icon.png')}
                     layout={{ position: 'absolute', left: 7, top: 4 }}
                     eventMode="none"
                 />
@@ -367,7 +367,7 @@ export const MessengerView = () => {
                 layout={{ position: 'absolute', left: 243, top: 305, width: 30, height: 28, minHeight: 28 }}
             >
                 <ThemeImage
-                    src={LayoutImage('messenger/habbicons_habbicons_dm.png')}
+                    src={LayoutImage('habbo-window-manager-com/habbicons_habbicons_dm.png')}
                     bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
                     layout={{ position: 'absolute', left: 8, top: 7, width: 14, height: 14 }}
                     eventMode="none"

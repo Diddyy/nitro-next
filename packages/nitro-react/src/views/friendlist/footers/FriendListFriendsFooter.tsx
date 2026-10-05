@@ -50,7 +50,7 @@ export const FriendListFriendsFooter = () => {
                 >
                     <ThemeImage
                         name="icon"
-                        src={LayoutImage('friend-list/friendlist_room_invite.png')}
+                        src={LayoutImage('habbo-friend-list-com/room_invite.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', left: 6, top: 4, width: 19, height: 13 }}
                     />
@@ -64,7 +64,7 @@ export const FriendListFriendsFooter = () => {
                 >
                     <ThemeImage
                         name="icon"
-                        src={LayoutImage('friend-list/friendlist_open_homepage.png')}
+                        src={LayoutImage('habbo-friend-list-com/open_homepage.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', left: 7, top: 5, width: 13, height: 11 }}
                     />
@@ -79,7 +79,7 @@ export const FriendListFriendsFooter = () => {
                     >
                         <ThemeImage
                             name="icon"
-                            src={LayoutImage('friend-list/friendlist_search.png')}
+                            src={LayoutImage('habbo-friend-list-com/search.png')}
                             bitmap={{}}
                             layout={{ position: 'absolute', left: 5, top: 4, width: 12, height: 12 }}
                         />
@@ -114,7 +114,7 @@ export const FriendListFriendsFooter = () => {
                                 layout={{ position: 'absolute', left: 2, top: 2, width: 11, height: 11 }}
                             />
                             <ThemeImage
-                                src={LayoutImage('shared/var_picker_cancel_search.png')}
+                                src={LayoutImage('habbo-window-manager-com/var_picker_cancel_search.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                 layout={{ position: 'absolute', right: 4, top: 3, width: 9, height: 9 }}
                             />
@@ -131,7 +131,7 @@ export const FriendListFriendsFooter = () => {
                 >
                     <ThemeImage
                         name="icon"
-                        src={LayoutImage('friend-list/friendlist_remove_friend.png')}
+                        src={LayoutImage('habbo-friend-list-com/remove_friend.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', left: 5, top: 4, width: 13, height: 13 }}
                     />

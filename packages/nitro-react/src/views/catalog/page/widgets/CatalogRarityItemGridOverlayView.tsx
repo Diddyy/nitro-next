@@ -20,7 +20,7 @@ export const CatalogRarityItemGridOverlayView = ({ rarityLevel }: CatalogRarityI
     >
         <ThemeImage
             name="rarity_item_plaque_bitmap"
-            src={LayoutImage('window-manager/rarity_item_rarity_item_plaque.png')}
+            src={LayoutImage('habbo-window-manager-com/rarity_item_rarity_item_plaque.png')}
             bitmap={{ stretchedX: false, stretchedY: false }}
             layout={{ position: 'absolute', left: 0, width: 36, top: 27, height: 9 }}
         />

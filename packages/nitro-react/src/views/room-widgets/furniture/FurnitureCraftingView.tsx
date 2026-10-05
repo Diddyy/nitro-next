@@ -72,7 +72,7 @@ export const FurnitureCraftingView = ({
                 layout={{ width: 543, height: 407 }}
             >
                 <ThemeImage
-                    src={LayoutImage('room-ui/craft_craft_bg.png')}
+                    src={LayoutImage('habbo-window-manager-com/craft_craft_bg.png')}
                     bitmap={{ stretchedX: false, stretchedY: false }}
                     layout={{ position: 'absolute', left: 8, top: 8, width: 521, height: 351 }}
                 />

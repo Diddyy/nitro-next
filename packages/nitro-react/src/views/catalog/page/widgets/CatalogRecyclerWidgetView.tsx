@@ -78,7 +78,7 @@ const FrankEmotionView = ({ emotion, onDone }: { emotion: FrankEmotion; onDone: 
 
     return (
         <ThemeImage
-            src={LayoutImage(`catalog/${emotion.asset}.png`)}
+            src={LayoutImage(`habbo-window-manager-com/${emotion.asset}.png`)}
             bitmap={{}}
             alpha={alpha}
             layout={{ position: 'absolute', left: EMOTION_TEMPLATE.left + emotion.offsetX, width: EMOTION_TEMPLATE.size, top: Math.trunc(y), height: EMOTION_TEMPLATE.size }}
@@ -247,17 +247,17 @@ export const CatalogRecyclerWidgetView = () => {
                 >
                     <Region layout={{ position: 'absolute', left: 0, width: 185, top: 0, height: 115 }}>
                         <ThemeImage
-                            src={LayoutImage('catalog/recycler_furnimatic_container_left.png')}
+                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_left.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 0, top: 0 }}
                         />
                         <ThemeImage
-                            src={LayoutImage('catalog/recycler_furnimatic_container_slice.png')}
+                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_slice.png')}
                             bitmap={{}}
                             layout={{ position: 'absolute', left: 15, width: 158, top: 0, height: 115 }}
                         />
                         <ThemeImage
-                            src={LayoutImage('catalog/recycler_furnimatic_container_right.png')}
+                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_right.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 172, top: 0 }}
                         />
@@ -279,7 +279,7 @@ export const CatalogRecyclerWidgetView = () => {
                                 >
                                     <ThemeImage
                                         name={`slot_bg_${index + 1}`}
-                                        src={LayoutImage('catalog/ctlg_recycler_slot_bg.png')}
+                                        src={LayoutImage('habbo-catalog-com/ctlg_recycler_slot_bg.png')}
                                         bitmap={{}}
                                         layout={{ position: 'absolute', left: 0, width: 34, top: 0, height: 34 }}
                                     />
@@ -301,17 +301,17 @@ export const CatalogRecyclerWidgetView = () => {
                 >
                     <Region layout={{ position: 'absolute', left: 0, width: 123, top: 0, height: 115 }}>
                         <ThemeImage
-                            src={LayoutImage('catalog/recycler_furnimatic_container_left.png')}
+                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_left.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 0, top: 0 }}
                         />
                         <ThemeImage
-                            src={LayoutImage('catalog/recycler_furnimatic_container_slice.png')}
+                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_slice.png')}
                             bitmap={{}}
                             layout={{ position: 'absolute', left: 15, width: 96, top: 0, height: 115 }}
                         />
                         <ThemeImage
-                            src={LayoutImage('catalog/recycler_furnimatic_container_right.png')}
+                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_right.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 110, top: 0 }}
                         />
@@ -322,7 +322,7 @@ export const CatalogRecyclerWidgetView = () => {
                     >
                         <ThemeImage
                             name="indicator"
-                            src={LayoutImage('catalog/recycler_furnimatic_indicator.png')}
+                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_indicator.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: 0, width: 122, top: 0, height: 115 }}
                         />
@@ -332,13 +332,13 @@ export const CatalogRecyclerWidgetView = () => {
                         >
                             <ThemeImage
                                 name="pointer_arrow"
-                                src={LayoutImage('catalog/recycler_furnimatic_indicator_pointer_arrow.png')}
+                                src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_indicator_pointer_arrow.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true, rotation: arrowRotation }}
                                 layout={{ position: 'absolute', left: 0, top: 0 }}
                             />
                             <ThemeImage
                                 name="pointer_base"
-                                src={LayoutImage('catalog/recycler_furnimatic_indicator_pointer_base.png')}
+                                src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_indicator_pointer_base.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                                 layout={{ position: 'absolute', left: 0, top: 0 }}
                             />
@@ -375,7 +375,7 @@ export const CatalogRecyclerWidgetView = () => {
                         layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 208, overflow: 'hidden' }}
                     >
                         <ThemeImage
-                            src={LayoutImage('catalog/image_frank_dont_know.png')}
+                            src={LayoutImage('habbo-window-manager-com/image_frank_dont_know.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 235, top: 99 }}
                         />
@@ -394,7 +394,7 @@ export const CatalogRecyclerWidgetView = () => {
                             />
                             <ThemeImage
                                 name="emoji_1"
-                                src={LayoutImage('catalog/franks_emotions_sad.png')}
+                                src={LayoutImage('habbo-window-manager-com/franks_emotions_sad.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                 layout={{ position: 'absolute', left: 115, top: 5 }}
                             />

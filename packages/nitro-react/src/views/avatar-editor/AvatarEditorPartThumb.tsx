@@ -56,7 +56,7 @@ export const AvatarEditorPartThumb = ({ selected, part, setType, colors, usesCol
             { (selected || isHovering) && (
                 <ThemeImage
                     name="hover"
-                    src={LayoutImage('avatar-editor/avatar_editor_parts_hilite.png')}
+                    src={LayoutImage('habbo-window-manager-com/avatar_editor_parts_hilite.png')}
                     bitmap={CENTERED}
                     alpha={selected ? 1 : 0.5}
                     layout={{ position: 'absolute', left: 0, width: CELL, top: 0, height: CELL }}
@@ -72,7 +72,7 @@ export const AvatarEditorPartThumb = ({ selected, part, setType, colors, usesCol
             { !isClear && !thumbnail && (
                 <ThemeImage
                     name="loading"
-                    src={LayoutImage('catalog/avatar_editor_avatar_editor_download_icon.png')}
+                    src={LayoutImage('habbo-window-manager-com/avatar_editor_avatar_editor_download_icon.png')}
                     bitmap={CENTERED}
                     layout={{ position: 'absolute', left: 0, width: CELL, top: 0, height: CELL }}
                 />
@@ -96,7 +96,7 @@ export const AvatarEditorPartThumb = ({ selected, part, setType, colors, usesCol
             {isClub && (
                 <ThemeImage
                     name="club_icon"
-                    src={LayoutImage('avatar-editor/icons_hc_icon_small.png')}
+                    src={LayoutImage('habbo-window-manager-com/icons_hc_icon_small.png')}
                     bitmap={CENTERED}
                     layout={{ position: 'absolute', left: 40, width: 10, top: 40, height: 9 }}
                 />
@@ -104,7 +104,7 @@ export const AvatarEditorPartThumb = ({ selected, part, setType, colors, usesCol
             {isSellable && (
                 <ThemeImage
                     name="sellable_icon"
-                    src={LayoutImage('avatar-editor/icons_wearable.png')}
+                    src={LayoutImage('habbo-window-manager-com/icons_wearable.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'bottom left' }}
                     layout={{ position: 'absolute', left: 0, width: 17, top: 30, height: 20 }}
                 />

@@ -68,7 +68,7 @@ export const FurnitureLockConfirmView = ({ isOwner, otherLocked, onConfirm, onCa
                     )}
                 </Region>
                 <ThemeImage
-                    src={LayoutImage('shared/illumina_horizontal_separator.png')}
+                    src={LayoutImage('habbo-window-manager-com/illumina_horizontal_separator.png')}
                     bitmap={{}}
                     layout={{ width: 285, height: 2, flexShrink: 0 }}
                 />

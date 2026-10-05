@@ -282,7 +282,7 @@ export const CatalogMarketPlaceOwnItemsWidgetView = () => {
                             layout={{ position: 'absolute', left: 137, width: 19, top: 3, height: 19 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('shared/icons_close.png')}
+                                src={LayoutImage('habbo-window-manager-com/icons_close.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                 layout={{ position: 'absolute', left: 5, top: 4 }}
                             />

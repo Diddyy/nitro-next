@@ -46,7 +46,7 @@ const PrizeIcon = ({ prize }: { prize: RecyclerPrize }) => {
             <>
                 <ThemeImage
                     name="image"
-                    src={LayoutImage('catalog/ctlg_pic_deal_icon_narrow.png')}
+                    src={LayoutImage('habbo-catalog-com/ctlg_pic_deal_icon_narrow.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 0, width: CELL_SIZE, top: 0, height: CELL_SIZE }}
                 />
@@ -148,7 +148,7 @@ const PrizeLevelItem = ({ level, selected, onSelect }: { level: RecyclerPrizeLev
                 <Box layout={{ height: 23, flexDirection: 'row', alignItems: 'flex-start' }}>
                     <ThemeImage
                         name="star_icon"
-                        src={LayoutImage(`catalog/star_small_${STAR_LEVELS[level.prizeLevelId - 1] ?? ''}.png`)}
+                        src={LayoutImage(`habbo-window-manager-com/star_small_${STAR_LEVELS[level.prizeLevelId - 1] ?? ''}.png`)}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ width: 18, height: 17, marginTop: 3 }}
                     />

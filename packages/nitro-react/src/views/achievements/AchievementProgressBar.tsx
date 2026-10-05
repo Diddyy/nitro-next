@@ -73,17 +73,17 @@ export const AchievementProgressBar = ({ x, y, width, current, max, levelKey, sc
     return (
         <Region layout={{ position: 'absolute', left: x, top: y, width: width + 10, height: 23 }}>
             <ThemeImage
-                src={LayoutImage('shared/achievement_ach_progressbar1.png')}
+                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar1.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 0, top: 0, width: 4, height: 23 }}
             />
             <ThemeImage
-                src={LayoutImage('shared/achievement_ach_progressbar2.png')}
+                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar2.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 4, top: 0, width, height: 23 }}
             />
             <ThemeImage
-                src={LayoutImage('shared/achievement_ach_progressbar3.png')}
+                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar3.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: width + 4, top: 0, width: 4, height: 23 }}
             />
@@ -92,13 +92,13 @@ export const AchievementProgressBar = ({ x, y, width, current, max, levelKey, sc
                 layout={{ position: 'absolute', left: 4, top: 3, width: shown + 1, height: 17 }}
             />
             <ThemeImage
-                src={LayoutImage('shared/achievement_ach_progressbar4.png')}
+                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar4.png')}
                 bitmap={{}}
                 alpha={blend}
                 layout={{ position: 'absolute', left: 4, top: 3, width: shown, height: 17 }}
             />
             <ThemeImage
-                src={LayoutImage('shared/achievement_ach_progressbar5.png')}
+                src={LayoutImage('habbo-window-manager-com/achievement_ach_progressbar5.png')}
                 bitmap={{}}
                 alpha={blend}
                 layout={{ position: 'absolute', left: shown + 4, top: 3, width: 1, height: 17 }}

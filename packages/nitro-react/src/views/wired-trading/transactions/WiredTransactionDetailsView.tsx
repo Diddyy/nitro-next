@@ -67,7 +67,7 @@ const Pair = ({ name, value }: PairProps) => (
 const Separator = () => (
     <Region layout={{ height: 5, width: PAIRS_WIDTH, flexShrink: 0 }}>
         <ThemeImage
-            src={LayoutImage('help/illumina_light_separator_horizontal.png')}
+            src={LayoutImage('habbo-window-manager-com/illumina_light_separator_horizontal.png')}
             bitmap={{ stretchedX: false, stretchedY: false, wrapX: true }}
             layout={{ position: 'absolute', left: 0, top: 1, width: PAIRS_WIDTH, height: 2 }}
         />
@@ -267,7 +267,7 @@ export const WiredTransactionDetailsView = ({ details, onClose }: WiredTransacti
                             layout={{ position: 'absolute', left: 357, top: 0, width: 20, height: 20 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('shared/icons_info_grey.png')}
+                                src={LayoutImage('habbo-window-manager-com/icons_info_grey.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                 layout={{ position: 'absolute', left: 1, top: 1 }}
                             />

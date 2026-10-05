@@ -120,7 +120,7 @@ const OfferingNode = ({ node, index }: { node: ITradeRequirementNode; index: num
                 )}
                 {!isFurni && (
                     <ThemeImage
-                        src={LayoutImage('shared/pursearea_credits_icon2.png')}
+                        src={LayoutImage('habbo-window-manager-com/pursearea_credits_icon2.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 0, top: 2, width: 32, height: 36 }}
                     />
@@ -419,7 +419,7 @@ export const WiredTradeRequirementsView = ({ requirement, tradeTypeName, canAcce
                             {/* `offering_containers_separator`: `SeparatorWidget` tiles `illumina_light_separator_vertical` down the middle (x = width / 2 - 1). */}
                             <Box layout={{ width: SEPARATOR_WIDTH, height: borderHeight, marginTop: REQUIREMENTS_BORDER_TOP, flexShrink: 0 }}>
                                 <ThemeImage
-                                    src={LayoutImage('help/illumina_light_separator_vertical.png')}
+                                    src={LayoutImage('habbo-window-manager-com/illumina_light_separator_vertical.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, wrapY: true }}
                                     layout={{ position: 'absolute', left: (SEPARATOR_WIDTH / 2) - 1, top: 0, width: 2, height: borderHeight }}
                                 />
@@ -453,7 +453,7 @@ export const WiredTradeRequirementsView = ({ requirement, tradeTypeName, canAcce
                         </Box>
                     </Region>
                     <ThemeImage
-                        src={LayoutImage(canAccept ? 'wired/common_check_mark.png' : 'inventory/common_cross_mark.png')}
+                        src={LayoutImage(canAccept ? 'habbo-window-manager-com/common_check_mark.png' : 'habbo-window-manager-com/common_cross_mark.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 359, top: 0, width: 30, height: 30 }}
                     />

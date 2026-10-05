@@ -253,7 +253,7 @@ export const UserProfileView = ({ profile, badges, relationships, ownUserId, act
                     layout={{ position: 'absolute', left: 1, top: 0, width: 164, height: 30, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 6 }}
                 >
                     <ThemeImage
-                        src="groups-extended_profile_rooms"
+                        src="habbo-window-manager-com-extended_profile_rooms"
                         layout={{ width: 32, height: 28, flexShrink: 0 }}
                     />
                     <ThemeText
@@ -275,7 +275,7 @@ export const UserProfileView = ({ profile, badges, relationships, ownUserId, act
                     layout={{ position: 'absolute', left: 167, top: 0, width: 165, height: 32, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 6 }}
                 >
                     <ThemeImage
-                        src="groups-badge_rarity_badges_emblem"
+                        src="habbo-window-manager-com-badge_rarity_badges_emblem"
                         layout={{ width: 25, height: 25, flexShrink: 0 }}
                     />
                     <ThemeText
@@ -316,7 +316,7 @@ export const UserProfileView = ({ profile, badges, relationships, ownUserId, act
                     layout={{ position: 'absolute', left: 333, top: 0, width: 167, height: 30, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 6 }}
                 >
                     <ThemeImage
-                        src="groups-extended_profile_icon_level"
+                        src="habbo-window-manager-com-extended_profile_icon_level"
                         layout={{ width: 29, height: 28, flexShrink: 0 }}
                     />
                     <ThemeText
@@ -352,7 +352,7 @@ export const UserProfileView = ({ profile, badges, relationships, ownUserId, act
                             layout={{ width: 227, height: 47 }}
                         >
                             <ThemeImage
-                                src={`shared-relationship_status_${name}`}
+                                src={`habbo-window-manager-com-relationship_status_${name}`}
                                 name={`${name}_icon`}
                                 layout={{ position: 'absolute', left: 3, top: 15, width: 16, height: 14 }}
                             />
@@ -463,7 +463,7 @@ export const UserProfileView = ({ profile, badges, relationships, ownUserId, act
                                             layout={{ position: 'absolute', left: 1, top: 1, width: 18, height: 16 }}
                                         >
                                             <ThemeImage
-                                                src={`groups-extended_profile_${group.favourite ? 'clear' : 'make'}_favourite`}
+                                                src={`habbo-window-manager-com-extended_profile_${group.favourite ? 'clear' : 'make'}_favourite`}
                                                 layout={{ width: 18, height: 16 }}
                                             />
                                         </Region>
@@ -581,7 +581,7 @@ export const UserProfileView = ({ profile, badges, relationships, ownUserId, act
                         />
                     </Border>
                     <ThemeImage
-                        src="groups-extended_profile_frank_stop"
+                        src="habbo-window-manager-com-extended_profile_frank_stop"
                         bitmap={{ stretchedX: false, stretchedY: false, zoomX: 2, zoomY: 2 }}
                         layout={{ position: 'absolute', left: 312, top: 146, width: 148, height: 192 }}
                     />
@@ -597,7 +597,7 @@ export const UserProfileView = ({ profile, badges, relationships, ownUserId, act
                     layout={{ position: 'absolute', left: 481, top: 4, width: 24, height: 24 }}
                 >
                     <ThemeImage
-                        src="groups-extended_profile_block_icon"
+                        src="habbo-window-manager-com-extended_profile_block_icon"
                         dynamicRole="icon"
                         bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000 }}
                         layout={{ position: 'absolute', left: 4, top: 4, width: 16, height: 16 }}

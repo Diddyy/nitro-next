@@ -76,11 +76,11 @@ const THICKNESSES: { thickness: RoomThicknessType; suffix: string }[] = [
 
 /** The five tool buttons, in `BCFloorPlanEditor._drawModes` order, with the layout's own bitmaps. */
 const DRAW_MODE_IMAGES: Record<FloorPlanDrawMode, string> = {
-    add_tile: 'window-manager/floor_plan_editor_add_tile.png',
-    remove_tile: 'window-manager/floor_plan_editor_remove_tile.png',
-    increase_height: 'window-manager/floor_plan_editor_raise_tile.png',
-    decrease_height: 'window-manager/floor_plan_editor_sink_tile.png',
-    set_enter_tile: 'window-manager/floor_plan_editor_enter_tile.png',
+    add_tile: 'habbo-window-manager-com/floor_plan_editor_add_tile.png',
+    remove_tile: 'habbo-window-manager-com/floor_plan_editor_remove_tile.png',
+    increase_height: 'habbo-window-manager-com/floor_plan_editor_raise_tile.png',
+    decrease_height: 'habbo-window-manager-com/floor_plan_editor_sink_tile.png',
+    set_enter_tile: 'habbo-window-manager-com/floor_plan_editor_enter_tile.png',
 };
 
 /** Each tool's `static_bitmap` in its button: the layout nudges them a pixel or four apart. */
@@ -164,7 +164,7 @@ export const FloorPlanEditorView = ({
                         layout={{ position: 'absolute', left: 3, right: 3, top: 2, height: 45 }}
                     >
                         <ThemeImage
-                            src={LayoutImage('window-manager/floor_plan_editor_logo.png')}
+                            src={LayoutImage('habbo-window-manager-com/floor_plan_editor_logo.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 9, width: 38, top: 5, height: 38 }}
                         />
@@ -215,12 +215,12 @@ export const FloorPlanEditorView = ({
                                 </ContainerButton>
                             ))}
                             <ThemeImage
-                                src={LayoutImage('friend-bar/landing_view_reception_horizontal.png')}
+                                src={LayoutImage('habbo-window-manager-com/landing_view_reception_horizontal.png')}
                                 bitmap={{ stretchedX: false }}
                                 layout={{ position: 'absolute', left: 122, top: 0, width: 2, height: 42 }}
                             />
                             <ThemeImage
-                                src={LayoutImage('friend-bar/landing_view_reception_horizontal.png')}
+                                src={LayoutImage('habbo-window-manager-com/landing_view_reception_horizontal.png')}
                                 bitmap={{ stretchedX: false }}
                                 layout={{ position: 'absolute', left: 256, top: 0, width: 2, height: 42 }}
                             />
@@ -287,7 +287,7 @@ export const FloorPlanEditorView = ({
                         layout={{ position: 'absolute', left: 12, width: 20, bottom: 22, height: 26 }}
                     >
                         <ThemeImage
-                            src={LayoutImage('shared/roomtools_magnifier.png')}
+                            src={LayoutImage('habbo-window-manager-com/roomtools_magnifier.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: -4, width: 30, top: -3, height: 30 }}
                         />
@@ -343,7 +343,7 @@ export const FloorPlanEditorView = ({
                         </ContainerButton>
                     </Region>
                     <ThemeImage
-                        src={LayoutImage('friend-bar/landing_view_reception_horizontal.png')}
+                        src={LayoutImage('habbo-window-manager-com/landing_view_reception_horizontal.png')}
                         bitmap={{ stretchedX: false }}
                         layout={{ position: 'absolute', left: 142, top: 3, width: 3, height: 97 }}
                     />
@@ -420,7 +420,7 @@ export const FloorPlanEditorView = ({
                         >
                             <ThemeImage
                                 name="wall_height_slider"
-                                src={LayoutImage('toolbar/icons_toolbar_divider.png')}
+                                src={LayoutImage('habbo-window-manager-com/icons_toolbar_divider.png')}
                                 bitmap={{ stretchedY: false, pivot: 'center left' }}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 111, height: 30 }}
                             />

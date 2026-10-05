@@ -7,11 +7,13 @@ import { registerThemeVariants, themeTextureAliases, ThemeVariantsData } from '.
 import { registerThemeAtlas, resetThemeSprites, themeTextureKeys } from './themeSprites';
 
 /**
- * Loads the `theme` asset bundle and hands its contents to the registries the chrome reads, once at
- * boot, on both render targets.
+ * Loads the theme out of the window manager library's bundle (`habbo-window-manager-com`, the library
+ * the Habbo client draws its window skins from) and hands it to the registries the chrome reads, once
+ * at boot, on both render targets.
  *
- * Nitro Studio builds the bundle from the client release (`server/theme/clientTheme.ts` there): the
- * sprites the theme draws packed into one sheet plus a Pixi `SpritesheetData` manifest, and
+ * Nitro Studio builds the theme from the client release (`server/theme/clientTheme.ts` there) into that
+ * bundle beside the library's templates and bitmaps: the sprites the theme draws packed into one sheet
+ * (`theme.png`) plus a Pixi `SpritesheetData` manifest (`theme_spritesheet.json`), and
  * `theme-variants.json` - every variant, the cascade and the icon set (`themeRegistry.ts`).
  * `AssetManager` has already made the sheet one GPU upload and cut a `Texture` per sprite out of it
  * by the time this runs. What is left is naming them the way the theme does - a sprite `theme-<x>` is
@@ -26,17 +28,21 @@ import { registerThemeAtlas, resetThemeSprites, themeTextureKeys } from './theme
  *   slice it out of the decoded sheet on demand, once per key.
  *
  * There is no fallback behind this: the client ships no theme of its own, and the hotel serves the
- * bundle from `ui.theme.url` (`assetBundleUrl`). If the bundle fails, the chrome is missing and the
+ * bundle as it does any library's, from `ui.templates.url` (`assetBundleUrl`). If the bundle fails, the chrome is missing and the
  * error is on the console - which is the intent, an asset silently taking the slow path is how a
  * regression hides.
  */
-const BUNDLE_NAME = 'theme';
+/** What the theme's sheet and its manifest are named after, in whichever bundle carries them. */
+const THEME_NAME = 'theme';
+
+/** The bundle that carries the theme: the window manager library's. */
+const BUNDLE_NAME = 'habbo-window-manager-com';
 
 /** `theme-variants.json`, by the name `getBundleFile` knows a bundle's JSON by. */
 const THEME_VARIANTS_FILE = 'theme-variants';
 
 /**
- * Loads the theme from its bundle - `theme`, or another name the host serves the theme's bundle under:
+ * Loads the theme from its bundle - the window manager's, or another the host serves a theme under:
  * art that changed is a bundle of its own, a bundle once fetched being kept by its name
  * (`resetThemeArtCaches` first, so nothing cut from the old art is drawn again).
  */
@@ -44,10 +50,10 @@ export const preloadThemeAssets = async (bundle: string = BUNDLE_NAME): Promise<
     if (!await themeHost().loadAssetBundle(bundle)) return;
 
     const assetManager = GetAssetManager();
-    // The sheet and its manifest are named by the theme's own bundle, whatever this one is fetched as.
-    const manifest = assetManager.getBundleFile<SpritesheetData>(bundle, `${BUNDLE_NAME}_spritesheet`);
+    // The sheet and its manifest are named after the theme, whatever bundle carries them.
+    const manifest = assetManager.getBundleFile<SpritesheetData>(bundle, `${THEME_NAME}_spritesheet`);
     // `processNitroBundle` registers the sheet itself under the manifest's own name.
-    const sheet = assetManager.getTexture(`${BUNDLE_NAME}_spritesheet`);
+    const sheet = assetManager.getTexture(`${THEME_NAME}_spritesheet`);
 
     const variants = assetManager.getBundleFile<ThemeVariantsData>(bundle, THEME_VARIANTS_FILE);
 
@@ -68,8 +74,8 @@ export const preloadThemeAssets = async (bundle: string = BUNDLE_NAME): Promise<
 
     registerThemeAtlas({ image, width: sheet.source.width, height: sheet.source.height }, manifest.frames, themeTextureAliases());
 
-    // The rects are in `themeSprites` now; the manifest they were read out of is not needed again.
-    assetManager.releaseBundleData(bundle);
+    // The bundle's data is kept: the window manager's carries the library's templates too, which
+    // `useTemplate` reads as they are drawn.
 };
 
 /** Forgets the theme's art - its textures, its sheet and all cut from them - before new art is loaded (`preloadThemeAssets`). */

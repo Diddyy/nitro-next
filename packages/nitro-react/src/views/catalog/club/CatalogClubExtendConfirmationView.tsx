@@ -45,8 +45,8 @@ const ANIMATION_FRAME_INTERVAL = 75;
 const LINK_COLOR_DEFAULT = '#000000';
 const LINK_COLOR_HOVER = '#91c1ff';
 
-const CREDIT_ICON = LayoutImage('catalog/icon_credit_0.png');
-const CREDIT_ICONS = Array.from({ length: CREDIT_IMAGE_COUNT }, (_, index) => LayoutImage(`catalog/icon_credit_${index}.png`));
+const CREDIT_ICON = LayoutImage('habbo-catalog-com/icon_credit_0.png');
+const CREDIT_ICONS = Array.from({ length: CREDIT_IMAGE_COUNT }, (_, index) => LayoutImage(`habbo-catalog-com/icon_credit_${index}.png`));
 
 /**
  * `startAnimation`: frame 0, and every 2 seconds `startAnimationFrame` twice in a row - a 75 ms

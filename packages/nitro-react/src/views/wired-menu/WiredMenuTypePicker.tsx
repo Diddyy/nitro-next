@@ -61,7 +61,7 @@ export const WiredMenuTypePicker = ({ titleKey, count, selected, onSelect }: Wir
                                 layout={{ position: 'absolute', left: 0, top: 0, width: BUTTON_SIZE, height: 36 }}
                             />
                             <ThemeImage
-                                src={LayoutImage(`wired/icon_wired_variable_${button.name}_large.png`)}
+                                src={LayoutImage(`habbo-window-manager-com/icon_wired_variable_${button.name}_large.png`)}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                 eventMode="none"
                                 layout={{ position: 'absolute', left: 0, top: 0, width: BUTTON_SIZE, height: BUTTON_SIZE }}

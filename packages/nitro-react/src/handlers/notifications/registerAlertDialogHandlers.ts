@@ -62,8 +62,8 @@ export const registerAlertDialogHandlers = ({ subscribe }: WebSocketConnection) 
             linkTitle: localize('mod.alert.link'),
             // `SimpleAlertDialog`: `param6 = interpolate(param6)`.
             linkUrl: systemStore.getState().interpolate(url),
-            // `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('window-manager/illumina_alert_illustrations_frank_neutral.png')`.
-            illustration: 'window-manager-illumina_alert_illustrations_frank_neutral',
+            // `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('habbo-window-manager-com/illumina_alert_illustrations_frank_neutral.png')`.
+            illustration: 'habbo-window-manager-com-illumina_alert_illustrations_frank_neutral',
         });
     };
 

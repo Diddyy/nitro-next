@@ -90,7 +90,7 @@ export const useRoomWidgetRequestHandler = () => {
                     caption: t('resolution.failed.title'),
                     subtitle: t('resolution.failed.subtitle'),
                     message: t('resolution.failed.text'),
-                    illustration: LayoutImage('help/help_error_state.png'),
+                    illustration: LayoutImage('habbo-window-manager-com/help_error_state.png'),
                 });
                 return;
             /*

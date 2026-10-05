@@ -73,7 +73,7 @@ export const CatalogBuilderAddonsWidgetView = ({ page }: CatalogWidgetProps) => 
                                     layout={{ flexShrink: 0 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('shared/pursearea_credits_icon.png')}
+                                    src={LayoutImage('habbo-window-manager-com/pursearea_credits_icon.png')}
                                     bitmap={{}}
                                     layout={{ width: 15, height: 15, marginTop: 3, flexShrink: 0 }}
                                 />
@@ -88,7 +88,7 @@ export const CatalogBuilderAddonsWidgetView = ({ page }: CatalogWidgetProps) => 
                                         />
                                         <ThemeImage
                                             name="diamonds_icon"
-                                            src={LayoutImage('shared/pursearea_diamond_icon.png')}
+                                            src={LayoutImage('habbo-window-manager-com/pursearea_diamond_icon.png')}
                                             bitmap={{}}
                                             layout={{ width: 15, height: 15, marginTop: 3, flexShrink: 0 }}
                                         />

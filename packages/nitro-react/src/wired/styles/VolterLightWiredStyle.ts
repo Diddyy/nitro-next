@@ -53,7 +53,7 @@ export const createVolterLightStyle = ({ name, frameColor, backgroundColor, adva
             sourceTypeSelector: {
                 kind: 'flat', height: 17, optionWidth: 13,
                 borderColor: '#000000', backgroundColor: LIGHT_FILL_COLOR,
-                assetPrefix: 'wired_icon_source_', iconTint: '#000000',
+                assetPrefix: 'habbo-user-defined-room-events-com/icon_source_', iconTint: '#000000',
             },
             slider: { ...base.slider, baseTint: '#000000' },
             frame,

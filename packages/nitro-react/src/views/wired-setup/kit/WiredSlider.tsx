@@ -162,7 +162,7 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
             >
                 {(trackWidth > 0) && (
                     <ThemeImage
-                        src={LayoutImage(`wired/${template.baseAsset}.png`)}
+                        src={LayoutImage(`habbo-window-manager-com/${template.baseAsset}.png`)}
                         tint={template.baseTint ?? undefined}
                         // `slider_base`: stretched across the slider, drawn at its own height (`stretched_y` false).
                         bitmap={{ stretchedY: false }}
@@ -172,7 +172,7 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
                 )}
                 <Box layout={{ position: 'absolute', left: 0, top: template.movementAreaY, right: 0, height: template.buttonHeight }}>
                     <ThemeImage
-                        src={LayoutImage(`wired/${template.buttonAsset}.png`)}
+                        src={LayoutImage(`habbo-window-manager-com/${template.buttonAsset}.png`)}
                         // `slider_button`: unstretched, the window sized to its bitmap.
                         bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                         cursor={(isDisabled || (step === 0)) ? 'default' : 'pointer'}

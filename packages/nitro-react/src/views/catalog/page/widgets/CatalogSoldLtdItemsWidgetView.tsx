@@ -62,7 +62,7 @@ export const CatalogSoldLtdItemsWidgetView = ({ page }: CatalogWidgetProps) => {
             layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 30 }}
         >
             <ThemeImage
-                src={LayoutImage('catalog/unique_item_large_na_button_wide.png')}
+                src={LayoutImage('habbo-window-manager-com/unique_item_large_na_button_wide.png')}
                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'top right' }}
                 layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 30 }}
             />

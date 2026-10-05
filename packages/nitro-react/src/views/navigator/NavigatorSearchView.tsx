@@ -105,7 +105,7 @@ export const NavigatorSearchView = () => {
                 >
                     <ThemeImage
                         name="search.clear.icon"
-                        src={LayoutImage(searchFilter.length > 0 ? 'shared/icons_close.png' : 'shared/common_small_pen.png')}
+                        src={LayoutImage(searchFilter.length > 0 ? 'habbo-window-manager-com/icons_close.png' : 'habbo-window-manager-com/common_small_pen.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 0, width: 20, top: 0, height: 20 }}
                     />
@@ -125,7 +125,7 @@ export const NavigatorSearchView = () => {
                         layout={{ position: 'absolute', left: 0, width: 25, top: 0, height: 23 }}
                     />
                     <ThemeImage
-                        src={LayoutImage('navigator/newnavigator_refresh_search_icon.png')}
+                        src={LayoutImage('habbo-window-manager-com/newnavigator_refresh_search_icon.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 5, width: 17, top: 5, height: 12 }}
                     />

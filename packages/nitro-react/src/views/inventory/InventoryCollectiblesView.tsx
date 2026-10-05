@@ -59,7 +59,7 @@ const CollectibleThumb = ({ group, selected, onSelect }: CollectibleThumbProps) 
                 slots={{
                     productPreview: { left: 0, top: 0, width: 40, height: 40 },
                     badge: { left: 0, top: 0, width: 40, height: 40, zoom: 1 },
-                    unknown: { left: 11, top: 11, width: 18, height: 18, src: LayoutImage('shared/collectables_icon_curator_stamp_small.png'), stretched: true },
+                    unknown: { left: 11, top: 11, width: 18, height: 18, src: LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_small.png'), stretched: true },
                     pet: { left: 0, top: 0, width: 40, height: 40, zoom: 1, shrinkOnOverflow: true },
                 }}
             />
@@ -82,7 +82,7 @@ const CollectibleThumb = ({ group, selected, onSelect }: CollectibleThumbProps) 
         </Border>
         {selected && (
             <ThemeImage
-                src={LayoutImage('shared/inventory_thumb_selected_outline.png')}
+                src={LayoutImage('habbo-window-manager-com/inventory_thumb_selected_outline.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 0, top: 0, width: THUMB_SIZE, height: THUMB_SIZE }}
             />
@@ -173,7 +173,7 @@ export const InventoryCollectiblesView = () => {
                                 slots={{
                                     productPreview: { left: 0, top: 0, width: 170, height: 110 },
                                     badge: { left: 65, top: 35, width: 40, height: 40, zoom: 1 },
-                                    unknown: { left: 76, top: 46, width: 18, height: 18, src: LayoutImage('shared/collectables_icon_curator_stamp_small.png'), stretched: true },
+                                    unknown: { left: 76, top: 46, width: 18, height: 18, src: LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_small.png'), stretched: true },
                                     pet: { left: 0, top: 0, width: 170, height: 110, zoom: 1, shrinkOnOverflow: true },
                                 }}
                             />

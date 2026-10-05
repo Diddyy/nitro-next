@@ -51,7 +51,7 @@ export const FurnitureStickieView = ({ objectType, colorHex, text, canModify, on
             layout={{ position: 'absolute', left: 100, top: 100, width: 185, height: 178 }}
         >
             <ThemeImage
-                src={LayoutImage(isPlain ? 'room-ui/stickie_blanco.png' : `room-ui/${objectType.replace('post_it', 'stickie')}.png`)}
+                src={LayoutImage(isPlain ? 'habbo-room-ui-com/stickie_blanco.png' : `habbo-room-ui-com/${objectType.replace('post_it', 'stickie')}.png`)}
                 tint={isPlain ? `#${colorHex}` : undefined}
                 bitmap={{}}
                 hitThreshold={10}
@@ -60,7 +60,7 @@ export const FurnitureStickieView = ({ objectType, colorHex, text, canModify, on
             />
             {canModify && (
                 <ThemeImage
-                    src={LayoutImage('room-ui/stickie_remove.png')}
+                    src={LayoutImage('habbo-room-ui-com/stickie_remove.png')}
                     bitmap={{}}
                     hitThreshold={10}
                     cursor="pointer"
@@ -78,7 +78,7 @@ export const FurnitureStickieView = ({ objectType, colorHex, text, canModify, on
                 />
             ))}
             <ThemeImage
-                src={LayoutImage('room-ui/stickie_close.png')}
+                src={LayoutImage('habbo-room-ui-com/stickie_close.png')}
                 bitmap={{}}
                 hitThreshold={10}
                 cursor="pointer"

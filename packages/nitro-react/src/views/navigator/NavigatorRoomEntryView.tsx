@@ -9,9 +9,9 @@ import { getUserCountColor } from './NavigatorRoomEntryUtils';
 
 /** `RoomEntryUtils.getDoorModeIconAsset` - `switch(doorMode - 1)`, an empty asset for an open door. */
 const DOOR_MODE_IMAGES: Record<number, string> = {
-    1: LayoutImage('navigator/newnavigator_doormode_doorbell_small.png'),
-    2: LayoutImage('navigator/newnavigator_doormode_password_small.png'),
-    3: LayoutImage('navigator/newnavigator_doormode_invisible_small.png'),
+    1: LayoutImage('habbo-window-manager-com/newnavigator_doormode_doorbell_small.png'),
+    2: LayoutImage('habbo-window-manager-com/newnavigator_doormode_password_small.png'),
+    3: LayoutImage('habbo-window-manager-com/newnavigator_doormode_invisible_small.png'),
 };
 
 /**
@@ -55,7 +55,7 @@ const UserCount = ({ room, left, top }: { room: IRoomInfo; left: number; top: nu
         >
             <ThemeImage
                 name="room_usercount_icon"
-                src={LayoutImage('shared/newnavigator_icon_usercount.png')}
+                src={LayoutImage('habbo-window-manager-com/newnavigator_icon_usercount.png')}
                 // The layout gives it a 13x14 box and no vars, so the 18x18 art is stretched into it.
                 bitmap={{}}
                 layout={{ width: 13, height: 14, marginTop: 1, flexShrink: 0 }}
@@ -85,7 +85,7 @@ const InfoButton = ({ room, left, top, onShowInfo }: { room: IRoomInfo; left: nu
         layout={{ position: 'absolute', left, width: 18, top, height: 18 }}
     >
         <ThemeImage
-            src={LayoutImage('navigator/newnavigator_button_show_room_info.png')}
+            src={LayoutImage('habbo-window-manager-com/newnavigator_button_show_room_info.png')}
             bitmap={{ stretchedX: false, stretchedY: false }}
             layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 18 }}
         />
@@ -126,7 +126,7 @@ export const NavigatorRoomEntryView = ({ room, mode, backgroundColor, onEnter, o
                 />
                 <ThemeImage
                     name="room_pic_placeholder"
-                    src={roomPicTexture ? roomPicUrl : LayoutImage('shared/newnavigator_default_room.png')}
+                    src={roomPicTexture ? roomPicUrl : LayoutImage('habbo-window-manager-com/newnavigator_default_room.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 8, width: 106, top: 7, height: 106 }}
                 />
@@ -217,7 +217,7 @@ export const NavigatorRoomEntryView = ({ room, mode, backgroundColor, onEnter, o
                 {(room.groupId > 0) && (
                     <ThemeImage
                         name="grouphome_icon"
-                        src={LayoutImage('navigator/newnavigator_icon_group.png')}
+                        src={LayoutImage('habbo-window-manager-com/newnavigator_icon_group.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 341, width: 16, top: 2, height: 16 }}
                     />

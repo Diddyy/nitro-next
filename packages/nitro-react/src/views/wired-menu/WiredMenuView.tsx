@@ -135,7 +135,7 @@ export const WiredMenuView = () => {
                     {HEADER_PATTERN.map((left, index) => (
                         <ThemeImage
                             key={left}
-                            src={LayoutImage('wired/wired_box_lines.png')}
+                            src={LayoutImage('habbo-window-manager-com/wired_box_lines.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                             alpha={0.3}
                             layout={{ position: 'absolute', left, top: (index % 2) ? -20 : 20, width: 64, height: 51 }}
@@ -161,7 +161,7 @@ export const WiredMenuView = () => {
                 >
                     <ThemeImage
                         dynamicRole="icon"
-                        src={LayoutImage('wired/icon_discord.png')}
+                        src={LayoutImage('habbo-window-manager-com/icon_discord.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 0, top: 1, width: 22, height: 23 }}
                     />

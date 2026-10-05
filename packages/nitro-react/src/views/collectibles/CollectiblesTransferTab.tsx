@@ -95,7 +95,7 @@ export const CollectiblesTransferTab = () => {
                                 {(fee > 0) && (
                                     <ThemeImage
                                         name="transfer_fee_icon"
-                                        src={LayoutImage('shared/pursearea_mid_silver_icon.png')}
+                                        src={LayoutImage('habbo-window-manager-com/pursearea_mid_silver_icon.png')}
                                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                         layout={{ width: 24, height: 30, flexShrink: 0 }}
                                     />
@@ -118,7 +118,7 @@ export const CollectiblesTransferTab = () => {
                         </Border>
                     </Border>
                     <ThemeImage
-                        src={LayoutImage('catalog/collectables_transfer_safe.png')}
+                        src={LayoutImage('habbo-window-manager-com/collectables_transfer_safe.png')}
                         bitmap={{ fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 42, top: 120 }}
                     />

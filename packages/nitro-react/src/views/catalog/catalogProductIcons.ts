@@ -9,7 +9,7 @@ import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 import { LayoutImage } from '#base/theme';
 
 /** `getSubscriptionProductIcon`: the catalogue's `icon_hc`. */
-export const SUBSCRIPTION_PRODUCT_ICON = LayoutImage('catalog/icon_hc.png');
+export const SUBSCRIPTION_PRODUCT_ICON = LayoutImage('habbo-catalog-com/icon_hc.png');
 
 /** `getPixelEffectIcon`: the effect's `fx_icon_<id>` (the inventory's library, here the `effect-icons` bundle). */
 export const pixelEffectIcon = (classId: number) => LayoutImage(`effect-icons/fx_icon_${classId}.png`);

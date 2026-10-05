@@ -97,7 +97,7 @@ const toCssColor = (color: number): string => `#${(color & 0xffffff).toString(16
  *
  * The rect matters: a bundled bitmap is a region of its bundle's packed sheet, not a texture that
  * owns its source, so drawing `texture.source.resource` whole puts the top-left corner of the
- * whole chat-styles sheet in the bubble instead of the style's own art. `texture.frame` is where
+ * whole chat style sheet in the bubble instead of the style's own art. `texture.frame` is where
  * this one actually sits in it.
  */
 const drawTexture = (ctx: CanvasRenderingContext2D, texture: Texture, x: number, y: number): boolean => {

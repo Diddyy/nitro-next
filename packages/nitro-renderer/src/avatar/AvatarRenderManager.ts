@@ -36,7 +36,7 @@ export class AvatarRenderManager implements IAvatarRenderManager {
     }
 
     /**
-     * Starts from the hotel's avatar data (`LoadAvatarData`, `avatar.data.url`): the tables Flash's
+     * Starts from the hotel's avatar data (`LoadAvatarData`, the avatar render library's bundle): the tables Flash's
      * render library carried, then the hotel's actions over the built-in set and its animations -
      * Flash's `initActions` then `updateActions`.
      */

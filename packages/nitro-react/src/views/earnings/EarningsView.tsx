@@ -97,7 +97,7 @@ const Amount = ({ row, amount, values }: { row: EarningsRow; amount: EarningsRow
         const present = (
             <ThemeImage
                 name="productIcon"
-                src={LayoutImage('catalog/vault_icon_present.png')}
+                src={LayoutImage('habbo-window-manager-com/vault_icon_present.png')}
                 bitmap={{ stretchedX: false, stretchedY: false }}
                 layout={{ position: 'absolute', left: amount.x, top: 6, width: 30, height: 30 }}
             />
@@ -170,7 +170,7 @@ const EarningsRowView = ({ row, values, claimDisabled, onClaim }: EarningsRowVie
             >
                 <ThemeImage
                     name={`${row.name}_bitmap`}
-                    src={LayoutImage(`catalog/${row.icon}.png`)}
+                    src={LayoutImage(`habbo-window-manager-com/${row.icon}.png`)}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     dynamicRole="icon"
                     layout={{ position: 'absolute', left: 1, top: row.iconTop, width: 32, height: 32 }}

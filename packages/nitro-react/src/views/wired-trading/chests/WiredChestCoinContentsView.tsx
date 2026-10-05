@@ -60,7 +60,7 @@ export const WiredChestCoinContentsView = ({ chestId, className, canWithdraw }: 
         <Box layout={{ position: 'relative', width: WIRED_COIN_CHEST_WIDTH, height: WIRED_COIN_CHEST_HEIGHT, flexShrink: 0 }}>
             <Box layout={{ position: 'absolute', left: 44, top: 24, width: 324, height: 228 }}>
                 <ThemeImage
-                    src={LayoutImage(`wired/wired_chests_images_${theme}_coins_chest_balance_${chestState(coins)}.png`)}
+                    src={LayoutImage(`habbo-window-manager-com/wired_chests_images_${theme}_coins_chest_balance_${chestState(coins)}.png`)}
                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                     layout={{ position: 'absolute', left: 0, top: 0, width: 324, height: 228 }}
                 />

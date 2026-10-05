@@ -286,7 +286,7 @@ export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
                             layout={{ position: 'absolute', left: 14, top: 21, width: 33, height: 34 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('shared/icons_back.png')}
+                                src={LayoutImage('habbo-window-manager-com/icons_back.png')}
                                 bitmap={{ fitSizeToContents: true }}
                                 layout={{ position: 'absolute', left: 0, top: 0 }}
                             />

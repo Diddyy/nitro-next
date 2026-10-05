@@ -91,7 +91,7 @@ const TradingSlotImage = ({ content, size }: { content: TradingSlotContent; size
                 slots={{
                     productPreview: { left: 0, top: 0, width: size, height: size },
                     badge: { left: 0, top: 0, width: size, height: size, zoom: 1 },
-                    unknown: { left: (size - 18) / 2, top: (size - 18) / 2, width: 18, height: 18, src: LayoutImage('shared/collectables_icon_curator_stamp_small.png'), stretched: true },
+                    unknown: { left: (size - 18) / 2, top: (size - 18) / 2, width: 18, height: 18, src: LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_small.png'), stretched: true },
                     pet: { left: 0, top: 0, width: size, height: size, zoom: 1, shrinkOnOverflow: true },
                 }}
             />
@@ -235,7 +235,7 @@ const TradingOffer = ({ user, own, showCounts, onRemove, onHoverStart, onHoverEn
                 </>
             )}
             <ThemeImage
-                src={LayoutImage(user.accepts ? 'inventory/inventory_trading_trading_locked_icon.png' : 'inventory/inventory_trading_trading_unlocked_icon.png')}
+                src={LayoutImage(user.accepts ? 'habbo-window-manager-com/inventory_trading_trading_locked_icon.png' : 'habbo-window-manager-com/inventory_trading_trading_unlocked_icon.png')}
                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                 layout={{ position: 'absolute', left: 45, top: 164, width: 32, height: 34 }}
             />
@@ -346,7 +346,7 @@ export const InventoryTradingView = () => {
                     onHoverEnd={popup.hideDelayed}
                 />
                 <ThemeImage
-                    src={LayoutImage('inventory/inventory_trading_trading_arrow_icon.png')}
+                    src={LayoutImage('habbo-window-manager-com/inventory_trading_trading_arrow_icon.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 224, top: 40, width: 30, height: 160 }}
                 />
@@ -394,13 +394,13 @@ export const InventoryTradingView = () => {
                         layout={{ position: 'absolute', left: 39, top: 30, width: 22, height: 22 }}
                     />
                     <ThemeImage
-                        src={LayoutImage('inventory/inventory_trading_trading_silver_arrow_right.png')}
+                        src={LayoutImage('habbo-window-manager-com/inventory_trading_trading_silver_arrow_right.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                         alpha={0.45}
                         layout={{ position: 'absolute', left: 30, top: 27 }}
                     />
                     <ThemeImage
-                        src={LayoutImage('inventory/inventory_trading_trading_silver_arrow_left.png')}
+                        src={LayoutImage('habbo-window-manager-com/inventory_trading_trading_silver_arrow_left.png')}
                         bitmap={{ fitSizeToContents: true }}
                         alpha={0.45}
                         layout={{ position: 'absolute', left: 292, top: 27 }}
@@ -422,7 +422,7 @@ export const InventoryTradingView = () => {
                             layout={{ marginTop: 2, flexShrink: 0 }}
                         />
                         <ThemeImage
-                            src={LayoutImage('shared/pursearea_mid_silver_icon.png')}
+                            src={LayoutImage('habbo-window-manager-com/pursearea_mid_silver_icon.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                             layout={{ flexShrink: 0 }}
                         />

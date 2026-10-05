@@ -144,14 +144,14 @@ const Thumbnail = ({ layout, left, selected, arrowY, imageLibraryUrl, tileSizeTe
             </Region>
             <ThemeImage
                 name={selected ? 'tile_icon_white' : 'tile_icon_black'}
-                src={LayoutImage(selected ? 'navigator/tile_icon_white.png' : 'navigator/tile_icon_black.png')}
+                src={LayoutImage(selected ? 'habbo-navigator-com/tile_icon_white.png' : 'habbo-navigator-com/tile_icon_black.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 5, width: 18, top: 80, height: 10 }}
             />
             {selected && (
                 <ThemeImage
                     name="select_arrow"
-                    src={LayoutImage('navigator/select_arrow.png')}
+                    src={LayoutImage('habbo-navigator-com/select_arrow.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 60, width: 18, top: arrowY, height: 20 }}
                 />

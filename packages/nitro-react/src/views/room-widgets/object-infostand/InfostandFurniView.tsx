@@ -161,7 +161,7 @@ export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWir
             >
                 <ThemeImage
                     name="icon"
-                    src={LayoutImage('room-ui/infostand_furni_shop.png')}
+                    src={LayoutImage('habbo-window-manager-com/infostand_furni_shop.png')}
                     bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
                     layout={{ width: 20, height: 18, marginTop: 3, flexShrink: 0 }}
                 />
@@ -257,7 +257,7 @@ export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWir
                             {details.chest.isLocked && (
                                 <ThemeImage
                                     name="locked_icon"
-                                    src={LayoutImage('shared/forum_forum_locked.png')}
+                                    src={LayoutImage('habbo-window-manager-com/forum_forum_locked.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                     layout={{ marginTop: -3, flexShrink: 0 }}
                                 />
@@ -274,37 +274,37 @@ export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWir
                         {details.uniqueSerial && (
                             <>
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/unique_item_large_iron.png')}
+                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_iron.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false }}
                                     layout={{ position: 'absolute', left: 8, top: -1, width: 5, height: 9 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/unique_item_large_iron.png')}
+                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_iron.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false }}
                                     layout={{ position: 'absolute', left: 155, top: -1, width: 5, height: 9 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/unique_item_large_glass_mid.png')}
+                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_glass_mid.png')}
                                     bitmap={{}}
                                     layout={{ position: 'absolute', left: 0, top: 5, width: LIST_WIDTH, height: containerHeight - 10 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/unique_item_large_glass_top.png')}
+                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_glass_top.png')}
                                     bitmap={{}}
                                     layout={{ position: 'absolute', left: 0, top: 0, width: LIST_WIDTH, height: 5 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/unique_item_large_glass_bottom.png')}
+                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_glass_bottom.png')}
                                     bitmap={{}}
                                     layout={{ position: 'absolute', left: 0, top: containerHeight - 5, width: LIST_WIDTH, height: 5 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/unique_item_large_iron.png')}
+                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_iron.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false }}
                                     layout={{ position: 'absolute', left: 8, top: containerHeight - 7, width: 5, height: 9 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/unique_item_large_iron.png')}
+                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_iron.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false }}
                                     layout={{ position: 'absolute', left: 155, top: containerHeight - 7, width: 5, height: 9 }}
                                 />
@@ -321,7 +321,7 @@ export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWir
                         {details.uniqueSerial && (
                             <>
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/unique_item_large_glass_shine.png')}
+                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_glass_shine.png')}
                                     bitmap={{}}
                                     layout={{ position: 'absolute', left: 0, top: 5, width: LIST_WIDTH, height: containerHeight - 10 }}
                                 />
@@ -338,7 +338,7 @@ export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWir
                         <Box layout={{ width: LIST_WIDTH, height: 22, flexShrink: 0 }}>
                             <ThemeImage
                                 name="nft_icon"
-                                src={LayoutImage('room-ui/icon_nft.png')}
+                                src={LayoutImage('habbo-room-ui-com/icon_nft.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false }}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 18, height: 18 }}
                             />

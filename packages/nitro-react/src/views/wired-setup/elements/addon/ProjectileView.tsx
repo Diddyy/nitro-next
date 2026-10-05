@@ -70,7 +70,7 @@ export const ProjectileView: WiredElementView<ProjectileAddonForm> = ({ form, se
                                 />
                                 {PROJECTILE_DIRECTIONAL_SYSTEMS.includes(form.directionalSystem) && (
                                     <WiredAlignCenter>
-                                        <WiredStaticBitmap asset={`wired/${projectileDirectionalSystemAsset(form.directionalSystem)}`} />
+                                        <WiredStaticBitmap asset={`habbo-window-manager-com/${projectileDirectionalSystemAsset(form.directionalSystem)}`} />
                                     </WiredAlignCenter>
                                 )}
                                 <WiredCheckboxGroup

@@ -4,14 +4,13 @@
  * `style_<assetId>_regpoints` text (where the nine-slice grid, pointer, face, emblem, text
  * margins and colours sit inside the style's bitmaps). `regPoints` carries exactly the keys the
  * style's file has, so an absent key is absent in Flash too and `ChatStyle` applies the
- * library's defaults. The bitmaps live under `public/assets/chat-styles/<assetId>/`, copied
- * straight out of the SWF: `chat_bubble_base`, `chat_bubble_pointer` and `selector_preview`
- * for every style, plus whatever `bitmaps` lists.
+ * library's defaults. The bitmaps are the library's own: `chat_bubble_base`, `chat_bubble_pointer`
+ * and `selector_preview` for every style, plus whatever `bitmaps` lists.
  *
  * The catalogue itself is not here. Each style's row is a `chat_definition.json` in its own
  * folder, beside the bitmaps it describes - `{ id, flags, regPoints, bitmaps }`, with the folder
- * name as the `assetId`. `scripts/build-asset-bundles.ts` collects them into one
- * `chat-style-definitions.json` inside `chat-styles.nitro`, and `ChatStyleLibrary` reads that
+ * name as the `assetId`. Nitro Studio collects them into one `chat-style-definitions.json`
+ * inside the `habbo-free-flow-chat-com` library's bundle, and `ChatStyleLibrary` reads that
  * back, so the catalogue arrives with the art it describes and is never compiled into the client.
  * This file is the types those JSON rows are read as, plus the two id predicates.
  *
@@ -97,11 +96,8 @@ export interface ChatStyleDefinition {
 /** `ChatStyleLibrary.DEFAULT_STYLE` - the style every unknown id falls back to. */
 export const CHAT_STYLE_DEFAULT_ID = 0;
 
-/**
- * A style's bitmap by the name it has in `chat-styles.nitro` - the path under `public/assets`
- * with `/` turned into `-`, as `scripts/build-asset-bundles.ts` names every packed asset.
- */
-export const chatStyleAssetName = (assetId: string, file: ChatStyleAssetFile): string => `chat-styles-${assetId}-${file}`;
+/** A style's bitmap by the name it has in its library's bundle: the library's `style_<assetId>_<file>`, after the library. */
+export const chatStyleAssetName = (assetId: string, file: ChatStyleAssetFile): string => `habbo-free-flow-chat-com-style_${assetId}_${file}`;
 
 /** `RoomChatInputView.isNftChatStyle` - ids 1000-9999 are NFT styles, pickable only when the account holds one. */
 export const isNftChatStyle = (styleId: number): boolean => (styleId >= 1000) && (styleId <= 9999);

@@ -57,7 +57,7 @@ export const CatalogLayoutInfoRentablesView = ({ page }: CatalogLayoutProps) => 
                             layout={{ height: 47, width: 306, flexShrink: 0 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('shared/toolbar_duckat_icon_0.png')}
+                                src={LayoutImage('habbo-window-manager-com/toolbar_duckat_icon_0.png')}
                                 bitmap={{ zoomX: -1 }}
                                 layout={{ position: 'absolute', left: 1, width: 23, top: 3, height: 22 }}
                             />

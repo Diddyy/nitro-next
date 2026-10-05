@@ -198,7 +198,7 @@ export const InfostandBotView = ({ rentable, name, motto, figure, gender, ownerN
                         />
                         <Region layout={{ position: 'absolute', left: 17, top: 2, width: 66, height: 127, overflow: 'hidden' }}>
                             <ThemeImage
-                                src={LayoutImage('room-ui/infostand_bot_info_bg.png')}
+                                src={LayoutImage('habbo-window-manager-com/infostand_bot_info_bg.png')}
                                 bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 66, height: 127 }}
                             />

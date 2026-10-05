@@ -33,9 +33,9 @@ not the client runtime texture loader.
   workspace provides external variables, external texts, default localizations and avatar data.
   Correct imported/generated text at its source instead of patching the client to compensate.
 - The avatar data the renderer starts from - the client's avatar tables and the hotel's actions and
-  animations - is the workspace's `renderer/avatar-data.nitro` (`avatar.data.url`), built from its
-  gamedata on import, edit and publish. Keep `avatar.data.url` pointed at it; the renderer compiles
-  none of it in.
+  animations - is the avatar render library's bundle, the workspace's
+  `ui/templates/habbo-avatar-render-lib.nitro` (read from `ui.templates.url`, with the avatar
+  additions), built from its gamedata on import, edit and publish. The renderer compiles none of it in.
 - Keep `nitro-config.json` aligned with the workspace's external variables and generated asset URLs.
   Check the actual files served to the client as well as the workspace's source files.
 - Preserve workspace-specific assets when updating or merging official assets. Follow the asset

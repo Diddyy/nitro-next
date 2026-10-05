@@ -597,13 +597,13 @@ export const RoomChatInputView = () => {
             >
                 <ThemeImage
                     name="style_bg"
-                    src={LayoutImage('room-ui/common_chat_style_block.png')}
+                    src={LayoutImage('habbo-window-manager-com/common_chat_style_block.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                     layout={{ position: 'absolute', left: 0, top: 0 }}
                 />
                 <ThemeImage
                     name="style_icon"
-                    src={LayoutImage('room-ui/common_chat_styles.png')}
+                    src={LayoutImage('habbo-window-manager-com/common_chat_styles.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000, fitSizeToContents: true }}
                     dynamicRole="icon"
                     layout={{ position: 'absolute', left: 25, top: 10 }}
@@ -660,19 +660,19 @@ export const RoomChatInputView = () => {
                     >
                         <ThemeImage
                             name="chat_extra_bg"
-                            src={LayoutImage('room-ui/habbicons_sticky_note.png')}
+                            src={LayoutImage('habbo-window-manager-com/habbicons_sticky_note.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 0, top: 0 }}
                         />
                         <ThemeImage
                             name="chat_extra_icon"
-                            src={LayoutImage('room-ui/habbicons_clip.png')}
+                            src={LayoutImage('habbo-window-manager-com/habbicons_clip.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000, fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 23, top: 2 }}
                         />
                         <ThemeImage
                             name="chat_extra_bg"
-                            src={LayoutImage('room-ui/habbicons_sticky_note2.png')}
+                            src={LayoutImage('habbo-window-manager-com/habbicons_sticky_note2.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 24, top: 26 }}
                         />

@@ -68,7 +68,7 @@ export const InfoBubbleAvatarView = ({ objectData, onClose }: InfoBubbleAvatarVi
                     {relationshipIcon && (
                         <ThemeImage
                             name="relationship_status"
-                            src={LayoutImage(`shared/${relationshipIcon}`)}
+                            src={LayoutImage(`habbo-window-manager-com/${relationshipIcon}`)}
                             bitmap={{ stretchedX: false, stretchedY: false }}
                             layout={{ position: 'absolute', left: 5, top: 1, width: 16, height: 14 }}
                         />
@@ -89,7 +89,7 @@ export const InfoBubbleAvatarView = ({ objectData, onClose }: InfoBubbleAvatarVi
                         >
                             {/* The 49x17 `static_bitmap` over the button, its art centred and never stretched. */}
                             <ThemeImage
-                                src={LayoutImage(`shared/${RELATIONSHIP_ICONS[relationship]}`)}
+                                src={LayoutImage(`habbo-window-manager-com/${RELATIONSHIP_ICONS[relationship]}`)}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                 layout={{ width: GRID_CELL_WIDTH + 4, height: 17 }}
                             />
@@ -109,7 +109,7 @@ export const InfoBubbleAvatarView = ({ objectData, onClose }: InfoBubbleAvatarVi
                     tooltip={(button.key === 'trade') ? tradeTooltip : undefined}
                     adornment={(button.key === 'replenish_respect') && (
                         <ThemeImage
-                            src={LayoutImage('shared/pursearea_duckets_icon.png')}
+                            src={LayoutImage('habbo-window-manager-com/pursearea_duckets_icon.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000 }}
                             dynamicRole="icon"
                             layout={{ position: 'absolute', left: 110, top: 10, width: 15, height: 15 }}

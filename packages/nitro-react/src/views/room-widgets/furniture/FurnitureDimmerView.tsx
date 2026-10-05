@@ -93,7 +93,7 @@ export const FurnitureDimmerView = ({
                         layout={{ position: 'absolute', left: 19, top: 93, width: 219, height: 34 }}
                     />
                     <ThemeImage
-                        src={LayoutImage('room-ui/dimmer_info.png')}
+                        src={LayoutImage('habbo-room-ui-com/dimmer_info.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', left: 96, top: 11, width: 56, height: 79 }}
                     />
@@ -128,18 +128,18 @@ export const FurnitureDimmerView = ({
                                     layout={{ position: 'absolute', left: index * (COLOR_CELL_WIDTH + COLOR_GRID_SPACING), top: 0, width: COLOR_CELL_WIDTH, height: COLOR_CELL_HEIGHT }}
                                 >
                                     <ThemeImage
-                                        src={LayoutImage('room-ui/dimmer_color_frame.png')}
+                                        src={LayoutImage('habbo-room-ui-com/dimmer_color_frame.png')}
                                         bitmap={{}}
                                         layout={{ position: 'absolute', left: 0, top: 0, width: COLOR_CELL_WIDTH, height: COLOR_CELL_HEIGHT }}
                                     />
                                     <ThemeImage
-                                        src={LayoutImage('room-ui/dimmer_color_button.png')}
+                                        src={LayoutImage('habbo-room-ui-com/dimmer_color_button.png')}
                                         bitmap={{}}
                                         tint={cssColor(swatch)}
                                         layout={{ position: 'absolute', left: 0, top: 0, width: COLOR_CELL_WIDTH, height: COLOR_CELL_HEIGHT }}
                                     />
                                     <ThemeImage
-                                        src={LayoutImage('room-ui/dimmer_color_selected.png')}
+                                        src={LayoutImage('habbo-room-ui-com/dimmer_color_selected.png')}
                                         bitmap={{}}
                                         visible={swatch === color}
                                         layout={{ position: 'absolute', left: 0, top: 0, width: COLOR_CELL_WIDTH, height: COLOR_CELL_HEIGHT }}

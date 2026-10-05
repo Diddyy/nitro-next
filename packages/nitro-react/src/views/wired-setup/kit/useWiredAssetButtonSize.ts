@@ -14,7 +14,7 @@
 import { LayoutImage, useTextureFromUrl } from '#base/theme';
 import { resolveWiredAssetName, WiredStyle } from '#base/wired';
 
-export const wiredAssetButtonSource = (style: WiredStyle, asset: string): string => LayoutImage(`wired/${resolveWiredAssetName(style, asset)}.png`);
+export const wiredAssetButtonSource = (style: WiredStyle, asset: string): string => LayoutImage(`habbo-window-manager-com/${resolveWiredAssetName(style, asset)}.png`);
 
 export const useWiredAssetButtonSize = (style: WiredStyle, asset: string): { width: number; height: number } => {
     const template = style.templates.assetButton;

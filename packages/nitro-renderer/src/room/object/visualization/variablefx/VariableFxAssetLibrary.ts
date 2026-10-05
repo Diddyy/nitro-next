@@ -11,13 +11,14 @@ interface VariableFxBundleTables {
     renderers: { id: number; name: string; rendererClass: string }[];
 }
 
-const BUNDLE_NAME = 'room-object-visualization';
+/** The client library the bitmaps come from, whose bundle - named after it - carries them. */
+const BUNDLE_NAME = 'habbo-room-object-visualization-lib';
 const TABLES_FILE = 'variable-fx-tables';
 
 /**
  * The Flash client embedded every `variablefx_*` bitmap (and the icon/renderer XML tables) in
- * its room visualization library. Here they share `room-object-visualization.nitro` with the avatar
- * additions - what the room engine draws, as against the UI's own art: the bitmaps packed into a
+ * its room visualization library, and so do we: `habbo-room-object-visualization-lib`'s bundle, with
+ * the avatar additions - what the room engine draws, as against the UI's own art: the bitmaps packed into a
  * sheet the shared `AssetManager` decodes and uploads once, and the two tables beside them as
  * JSON. The renderers compose on the CPU, so each asset is still cut out into its own canvas on
  * first use - out of the decoded sheet rather than a separately fetched atlas image.
@@ -85,8 +86,9 @@ export class VariableFxAssetLibrary implements IVariableFxAssetProvider {
     }
 
     private async loadBundle(): Promise<boolean> {
-        // The hotel serves the bundle (Nitro Studio's, of the client's bitmaps and its own); unset, it is not loaded.
-        const url = GetConfigValue<string>('renderer.assets.url');
+        // The hotel serves the library's bundle beside every other library's (Nitro Studio's, of the
+        // client's bitmaps and its own); with `ui.templates.url` unset, it is not loaded.
+        const url = GetConfigValue<string>('ui.templates.url')?.replace('%libname%', BUNDLE_NAME);
 
         if (!url) return false;
 

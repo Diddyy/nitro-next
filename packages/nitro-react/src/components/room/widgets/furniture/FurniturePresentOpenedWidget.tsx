@@ -122,7 +122,7 @@ export const FurniturePresentOpenedWidget = () => {
 
             if (isSpacesItem) {
                 name = t(`inventory.furni.item.${wallFurniData.className}.name`);
-                icon = { src: LayoutImage(`room-ui/packagecard_icon_${wallFurniData.className}.png`) };
+                icon = { src: LayoutImage(`habbo-room-ui-com/packagecard_icon_${wallFurniData.className}.png`) };
             } else if (wallFurniData.className === 'poster') {
                 // `int(productCode.replace("poster", ""))`: 0 for anything that is not a number.
                 const posterId = contents.productCode.startsWith('poster') ? String(Math.trunc(Number(contents.productCode.replace('poster', ''))) || 0) : undefined;
@@ -138,7 +138,7 @@ export const FurniturePresentOpenedWidget = () => {
         }
         case 'h':
             name = t('widget.furni.present.hc');
-            icon = { src: LayoutImage('room-ui/packagecard_icon_hc.png') };
+            icon = { src: LayoutImage('habbo-room-ui-com/packagecard_icon_hc.png') };
             break;
         default:
             name = productName ?? ((contents.itemType === 's') ? (floorFurniData?.localizedName ?? '') : '');

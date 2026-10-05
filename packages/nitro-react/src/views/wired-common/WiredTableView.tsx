@@ -99,7 +99,7 @@ export interface WiredTableColumn {
 
 /** `TableCell.setExtraBtn(assetUri, callback)`: the 20x20 bitmap at the cell's right edge. */
 export interface WiredTableExtraButton {
-    /** The image, e.g. `LayoutImage('shared/icons_info_grey.png')`. */
+    /** The image, e.g. `LayoutImage('habbo-window-manager-com/icons_info_grey.png')`. */
     src: string;
     /** Without one the button shows no hand cursor (`interactiveCursorDisabled`). */
     onClick?: () => void;

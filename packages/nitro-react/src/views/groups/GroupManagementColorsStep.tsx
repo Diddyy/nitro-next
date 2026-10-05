@@ -55,23 +55,23 @@ export const GroupManagementColorsStep = ({ session, editorData, onPrimary, onSe
                 >
                     <ThemeImage
                         name="guild_color_primary_color_btm"
-                        src={LayoutImage('groups/group_guild_color_btm.png')}
+                        src={LayoutImage('habbo-window-manager-com/group_guild_color_btm.png')}
                         layout={{ position: 'absolute', left: SWATCH_LEFT, width: 36, top: 4, height: 30 }}
                     />
                     <ThemeImage
                         name="guild_color_primary_color_top"
-                        src={LayoutImage('groups/group_guild_color_top.png')}
+                        src={LayoutImage('habbo-window-manager-com/group_guild_color_top.png')}
                         tint={tintOf(session.primaryColorId, editorData.guildPrimaryColors)}
                         layout={{ position: 'absolute', left: SWATCH_LEFT, width: 36, top: 4, height: 30 }}
                     />
                     <ThemeImage
                         name="guild_color_secondary_color_btm"
-                        src={LayoutImage('groups/group_guild_color_btm.png')}
+                        src={LayoutImage('habbo-window-manager-com/group_guild_color_btm.png')}
                         layout={{ position: 'absolute', left: SWATCH_RIGHT, width: 36, top: 4, height: 30 }}
                     />
                     <ThemeImage
                         name="guild_color_secondary_color_top"
-                        src={LayoutImage('groups/group_guild_color_top.png')}
+                        src={LayoutImage('habbo-window-manager-com/group_guild_color_top.png')}
                         tint={tintOf(session.secondaryColorId, editorData.guildSecondaryColors)}
                         layout={{ position: 'absolute', left: SWATCH_RIGHT, width: 36, top: 4, height: 30 }}
                     />

@@ -67,7 +67,7 @@ export const NestBreedingSuccessView = ({ petName, figure, posture, rarityCatego
                 {t('breedpets.nestbreeding.success.button.ok')}
             </Button>
             <ThemeImage
-                src={LayoutImage('shared/icons_hilighter_yellow.png')}
+                src={LayoutImage('habbo-window-manager-com/icons_hilighter_yellow.png')}
                 bitmap={{ stretchedX: false, stretchedY: false }}
                 layout={{ position: 'absolute', left: 127, width: 82, top: 33, height: 83 }}
             />

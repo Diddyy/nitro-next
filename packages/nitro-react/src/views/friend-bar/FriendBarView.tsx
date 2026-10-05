@@ -71,7 +71,7 @@ const FriendBarPageButton = ({ name, direction, enabled, onPage }: FriendBarPage
             layout={{ position: 'relative', marginTop: 4, width: left ? FRIEND_BAR_LEFT_PAGE_WIDTH : FRIEND_BAR_RIGHT_PAGE_WIDTH, height: 40, overflow: 'hidden', flexShrink: 0 }}
         >
             <ThemeImage
-                src={LayoutImage('friend-bar/friend_bar_friends_browse_bg.png')}
+                src={LayoutImage('habbo-window-manager-com/friend_bar_friends_browse_bg.png')}
                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true, ...(left && { zoomX: -1 }) }}
                 tint="#3b3933"
                 dynamicRole="bg"
@@ -164,7 +164,7 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
                     {!collapsed && (
                         <ThemeImage
                             name="line"
-                            src={LayoutImage('shared/bottom_bar_divider_1px.png')}
+                            src={LayoutImage('habbo-window-manager-com/bottom_bar_divider_1px.png')}
                             bitmap={{}}
                             layout={{ position: 'absolute', left: 1, top: 3, width: 1, height: 40 }}
                         />
@@ -179,7 +179,7 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
                     >
                         <ThemeImage
                             dynamicRole="icon"
-                            src={LayoutImage('friend-bar/friend_bar_all_friends.png')}
+                            src={LayoutImage('habbo-window-manager-com/friend_bar_all_friends.png')}
                             bitmap={{ etchingColor: 0x48000000 }}
                             layout={{ position: 'absolute', left: 0, top: 0, width: 32, height: 33 }}
                         />
@@ -200,7 +200,7 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
                     >
                         <ThemeImage
                             dynamicRole="icon"
-                            src={LayoutImage('friend-bar/friend_bar_search_habbos.png')}
+                            src={LayoutImage('habbo-window-manager-com/friend_bar_search_habbos.png')}
                             bitmap={{ etchingColor: 0x48000000 }}
                             layout={{ position: 'absolute', left: 0, top: 0, width: 29, height: 33 }}
                         />

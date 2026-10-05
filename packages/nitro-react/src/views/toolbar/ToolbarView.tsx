@@ -225,7 +225,7 @@ export const ToolbarView = () => {
                                     <ToolbarItem
                                         tooltip={t('toolbar.icon.tooltip.exitroom.hotelview')}
                                         onPointerTap={goToHotelView}
-                                        src="toolbar/bottom_bar_logo.png"
+                                        src="habbo-window-manager-com/bottom_bar_logo.png"
                                         icon={[ 8, 5, 28, 28 ]}
                                     />
                                 )}
@@ -234,7 +234,7 @@ export const ToolbarView = () => {
                                         tooltip={t('toolbar.icon.tooltip.exitroom.home')}
                                         // HTIE_ICON_HOME -> goToHomeRoom(): a room forward to the home room (its GetGuestRoomResult starts the session)
                                         onPointerTap={() => goToHomeRoom(send)}
-                                        src="toolbar/bottom_bar_home.png"
+                                        src="habbo-window-manager-com/bottom_bar_home.png"
                                         icon={[ 6, 5, 32, 30 ]}
                                     />
                                 )}
@@ -248,7 +248,7 @@ export const ToolbarView = () => {
                                 <ToolbarItem
                                     tooltip={t('toolbar.icon.label.navigator')}
                                     onPointerTap={() => toggleWindow('navigator')}
-                                    src="toolbar/bottom_bar_navigator.png"
+                                    src="habbo-window-manager-com/bottom_bar_navigator.png"
                                     icon={[ 0, 5, 44, 30 ]}
                                 />
                             </ToolbarToggleSlot>
@@ -262,7 +262,7 @@ export const ToolbarView = () => {
                                 <ToolbarItem
                                     tooltip={t('toolbar.icon.label.progression')}
                                     onPointerTap={() => toggleMenu('progression')}
-                                    src="toolbar/bottom_bar_progression.png"
+                                    src="habbo-window-manager-com/bottom_bar_progression.png"
                                     icon={[ 0, 0, 44, 37 ]}
                                 >
                                     {unseenAchievements > 0 && (
@@ -277,7 +277,7 @@ export const ToolbarView = () => {
                         <ToolbarItem
                             tooltip={t('toolbar.icon.label.catalogue')}
                             onPointerTap={() => toggleCatalog(CatalogTypeEnum.Normal)}
-                            src="toolbar/bottom_bar_shop.png"
+                            src="habbo-window-manager-com/bottom_bar_shop.png"
                             icon={[ 4, 1, 37, 37 ]}
                         />
                         {/* `BUILDER`: `builders.club.enabled` decides it, except in the collapsed bar. */}
@@ -285,7 +285,7 @@ export const ToolbarView = () => {
                             <ToolbarItem
                                 tooltip={t('toolbar.icon.label.builder')}
                                 onPointerTap={() => toggleCatalog(CatalogTypeEnum.BuildersClub)}
-                                src="toolbar/bottom_bar_buildersclub.png"
+                                src="habbo-window-manager-com/bottom_bar_buildersclub.png"
                                 icon={[ 5, 1, 35, 37 ]}
                             />
                         )}
@@ -294,7 +294,7 @@ export const ToolbarView = () => {
                             <ToolbarItem
                                 tooltip={t('toolbar.icon.label.inventory')}
                                 onPointerTap={() => toggleWindow('inventory')}
-                                src="toolbar/bottom_bar_inventory.png"
+                                src="habbo-window-manager-com/bottom_bar_inventory.png"
                                 height={43}
                                 icon={[ 0, 0, 44, 41 ]}
                             >
@@ -312,7 +312,7 @@ export const ToolbarView = () => {
                             layout={{ width: ITEM_WIDTH, height: 45, flexShrink: 0, overflow: 'hidden' }}
                         >
                             <ThemeImage
-                                src={LayoutImage('toolbar/bottom_bar_memenu_bg.png')}
+                                src={LayoutImage('habbo-window-manager-com/bottom_bar_memenu_bg.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false }}
                                 alpha={0.9}
                                 layout={{ position: 'absolute', left: 0, top: -1, width: 45, height: 45 }}
@@ -331,7 +331,7 @@ export const ToolbarView = () => {
                                 />
                             </Region>
                             <ThemeImage
-                                src={LayoutImage('toolbar/bottom_bar_memenu_circle.png')}
+                                src={LayoutImage('habbo-window-manager-com/bottom_bar_memenu_circle.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false }}
                                 layout={{ position: 'absolute', left: 0, top: -1, width: 45, height: 45 }}
                             />
@@ -345,7 +345,7 @@ export const ToolbarView = () => {
                             <ToolbarItem
                                 tooltip={t('toolbar.icon.label.wired_menu')}
                                 onPointerTap={() => toggleWindow('wired_menu')}
-                                src="shared/bottom_bar_wired_menu.png"
+                                src="habbo-window-manager-com/bottom_bar_wired_menu.png"
                                 height={45}
                                 icon={[ 3, 0, 38, 45 ]}
                             />
@@ -353,14 +353,14 @@ export const ToolbarView = () => {
                         {showCameraButton && (
                             <ToolbarItem
                                 tooltip={t('camera.interface.title')}
-                                src="toolbar/bottom_bar_camera.png"
+                                src="habbo-window-manager-com/bottom_bar_camera.png"
                                 height={45}
                                 icon={[ 3, 0, 38, 45 ]}
                             />
                         )}
                         <ThemeImage
                             name="line"
-                            src={LayoutImage('shared/bottom_bar_divider_1px.png')}
+                            src={LayoutImage('habbo-window-manager-com/bottom_bar_divider_1px.png')}
                             bitmap={{}}
                             layout={{ width: 1, height: 40, flexShrink: 0 }}
                         />

@@ -7,17 +7,18 @@ import { assetBundleUrl, loadAssetBundle } from '#base/utils';
 import { ChatStyle, IChatStyle } from './ChatStyle';
 import { CHAT_STYLE_DEFAULT_ID, chatStyleAssetName, ChatStyleDefinition, ChatStyleOptionalBitmap } from './ChatStyleDefinitions';
 
-/** What `scripts/build-asset-bundles.ts` writes into `chat-styles.nitro` beside the bitmaps. */
+/** What Nitro Studio writes into the `habbo-free-flow-chat-com` library's bundle beside the bitmaps. */
 interface ChatStyleCatalogue {
     defaultId: number;
     styles: ChatStyleDefinition[];
 }
 
-const BUNDLE_NAME = 'chat-styles';
+/** The library the styles come from, whose template bundle carries them (`loadTemplateBundle`). */
+const BUNDLE_NAME = 'habbo-free-flow-chat-com';
 
 /**
- * The Flash `ChatStyleLibrary`: every style in `chatstyles.xml`, read out of the `chat-styles`
- * bundle - the catalogue (`chat-style-definitions.json`) and the bitmaps it describes arrive
+ * The Flash `ChatStyleLibrary`: every style in `chatstyles.xml`, read out of the
+ * `habbo-free-flow-chat-com` bundle - the catalogue (`chat-style-definitions.json`) and the bitmaps it describes arrive
  * together in one archive, and the bitmaps are already decoded into the shared asset manager, so
  * the room and the UI draw one copy. `load()` is awaited at boot; `getStyle` falls back to the
  * default style for unknown ids exactly like the client did. A style whose bitmaps are missing is
@@ -25,7 +26,8 @@ const BUNDLE_NAME = 'chat-styles';
  * per-style try/catch.
  *
  * The hotel serves the bundle - the client's styles and its own, built by Nitro Studio's chat bubble
- * builder - and names it with `chat.styles.url` (`assetBundleUrl`). With that unset there is no bundle
+ * builder - as the `habbo-free-flow-chat-com` library's template bundle, at `ui.templates.url`
+ * (`assetBundleUrl`). With that unset there is no bundle
  * and no style.
  */
 export class ChatStyleLibrary {
@@ -71,7 +73,7 @@ export class ChatStyleLibrary {
         if (!assetBundleUrl(BUNDLE_NAME)) return;
 
         if (!await loadAssetBundle(BUNDLE_NAME)) {
-            NitroLogger.error('ChatStyleLibrary: the chat-styles bundle failed to load - no chat style is available');
+            NitroLogger.error('ChatStyleLibrary: the habbo-free-flow-chat-com bundle failed to load - no chat style is available');
 
             return;
         }
@@ -79,7 +81,7 @@ export class ChatStyleLibrary {
         const catalogue = GetAssetManager().getBundleFile<ChatStyleCatalogue>(BUNDLE_NAME, 'chat-style-definitions');
 
         if (!catalogue?.styles?.length) {
-            NitroLogger.error('ChatStyleLibrary: the chat-styles bundle carries no style catalogue');
+            NitroLogger.error('ChatStyleLibrary: the habbo-free-flow-chat-com bundle carries no style catalogue');
 
             return;
         }
@@ -145,5 +147,5 @@ export const GetChatStyleLibrary = (): ChatStyleLibrary => {
     return library;
 };
 
-/** Kicks off (or joins) the `chat-styles` bundle load - awaited at boot beside the theme's. */
+/** Kicks off (or joins) the `habbo-free-flow-chat-com` bundle load - awaited at boot beside the theme's. */
 export const preloadChatStyles = (): Promise<void> => GetChatStyleLibrary().load();

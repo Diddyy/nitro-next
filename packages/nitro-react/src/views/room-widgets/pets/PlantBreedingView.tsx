@@ -29,7 +29,7 @@ const HEIGHT = 387;
 const COLUMN_WIDTH = 122;
 const PREVIEW_HEIGHT = 130;
 /** `breed_pets_preview_bg_png`, 122x130: the backdrop `updatePreviewImage` copies into each `preview_image` first. */
-const PREVIEW_BACKGROUND = LayoutImage('room-ui/breed_pets_preview_bg.png');
+const PREVIEW_BACKGROUND = LayoutImage('habbo-room-ui-com/breed_pets_preview_bg.png');
 
 /**
  * Two monsterplants about to breed - `BreedMonsterPlantsConfirmationView` on the

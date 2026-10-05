@@ -38,7 +38,7 @@ export const FriendListSearchItem = ({ result, showStartChat, showAskForFriend, 
             {showStartChat && (
                 <ThemeImage
                     name="start_chat"
-                    src={LayoutImage('friend-list/friendlist_start_chat.png')}
+                    src={LayoutImage('habbo-friend-list-com/start_chat.png')}
                     bitmap={{}}
                     hitThreshold={10}
                     cursor="pointer"
@@ -54,7 +54,7 @@ export const FriendListSearchItem = ({ result, showStartChat, showAskForFriend, 
             {showAskForFriend && (
                 <ThemeImage
                     name="ask_for_friend"
-                    src={LayoutImage('friend-list/friendlist_ask_for_friend.png')}
+                    src={LayoutImage('habbo-friend-list-com/ask_for_friend.png')}
                     bitmap={{}}
                     hitThreshold={10}
                     cursor="pointer"

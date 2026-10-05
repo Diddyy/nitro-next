@@ -24,12 +24,12 @@ export const CatalogLayoutRecyclerView = ({ page }: CatalogLayoutProps) => {
         >
             <ThemeImage
                 name="recycle_machine"
-                src={LayoutImage('catalog/recycler_furnimatic_machine.png')}
+                src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_machine.png')}
                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                 layout={{ position: 'absolute', left: 81 + shake.x, top: 58 + shake.y }}
             />
             <ThemeImage
-                src={LayoutImage('catalog/recycler_furnimatic_title.png')}
+                src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_title.png')}
                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                 layout={{ position: 'absolute', left: 51, top: 5 }}
             />

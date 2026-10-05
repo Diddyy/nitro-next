@@ -45,7 +45,7 @@ const imageSource = (image: string | undefined) => {
 
     const file = NOTIFICATION_ASSETS[image as NotificationAssetName];
 
-    return file ? LayoutImage(`notifications/${file}`) : image;
+    return file ? LayoutImage(`habbo-notifications-com/${file}`) : image;
 };
 
 /**
@@ -196,7 +196,7 @@ const WiredBubble = ({ item, isDisplayed }: { item: NotificationItem; isDisplaye
         >
             {/* `illumina_wired_bg_right` at y -19, 160 high: anchored to the bottom edge, it hangs 81px under it. */}
             <ThemeImage
-                src={LayoutImage('shared/illumina_wired_bg_right.png')}
+                src={LayoutImage('habbo-window-manager-com/illumina_wired_bg_right.png')}
                 bitmap={{ stretchedX: false, flipX: true, fitSizeToContents: true }}
                 alpha={0.3}
                 layout={{ position: 'absolute', left: 0, bottom: -81, width: 240, height: 160 }}
@@ -271,13 +271,13 @@ const TreasureHuntBubble = ({ item }: { item: NotificationItem }) => {
                         // `treasure_hunt_image`: `mysterybox_key_base` / `_overlay` turned 270 degrees.
                         <Box layout={{ position: 'absolute', left: 10, top: 33, width: 39, height: 39 }}>
                             <ThemeImage
-                                src={LayoutImage('room-ui/mysterybox_key_base.png')}
+                                src={LayoutImage('habbo-window-manager-com/mysterybox_key_base.png')}
                                 bitmap={TREASURE_HUNT_KEY_BITMAP}
                                 tint="#f0b834"
                                 layout={{ position: 'absolute', left: 0, top: 0 }}
                             />
                             <ThemeImage
-                                src={LayoutImage('room-ui/mysterybox_key_overlay.png')}
+                                src={LayoutImage('habbo-window-manager-com/mysterybox_key_overlay.png')}
                                 bitmap={TREASURE_HUNT_KEY_BITMAP}
                                 layout={{ position: 'absolute', left: 0, top: 0 }}
                             />
@@ -291,7 +291,7 @@ const TreasureHuntBubble = ({ item }: { item: NotificationItem }) => {
 const NFT_OPENING_ICON_SLOTS: CollectiblesPreviewSlots = {
     productPreview: { left: -3, top: 0, width: 46, height: 40 },
     badge: { left: 0, top: 0, width: 40, height: 40, zoom: 1 },
-    unknown: { left: 11, top: 11, width: 18, height: 18, src: LayoutImage('shared/collectables_icon_curator_stamp_small.png'), stretched: true },
+    unknown: { left: 11, top: 11, width: 18, height: 18, src: LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_small.png'), stretched: true },
     // `pet_image:direction` south: 3, so 135 degrees; the widget's minimum height makes it 48 high.
     pet: { left: -4, top: -2, width: 48, height: 48, zoom: 1, shrinkOnOverflow: true, direction: 135 },
 };
@@ -361,13 +361,13 @@ const FriendOnlineBubble = ({ item, onSwipe }: { item: NotificationItem; onSwipe
         <Box layout={{ height: 58, flexDirection: 'row' }}>
             <Box layout={{ marginTop: 12, height: 34, flexDirection: 'row', alignItems: 'flex-start', gap: 5, paddingLeft: 8, paddingRight: 16, paddingTop: 7 }}>
                 <ThemeImage
-                    src={LayoutImage('notifications/notification_friendonline_left.png')}
+                    src={LayoutImage('habbo-window-manager-com/notification_friendonline_left.png')}
                     bitmap={{ stretchedX: false, stretchedY: false }}
                     layout={{ position: 'absolute', left: 0, top: 0, width: 7, height: 34 }}
                 />
                 {/* The layout runs the middle piece 4px past the pill, under the circle. */}
                 <ThemeImage
-                    src={LayoutImage('notifications/notification_friendonline_middle.png')}
+                    src={LayoutImage('habbo-window-manager-com/notification_friendonline_middle.png')}
                     bitmap={{ stretchedY: false }}
                     layout={{ position: 'absolute', left: 7, right: -4, top: 0, height: 34 }}
                 />
@@ -378,7 +378,7 @@ const FriendOnlineBubble = ({ item, onSwipe }: { item: NotificationItem; onSwipe
                     layout={{ width: 10, height: 17, flexShrink: 0 }}
                 >
                     <ThemeImage
-                        src={LayoutImage('notifications/notification_friendonline_slide.png')}
+                        src={LayoutImage('habbo-window-manager-com/notification_friendonline_slide.png')}
                         bitmap={FIT_BITMAP}
                         layout={{ position: 'absolute', left: 2, top: 6 }}
                     />
@@ -392,7 +392,7 @@ const FriendOnlineBubble = ({ item, onSwipe }: { item: NotificationItem; onSwipe
             </Box>
             <Box layout={{ width: 43, height: 58, flexShrink: 0 }}>
                 <ThemeImage
-                    src={LayoutImage('notifications/notification_friendonline_circle_inner.png')}
+                    src={LayoutImage('habbo-window-manager-com/notification_friendonline_circle_inner.png')}
                     bitmap={FIT_BITMAP}
                     layout={{ position: 'absolute', left: -10, top: 3 }}
                 />
@@ -408,7 +408,7 @@ const FriendOnlineBubble = ({ item, onSwipe }: { item: NotificationItem; onSwipe
                         : <BubbleIcon image={item.image} />}
                 </Box>
                 <ThemeImage
-                    src={LayoutImage('notifications/notification_friendonline_circle.png')}
+                    src={LayoutImage('habbo-window-manager-com/notification_friendonline_circle.png')}
                     bitmap={FIT_BITMAP}
                     layout={{ position: 'absolute', left: -10, top: 3 }}
                 />

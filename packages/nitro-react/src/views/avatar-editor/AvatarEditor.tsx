@@ -121,7 +121,7 @@ const CATEGORY_TABS: Partial<Record<AvatarEditorCategory, SubTab[]>> = {
 };
 
 /** A sub tab's bitmap: `TabUtils.setElementImage` - the `_off` art unless the tab is the current one or under the pointer. */
-const subTabImage = (icon: string, active: boolean): string => LayoutImage(`avatar-editor/${icon}${active ? '' : '_off'}.png`);
+const subTabImage = (icon: string, active: boolean): string => LayoutImage(`habbo-window-manager-com/${icon}${active ? '' : '_off'}.png`);
 
 const SUB_TAB_BITMAP = { stretchedX: false, stretchedY: false, pivot: 'center' } as const;
 
@@ -300,7 +300,7 @@ export const AvatarEditor = () => {
                         />
                         <ThemeImage
                             name="wardrobe_icon"
-                            src={LayoutImage('avatar-editor/avatar_editor_tabs_ae_tabs_wardrobe.png')}
+                            src={LayoutImage('habbo-window-manager-com/avatar_editor_tabs_ae_tabs_wardrobe.png')}
                             bitmap={SUB_TAB_BITMAP}
                             layout={{ position: 'absolute', left: 0, width: 55, top: 0, height: 30 }}
                         />
@@ -339,7 +339,7 @@ export const AvatarEditor = () => {
                                             >
                                                 <ThemeImage
                                                     name="bitmap"
-                                                    src={LayoutImage(`avatar-editor/avatar_editor_tabs_ae_tabs_${x}.png`)}
+                                                    src={LayoutImage(`habbo-window-manager-com/avatar_editor_tabs_ae_tabs_${x}.png`)}
                                                     bitmap={SUB_TAB_BITMAP}
                                                     layout={{ position: 'absolute', left: offset.left, width: 52, top: offset.top, height: 42 }}
                                                 />
@@ -424,7 +424,7 @@ export const AvatarEditor = () => {
                                         layout={{ position: 'absolute', left: 20, width: 140, top: 10, height: 35, overflow: 'hidden' }}
                                     >
                                         <ThemeImage
-                                            src={LayoutImage('avatar-editor/avatar_editor_tabs_effects_fx.png')}
+                                            src={LayoutImage('habbo-window-manager-com/avatar_editor_tabs_effects_fx.png')}
                                             bitmap={SUB_TAB_BITMAP}
                                             layout={{ position: 'absolute', left: 0, width: 47, top: 0, height: 35 }}
                                         />
@@ -535,7 +535,7 @@ export const AvatarEditor = () => {
                             layout={{ position: 'absolute', left: 389, width: 50, top: 295, height: 31 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('avatar-editor/avatar_editor_rotate_avatar_button.png')}
+                                src={LayoutImage('habbo-window-manager-com/avatar_editor_rotate_avatar_button.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                 layout={{ position: 'absolute', left: 0, width: 44, top: 0, height: 29 }}
                             />

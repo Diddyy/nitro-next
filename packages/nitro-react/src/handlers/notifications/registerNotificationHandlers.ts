@@ -30,8 +30,8 @@ import { getBadgeName } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
-/** `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('window-manager/illumina_alert_illustrations_frank_neutral.png')`. */
-const FRANK_NEUTRAL = 'window-manager-illumina_alert_illustrations_frank_neutral';
+/** `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('habbo-window-manager-com/illumina_alert_illustrations_frank_neutral.png')`. */
+const FRANK_NEUTRAL = 'habbo-window-manager-com-illumina_alert_illustrations_frank_neutral';
 
 /** `HabboLocalizationManager.getBadgeName`. */
 const badgeName = (code: string) => getBadgeName(systemStore.getState().getLocalizationValue, code);

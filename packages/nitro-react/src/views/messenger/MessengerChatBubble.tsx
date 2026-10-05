@@ -74,7 +74,7 @@ export const MessengerChatBubble = ({ entries, flipped, width, figure, gender, u
             </Box>
             {/* `arrow_point`: at the figure's inner edge, mirrored for an own bubble. */}
             <ThemeImage
-                src={LayoutImage('window-manager/illumina_light_bubble_chat_arrow.png')}
+                src={LayoutImage('habbo-window-manager-com/illumina_light_bubble_chat_arrow.png')}
                 scaleX={flipped ? 1 : -1}
                 layout={{ position: 'absolute', left: flipped ? (width - AVATAR_WIDTH) : (AVATAR_WIDTH - 5), top: 39, width: 5, height: 10 }}
                 eventMode="none"

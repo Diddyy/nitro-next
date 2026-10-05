@@ -28,7 +28,7 @@ export const InventoryTradingMinimizedView = () => {
                 layout={{ position: 'absolute', left: 0, top: 0, width: INVENTORY_TRADING_WIDTH, height: INVENTORY_TRADING_MINIMIZED_HEIGHT }}
             />
             <ThemeImage
-                src={LayoutImage('shared/icons_panic.png')}
+                src={LayoutImage('habbo-window-manager-com/icons_panic.png')}
                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                 layout={{ position: 'absolute', left: 11, top: 6, width: 30, height: 30 }}
             />

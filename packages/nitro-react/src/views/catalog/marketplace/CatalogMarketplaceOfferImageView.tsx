@@ -34,7 +34,7 @@ export const CatalogMarketplaceOfferImageView = ({ offer, withExtraData, left, t
             {isMarketplaceUniqueLimitedItem(offer) && (
                 <ThemeImage
                     name="unique_item_background_bitmap"
-                    src={LayoutImage('shared/unique_item_label_1.png')}
+                    src={LayoutImage('habbo-window-manager-com/unique_item_label_1.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 2, width: 36, top: 2, height: 36 }}
                 />

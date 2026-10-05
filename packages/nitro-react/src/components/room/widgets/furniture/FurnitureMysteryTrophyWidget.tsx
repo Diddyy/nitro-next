@@ -53,7 +53,7 @@ export const FurnitureMysteryTrophyWidget = () => {
                     layout={{ position: 'absolute', left: 7, top: 6, width: 380, height: 50 }}
                 />
                 <ThemeImage
-                    src={LayoutImage('shared/common_small_pen.png')}
+                    src={LayoutImage('habbo-window-manager-com/common_small_pen.png')}
                     bitmap={{ fitSizeToContents: true }}
                     layout={{ position: 'absolute', left: 390, top: 20 }}
                 />

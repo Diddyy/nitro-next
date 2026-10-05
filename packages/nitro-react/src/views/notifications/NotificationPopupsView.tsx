@@ -26,7 +26,7 @@ const EMPTY_ILLUSTRATION = 1;
 const illustrationSource = (image: string) => {
     const file = NOTIFICATION_ASSETS[image as NotificationAssetName];
 
-    return file ? LayoutImage(`notifications/${file}`) : image;
+    return file ? LayoutImage(`habbo-notifications-com/${file}`) : image;
 };
 
 /**

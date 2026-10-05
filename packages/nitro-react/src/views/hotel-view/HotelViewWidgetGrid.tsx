@@ -87,7 +87,7 @@ const Separator = ({ width, title, colorable }: { width: number; title: string; 
         <Box layout={{ width, height: SEPARATOR_HEIGHT, flexDirection: 'row', flexShrink: 0 }}>
             <ThemeImage
                 name="border_bar"
-                src={LayoutImage('friend-bar/illumina_light_border_top_center.png')}
+                src={LayoutImage('habbo-window-manager-com/illumina_light_border_top_center.png')}
                 bitmap={{ pivot: 'center left', stretchedY: false }}
                 layout={{ position: 'absolute', left: 0, top: 10, width: 12, height: 4 }}
             />
@@ -102,7 +102,7 @@ const Separator = ({ width, title, colorable }: { width: number; title: string; 
             />
             <ThemeImage
                 name="hdr_line"
-                src={LayoutImage('friend-bar/illumina_light_border_top_center.png')}
+                src={LayoutImage('habbo-window-manager-com/illumina_light_border_top_center.png')}
                 bitmap={{ pivot: 'center left', stretchedY: false }}
                 layout={{ position: 'absolute', left: 64, top: 10, width: 450, height: 4 }}
             />

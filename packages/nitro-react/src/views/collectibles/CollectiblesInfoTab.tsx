@@ -84,7 +84,7 @@ export const CollectiblesInfoTab = () => {
                 </Region>
             </Region>
             <ThemeImage
-                src={LayoutImage('shared/collectables_collection_default.png')}
+                src={LayoutImage('habbo-window-manager-com/collectables_collection_default.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 128, width: 216, top: 155, height: 264 }}
             />

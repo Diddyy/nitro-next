@@ -51,8 +51,8 @@ const STYLE_ASSETS: ReadonlySet<string> = new Set([
 /**
  * `WiredUIPreset.resolveAssetFullName` - the style's own bitmap when the window manager has
  * one, otherwise the shared `wired_<name>` (`wired_add`, `wired_remove`, `wired_reference`,
- * `wired_reduce_image`, `wired_enlarge_image`). The result is the bitmap's name under
- * `assets/wired`, without the extension: `LayoutImage(`wired/${name}.png`)`.
+ * `wired_reduce_image`, `wired_enlarge_image`). The result is the bitmap's name in the
+ * window manager's library, without the extension: `LayoutImage(`habbo-window-manager-com/${name}.png`)`.
  */
 export const resolveWiredAssetName = (style: WiredStyle, name: string): string => {
     const styled = `wired_styles_${style.name}_${name}`;

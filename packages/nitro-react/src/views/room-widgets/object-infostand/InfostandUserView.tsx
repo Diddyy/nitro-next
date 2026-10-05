@@ -138,7 +138,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
             >
                 <ThemeImage
                     name="home_icon"
-                    src={LayoutImage('room-ui/icon_home.png')}
+                    src={LayoutImage('habbo-room-ui-com/icon_home.png')}
                     cursor="pointer"
                     onPointerTap={() => openProfile(send, info.webId)}
                     // `InfoStandUserView`: `icon_home` copied at 0,0 into a bitmap of the window's own 16x15, all of it clickable.
@@ -153,7 +153,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
                 {showsCrocodile && (
                     <ThemeImage
                         name="sticker_croco"
-                        src={LayoutImage('room-ui/sticker_croco.png')}
+                        src={LayoutImage('habbo-window-manager-com/sticker_croco.png')}
                         bitmap={{ stretchedX: false, stretchedY: false }}
                         layout={{ position: 'absolute', left: 2, top: 64, width: 92, height: 63 }}
                     />
@@ -232,7 +232,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
                         {info.isOwnUser && (
                             <ThemeImage
                                 name="changemotto.image"
-                                src={LayoutImage('shared/common_small_pen.png')}
+                                src={LayoutImage('habbo-window-manager-com/common_small_pen.png')}
                                 cursor={mottoChangeEnabled ? 'pointer' : undefined}
                                 onPointerTap={startEditingMotto}
                                 bitmap={{}}
@@ -339,7 +339,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
                                         layout={{ flexDirection: 'row', width: 172, height: 16, flexShrink: 0, overflow: 'hidden' }}
                                     >
                                         <ThemeImage
-                                            src={LayoutImage(`shared/relationship_status_${name}.png`)}
+                                            src={LayoutImage(`habbo-window-manager-com/relationship_status_${name}.png`)}
                                             bitmap={{ stretchedX: false, stretchedY: false }}
                                             layout={{ width: 17, height: 14, flexShrink: 0 }}
                                         />

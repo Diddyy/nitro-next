@@ -21,7 +21,7 @@ export const CollectiblesLoadingView = ({ left = 0 }: { left?: number }) => (
             layout={{ position: 'absolute', left: 185, width: 113, top: 155, height: 116 }}
         />
         <CollectiblesRotatingImage
-            src={LayoutImage('catalog/loading.png')}
+            src={LayoutImage('habbo-window-manager-com/loading.png')}
             speed={COLLECTIBLES_LOADING_ROTATE_SPEED}
             active
             stretched

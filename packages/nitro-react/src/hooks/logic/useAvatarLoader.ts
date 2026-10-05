@@ -10,7 +10,7 @@ export const useAvatarLoader = () => {
     const avatarAssetUrl = useConfigValue<string>('asset.urls.avatar') ?? '';
     const effectAssetUrl = useConfigValue<string>('asset.urls.effect') ?? '';
     const figureDataUrl = useConfigValue<string>('figuredata.url') ?? '';
-    const avatarDataUrl = useConfigValue<string>('avatar.data.url') ?? '';
+    const templatesUrl = useConfigValue<string>('ui.templates.url') ?? '';
 
     useEffect(() => {
         if (!figureMapUrl || !effectMapUrl || !figureDataUrl) return;
@@ -62,13 +62,13 @@ export const useAvatarLoader = () => {
         };
 
         /**
-         * `avatar-data.nitro` first: the geometry, part sets, placeholder figure, built-in animations,
+         * The avatar render library's bundle first: the geometry, part sets, placeholder figure, built-in animations,
          * action offsets, actions and animations the manager starts from. The figure data is laid over
          * its placeholder figure, so it waits for it; the maps only need it for what they render.
          */
         const startAsync = async () => {
             try {
-                GetAvatarRenderManager().init(await LoadAvatarData(avatarDataUrl));
+                GetAvatarRenderManager().init(await LoadAvatarData(templatesUrl));
             } catch (e) {
                 NitroLogger.error(e);
 

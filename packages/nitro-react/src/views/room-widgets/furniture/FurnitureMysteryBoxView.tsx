@@ -51,12 +51,12 @@ export const FurnitureMysteryBoxView = ({ isOwner, onCancel, onClose }: Furnitur
                     layout={{ position: 'absolute', left: 7, top: 8 }}
                 />
                 <ThemeImage
-                    src={LayoutImage(`room-ui/mysterybox_${mine}_base.png`)}
+                    src={LayoutImage(`habbo-window-manager-com/mysterybox_${mine}_base.png`)}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 41, top: 43, width: 39, height: 39 }}
                 />
                 <ThemeImage
-                    src={LayoutImage(`room-ui/mysterybox_${mine}_overlay.png`)}
+                    src={LayoutImage(`habbo-window-manager-com/mysterybox_${mine}_overlay.png`)}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 41, top: 43, width: 39, height: 39 }}
                 />
@@ -71,12 +71,12 @@ export const FurnitureMysteryBoxView = ({ isOwner, onCancel, onClose }: Furnitur
                     layout={{ position: 'absolute', left: 24, top: 123, width: 310, height: 60 }}
                 >
                     <ThemeImage
-                        src={LayoutImage(`room-ui/mysterybox_${theirs}_base.png`)}
+                        src={LayoutImage(`habbo-window-manager-com/mysterybox_${theirs}_base.png`)}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 14, top: 11, width: 39, height: 39 }}
                     />
                     <ThemeImage
-                        src={LayoutImage(`room-ui/mysterybox_${theirs}_overlay.png`)}
+                        src={LayoutImage(`habbo-window-manager-com/mysterybox_${theirs}_overlay.png`)}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 14, top: 11, width: 39, height: 39 }}
                     />

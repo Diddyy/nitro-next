@@ -67,7 +67,7 @@ const FriendBarFindFriendsTabBody = ({ height, exposed, selected, onToggle, onEx
                     <ThemeImage
                         name="icon"
                         // `allocateEntityWindow` swaps in `find_friends_icon_png` for the layout's `add_friends_icon_png`.
-                        src={LayoutImage('friend-bar/find_friends_icon.png')}
+                        src={LayoutImage('habbo-friend-bar-com/find_friends_icon.png')}
                         bitmap={{}}
                         layout={{ position: 'absolute', left: -2, top: -5, width: 31, height: 34 }}
                     />

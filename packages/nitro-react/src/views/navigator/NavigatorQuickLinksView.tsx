@@ -51,7 +51,7 @@ export const NavigatorQuickLinksView = () => {
                         layout={{ position: 'absolute', left: 0, width: 136, top: 0, height: 18, overflow: 'hidden' }}
                     >
                         <ThemeImage
-                            src={LayoutImage('navigator/newnavigator_button_quicklink_add.png')}
+                            src={LayoutImage('habbo-window-manager-com/newnavigator_button_quicklink_add.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 3, width: 18, top: 3, height: 18 }}
                         />
@@ -103,7 +103,7 @@ export const NavigatorQuickLinksView = () => {
                                     layout={{ position: 'absolute', left: 115, width: 16, top: 1, height: 16 }}
                                 >
                                     <ThemeImage
-                                        src={LayoutImage('navigator/newnavigator_icon_ql_remove.png')}
+                                        src={LayoutImage('habbo-window-manager-com/newnavigator_icon_ql_remove.png')}
                                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                                         layout={{ position: 'absolute', left: 3, width: 10, top: 3, height: 10 }}
                                     />

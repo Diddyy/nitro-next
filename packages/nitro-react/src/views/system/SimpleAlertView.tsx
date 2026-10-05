@@ -111,7 +111,7 @@ export const SimpleAlertView = ({ id, caption, subtitle, message, linkTitle, onL
                     </Region>
                     <Region layout={{ width: listBottomWidth, flexShrink: 0, flexDirection: 'column', gap: 5, overflow: 'hidden' }}>
                         <ThemeImage
-                            src={LayoutImage('shared/illumina_horizontal_separator.png')}
+                            src={LayoutImage('habbo-window-manager-com/illumina_horizontal_separator.png')}
                             bitmap={{ stretchedY: false, pivot: 'bottom center' }}
                             layout={{ width: 1000, height: 13, flexShrink: 0 }}
                         />

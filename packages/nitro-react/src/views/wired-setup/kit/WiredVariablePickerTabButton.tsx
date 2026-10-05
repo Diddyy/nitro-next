@@ -49,7 +49,7 @@ export const WiredVariablePickerTabButton = ({ tab, width, active, onPress }: Wi
             >
                 {/* `button_img`: unstretched at the centre pivot of the button less its 2px shadow. */}
                 <ThemeImage
-                    src={LayoutImage(`wired/${tab.asset}.png`)}
+                    src={LayoutImage(`habbo-window-manager-com/${tab.asset}.png`)}
                     alpha={colors.blend}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 0, top: 0, width, height: 18 }}

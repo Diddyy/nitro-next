@@ -83,7 +83,7 @@ export const ILLUMINA_WIRED_STYLE: WiredStyle = {
             leftWidth: 17, middleWidth: 14, rightWidth: 17,
             leftIconX: 6, middleIconX: 3, rightIconX: 4,
             splitterColor: '#919191', splitterShadowColor: '#f2f2f2',
-            assetPrefix: 'wired_styles_illumina_icon_source_',
+            assetPrefix: 'habbo-window-manager-com/wired_styles_illumina_icon_source_',
             dynamicStyle: 'button',
         },
         slider: {

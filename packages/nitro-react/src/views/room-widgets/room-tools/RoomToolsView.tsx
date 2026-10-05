@@ -137,7 +137,7 @@ export const RoomToolsView = ({
                                 layout={{ position: 'absolute', left: 87, width: 18, top: 3, height: 19 }}
                             >
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/roomtools_zoom_in.png')}
+                                    src={LayoutImage('habbo-window-manager-com/roomtools_zoom_in.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000 }}
                                     dynamicRole="icon"
                                     layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 18 }}
@@ -153,7 +153,7 @@ export const RoomToolsView = ({
                                 layout={{ position: 'absolute', left: 107, width: 18, top: 3, height: 19 }}
                             >
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/roomtools_zoom_out.png')}
+                                    src={LayoutImage('habbo-window-manager-com/roomtools_zoom_out.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000 }}
                                     dynamicRole="icon"
                                     layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 18 }}
@@ -202,14 +202,14 @@ export const RoomToolsView = ({
                                 layout={{ position: 'absolute', left: 0, width: 37, top: 3, height: 34 }}
                             >
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/roomtools_history_forward_bg.png')}
+                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_forward_bg.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, zoomX: -1, etchingColor: 0x48000000, fitSizeToContents: true }}
                                     tint="#44a88d"
                                     dynamicRole="bg"
                                     layout={{ position: 'absolute', left: 3, width: 34, top: 2, height: 31 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/roomtools_history_back_icon.png')}
+                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_back_icon.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
                                     dynamicRole="icon"
                                     layout={{ position: 'absolute', left: 4, width: 30, top: 3, height: 30 }}
@@ -225,14 +225,14 @@ export const RoomToolsView = ({
                                 layout={{ position: 'absolute', left: 38, width: 35, top: 0, height: 38 }}
                             >
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/roomtools_history_open_bg.png')}
+                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_open_bg.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                                     tint="#44a88d"
                                     dynamicRole="icon"
                                     layout={{ position: 'absolute', left: 1, width: 33, top: 1, height: 35 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('shared/roomtools_history_open_icon.png')}
+                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_open_icon.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
                                     dynamicRole="icon"
                                     layout={{ position: 'absolute', left: 2, width: 32, top: 3, height: 35 }}
@@ -248,14 +248,14 @@ export const RoomToolsView = ({
                                 layout={{ position: 'absolute', left: 74, width: 34, top: 5, height: 32 }}
                             >
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/roomtools_history_forward_bg.png')}
+                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_forward_bg.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
                                     tint="#44a88d"
                                     dynamicRole="bg"
                                     layout={{ position: 'absolute', left: 0, width: 34, top: 0, height: 31 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/roomtools_history_back_icon.png')}
+                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_back_icon.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, zoomX: -1, pivot: 'center', etchingColor: 0x48000000 }}
                                     dynamicRole="icon"
                                     layout={{ position: 'absolute', left: 3, width: 30, top: 1, height: 30 }}

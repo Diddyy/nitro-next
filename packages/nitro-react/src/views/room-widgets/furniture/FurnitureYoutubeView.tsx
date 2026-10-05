@@ -95,7 +95,7 @@ export const FurnitureYoutubeView = ({
                         layout={{ position: 'absolute', left: 0, top: 0, width: 40, height: 29, alignItems: 'center', justifyContent: 'center' }}
                     >
                         <ThemeImage
-                            src={LayoutImage('room-ui/icons_next.png')}
+                            src={LayoutImage('habbo-window-manager-com/icons_next.png')}
                             bitmap={{ zoomX: -1, fitSizeToContents: true }}
                         />
                     </ContainerButton>
@@ -107,7 +107,7 @@ export const FurnitureYoutubeView = ({
                         layout={{ position: 'absolute', left: 44, top: 0, width: 40, height: 29, alignItems: 'center', justifyContent: 'center' }}
                     >
                         <ThemeImage
-                            src={LayoutImage('room-ui/icons_next.png')}
+                            src={LayoutImage('habbo-window-manager-com/icons_next.png')}
                             bitmap={{ fitSizeToContents: true }}
                         />
                     </ContainerButton>

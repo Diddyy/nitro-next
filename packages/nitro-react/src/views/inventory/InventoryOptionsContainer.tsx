@@ -48,7 +48,7 @@ export const InventoryOptionsContainer = ({ filterText, onFilterTextChange, filt
                             layout={{ position: 'absolute', left: 120, top: 0, width: 20, height: 20 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('shared/icons_close.png')}
+                                src={LayoutImage('habbo-window-manager-com/icons_close.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 20, height: 20 }}
                             />

@@ -42,9 +42,9 @@ const SIGN_BUTTONS: { key: number; icon?: string; label?: string }[] = [
     { key: 1, label: '1' }, { key: 2, label: '2' }, { key: 3, label: '3' },
     { key: 4, label: '4' }, { key: 5, label: '5' }, { key: 6, label: '6' },
     { key: 7, label: '7' }, { key: 8, label: '8' }, { key: 9, label: '9' },
-    { key: 10, label: '10' }, { key: 11, icon: LayoutImage('room-ui/sign_icon_heart.png') }, { key: 12, icon: LayoutImage('room-ui/sign_icon_skull.png') },
-    { key: 0, label: '0' }, { key: 13, icon: LayoutImage('room-ui/sign_icon_13.png') }, { key: 15, icon: LayoutImage('room-ui/sign_icon_15.png') },
-    { key: 14, icon: LayoutImage('room-ui/sign_icon_14.png') }, { key: 17, icon: LayoutImage('room-ui/sign_icon_17.png') }, { key: 16, icon: LayoutImage('room-ui/sign_icon_16.png') },
+    { key: 10, label: '10' }, { key: 11, icon: LayoutImage('habbo-room-ui-com/sign_icon_heart.png') }, { key: 12, icon: LayoutImage('habbo-room-ui-com/sign_icon_skull.png') },
+    { key: 0, label: '0' }, { key: 13, icon: LayoutImage('habbo-room-ui-com/sign_icon_13.png') }, { key: 15, icon: LayoutImage('habbo-room-ui-com/sign_icon_15.png') },
+    { key: 14, icon: LayoutImage('habbo-room-ui-com/sign_icon_14.png') }, { key: 17, icon: LayoutImage('habbo-room-ui-com/sign_icon_17.png') }, { key: 16, icon: LayoutImage('habbo-room-ui-com/sign_icon_16.png') },
 ];
 
 /** `own_avatar_menu`'s rows are 103 wide; the sign grid is 103 wide with 25-high cells, each over a 39-wide button. */

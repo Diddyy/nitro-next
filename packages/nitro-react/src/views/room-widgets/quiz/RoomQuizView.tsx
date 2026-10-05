@@ -138,7 +138,7 @@ export const RoomQuizView = ({ content, showResult, likes, dislikes, onLike, onD
                             layout={{ position: 'absolute', left: 0, width: 50, top: 0, height: 50 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('room-ui/word_quiz_thum_down_big.png')}
+                                src={LayoutImage('habbo-window-manager-com/word_quiz_thum_down_big.png')}
                                 bitmap={{}}
                                 layout={{ position: 'absolute', left: 9, width: 31, top: 11, height: 34 }}
                             />
@@ -157,7 +157,7 @@ export const RoomQuizView = ({ content, showResult, likes, dislikes, onLike, onD
                             layout={{ position: 'absolute', left: 0, width: 50, top: 0, height: 50 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('room-ui/word_quiz_thum_up_big.png')}
+                                src={LayoutImage('habbo-window-manager-com/word_quiz_thum_up_big.png')}
                                 bitmap={{}}
                                 layout={{ position: 'absolute', left: 9, width: 31, top: 7, height: 34 }}
                             />

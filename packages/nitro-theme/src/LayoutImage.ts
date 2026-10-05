@@ -2,15 +2,16 @@
  * The asset name of a bitmap the Flash client's window layouts draw with - what a `ThemeImage`'s
  * `src` takes, and what `GetAssetManager().getTexture(...)` answers to.
  *
- * `file` is `<component>/<asset name>.png`: the art is filed under `public/assets/<component>/`
- * by the client component that names it (`room-ui`, `catalog`, `wired`, ... - see
- * `scripts/generate-layout-views.ts`, which copies it there out of the SWF's asset library), and
- * one bitmap two components draw is in `shared/`. The file name itself is the Flash asset name.
+ * `file` is `<library>/<asset name>.png`: the Flash library that has the bitmap
+ * (`habbo-room-ui-com`, `habbo-window-manager-com`, ...) and the asset name it has there - the way
+ * `getAssetByName` finds it, in the component's own library, else the window manager's. Nitro
+ * Studio publishes each library's bitmaps in its bundle (named after the library), named
+ * after the library: `habbo-room-ui-com/packagecard_icon_hc.png` is `habbo-room-ui-com-packagecard_icon_hc`.
  *
- * Those files are the input of `scripts/build-asset-bundles.ts`, not something the client fetches:
- * it packs them into `public/assets/bundles/*.nitro` and names each one after its path, extension
- * dropped and `/` turned into `-`. That is all this does - `room-ui/roomtools_gear.png` becomes
- * `room-ui-roomtools_gear`, so a call site still names the file the layout named.
+ * The art the client draws that no library has is under nitro-react's `public/assets/<folder>/`,
+ * packed by `scripts/build-asset-bundles.ts` and named after its path the same way:
+ * `window-manager/tile_preview_0.png` is `window-manager-tile_preview_0`. That is all this does - extension dropped and
+ * `/` turned into `-`.
  */
 export const LayoutImage = (file: string): string => file
     .replace(/\.[^./]+$/, '')

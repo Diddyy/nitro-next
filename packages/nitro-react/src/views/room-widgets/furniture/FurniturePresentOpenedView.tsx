@@ -80,7 +80,7 @@ export const FurniturePresentOpenedView = ({ senderName, senderFigure, trustedSe
                 <Region layout={{ height: 100, marginLeft: 30, flexShrink: 0, flexDirection: 'row', gap: LIST_SPACING }}>
                     <Region layout={{ width: 81, height: 81, marginTop: 9, flexShrink: 0 }}>
                         <ThemeImage
-                            src={LayoutImage('room-ui/gift_icon_background.png')}
+                            src={LayoutImage('habbo-room-ui-com/gift_icon_background.png')}
                             bitmap={{}}
                             layout={{ position: 'absolute', left: 0, top: 0, width: 81, height: 80 }}
                         />

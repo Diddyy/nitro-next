@@ -94,7 +94,7 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
         <HeaderControl
             name="category_show_more"
             tooltip={t('navigator.tooltip.category.show.more')}
-            image={LayoutImage('navigator/newnavigator_button_category_show_more.png')}
+            image={LayoutImage('habbo-window-manager-com/newnavigator_button_category_show_more.png')}
             imageTop={1}
             onTap={() => onShowMore(block.searchCode)}
         />
@@ -104,7 +104,7 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
         <HeaderControl
             name="category_add_quick_link"
             tooltip={t('navigator.tooltip.add.saved.search')}
-            image={LayoutImage('navigator/newnavigator_button_quicklink_add.png')}
+            image={LayoutImage('habbo-window-manager-com/newnavigator_button_quicklink_add.png')}
             width={isCollapsed ? 20 : 19}
             imageWidth={18}
             onTap={() => onAddQuickLink(block.searchCode)}
@@ -145,7 +145,7 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
                             layout={{ position: 'absolute', left: 5, width: 11, top: 4, height: 18, overflow: 'hidden' }}
                         >
                             <ThemeImage
-                                src={LayoutImage('navigator/newnavigator_button_category_expand.png')}
+                                src={LayoutImage('habbo-window-manager-com/newnavigator_button_category_expand.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                 layout={{ position: 'absolute', left: 0, width: 11, top: 0, height: 19 }}
                             />
@@ -225,7 +225,7 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
                             layout={{ position: 'absolute', left: 5, width: 11, top: 7, height: 19 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('navigator/newnavigator_button_category_collapse.png')}
+                                src={LayoutImage('habbo-window-manager-com/newnavigator_button_category_collapse.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                 layout={{ position: 'absolute', left: 0, width: 11, top: 0, height: 19 }}
                             />
@@ -248,7 +248,7 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
                                     <HeaderControl
                                         name="category_toggle_tiles"
                                         tooltip={t('navigator.tooltip.tiles')}
-                                        image={LayoutImage('navigator/newnavigator_nav_view_thumbs.png')}
+                                        image={LayoutImage('habbo-window-manager-com/newnavigator_nav_view_thumbs.png')}
                                         onTap={() => onToggleMode(block.searchCode, RESULTS_MODE_TILES)}
                                     />
                                 )
@@ -256,7 +256,7 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
                                     <HeaderControl
                                         name="category_toggle_rows"
                                         tooltip={t('navigator.tooltip.rows')}
-                                        image={LayoutImage('navigator/newnavigator_nav_view_row.png')}
+                                        image={LayoutImage('habbo-window-manager-com/newnavigator_nav_view_row.png')}
                                         onTap={() => onToggleMode(block.searchCode, RESULTS_MODE_ROWS)}
                                     />
                                 ))}
@@ -265,7 +265,7 @@ export const NavigatorCategoryView = ({ block, onEnter, onShowInfo, onCollapse, 
                             <HeaderControl
                                 name="category_back"
                                 tooltip={t('navigator.back')}
-                                image={LayoutImage('navigator/newnavigator_nav_view_mini.png')}
+                                image={LayoutImage('habbo-window-manager-com/newnavigator_nav_view_mini.png')}
                                 onTap={onBack}
                             />
                         )}

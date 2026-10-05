@@ -105,7 +105,7 @@ export const FurniturePresentView = ({ message, purchaserName, purchaserFigure, 
                             layout={{ position: 'absolute', left: 65, top: 10, width: 235, minHeight: 30, maxHeight: 80 }}
                         />
                         <ThemeImage
-                            src={LayoutImage(trustedSender ? 'room-ui/catalogue_ui2_checkmark_m.png' : 'room-ui/catalogue_icon_alert_s.png')}
+                            src={LayoutImage(trustedSender ? 'habbo-window-manager-com/catalogue_ui2_checkmark_m.png' : 'habbo-window-manager-com/catalogue_icon_alert_s.png')}
                             layout={trustedSender
                                 ? { position: 'absolute', left: 20, top: 13, width: 30, height: 24 }
                                 : { position: 'absolute', left: 22, top: 12, width: 26, height: 26 }}
@@ -114,7 +114,7 @@ export const FurniturePresentView = ({ message, purchaserName, purchaserFigure, 
                 </Border>
                 <Region layout={{ width: 306, height: GIFT_CARD_HEIGHT, flexShrink: 0 }}>
                     <ThemeImage
-                        src={LayoutImage(trustedSender ? 'room-ui/catalogue_giftcard_staff.png' : 'shared/catalogue_giftcard_blank.png')}
+                        src={LayoutImage(trustedSender ? 'habbo-window-manager-com/catalogue_giftcard_staff.png' : 'habbo-window-manager-com/catalogue_giftcard_blank.png')}
                         layout={{ position: 'absolute', left: 0, top: 0, width: 306, height: GIFT_CARD_HEIGHT }}
                     />
                     <Region
@@ -125,19 +125,19 @@ export const FurniturePresentView = ({ message, purchaserName, purchaserFigure, 
                         {showStaffImage && (
                             <Region layout={{ position: 'absolute', left: 3, top: knownSender ? 20 : ((AVATAR_CONTAINER_HEIGHT / 2) - (STAFF_IMAGE_HEIGHT / 2)), width: 54, height: STAFF_IMAGE_HEIGHT }}>
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/catalogue_giftcard_icon_bgstar.png')}
+                                    src={LayoutImage('habbo-window-manager-com/catalogue_giftcard_icon_bgstar.png')}
                                     bitmap={{ fitSizeToContents: true }}
                                     layout={{ position: 'absolute', left: 0, top: 0 }}
                                 />
                                 <ThemeImage
-                                    src={LayoutImage('room-ui/catalogue_giftcard_staff_icon.png')}
+                                    src={LayoutImage('habbo-window-manager-com/catalogue_giftcard_staff_icon.png')}
                                     layout={{ position: 'absolute', left: 10, top: 10, width: 34, height: 34 }}
                                 />
                             </Region>
                         )}
                         {showIncognito && (
                             <ThemeImage
-                                src={LayoutImage('room-ui/gift_incognito.png')}
+                                src={LayoutImage('habbo-room-ui-com/gift_incognito.png')}
                                 bitmap={{ fitSizeToContents: true }}
                                 layout={{
                                     position: 'absolute',

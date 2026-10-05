@@ -72,14 +72,14 @@ export const WiredChestItemCell = ({ itemType, isLimited = false, count, active 
             >
                 {coins && (
                     <ThemeImage
-                        src={LayoutImage('wired/inventory_furni_icon_credits.png')}
+                        src={LayoutImage('habbo-window-manager-com/inventory_furni_icon_credits.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 7, top: 11, width: 25, height: 18 }}
                     />
                 )}
                 {isLimited && (
                     <ThemeImage
-                        src={LayoutImage('shared/unique_item_label_1.png')}
+                        src={LayoutImage('habbo-window-manager-com/unique_item_label_1.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 2, top: 2, width: 36, height: 36 }}
                     />
@@ -122,7 +122,7 @@ export const WiredChestItemCell = ({ itemType, isLimited = false, count, active 
             </Border>
             {active && (
                 <ThemeImage
-                    src={LayoutImage('shared/inventory_thumb_selected_outline.png')}
+                    src={LayoutImage('habbo-window-manager-com/inventory_thumb_selected_outline.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                     layout={{ position: 'absolute', left: 0, top: 0, width: 42, height: 42 }}
                 />

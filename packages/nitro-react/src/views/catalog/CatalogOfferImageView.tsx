@@ -19,7 +19,7 @@ import { usePetImageTexture } from './usePetImageTexture';
  * product.
  */
 const SHIPPED_PRODUCT_IMAGES: Record<string, string> = {
-    snowwar_tokens_10: LayoutImage('catalog/snowwar_tokens_10.png'),
+    snowwar_tokens_10: LayoutImage('habbo-catalog-com/snowwar_tokens_10.png'),
 };
 
 export interface CatalogOfferImageViewProps {

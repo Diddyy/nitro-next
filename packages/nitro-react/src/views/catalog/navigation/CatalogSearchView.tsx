@@ -189,7 +189,7 @@ export const CatalogSearchView = ({ visible = true }: CatalogSearchViewProps) =>
                     empty - both library bitmaps, not icon-set styles. */}
                 <ThemeImage
                     name="search.clear.icon"
-                    src={LayoutImage(searchValue.length > 0 ? 'shared/icons_close.png' : 'shared/common_small_pen.png')}
+                    src={LayoutImage(searchValue.length > 0 ? 'habbo-window-manager-com/icons_close.png' : 'habbo-window-manager-com/common_small_pen.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 0, width: 20, top: 0, height: 20 }}
                 />

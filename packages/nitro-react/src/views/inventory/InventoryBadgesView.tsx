@@ -77,7 +77,7 @@ const BadgeThumb = ({ badge, badgeUrl, selected, unseen, onSelect }: BadgeThumbP
         </Border>
         {selected && (
             <ThemeImage
-                src={LayoutImage('shared/inventory_thumb_selected_outline.png')}
+                src={LayoutImage('habbo-window-manager-com/inventory_thumb_selected_outline.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: 0, top: 0, width: THUMB_SIZE, height: THUMB_SIZE }}
             />

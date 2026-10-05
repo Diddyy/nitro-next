@@ -239,8 +239,8 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
 
     let groupModeAdmin: string | undefined;
 
-    if (groupDetails?.isOwner) groupModeAdmin = LayoutImage('navigator/newnavigator_icon_group_owner.png');
-    else if (groupDetails?.isAdmin) groupModeAdmin = LayoutImage('navigator/newnavigator_icon_group_admin.png');
+    if (groupDetails?.isOwner) groupModeAdmin = LayoutImage('habbo-window-manager-com/newnavigator_icon_group_owner.png');
+    else if (groupDetails?.isAdmin) groupModeAdmin = LayoutImage('habbo-window-manager-com/newnavigator_icon_group_admin.png');
 
     const groupModeSize = groupDetails ? `${imageLibraryUrl}guilds/grouptype_icon_${groupDetails.type}.png` : undefined;
     const groupModeFurnish = groupDetails?.membersCanDecorate ? `${imageLibraryUrl}guilds/group_decorate_icon.png` : undefined;
@@ -303,7 +303,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
                             >
                                 <ThemeImage
                                     name="room_thumbnail"
-                                    src={thumbnailTexture ? thumbnailUrl : LayoutImage('shared/newnavigator_default_room.png')}
+                                    src={thumbnailTexture ? thumbnailUrl : LayoutImage('habbo-window-manager-com/newnavigator_default_room.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                     layout={{ position: 'absolute', left: 1, width: 110, top: 1, height: 110 }}
                                 />
@@ -356,7 +356,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
                                     layout={{ position: 'absolute', left: 175, width: 170, top: 3, height: 30, overflow: 'hidden' }}
                                 >
                                     <ThemeImage
-                                        src={LayoutImage('navigator/newnavigator_icon_group.png')}
+                                        src={LayoutImage('habbo-window-manager-com/newnavigator_icon_group.png')}
                                         bitmap={{ pivot: 'center' }}
                                         layout={{ position: 'absolute', left: 0, width: 15, top: 0, height: 13 }}
                                     />
@@ -384,7 +384,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
                                     layout={{ position: 'absolute', left: 5, width: 150, top: 3, height: 30, overflow: 'hidden' }}
                                 >
                                     <ThemeImage
-                                        src={LayoutImage('shared/friend_bar_friendlist_eye.png')}
+                                        src={LayoutImage('habbo-window-manager-com/friend_bar_friendlist_eye.png')}
                                         bitmap={{ pivot: 'center' }}
                                         layout={{ position: 'absolute', left: 0, width: 15, top: 0, height: 13 }}
                                     />
@@ -433,20 +433,20 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
                             >
                                 <ToggleRow
                                     name="favorite"
-                                    icon={LayoutImage(isFavourite ? 'navigator/newnavigator_icon_fav_yes.png' : 'navigator/newnavigator_icon_fav_no.png')}
+                                    icon={LayoutImage(isFavourite ? 'habbo-window-manager-com/newnavigator_icon_fav_yes.png' : 'habbo-window-manager-com/newnavigator_icon_fav_no.png')}
                                     label={t('navigator.room.popup.room.info.favorite')}
                                     onTap={toggleFavourite}
                                 />
                                 <ToggleRow
                                     name="home"
-                                    icon={LayoutImage(isHome ? 'navigator/newnavigator_icon_home_yes.png' : 'navigator/newnavigator_icon_home_no.png')}
+                                    icon={LayoutImage(isHome ? 'habbo-window-manager-com/newnavigator_icon_home_yes.png' : 'habbo-window-manager-com/newnavigator_icon_home_no.png')}
                                     label={t('navigator.room.popup.room.info.home')}
                                     onTap={makeHome}
                                 />
                                 {isOwnRoom && (
                                     <ToggleRow
                                         name="settings"
-                                        icon={LayoutImage('navigator/newnavigator_room_settings_icon.png')}
+                                        icon={LayoutImage('habbo-window-manager-com/newnavigator_room_settings_icon.png')}
                                         label={t('navigator.room.popup.info.room.settings')}
                                         onTap={() => {
                                         // `RoomSettingsCtrl.startRoomSettingsEditFromNavigator(flatId, habboGroupId)`;
@@ -516,7 +516,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
                                 layout={{ height: 55, width: 331, marginLeft: 7, flexShrink: 0 }}
                             >
                                 <ThemeImage
-                                    src={LayoutImage('navigator/newnavigator_event_icon.png')}
+                                    src={LayoutImage('habbo-window-manager-com/newnavigator_event_icon.png')}
                                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                                     layout={{ position: 'absolute', left: 6, width: 42, top: 9, height: 40 }}
                                 />

@@ -226,7 +226,7 @@ export const NavigatorView = () => {
                     name="create_room"
                     borderVariant="4"
                     left={0}
-                    image={LayoutImage('navigator/newnavigator_create_room.png')}
+                    image={LayoutImage('habbo-window-manager-com/newnavigator_create_room.png')}
                     caption={t('navigator.create.room')}
                     tooltip={t('navigator.tooltip.create.room')}
                     // `createRoomProcedure` -> `HabboNewNavigator.createRoom`: the room creation window.
@@ -241,7 +241,7 @@ export const NavigatorView = () => {
                                 name="promote_room"
                                 borderVariant="5"
                                 left={205}
-                                image={LayoutImage('navigator/newnavigator_promote_room.png')}
+                                image={LayoutImage('habbo-window-manager-com/newnavigator_promote_room.png')}
                                 caption={t('navigator.promote.room')}
                                 tooltip={t('navigator.tooltip.promote.room')}
                             />
@@ -251,7 +251,7 @@ export const NavigatorView = () => {
                                 name="random_room"
                                 borderVariant="5"
                                 left={205}
-                                image={LayoutImage('navigator/newnavigator_random_room.png')}
+                                image={LayoutImage('habbo-window-manager-com/newnavigator_random_room.png')}
                                 caption={t('navigator.random.room')}
                                 tooltip={t('navigator.tooltip.random.room')}
                                 onTap={() => {
@@ -322,13 +322,13 @@ export const NavigatorView = () => {
                 layout={{ position: 'absolute', left: 4, width: 28, top: 2, height: 25 }}
             >
                 <ThemeImage
-                    src={LayoutImage('navigator/newnavigator_button_quicklink_add.png')}
+                    src={LayoutImage('habbo-window-manager-com/newnavigator_button_quicklink_add.png')}
                     bitmap={{ stretchedX: false, stretchedY: false }}
                     layout={{ position: 'absolute', left: 10, width: 18, top: 2, height: 19 }}
                 />
             </Region>
             <ThemeImage
-                src={LayoutImage('shared/talent_task_progress_bg.png')}
+                src={LayoutImage('habbo-window-manager-com/talent_task_progress_bg.png')}
                 bitmap={{}}
                 layout={{ position: 'absolute', left: -2, right: -11, top: 28, height: 1 }}
             />

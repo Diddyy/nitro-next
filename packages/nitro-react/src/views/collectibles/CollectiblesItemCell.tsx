@@ -73,7 +73,7 @@ export const CollectiblesItemCell = ({ kind, info, active, price, onSelect }: Co
                 slots={{
                     productPreview: { left: 2, top: 4, width: 46, height: 40 },
                     badge: { left: 5, top: 4, width: 40, height: 40, zoom: 1 },
-                    unknown: { left: 16, top: 15, width: 18, height: 18, src: LayoutImage('shared/collectables_icon_curator_stamp_small.png'), stretched: true },
+                    unknown: { left: 16, top: 15, width: 18, height: 18, src: LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_small.png'), stretched: true },
                     pet: { left: 5, top: 4, width: 40, height: 40, zoom: 1, shrinkOnOverflow: true },
                 }}
             />
@@ -93,7 +93,7 @@ export const CollectiblesItemCell = ({ kind, info, active, price, onSelect }: Co
                             />
                             <ThemeImage
                                 name="emerald_icon"
-                                src={LayoutImage('catalog/pursearea_tiny_emerald_icon.png')}
+                                src={LayoutImage('habbo-window-manager-com/pursearea_tiny_emerald_icon.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false }}
                                 layout={{ position: 'absolute', left: 34, width: 12, top: 3, height: 12 }}
                             />
@@ -123,7 +123,7 @@ export const CollectiblesItemCell = ({ kind, info, active, price, onSelect }: Co
             {(kind === 'collection') && complete && (
                 <ThemeImage
                     name="checkmark_icon"
-                    src={LayoutImage('catalog/icon_checkmark_small.png')}
+                    src={LayoutImage('habbo-window-manager-com/icon_checkmark_small.png')}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 31, width: 16, top: 3, height: 16 }}
                 />

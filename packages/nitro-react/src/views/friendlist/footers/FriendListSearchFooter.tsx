@@ -53,7 +53,7 @@ export const FriendListSearchFooter = () => {
                 >
                     <ThemeImage
                         name="search"
-                        src={LayoutImage('friend-list/friendlist_search.png')}
+                        src={LayoutImage('habbo-friend-list-com/search.png')}
                         bitmap={{}}
                         hitThreshold={10}
                         layout={{ position: 'absolute', left: 5, top: 4, width: 12, height: 12 }}

@@ -53,7 +53,7 @@ export const AvatarMenuTemplateView = ({ objectData, onClose }: InfoBubbleAvatar
         profile_link: { onPointerTap: openTheirProfile },
         // A blocked user's name is `infostand.blocked_user` (italic in the client; the binding sets the text only).
         name: { caption: info.isBlocked ? t('infostand.blocked_user') : info.name },
-        relationship_status: relationshipIcon ? { visible: true, asset: LayoutImage(`shared/${relationshipIcon}`) } : { visible: false },
+        relationship_status: relationshipIcon ? { visible: true, asset: LayoutImage(`habbo-window-manager-com/${relationshipIcon}`) } : { visible: false },
         buttons: { show: [ ...visibleButtons.map(button => button.key), ...(showsRelationshipGrid ? [ 'relationship_grid' ] : []) ] },
         minimize: { onPointerTap: toggle },
         // `ContextInfoView.onMinimizeHover`: white while the pointer is not over it.

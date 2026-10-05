@@ -10,7 +10,7 @@ const WINDOW_MANAGER = 'habbo-window-manager-com';
 /** A template's library: what its id starts with (`habbo-toolbar-com/purse_xml`). */
 const libraryOf = (id: string) => id.slice(0, id.indexOf('/'));
 
-const readTemplate = (id: string) => GetAssetManager().getBundleFile<TemplateLibrary>(`templates-${libraryOf(id)}`, 'templates')?.templates[id];
+const readTemplate = (id: string) => GetAssetManager().getBundleFile<TemplateLibrary>(libraryOf(id), 'templates')?.templates[id];
 
 /**
  * A Flash window template by id - `<library>/<asset>`, the asset the client's code builds the window

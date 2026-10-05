@@ -108,7 +108,7 @@ export const CatalogSpinnerWidgetView = ({ page }: CatalogWidgetProps) => {
                 >
                     <ThemeImage
                         name="thumbStar"
-                        src={LayoutImage('window-manager/catalogue_bundle_star.png')}
+                        src={LayoutImage('habbo-window-manager-com/catalogue_bundle_star.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 108, width: 30, top: -2, height: 30 }}
                     />

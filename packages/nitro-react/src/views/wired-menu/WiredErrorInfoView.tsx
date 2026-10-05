@@ -42,7 +42,7 @@ export const WiredErrorInfoView = ({ error, onClose }: WiredErrorInfoViewProps) 
         >
             <Box layout={{ position: 'absolute', left: 8, right: 9, top: 3, height: contentsHeight }}>
                 <ThemeImage
-                    src={LayoutImage(`wired/icon_wired_${error.category.toLowerCase()}.png`)}
+                    src={LayoutImage(`habbo-window-manager-com/icon_wired_${error.category.toLowerCase()}.png`)}
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 280, top: 0, width: 40, height: 40 }}
                 />

@@ -79,7 +79,7 @@ export const CatalogLimitedItemWidgetView = ({ page }: CatalogWidgetProps) => {
         >
             <ThemeImage
                 name="plaque"
-                src={LayoutImage('window-manager/unique_item_large_background_wide.png')}
+                src={LayoutImage('habbo-window-manager-com/unique_item_large_background_wide.png')}
                 bitmap={{ stretchedX: false, stretchedY: false }}
                 layout={{ position: 'absolute', left: 0, width: 170, top: 0, height: 29 }}
             />

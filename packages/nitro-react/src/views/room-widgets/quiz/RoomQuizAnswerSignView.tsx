@@ -36,7 +36,7 @@ export const RoomQuizAnswerSignView = ({ liked }: RoomQuizAnswerSignViewProps) =
                     layout={{ position: 'absolute', left: 0, width: 32, top: 0, height: 32, minWidth: 32, maxWidth: 32 }}
                 >
                     <ThemeImage
-                        src={LayoutImage(liked ? 'room-ui/word_quiz_thum_up.png' : 'room-ui/word_quiz_thum_down.png')}
+                        src={LayoutImage(liked ? 'habbo-window-manager-com/word_quiz_thum_up.png' : 'habbo-window-manager-com/word_quiz_thum_down.png')}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
                         dynamicRole="icon"
                         layout={{ position: 'absolute', left: 5, width: 22, top: liked ? 5 : 8, height: 22 }}

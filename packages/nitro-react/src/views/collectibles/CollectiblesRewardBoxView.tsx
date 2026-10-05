@@ -28,8 +28,8 @@ const REWARD_BOX_PREVIEW_ROOM_ID = 1002;
 /** `product_image.xml` in a 300 x 300 widget. */
 const REWARD_PRODUCT_IMAGE_SLOTS: CollectiblesPreviewSlots = {
     productPreview: { left: 0, top: 0, width: 300, height: 300 },
-    placeholder: { left: 0, top: 0, width: 300, height: 300, src: LayoutImage('shared/collectables_collection_default.png'), centered: true },
-    unknown: { left: 0, top: 0, width: 300, height: 300, src: LayoutImage('shared/collectables_icon_curator_stamp_large.png'), stretched: false },
+    placeholder: { left: 0, top: 0, width: 300, height: 300, src: LayoutImage('habbo-window-manager-com/collectables_collection_default.png'), centered: true },
+    unknown: { left: 0, top: 0, width: 300, height: 300, src: LayoutImage('habbo-window-manager-com/collectables_icon_curator_stamp_large.png'), stretched: false },
     badge: { left: 0, top: 0, width: 300, height: 300, zoom: 2 },
     pet: { left: 0, top: 0, width: 300, height: 300, zoom: 1, shrinkOnOverflow: false },
     avatar: { left: 105, top: 85, width: 90, height: 130 },
@@ -73,7 +73,7 @@ export const CollectiblesRewardBoxView = () => {
                 >
                     <ThemeImage
                         name="gradient"
-                        src={LayoutImage('shared/collectables_score_background_gradient.png')}
+                        src={LayoutImage('habbo-window-manager-com/collectables_score_background_gradient.png')}
                         bitmap={{}}
                         tint="#000000"
                         alpha={0.5}
@@ -113,7 +113,7 @@ export const CollectiblesRewardBoxView = () => {
                     layout={{ position: 'absolute', left: 62, width: 300, top: 25, height: 300 }}
                 >
                     <CollectiblesRotatingImage
-                        src={LayoutImage('catalog/bg_star_300x300.png')}
+                        src={LayoutImage('habbo-window-manager-com/bg_star_300x300.png')}
                         speed={COLLECTIBLES_BG_STAR_ROTATE_SPEED}
                         active
                         stretched
@@ -167,7 +167,7 @@ export const CollectiblesRewardBoxView = () => {
             >
                 <ThemeImage
                     name="flag_image"
-                    src={LayoutImage('catalog/collectables_reward_rarity_flag.png')}
+                    src={LayoutImage('habbo-window-manager-com/collectables_reward_rarity_flag.png')}
                     bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                     layout={{ position: 'absolute', left: 0, width: 424, top: 0, height: 86 }}
                 />

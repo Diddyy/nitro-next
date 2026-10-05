@@ -49,9 +49,6 @@ a new one costs you time. Rules with a longer story live in the other guides in 
 
 Local Jev and `live-check` helpers are optional; confirm availability before using these commands.
 
-- **A full `generate-layout-views.ts` run moves and deletes about a dozen committed bitmaps.** Run
-  it, then `git status public/assets`, and keep only what your feature added - including only your
-  own `layout-images.json` entries.
 - **Asset changes need a bundle rebuild.** If the builder or source resources are unavailable,
   obtain the prerequisites before claiming the change works. Do not add a URL fallback for bundled
   assets to work around a missing local tool. See [development setup](development.md).

@@ -22,7 +22,7 @@ export interface WiredSetupBannerProps {
 export const WiredSetupBanner = ({ width, height }: WiredSetupBannerProps) => (
     <Box layout={{ position: 'absolute', left: 1, top: 1, width, height, overflow: 'hidden' }}>
         <ThemeImage
-            src={LayoutImage('window-manager/illumina_wired_bg_left.png')}
+            src={LayoutImage('habbo-window-manager-com/illumina_wired_bg_left.png')}
             bitmap={{ stretchedX: false, stretchedY: false }}
             alpha={0.1}
             layout={{ position: 'absolute', left: 0, top: 0, width: BANNER_BITMAP_WIDTH, height: BANNER_BITMAP_HEIGHT }}
@@ -33,7 +33,7 @@ export const WiredSetupBanner = ({ width, height }: WiredSetupBannerProps) => (
             layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
         />
         <ThemeImage
-            src={LayoutImage('shared/illumina_wired_bg_right.png')}
+            src={LayoutImage('habbo-window-manager-com/illumina_wired_bg_right.png')}
             bitmap={{ stretchedX: false, stretchedY: false }}
             alpha={0.12}
             layout={{ position: 'absolute', left: width - BANNER_BITMAP_WIDTH, top: -19, width: BANNER_BITMAP_WIDTH, height: BANNER_BITMAP_HEIGHT }}

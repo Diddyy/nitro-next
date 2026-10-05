@@ -156,7 +156,7 @@ export const WiredMenuMonitorTab = () => {
             <Box layout={{ position: 'absolute', left: 230, top: 4, width: 256, height: 145 }}>
                 {!panicking && (
                     <ThemeImage
-                        src={LayoutImage('wired/wired_monitor_element1.png')}
+                        src={LayoutImage('habbo-window-manager-com/wired_monitor_element1.png')}
                         bitmap={{ fitSizeToContents: true }}
                         layout={{ position: 'absolute', left: 0, top: 0, width: 256, height: 145 }}
                     />
@@ -168,7 +168,7 @@ export const WiredMenuMonitorTab = () => {
                         layout={{ position: 'absolute', left: 0, top: 0, width: 256, height: 145 }}
                     >
                         <ThemeImage
-                            src={LayoutImage('wired/wired_monitor_element2.png')}
+                            src={LayoutImage('habbo-window-manager-com/wired_monitor_element2.png')}
                             bitmap={{ fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 0, top: 0, width: 256, height: 145 }}
                         />

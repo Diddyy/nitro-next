@@ -26,7 +26,7 @@ const rewardIconSource = (reward: OfferReward): string | undefined => {
         case 'e':
             return LayoutImage(`effect-icons/fx_icon_${reward.classId}.png`);
         case 'h':
-            return LayoutImage('catalog/icon_hc.png');
+            return LayoutImage('habbo-catalog-com/icon_hc.png');
     }
 
     return undefined;

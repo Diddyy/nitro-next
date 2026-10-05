@@ -85,8 +85,8 @@ export const FriendListTab = ({ value, caption, count, tooltip = '', headerColor
                             <ThemeImage
                                 name={`arrow_${isOpen ? 'down' : 'right'}_${blackArrows ? 'black' : 'white'}`}
                                 src={blackArrows
-                                    ? LayoutImage(isOpen ? 'friend-list/friendlist_arrow_down_black.png' : 'friend-list/friendlist_arrow_right_black.png')
-                                    : LayoutImage(isOpen ? 'friend-list/friendlist_arrow_down_white.png' : 'friend-list/friendlist_arrow_right_white.png')}
+                                    ? LayoutImage(isOpen ? 'habbo-friend-list-com/arrow_down_black.png' : 'habbo-friend-list-com/arrow_right_black.png')
+                                    : LayoutImage(isOpen ? 'habbo-friend-list-com/arrow_down_white.png' : 'habbo-friend-list-com/arrow_right_white.png')}
                                 layout={isOpen ? { marginLeft: 4, marginTop: 6 } : { marginLeft: 7, marginTop: 4 }}
                             />
                         </Box>

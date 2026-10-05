@@ -90,7 +90,7 @@ const CollectiblesRewardItem = ({ claim }: { claim: INftClaim }) => {
                 slots={{
                     productPreview: { left: 10, top: 9, width: 32, height: 32 },
                     badge: { left: 10, top: 9, width: 32, height: 32, zoom: 1 },
-                    unknown: { left: 10, top: 9, width: 32, height: 32, src: LayoutImage('catalog/avatar_editor_avatar_editor_download_icon.png'), stretched: false },
+                    unknown: { left: 10, top: 9, width: 32, height: 32, src: LayoutImage('habbo-window-manager-com/avatar_editor_avatar_editor_download_icon.png'), stretched: false },
                 }}
             />
             <ThemeText
@@ -224,7 +224,7 @@ export const CollectiblesRewardsTab = () => {
                         layout={{ position: 'absolute', left: 0, width: 485, top: 100, height: 332 }}
                     >
                         <ThemeImage
-                            src={LayoutImage('catalog/image_frank_dont_know.png')}
+                            src={LayoutImage('habbo-window-manager-com/image_frank_dont_know.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: 0, width: 485, top: 50, height: 176 }}
                         />
