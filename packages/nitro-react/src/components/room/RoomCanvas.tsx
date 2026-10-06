@@ -131,6 +131,15 @@ export const RoomCanvas = () => {
             sprite.y = y - rectangle.height / 2;
         }
 
+        // `RoomEngine.handleMouseEvent`: the click that ends an area drag finishes the selection (its
+        // callback hands the area to whoever asked for it - a wired "in area" box, the area hide furni)
+        // and is not handled as anything else: it neither walks nor selects.
+        if (type === MouseEventType.MOUSE_CLICK && room.areaSelection.finishSelecting()) {
+            mouseDataRef.current.mouseXY = { x, y };
+
+            return;
+        }
+
         if (
             !handleRoomDragging(x, y, type, altKey, ctrlKey, shiftKey)
             && !room.canvas.handleMouseEvent(x, y, type, altKey, ctrlKey, shiftKey, buttonDown)

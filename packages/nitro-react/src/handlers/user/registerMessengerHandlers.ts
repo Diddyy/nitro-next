@@ -4,7 +4,7 @@ import {
     RoomInviteMessage,
 } from '@nitrodevco/nitro-packets';
 
-import { addMessengerConsoleMessage, addMessengerInstantMessageError, addMessengerRoomInvite, friendRequestAcceptFailed, goToRoom, loadMessengerHistory, notifyFriendOnline, setMessengerOnlineStatus } from '#base/commands';
+import { addMessengerConsoleMessage, addMessengerInstantMessageError, addMessengerRoomInvite, friendRequestAcceptFailed, goToRoom, loadMessengerHistory, notifyFriendOnline, playMessengerMessageReceivedSound, setMessengerOnlineStatus } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { messengerStore } from '#base/context/messenger';
 import { systemStore } from '#base/context/system';
@@ -171,7 +171,10 @@ export const registerMessengerHandlers = ({ send, subscribe }: WebSocketConnecti
 
         // `HabboMessenger.onMiniMailMessage` / `onMiniMailUnreadCount`, registered only with the embedded mini mail on.
         on(MiniMailNewMessage, () => {
-            if (miniMailEnabled()) messengerStore.getState().addMiniMailUnread();
+            if (!miniMailEnabled()) return;
+
+            messengerStore.getState().addMiniMailUnread();
+            playMessengerMessageReceivedSound();
         }),
         on(MiniMailUnreadCountMessage, (data) => {
             if (miniMailEnabled()) messengerStore.getState().setMiniMailUnreadCount(data.unreadCount);

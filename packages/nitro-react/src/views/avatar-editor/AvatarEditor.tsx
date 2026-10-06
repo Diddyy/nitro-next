@@ -185,7 +185,9 @@ export const AvatarEditor = () => {
      */
     const saveFigure = () => {
         if (!clothingChange) {
+            // `AvatarEditorView.windowEventProc` "save": `saveCurrentSelection()` then `manager.close()`.
             send(new UpdateFigureDataComposer({ figure, gender }));
+            hide();
 
             return;
         }
