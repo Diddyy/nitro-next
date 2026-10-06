@@ -4,6 +4,7 @@ import { Application as PixiApplication, RendererType, WebGLRenderer } from 'pix
 import { ReactNode, useCallback, useRef } from 'react';
 
 import { useThemeConfigValue } from './host';
+import { watchOwnedTextureBatches } from './utils/destroyOwnedTexture';
 import { GetPixelRatio } from './utils/GetPixelRatio';
 
 /** `renderer.color.space` in nitro-config.json: the port's own key - Flash drew in sRGB and had no such setting. */
@@ -85,6 +86,7 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
 
         onInit?.(app);
         app.stage.sortableChildren = false;
+        watchOwnedTextureBatches(app.stage);
 
         const applyScreenLayout = () => {
             app.stage.layout = {

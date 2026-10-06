@@ -32,7 +32,11 @@ export const ChatBubbleView = ({ data }: ChatBubbleViewProps) => {
     const t = useTranslation();
     const room = useRoom();
     const style = useChatStyle(data.styleId);
-    const userData = useRoomStore(x => x.usersByRoomObjectId[data.objectId]);
+    const liveUserData = useRoomStore(x => x.usersByRoomObjectId[data.objectId]);
+    // Flash built the bubble once from the speaker; one who leaves the room keeps their name, head and colour.
+    const [ userData, setUserData ] = useState(liveUserData);
+
+    if (liveUserData && (liveUserData !== userData)) setUserData(liveUserData);
     const chatSizePreference = useUserStore(x => x.chatSizePreference);
     // `recreate` read the scale once; the state keeps the mode this bubble was built with.
     const [ builtWithSizePreference ] = useState(chatSizePreference);
