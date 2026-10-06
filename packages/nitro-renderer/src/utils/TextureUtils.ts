@@ -1,4 +1,4 @@
-import { BindGroup, Container, ExtractImageOptions, ExtractOptions, GenerateTextureOptions, ImageSource, Matrix, pruneTextureBatchBindGroups, RenderTexture, Sprite, Texture, TextureSource } from 'pixi.js';
+import { BindGroup, Container, ExtractImageOptions, ExtractOptions, GenerateTextureOptions, ImageSource, Matrix, pruneTextureBatchBindGroups, RenderGroup, RenderTexture, Sprite, Texture, TextureSource } from 'pixi.js';
 
 import { GetRenderer } from './GetRenderer';
 import { TexturePool } from './TexturePool';
@@ -59,7 +59,19 @@ export class TextureUtils {
         source.destroy();
     }
 
-    private static rebuildWatchedBatches(): void {
+    /**
+     * Rebuilds the batches of every watched container (the room canvases and the UI stage) before a
+     * texture they may draw is destroyed. A pooled texture can be drawn by either - an avatar head
+     * shows in the room and in a chat bubble - so every destroy path rebuilds them all. A render group
+     * only rebuilds its own instructions, so the nested groups under each are marked as well.
+     */
+    public static rebuildWatchedBatches(): void {
+        const markGroup = (group: RenderGroup): void => {
+            group.structureDidChange = true;
+
+            for (const child of group.renderGroupChildren) markGroup(child);
+        };
+
         for (const container of this._batchOwners) {
             if (container.destroyed) {
                 this._batchOwners.delete(container);
@@ -69,7 +81,7 @@ export class TextureUtils {
 
             const group = container.renderGroup ?? container.parentRenderGroup;
 
-            if (group) group.structureDidChange = true;
+            if (group) markGroup(group);
         }
     }
 
@@ -322,7 +334,8 @@ export class TextureUtils {
         if (!texture) return undefined;
 
         // A one-off upload: skip Pixi's global `Cache`, which would otherwise register the canvas.
-        const upload = new Sprite(Texture.from(canvas, true));
+        const uploadTexture = Texture.from(canvas, true);
+        const upload = new Sprite(uploadTexture);
 
         this.getRenderer().render({
             target: texture,
@@ -330,7 +343,10 @@ export class TextureUtils {
             clear: true,
         });
 
-        upload.destroy({ texture: true, textureSource: true });
+        // Drawn once, by itself: only the batcher's cached bind groups still hold the source.
+        upload.destroy();
+        this.releaseBatchBindGroups(uploadTexture.source);
+        uploadTexture.destroy(true);
 
         return texture;
     }

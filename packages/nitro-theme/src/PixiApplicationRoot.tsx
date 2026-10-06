@@ -1,10 +1,9 @@
-import { SetRenderer } from '@nitrodevco/nitro-renderer';
+import { SetRenderer, TextureUtils } from '@nitrodevco/nitro-renderer';
 import { Application } from '@pixi/react';
 import { Application as PixiApplication, RendererType, WebGLRenderer } from 'pixi.js';
 import { ReactNode, useCallback, useRef } from 'react';
 
 import { useThemeConfigValue } from './host';
-import { watchOwnedTextureBatches } from './utils/destroyOwnedTexture';
 import { GetPixelRatio } from './utils/GetPixelRatio';
 
 /** `renderer.color.space` in nitro-config.json: the port's own key - Flash drew in sRGB and had no such setting. */
@@ -86,7 +85,8 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
 
         onInit?.(app);
         app.stage.sortableChildren = false;
-        watchOwnedTextureBatches(app.stage);
+        // Its sprites draw pooled and owned textures; one destroyed must not stay in a cached batch.
+        TextureUtils.watchBatches(app.stage);
 
         const applyScreenLayout = () => {
             app.stage.layout = {

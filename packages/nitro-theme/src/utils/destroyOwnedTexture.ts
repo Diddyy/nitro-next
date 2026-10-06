@@ -1,33 +1,5 @@
-import { Container, Texture, TextureSource } from 'pixi.js';
-
-/** The stages whose sprites may draw a texture `destroyOwnedTexture` destroys - see `watchOwnedTextureBatches`. */
-const batchOwners: Set<Container> = new Set();
-
-/**
- * Registers a stage whose sprites draw owned textures (`PixiApplicationRoot`'s): `destroyOwnedTexture`
- * rebuilds its batches before destroying one.
- */
-export const watchOwnedTextureBatches = (container: Container): void => {
-    batchOwners.add(container);
-};
-
-export const unwatchOwnedTextureBatches = (container: Container): void => {
-    batchOwners.delete(container);
-};
-
-const rebuildWatchedBatches = () => {
-    for (const container of batchOwners) {
-        if (container.destroyed) {
-            batchOwners.delete(container);
-
-            continue;
-        }
-
-        const group = container.renderGroup ?? container.parentRenderGroup;
-
-        if (group) group.structureDidChange = true;
-    }
-};
+import { TextureUtils } from '@nitrodevco/nitro-renderer';
+import { Texture, TextureSource } from 'pixi.js';
 
 /**
  * Destroys a texture the client created for itself (a rasterised text, a baked gradient, a
@@ -38,8 +10,8 @@ const rebuildWatchedBatches = () => {
  * frame of a shared sheet) changes nothing structural, so the batch keeps binding the old source;
  * destroyed, that source is bound again once the batch's GPU bind group is rebuilt and Pixi throws
  * (`the resource bound as 'textureSource1' was destroyed while a shader still uses it`), which stops
- * the ticker. So every watched stage's batches are rebuilt first, as `TextureUtils.destroyTexture`
- * does for the room's.
+ * the ticker. So the batches of every container `TextureUtils` watches - the UI stage and the room
+ * canvases - are rebuilt first, as `TextureUtils.destroyTexture` does.
  *
  * Pixi's WebGPU batcher also keeps every texture bind group it ever builds (`getTextureBatchBindGroup`'s
  * module-level cache), each listening for `change` on the sources and samplers it holds. A source
@@ -52,7 +24,7 @@ const rebuildWatchedBatches = () => {
 export const destroyOwnedTexture = (texture: Texture | null | undefined): void => {
     if (!texture || texture.destroyed) return;
 
-    rebuildWatchedBatches();
+    TextureUtils.rebuildWatchedBatches();
 
     const source: TextureSource | undefined = texture.source;
 
