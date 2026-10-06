@@ -1,9 +1,9 @@
 # Nitro Studio workflow
 
 `nitro-studio` is a development web application for the assets the hotel serves: bundles,
-gamedata, texts, images and catalog data in Turbo's database. It imports official Habbo assets,
-converts SWFs and maintains versioned workspaces in a shared asset store. It is separate from the
-client runtime's `AssetManager`, which loads textures and bundles while the client runs.
+gamedata, texts and images. It imports official Habbo assets, converts SWFs and maintains
+versioned workspaces in a shared asset store. It is separate from the client runtime's
+`AssetManager`, which loads textures and bundles while the client runs.
 
 The application is its own git repository, checked out at `packages/nitro-studio` (this repository
 ignores that folder). There it stays a Yarn workspace of this repository: `@nitrodevco/nitro-api` and
@@ -18,9 +18,8 @@ Do not assume that a missing local installation means the tool is obsolete.
 
 The application uses Hono, React DOM and Tailwind. Its `converter/` originated from the nitro-tools
 converter; follow the application's README for converter-specific build and lint coverage. It imports
-official assets and gamedata, fills Turbo database definitions from those assets, and tracks workspaces
-and versions in a shared asset store. These responsibilities belong to the development application,
-not the client runtime texture loader.
+official assets and gamedata, and tracks workspaces and versions in a shared asset store. These
+responsibilities belong to the development application, not the client runtime texture loader.
 
 ## Gamedata and localization
 
@@ -45,7 +44,7 @@ not the client runtime texture loader.
 
 The detailed checks are listed in [staying in step](staying-in-step.md):
 
-- `studio.py`: furniture categories and required database columns against Turbo entities;
+- `studio.py`: furniture categories against Turbo entities;
   generated configuration URLs and placeholders against client consumers; showroom room data;
   custom chat-style bundle names, files, fields and ID ranges against the client loader.
 - `hand_items.py`: hand-item action names, part names and sprite naming against the avatar renderer

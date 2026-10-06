@@ -16,7 +16,7 @@ works independently. Use each developer's own checkout locations; no shared abso
 | Protocol revision | `production.version` in the loaded client configuration | Registered `IRevision.Revision`; session selected by `ClientHelloMessageHandler` |
 | Connection | `socket.url` | `serverOptions:WebSocketServer:listeners` and any configured proxy/TLS endpoint |
 | Authentication | `sso` URL query parameter sent by `SSOTicketComposer` | `SSOTicketMessageHandler` and `AuthenticationService` |
-| Gamedata and assets | Loaded config URLs, asset bundles and furniture definitions | Development hotel's definitions, catalog and room models; coordinated through Nitro Studio |
+| Gamedata and assets | Loaded config URLs, asset bundles and furniture definitions | Development hotel's definitions, catalog and room models |
 | Test state | Dedicated account, room and fixture | The same account and room in the configured development database |
 
 The inspected revision is `WIN63-202609091217-117204808`, implemented under

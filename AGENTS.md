@@ -9,7 +9,7 @@ A Habbo Flash client port using Pixi v8 and React, with Yarn workspaces under `p
 | `nitro-renderer` | Room engine, object logic, visualizations and asset loading |
 | `nitro-theme` | The themed UI components (window skins, buttons, text, layers) shared by `nitro-react` and `nitro-studio`; holds no app state - the app supplies bundles, config and window stacking through `configureThemeHost` |
 | `nitro-react` | Client UI rendered through Pixi |
-| `nitro-studio` | Asset imports/conversion, versioned workspaces, gamedata and Turbo catalog integration; separate web application in its own git repository, checked out here |
+| `nitro-studio` | Asset imports/conversion, versioned workspaces and gamedata; separate web application in its own git repository, checked out here |
 
 ## Core contracts
 
@@ -36,7 +36,7 @@ Use the relevant references below; a small edit does not require reading every g
 | A view or layout | [Layout views](docs/layout-views.md), [porting gotchas](docs/porting-gotchas.md) |
 | Fonts, localization or text rendering | [Text](docs/text.md) |
 | Bundled images, fonts or asset loading | [Asset bundles](docs/asset-bundles.md) |
-| Asset imports, workspace versions, gamedata or catalog publishing | [Nitro Studio](docs/nitro-studio.md) |
+| Asset imports, workspace versions or gamedata | [Nitro Studio](docs/nitro-studio.md) |
 | Parsers, composers or packet registration | [Packets](docs/packets.md) |
 | Wired definitions, setup views or stores | [Wired](docs/wired.md) |
 | Revision updates or copied reference tables | [Staying in step](docs/staying-in-step.md) |
