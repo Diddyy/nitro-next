@@ -227,7 +227,12 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
  * to someone - and a caller can intercept keys (`onKeyDown`) before the browser edits.
  */
 export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TextInputProps>(
-    ({ value, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
+    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
+        // The hidden `<textarea>` holds line breaks as `\n` only, and the Flash text layout breaks
+        // lines on `\n` only. A value with Flash's `\r` (the floor plan's map text) would never equal
+        // the native value and would be measured as one long line - the caret and the selection
+        // landed far from the glyphs Pixi drew on separate lines.
+        const value = multiline ? rawValue.replace(/\r\n?/g, '\n') : rawValue;
         const [ internalFocused, setInternalFocused ] = useState(false);
         const [ boxNode, setBoxNode ] = useState<PixiContainer | null>(null);
         const [ selection, setSelection ] = useState({ start: value.length, end: value.length });
