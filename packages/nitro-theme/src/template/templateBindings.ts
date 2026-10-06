@@ -3,10 +3,11 @@
  * click on it does - handed to `TemplateView` as props by element name, the way Flash window code
  * reaches them with `findChildByName`.
  */
+import type { FederatedPointerEvent } from 'pixi.js';
 import type { ReactNode } from 'react';
 
-import type { TemplateElement } from './templateData';
-import type { TemplateRect } from './templateLayout';
+import type { Template, TemplateElement } from './templateData';
+import type { LayoutWindow, TemplateRect } from './templateLayout';
 
 const sameTemplateRect = (a: TemplateRect | undefined, b: TemplateRect | undefined) => a === b
     || (!!a && !!b && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height && a.clip === b.clip
@@ -37,10 +38,31 @@ export interface TemplateBinding {
     /** `IWindow.blend`, over the layout's. */
     alpha?: number;
     disabled?: boolean;
-    onPointerTap?: () => void;
+    /** A tab button's `ISelectableWindow.select()` / `unselect()`. */
+    selected?: boolean;
+    /** `WME_CLICK`; the event's `currentTarget` is the element's window (`getGlobalRectangle`). */
+    onPointerTap?: (event: FederatedPointerEvent) => void;
     /** `WME_OVER` / `WME_OUT` on the element. */
-    onPointerOver?: () => void;
-    onPointerOut?: () => void;
+    onPointerOver?: (event: FederatedPointerEvent) => void;
+    onPointerOut?: (event: FederatedPointerEvent) => void;
+    /** An input's text as typed (`WE_CHANGE`); its `caption` is the text it holds. */
+    onChange?: (text: string) => void;
+    /** An input's Enter (`WKE_KEY_UP` with key code 13). */
+    onEnter?: () => void;
+    /** An item list's `spacing` between its items, over the layout's (`IItemListWindow.spacing`). */
+    spacing?: number;
+    /** A scrollable list's `autoHideScrollBar`: `false` keeps its scrollbar, disabled, while its items fit. */
+    autoHideScrollBar?: boolean;
+    /** An input taking the focus (`WE_FOCUSED`). */
+    onFocus?: () => void;
+    /** An input's `ITextFieldWindow.italic`. */
+    italic?: boolean;
+    /** A drop menu's entries (`IDropMenuWindow.populate`), shown in it as its caption is. */
+    options?: readonly string[];
+    /** A drop menu's `selection`: the index of the entry it shows. */
+    selection?: number;
+    /** A drop menu's entry picked (`WE_SELECTED`). */
+    onSelect?: (index: number) => void;
     /**
      * A list's items that show, by name; every other item of the list is hidden. The AS3 pattern of
      * hiding every list item and showing some (`AvatarMenuView.updateButtons`).
@@ -51,11 +73,43 @@ export interface TemplateBinding {
      * placed by their own `x`/`y` - drawn over its own children.
      */
     children?: ReactNode;
+    /**
+     * Its children replaced by clones (`destroyListItems`, then `addListItem(template.clone())` for
+     * each): laid out as its own, so a list arranges and sizes them. See `TemplateItem`.
+     */
+    items?: readonly TemplateItem[];
+}
+
+/** The windows of a laid-out template, found as bindings find elements (a name, or a `/` path). */
+export interface TemplateWindows {
+    find: (key: string) => LayoutWindow | undefined;
+    /** The window itself: the template's root, or the clone. */
+    root: () => LayoutWindow | undefined;
+}
+
+/**
+ * One clone a window's code adds to a list (`IWindow.clone()` of a prototype it took out of the
+ * layout, or of another layout's window): `navigator_entry_row_container` once per room.
+ */
+export interface TemplateItem {
+    /** Which item it is, unique in its list: the clone keeps its identity while its key does. */
+    key: string;
+    /**
+     * The prototype: an element of this template, by name or `/` path (found as a binding is, so the
+     * first of that name), another template's root window, or a window of another template (what
+     * code takes out of a layout it built: `tag_xml`'s `tag_region`).
+     */
+    from: string | Template | TemplateElement;
+    /** What the code sets on the clone, by names found inside it (`clone.findChildByName`). */
+    bindings?: TemplateBindings;
+    /** What the code sizes and moves on the clone once it is laid out, found inside it. */
+    arrange?: (windows: TemplateWindows) => void;
 }
 
 /**
  * Bindings by element name, or by a `/`-separated path of names for a lookup scoped to a parent
- * (`panel.findChildByName("name")` is `'panel/name'`).
+ * (`panel.findChildByName("name")` is `'panel/name'`); `''` is the window itself - the template's
+ * root, or a clone - which code holds rather than finds (`_window.caption`).
  */
 export type TemplateBindings = Record<string, TemplateBinding>;
 
@@ -77,8 +131,10 @@ export const findTemplateChild = (children: readonly TemplateElement[], name: st
     return undefined;
 };
 
-/** A binding key's element: each `/`-separated name looked up inside the last one's children. */
+/** A binding key's element: each `/`-separated name looked up inside the last one's children; `''` the first root. */
 const findByKey = (elements: readonly TemplateElement[], key: string): TemplateElement | undefined => {
+    if (key === '') return elements[0];
+
     let scope: readonly TemplateElement[] = elements;
     let found: TemplateElement | undefined;
 
@@ -111,6 +167,110 @@ export const resolveTemplateNames = (elements: readonly TemplateElement[], keys:
     return { targets, missing };
 };
 
+/** A template with its clones made (`TemplateExpander.expand`). */
+export interface TemplateExpansion {
+    /** The elements with every bound list's children replaced by its clones. */
+    elements: TemplateElement[];
+    /** Every binding by its element, the clones' included. */
+    byElement: Map<TemplateElement, TemplateBinding>;
+    /** The keys that name nothing, a clone's prefixed with its path. */
+    missing: string[];
+    /** Each clone's `arrange` and the clone it finds in, a parent's before its children's. */
+    arranges: { scope: TemplateElement; arrange: (windows: TemplateWindows) => void }[];
+}
+
+interface ExpandedNode {
+    source: TemplateElement;
+    children: TemplateElement[];
+    itemKey: string | undefined;
+    node: TemplateElement;
+}
+
+const sameElements = (a: readonly TemplateElement[], b: readonly TemplateElement[]) => a.length === b.length && a.every((element, index) => element === b[index]);
+
+/**
+ * Makes a template's clones and resolves its bindings, each clone's in the clone itself. Keeps what it
+ * made between calls: an element is the same object while its source, key and children are, so a
+ * memoised view of it and its binding state stay - and the template's own elements are returned as
+ * they are wherever nothing under them was cloned.
+ */
+export class TemplateExpander {
+    private _cache = new Map<string, ExpandedNode>();
+    private _next = new Map<string, ExpandedNode>();
+    private _roots: TemplateElement[] = [];
+
+    public expand(elements: readonly TemplateElement[], bindings: TemplateBindings | undefined): TemplateExpansion {
+        const expansion: TemplateExpansion = { elements: [], byElement: new Map(), missing: [], arranges: [] };
+
+        this._next = new Map();
+
+        const roots = this.scope(elements, bindings, '', false, undefined, elements, expansion);
+
+        this._cache = this._next;
+        this._roots = sameElements(roots, this._roots) ? this._roots : roots;
+        expansion.elements = this._roots;
+
+        return expansion;
+    }
+
+    /**
+     * One scope - the template, or a clone - built from its sources with its bindings: a bound list's
+     * children are its items' clones, each a scope of its own. A clone's every element is a new one
+     * (`fresh`), as `clone()` copies the window.
+     */
+    private scope(sources: readonly TemplateElement[], bindings: TemplateBindings | undefined, path: string, fresh: boolean, itemKey: string | undefined, prototypes: readonly TemplateElement[], expansion: TemplateExpansion): TemplateElement[] {
+        const { targets, missing } = resolveTemplateNames(sources, Object.keys(bindings ?? {}));
+        const bound = bindElements(targets, bindings);
+
+        for (const key of missing) expansion.missing.push(path ? `${path}: ${key}` : key);
+
+        const build = (source: TemplateElement, nodePath: string, key: string | undefined): TemplateElement => {
+            const { items, ...binding } = bound.get(source) ?? {};
+            const children = items
+                ? items.flatMap((item) => {
+                        const prototype = typeof item.from === 'string' ? findByKey(prototypes, item.from) : 'tag' in item.from ? item.from : item.from.elements[0];
+
+                        if (!prototype) {
+                            expansion.missing.push(`${nodePath}#${item.key}: ${typeof item.from === 'string' ? item.from : (item.from.name ?? '')}`);
+
+                            return [];
+                        }
+
+                        const entry = item.arrange ? { scope: prototype, arrange: item.arrange } : undefined;
+
+                        if (entry) expansion.arranges.push(entry);
+
+                        const [ clone ] = this.scope([ prototype ], item.bindings, `${nodePath}#${item.key}`, true, item.key, prototypes, expansion);
+
+                        if (entry) entry.scope = clone;
+
+                        return [ clone ];
+                    })
+                : source.children.map((child, index) => build(child, `${nodePath}/${index}`, undefined));
+            const node = this.node(nodePath, source, children, fresh, key);
+
+            if (bound.has(source)) expansion.byElement.set(node, binding);
+
+            return node;
+        };
+
+        return sources.map((source, index) => build(source, `${path}/${index}`, itemKey));
+    }
+
+    private node(path: string, source: TemplateElement, children: TemplateElement[], fresh: boolean, itemKey: string | undefined): TemplateElement {
+        if (!fresh && sameElements(children, source.children)) return source;
+
+        const cached = this._cache.get(path);
+        const node = cached && cached.source === source && cached.itemKey === itemKey && sameElements(cached.children, children)
+            ? cached.node
+            : { ...source, children, ...(itemKey !== undefined && { itemKey }) };
+
+        this._next.set(path, { source, children, itemKey, node });
+
+        return node;
+    }
+}
+
 /** Each binding's element, and the keys that name none. */
 export const resolveTemplateBindings = (elements: readonly TemplateElement[], bindings: TemplateBindings | undefined) => {
     const { targets, missing } = resolveTemplateNames(elements, Object.keys(bindings ?? {}));
@@ -132,7 +292,7 @@ export const bindElements = (targets: ReadonlyMap<string, TemplateElement>, bind
 };
 
 /** The handlers a binding carries: each is handed to the element as one stable function that calls the latest. */
-const HANDLERS = [ 'onPointerTap', 'onPointerOver', 'onPointerOut' ] as const;
+const HANDLERS = [ 'onPointerTap', 'onPointerOver', 'onPointerOut', 'onChange', 'onEnter', 'onFocus', 'onSelect' ] as const;
 
 type TemplateHandler = typeof HANDLERS[number];
 
@@ -153,6 +313,12 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.alpha === b.alpha
         && a.color === b.color
         && a.disabled === b.disabled
+        && a.selected === b.selected
+        && a.autoHideScrollBar === b.autoHideScrollBar
+        && a.spacing === b.spacing
+        && a.italic === b.italic
+        && a.selection === b.selection
+        && (a.options === b.options || (!!a.options && !!b.options && a.options.length === b.options.length && a.options.every((option, index) => option === b.options?.[index])))
         && a.children === b.children
         && HANDLERS.every(handler => !a[handler] === !b[handler])
         && (a.show === b.show || (!!a.show && !!b.show && a.show.length === b.show.length && a.show.every((name, index) => name === b.show?.[index])));
@@ -177,7 +343,7 @@ export interface TemplateElementState {
 export class TemplateBindingStore {
     private _current = new Map<TemplateElement, TemplateElementState>();
     private _latest = new Map<TemplateElement, TemplateBinding>();
-    private _handlers = new Map<TemplateElement, Partial<Record<TemplateHandler, () => void>>>();
+    private _handlers = new Map<TemplateElement, Partial<Record<TemplateHandler, (...args: never[]) => void>>>();
     private _listeners = new Set<() => void>();
     private _changed = false;
 
@@ -227,13 +393,13 @@ export class TemplateBindingStore {
         const stable = { ...binding };
 
         for (const handler of HANDLERS) {
-            if (binding[handler]) stable[handler] = this.handlerFor(element, handler);
+            if (binding[handler]) Object.assign(stable, { [handler]: this.handlerFor(element, handler) });
         }
 
         return stable;
     }
 
-    private handlerFor(element: TemplateElement, kind: TemplateHandler): () => void {
+    private handlerFor(element: TemplateElement, kind: TemplateHandler): (...args: never[]) => void {
         let handlers = this._handlers.get(element);
 
         if (!handlers) {
@@ -241,6 +407,10 @@ export class TemplateBindingStore {
             this._handlers.set(element, handlers);
         }
 
-        return handlers[kind] ??= () => this._latest.get(element)?.[kind]?.();
+        return handlers[kind] ??= (...args: never[]) => {
+            const handler: ((...latest: never[]) => void) | undefined = this._latest.get(element)?.[kind];
+
+            handler?.(...args);
+        };
     }
 }

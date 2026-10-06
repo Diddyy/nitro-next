@@ -41,11 +41,8 @@ export const getModulatedBackgroundColor = (modulation: number, base: number) =>
 };
 
 /**
- * navigator_entry_tile declares color="0x0ebe9df" in navigator_frame_2.
- * navigator_entry_row_container declares no color, so it keeps
- * WindowModel._fillColor, which is 16777215 (0xFFFFFF) — see WindowModel.as:37.
- * Neither border sets background="true", so this colour tints the border graphic
- * rather than filling it; Pixi's multiplicative tint makes 0xFFFFFF the identity.
+ * `getNewRowElement` modulates the row's own colour: `navigator_entry_row_container` declares none,
+ * so it keeps `WindowModel._fillColor`, 16777215 (0xFFFFFF). A tile keeps its layout colour - the
+ * factory hands `getNewTileElement` the alternating colour and does not use it.
  */
-export const TILE_BASE_COLOR = 0xEBE9DF;
 export const ROW_BASE_COLOR = 0xFFFFFF;

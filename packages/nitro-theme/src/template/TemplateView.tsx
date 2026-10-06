@@ -21,11 +21,12 @@
  * types onto the same components, a text's style, colour, wrap and alignment read from its vars the
  * same way.
  */
-import { memo, ReactNode, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { Graphics as PixiGraphics } from 'pixi.js';
+import { createContext, memo, ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { Border } from '../Border';
 import { Box, BoxLayout } from '../Box';
-import { Bubble } from '../Bubble';
+import { Bubble, PointerDirection } from '../Bubble';
 import { Button } from '../Button';
 import { ButtonGroupCenter } from '../ButtonGroupCenter';
 import { ButtonGroupLeft } from '../ButtonGroupLeft';
@@ -35,8 +36,10 @@ import { CheckBox } from '../CheckBox';
 import { CloseButton } from '../CloseButton';
 import { ContainerButton } from '../ContainerButton';
 import { Droplist } from '../Droplist';
+import { Dropmenu } from '../Dropmenu';
 import { Frame, FrameProps } from '../Frame';
 import { Header } from '../Header';
+import { useTextureFromUrl } from '../hooks/usePixiTexture';
 import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
 import { RadioButton } from '../RadioButton';
@@ -47,13 +50,14 @@ import { Shape } from '../Shape';
 import { TabButton } from '../TabButton';
 import { TabContent } from '../TabContent';
 import { TabContext } from '../TabContext';
-import { ThemeImage } from '../ThemeImage';
+import { TextInput } from '../TextInput';
+import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
 import { FlashBitmapVars, WindowPlacedContext } from '../utils';
 import { measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
-import { bindElements, resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore } from './templateBindings';
+import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
-import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateRect } from './templateLayout';
+import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateRect } from './templateLayout';
 import { TemplateScrollbar, TemplateScrollTarget } from './TemplateScroll';
 import { TemplateScrollAxis, TemplateScrollStore } from './templateScrollStore';
 
@@ -91,12 +95,11 @@ export interface TemplateViewProps {
     frame?: TemplateFrameOptions;
 }
 
-export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose'>;
+export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection'>;
 
-/** The windows of a laid-out template, found as bindings find elements (a name, or a `/` path). */
-export interface TemplateWindows {
-    find: (key: string) => LayoutWindow | undefined;
-}
+type FrameSize = { width: number; height: number };
+
+export type { TemplateItem, TemplateWindows } from './templateBindings';
 
 /**
  * A Flash colour as `#rrggbb` and its alpha: a converted `0xAARRGGBB` number, or the attribute's text
@@ -197,11 +200,24 @@ interface Context {
     showHidden: boolean;
     idPrefix: string;
     frame?: TemplateFrameOptions;
-    /** Each standalone scrollbar's target (`linkTemplateScrollbars`), the axes each target scrolls on, and their shared scroll. */
+    /** The scroll each standalone scrollbar shares with its target. */
+    scroll: TemplateScrollStore;
+    /** The window's frame resized by the user, which the template is laid out at. */
+    onFrameResize: (size: FrameSize | null) => void;
+}
+
+/** Each standalone scrollbar's target (`linkTemplateScrollbars`), each target's axes, and the targets. */
+interface ScrollLinks {
     scrollbars: ReadonlyMap<TemplateElement, TemplateElement>;
     scrollAxes: ReadonlyMap<TemplateElement, ReadonlySet<TemplateScrollAxis>>;
-    scroll: TemplateScrollStore;
+    scrollTargets: ReadonlySet<TemplateElement>;
 }
+
+/**
+ * The scroll links of the elements drawn, handed to them apart from `Context`: they change with the
+ * elements - when clones come or go - which `Context` does not.
+ */
+const ScrollLinksContext = createContext<ScrollLinks>({ scrollbars: new Map(), scrollAxes: new Map(), scrollTargets: new Set() });
 
 /** A `#icon` / `#bg` tag: the part of its `dynamicStyle` host's look it takes. */
 const dynamicRoleOf = (element: TemplateElement) => (element.tags?.includes('#icon') ? 'icon' : element.tags?.includes('#bg') ? 'bg' : undefined);
@@ -262,25 +278,59 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     );
 };
 
+/** A drop menu's entries: the code's, or the layout's `item_array` (`DropMenuController` populates from it). */
+const optionsOf = (element: TemplateElement, binding: TemplateBinding | undefined): readonly string[] | undefined => binding?.options
+    ?? (Array.isArray(element.vars.item_array) ? element.vars.item_array.filter((item): item is string => typeof item === 'string') : undefined);
+
 /** What an element draws of its own, filling its rect, under its children. */
 const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, binding: TemplateBinding | undefined): ReactNode => {
     const variant = binding?.style ?? element.style;
     const tintColor = tintOf(element, binding);
     const caption = captionOf(element, context, binding);
-    const text = caption ? <ThemeText text={caption} /> : undefined;
+    // A caption as plain text: the component draws it in its variant's text style (`wrapTextChildren`).
+    const text = caption || undefined;
 
     if (TEXT_TAGS.has(element.tag)) return textOf(element, rect, context, binding);
 
-    if (BITMAP_TAGS.has(element.tag)) {
-        const asset = binding?.asset ?? (flashString(element.vars.asset_uri) || flashString(element.vars.bitmap_asset_name));
-
-        // A `${key}` in it is the client's to fill (`${image.library.questing.url}`); any other `$` is
-        // an embedded asset's hashed name, which no bundle carries.
-        if (!asset || /\$(?!\{)/.test(asset) || !context.imageUrl) return null;
+    // `TextFieldController`: the field its code reads and writes - its caption the text, its colour
+    // and italic the code's (a search field's grey italic placeholder).
+    if (element.tag === 'input') {
+        const color = flashColor(binding?.color ?? element.vars.text_color);
+        const { fontFamily, flash } = templateTextFormat(element);
 
         return (
-            <ThemeImage
-                src={context.imageUrl(asset)}
+            <TextInput
+                value={caption}
+                onChange={text => binding?.onChange?.(text)}
+                onEnter={() => binding?.onEnter?.()}
+                onFocusChange={focused => (focused ? binding?.onFocus?.() : undefined)}
+                textStyle={templateTextStyle(element)}
+                fontFamily={fontFamily}
+                fontSize={templateFontSize(element)}
+                textColor={color?.hex ?? '#000000'}
+                flashFormat={{ ...flash, ...(binding?.italic !== undefined && { italic: binding.italic }) }}
+                flashPlacement
+                backgroundColor={null}
+                focusedBackgroundColor={null}
+                layout={FILL}
+            />
+        );
+    }
+
+    if (BITMAP_TAGS.has(element.tag)) {
+        const layoutAsset = flashString(element.vars.asset_uri) || flashString(element.vars.bitmap_asset_name);
+        const asset = binding?.asset ?? layoutAsset;
+        // A `${key}` in it is the client's to fill (`${image.library.questing.url}`); any other `$` is
+        // an embedded asset's hashed name, which no bundle carries.
+        const drawable = (name: string | undefined) => (name && !/\$(?!\{)/.test(name) && context.imageUrl ? context.imageUrl(name) : undefined);
+        const src = drawable(asset);
+
+        if (!src) return null;
+
+        return (
+            <TemplateBitmap
+                src={src}
+                previous={drawable(layoutAsset)}
                 // A colour the code sets (`IWindow.color`); the layout's own is not drawn on a bitmap.
                 tint={binding?.color !== undefined ? flashColor(binding.color)?.hex : undefined}
                 bitmap={bitmapVars(element.vars)}
@@ -409,16 +459,13 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
         case 'tab_container_button': return (
             <TabButton
                 variant={variant}
+                selected={binding?.selected}
+                tooltip={tooltipOf(element, context, binding)}
+                onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
                 {text}
             </TabButton>
-        );
-        case 'tab_context': return (
-            <TabContext
-                variant={variant}
-                layout={FILL}
-            />
         );
         case 'tab_content': return (
             <TabContent
@@ -427,14 +474,35 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
             />
         );
         case 'droplist':
-        case 'dropmenu': return (
-            <Droplist
-                variant={variant}
-                layout={FILL}
-            >
-                {text}
-            </Droplist>
-        );
+        case 'dropmenu': {
+            const options = optionsOf(element, binding);
+            const selection = binding?.selection ?? 0;
+
+            return options
+                ? (
+                        // `DropMenuController`: the entries its code populates, the selected one its caption.
+                        <Dropmenu
+                            variant={variant}
+                            tooltip={tooltipOf(element, context, binding)}
+                            caption={context.resolveText(options[selection])}
+                            options={options.map((option, index) => ({
+                                key: index,
+                                label: context.resolveText(option),
+                                selected: index === selection,
+                                onSelect: () => binding?.onSelect?.(index),
+                            }))}
+                            layout={FILL}
+                        />
+                    )
+                : (
+                        <Droplist
+                            variant={variant}
+                            layout={FILL}
+                        >
+                            {text}
+                        </Droplist>
+                    );
+        }
         case 'scaler': return (
             <Scaler
                 variant={variant}
@@ -486,7 +554,93 @@ const isRegion = (element: TemplateElement, binding: TemplateBinding | undefined
     || !!binding?.onPointerOut
     || (!!binding?.onPointerTap && !CLICKABLE_FACES.has(element.tag));
 
-const CLICKABLE_FACES = new Set([ 'button', 'button_thick', 'container_button' ]);
+const CLICKABLE_FACES = new Set([ 'button', 'button_thick', 'container_button', 'tab_button', 'tab_container_button' ]);
+
+/** Each standalone scrollbar's target, each target's axes, and the targets - by the elements, which stay the same array while nothing changes. */
+const SCROLL_LINKS = new WeakMap<readonly TemplateElement[], ScrollLinks>();
+
+const scrollLinksOf = (elements: readonly TemplateElement[]): ScrollLinks => {
+    let links = SCROLL_LINKS.get(elements);
+
+    if (!links) {
+        const scrollbars = linkTemplateScrollbars(elements);
+        const scrollAxes = new Map<TemplateElement, Set<TemplateScrollAxis>>();
+
+        for (const [ scrollbar, target ] of scrollbars) scrollAxes.set(target, new Set([ ...(scrollAxes.get(target) ?? []), TEMPLATE_SCROLLBAR_TAGS[scrollbar.tag] ]));
+
+        links = { scrollbars, scrollAxes, scrollTargets: new Set(scrollAxes.keys()) };
+        SCROLL_LINKS.set(elements, links);
+    }
+
+    return links;
+};
+
+const isUrl = (src: string) => /^(https?:)?\/\//.test(src);
+
+/**
+ * `StaticBitmapWrapperController.assetUri`: a new asset is asked for, and the bitmap shows what it
+ * had until it arrives - for good when it never does (a room with no camera thumbnail keeps the
+ * layout's `newnavigator_default_room`). What it had is the layout's own asset.
+ */
+const TemplateBitmap = ({ src, previous, ...image }: ImageProps & { src: string; previous: string | undefined }) => {
+    const texture = useTextureFromUrl(isUrl(src) ? src : undefined);
+    const shown = (!isUrl(src) || texture) ? src : previous;
+
+    return shown
+        ? (
+                <ThemeImage
+                    src={shown}
+                    {...image}
+                />
+            )
+        : null;
+};
+
+/** A bubble's `direction` var: the side its pointer is on. */
+const POINTER_DIRECTIONS = new Set<PointerDirection>([ 'up', 'down', 'left', 'right' ]);
+
+/** The frame's own outline, which nothing of its content draws over. */
+const FRAME_OUTLINE = 1;
+
+interface FrameContentClipProps {
+    /** The frame's size and its content area's insets (`margins`). */
+    width: number;
+    height: number;
+    margins: readonly [ number, number, number, number ];
+    children: ReactNode;
+}
+
+/**
+ * A frame's children, cut as the client shows them: to the content area at its sides and bottom -
+ * `navigator_frame_2`'s pale border at (-3, -3) stops there rather than covering the frame's edge
+ * columns - and, above the content area, out to the frame's one-pixel outline, where that layout's
+ * white strip and tabs run up to the title bar and across to the edge.
+ */
+const FrameContentClip = ({ width, height, margins, children }: FrameContentClipProps) => {
+    const [ mask, setMask ] = useState<PixiGraphics | null>(null);
+    const [ left, top, right, bottom ] = margins;
+    const contentWidth = Math.max(0, width - left - right);
+    const contentHeight = Math.max(0, height - top - bottom);
+    const toOutline = (margin: number) => Math.max(0, margin - FRAME_OUTLINE);
+
+    return (
+        <pixiContainer
+            mask={mask ?? undefined}
+            layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
+        >
+            <pixiGraphics
+                ref={setMask}
+                eventMode="none"
+                draw={(g) => {
+                    g.clear();
+                    g.rect(-toOutline(left), -top, contentWidth + toOutline(left) + toOutline(right), top).fill(0xFFFFFF);
+                    g.rect(0, 0, contentWidth, contentHeight).fill(0xFFFFFF);
+                }}
+            />
+            {children}
+        </pixiContainer>
+    );
+};
 
 /** The view id of a template's (first) root element - the window, when it is a frame. */
 const ROOT_ID = '0';
@@ -507,6 +661,7 @@ interface ElementViewProps {
  */
 const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProps) => {
     const state = useSyncExternalStore(context.store.subscribe, () => context.store.get(element));
+    const scrollLinks = useContext(ScrollLinksContext);
     const binding = state?.binding;
     const rect: TemplateRect = state?.rect ?? element;
     // A list's `show` decides for its items; otherwise the binding, over the layout.
@@ -522,10 +677,10 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
         <>
             {element.children.map((child, index) => (
                 <ElementView
-                    key={`${id}.${index}`}
+                    key={child.itemKey ?? String(index)}
                     element={child}
                     context={context}
-                    id={`${id}.${index}`}
+                    id={`${id}.${child.itemKey ?? index}`}
                     flow={childFlow}
                     shown={show ? show.includes(child.name ?? '') : undefined}
                 />
@@ -535,7 +690,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
     );
 
     // A layout's own scrollbar, and the list it scrolls (`ScrollBarController.resolveScrollTarget`).
-    const scrollTarget = context.scrollbars.get(element);
+    const scrollTarget = scrollLinks.scrollbars.get(element);
 
     if (scrollTarget) {
         return (
@@ -550,7 +705,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
         );
     }
 
-    const scrollAxes = context.scrollAxes.get(element);
+    const scrollAxes = scrollLinks.scrollAxes.get(element);
 
     if (scrollAxes && rect.scrollContent) {
         return (
@@ -594,11 +749,20 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
     // window `frame` describes, when there is one.
     if (element.tag === 'frame') {
         const window = id === ROOT_ID ? context.frame : undefined;
+        const resizeDirection = window?.resizeDirection ?? 'none';
+        const [ minWidth, maxWidth, minHeight, maxHeight ] = element.limits ?? [ null, null, null, null ];
+        // The axis the user resizes takes the layout's limits; the other is the template's size, which
+        // the window's code sets (`width` while it hides a pane).
+        const axisLayout = (resizes: boolean, size: number, min: number | null, max: number | null) => (resizes
+            ? { min: min ?? undefined, max: max ?? undefined }
+            : { min: size, max: size });
+        const horizontal = axisLayout(resizeDirection === 'x' || resizeDirection === 'all', rect.width, minWidth, maxWidth);
+        const vertical = axisLayout(resizeDirection === 'y' || resizeDirection === 'all', rect.height, minHeight, maxHeight);
         const frame = (
             <Frame
                 id={window?.id ?? `${context.idPrefix}${id}`}
                 variant={element.style}
-                caption={context.resolveText(element.caption)}
+                caption={captionOf(element, context, binding)}
                 tintColor={tintOf(element, binding)}
                 margins={element.margins ?? [ 0, 0, 0, 0 ]}
                 defaultPosition={window ? window.defaultPosition : { x: 0, y: 0 }}
@@ -606,10 +770,17 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
                 rememberPosition={!!window}
                 draggable={!!window}
                 onClose={window?.onClose}
-                resizeDirection="none"
-                layout={{ width: rect.width, height: rect.height }}
+                resizeDirection={resizeDirection}
+                onResize={resizeDirection !== 'none' ? context.onFrameResize : undefined}
+                layout={{ width: rect.width, height: rect.height, minWidth: horizontal.min, maxWidth: horizontal.max, minHeight: vertical.min, maxHeight: vertical.max }}
             >
-                {children}
+                <FrameContentClip
+                    width={rect.width}
+                    height={rect.height}
+                    margins={element.margins ?? [ 0, 0, 0, 0 ]}
+                >
+                    {children}
+                </FrameContentClip>
             </Frame>
         );
 
@@ -625,11 +796,30 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
         );
     }
 
+    // A tab context holds its tab buttons (`TabContextController`'s selector): drawn in it, which
+    // crops them - not beside it, where its art would lie over them and take their clicks.
+    if (element.tag === 'tab_context') {
+        return (
+            <Box
+                layout={rectOf(rect, flow)}
+                alpha={alpha}
+            >
+                <TabContext
+                    variant={element.style}
+                    layout={FILL}
+                >
+                    {children}
+                </TabContext>
+            </Box>
+        );
+    }
+
     // A bubble is a frame (`BubbleController` extends `FrameController`): its children in its content area.
     if (element.tag === 'bubble') {
         return (
             <Bubble
                 variant={element.style}
+                pointer={POINTER_DIRECTIONS.has(element.vars.direction as PointerDirection) ? element.vars.direction as PointerDirection : undefined}
                 tintColor={tintOf(element, binding)}
                 margins={element.margins ?? [ 0, 0, 0, 0 ]}
                 alpha={alpha}
@@ -655,6 +845,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
                 <ScrollArea
                     orientation="vertical"
                     variant={scrollbar?.style}
+                    hideDisabledScrollbar={binding?.autoHideScrollBar ?? true}
                     layout={{ position: 'absolute', left: 0, top: 0, width: rect.width, height: rect.height, gap: 0 }}
                     viewportLayout={{ position: 'absolute', left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}
                     scrollbarLayout={scrollbar
@@ -670,7 +861,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
 
     // A list's items in its flow, `spacing` apart; a scrollable one shows what fits.
     if (list) {
-        const spacing = Number(element.vars.spacing);
+        const spacing = Number(binding?.spacing ?? element.vars.spacing);
 
         return (
             <Box
@@ -706,22 +897,17 @@ ElementView.displayName = 'TemplateElementView';
  */
 export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHidden = false, idPrefix = 'template-', width, height, arrange, frame }: TemplateViewProps) => {
     const [ store ] = useState(() => new TemplateBindingStore());
+    // The size the user dragged the window to; the template is laid out at it.
+    const [ frameSize, setFrameSize ] = useState<FrameSize | null>(null);
     // A template's one root window is drawn at its origin; the copy is made once, so it stays the
     // element bindings resolve to and a memoised view keeps.
-    const elements = useMemo(() => (template.elements.length === 1 ? [ { ...template.elements[0], x: 0, y: 0 } ] : template.elements), [ template ]);
-    const keys = Object.keys(bindings ?? {}).sort().join('\n');
-    const names = useMemo(() => resolveTemplateNames(elements, keys ? keys.split('\n') : []), [ elements, keys ]);
+    const sources = useMemo(() => (template.elements.length === 1 ? [ { ...template.elements[0], x: 0, y: 0 } ] : template.elements), [ template ]);
+    // The clones the code adds, made into elements of their own; the rest are the template's.
+    const [ expander ] = useState(() => new TemplateExpander());
+    const { elements, byElement, missing: missingKeys, arranges } = expander.expand(sources, bindings);
     const [ scroll ] = useState(() => new TemplateScrollStore());
-    const scrollbars = useMemo(() => linkTemplateScrollbars(elements), [ elements ]);
-    const scrollAxes = useMemo(() => {
-        const axes = new Map<TemplateElement, Set<TemplateScrollAxis>>();
-
-        for (const [ scrollbar, target ] of scrollbars) axes.set(target, new Set([ ...(axes.get(target) ?? []), TEMPLATE_SCROLLBAR_TAGS[scrollbar.tag] ]));
-
-        return axes;
-    }, [ scrollbars ]);
-    const scrollTargets = useMemo(() => new Set(scrollAxes.keys()), [ scrollAxes ]);
-    const missing = names.missing.join('\n');
+    const scrollLinks = scrollLinksOf(elements);
+    const missing = missingKeys.join('\n');
 
     const context = useMemo<Context>(() => ({
         // A text may name another (`${key}` in its value): read through, a few levels deep.
@@ -737,12 +923,10 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
         showHidden,
         idPrefix,
         frame,
-        scrollbars,
-        scrollAxes,
         scroll,
-    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame, scrollbars, scrollAxes, scroll ]);
+        onFrameResize: setFrameSize,
+    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame, scroll ]);
 
-    const byElement = bindElements(names.targets, bindings);
     // A list's `show` over its items; otherwise the binding, over the layout.
     const shownBy = new Map<TemplateElement, boolean>();
 
@@ -752,20 +936,35 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
         }
     }
 
+    // The window's size: the user's along the axis they resize, else the code's.
+    const resizes = frame?.resizeDirection ?? 'none';
+    const layoutWidth = ((resizes === 'x' || resizes === 'all') ? frameSize?.width : undefined) ?? width;
+    const layoutHeight = ((resizes === 'y' || resizes === 'all') ? frameSize?.height : undefined) ?? height;
+
+    const windowsIn = (scope: readonly TemplateElement[], windowOf: (element: TemplateElement) => LayoutWindow | undefined): TemplateWindows => ({
+        find: (key) => {
+            const element = resolveTemplateNames(scope, [ key ]).targets.get(key);
+
+            return element ? windowOf(element) : undefined;
+        },
+        root: () => windowOf(scope[0]),
+    });
+    // Each clone as its code sets it up, before its own clones are added to it; once the layout is
+    // built, the window's own code.
+    const setups = new Map(arranges.map(({ scope, arrange: setup }) => [ scope, (windowOf: (element: TemplateElement) => LayoutWindow | undefined) => setup(windowsIn([ scope ], windowOf)) ]));
+    const arrangeAll: TemplateArrange | undefined = arrange ? windowOf => arrange(windowsIn(elements, windowOf)) : undefined;
+
     // The rects the window's rules settle on, the texts measured as they will draw (cached by text).
     const rects = layoutTemplate(elements, {
         captionOf: element => context.resolveText(byElement.get(element)?.caption ?? element.caption),
         measure: measureTemplateText,
         visibleOf: element => shownBy.get(element) ?? byElement.get(element)?.visible ?? !element.hidden,
         skinOf: element => template.skins?.[templateSkinKey(element.tag, element.style)],
-        scrollTargets,
-    }, (width !== undefined || height !== undefined) ? { width: width ?? template.width, height: height ?? template.height } : undefined, arrange && (windowOf => arrange({
-        find: (key) => {
-            const element = resolveTemplateNames(elements, [ key ]).targets.get(key);
-
-            return element ? windowOf(element) : undefined;
-        },
-    })));
+        scrollTargets: scrollLinks.scrollTargets,
+        autoHideScrollBarOf: element => byElement.get(element)?.autoHideScrollBar ?? true,
+        spacingOf: element => byElement.get(element)?.spacing,
+        setupOf: element => setups.get(element),
+    }, (layoutWidth !== undefined || layoutHeight !== undefined) ? { width: layoutWidth ?? template.width, height: layoutHeight ?? template.height } : undefined, arrangeAll);
     const rootRect = elements.length === 1 ? rects.get(elements[0]) : undefined;
 
     // The root window is where its code puts it: drawn at its origin whatever its resize alignment did.
@@ -785,14 +984,16 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
     return (
         // Opened as a window, the frame is on the desktop and this box holds nothing in its flow.
         <Box layout={{ position: frame ? 'absolute' : 'relative', width: rootRect?.width ?? template.width, height: rootRect?.height ?? template.height }}>
-            {elements.map((element, index) => (
-                <ElementView
-                    key={String(index)}
-                    element={element}
-                    context={context}
-                    id={String(index)}
-                />
-            ))}
+            <ScrollLinksContext.Provider value={scrollLinks}>
+                {elements.map((element, index) => (
+                    <ElementView
+                        key={String(index)}
+                        element={element}
+                        context={context}
+                        id={String(index)}
+                    />
+                ))}
+            </ScrollLinksContext.Provider>
         </Box>
     );
 };

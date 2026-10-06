@@ -65,6 +65,15 @@ export interface TemplateLayoutInput {
     skinOf?: (element: TemplateElement) => { width: number; height: number; elements: TemplateElement[] } | undefined;
     /** The lists a standalone scrollbar scrolls, whose content extent their rects carry (`scrollContent`). */
     scrollTargets?: ReadonlySet<TemplateElement>;
+    /**
+     * What a clone's code does once the clone is built and before its own clones are added to it
+     * (`container.height = ...`, then `roomList.addListItem(...)`): run as each clone is made.
+     */
+    setupOf?: (element: TemplateElement) => ((windowOf: (element: TemplateElement) => LayoutWindow | undefined) => void) | undefined;
+    /** An item list's `IItemListWindow.spacing` as its code sets it, over the layout's `spacing`. */
+    spacingOf?: (element: TemplateElement) => number | undefined;
+    /** A scrollable list's `IScrollableListWindow.autoHideScrollBar`: `false` keeps its scrollbar while its items fit. */
+    autoHideScrollBarOf?: (element: TemplateElement) => boolean;
 }
 
 /** `WindowParam`'s layout bits. */
@@ -859,8 +868,8 @@ class ListContainer extends LayoutWindow {
  * item `n` goes into column `n % columns`.
  */
 class GridWindow extends ListWindow {
-    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent?: LayoutWindow) {
-        super(element, rect, param, parent, { horizontal: true, scaleToFit: true, reflectHorizontal: false });
+    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent?: LayoutWindow, spacing?: number) {
+        super(element, rect, param, parent, { horizontal: true, scaleToFit: true, reflectHorizontal: false, spacing });
     }
 
     /**
@@ -1017,13 +1026,16 @@ class ScrollableWindow extends LayoutWindow {
      * `ScrollableItemListWindow._Str_6204` on the scrollbar's `ENABLED` / `DISABLED`: it is enabled
      * while the list's content is taller than the list.
      */
+    /** `autoHideScrollBar`: off, the scrollbar keeps its width while the items fit, drawn disabled. */
+    public autoHideScrollBar = true;
+
     public updateScrollbar(): void {
         const list = this._list;
         const scrollbar = this._scrollbar;
 
         if (!list || !scrollbar) return;
 
-        const overflows = list.container.height > list.height;
+        const overflows = !this.autoHideScrollBar || list.container.height > list.height;
 
         if (overflows && !scrollbar.visible) {
             scrollbar.visible = true;
@@ -1201,8 +1213,8 @@ const createWindow = (element: TemplateElement, rect: TemplateRect, param: numbe
     if (element.tag === 'label') return new LabelWindow(element, rect, param, parent);
     if (element.tag === 'text' || element.tag === 'link') return new TextWindow(element, rect, param, parent);
     // Without its window layout, a scrollable list or grid is laid out as the plain one.
-    if (LIST_TAGS.has(element.tag)) return new ListWindow(element, rect, param, parent);
-    if (GRID_TAGS.has(element.tag)) return new GridWindow(element, rect, param, parent);
+    if (LIST_TAGS.has(element.tag)) return new ListWindow(element, rect, param, parent, { spacing: input.spacingOf?.(element) });
+    if (GRID_TAGS.has(element.tag)) return new GridWindow(element, rect, param, parent, input.spacingOf?.(element));
     // A bubble is a `FrameController` too (`BubbleController`).
     if (element.tag === 'frame' || element.tag === 'bubble') return new FrameWindow(element, rect, param, parent);
 
@@ -1215,7 +1227,7 @@ const createWindow = (element: TemplateElement, rect: TemplateRect, param: numbe
  * centred window that moved while it was made put back at its layout position and pushed onto the
  * parent; then its children, in order.
  */
-const build = (element: TemplateElement, parent: LayoutWindow | undefined, input: TemplateLayoutInput, windows: Map<TemplateElement, LayoutWindow>): LayoutWindow => {
+const build = (element: TemplateElement, parent: LayoutWindow | undefined, input: TemplateLayoutInput, windows: Map<TemplateElement, LayoutWindow>, clones: { element: TemplateElement; parent: LayoutWindow }[]): LayoutWindow => {
     const layoutRect = { x: element.x, y: element.y, width: element.width, height: element.height };
     const param = templateParamBits(element);
     const underIterable = !!parent?.iterable;
@@ -1242,7 +1254,11 @@ const build = (element: TemplateElement, parent: LayoutWindow | undefined, input
 
     windows.set(element, window);
 
-    for (const child of element.children) build(child, window, input, windows);
+    // A clone the code adds (`itemKey`) comes after the window it goes into is built and set up.
+    for (const child of element.children) {
+        if (child.itemKey !== undefined) clones.push({ element: child, parent: window });
+        else build(child, window, input, windows, clones);
+    }
 
     return window;
 };
@@ -1255,7 +1271,19 @@ const build = (element: TemplateElement, parent: LayoutWindow | undefined, input
 export const buildTemplateWindows = (elements: readonly TemplateElement[], input: TemplateLayoutInput): Map<TemplateElement, LayoutWindow> => {
     const windows = new Map<TemplateElement, LayoutWindow>();
 
-    for (const element of elements) build(element, undefined, input, windows);
+    const windowOf = (element: TemplateElement) => windows.get(element);
+    // A scope - the template, or a clone - built with its own windows, set up by its code, and only
+    // then given its clones, each a scope in turn: the order a window's code makes them in.
+    const buildScope = (element: TemplateElement, parent: LayoutWindow | undefined) => {
+        const clones: { element: TemplateElement; parent: LayoutWindow }[] = [];
+
+        build(element, parent, input, windows, clones);
+        input.setupOf?.(element)?.(windowOf);
+
+        for (const clone of clones) buildScope(clone.element, clone.parent);
+    };
+
+    for (const element of elements) buildScope(element, undefined);
 
     if (input.visibleOf) {
         const lists = new Set<ListWindow>();
@@ -1275,8 +1303,11 @@ export const buildTemplateWindows = (elements: readonly TemplateElement[], input
         for (const list of lists) list.arrange();
     }
 
-    for (const window of windows.values()) {
-        if (window instanceof ScrollableWindow) window.updateScrollbar();
+    for (const [ element, window ] of windows) {
+        if (!(window instanceof ScrollableWindow)) continue;
+
+        window.autoHideScrollBar = input.autoHideScrollBarOf?.(element) ?? true;
+        window.updateScrollbar();
     }
 
     return windows;

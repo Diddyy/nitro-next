@@ -1,7 +1,8 @@
 /**
- * The room info bubble the navigator's blue info button opens - `RoomInfoPopup.as`, built from
- * `room_info_popup_bubble` (a style 7 `bubble` pointing left) with one `property` row per room
- * property and one `tag` chip per tag.
+ * The room info bubble the navigator's blue info button opens - `RoomInfoPopup.as` over the
+ * `habbo-new-navigator/room_info_popup_bubble_xml` window template, with a `property_xml` per room
+ * property in `properties` (`addProperty`) and `tag_xml`'s `tag_region` per tag in `tag_list`
+ * (`getNewTagItem`).
  *
  * `populate()` decides what shows:
  * - the owner link when the room shows its owner (`showOwner`), the group link, the group's badge
@@ -30,8 +31,7 @@
  *
  * Not ported: `report_container` / `report_region` (`room.report.enabled`, and not your own room:
  * `habboHelp.reportRoom`) - the report/help subsystem does not exist in this client, so the entry
- * is left out rather than drawn doing nothing, as `RoomInfoView` does with its report button. And
- * the `browse.openroominfo` event log `showAt` tracks.
+ * stays hidden rather than doing nothing. And the `browse.openroominfo` event log `showAt` tracks.
  */
 import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
 import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, IRoomInfo, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
@@ -43,14 +43,15 @@ import { openGroupInfo, openProfile, searchRoomTag } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
 import { useNavigatorStore } from '#base/context/navigator';
-import { useConfigValue, useHomeRoomId, useInterpolate, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigValue, useHomeRoomId, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useUserStore } from '#base/context/user';
-import { Border, Bubble, FloatingPopup, LayoutImage, Region, ThemeImage, ThemeText, useTextureFromUrl } from '#base/theme';
+import { Box, findTemplateChild, FloatingPopup, TemplateBindings, TemplateItem, TemplateWindow, useLayoutSize, useTemplate } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
-import { GroupBadgeImage } from '#base/views/groups/GroupBadgeImage';
 
-/** `room_info_popup_bubble`'s size - `showAt` centres the bubble on `y` by half its height. */
-const POPUP_WIDTH = 374;
+/**
+ * `room_info_popup_bubble`'s layout height: `showAt` centres the bubble on `y` by half its height once
+ * `populate()` has fitted it to what it shows - this until the bubble has been laid out.
+ */
 const POPUP_HEIGHT = 350;
 
 /** `NavigatorView.showRoomInfoBubbleAt` sets the close countdown to 4000; `update` runs every 1000 ms. */
@@ -73,78 +74,6 @@ export interface NavigatorRoomInfoPopupProps {
     serial: number;
     onClose: () => void;
 }
-
-/** A `property` row: the bold name, the value 70 px in. */
-const PropertyRow = ({ name, value }: { name: string; value: string }) => (
-    <Region
-        name="room_property"
-        layout={{ width: 155, height: 20, flexShrink: 0 }}
-    >
-        <ThemeText
-            name="property_name"
-            text={name}
-            textStyle="u_regular"
-            flashFormat={{ bold: true }}
-            clip
-            verticalAlign="top"
-            layout={{ position: 'absolute', left: 0, width: 70, top: 0, height: 20 }}
-        />
-        <ThemeText
-            name="property_value"
-            text={value}
-            textStyle="u_regular"
-            verticalAlign="top"
-            layout={{ position: 'absolute', left: 70, top: 0 }}
-        />
-    </Region>
-);
-
-/**
- * A `tag` chip - `getNewTagItem` adds the layout's `tag_region` itself to `tag_list`: the orange
- * region, which grows round its `auto_size` text (`#` and the tag) at 3, 2.
- */
-const TagChip = ({ tag, onTap }: { tag: string; onTap: () => void }) => (
-    <Region
-        name="tag_region"
-        backgroundColor="#f1a700"
-        cursor="pointer"
-        onPointerTap={onTap}
-        layout={{ height: 19, paddingLeft: 3, paddingTop: 2, flexShrink: 0 }}
-    >
-        <ThemeText
-            name="tag_text"
-            text={`#${tag}`}
-            textStyle="u_small"
-            textOptions={{ fill: '#ffffff' }}
-            verticalAlign="top"
-        />
-    </Region>
-);
-
-/** One entry of `midBottom_itemlist`: the 20x20 icon region and its label beside it. */
-const ToggleRow = ({ name, icon, label, onTap }: { name: string; icon: string; label: string; onTap: () => void }) => (
-    <Region layout={{ height: 20, width: 170, flexShrink: 0, overflow: 'hidden' }}>
-        <Region
-            name={`${name}_region`}
-            cursor="pointer"
-            onPointerTap={onTap}
-            layout={{ position: 'absolute', left: 0, width: 20, top: 0, height: 20 }}
-        >
-            <ThemeImage
-                name={`${name}_icon`}
-                src={icon}
-                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                layout={{ position: 'absolute', left: 0, width: 20, top: 0, height: 20 }}
-            />
-        </Region>
-        <ThemeText
-            text={label}
-            textStyle="u_regular"
-            verticalAlign="top"
-            layout={{ position: 'absolute', left: 20, top: 0 }}
-        />
-    </Region>
-);
 
 /**
  * `NavigatorView.update`: once the countdown has run out, the first tick the mouse is outside the
@@ -195,6 +124,11 @@ const useCloseWhenMouseLeaves = (bubble: RefObject<PixiContainer | null>, serial
 
 export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: NavigatorRoomInfoPopupProps) => {
     const bubbleRef = useRef<PixiContainer | null>(null);
+    // The node as state as well, for its laid-out size: a ref cannot be read while rendering.
+    const [ bubbleNode, setBubbleNode ] = useState<PixiContainer | null>(null);
+    const bubbleSize = useLayoutSize(bubbleNode);
+    const propertyTemplate = useTemplate('habbo-new-navigator/property_xml');
+    const tagTemplate = useTemplate('habbo-new-navigator/tag_xml');
     const favouriteRoomIds = useNavigatorStore(x => x.favouriteRoomIds);
     const thumbnailCameraAllowed = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);
     const homeRoomId = useHomeRoomId();
@@ -202,11 +136,11 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
     const groupDetails = useGroupStore(x => ((room.groupId > 0) ? x.detailsById[room.groupId] : undefined));
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
+    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const rankingEnabled = useConfigValue<boolean>('room.ranking.enabled') === true;
     const officialThumbnailsInAmazon = useConfigValue<boolean>('new.navigator.official.room.thumbnails.in.amazon') === true;
     const { showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
-    const interpolate = useInterpolate();
     const t = useTranslation();
     // `roomIsFavorite` / `roomIsHome` set by the toggles; `setData` of another room drops both,
     // which the parent's `key` on the room does here.
@@ -222,36 +156,28 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
     const isOwnRoom = room.ownerName === userName;
     const hasEvent = room.adExpiresIn > 0;
 
-    let thumbnailUrl: string | undefined;
+    let thumbnail = 'habbo-window-manager-com-newnavigator_default_room';
 
     if (thumbnailCameraAllowed) {
-        if (room.officialRoomPicRef.length) {
-            thumbnailUrl = officialThumbnailsInAmazon
-                ? `${thumbnailUrlBase}${room.roomId}.png`
-                : `${imageLibraryUrl}${room.officialRoomPicRef}`;
-        } else {
-            thumbnailUrl = `${thumbnailUrlBase}${room.roomId}.png`;
-        }
+        thumbnail = (room.officialRoomPicRef.length && !officialThumbnailsInAmazon)
+            ? `${imageLibraryUrl}${room.officialRoomPicRef}`
+            : `${thumbnailUrlBase}${room.roomId}.png`;
     }
 
-    // The default picture stays until the thumbnail has loaded (or for good when it does not).
-    const thumbnailTexture = useTextureFromUrl(thumbnailUrl);
+    let groupModeAdmin = '';
 
-    let groupModeAdmin: string | undefined;
-
-    if (groupDetails?.isOwner) groupModeAdmin = LayoutImage('habbo-window-manager-com/newnavigator_icon_group_owner.png');
-    else if (groupDetails?.isAdmin) groupModeAdmin = LayoutImage('habbo-window-manager-com/newnavigator_icon_group_admin.png');
-
-    const groupModeSize = groupDetails ? `${imageLibraryUrl}guilds/grouptype_icon_${groupDetails.type}.png` : undefined;
-    const groupModeFurnish = groupDetails?.membersCanDecorate ? `${imageLibraryUrl}guilds/group_decorate_icon.png` : undefined;
+    if (groupDetails?.isOwner) groupModeAdmin = 'habbo-window-manager-com-newnavigator_icon_group_owner';
+    else if (groupDetails?.isAdmin) groupModeAdmin = 'habbo-window-manager-com-newnavigator_icon_group_admin';
 
     const properties: { name: string; value: string }[] = [
-        { name: t('navigator.roompopup.property.trading'), value: TRADING_LEVEL_KEYS[room.tradeType] ? t(TRADING_LEVEL_KEYS[room.tradeType]) : '' },
+        { name: '${navigator.roompopup.property.trading}', value: TRADING_LEVEL_KEYS[room.tradeType] ? t(TRADING_LEVEL_KEYS[room.tradeType]) : '' },
     ];
 
-    if (rankingEnabled) properties.push({ name: t('navigator.roompopup.property.ranking'), value: String(room.ranking) });
+    if (rankingEnabled) properties.push({ name: '${navigator.roompopup.property.ranking}', value: String(room.ranking) });
 
-    properties.push({ name: t('navigator.roompopup.property.max_users'), value: String(room.playersMax) });
+    properties.push({ name: '${navigator.roompopup.property.max_users}', value: String(room.playersMax) });
+
+    const tagRegion = tagTemplate && findTemplateChild(tagTemplate.elements, 'tag_region');
 
     const toggleFavourite = () => {
         send(isFavourite
@@ -265,285 +191,104 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
         if (isHome) return;
 
         send(new UpdateHomeRoomComposer({ roomId: room.roomId }));
-
         setHomeOverride({ isHome: true, over: homeRoomId });
+    };
+
+    const bindings: TemplateBindings = {
+        room_name: { caption: room.name },
+        room_desc: { caption: room.description },
+        room_thumbnail: { asset: thumbnail },
+        room_group_badge: hasGroup ? { visible: true, asset: groupBadgeUrl.replace('%badgedata%', room.groupBadge) } : { visible: false },
+
+        room_group_owner_container: { visible: hasGroup || room.showOwner },
+        room_owner_region: {
+            visible: room.showOwner,
+            onPointerTap: () => {
+                openProfile(send, room.ownerId);
+                onClose();
+            },
+        },
+        owner_name: { caption: room.ownerName },
+        room_group_region: {
+            visible: hasGroup,
+            onPointerTap: () => {
+                openGroupInfo(send, room.groupId);
+                onClose();
+            },
+        },
+        group_name: { caption: room.groupName },
+
+        properties: {
+            items: propertyTemplate
+                ? properties.map(property => ({
+                        key: property.name,
+                        from: propertyTemplate,
+                        bindings: { property_name: { caption: property.name }, property_value: { caption: property.value } },
+                    }))
+                : [],
+        },
+
+        favorite_region: { onPointerTap: toggleFavourite },
+        favorite_icon: { asset: `habbo-window-manager-com-newnavigator_icon_fav_${isFavourite ? 'yes' : 'no'}` },
+        home_region: { onPointerTap: makeHome },
+        home_icon: { asset: `habbo-window-manager-com-newnavigator_icon_home_${isHome ? 'yes' : 'no'}` },
+        settings_container: { visible: isOwnRoom },
+        settings_region: {
+            onPointerTap: () => {
+                // `RoomSettingsCtrl.startRoomSettingsEditFromNavigator(flatId, habboGroupId)`;
+                // the parser's -1 for "no group" is Flash's 0.
+                showWindow('room_settings', { roomId: room.roomId, groupId: Math.max(0, room.groupId) });
+                onClose();
+            },
+        },
+        report_container: { visible: false },
+
+        tag_list: {
+            items: tagRegion
+                ? room.tags.map((tag, index): TemplateItem => ({
+                        key: `${index}:${tag}`,
+                        from: tagRegion,
+                        bindings: {
+                            tag_region: {
+                                onPointerTap: () => {
+                                    searchRoomTag(send, tag);
+                                    onClose();
+                                },
+                            },
+                            tag_text: { caption: `#${tag}` },
+                        },
+                    }))
+                : [],
+        },
+        group_mode_admin: { asset: hasGroup ? groupModeAdmin : '' },
+        group_mode_size: { asset: (hasGroup && groupDetails) ? `\${image.library.url}guilds/grouptype_icon_${groupDetails.type}.png` : '' },
+        group_mode_furnish: { asset: (hasGroup && groupDetails?.membersCanDecorate) ? '${image.library.url}guilds/group_decorate_icon.png' : '' },
+
+        event_info: { visible: hasEvent },
+        event_name: { caption: `${t('navigator.eventsettings.name')}: ${room.adName}` },
+        event_desc: { caption: `${t('navigator.eventsettings.desc')}: ${room.adDescription}\n${t('roomad.event.expiration_time')}${GetFriendlyTime(t, room.adExpiresIn * 60)}` },
     };
 
     return (
         <FloatingPopup
             x={x}
-            y={Math.trunc(y - (POPUP_HEIGHT / 2))}
+            y={Math.trunc(y - ((bubbleSize.height || POPUP_HEIGHT) / 2))}
             // Flash has no outside-click close: the countdown closes it, and the info button toggles it.
             onOutsideClick={() => undefined}
         >
-            <Bubble
-                ref={bubbleRef}
-                variant="7"
-                pointer="left"
-                margins={[ 3, 36, 3, 3 ]}
-                layout={{ width: POPUP_WIDTH, height: POPUP_HEIGHT }}
+            <Box
+                ref={(node: PixiContainer | null) => {
+                    bubbleRef.current = node;
+                    setBubbleNode(node);
+                }}
+                // A laid-out box, so it reports the bubble's height as Yoga settles it.
+                layout={{ flexDirection: 'column' }}
             >
-                <Region
-                    name="main_content"
-                    layout={{ position: 'absolute', left: 11, width: 345, top: -21, flexDirection: 'column', gap: 3 }}
-                >
-                    <Border
-                        variant="2"
-                        name="header"
-                        layout={{ height: 125, width: 345, flexShrink: 0 }}
-                    >
-                        <Region
-                            name="header_top"
-                            layout={{ position: 'absolute', left: 8, width: 329, top: 6, height: 112, overflow: 'hidden', flexDirection: 'row' }}
-                        >
-                            <Region
-                                name="room_thumbnail_container"
-                                backgroundColor="#000000"
-                                layout={{ width: 112, height: 112, flexShrink: 0 }}
-                            >
-                                <ThemeImage
-                                    name="room_thumbnail"
-                                    src={thumbnailTexture ? thumbnailUrl : LayoutImage('habbo-window-manager-com/newnavigator_default_room.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                                    layout={{ position: 'absolute', left: 1, width: 110, top: 1, height: 110 }}
-                                />
-                                {hasGroup && (
-                                    <GroupBadgeImage
-                                        badgeCode={room.groupBadge}
-                                        layout={{ position: 'absolute', left: 1, width: 48, top: 1, height: 48 }}
-                                    />
-                                )}
-                            </Region>
-                            <Region
-                                name="room_name_desc_owner_container"
-                                layout={{ width: 219, height: 112, flexShrink: 0, overflow: 'hidden' }}
-                            >
-                                <ThemeText
-                                    name="room_name"
-                                    text={interpolate(room.name)}
-                                    textStyle="u_bold"
-                                    textOptions={{ wordWrap: true, wordWrapWidth: 210 }}
-                                    clip
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 6, width: 214, top: 0, height: 33 }}
-                                />
-                                <ThemeText
-                                    name="room_desc"
-                                    text={interpolate(room.description)}
-                                    textStyle="u_regular"
-                                    textOptions={{ wordWrap: true, wordWrapWidth: 210 }}
-                                    clip
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 5, width: 214, top: 33, height: 80 }}
-                                />
-                            </Region>
-                        </Region>
-                    </Border>
-                    {(hasGroup || room.showOwner) && (
-                        <Region
-                            name="room_group_owner_container"
-                            layout={{ height: 30, width: 344, flexShrink: 0, overflow: 'hidden' }}
-                        >
-                            {hasGroup && (
-                                <Region
-                                    name="room_group_region"
-                                    tooltip={t('navigator.tooltip.groupinfo.owner')}
-                                    cursor="pointer"
-                                    onPointerTap={() => {
-                                        openGroupInfo(send, room.groupId);
-                                        onClose();
-                                    }}
-                                    layout={{ position: 'absolute', left: 175, width: 170, top: 3, height: 30, overflow: 'hidden' }}
-                                >
-                                    <ThemeImage
-                                        src={LayoutImage('habbo-window-manager-com/newnavigator_icon_group.png')}
-                                        bitmap={{ pivot: 'center' }}
-                                        layout={{ position: 'absolute', left: 0, width: 15, top: 0, height: 13 }}
-                                    />
-                                    <ThemeText
-                                        name="group_name"
-                                        text={room.groupName}
-                                        textStyle="u_bold"
-                                        textOptions={{ wordWrap: true, wordWrapWidth: 166 }}
-                                        flashFormat={{ underline: true }}
-                                        clip
-                                        verticalAlign="top"
-                                        layout={{ position: 'absolute', left: 20, width: 170, top: 0, height: 33 }}
-                                    />
-                                </Region>
-                            )}
-                            {room.showOwner && (
-                                <Region
-                                    name="room_owner_region"
-                                    tooltip={t('navigator.tooltip.roominfo.owner')}
-                                    cursor="pointer"
-                                    onPointerTap={() => {
-                                        openProfile(send, room.ownerId);
-                                        onClose();
-                                    }}
-                                    layout={{ position: 'absolute', left: 5, width: 150, top: 3, height: 30, overflow: 'hidden' }}
-                                >
-                                    <ThemeImage
-                                        src={LayoutImage('habbo-window-manager-com/friend_bar_friendlist_eye.png')}
-                                        bitmap={{ pivot: 'center' }}
-                                        layout={{ position: 'absolute', left: 0, width: 15, top: 0, height: 13 }}
-                                    />
-                                    <ThemeText
-                                        name="owner_name"
-                                        text={room.ownerName}
-                                        textStyle="u_bold"
-                                        textOptions={{ wordWrap: true, wordWrapWidth: 126 }}
-                                        flashFormat={{ underline: true }}
-                                        clip
-                                        verticalAlign="top"
-                                        layout={{ position: 'absolute', left: 20, width: 130, top: -2, height: 33 }}
-                                    />
-                                </Region>
-                            )}
-                        </Region>
-                    )}
-                    <Region
-                        name="newMid"
-                        layout={{ height: 80, width: 344, flexShrink: 0 }}
-                    >
-                        <Region
-                            name="mid"
-                            layout={{ position: 'absolute', left: 0, width: 174, top: 0, height: 65, overflow: 'hidden' }}
-                        >
-                            <Region
-                                name="properties"
-                                layout={{ position: 'absolute', left: 0, width: 263, top: 0, height: 65, flexDirection: 'column' }}
-                            >
-                                {properties.map(property => (
-                                    <PropertyRow
-                                        key={property.name}
-                                        name={property.name}
-                                        value={property.value}
-                                    />
-                                ))}
-                            </Region>
-                        </Region>
-                        <Region
-                            name="midBottom"
-                            layout={{ position: 'absolute', left: 166, width: 170, top: 0, height: 80, overflow: 'hidden' }}
-                        >
-                            <Region
-                                name="midBottom_itemlist"
-                                layout={{ position: 'absolute', left: 12, width: 170, top: 0, flexDirection: 'column' }}
-                            >
-                                <ToggleRow
-                                    name="favorite"
-                                    icon={LayoutImage(isFavourite ? 'habbo-window-manager-com/newnavigator_icon_fav_yes.png' : 'habbo-window-manager-com/newnavigator_icon_fav_no.png')}
-                                    label={t('navigator.room.popup.room.info.favorite')}
-                                    onTap={toggleFavourite}
-                                />
-                                <ToggleRow
-                                    name="home"
-                                    icon={LayoutImage(isHome ? 'habbo-window-manager-com/newnavigator_icon_home_yes.png' : 'habbo-window-manager-com/newnavigator_icon_home_no.png')}
-                                    label={t('navigator.room.popup.room.info.home')}
-                                    onTap={makeHome}
-                                />
-                                {isOwnRoom && (
-                                    <ToggleRow
-                                        name="settings"
-                                        icon={LayoutImage('habbo-window-manager-com/newnavigator_room_settings_icon.png')}
-                                        label={t('navigator.room.popup.info.room.settings')}
-                                        onTap={() => {
-                                        // `RoomSettingsCtrl.startRoomSettingsEditFromNavigator(flatId, habboGroupId)`;
-                                        // the parser's -1 for "no group" is Flash's 0.
-                                            showWindow('room_settings', { roomId: room.roomId, groupId: Math.max(0, room.groupId) });
-                                            onClose();
-                                        }}
-                                    />
-                                )}
-                            </Region>
-                        </Region>
-                    </Region>
-                    <Region
-                        name="bottom_itemlist"
-                        layout={{ width: 345, flexShrink: 0, flexDirection: 'column' }}
-                    >
-                        <Region
-                            name="tag_and_group_info"
-                            layout={{ height: 23, width: 345, flexShrink: 0 }}
-                        >
-                            <Region
-                                name="tag_list"
-                                layout={{ position: 'absolute', left: 0, width: 200, top: 0, height: 20, flexDirection: 'row', gap: 2, overflow: 'hidden' }}
-                            >
-                                {room.tags.map(tag => (
-                                    <TagChip
-                                        key={tag}
-                                        tag={tag}
-                                        onTap={() => {
-                                            searchRoomTag(send, tag);
-                                            onClose();
-                                        }}
-                                    />
-                                ))}
-                            </Region>
-                            {hasGroup && groupModeFurnish && (
-                                <ThemeImage
-                                    name="group_mode_furnish"
-                                    src={groupModeFurnish}
-                                    bitmap={{}}
-                                    layout={{ position: 'absolute', left: 318, width: 18, top: 0, height: 16 }}
-                                />
-                            )}
-                            {hasGroup && groupModeAdmin && (
-                                <ThemeImage
-                                    name="group_mode_admin"
-                                    src={groupModeAdmin}
-                                    bitmap={{}}
-                                    layout={{ position: 'absolute', left: 279, width: 18, top: 0, height: 16 }}
-                                />
-                            )}
-                            {hasGroup && groupModeSize && (
-                                <ThemeImage
-                                    name="group_mode_size"
-                                    src={groupModeSize}
-                                    bitmap={{}}
-                                    layout={{ position: 'absolute', left: 299, width: 18, top: 0, height: 16 }}
-                                />
-                            )}
-                        </Region>
-                        {hasEvent && (
-                            <Border
-                                variant="3"
-                                name="event_info"
-                                tintColor="#f1a700"
-                                blend={0.7}
-                                layout={{ height: 55, width: 331, marginLeft: 7, flexShrink: 0 }}
-                            >
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/newnavigator_event_icon.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                                    layout={{ position: 'absolute', left: 6, width: 42, top: 9, height: 40 }}
-                                />
-                                <ThemeText
-                                    name="event_name"
-                                    text={`${t('navigator.eventsettings.name')}: ${room.adName}`}
-                                    textStyle="u_bold"
-                                    textOptions={{ fill: '#ffffff' }}
-                                    clip
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 54, width: 275, top: 3, height: 16 }}
-                                />
-                                <ThemeText
-                                    name="event_desc"
-                                    text={`${t('navigator.eventsettings.desc')}: ${room.adDescription}\n${t('roomad.event.expiration_time')}${GetFriendlyTime(t, room.adExpiresIn * 60)}`}
-                                    textStyle="u_bold"
-                                    textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: 271 }}
-                                    flashFormat={{ bold: false }}
-                                    clip
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 54, width: 275, top: 19, height: 36 }}
-                                />
-                            </Border>
-                        )}
-                    </Region>
-                </Region>
-            </Bubble>
+                <TemplateWindow
+                    id="habbo-new-navigator/room_info_popup_bubble_xml"
+                    bindings={bindings}
+                />
+            </Box>
         </FloatingPopup>
     );
 };

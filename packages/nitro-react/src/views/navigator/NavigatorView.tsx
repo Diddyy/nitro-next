@@ -1,37 +1,112 @@
-import { ForwardToARandomPromotedRoomComposer, GetGuestRoomComposer, IRoomInfo, NavigatorAddCollapsedCategoryComposer, NavigatorAddSavedSearchComposer, NavigatorRemoveCollapsedCategoryComposer, NavigatorSetSearchCodeViewModeComposer, NewNavigatorSearchComposer } from '@nitrodevco/nitro-packets';
+/**
+ * The new navigator's window: `NavigatorView.as` over the `habbo-new-navigator/navigator_frame_2_xml`
+ * window template.
+ *
+ * `createMainWindow` takes its prototypes out of the layout and clones them as results come: one
+ * `category_container` (or `category_container_collapsed`, or `no_results_container`) per result
+ * block into `block_results` (`BlockResultsView.displayCurrentResults`), a `navigator_entry_row_container`
+ * per room - or a `navigator_entry_tile_container` per three `navigator_entry_tile`s - into each open
+ * block's `category_content` (`CategoryElementFactory` / `RoomEntryElementFactory`), a `quick_link` per
+ * saved search into `quicklinks_list` (`QuickLinksView`) and a `top_view_select_tab_button` per
+ * top-level search into the tab context (`TopViewSelector`). Those are the `items` bindings here.
+ *
+ * - `SearchView`: the drop menu picks the filter mode and Enter in the field searches with it; the
+ *   field holds the grey italic placeholder until it is focused; the clear button empties it. The
+ *   refresh button shows while the results carry a filter and repeats the search.
+ * - `setLeftPaneVisibility` is the `arrange`: hidden, the window narrows by the left pane, the right
+ *   pane moves in to x 7 without stretching and the tabs move left by half as much.
+ * - `onSearchResults`: `random_room` - or `promote_room` for `roomads_view` / `myworld_view`.
+ * - `isBusy`: `${navigator.title.is.busy}` and the `search_waiting_for_results_mask` while a search is out.
+ * - A room's info button opens the room info bubble (`showRoomInfoBubbleAt`), or closes an open one;
+ *   hovering a room moves an open one to it.
+ *
+ * Not ported: the window-preference sync (`sendWindowPreferences`), `keepWindowInsideScreenRegion`,
+ * `category_back` (`goBack` walks the search history, which the port does not keep) and the hotel
+ * view's collapse defaults written back into the collapsed list (they are applied as the results draw).
+ */
+import { ForwardToARandomPromotedRoomComposer, GetGuestRoomComposer, IRoomInfo, ISearchResultList, NavigatorAddCollapsedCategoryComposer, NavigatorAddSavedSearchComposer, NavigatorDeleteSavedSearchComposer, NavigatorRemoveCollapsedCategoryComposer, NavigatorSetSearchCodeViewModeComposer, NewNavigatorSearchComposer } from '@nitrodevco/nitro-packets';
+import { FederatedPointerEvent } from 'pixi.js';
 import { useState } from 'react';
 
-import { requestRoomGroupDetails } from '#base/commands';
+import { openClientLink, requestRoomGroupDetails } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
-import { useSystemActions, useTranslation } from '#base/context/system';
+import { NAVIGATOR_FILTER_TYPES, splitNavigatorFilter, useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
+import { useConfigValue, useSystemActions, useTranslation } from '#base/context/system';
+import { PerkCodes, useOwnPerkAllowed } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
-import { Border, Frame, LayoutImage, Region, ScrollArea, TabButton, TabContext, ThemeImage, ThemeText } from '#base/theme';
+import { getGlobalRect, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
 
-import { NavigatorCategoryView } from './NavigatorCategoryView';
-import { NavigatorQuickLinksView } from './NavigatorQuickLinksView';
-import { NavigatorShowRoomInfo } from './NavigatorRoomEntryView';
+import { ALTERNATING_COLOR_MOD, ALTERNATING_COLOR_NONE, getModulatedBackgroundColor, getUserCountColor, ROW_BASE_COLOR } from './NavigatorRoomEntryUtils';
 import { NavigatorRoomInfoPopup } from './NavigatorRoomInfoPopup';
-import { NavigatorSearchView } from './NavigatorSearchView';
 
 export type NavigatorViewWindowParams = { searchCode?: string };
 
-/** `NavigatorView.MAX_WINDOW_WIDTH`, the layout's width. */
-const FRAME_WIDTH_EXPANDED = 578;
 /**
- * `setLeftPaneVisibility(false)`: the window loses `right_pane.x - left_pane.x + 7` (159 - 6 + 7)
- * and gains the 7 the right pane moves to.
+ * `NavigatorView.showRoomInfoBubbleAt(room, x, y, hover)`: `x` / `y` are the screen point the
+ * bubble's pointer goes to. A click toggles the bubble; a hover (`hover`) only moves one already up.
  */
-const LEFT_PANE_SHIFT = 160;
+export type NavigatorShowRoomInfo = (room: IRoomInfo, x: number, y: number, hover: boolean) => void;
+
+const TEMPLATE = 'habbo-new-navigator/navigator_frame_2_xml';
+
+/** `ResultsModeEnum`. */
+const RESULTS_MODE_ROWS = 0;
+const RESULTS_MODE_TILES = 1;
+/** `RoomEntryElementFactory.TILES_PER_CONTAINER`. */
+const TILES_PER_CONTAINER = 3;
+/** `CategoryElementFactory.MARGIN_LAYOUT_CATEGORY_CONTAINER`. */
+const MARGIN_LAYOUT_CATEGORY_CONTAINER = 13;
+/** `navigator_entry_row_container`'s height - `rowEntryTemplateHeight`. */
+const ROW_ENTRY_HEIGHT = 20;
+/** `setLeftPaneVisibility`: the right pane's x while the left one is hidden, and the gap it keeps. */
 const RIGHT_PANE_X_HIDDEN = 7;
-const FRAME_WIDTH_COLLAPSED = FRAME_WIDTH_EXPANDED - LEFT_PANE_SHIFT + RIGHT_PANE_X_HIDDEN;
-/** `right_pane`'s x, and its width, which the pane keeps when it moves (horizontal scaling is off while the window narrows). */
-const RIGHT_PANE_X = 159;
-const RIGHT_PANE_WIDTH = 410;
-/** `STARTING_TAB_POSITION`, less half the shift while the left pane is hidden. */
-const TAB_CONTEXT_X = 115;
-const TAB_CONTEXT_X_HIDDEN = TAB_CONTEXT_X - (LEFT_PANE_SHIFT / 2);
+const PANE_GAP = 7;
+/** `STARTING_TAB_POSITION`. */
+const STARTING_TAB_POSITION = 115;
+/** `WindowParam`'s horizontal stretch bit, which `setLeftPaneVisibility` lifts off the right pane while it narrows the window. */
+const H_STRETCH = 128;
 const PROMOTE_SEARCH_CODES = [ 'roomads_view', 'myworld_view' ];
+/** `BlockResultsView.HOT_ROOMS_SEARCH_CODE` / `POPULAR_ROOMS_SEARCH_CODE`. */
+const HOT_ROOMS = 'hot';
+const POPULAR_ROOMS = 'popular';
+
+/** `ViewMode.isEventViewMode(ViewMode.getViewMode(searchCode))`: room ads and event categories show the ad's name. */
+const isEventView = (searchCode: string) => searchCode === 'roomads_view' || searchCode === 'new_ads' || searchCode.startsWith('eventcategory__');
+
+/** `RoomEntryUtils.getDoorModeIconAsset`: none for an open door. */
+const DOOR_MODE_ASSETS: Record<number, string> = {
+    1: 'habbo-window-manager-com-newnavigator_doormode_doorbell_small',
+    2: 'habbo-window-manager-com-newnavigator_doormode_password_small',
+    3: 'habbo-window-manager-com-newnavigator_doormode_invisible_small',
+};
+
+/** The colour helpers' `#rrggbb` as the number a binding's `color` takes. */
+const colorNumber = (hex: string) => Number.parseInt(hex.slice(1), 16);
+
+/** The first ancestor of `window` that the layout names `name`. */
+const ancestorNamed = (window: LayoutWindow | undefined, name: string) => {
+    for (let parent = window?.parent; parent; parent = parent.parent) {
+        if (parent.element?.name === name) return parent;
+    }
+
+    return undefined;
+};
+
+/**
+ * `BlockResultsView.applyHotelViewExpansionDefaults`: in the hotel view the hot rooms open and popular
+ * closes when there are hot rooms, and the other way round.
+ */
+const collapsedFor = (searchCodeOriginal: string, blocks: readonly ISearchResultList[], collapsed: readonly string[]) => {
+    if (searchCodeOriginal !== 'hotel_view') return collapsed;
+
+    const hasHot = blocks.some(block => block.searchCode === HOT_ROOMS);
+    const result = collapsed.filter(code => code !== HOT_ROOMS && code !== POPULAR_ROOMS);
+
+    if (!hasHot) result.push(HOT_ROOMS);
+    if (hasHot && blocks.some(block => block.searchCode === POPULAR_ROOMS)) result.push(POPULAR_ROOMS);
+
+    return result;
+};
 
 /** The room the info bubble shows and where; `serial` counts each `showRoomInfoBubbleAt`. */
 interface RoomInfoBubble {
@@ -41,88 +116,53 @@ interface RoomInfoBubble {
     serial: number;
 }
 
-/** A `navigator_frame_2` room button: a style 4/5 border, the art centred in its 185x56 region and the caption over it. */
-interface RoomButtonProps {
-    name: string;
-    borderVariant: '4' | '5';
-    left: number;
-    image: string;
-    caption: string;
-    tooltip: string;
-    onTap?: () => void;
-}
-
-const RoomButton = ({ name, borderVariant, left, image, caption, tooltip, onTap }: RoomButtonProps) => (
-    <Border
-        variant={borderVariant}
-        name={`${name}_border`}
-        layout={{ position: 'absolute', left, width: 189, bottom: 0, height: 60 }}
-    >
-        <Region
-            name={name}
-            tooltip={tooltip}
-            onPointerTap={onTap}
-            cursor="pointer"
-            layout={{ position: 'absolute', left: 2, right: 2, top: 2, bottom: 2, overflow: 'hidden' }}
-        >
-            <ThemeImage
-                src={image}
-                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                layout={{ position: 'absolute', left: 0, width: 186, top: 0, height: 59 }}
-            />
-            <ThemeText
-                text={caption}
-                textStyle="id_heading_2"
-                textOptions={{ align: 'center' }}
-                flashFormat={{ etchingColor: 0x3F000000, etchingPosition: 'bottom-right' }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 60, width: 125, top: 22, height: 17 }}
-            />
-        </Region>
-    </Border>
-);
-
-/**
- * The new navigator's window: `navigator_frame_2`, driven by `NavigatorView.as`.
- *
- * - The left pane (`QuickLinksView`) hides and shows from `temp_back`
- *   (`leftPaneShowHideProcedure` -> `setLeftPaneVisibility`): hidden, the window narrows by 153,
- *   `right_pane` moves to x 7 at its own width and the tab context to 115 - 80.
- * - `onSearchResults`: `create_room` always (opening `NavigatorRoomCreateView`), then `promote_room_border` for `roomads_view` /
- *   `myworld_view` and `random_room_border` otherwise, in the same place.
- * - While a search is out the window says so the way `isBusy` did: the caption turns to
- *   `${navigator.title.is.busy}` and the translucent `search_waiting_for_results_mask` (colour
- *   0x6feceae0) lies over the last results, which stay underneath - Flash shows no searching text.
- *
- * - `showRoomInfoBubbleAt`: a room's info button opens the `room_info_popup` bubble
- *   (`NavigatorRoomInfoPopup`) or, when one is up, closes it; hovering another room moves the open
- *   one there. A room of a group with no cached details asks for them first. The bubble closes
- *   with the window, when results land, and on create room, random room and the left pane toggle.
- *
- * Not ported: the window-preference sync (`sendWindowPreferences`, telling the server this window's
- * position and size every 5 s after a change) - `Frame` does not hand its container out.
- */
 export const NavigatorView = () => {
     const topLevelContexts = useNavigatorStore(x => x.topLevelContexts);
     const topLevelContext = useNavigatorStore(x => x.topLevelContext);
+    const savedSearches = useNavigatorStore(x => x.savedSearches);
     const searchResult = useNavigatorStore(x => x.searchResult);
+    const searchFilter = useNavigatorStore(x => x.searchFilter);
+    const filterType = useNavigatorStore(x => x.filterType);
     const isSearching = useNavigatorStore(x => x.isSearching);
     const leftPaneHidden = useNavigatorStore(x => x.leftPaneHidden);
     const collapsedCategories = useNavigatorStore(x => x.collapsedCategories);
+    const viewModes = useNavigatorStore(x => x.viewModes);
     const preferences = useNavigatorStore(x => x.preferences);
-    const { setTopLevelContext, setIsSearching, setLeftPaneHidden, toggleCollapsedCategory, setViewMode } = useNavigatorActions();
+    const { setTopLevelContext, setIsSearching, setLeftPaneHidden, toggleCollapsedCategory, setViewMode, setSearchFilter, setFilterType } = useNavigatorActions();
+    const canToggleView = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);
+    const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
+    const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
+    const thumbnailsInAmazon = useConfigValue<boolean | string>('new.navigator.official.room.thumbnails.in.amazon');
+    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const { hide } = useWindowVisibility('navigator');
     const { showWindow } = useSystemActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const [ roomInfoBubble, setRoomInfoBubble ] = useState<RoomInfoBubble>();
     const [ roomInfoBubbleResults, setRoomInfoBubbleResults ] = useState(searchResult);
+    const [ hoveredQuickLink, setHoveredQuickLink ] = useState<number>();
+    // `SearchView.setInputToFilterPlaceHolder`: the field holds the placeholder until focused, and again
+    // once results come without a filter (`setTextAndSearchModeFromFilter`).
+    const [ placeholderShown, setPlaceholderShown ] = useState(true);
+    const [ placeholderResults, setPlaceholderResults ] = useState(searchResult);
+    // The frame's own close and position, made once (`createMainWindow`).
+    const [ frame ] = useState(() => ({ id: 'navigator', defaultPosition: { x: preferences?.windowX ?? 20, y: preferences?.windowY ?? 20 }, resizeDirection: 'y' as const, onClose: hide }));
 
-    // `onSearchResults` ends with `_roomInfoPopup.show(false)`.
+    // `onSearchResults` ends with `_roomInfoPopup.show(false)`, and puts the results' filter in the field.
     if (roomInfoBubbleResults !== searchResult) {
         setRoomInfoBubbleResults(searchResult);
         setRoomInfoBubble(undefined);
     }
+
+    if (placeholderResults !== searchResult) {
+        setPlaceholderResults(searchResult);
+        setPlaceholderShown(splitNavigatorFilter(searchResult?.filteringData ?? '').searchFilter === '');
+    }
+
+    const search = (searchCode: string, filteringData: string) => {
+        setIsSearching(true);
+        send(new NewNavigatorSearchComposer({ searchCodeOriginal: searchCode, filteringData }));
+    };
 
     /** `NavigatorView.showRoomInfoBubbleAt`: a click on an open bubble closes it, a hover only moves one that is up. */
     const showRoomInfo: NavigatorShowRoomInfo = (room, x, y, hover) => {
@@ -135,21 +175,16 @@ export const NavigatorView = () => {
         if (!roomInfoBubble && hover) return;
 
         requestRoomGroupDetails(send, room.groupId);
-
         setRoomInfoBubble({ room, x, y, serial: (roomInfoBubble?.serial ?? 0) + 1 });
     };
 
     const hideRoomInfo = () => setRoomInfoBubble(undefined);
 
-    const selectContext = (searchCode: string) => {
-        const next = topLevelContexts.find(x => x.searchCode === searchCode);
+    /** `RoomEntryElementFactory`'s handlers hand the bubble a point off the region's global rectangle. */
+    const showRoomInfoFrom = (event: FederatedPointerEvent, room: IRoomInfo, hover: boolean, dx = 0, dy = 0) => {
+        const rect = getGlobalRect(event.currentTarget);
 
-        if (!next) return;
-
-        setTopLevelContext(next);
-        setIsSearching(true);
-
-        send(new NewNavigatorSearchComposer({ searchCodeOriginal: searchCode, filteringData: '' }));
+        showRoomInfo(room, rect.x + rect.width + dx, rect.y + (rect.height / 2) + dy, hover);
     };
 
     /*
@@ -159,208 +194,303 @@ export const NavigatorView = () => {
      */
     const enterRoom = (room: IRoomInfo) => {
         send(new GetGuestRoomComposer({ roomId: room.roomId, enterRoom: false, roomForward: true }));
-
         hide();
     };
 
-    const addQuickLink = (searchCode: string) => {
-        send(new NavigatorAddSavedSearchComposer({ searchCode, filter: searchResult?.filteringData ?? '' }));
+    const searchCodeOriginal = searchResult?.searchCodeOriginal ?? '';
+    const blocks = searchResult?.blocks ?? [];
+    const collapsed = collapsedFor(searchCodeOriginal, blocks, collapsedCategories);
+    const isOfficialView = searchCodeOriginal.includes('official_view');
+    const showPromote = PROMOTE_SEARCH_CODES.includes(searchCodeOriginal);
+    const eventView = isEventView(searchCodeOriginal);
+    // `setTextAndSearchModeFromFilter`: the refresh button and the clear icon while the results carry a filter.
+    const showRefresh = splitNavigatorFilter(searchResult?.filteringData ?? '').searchFilter.length > 0;
+    const filterPrefix = NAVIGATOR_FILTER_TYPES.find(x => x.type === filterType)?.prefix ?? '';
+
+    /** `updateCommonEntryElements`: what a row and a tile share. */
+    const commonEntryBindings = (room: IRoomInfo, tile: boolean): TemplateBindings => ({
+        room_usercount: { caption: String(room.population) },
+        room_name: { caption: eventView ? room.adName : room.name },
+        go_to_room_region: {
+            onPointerTap: () => enterRoom(room),
+            // `onTileGoToRoomMouseOver` / `onGoToRoomMouseOver`: an open bubble follows the pointer.
+            onPointerOver: event => showRoomInfoFrom(event, room, true, tile ? -6 : 20, tile ? 56 : 0),
+        },
+        info_popup_click_region: {
+            onPointerTap: event => showRoomInfoFrom(event, room, false),
+            onPointerOver: event => showRoomInfoFrom(event, room, true),
+        },
+        room_info_usercount_border: { color: colorNumber(getUserCountColor(room.population, room.playersMax)) },
+        doormode_icon: { asset: DOOR_MODE_ASSETS[room.doorMode] ?? '' },
+    });
+
+    /** `getNewRowElement`: the row's colour stepped by the alternating modulation. */
+    const rowItem = (room: IRoomInfo, alternatingColor: number): TemplateItem => ({
+        key: String(room.roomId),
+        from: 'navigator_entry_row_container',
+        bindings: {
+            ...commonEntryBindings(room, false),
+            navigator_entry_row_container: { color: colorNumber(getModulatedBackgroundColor(alternatingColor, ROW_BASE_COLOR)) },
+            grouphome_icon: { visible: room.groupBadge !== '' },
+        },
+    });
+
+    /** `getNewTileElement`: the group's badge, and the room's picture - official, or its camera thumbnail. */
+    const tileItem = (room: IRoomInfo): TemplateItem => {
+        const officialBase = (thumbnailsInAmazon === true || thumbnailsInAmazon === 'true') ? thumbnailUrlBase : imageLibraryUrl;
+
+        return {
+            key: String(room.roomId),
+            from: 'navigator_entry_tile',
+            bindings: {
+                ...commonEntryBindings(room, true),
+                room_group_badge: room.groupBadge !== '' ? { visible: true, asset: groupBadgeUrl.replace('%badgedata%', room.groupBadge) } : {},
+                room_pic_placeholder: { asset: room.officialRoomPicRef ? officialBase + room.officialRoomPicRef : `${thumbnailUrlBase}${room.roomId}.png` },
+            },
+        };
     };
 
-    const collapseCategory = (searchCode: string) => {
-        const isCollapsed = collapsedCategories.includes(searchCode);
-
-        send(isCollapsed
-            ? new NavigatorRemoveCollapsedCategoryComposer({ categoryName: searchCode })
-            : new NavigatorAddCollapsedCategoryComposer({ categoryName: searchCode }));
-
+    const collapse = (searchCode: string) => {
+        send(new NavigatorAddCollapsedCategoryComposer({ categoryName: searchCode }));
         toggleCollapsedCategory(searchCode);
     };
 
-    const showMore = (searchCode: string) => {
-        setIsSearching(true);
-
-        send(new NewNavigatorSearchComposer({ searchCodeOriginal: searchCode, filteringData: searchResult?.filteringData ?? '' }));
+    const expand = (searchCode: string) => {
+        send(new NavigatorRemoveCollapsedCategoryComposer({ categoryName: searchCode }));
+        toggleCollapsedCategory(searchCode);
     };
 
-    const toggleMode = (searchCode: string, viewMode: number) => {
-        send(new NavigatorSetSearchCodeViewModeComposer({ categoryName: searchCode, viewMode }));
+    const addQuickLink = (searchCode: string) => send(new NavigatorAddSavedSearchComposer({ searchCode, filter: searchResult?.filteringData ?? '' }));
 
-        setViewMode(searchCode, viewMode);
+    const showMore = (searchCode: string) => search(searchCode, searchResult?.filteringData ?? '');
+
+    /** `onCategoryToggleModeClicked`. */
+    const toggleMode = (searchCode: string, mode: number) => {
+        const next = mode === RESULTS_MODE_ROWS ? RESULTS_MODE_TILES : RESULTS_MODE_ROWS;
+
+        send(new NavigatorSetSearchCodeViewModeComposer({ categoryName: searchCode, viewMode: next }));
+        setViewMode(searchCode, next);
     };
 
-    const frameWidth = leftPaneHidden ? FRAME_WIDTH_COLLAPSED : FRAME_WIDTH_EXPANDED;
-    const showPromote = PROMOTE_SEARCH_CODES.includes(searchResult?.searchCodeOriginal ?? '');
+    /** `BlockResultsView.renderCurrentResultsBlock`. */
+    const blockItem = (block: ISearchResultList, index: number): TemplateItem => {
+        const title = block.text === '' ? `\${navigator.searchcode.title.${block.searchCode}}` : block.text;
+        const key = `${index}:${block.searchCode}`;
+        const open = (!collapsed.includes(block.searchCode) || blocks.length === 1) && !block.forceClosed;
+        // `CategoryElementFactory` sizes the block to the list it is going into.
+        const fitToList = ({ root }: TemplateWindows) => {
+            const container = root();
+            const list = ancestorNamed(container, 'block_results');
+
+            if (container && list) container.setWidth(list.width - MARGIN_LAYOUT_CATEGORY_CONTAINER);
+        };
+
+        if (!open) {
+            return {
+                key,
+                from: 'category_container_collapsed',
+                arrange: fitToList,
+                bindings: {
+                    category_name: { caption: title },
+                    category_show_more: { visible: block.actionAllowed === 1, onPointerTap: () => showMore(block.searchCode) },
+                    category_expand: { onPointerTap: () => expand(block.searchCode) },
+                    category_name_region: { onPointerTap: () => expand(block.searchCode) },
+                    category_add_quick_link: { visible: !isOfficialView, onPointerTap: () => addQuickLink(block.searchCode) },
+                },
+            };
+        }
+
+        const mode = (!canToggleView && searchCodeOriginal !== 'official_view') ? RESULTS_MODE_ROWS : (viewModes[block.searchCode] ?? block.viewMode);
+        // The alternating colour steps once per row, or once per full tile container.
+        const rowItems = block.guestRooms.map((room, roomIndex) => rowItem(room, ((1 + roomIndex) % 2 === 0) ? ALTERNATING_COLOR_NONE : ALTERNATING_COLOR_MOD));
+        const tileContainers: TemplateItem[] = [];
+
+        for (let start = 0; start < block.guestRooms.length; start += TILES_PER_CONTAINER) {
+            const rooms = block.guestRooms.slice(start, start + TILES_PER_CONTAINER);
+
+            tileContainers.push({
+                key: `tiles:${rooms[0].roomId}`,
+                from: 'navigator_entry_tile_container',
+                bindings: { navigator_entry_tile_container: { items: rooms.map(tileItem) } },
+            });
+        }
+
+        return {
+            key,
+            from: 'category_container',
+            arrange: (windows) => {
+                // `getOpenCategoryElement` sizes the block to a row per room and one over before adding them.
+                const rowsHeight = ROW_ENTRY_HEIGHT * (block.guestRooms.length + 1);
+
+                fitToList(windows);
+                windows.root()?.setHeight(16 + rowsHeight);
+                windows.find('category_content_background')?.setHeight(12 + rowsHeight);
+            },
+            bindings: {
+                category_name: { caption: title },
+                category_back: { visible: block.actionAllowed === 2 },
+                category_collapse: { visible: block.actionAllowed !== 2, onPointerTap: () => collapse(block.searchCode) },
+                category_name_region: { onPointerTap: () => collapse(block.searchCode) },
+                category_show_more: { visible: block.actionAllowed === 1, onPointerTap: () => showMore(block.searchCode) },
+                category_add_quick_link: { visible: !isOfficialView, onPointerTap: () => addQuickLink(block.searchCode) },
+                // Without the thumbnail camera perk both toggles are removed from the controls.
+                category_toggle_tiles: { visible: canToggleView && mode === RESULTS_MODE_ROWS, onPointerTap: () => toggleMode(block.searchCode, mode) },
+                category_toggle_rows: { visible: canToggleView && mode === RESULTS_MODE_TILES, onPointerTap: () => toggleMode(block.searchCode, mode) },
+                // `roomList.spacing = 0` for rows: the layout's 5 is the tile containers'.
+                category_content: mode === RESULTS_MODE_ROWS ? { spacing: 0, items: rowItems } : { items: tileContainers },
+            },
+        };
+    };
+
+    /** `QuickLinksView.setQuickLinks`: the search's title, its filter after a dash; a category's own name. */
+    const quickLinkCaption = (searchCode: string, filter: string) => {
+        const suffix = filter !== '' ? ` - ${filter}` : '';
+
+        if (searchCode.startsWith('category__')) return searchCode.slice('category__'.length) + suffix;
+
+        return t(`navigator.searchcode.title.${searchCode}`, searchCode) + suffix;
+    };
+
+    const bindings: TemplateBindings = {
+        '': { caption: isSearching ? '${navigator.title.is.busy}' : '${navigator.title}' },
+        search_waiting_for_results_mask: { visible: isSearching },
+
+        left_pane: { visible: !leftPaneHidden },
+        left_hide_container: { visible: !leftPaneHidden },
+        left_show_container: { visible: leftPaneHidden },
+        temp_back: {
+            onPointerTap: () => {
+                setLeftPaneHidden(!leftPaneHidden);
+                hideRoomInfo();
+            },
+        },
+        quicklinks_list: {
+            items: savedSearches.map(link => ({
+                key: String(link.id),
+                from: 'quick_link',
+                bindings: {
+                    quick_link: {
+                        onPointerTap: () => search(link.searchCode, link.filter),
+                        onPointerOver: () => setHoveredQuickLink(link.id),
+                        onPointerOut: () => setHoveredQuickLink(undefined),
+                    },
+                    quick_link_text: { caption: quickLinkCaption(link.searchCode, link.filter) },
+                    remove_quick_link: {
+                        visible: hoveredQuickLink === link.id,
+                        onPointerTap: (event) => {
+                            // The button's click is its own: the row's search does not run.
+                            event.stopPropagation();
+                            send(new NavigatorDeleteSavedSearchComposer({ searchId: link.id }));
+                        },
+                    },
+                },
+            })),
+        },
+
+        top_view_select_tab_context: {
+            items: topLevelContexts.map(context => ({
+                key: context.searchCode,
+                from: 'top_view_select_tab_button',
+                bindings: {
+                    top_view_select_tab_button: {
+                        caption: `\${navigator.toplevelview.${context.searchCode}}`,
+                        selected: topLevelContext?.searchCode === context.searchCode,
+                        onPointerTap: () => {
+                            setTopLevelContext(context);
+                            search(context.searchCode, '');
+                        },
+                    },
+                },
+            })),
+        },
+
+        create_room: {
+            // `createRoomProcedure` -> `HabboNewNavigator.createRoom`: the room creation window.
+            onPointerTap: () => {
+                showWindow('navigator_room_create');
+                hideRoomInfo();
+            },
+        },
+        random_room_border: { visible: !showPromote },
+        random_room: {
+            onPointerTap: () => {
+                send(new ForwardToARandomPromotedRoomComposer({ category: '' }));
+                hideRoomInfo();
+                hide();
+            },
+        },
+        promote_room_border: { visible: showPromote },
+        promote_room: {
+            onPointerTap: () => {
+                openClientLink(send, 'catalog/open/room_ad');
+                hideRoomInfo();
+            },
+        },
+
+        filter_type_drop_menu: {
+            selection: Math.max(0, NAVIGATOR_FILTER_TYPES.findIndex(x => x.type === filterType)),
+            onSelect: index => setFilterType(NAVIGATOR_FILTER_TYPES[index].type),
+        },
+        search_input: {
+            caption: placeholderShown ? t('navigator.filter.input.placeholder', 'filter rooms by...') : searchFilter,
+            // `INPUT_PLACEHOLDER_TEXTCOLOR` and italic for the placeholder, black for the text.
+            color: placeholderShown ? 0x9f9f9f : 0x000000,
+            italic: placeholderShown,
+            onFocus: () => setPlaceholderShown(false),
+            onChange: setSearchFilter,
+            onEnter: () => search(searchCodeOriginal, filterPrefix + searchFilter),
+        },
+        clear_search_button: {
+            onPointerTap: () => {
+                setPlaceholderShown(false);
+                setSearchFilter('');
+            },
+        },
+        'search.clear.icon': { asset: (showRefresh && searchFilter !== '') ? 'habbo-window-manager-com-icons_close' : 'habbo-window-manager-com-common_small_pen' },
+        refreshButtonContainer: { visible: showRefresh },
+        refreshButton: { onPointerTap: () => searchResult && search(searchResult.searchCodeOriginal, searchResult.filteringData) },
+
+        block_results: {
+            // `createMainWindow`: `block_results.autoHideScrollBar = false`.
+            autoHideScrollBar: false,
+            items: blocks.length
+                ? blocks.map(blockItem)
+                : [ { key: 'no_results', from: 'no_results_container' } ],
+        },
+    };
+
+    /** `setLeftPaneVisibility(false)`: the window loses the left pane and the right pane moves in. */
+    const arrange = ({ find, root }: TemplateWindows) => {
+        if (!leftPaneHidden) return;
+
+        const window = root();
+        const leftPane = find('left_pane');
+        const rightPane = find('right_pane');
+        const tabs = find('top_view_select_tab_context');
+
+        if (!window || !leftPane || !rightPane) return;
+
+        const shift = rightPane.x - leftPane.x + PANE_GAP;
+        const width = window.width - shift + RIGHT_PANE_X_HIDDEN;
+
+        rightPane.setParamFlag(H_STRETCH, false);
+        rightPane.setX(RIGHT_PANE_X_HIDDEN);
+        window.minWidth = width;
+        window.maxWidth = width;
+        window.setWidth(width);
+        rightPane.setParamFlag(H_STRETCH, true);
+        tabs?.setX(Math.trunc(STARTING_TAB_POSITION - (shift / 2)));
+    };
 
     return (
-        <Frame
-            caption={t(isSearching ? 'navigator.title.is.busy' : 'navigator.title')}
-            id="navigator"
-            defaultPosition={{ x: 20, y: 20 }}
-            variant="3"
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            margins={[ 3, 36, 3, 3 ]}
-            layout={{ position: 'absolute', width: frameWidth, minWidth: frameWidth, maxWidth: frameWidth, height: preferences?.windowHeight ?? 628, minHeight: 500 }}
-            resizeDirection="y"
-            onClose={hide}
-        >
-            {/*
-              * The layout's `border` at (-3, -3) is not drawn: its `color="0x0eceae0"` carries an
-              * alpha of `00`, so the client paints none of it - and its art is an opaque white box,
-              * which is why drawing it here covered the frame's own edge columns with pale. What
-              * fills that area in the client is the frame's `center_center` piece, one of the
-              * `colorize="false"` frame bodies the port now ships.
-              */}
-            <Region
-                name="white_background"
-                backgroundColor="#ffffff"
-                layout={{ position: 'absolute', left: -2, right: -2, top: -5, height: 33 }}
+        <>
+            <TemplateWindow
+                id={TEMPLATE}
+                frame={frame}
+                height={preferences?.windowHeight}
+                bindings={bindings}
+                arrange={arrange}
             />
-            {!leftPaneHidden && <NavigatorQuickLinksView />}
-            <Region
-                name="right_pane"
-                layout={{ position: 'absolute', left: leftPaneHidden ? RIGHT_PANE_X_HIDDEN : RIGHT_PANE_X, width: RIGHT_PANE_WIDTH, top: 25, bottom: 16 }}
-            >
-                <RoomButton
-                    name="create_room"
-                    borderVariant="4"
-                    left={0}
-                    image={LayoutImage('habbo-window-manager-com/newnavigator_create_room.png')}
-                    caption={t('navigator.create.room')}
-                    tooltip={t('navigator.tooltip.create.room')}
-                    // `createRoomProcedure` -> `HabboNewNavigator.createRoom`: the room creation window.
-                    onTap={() => {
-                        showWindow('navigator_room_create');
-                        hideRoomInfo();
-                    }}
-                />
-                {showPromote
-                    ? (
-                            <RoomButton
-                                name="promote_room"
-                                borderVariant="5"
-                                left={205}
-                                image={LayoutImage('habbo-window-manager-com/newnavigator_promote_room.png')}
-                                caption={t('navigator.promote.room')}
-                                tooltip={t('navigator.tooltip.promote.room')}
-                            />
-                        )
-                    : (
-                            <RoomButton
-                                name="random_room"
-                                borderVariant="5"
-                                left={205}
-                                image={LayoutImage('habbo-window-manager-com/newnavigator_random_room.png')}
-                                caption={t('navigator.random.room')}
-                                tooltip={t('navigator.tooltip.random.room')}
-                                onTap={() => {
-                                    send(new ForwardToARandomPromotedRoomComposer({ category: '' }));
-                                    hideRoomInfo();
-                                    hide();
-                                }}
-                            />
-                        )}
-                <NavigatorSearchView />
-                <ScrollArea
-                    orientation="vertical"
-                    // `createMainWindow`: `block_results.autoHideScrollBar = false`.
-                    hideDisabledScrollbar={false}
-                    layout={{ position: 'absolute', left: 1, right: 2, top: 45, bottom: 80, gap: 0 }}
-                >
-                    <Region
-                        name="block_results"
-                        layout={{ flexDirection: 'column', gap: 5, width: '100%' }}
-                    >
-                        {!searchResult?.blocks.length && (
-                            <Region
-                                name="no_results_container"
-                                layout={{ height: 53, width: 388, flexShrink: 0 }}
-                            >
-                                <ThemeText
-                                    text={t('navigator.search.returned.no.results')}
-                                    textStyle="u_headline_medium"
-                                    // auto_size left under on_resize_align_center: the text grows about its box's centre.
-                                    textOptions={{ align: 'center' }}
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 51, width: 286, top: 0, height: 21 }}
-                                />
-                            </Region>
-                        )}
-                        {searchResult?.blocks.map(block => (
-                            <NavigatorCategoryView
-                                key={block.searchCode}
-                                block={block}
-                                onAddQuickLink={addQuickLink}
-                                onBack={() => undefined}
-                                onCollapse={collapseCategory}
-                                onEnter={enterRoom}
-                                onShowInfo={showRoomInfo}
-                                onShowMore={showMore}
-                                onToggleMode={toggleMode}
-                            />
-                        ))}
-                    </Region>
-                </ScrollArea>
-                {isSearching && (
-                    <Region
-                        name="search_waiting_for_results_mask"
-                        backgroundColor="#eceae0"
-                        backgroundAlpha={0x6F / 0xFF}
-                        layout={{ position: 'absolute', left: 0, right: 18, top: 42, bottom: 77 }}
-                    />
-                )}
-            </Region>
-            <Region
-                name="temp_back"
-                tooltip={t('navigator.tooltip.left.show.hide')}
-                onPointerTap={() => {
-                    setLeftPaneHidden(!leftPaneHidden);
-                    hideRoomInfo();
-                }}
-                cursor="pointer"
-                layout={{ position: 'absolute', left: 4, width: 28, top: 2, height: 25 }}
-            >
-                <ThemeImage
-                    src={LayoutImage('habbo-window-manager-com/newnavigator_button_quicklink_add.png')}
-                    bitmap={{ stretchedX: false, stretchedY: false }}
-                    layout={{ position: 'absolute', left: 10, width: 18, top: 2, height: 19 }}
-                />
-            </Region>
-            <ThemeImage
-                src={LayoutImage('habbo-window-manager-com/talent_task_progress_bg.png')}
-                bitmap={{}}
-                layout={{ position: 'absolute', left: -2, right: -11, top: 28, height: 1 }}
-            />
-            <TabContext
-                variant="3"
-                name="top_view_select_tab_context"
-                // The style 3 context's `tab_selector` sits at x 8, y 0 and lays the tabs side by side with no spacing.
-                layout={{ position: 'absolute', left: leftPaneHidden ? TAB_CONTEXT_X_HIDDEN : TAB_CONTEXT_X, width: 450, top: -1, height: 30, paddingLeft: 8, paddingTop: 0, paddingRight: 0, overflow: 'hidden' }}
-            >
-                {topLevelContexts.map(context => (
-                    <TabButton
-                        key={context.searchCode}
-                        variant="3"
-                        tooltip={t('navigator.tooltip.select.tab')}
-                        tooltipDelay={1000}
-                        selected={topLevelContext?.searchCode === context.searchCode}
-                        onPointerTap={() => selectContext(context.searchCode)}
-                        /*
-                         * Each tab is as wide as its own caption, not the 88 its template is:
-                         * `TopViewSelector_2.refresh` clones `top_view_select_tab_button` per
-                         * top-level search and sets only the caption, and `TabButtonController.update`
-                         * answers every `WE_CHILD_RESIZED` with `resizeToAccommodateChildren`, which
-                         * fits the button to its label - narrower as readily as wider. The label's
-                         * own `margins` (10 either side in `habbo_window_layout_tab_button_3`) are
-                         * the variant's padding, so the caption plus 20 is the width.
-                         */
-                        layout={{ height: 32, flexShrink: 0 }}
-                    >
-                        {t(`navigator.toplevelview.${context.searchCode}`)}
-                    </TabButton>
-                ))}
-            </TabContext>
             {roomInfoBubble && (
                 <NavigatorRoomInfoPopup
                     key={roomInfoBubble.room.roomId}
@@ -371,6 +501,6 @@ export const NavigatorView = () => {
                     onClose={hideRoomInfo}
                 />
             )}
-        </Frame>
+        </>
     );
 };

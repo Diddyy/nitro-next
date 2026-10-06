@@ -17,10 +17,13 @@ export interface TemplateWindowProps {
     arrange?: TemplateViewProps['arrange'];
     /** How the root frame opens, when the template is a window of its own (`TemplateView`'s `frame`). */
     frame?: TemplateViewProps['frame'];
+    /** The window's size as its code sets it (`TemplateView`'s `width` / `height`). */
+    width?: number;
+    height?: number;
 }
 
 /** Draws nothing until the template is loaded, as a Flash window opens once its library is in. */
-export const TemplateWindow = ({ id, bindings, arrange, frame }: TemplateWindowProps) => {
+export const TemplateWindow = ({ id, bindings, arrange, frame, width, height }: TemplateWindowProps) => {
     const template = useTemplate(id);
     const t = useTranslation();
     // The texts' identity: a new table (texts loaded, or another language) is a new `resolveText`,
@@ -44,6 +47,8 @@ export const TemplateWindow = ({ id, bindings, arrange, frame }: TemplateWindowP
             bindings={bindings}
             arrange={arrange}
             frame={frame}
+            width={width}
+            height={height}
             resolveText={resolveText}
             imageUrl={imageUrl}
         />

@@ -1,5 +1,5 @@
 import { Container as PixiContainer } from 'pixi.js';
-import { ReactNode, useContext, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { Box, BoxLayout } from './Box';
 import { VariantCascadeProvider } from './cascade';
@@ -56,6 +56,12 @@ export interface FrameProps extends Omit<ThemeProps<FrameVariant>, 'dropShadow'>
     /** Told where the frame is after it was centered or dragged, for a caller that keeps the position itself. */
     onPositionChange?: (position: { x: number; y: number }) => void;
     onClose?: () => void;
+    /**
+     * The size the user has given it with its scaler - or `null` while it has its layout's - as it
+     * changes, and once on mount with a size kept from before: for code that lays its content out
+     * by the frame's size (a window template's `TemplateView`).
+     */
+    onResize?: (size: { width: number; height: number } | null) => void;
     /** The header's close button; false where Flash disposes `header_button_close`. */
     closeButtonVisible?: boolean;
     /** The header close button's style, where the window code sets one. */
@@ -132,7 +138,7 @@ const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefi
 
 export const Frame = ({
     variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, dropShadow, id, caption, resizeDirection = 'all', contentLayout, margins,
-    defaultPosition, rememberPosition = true, draggable = true, centered, onPositionChange, onClose, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, children,
+    defaultPosition, rememberPosition = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
     const { frameRef, attachFrame, offset, zIndex, revealed, onPointerDown, onHeaderPointerDown } = useFrameDrag(id, { defaultPosition, remember: rememberPosition, centered, onPositionChange });
@@ -164,6 +170,10 @@ export const Frame = ({
         { width: typeof maxWidth === 'number' ? maxWidth : undefined, height: typeof maxHeight === 'number' ? maxHeight : undefined },
     );
     const [ contentNode, setContentNode ] = useState<PixiContainer | null>(null);
+
+    useEffect(() => {
+        onResize?.(size);
+    }, [ size, onResize ]);
     const contentBounds = useChildBounds(fitContent ? contentNode : null);
     // What the content's `ReflectResize` children have grown by - the `_CONTENT` container
     // reflects it on to the frame, so a frame whose layout states its size grows by as much.

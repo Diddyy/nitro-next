@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-const { findTemplateChild, resolveTemplateNames, bindElements, sameTemplateBinding, TemplateBindingStore } = await import('../packages/nitro-theme/src/template/templateBindings.ts');
+const { findTemplateChild, resolveTemplateNames, bindElements, sameTemplateBinding, TemplateBindingStore, TemplateExpander } = await import('../packages/nitro-theme/src/template/templateBindings.ts');
 
 const element = (name, children = []) => ({ tag: 'container', name, x: 0, y: 0, width: 0, height: 0, vars: {}, children });
 
@@ -152,4 +152,70 @@ await test('a binding that goes away is a change', () => {
 
     assert.equal(store.get(label), undefined);
     assert.equal(notified, 2);
+});
+
+// A list with a prototype row in it, the way `navigator_frame_2` carries `navigator_entry_row_container`.
+const rowName = element('room_name');
+const row = element('row', [ rowName ]);
+const list = { ...element('list', [ row ]), tag: 'itemlist' };
+const header = element('header');
+const window = element('window', [ header, list ]);
+
+await test('items replace a list\'s children with clones, each bound inside itself', () => {
+    const expander = new TemplateExpander();
+    const { elements, byElement, missing } = expander.expand([ window ], {
+        header: { caption: 'Rooms' },
+        list: { items: [ { key: 'a', from: 'row', bindings: { room_name: { caption: 'A' } } }, { key: 'b', from: 'row', bindings: { room_name: { caption: 'B' } } } ] },
+    });
+    const [ expandedWindow ] = elements;
+    const expandedList = expandedWindow.children[1];
+    const [ cloneA, cloneB ] = expandedList.children;
+
+    assert.deepEqual(missing, []);
+    assert.equal(expandedWindow.children[0], header, 'an element nothing was cloned under is the template\'s own');
+    assert.deepEqual(expandedList.children.map(clone => clone.itemKey), [ 'a', 'b' ]);
+    assert.notEqual(cloneA, row);
+    assert.notEqual(cloneA.children[0], cloneB.children[0]);
+    assert.equal(byElement.get(cloneA.children[0]).caption, 'A');
+    assert.equal(byElement.get(cloneB.children[0]).caption, 'B');
+    assert.equal(byElement.get(header).caption, 'Rooms');
+    assert.equal(byElement.get(expandedList).items, undefined, 'the items are made into elements, not handed on');
+});
+
+await test('a clone keeps its identity while its key does, and a new one comes for a new key', () => {
+    const expander = new TemplateExpander();
+    const bind = keys => ({ list: { items: keys.map(key => ({ key, from: 'row' })) } });
+    const first = expander.expand([ window ], bind([ 'a', 'b' ]));
+    const same = expander.expand([ window ], bind([ 'a', 'b' ]));
+    const changed = expander.expand([ window ], bind([ 'a', 'c' ]));
+
+    assert.equal(same.elements, first.elements, 'nothing changed: the same roots');
+    assert.equal(changed.elements[0].children[1].children[0], first.elements[0].children[1].children[0]);
+    assert.notEqual(changed.elements[0].children[1].children[1], first.elements[0].children[1].children[1]);
+    assert.notEqual(changed.elements[0], first.elements[0], 'a changed list is a new window above it');
+});
+
+await test('clones nest, their arranges run parents first, and a missing prototype is reported', () => {
+    const expander = new TemplateExpander();
+    const order = [];
+    const { elements, missing, arranges } = expander.expand([ window ], {
+        list: {
+            items: [
+                {
+                    key: 'outer',
+                    from: 'window',
+                    arrange: () => order.push('outer'),
+                    bindings: { list: { items: [ { key: 'inner', from: 'row', arrange: () => order.push('inner') }, { key: 'lost', from: 'nothing' } ] } },
+                },
+            ],
+        },
+    });
+    const outer = elements[0].children[1].children[0];
+
+    arranges.forEach(({ arrange }) => arrange());
+    assert.deepEqual(order, [ 'outer', 'inner' ]);
+    assert.equal(arranges[0].scope, outer);
+    assert.equal(outer.children[1].children[0].itemKey, 'inner');
+    assert.equal(missing.length, 1);
+    assert.match(missing[0], /lost: nothing$/);
 });

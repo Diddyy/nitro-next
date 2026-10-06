@@ -78,6 +78,8 @@ export interface TemplateElement {
     /** A frame's content area, from its edges (`FrameController.margins`): where its children are placed. */
     margins?: readonly [ number, number, number, number ];
     children: TemplateElement[];
+    /** A clone's key (`TemplateItem.key`): which of its list's items it is, across renders. */
+    itemKey?: string;
 }
 
 export interface Template {

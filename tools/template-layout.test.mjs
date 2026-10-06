@@ -403,3 +403,33 @@ await test('a scrolled list keeps its own rect and carries its items\' extent', 
     assert.equal(rects.get(list).clip, undefined);
     assert.equal(rects.get(bar).scrollContent, undefined);
 });
+
+await test('a clone is set up before its own clones are added, so an accommodating window grows round them', () => {
+    // `getOpenCategoryElement`: `container.height = 16 + rows`, then the rooms added to `roomList`.
+    const row = element('container', [ 0, 0, 100, 40 ], { itemKey: 'r' });
+    const list = element('itemlist', [ 0, 30, 100, 10 ], { name: 'content', vars: { resize_on_item_update: true }, params: { accommodate: 'resize' }, children: [ { ...row, itemKey: 'a' }, { ...row, itemKey: 'b' } ] });
+    const block = element('container', [ 0, 0, 100, 200 ], { name: 'block', params: { accommodate: 'resize' }, itemKey: 'block', children: [ list ] });
+    const results = element('itemlist', [ 0, 0, 100, 500 ], { name: 'results', children: [ block ] });
+    let contentAtSetup;
+    const rects = layoutTemplate([ results ], {
+        ...input(undefined),
+        setupOf: element => (element === block
+            ? (windowOf) => {
+                    contentAtSetup = windowOf(list).height;
+                    windowOf(block).setHeight(56);
+                }
+            : undefined),
+    });
+
+    assert.equal(contentAtSetup, 10, 'the rows are not in the list yet when the block is set up');
+    assert.equal(rects.get(list).height, 80);
+    assert.equal(rects.get(block).height, 110, 'the block grows round its rows after being set to 56');
+});
+
+await test('a list\'s spacing as the code sets it goes over the layout\'s', () => {
+    const items = [ 0, 1, 2 ].map(index => element('container', [ 0, 0, 50, 20 ], { itemKey: String(index) }));
+    const list = element('itemlist', [ 0, 0, 50, 100 ], { vars: { spacing: 5 }, children: items });
+
+    assert.deepEqual(items.map(item => layoutTemplate([ list ], input(undefined)).get(item).y), [ 0, 25, 50 ]);
+    assert.deepEqual(items.map(item => layoutTemplate([ list ], { ...input(undefined), spacingOf: () => 0 }).get(item).y), [ 0, 20, 40 ]);
+});

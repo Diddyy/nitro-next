@@ -55,7 +55,7 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Room | Disabling the user chooser (`UserChooserWidgetHandler.isChooserDisabled`). | `registerRoomConfigurationItemsHandlers` |
 | Pets | Infostand actions: supplements, composting a plant, passing a carried item, selecting a pet. | |
 | Pets | The breeding dialogs, and placing a pet opened from a present (it stays in the inventory). | `InventoryPetsView`, `FurniturePresentOpenedWidget` |
-| Navigator | No error for a room that does not exist (`NoSuchFlatMessage`); room event info; report room; the group badge on a room tile; the promoted-rooms strip; syncing the window preferences to the server. | `NavigatorView`, `NavigatorRoomEntryView`, `NavigatorRoomInfoPopup` |
+| Navigator | No error for a room that does not exist (`NoSuchFlatMessage`); room event info; report room; the promoted-rooms strip; a block's back button (`goBack` over the search history); syncing the window preferences to the server. | `NavigatorView`, `NavigatorRoomInfoPopup` |
 | Navigator | The room category enforcement dialog (`ShowEnforceRoomCategoryDialogMessage`). | |
 | Marketplace | Redeeming the credits of sold offers (`RedeemMarketplaceOfferCreditsComposer`). | |
 | Catalogue | The next-limited-rare countdown, the page with the earliest expiry, the gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
