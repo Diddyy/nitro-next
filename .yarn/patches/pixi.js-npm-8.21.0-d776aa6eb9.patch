@@ -23,6 +23,40 @@ index 19eddc0fa2d0b4d2745bc00a0851b8185181d1a8..7c3d3e414b64aba439de59a95366a35e
  export { GpuBatchAdaptor } from './rendering/batcher/gpu/GpuBatchAdaptor.mjs';
  export { Batch, Batcher } from './rendering/batcher/shared/Batcher.mjs';
  export { BatcherPipe } from './rendering/batcher/shared/BatcherPipe.mjs';
+diff --git a/lib/rendering/batcher/gpu/GpuBatchAdaptor.js b/lib/rendering/batcher/gpu/GpuBatchAdaptor.js
+index e174a61efda8a5bb754cc8be5a4e357e728e2574..d210a89aded274a1a0e2245b1750ab443399cd43 100644
+--- a/lib/rendering/batcher/gpu/GpuBatchAdaptor.js
++++ b/lib/rendering/batcher/gpu/GpuBatchAdaptor.js
+@@ -30,7 +30,7 @@ class GpuBatchAdaptor {
+     const program = this._shader.gpuProgram;
+     const renderer = batchPipe.renderer;
+     const encoder = renderer.encoder;
+-    if (!batch.bindGroup) {
++    if (!batch.bindGroup || !getTextureBatchBindGroup.isTextureBatchBindGroupAlive(batch.bindGroup)) {
+       const textureBatch = batch.textures;
+       batch.bindGroup = getTextureBatchBindGroup.getTextureBatchBindGroup(
+         textureBatch.textures,
+diff --git a/lib/rendering/batcher/gpu/GpuBatchAdaptor.mjs b/lib/rendering/batcher/gpu/GpuBatchAdaptor.mjs
+index 38d4838a2ea183b6196ac0328b57473167498b35..0aea44710e6e6f4d414961f69517ffaf9ec79073 100644
+--- a/lib/rendering/batcher/gpu/GpuBatchAdaptor.mjs
++++ b/lib/rendering/batcher/gpu/GpuBatchAdaptor.mjs
+@@ -1,6 +1,6 @@
+ import { ExtensionType } from '../../../extensions/Extensions.mjs';
+ import { State } from '../../renderers/shared/state/State.mjs';
+-import { getTextureBatchBindGroup } from './getTextureBatchBindGroup.mjs';
++import { getTextureBatchBindGroup, isTextureBatchBindGroupAlive } from './getTextureBatchBindGroup.mjs';
+ 
+ "use strict";
+ const tempState = State.for2d();
+@@ -28,7 +28,7 @@ class GpuBatchAdaptor {
+     const program = this._shader.gpuProgram;
+     const renderer = batchPipe.renderer;
+     const encoder = renderer.encoder;
+-    if (!batch.bindGroup) {
++    if (!batch.bindGroup || !isTextureBatchBindGroupAlive(batch.bindGroup)) {
+       const textureBatch = batch.textures;
+       batch.bindGroup = getTextureBatchBindGroup(
+         textureBatch.textures,
 diff --git a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts
 index 90fec795cbc9b37aba921921be58b1681b630c4e..2f39a2db31fe3a7bb1885ae0a2ba2e53ed266918 100644
 --- a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts
@@ -40,10 +74,14 @@ index 90fec795cbc9b37aba921921be58b1681b630c4e..2f39a2db31fe3a7bb1885ae0a2ba2e53
 +export declare function pruneTextureBatchBindGroups(now: number, maxIdle: number): number;
  export declare function getTextureBatchBindGroup(textures: TextureSource[], size: number, maxTextures: number): BindGroup;
 diff --git a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
-index c87625041835cbaf9d1280d6eaef70a3feccf4d2..339611f58fe071347c4cc9ac8e94c29d12c85061 100644
+index c87625041835cbaf9d1280d6eaef70a3feccf4d2..c2529c317670bcadd6cb02d2a972656c254a7341 100644
 --- a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
 +++ b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
-@@ -5,6 +5,30 @@ var Texture = require('../../renderers/shared/texture/Texture.js');
+@@ -2,9 +2,59 @@
+ 
+ var BindGroup = require('../../renderers/gpu/shader/BindGroup.js');
+ var Texture = require('../../renderers/shared/texture/Texture.js');
++var warn = require('../../../utils/logging/warn.js');
  
  "use strict";
  const cachedGroups = {};
@@ -71,11 +109,57 @@ index c87625041835cbaf9d1280d6eaef70a3feccf4d2..339611f58fe071347c4cc9ac8e94c29d
 +  }
 +  return pruned;
 +}
++/**
++ * Whether every texture this group binds is still alive. A source destroyed while a batch still
++ * draws it - or while a group pruning detached still holds it - made the GPU bind group rebuild
++ * throw and stopped the ticker; such a group is rebuilt instead, the dead source drawn empty.
++ * @param bindGroup - The texture batch bind group to check.
++ * @returns Whether the group can be bound as it is.
++ */
++function isTextureBatchBindGroupAlive(bindGroup) {
++  const resources = bindGroup.resources;
++  if (!resources) return false;
++  for (const i in resources) {
++    const resource = resources[i];
++    if (!resource || resource.destroyed) return false;
++  }
++  return true;
++}
++const warnedSources = /* @__PURE__ */ new WeakSet();
++function liveSource(source) {
++  if (!source.destroyed) return source;
++  if (!warnedSources.has(source)) {
++    warnedSources.add(source);
++    warn.warn(`[Batcher] a destroyed texture source (${source.label || `uid ${source.uid}`}) is still drawn; it is drawn empty. Whatever shows it destroyed it too early.`);
++  }
++  return Texture.Texture.EMPTY.source;
++}
  function getTextureBatchBindGroup(textures, size, maxTextures) {
    let uid = 2166136261;
    for (let i = 0; i < size; i++) {
-@@ -23,9 +47,14 @@ function generateTextureBatchBindGroup(textures, size, key, maxTextures) {
-     bindGroupResources[bindIndex++] = texture.style;
+@@ -12,20 +62,32 @@ function getTextureBatchBindGroup(textures, size, maxTextures) {
+     uid = Math.imul(uid, 16777619);
+     uid >>>= 0;
+   }
+-  return cachedGroups[uid] || generateTextureBatchBindGroup(textures, size, uid, maxTextures);
++  const cached = cachedGroups[uid];
++  if (cached) {
++    if (isTextureBatchBindGroupAlive(cached)) return cached;
++    attachedGroups.delete(cached);
++    cached._detach();
++  }
++  return generateTextureBatchBindGroup(textures, size, uid, maxTextures);
+ }
+ function generateTextureBatchBindGroup(textures, size, key, maxTextures) {
+   const bindGroupResources = {};
+   let bindIndex = 0;
+   for (let i = 0; i < maxTextures; i++) {
+-    const texture = i < size ? textures[i] : Texture.Texture.EMPTY.source;
+-    bindGroupResources[bindIndex++] = texture.source;
+-    bindGroupResources[bindIndex++] = texture.style;
++    const source = liveSource(i < size ? textures[i].source : Texture.Texture.EMPTY.source);
++    bindGroupResources[bindIndex++] = source;
++    bindGroupResources[bindIndex++] = source.style;
    }
    const bindGroup = new BindGroup.BindGroup(bindGroupResources);
 +  bindGroup._batchKey = key;
@@ -87,13 +171,17 @@ index c87625041835cbaf9d1280d6eaef70a3feccf4d2..339611f58fe071347c4cc9ac8e94c29d
  }
  
  exports.getTextureBatchBindGroup = getTextureBatchBindGroup;
++exports.isTextureBatchBindGroupAlive = isTextureBatchBindGroupAlive;
 +exports.pruneTextureBatchBindGroups = pruneTextureBatchBindGroups;
  //# sourceMappingURL=getTextureBatchBindGroup.js.map
 diff --git a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
-index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..406db8c0f373c9df7e268fd489d776826d22e7f9 100644
+index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..099cac540271f73239ca76b80ebc0a688adc2a1e 100644
 --- a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
 +++ b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
-@@ -3,6 +3,30 @@ import { Texture } from '../../renderers/shared/texture/Texture.mjs';
+@@ -1,8 +1,58 @@
+ import { BindGroup } from '../../renderers/gpu/shader/BindGroup.mjs';
+ import { Texture } from '../../renderers/shared/texture/Texture.mjs';
++import { warn } from '../../../utils/logging/warn.mjs';
  
  "use strict";
  const cachedGroups = {};
@@ -121,11 +209,57 @@ index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..406db8c0f373c9df7e268fd489d77682
 +  }
 +  return pruned;
 +}
++/**
++ * Whether every texture this group binds is still alive. A source destroyed while a batch still
++ * draws it - or while a group pruning detached still holds it - made the GPU bind group rebuild
++ * throw and stopped the ticker; such a group is rebuilt instead, the dead source drawn empty.
++ * @param bindGroup - The texture batch bind group to check.
++ * @returns Whether the group can be bound as it is.
++ */
++function isTextureBatchBindGroupAlive(bindGroup) {
++  const resources = bindGroup.resources;
++  if (!resources) return false;
++  for (const i in resources) {
++    const resource = resources[i];
++    if (!resource || resource.destroyed) return false;
++  }
++  return true;
++}
++const warnedSources = /* @__PURE__ */ new WeakSet();
++function liveSource(source) {
++  if (!source.destroyed) return source;
++  if (!warnedSources.has(source)) {
++    warnedSources.add(source);
++    warn(`[Batcher] a destroyed texture source (${source.label || `uid ${source.uid}`}) is still drawn; it is drawn empty. Whatever shows it destroyed it too early.`);
++  }
++  return Texture.EMPTY.source;
++}
  function getTextureBatchBindGroup(textures, size, maxTextures) {
    let uid = 2166136261;
    for (let i = 0; i < size; i++) {
-@@ -21,9 +45,13 @@ function generateTextureBatchBindGroup(textures, size, key, maxTextures) {
-     bindGroupResources[bindIndex++] = texture.style;
+@@ -10,20 +60,30 @@ function getTextureBatchBindGroup(textures, size, maxTextures) {
+     uid = Math.imul(uid, 16777619);
+     uid >>>= 0;
+   }
+-  return cachedGroups[uid] || generateTextureBatchBindGroup(textures, size, uid, maxTextures);
++  const cached = cachedGroups[uid];
++  if (cached) {
++    if (isTextureBatchBindGroupAlive(cached)) return cached;
++    attachedGroups.delete(cached);
++    cached._detach();
++  }
++  return generateTextureBatchBindGroup(textures, size, uid, maxTextures);
+ }
+ function generateTextureBatchBindGroup(textures, size, key, maxTextures) {
+   const bindGroupResources = {};
+   let bindIndex = 0;
+   for (let i = 0; i < maxTextures; i++) {
+-    const texture = i < size ? textures[i] : Texture.EMPTY.source;
+-    bindGroupResources[bindIndex++] = texture.source;
+-    bindGroupResources[bindIndex++] = texture.style;
++    const source = liveSource(i < size ? textures[i].source : Texture.EMPTY.source);
++    bindGroupResources[bindIndex++] = source;
++    bindGroupResources[bindIndex++] = source.style;
    }
    const bindGroup = new BindGroup(bindGroupResources);
 +  bindGroup._batchKey = key;
@@ -137,7 +271,7 @@ index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..406db8c0f373c9df7e268fd489d77682
  }
  
 -export { getTextureBatchBindGroup };
-+export { getTextureBatchBindGroup, pruneTextureBatchBindGroups };
++export { getTextureBatchBindGroup, isTextureBatchBindGroupAlive, pruneTextureBatchBindGroups };
  //# sourceMappingURL=getTextureBatchBindGroup.mjs.map
 diff --git a/lib/rendering/index.js b/lib/rendering/index.js
 index e078f85c4a469e7e5b8195db6df86a407bd7ee3f..85df4be4d95ac20e0a9a90d0d074be5c67bbb357 100644
