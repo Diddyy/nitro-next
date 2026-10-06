@@ -8,6 +8,7 @@ const state = inventoryStore.getState();
  */
 const actions = {
     setInventoryMoverRequested: state.setInventoryMoverRequested,
+    setInventoryMoverItemId: state.setInventoryMoverItemId,
 };
 
 export const useInventoryPlacementActions = () => actions;

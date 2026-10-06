@@ -6,8 +6,11 @@
  * points (the friend list's chat button, `messenger/` and `friendlist/openchat` links, the
  * friend bar's icon) call these.
  *
- * Not carried: `HabboMessenger`'s sounds (`HBST_message_received` / `_sent`) - the client has no
- * sound manager for UI sounds; `reportUser` - the call-for-help flow is not ported, so the report
+ * The sounds are `HabboMessenger`'s: `HBST_message_received` for a message or a room invite that
+ * arrives while the window is closed (and for every mini mail), `HBST_message_sent` for the first
+ * message sent into a conversation that holds nothing but notices.
+ *
+ * Not carried: `reportUser` - the call-for-help flow is not ported, so the report
  * button draws and does nothing; and `MainView`'s incremental rendering (`scrollBack` renders the
  * newest 21 entries and more as the list is scrolled up) - every entry is rendered, and a scroll
  * to the top asks for older history instead, the one effect of it the user sees.
@@ -22,6 +25,7 @@ import {
 } from '#base/context/messenger';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
+import { GetSoundManager, HabboSoundTypesEnum } from '#base/sound';
 
 type Send = WebSocketConnection['send'];
 
@@ -63,6 +67,12 @@ export const getMessengerFriend = (chatId: number, entry?: MessengerChatEntry | 
 };
 
 export const isMessengerOpen = () => !!systemStore.getState().visibleWindows.messenger;
+
+/** `HabboMessenger.playMessageReceivedSound`. */
+export const playMessengerMessageReceivedSound = () => GetSoundManager().playSound(HabboSoundTypesEnum.SOUND_MESSAGE_RECEIVED);
+
+/** `HabboMessenger.playSendSound`. */
+const playMessengerSendSound = () => GetSoundManager().playSound(HabboSoundTypesEnum.SOUND_MESSAGE_SENT);
 
 const visibleConversations = () => messengerStore.getState().conversations.filter(conversation => conversation.visible);
 
@@ -223,21 +233,22 @@ export const addMessengerConsoleMessage = (send: Send, data: { chatId: number; m
 
     if (data.confirmationId > 0) {
         confirmOwnMessage(data.messageId, message, data.confirmationId);
-
-        return;
+    } else {
+        recordChatEntry(send, data.chatId, {
+            type: MESSENGER_ENTRY_OTHER,
+            chatId: data.chatId,
+            message,
+            sentAt: performance.now() - (data.secondsSinceSent * 1000),
+            senderId: data.senderId,
+            senderName: data.senderName,
+            senderFigure: data.senderFigure,
+            messageId: data.messageId,
+            awaitConfirmationId: 0,
+        }, true);
     }
 
-    recordChatEntry(send, data.chatId, {
-        type: MESSENGER_ENTRY_OTHER,
-        chatId: data.chatId,
-        message,
-        sentAt: performance.now() - (data.secondsSinceSent * 1000),
-        senderId: data.senderId,
-        senderName: data.senderName,
-        senderFigure: data.senderFigure,
-        messageId: data.messageId,
-        awaitConfirmationId: 0,
-    }, true);
+    // `HabboMessenger.onNewConsoleMessage`: a message is heard when the window is not there to show it.
+    if (!isMessengerOpen()) playMessengerMessageReceivedSound();
 };
 
 /** `MainView.addRoomInvite`: the invitation text after `messenger.invitation`. */
@@ -245,6 +256,9 @@ export const addMessengerRoomInvite = (send: Send, senderId: number, message: st
     const intro = systemStore.getState().getLocalizationValue('messenger.invitation');
 
     recordChatEntry(send, senderId, noticeEntry(MESSENGER_ENTRY_INVITATION, text(`${intro} ${message}`)), true);
+
+    // `HabboMessenger.onRoomInvite`: heard like a message, while the window is closed.
+    if (!isMessengerOpen()) playMessengerMessageReceivedSound();
 };
 
 /** `MainView.onInstantMessageError`: a known code is a notice in the conversation, with the server's text after it. */
@@ -322,6 +336,12 @@ export const sendMessengerMessage = (send: Send, message: string) => {
     const { userId, name, figure } = userStore.getState();
 
     send(new SendMsgComposer({ chatId: selectedChatId, message, confirmationId }));
+
+    // `MainView.onInput`: the first message into a conversation that holds nothing, or only the one
+    // notice every conversation starts with, makes the sent sound.
+    const held = messengerStore.getState().entries[selectedChatId] ?? [];
+
+    if ((held.length === 0) || ((held.length === 1) && (held[0].type === MESSENGER_ENTRY_NOTIFICATION))) playMessengerSendSound();
 
     recordChatEntry(send, selectedChatId, {
         type: MESSENGER_ENTRY_OWN,

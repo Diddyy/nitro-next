@@ -8,11 +8,11 @@
  * the wired trade (`WiredTradingModel`) while that one does, and nothing otherwise - in that
  * order, as Flash checks them.
  */
-import { RoomObjectCategoryEnum, RoomObjectPlacementSource } from '@nitrodevco/nitro-api';
+import { RoomEngineObjectPlacedEvent, RoomObjectCategoryEnum, RoomObjectPlacementSource } from '@nitrodevco/nitro-api';
 import { RequestFurniInventoryComposer, RequestFurniInventoryWhenNotInRoomComposer, RequestRoomPropertySetComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { getInventoryFurniItemsForTrade, getInventoryFurniUnlockedCount, INVENTORY_TRADE_MAX_ITEMS, InventoryFurniItem, inventoryStore, peekInventoryFurni } from '#base/context/inventory';
+import { findNextInventoryFurniToPlace, getInventoryFurniItemsForTrade, getInventoryFurniTotalCount, getInventoryFurniUnlockedCount, INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_TRADE_MAX_ITEMS, InventoryFurniItem, inventoryStore, peekInventoryFurni } from '#base/context/inventory';
 import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { wiredTradingStore } from '#base/context/wired-trading';
@@ -120,7 +120,7 @@ const requestSelectedFurniToMover = (item: InventoryFurniItem): boolean => {
         ? initializeRoomObjectInsert(RoomObjectPlacementSource.INVENTORY, item.id, category, item.typeId, item.stuffData.getLegacyString())
         : initializeRoomObjectInsert(RoomObjectPlacementSource.INVENTORY, item.id, category, item.typeId, String(item.extra), item.stuffData);
 
-    if (started) hideInventoryForPlacement();
+    if (started) hideInventoryForPlacement(item.id);
 
     return started;
 };
@@ -139,7 +139,8 @@ export const cancelInventoryFurniInMover = () => {
  * The window covers the room the ghost is dropped into, so every page that starts a placement hides
  * it and marks the mover as ours (`PetsModel.placePetToRoom`'s `§_-ih§` and its twins).
  */
-export const hideInventoryForPlacement = () => {
+export const hideInventoryForPlacement = (furniItemId: number = -1) => {
+    inventoryStore.getState().setInventoryMoverItemId(furniItemId);
     inventoryStore.getState().setInventoryMoverRequested(true);
     systemStore.getState().hideWindow('inventory');
 };
@@ -150,11 +151,76 @@ export const hideInventoryForPlacement = () => {
  * end here too, and they restore their own window.
  */
 export const returnInventoryAfterPlacement = () => {
-    const { inventoryMoverRequested, setInventoryMoverRequested } = inventoryStore.getState();
+    const { inventoryMoverRequested, setInventoryMoverRequested, setInventoryMoverItemId } = inventoryStore.getState();
 
     if (!inventoryMoverRequested) return;
 
     setInventoryMoverRequested(false);
+    setInventoryMoverItemId(-1);
+    systemStore.getState().showWindow('inventory');
+};
+
+/**
+ * `FurniModel.onObjectPlaced` (`REOE_PLACED`): the furni page put a furni into the room, and what
+ * happens next depends on what the drop did.
+ *
+ * - Not placed in the room (dropped somewhere it does not fit): the window comes back and the ghost
+ *   is cancelled.
+ * - Placed: `attemptPlaceNextFurni` - the next furni of the same stack goes into the mover at once,
+ *   so a stack is placed one after the other, and the window only comes back when the stack is
+ *   used up (or the next one cannot be placed).
+ * - Something else was placed (not the item this page started with): nothing, as in Flash.
+ *
+ * A pet or a bot started by its own page (no furni id) just brings the window back, as their models do.
+ */
+export const onInventoryObjectPlaced = (event: RoomEngineObjectPlacedEvent) => {
+    const { inventoryMoverRequested, inventoryMoverItemId, setInventoryMoverRequested, setInventoryMoverItemId } = inventoryStore.getState();
+
+    if (!inventoryMoverRequested) return;
+
+    if (inventoryMoverItemId < 0) {
+        returnInventoryAfterPlacement();
+
+        return;
+    }
+
+    setInventoryMoverRequested(false);
+    setInventoryMoverItemId(-1);
+
+    if (!event.placedInRoom) {
+        systemStore.getState().showWindow('inventory');
+        cancelRoomObjectInsert();
+
+        return;
+    }
+
+    if (!(event.placedOnFloor || event.placedOnWall) || (Math.abs(event.objectId) !== inventoryMoverItemId)) return;
+
+    attemptPlaceNextFurni(inventoryMoverItemId);
+};
+
+/**
+ * `FurniModel.attemptPlaceNextFurni`: the stack the selected group holds is placed from its last
+ * item down; the next one is started as soon as the last one is dropped. A post-it group places its
+ * first sheet while more than one is left. When there is no next item, or it cannot be placed
+ * (`requestSelectedFurniPlacement` refuses a rented item already standing in a room), the window
+ * comes back and the mover is cleared.
+ */
+const attemptPlaceNextFurni = (placedItemId: number) => {
+    const { furniGroups, furniSelectedGroupId } = inventoryStore.getState();
+    const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
+
+    if (!group) return;
+
+    const next = (group.category === INVENTORY_FURNI_CATEGORY_POST_IT)
+        ? ((getInventoryFurniTotalCount(group) > 1) ? group.items[0] : undefined)
+        : findNextInventoryFurniToPlace(group, placedItemId);
+
+    const started = !!next && !(next.isRented && (next.flatId > -1)) && requestSelectedFurniToMover(next);
+
+    if (started) return;
+
+    cancelRoomObjectInsert();
     systemStore.getState().showWindow('inventory');
 };
 

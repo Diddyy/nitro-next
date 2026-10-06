@@ -119,6 +119,23 @@ export const getInventoryFurniTradeableCount = (group: InventoryFurniGroup, unlo
 /** `GroupItem.getRecyclableCount`: the recyclable items no trade has locked. */
 export const getInventoryFurniRecyclableCount = (group: InventoryFurniGroup): number => group.items.filter(item => item.recyclable && !item.locked).length;
 
+/**
+ * `FurniModel.attemptPlaceNextFurni`: the item to put into the room after the one just placed. A
+ * placement starts from the last item (`GroupItem.peek`, `selectedItemIndex` = count - 1) and walks
+ * down the stack, so the next one is the nearest unlocked item below the placed one. The placed item
+ * is still in the group when the room reports it (the server removes it after the request), which is
+ * why its position, not the group's size, says where to look. Nothing is left when it was the lowest.
+ */
+export const findNextInventoryFurniToPlace = (group: InventoryFurniGroup, placedItemId: number): InventoryFurniItem | undefined => {
+    const placedIndex = group.items.findIndex(item => item.id === placedItemId);
+
+    for (let index = placedIndex - 1; index >= 0; index--) {
+        if (!group.items[index].locked) return group.items[index];
+    }
+
+    return undefined;
+};
+
 /** `GroupItem.getOneForTrade` (without `selectedItemIndex`, see the docblock). */
 export const getInventoryFurniOneForTrade = (group: InventoryFurniGroup): InventoryFurniItem | undefined => group.items.find(item => !item.locked && item.tradeable);
 
