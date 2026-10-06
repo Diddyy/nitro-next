@@ -5,7 +5,7 @@
  * folds the list away (`toggleSettingVisibility`).
  *
  * Flash lists sound, Discord (with `discord.enabled`), chat, other and the word filter (with
- * `user.custom.filter.enabled`); `PurseView` builds all five. Discord is the one row that opens no
+ * `user.custom.filter.enabled`); `PurseSettingsList` builds all five. Discord is the one row that opens no
  * window of its own - `openDiscordSettingsWindow` raises the `discord/settings/open` link event.
  *
  * The panel itself is a mouse target (`interactive`), so a press on the gaps between its rows is
