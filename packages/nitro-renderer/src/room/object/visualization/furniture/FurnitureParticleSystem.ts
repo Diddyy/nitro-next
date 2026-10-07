@@ -7,7 +7,7 @@ import {
     Vector3d,
 } from '@nitrodevco/nitro-api';
 import { AdvancedMap } from '@nitrodevco/nitro-api';
-import { AlphaFilter, Graphics, Matrix, Point, Sprite, Texture } from 'pixi.js';
+import { AlphaFilter, Graphics, Matrix, Sprite, Texture } from 'pixi.js';
 
 import { TextureUtils } from '../../../../utils';
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
@@ -35,6 +35,8 @@ export class FurnitureParticleSystem {
     private _bgColor: number = 0xff000000;
     private _emptySprite: Sprite;
     private _particleSprite: Sprite = new Sprite();
+    /** Whether `_particleSprite` carries the fade filter: Pixi copies the list on every `filters` write, so it is only written on a change. */
+    private _particleSpriteFaded: boolean = false;
     private _isDone: boolean = false;
 
     constructor(visualization: AnimatedFurnitureVisualization) {
@@ -147,6 +149,13 @@ export class FurnitureParticleSystem {
         }
     }
 
+    private setParticleSpriteFaded(faded: boolean): void {
+        if (this._particleSpriteFaded === faded) return;
+
+        this._particleSpriteFaded = faded;
+        this._particleSprite.filters = faded ? [ this._particleColorTransform ] : [];
+    }
+
     public updateAnimation(): void {
         if (!this._currentEmitter || !this._roomSprite || this._isDone) return;
 
@@ -182,7 +191,6 @@ export class FurnitureParticleSystem {
                 this._particleSprite.height = 1;
                 this._particleSprite.x = 0;
                 this._particleSprite.y = 0;
-                this._particleSprite.filters = [];
 
                 if (asset && asset.texture) {
                     this._particleSprite.texture = asset.texture;
@@ -195,7 +203,7 @@ export class FurnitureParticleSystem {
 
                         this._particleColorTransform.alpha = particle.alphaMultiplier;
 
-                        this._particleSprite.filters = [ this._particleColorTransform ];
+                        this.setParticleSpriteFaded(true);
 
                         if (this._canvasTexture)
                             TextureUtils.writeToTexture(
@@ -205,10 +213,10 @@ export class FurnitureParticleSystem {
                                 this._translationMatrix,
                             );
                     } else {
-                        const point = new Point(tx + asset.offsetX, ty + asset.offsetY);
+                        this.setParticleSpriteFaded(false);
 
-                        this._particleSprite.x = point.x;
-                        this._particleSprite.y = point.y;
+                        this._particleSprite.x = tx + asset.offsetX;
+                        this._particleSprite.y = ty + asset.offsetY;
 
                         if (this._canvasTexture)
                             TextureUtils.writeToTexture(this._particleSprite, this._canvasTexture, false);

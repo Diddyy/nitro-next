@@ -19,6 +19,7 @@ import { RoomPlane } from './RoomPlane';
 import { RoomVisualizationData } from './RoomVisualizationData';
 
 export class RoomVisualization extends RoomObjectSpriteVisualization implements IPlaneVisualization {
+    private static readonly NO_FILTERS: Filter[] = [];
     private static FLOOR_COLOR: number = 0xffffff as const;
     private static FLOOR_COLOR_LEFT: number = 0xdddddd as const;
     private static FLOOR_COLOR_RIGHT: number = 0xbbbbbb as const;
@@ -548,7 +549,7 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                     plane.extraDepth = -100;
                     plane.isHighlighter = true;
                 } else {
-                    sprite.filters = [];
+                    sprite.filters = RoomVisualization.NO_FILTERS;
                     sprite.skipMouseHandling = false;
                     plane.extraDepth = 0;
                     plane.isHighlighter = false;
