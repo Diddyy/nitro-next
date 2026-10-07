@@ -11,13 +11,14 @@
  * An icon the toolbar does not show (`findChildByName` finds nothing) gets no transition, and its
  * picture is dropped.
  */
-import { FurniId, IRoom, RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
-import { GetRenderer, GetRoomEngine } from '@nitrodevco/nitro-renderer';
+import { FurniId, IRoom, RoomGeometryScaleType, RoomObjectCategoryEnum, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
+import { GetRenderer, GetRoomContentLoader, GetRoomEngine } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Rectangle, Texture } from 'pixi.js';
 
 import { systemStore, ToolbarTransitionIcon } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { getGlobalRect, loadTexture } from '#base/theme';
+import { getGlobalRect } from '#base/theme';
+import { destroyOwnedTexture } from '#base/utils';
 
 /** `animateToIcon`'s `_loc9_`: the picture lands this far right of the icon's left edge. */
 const LANDING_OFFSET_X = 20;
@@ -33,7 +34,7 @@ export const createTransitionToIcon = (icon: ToolbarTransitionIcon, texture: Tex
     const node = toolbarIconNodes[icon];
 
     if (!node || node.destroyed) {
-        if (ownsTexture) texture.destroy(true);
+        if (ownsTexture) destroyOwnedTexture(texture);
 
         return;
     }
@@ -83,6 +84,10 @@ export const createTransitionFromNode = (icon: ToolbarTransitionIcon, node: Pixi
  * (`getFurnitureIcon` / `getWallItemIcon`). Not a builders club or temporary item, not a floor
  * item whose `furniture_disable_picking_animation` is 1, and not a sticky note or an external
  * image on the wall.
+ *
+ * The icon is `getFurnitureImage(type, scale 1)`: the furni drawn at icon scale from its own
+ * asset library, which is loaded since the furni is in the room - so it is drawn there and then,
+ * and the picture leaves as the furni goes, rather than after an icon image is downloaded.
  */
 export const createPickupTransition = (room: IRoom, objectId: number, category: RoomObjectCategoryEnum, pickerId: number) => {
     if ((pickerId !== userStore.getState().userId) || FurniId.isBuilderClubId(objectId) || FurniId.isTempId(objectId)) return;
@@ -92,25 +97,29 @@ export const createPickupTransition = (room: IRoom, objectId: number, category: 
     if (!object) return;
 
     const model = object.model;
-    const typeId = model.getValue<number>(RoomObjectVariableEnum.FurnitureTypeId);
-    let iconUrl: string | undefined;
+    const typeId = model.getValue<number>(RoomObjectVariableEnum.FurnitureTypeId) ?? 0;
+    const loader = GetRoomContentLoader();
+    let type: string;
+    let colorIndex: number;
 
     if (category === RoomObjectCategoryEnum.Wall) {
         if ((object.type.indexOf('post_it') !== -1) || (object.type.indexOf('external_image_wallitem') !== -1)) return;
 
-        iconUrl = GetRoomEngine().getFurnitureWallIconUrl(typeId, model.getValue<string>(RoomObjectVariableEnum.FurnitureData) || undefined);
+        type = loader.getFurnitureWallNameForTypeId(typeId, model.getValue<string>(RoomObjectVariableEnum.FurnitureData) || undefined);
+        colorIndex = loader.getFurnitureWallColorIndex(typeId);
     } else {
         if (model.getValue<number>(RoomObjectVariableEnum.FurnitureDisablePickingAnimation) === 1) return;
 
-        iconUrl = GetRoomEngine().getFurnitureFloorIconUrl(typeId);
+        type = loader.getFurnitureFloorNameForTypeId(typeId);
+        colorIndex = loader.getFurnitureFloorColorIndex(typeId);
     }
 
     const location = room.getRoomObjectScreenLocation(objectId, category);
 
-    if (!location || !iconUrl) return;
+    if (!location || !type) return;
 
-    // The icon is the asset's own, shared with every other view of it: the transition leaves it be.
-    void loadTexture(iconUrl).then((texture) => {
-        if (texture) createTransitionToIcon('HTIE_ICON_INVENTORY', texture, false, location.x, location.y);
+    // A render of its own, which the transition disposes when it lands.
+    void GetRoomEngine().getGenericRoomObjectTexture(type, colorIndex.toString(), new Vector3d(), RoomGeometryScaleType.Icon).then((texture) => {
+        if (texture) createTransitionToIcon('HTIE_ICON_INVENTORY', texture, true, location.x, location.y);
     });
 };

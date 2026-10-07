@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { ToolbarTransition, useSystemActions, useSystemStore } from '#base/context/system';
 import { Box } from '#base/theme';
+import { destroyOwnedTexture } from '#base/utils';
 
 /** Over the frames (from 100), the floating popups (90000) and the modal layer (95000); under the tooltips (100000). */
 const TRANSITIONS_Z_INDEX = 99000;
@@ -61,7 +62,7 @@ const ToolbarTransitionSprite = ({ transition }: { transition: ToolbarTransition
 
     // `disposesBitmap`: the picture goes once React has taken the sprite down.
     useEffect(() => () => {
-        if (transition.ownsTexture) transition.texture.destroy(true);
+        if (transition.ownsTexture) destroyOwnedTexture(transition.texture);
 
         filters.forEach(filter => filter.destroy());
     }, [ transition, filters ]);

@@ -6,7 +6,13 @@ import { AvatarStructure } from './AvatarStructure';
 export class AvatarAssetDownloadManager {
     /** The libraries every figure needs (Flash `LIB_BODY`, `LIB_ITEMS`); the manager is not ready until they are in. */
     private static MANDATORY_LIBRARIES: string[] = [ 'hh_human_body', 'hh_human_item' ];
-    private static MAX_SIMULTANEOUS_DOWNLOADS: number = 6;
+    /**
+     * Flash downloads 6 libraries at once, and 16 from a host that can take it (`//rumba.sulake.com`).
+     * Every figure library is a request of its own - a clothing tab asks for one per part shown - so
+     * the waves of 6 were what an editor tab spent waiting on; the asset host serves HTTP/2 and 3,
+     * which carry every request on the one connection, so it is the fast host's 16.
+     */
+    private static MAX_SIMULTANEOUS_DOWNLOADS: number = 16;
 
     private _structure: AvatarStructure;
     private _libraries: Map<string, AvatarAssetDownloadLibrary> = new Map();

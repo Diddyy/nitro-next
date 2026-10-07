@@ -606,6 +606,13 @@ export class LayoutWindow {
 
     /** A caption set on the window (`WindowController.caption`): the text controllers lay theirs out. */
     public setCaption(_caption: string, _input: TemplateLayoutInput): void {}
+
+    /**
+     * `IBoxSizerWindow.setAutoRearrange`: whether a box sizer lays its children out again as they
+     * change. Off, its children stay where its code puts them; on again, it lays them out at once.
+     * Nothing for any other window.
+     */
+    public setAutoRearrange(_on: boolean): void {}
 }
 
 /** The window types that have an `iterator` - `ContainerController` and those built on it. */
@@ -1261,6 +1268,7 @@ class BoxSizerWindow extends LayoutWindow {
     private readonly _horizontalPadding: number;
     private readonly _verticalPadding: number;
     private readonly _vertical: boolean;
+    private _autoRearrange = true;
 
     constructor(element: TemplateElement, rect: TemplateRect, param: number, parent?: LayoutWindow) {
         super(element, rect, param, parent);
@@ -1275,9 +1283,15 @@ class BoxSizerWindow extends LayoutWindow {
     }
 
     public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
-        if (type === 'CHILD_RELOCATED' || type === 'CHILD_REMOVED' || type === 'CHILD_ADDED' || type === 'CHILD_RESIZED' || type === 'RESIZED') this.arrange();
+        if (this._autoRearrange && (type === 'CHILD_RELOCATED' || type === 'CHILD_REMOVED' || type === 'CHILD_ADDED' || type === 'CHILD_RESIZED' || type === 'RESIZED')) this.arrange();
 
         super.update(source, type, related);
+    }
+
+    public override setAutoRearrange(on: boolean): void {
+        this._autoRearrange = on;
+
+        if (on) this.arrange();
     }
 
     /** `_Str_9056`: the n of a `relative(n)` tag - the last one, at least 0 - else 0. */

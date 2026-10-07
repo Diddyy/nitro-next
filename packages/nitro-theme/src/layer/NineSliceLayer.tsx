@@ -127,6 +127,9 @@ export const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, b
         );
     }
 
+    // Never `undefined`: a prop that goes from a value to `undefined` makes @pixi/react build a bare
+    // `new NineSliceSprite()` to read the default from (`applyProps`' `__defaultremove`), and that
+    // constructor throws without its options - taking the whole stage down with it.
     return (
         <pixiNineSliceSprite
             ref={ref as Ref<never>}
@@ -135,9 +138,9 @@ export const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, b
             topHeight={topHeight}
             rightWidth={rightWidth}
             bottomHeight={bottomHeight}
-            tint={tintColor}
-            alpha={alpha}
-            visible={visible}
+            tint={tintColor ?? 0xffffff}
+            alpha={alpha ?? 1}
+            visible={visible ?? true}
             eventMode="none"
             layout={layout ?? FillLayout}
         />

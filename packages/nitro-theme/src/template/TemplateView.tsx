@@ -284,6 +284,9 @@ interface ScrollLinks {
  */
 const ScrollLinksContext = createContext<ScrollLinks>({ scrollbars: new Map(), scrollAxes: new Map(), scrollTargets: new Set() });
 
+/** Whether nothing in a window's subtree is a display object of its own: all of it draws into its parent's graphic context. */
+const drawsIntoParentOnly = (element: TemplateElement): boolean => templateUsesParentGraphics(element) && element.children.every(drawsIntoParentOnly);
+
 /** A `#icon` / `#bg` tag: the part of its `dynamicStyle` host's look it takes. */
 const dynamicRoleOf = (element: TemplateElement) => (element.tags?.includes('#icon') ? 'icon' : element.tags?.includes('#bg') ? 'bg' : undefined);
 
@@ -479,6 +482,8 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 // A colour the code sets (`IWindow.color`); the layout's own is not drawn on a bitmap.
                 tint={binding?.color !== undefined ? flashColor(binding.color)?.hex : undefined}
                 bitmap={{ ...bitmapVars(element.vars), ...(binding?.pivot !== undefined && { pivot: binding.pivot }), ...(binding?.rotation !== undefined && { rotation: binding.rotation }) }}
+                // `IBitmapWrapperWindow.greyscale` - the layout's `greyscale` var (a sub menu's `<name>_icon_grey`), or its code's.
+                greyscale={binding?.greyscale ?? flashBool(element.vars.greyscale)}
                 dynamicRole={dynamicRoleOf(element)}
                 layout={{ ...FILL, width: rect.width, height: rect.height }}
             />
@@ -910,16 +915,31 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     const list = TEMPLATE_LISTS[element.tag];
     const childFlow = FLOWS[element.tag];
     const show = list ? binding?.show : undefined;
-    const childViews = element.children.map((child, index) => (
-        <ElementView
-            key={child.itemKey ?? String(index)}
-            element={child}
-            context={context}
-            id={`${id}.${child.itemKey ?? index}`}
-            flow={childFlow}
-            shown={show ? show.includes(child.name ?? '') : undefined}
-        />
-    ));
+    /*
+     * The order the children draw in: what is drawn into this window's own graphic context lies
+     * under every display object over it, so a child whose whole subtree draws into the context
+     * goes first - a later sibling's border cannot cover a region inside an earlier container
+     * (`bottom_bar_left`'s border over its arrows' regions). A flow lays its children out in their
+     * order, so its children keep it.
+     */
+    const drawOrder = element.children.map((_, index) => index);
+
+    if (!childFlow && (element.tag !== 'selector')) drawOrder.sort((a, b) => Number(!drawsIntoParentOnly(element.children[a])) - Number(!drawsIntoParentOnly(element.children[b])));
+
+    const childViews = drawOrder.map((index) => {
+        const child = element.children[index];
+
+        return (
+            <ElementView
+                key={child.itemKey ?? String(index)}
+                element={child}
+                context={context}
+                id={`${id}.${child.itemKey ?? index}`}
+                flow={childFlow}
+                shown={show ? show.includes(child.name ?? '') : undefined}
+            />
+        );
+    });
     const children = (
         <>
             {element.tag === 'selector'
@@ -961,7 +981,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             );
         }
 
-        const ownContext = (index: number) => !templateUsesParentGraphics(element.children[index]);
+        const ownContext = (index: number) => !templateUsesParentGraphics(element.children[drawOrder[index]]);
 
         return (
             <>

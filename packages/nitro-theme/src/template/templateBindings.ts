@@ -47,7 +47,7 @@ export interface TemplateBinding {
     direction?: 'up' | 'down' | 'left' | 'right';
     /** A bitmap's `rotation` in degrees, over its `rotation` var. */
     rotation?: number;
-    /** A `badge_image` widget's `greyscale`. */
+    /** A bitmap's `greyscale`, over its layout's; a `badge_image` widget's `greyscale`. */
     greyscale?: boolean;
     /** Over the layout's `style` (`IWindow.style`) - an icon's icon-set style. */
     style?: string;

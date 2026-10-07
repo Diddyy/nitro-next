@@ -1,24 +1,20 @@
 /**
- * The settings list the purse's settings button drops down - `toolbar/extensions/SettingsExtension`
- * on the `settings` layout (192 wide; a `setting_category` row of 120 x 17 per entry, 7 pixels in,
- * 3 apart, the panel 7 pixels taller than its last row). Picking an entry opens its window and
- * folds the list away (`toggleSettingVisibility`).
+ * The settings list the purse's settings button drops down - `toolbar/extensions/SettingsExtension`,
+ * drawn from its `settings` template with a `setting_category` window added per entry (`addButton`):
+ * each at x 7, the first at y 7 and every next one 3 below the last, the panel ending 7 below the
+ * last row. Picking an entry opens its window and folds the list away (`toggleSettingVisibility`).
  *
  * Flash lists sound, Discord (with `discord.enabled`), chat, other and the word filter (with
  * `user.custom.filter.enabled`); `PurseSettingsList` builds all five. Discord is the one row that opens no
  * window of its own - `openDiscordSettingsWindow` raises the `discord/settings/open` link event.
- *
- * The panel itself is a mouse target (`interactive`), so a press on the gaps between its rows is
- * swallowed rather than reaching the room canvas drawn under it.
  */
-import { Border, Box, Region, ThemeText } from '#base/theme';
+import { Box, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
-/** `SettingsExtension.PADDING` / `SPACING` and the `setting_category` row. */
+/** `SettingsExtension.PADDING` / `SPACING`. */
 const PADDING = 7;
 const SPACING = 3;
-const ROW_WIDTH = 120;
+/** `setting_category`'s height. */
 const ROW_HEIGHT = 17;
-const PANEL_WIDTH = 192;
 /** `extension_grid`'s `spacing`: the gap under every extension in the column. */
 const GRID_SPACING = 2;
 
@@ -30,42 +26,32 @@ export interface ToolbarSettingsEntry {
 }
 
 export const ToolbarSettingsView = ({ entries }: { entries: ToolbarSettingsEntry[] }) => {
+    const category = useTemplate('habbo-toolbar-com/setting_category_xml');
+
+    if (!category) return null;
+
+    // `addButton`: the window as tall as its last row's bottom and the padding.
     const height = (PADDING * 2) + (entries.length * ROW_HEIGHT) + (Math.max(0, entries.length - 1) * SPACING);
+    const rows: TemplateItem[] = entries.map((entry, index) => ({
+        key: entry.key,
+        from: category,
+        bindings: {
+            '': { onPointerTap: entry.onSelect },
+            button_label: { caption: entry.label },
+        },
+        arrange: ({ root }) => {
+            root()?.setX(PADDING);
+            root()?.setY(PADDING + (index * (ROW_HEIGHT + SPACING)));
+        },
+    }));
 
     return (
-        <Region
-            interactive
-            layout={{ position: 'relative', width: PANEL_WIDTH, height, flexShrink: 0, marginBottom: GRID_SPACING }}
-        >
-            <Border
-                variant="6"
-                tintColor="#55534e"
-                layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+        <Box layout={{ position: 'relative', flexShrink: 0, marginBottom: GRID_SPACING }}>
+            <TemplateWindow
+                id="habbo-toolbar-com/settings_xml"
+                height={height}
+                bindings={{ '': { added: rows } }}
             />
-            <Border
-                variant="3"
-                tintColor="#201e19"
-                blend={0.8}
-                layout={{ position: 'absolute', left: 3, width: PANEL_WIDTH - 6, top: 3, bottom: 4 }}
-            />
-            <Box layout={{ position: 'absolute', left: PADDING, top: PADDING, flexDirection: 'column', gap: SPACING }}>
-                {entries.map(entry => (
-                    <Region
-                        key={entry.key}
-                        cursor="pointer"
-                        onPointerTap={entry.onSelect}
-                        layout={{ width: ROW_WIDTH, height: ROW_HEIGHT }}
-                    >
-                        <ThemeText
-                            text={entry.label}
-                            textStyle="u_regular"
-                            textOptions={{ fill: '#ffffff' }}
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 0, top: 0, height: ROW_HEIGHT }}
-                        />
-                    </Region>
-                ))}
-            </Box>
-        </Region>
+        </Box>
     );
 };

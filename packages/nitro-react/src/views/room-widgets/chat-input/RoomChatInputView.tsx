@@ -1,6 +1,5 @@
 import { ClubLevelEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer, WhisperComposer } from '@nitrodevco/nitro-packets';
-import { Container as PixiContainer } from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
@@ -10,7 +9,7 @@ import { roomStore, useRoom, useRoomChatActions, useRoomStore } from '#base/cont
 import { useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnClubLevel, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
 import { useChatStyles, useViewportSize } from '#base/hooks';
-import { Border, Box, getGlobalRect, GlobalRect, Icon, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useTemplate } from '#base/theme';
 import { completeChatCommand, findInvalidArguments, IChatCommandCompletion, mergeChatCommands } from '#base/utils';
 import { roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 
@@ -18,18 +17,15 @@ import { ChatCommandSuggestionsView } from './ChatCommandSuggestionsView';
 import { chatInputClientCommands } from './chatInputClientCommands';
 import { ChatStyleSelectorView } from './ChatStyleSelectorView';
 
+/** `createWindow`'s `chatinput_window_new`; `bubblecont` is the bar it places. */
+const CHAT_INPUT_TEMPLATE = 'habbo-room-ui-com/chatinput_window_new';
 /** `RoomChatInputView.updatePosition` - the gap kept from whatever sits left of the chat bar. */
 const LEFT_MARGIN = 12;
-/** `bubblecont`, the window `updatePosition` places: 471 wide. */
-const BUBBLECONT_WIDTH = 471;
 /** The room the centred bar must leave the toolbar's icons on top of its own margin - `updatePosition`'s `+ 100`. */
 const TOOLBAR_CLEARANCE = 100;
 /** `bubblecont.y`: `height - 104` in the toolbar, `height - 160` above it. */
 const BUBBLECONT_FROM_BOTTOM_IN_TOOLBAR = 104;
 const BUBBLECONT_FROM_BOTTOM_ABOVE_TOOLBAR = 160;
-/** `chat_input_container`'s y in `bubblecont`, and the height of the row it draws (the `styles` region's 39). */
-const CHAT_INPUT_CONTAINER_Y = 60;
-const CHAT_INPUT_ROW_HEIGHT = 39;
 /** The Flash `chat_input` field: Ubuntu 17, 100 characters. */
 const MAX_CHARS = 100;
 /** `_typingTimer` / `_idleTimer` - typing is announced after a second of it, withdrawn after ten idle. */
@@ -37,14 +33,33 @@ const TYPING_DELAY_MS = 1000;
 const IDLE_DELAY_MS = 10000;
 /** No style picked in this session yet - send whatever the account preference says (`ChatStyleSelector._Str_22824`). */
 const NO_STYLE_SELECTED = -1;
-/** `input_border`: 11 in, 400 wide - the command list stands on it, as wide. */
-const INPUT_BORDER_LEFT = 11;
-const INPUT_BORDER_WIDTH = 400;
 /** How long typing pauses before the server is asked what to offer (`chat.commands.v2`). */
 const SUGGEST_DELAY_MS = 120;
 const NO_COMPLETION: IChatCommandCompletion = { suggestions: [], request: null };
 /** An argument the server would refuse: the red of the field's own flood warning (`block_text`). */
 const INVALID_ARGUMENT_COLOR = '#ff0000';
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+/**
+ * What the bar is placed by, read off its layout: `bubblecont`'s width, `chat_input_container`'s y in
+ * it, `input_border` in that row (the command list stands on it, as wide), `chat_input` in the
+ * border, and the `styles` button in the row.
+ */
+const readLayout = (template: Template) => {
+    const rectOf = (name: string): Rect | undefined => {
+        const element = findTemplateChild(template.elements, name);
+
+        return element && { x: element.x, y: element.y, width: element.width, height: element.height };
+    };
+    const bubble = rectOf('bubblecont');
+    const row = rectOf('chat_input_container');
+    const border = rectOf('input_border');
+    const input = rectOf('chat_input');
+    const styles = rectOf('styles');
+
+    return (bubble && row && border && input && styles) ? { width: bubble.width, row, border, input, styles } : undefined;
+};
 
 /**
  * The Flash `RoomChatInputWidget` + `RoomChatInputView` (`chatinput_window_new`): the bar above
@@ -90,6 +105,8 @@ export const RoomChatInputView = () => {
     const { width: viewportWidth, height: viewportHeight } = useViewportSize();
     const toolbarAreaWidth = useToolbarAreaWidth();
     const friendBarWidth = useFriendBarWidth();
+    const template = useTemplate(CHAT_INPUT_TEMPLATE);
+    const layout = useMemo(() => (template ? readLayout(template) : undefined), [ template ]);
 
     const [ value, setValue ] = useState('');
     const [ cursor, setCursor ] = useState(0);
@@ -99,7 +116,6 @@ export const RoomChatInputView = () => {
     const [ floodRemaining, setFloodRemaining ] = useState(0);
     // Where the `styles` button is on screen while its menu is open (the menu floats above it), or null while it is shut.
     const [ stylesAnchor, setStylesAnchor ] = useState<GlobalRect | null>(null);
-    const stylesButtonRef = useRef<PixiContainer | null>(null);
     const [ selectedStyleId, setSelectedStyleId ] = useState(NO_STYLE_SELECTED);
     const [ highlightIndex, setHighlightIndex ] = useState(0);
     // The suggestions shown last, so the highlight goes back to the top when they change.
@@ -285,14 +301,13 @@ export const RoomChatInputView = () => {
         onChangeRef.current = onChange;
     });
 
-    const toggleStyles = () => {
+    /** `ChatStyleSelector.windowProc`: a click on `styles` opens or shuts the menu, aligned to the button. */
+    const toggleStyles = (button: GlobalRect) => {
         if (!pickableStyles.length) return;
 
         if ((Date.now() - stylesClosedAtRef.current) < 250) return;
 
-        const button = stylesButtonRef.current;
-
-        setStylesAnchor((stylesAnchor || !button) ? null : getGlobalRect(button));
+        setStylesAnchor(stylesAnchor ? null : button);
     };
 
     const closeStyles = () => {
@@ -528,118 +543,98 @@ export const RoomChatInputView = () => {
         return () => clearTimeout(timer);
     }, [ send, requestCommand, requestParameter, requestPrefix, requestSyntax, requestArgumentText ]);
 
-    if (!room) return null;
+    if (!room || !template || !layout) return null;
 
     /*
      * `RoomChatInputView.updatePosition`: `bubblecont` sits centred in the toolbar when the
-     * toolbar's icons and the friend bar leave it the room; otherwise it moves up to
-     * `height - 160` and starts right of the room tools - still centred if the centre is clear of
-     * them. The row drawn here is its `chat_input_container`, 60 down.
+     * toolbar's icons and the friend bar leave it the room - its top `height - 104` - and otherwise
+     * moves up to `height - 160` and starts right of the room tools, still centred if the centre is
+     * clear of them.
      */
-    const centredLeft = ~~((viewportWidth / 2) - (BUBBLECONT_WIDTH / 2));
-    const fitsInToolbar = ((viewportWidth - toolbarAreaWidth - friendBarWidth) > (BUBBLECONT_WIDTH + LEFT_MARGIN))
+    const centredLeft = ~~((viewportWidth / 2) - (layout.width / 2));
+    const fitsInToolbar = ((viewportWidth - toolbarAreaWidth - friendBarWidth) > (layout.width + LEFT_MARGIN))
         && (centredLeft >= (toolbarAreaWidth + LEFT_MARGIN + TOOLBAR_CLEARANCE))
-        && ((centredLeft + BUBBLECONT_WIDTH) <= (viewportWidth - friendBarWidth));
+        && ((centredLeft + layout.width) <= (viewportWidth - friendBarWidth));
     const left = fitsInToolbar ? centredLeft : Math.max(centredLeft, roomToolsRight(roomToolsCollapsed) + LEFT_MARGIN);
-    const bottom = (fitsInToolbar ? BUBBLECONT_FROM_BOTTOM_IN_TOOLBAR : BUBBLECONT_FROM_BOTTOM_ABOVE_TOOLBAR) - CHAT_INPUT_CONTAINER_Y - CHAT_INPUT_ROW_HEIGHT;
+    const top = viewportHeight - (fitsInToolbar ? BUBBLECONT_FROM_BOTTOM_IN_TOOLBAR : BUBBLECONT_FROM_BOTTOM_ABOVE_TOOLBAR);
+    // The `styles` button on screen, which its menu is aligned to (`alignToSelector`).
+    const stylesRect: GlobalRect = { x: left + layout.styles.x, y: top + layout.row.y + layout.styles.y, width: layout.styles.width, height: layout.styles.height };
+
+    /*
+     * The field, in `chat_input`'s place in `input_border`: the client's own text input rather than
+     * the template's, for what the port adds to it - the command completion's cursor and selection,
+     * and the red of an argument the server would refuse.
+     */
+    const field = (
+        <TextInput
+            value={value}
+            onChange={onChange}
+            onSelectionChange={(_start, end) => {
+                if (end !== cursor) setSuggestionsDismissedFor(null);
+                setCursor(end);
+            }}
+            selectionAfterChange={replacementCursor}
+            selectionRequestId={selectionRequestId}
+            onEnter={event => sendChat(event.shiftKey)}
+            onKeyDown={onKeyDown}
+            marks={invalidArguments}
+            focused={focused}
+            onFocusChange={setFocused}
+            placeholder={t('widgets.chatinput.default')}
+            placeholderColor="#777777"
+            maxLength={MAX_CHARS}
+            fontFamily="Ubuntu"
+            fontSize={17}
+            // `chat_input`'s own `antialias_type` var. Without it the field falls back
+            // to `regular`'s `normal`, which the exact renderer has only for the
+            // Volter faces - so Ubuntu 17 dropped to the browser's canvas text.
+            flashFormat={{ antiAliasType: 'advanced' }}
+            textColor="#000000"
+            flashPlacement
+            alwaysShowSelection
+            backgroundColor={null}
+            focusedBackgroundColor={null}
+            layout={{ position: 'absolute', left: layout.input.x, width: layout.input.width, top: layout.input.y, height: layout.input.height }}
+        />
+    );
 
     return (
-        <Box layout={{ position: 'absolute', left, bottom, width: BUBBLECONT_WIDTH, height: CHAT_INPUT_ROW_HEIGHT }}>
-            <Border
-                variant="8"
-                name="input_border"
-                tintColor="#e5e5e5"
-                layout={{ position: 'absolute', left: 11, width: 400, top: 0, height: 38 }}
-            >
-                {isFloodBlocked && (
-                    <ThemeText
-                        name="block_text"
-                        text={t('chat.input.alert.flood', 'You are talking too fast. Wait %time% seconds.', { time: String(floodRemaining) })}
-                        textOptions={{ fill: '#ff0000', fontFamily: 'Ubuntu', fontSize: 14 }}
-                        flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                        clip
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 10, width: 325, top: 9, height: 23 }}
-                    />
-                )}
-                {!isFloodBlocked && (
-                    <TextInput
-                        value={value}
-                        onChange={onChange}
-                        onSelectionChange={(_start, end) => {
-                            if (end !== cursor) setSuggestionsDismissedFor(null);
-                            setCursor(end);
-                        }}
-                        selectionAfterChange={replacementCursor}
-                        selectionRequestId={selectionRequestId}
-                        onEnter={event => sendChat(event.shiftKey)}
-                        onKeyDown={onKeyDown}
-                        marks={invalidArguments}
-                        focused={focused}
-                        onFocusChange={setFocused}
-                        placeholder={t('widgets.chatinput.default')}
-                        placeholderColor="#777777"
-                        maxLength={MAX_CHARS}
-                        fontFamily="Ubuntu"
-                        fontSize={17}
-                        // `chat_input`'s own `antialias_type` var. Without it the field falls back
-                        // to `regular`'s `normal`, which the exact renderer has only for the
-                        // Volter faces - so Ubuntu 17 dropped to the browser's canvas text.
-                        flashFormat={{ antiAliasType: 'advanced' }}
-                        textColor="#000000"
-                        flashPlacement
-                        alwaysShowSelection
-                        backgroundColor={null}
-                        focusedBackgroundColor={null}
-                        layout={{ position: 'absolute', left: 50, width: 326, top: 7, height: 24 }}
-                    />
-                )}
-            </Border>
-            <Region
-                ref={stylesButtonRef}
-                name="styles"
-                onPointerTap={toggleStyles}
-                cursor="pointer"
-                layout={{ position: 'absolute', left: 0, width: 60, top: 0, height: 39 }}
-            >
-                <ThemeImage
-                    name="style_bg"
-                    src={LayoutImage('habbo-window-manager-com/common_chat_style_block.png')}
-                    bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                    layout={{ position: 'absolute', left: 0, top: 0 }}
+        <Box layout={{ position: 'absolute', left, top }}>
+            <TemplateWindow
+                id={CHAT_INPUT_TEMPLATE}
+                part="bubblecont"
+                bindings={{
+                    // `hideFloodBlocking` / `showFloodBlocking`: the field or the countdown, never both.
+                    block_text: { visible: isFloodBlocked, caption: t('chat.input.alert.flood', 'You are talking too fast. Wait %time% seconds.', { time: String(floodRemaining) }) },
+                    chat_input: { visible: false },
+                    input_border: { children: isFloodBlocked ? undefined : field },
+                    styles: { onPointerTap: () => toggleStyles(stylesRect) },
+                    // `chat_extra_button` opens the habbicon selector, which is not ported; Flash shows it
+                    // only under `habbicons.enabled` (`habbiconsEnabled`), and its set icon starts hidden.
+                    chat_extra_button: { visible: habbiconsEnabled },
+                    chat_extra_set_icon: { visible: false },
+                    // `createWindow`: the chat commands help button starts hidden; what shows it is not ported.
+                    helpbutton: { visible: false },
+                }}
+            />
+            {stylesAnchor && (
+                <ChatStyleSelectorView
+                    anchor={stylesAnchor}
+                    styles={pickableStyles}
+                    selectedStyleId={selectedStyleId}
+                    // `gridItemWindowProc` only selects: the menu stays open until a click lands
+                    // outside it (`hideIfClickAway`).
+                    onSelect={styleId => setSelectedStyleId(styleId)}
+                    fontSizeMode={chatSizePreference}
+                    onSelectFontSize={mode => setChatFontSizeMode(send, mode)}
+                    onClose={closeStyles}
                 />
-                <ThemeImage
-                    name="style_icon"
-                    src={LayoutImage('habbo-window-manager-com/common_chat_styles.png')}
-                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000, fitSizeToContents: true }}
-                    dynamicRole="icon"
-                    layout={{ position: 'absolute', left: 25, top: 10 }}
-                />
-                <Icon
-                    variant="7"
-                    dynamicStyle="brightness_and_shadow_under"
-                    tintColor="#4c4c4c"
-                    layout={{ position: 'absolute', left: 10, width: 10, top: 17, height: 5 }}
-                />
-                {stylesAnchor && (
-                    <ChatStyleSelectorView
-                        anchor={stylesAnchor}
-                        styles={pickableStyles}
-                        selectedStyleId={selectedStyleId}
-                        // `gridItemWindowProc` only selects: the menu stays open until a click lands
-                        // outside it (`hideIfClickAway`).
-                        onSelect={styleId => setSelectedStyleId(styleId)}
-                        fontSizeMode={chatSizePreference}
-                        onSelectFontSize={mode => setChatFontSizeMode(send, mode)}
-                        onClose={closeStyles}
-                    />
-                )}
-            </Region>
+            )}
             {showSuggestions && !isFloodBlocked && (
                 <ChatCommandSuggestionsView
-                    x={left + INPUT_BORDER_LEFT}
-                    bottom={viewportHeight - bottom - CHAT_INPUT_ROW_HEIGHT}
-                    width={INPUT_BORDER_WIDTH}
+                    x={left + layout.border.x}
+                    bottom={top + layout.row.y}
+                    width={layout.border.width}
                     suggestions={suggestions}
                     highlightIndex={highlightIndex}
                     onHover={setHighlightIndex}
@@ -649,42 +644,6 @@ export const RoomChatInputView = () => {
                     }}
                     onClose={() => setSuggestionsDismissedFor(value)}
                 />
-            )}
-            {/*
-              * `chat_extra_button` opens the habbicon selector, which is not ported. Flash shows it
-              * only under `habbicons.enabled` (`RoomChatInputView.habbiconsEnabled`). Its
-              * `chat_extra_set_icon` starts hidden (`createWindow`) and is left out.
-              */}
-            {habbiconsEnabled && (
-                <Region
-                    name="chat_extra_button"
-                    dynamicStyle="lifted_hover"
-                    layout={{ position: 'absolute', left: 427, width: 41, top: 0, height: 38 }}
-                >
-                    <Region
-                        dynamicRole="icon"
-                        layout={{ position: 'absolute', left: 0, width: 41, top: 0, height: 38 }}
-                    >
-                        <ThemeImage
-                            name="chat_extra_bg"
-                            src={LayoutImage('habbo-window-manager-com/habbicons_sticky_note.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
-                            layout={{ position: 'absolute', left: 0, top: 0 }}
-                        />
-                        <ThemeImage
-                            name="chat_extra_icon"
-                            src={LayoutImage('habbo-window-manager-com/habbicons_clip.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000, fitSizeToContents: true }}
-                            layout={{ position: 'absolute', left: 23, top: 2 }}
-                        />
-                        <ThemeImage
-                            name="chat_extra_bg"
-                            src={LayoutImage('habbo-window-manager-com/habbicons_sticky_note2.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
-                            layout={{ position: 'absolute', left: 24, top: 26 }}
-                        />
-                    </Region>
-                </Region>
             )}
         </Box>
     );
