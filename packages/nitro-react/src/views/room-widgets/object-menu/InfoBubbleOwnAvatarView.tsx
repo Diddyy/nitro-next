@@ -106,8 +106,7 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const isRoomOwner = useRoomStore(x => x.isRoomOwner);
     const hasClub = clubLevel >= ClubLevelEnum.Club;
     const hasVip = clubLevel >= ClubLevelEnum.Vip;
-    // `OwnAvatarMenuView.setup`: the dance menu is the first view only for a club member who dances and has no effect on.
-    const [ mode, setMode ] = useState((isDancing && hasClub && !hasEffectOn) ? MODE_CLUB_DANCES : MODE_NORMAL);
+    const [ mode, setMode ] = useState((isDancing && hasClub) ? MODE_CLUB_DANCES : MODE_NORMAL);
     const [ collapsed, setCollapsed ] = useState(false);
     const effectsDisabled = useConfigValue<boolean>('memenu.effects.widget.disabled') ?? false;
     // `OwnAvatarMenuView`: the config flag, and not while the room's configuration items block hand item control.
@@ -119,7 +118,7 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const expression67Enabled = useConfigValue<boolean>('avatar.expression.67.enabled') ?? false;
     const t = useTranslation();
     const { send } = useWebSocketContext();
-    const { showWindow } = useWindowActions();
+    const { showWindow, toggleWindow } = useWindowActions();
     const { setIsDecorating } = useRoomSessionActions();
 
     if (!info) return null;
@@ -144,7 +143,7 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
             { key: 'dance_stop', caption: t('widget.memenu.dance.stop'), visible: !hasClub && isDancing && !isRiding, onPress: dance(0) },
             { key: 'signs', caption: t('infostand.show.signs'), visible: signsEnabled, staysOpen: true, onPress: toMode(MODE_SIGNS) },
             { key: 'handitem', caption: t('avatar.widget.drop_hand_item'), visible: handItemDropEnabled && (info.carryItem > 0) && (info.carryItem < MAX_CARRY_ITEM), onPress: () => dropCarryItem(send) },
-            { key: 'effects', caption: t('widget.memenu.effects'), visible: !effectsDisabled && !isRiding, onPress: () => showWindow('avatar_effects') },
+            { key: 'effects', caption: t('widget.memenu.effects'), visible: !effectsDisabled && !isRiding, onPress: () => toggleWindow('avatar_effects') },
             { key: 'wired_inspect', caption: t('infostand.button.wired_inspect'), visible: showWiredInspect, onPress: () => openClientLink(send, `wiredmenu/open/inspection/1/${objectData.objectId}`) },
         ],
         [MODE_CLUB_DANCES]: [
