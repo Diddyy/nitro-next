@@ -15,7 +15,7 @@ import {
 import { Texture, TextureSource } from 'pixi.js';
 
 import { GetAssetManager } from '../assets';
-import { GetTickerTime, TextureUtils } from '../utils';
+import { GetTickerTime, LoadMetrics, TextureUtils } from '../utils';
 import { GetRoomEngine } from './GetRoomEngine';
 import { PetColorResult } from './PetColorResult';
 
@@ -445,7 +445,14 @@ export class RoomContentLoader implements IRoomContentLoader {
 
         const queued = this.isQueuedType(type);
         const furniture = queued || RoomContentLoader.PRIORITY_FURNITURE_PATTERN.test(type);
-        const fetchAsset = (): Promise<boolean> => GetAssetManager().downloadAsset(assetUrl);
+
+        LoadMetrics.begin(assetUrl, type);
+
+        const fetchAsset = (): Promise<boolean> => {
+            LoadMetrics.mark(assetUrl, 'slot');
+
+            return GetAssetManager().downloadAsset(assetUrl);
+        };
         // A queued type takes a slot when one is free; dropped from the queue, it settles as a failure.
         const downloaded: Promise<boolean> = queued
             ? new Promise<boolean>((resolve) => {
@@ -534,6 +541,7 @@ export class RoomContentLoader implements IRoomContentLoader {
      */
     public purge(): void {
         const now = GetTickerTime();
+        const purged: string[] = [];
 
         for (const type of [ ...this._downloadedTypes ]) {
             if (RoomContentLoader.MANDATORY_LIBRARIES.includes(type) || this._downloads.has(type)) continue;
@@ -551,7 +559,11 @@ export class RoomContentLoader implements IRoomContentLoader {
             GetAssetManager().removeCollection(type);
 
             this._downloadedTypes.delete(type);
+
+            purged.push(type);
         }
+
+        if (purged.length) LoadMetrics.event('purge', { count: purged.length, types: purged.slice(0, 30) });
     }
 
     /**

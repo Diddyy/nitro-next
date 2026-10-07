@@ -18,7 +18,7 @@ import { ImageLike, Texture, Ticker, UPDATE_PRIORITY } from 'pixi.js';
 
 import { GetAvatarRenderManager } from '#renderer/avatar';
 import { PetFigureData } from '#renderer/session';
-import { GetTicker, NumberBank, PurgeTrigger, TextureUtils } from '#renderer/utils';
+import { GetTicker, LoadMetrics, NumberBank, PurgeTrigger, TextureUtils } from '#renderer/utils';
 
 import { GetRoomContentLoader } from './GetRoomContentLoader';
 import { ObjectDataUpdateMessage, ObjectRoomMaskUpdateMessage } from './messages';
@@ -96,6 +96,8 @@ export class RoomEngine implements IRoomEngine {
 
         room = new Room(roomId);
 
+        LoadMetrics.event('room-created', { roomId });
+
         this._rooms.set(roomId, room);
 
         return room;
@@ -117,6 +119,8 @@ export class RoomEngine implements IRoomEngine {
         if (!room) return;
 
         this._rooms.delete(roomId);
+
+        LoadMetrics.event('room-disposed', { roomId });
 
         room.dispose();
     }
