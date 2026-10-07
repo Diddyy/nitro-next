@@ -1,20 +1,18 @@
 import { IAvatarEffect } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
-/**
- * One avatar effect as the effects window shows it: the server's snapshot plus the two things
- * `EffectsModel` tracked on top of it - whether it has been switched on, and whether it is the
- * one currently being worn.
- */
-export interface UserAvatarEffect extends IAvatarEffect {
-    /** Switched on: it is counting down and can be worn. */
-    isActive: boolean;
-    /** The one actually on the avatar. */
-    isInUse: boolean;
-}
+import { effectsAfterActivated, effectsAfterAdded, effectsAfterExpired, effectsAfterSelected, effectsFromList, lastWornAfterChoice, NO_LAST_WORN, UserAvatarEffect } from './avatarEffectsModel';
+
+export type { UserAvatarEffect } from './avatarEffectsModel';
 
 type State = {
     avatarEffects: UserAvatarEffect[];
+    /**
+     * The effect the player last chose to wear, so it can be put on again in the next room
+     * (`effects.reactivate.on.room.entry`). Cleared when the player takes it off, and whenever any
+     * effect expires, as `EffectsModel.setEffectExpired` does.
+     */
+    lastWornEffect: number;
 };
 
 type Actions = {
@@ -22,47 +20,29 @@ type Actions = {
     setAvatarEffects: (effects: IAvatarEffect[]) => void;
     /** One more copy of an effect - a new one if it was not there at all. */
     addAvatarEffect: (effect: IAvatarEffect) => void;
-    removeAvatarEffect: (type: number) => void;
-    /** The effect was switched on: it starts counting down. */
+    /** A copy ran out: the next waits, or the effect is gone with its last one. */
+    expireAvatarEffect: (type: number) => void;
+    /** The effect was switched on: it starts counting down, and is the one worn. */
     activateAvatarEffect: (type: number, duration: number, isPermanent: boolean) => void;
     /** The effect now being worn; anything else stops being worn. Zero means none. */
     selectAvatarEffect: (type: number) => void;
+    /** The player chose to wear this effect, or (zero or less) to wear none. */
+    setLastWornEffect: (type: number) => void;
 };
 
 export const UserEffectsSliceInitialState: State = {
     avatarEffects: [],
+    lastWornEffect: NO_LAST_WORN,
 };
 
 export type UserEffectsSlice = State & Actions;
 
-const toUserEffect = (effect: IAvatarEffect): UserAvatarEffect => ({
-    ...effect,
-    // Anything with time left on it, or that never runs out, is already switched on.
-    isActive: effect.isPermanent || (effect.secondsLeftIfActive > 0),
-    isInUse: false,
-});
-
 export const createUserEffectsSlice: StateCreator<UserEffectsSlice, [], [], UserEffectsSlice> = set => ({
     ...UserEffectsSliceInitialState,
-    setAvatarEffects: effects => set({ avatarEffects: effects.map(toUserEffect) }),
-    addAvatarEffect: effect => set((x) => {
-        const existing = x.avatarEffects.find(other => other.type === effect.type);
-
-        if (!existing) return { avatarEffects: [ ...x.avatarEffects, toUserEffect(effect) ] };
-
-        return {
-            avatarEffects: x.avatarEffects.map(other => ((other.type === effect.type)
-                ? { ...other, inactiveEffectsInInventory: other.inactiveEffectsInInventory + 1 }
-                : other)),
-        };
-    }),
-    removeAvatarEffect: type => set(x => ({ avatarEffects: x.avatarEffects.filter(effect => effect.type !== type) })),
-    activateAvatarEffect: (type, duration, isPermanent) => set(x => ({
-        avatarEffects: x.avatarEffects.map(effect => ((effect.type === type)
-            ? { ...effect, isActive: true, isInUse: true, isPermanent, secondsLeftIfActive: duration }
-            : effect)),
-    })),
-    selectAvatarEffect: type => set(x => ({
-        avatarEffects: x.avatarEffects.map(effect => ({ ...effect, isInUse: effect.type === type })),
-    })),
+    setAvatarEffects: effects => set({ avatarEffects: effectsFromList(effects) }),
+    addAvatarEffect: effect => set(x => ({ avatarEffects: effectsAfterAdded(x.avatarEffects, effect) })),
+    expireAvatarEffect: type => set(x => ({ avatarEffects: effectsAfterExpired(x.avatarEffects, type), lastWornEffect: NO_LAST_WORN })),
+    activateAvatarEffect: (type, duration, isPermanent) => set(x => ({ avatarEffects: effectsAfterActivated(x.avatarEffects, type, duration, isPermanent) })),
+    selectAvatarEffect: type => set(x => ({ avatarEffects: effectsAfterSelected(x.avatarEffects, type) })),
+    setLastWornEffect: type => set({ lastWornEffect: lastWornAfterChoice(type) }),
 });

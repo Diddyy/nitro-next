@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
 import { UserAvatarEffect } from '#base/context/user';
+import { secondsLeftOf } from '#base/context/user/store/avatarEffectsModel';
 import { Border, Box, Button, CloseButton, LayoutImage, Region, ScrollArea, ThemeImage, ThemeText } from '#base/theme';
 
 export interface RoomEffectsViewProps {
@@ -11,6 +12,8 @@ export interface RoomEffectsViewProps {
     /** Wearing one that is already running, or taking it off again. */
     onToggleWear: (type: number, isInUse: boolean) => void;
     onClose: () => void;
+    /** `EffectsWidget.open`: `toolbar.getRect().right + 2` - the toolbar's width, plus the two it stands off. */
+    left: number;
 }
 
 /**
@@ -67,24 +70,37 @@ const formatTimeLeft = (seconds: number) => {
  * whenever the effect changes, so a hover is kept for the state it began in and a click that
  * starts or stops wearing the effect hides it until the pointer comes back.
  *
- * The time left and its loader bar are drawn from the store's `secondsLeftIfActive`,
- * which is the value the server last sent rather than the clock `EffectView`'s one-second timer
- * reads; a permanent effect shows no time left, as before.
+ * The time left and its loader bar count down once a second from when the server last said how
+ * long was left (`secondsLeftOf`), as `EffectView`'s one-second timer does; a permanent effect
+ * shows no time left, as before. The count stops at zero and waits for the server's expiry.
  */
-export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose }: RoomEffectsViewProps) => {
+export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose, left }: RoomEffectsViewProps) => {
     const t = useTranslation();
     /** The row the pointer is over, with the state `EffectView.update` last built it in. */
     const [ hovered, setHovered ] = useState<{ type: number; isInUse: boolean; isActive: boolean } | null>(null);
     const listHeight = Math.max(Math.min(effects.length * ROW_HEIGHT, LIST_HEIGHT_MAX), LIST_HEIGHT_MIN);
+    const [ now, setNow ] = useState(() => Date.now());
+    const anyCounting = effects.some(effect => effect.isActive && !effect.isPermanent);
+
+    // `EffectView`'s timer: one tick a second, only while something is counting down.
+    useEffect(() => {
+        if (!anyCounting) return undefined;
+
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+
+        return () => clearInterval(timer);
+    }, [ anyCounting ]);
 
     const timeLeftText = (effect: UserAvatarEffect) => {
-        if (effect.secondsLeftIfActive > SECONDS_PER_DAY) return t('widgets.memenu.effects.active.daysleft', '', { days_left: String(Math.floor(effect.secondsLeftIfActive / SECONDS_PER_DAY)) });
+        const secondsLeft = secondsLeftOf(effect, now);
 
-        return t('widgets.memenu.effects.active.timeleft', '', { time_left: formatTimeLeft(effect.secondsLeftIfActive) });
+        if (secondsLeft > SECONDS_PER_DAY) return t('widgets.memenu.effects.active.daysleft', '', { days_left: String(Math.floor(secondsLeft / SECONDS_PER_DAY)) });
+
+        return t('widgets.memenu.effects.active.timeleft', '', { time_left: formatTimeLeft(secondsLeft) });
     };
 
     return (
-        <Box layout={{ position: 'absolute', left: 60, bottom: 60, width: 190, height: WIDGET_HEIGHT_WITHOUT_LIST + listHeight }}>
+        <Box layout={{ position: 'absolute', left, bottom: 0, width: 190, height: WIDGET_HEIGHT_WITHOUT_LIST + listHeight }}>
             <Border
                 variant="6"
                 tintColor="#5b5953"
@@ -119,7 +135,7 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose }: 
                         const running = effect.isInUse || effect.isActive;
                         const hiliteVisible = !!hovered && (hovered.type === effect.type) && (hovered.isInUse === effect.isInUse) && (hovered.isActive === effect.isActive);
                         const barWidth = (effect.isActive && (effect.duration > 0))
-                            ? Math.round((effect.secondsLeftIfActive / effect.duration) * LOADER_BAR_WIDTH)
+                            ? Math.round((secondsLeftOf(effect, now) / effect.duration) * LOADER_BAR_WIDTH)
                             : 0;
 
                         return (
@@ -210,7 +226,7 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose }: 
                                         </Button>
                                     )}
                                     {/* `EffectView.update` hides the count while there is only the one. */}
-                                    {(effect.inactiveEffectsInInventory >= 2) && (
+                                    {(effect.amountInInventory >= 2) && (
                                         <Region
                                             name="effect_amount_bg1"
                                             backgroundColor="#dddddd"
@@ -222,7 +238,7 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose }: 
                                                 layout={{ position: 'absolute', left: 1, width: 18, top: 1, height: 13, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'flex-start' }}
                                             >
                                                 <ThemeText
-                                                    text={String(effect.inactiveEffectsInInventory)}
+                                                    text={String(effect.amountInInventory)}
                                                     textOptions={{ fill: '#eeeeee' }}
                                                     clip
                                                     name="effect_amount"
