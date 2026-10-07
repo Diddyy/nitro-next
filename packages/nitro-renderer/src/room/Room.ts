@@ -125,6 +125,12 @@ export class Room implements IRoom {
         RoomObjectCategoryEnum.Room,
     ];
 
+    /**
+     * The objects `update` runs logic for, copied out first because a logic may add or remove
+     * objects. Reused rather than `getValues()`, which allocated a copy of every category each frame.
+     */
+    private _updateObjects: (IRoomObjectController | undefined)[] = [];
+
     private _skipContentProcessingForNextFrame: boolean = false;
     private _skipFurnitureCreationForNextFrame: boolean = false;
     private _legacyGeometry: ILegacyWallGeometry | undefined = undefined;
@@ -381,7 +387,15 @@ export class Room implements IRoom {
 
             if (!objects || !objects.length) continue;
 
-            for (const object of objects.getValues()) object?.logic?.update(time);
+            const snapshot = this._updateObjects;
+            const count = objects.length;
+
+            for (let i = 0; i < count; i++) snapshot[i] = objects.getWithIndex(i);
+
+            for (let i = 0; i < count; i++) snapshot[i]?.logic?.update(time);
+
+            // Not kept alive by the snapshot once removed from the room.
+            for (let i = 0; i < count; i++) snapshot[i] = undefined;
         }
 
         this._canvas?.render(time, update);

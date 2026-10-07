@@ -1,5 +1,5 @@
 import { AlphaTolerance } from '@nitrodevco/nitro-api';
-import { Sprite, Texture, TextureSource } from 'pixi.js';
+import { Filter, Sprite, Texture, TextureSource } from 'pixi.js';
 
 import { TextureUtils } from '.';
 
@@ -15,6 +15,8 @@ export class ExtendedSprite extends Sprite {
     private _skipMouseHandling: boolean = false;
     private _geometryUpdateId: number = -1;
     private _objectUpdateId: number = -1;
+    /** The list last given to `setFilters`; Pixi keeps only a frozen copy of it. */
+    private _sourceFilters: Filter[] | undefined = undefined;
 
     public static removeHitmap(source: TextureSource): void {
         this._hitMaps.delete(source);
@@ -27,6 +29,24 @@ export class ExtendedSprite extends Sprite {
         this._objectUpdateId = objectUpdateId;
 
         return true;
+    }
+
+    /**
+     * Sets `filters` only when the list differs from the one last set. Pixi's `filters` setter copies
+     * and freezes the list on every write - and creates the sprite's filter effect on the first -
+     * so writing it on every sprite update, mostly with an empty list, was steady garbage.
+     */
+    public setFilters(filters: Filter[] | undefined): void {
+        if (filters === this._sourceFilters) return;
+
+        const isEmpty = !filters?.length;
+        const wasEmpty = !this._sourceFilters?.length;
+
+        this._sourceFilters = filters;
+
+        if (isEmpty && wasEmpty) return;
+
+        this.filters = isEmpty ? [] : filters;
     }
 
     public setTexture(texture: Texture): void {

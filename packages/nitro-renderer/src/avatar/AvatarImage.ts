@@ -1,5 +1,5 @@
 import { AvatarActionStateType, AvatarBodyPartType, AvatarDirectionAngle, AvatarFigurePartType, AvatarGeometryType, AvatarScaleType, AvatarSetType, IActiveActionData, IAnimationLayerData, IAvatarDataContainer, IAvatarEffectListener, IAvatarFigureContainer, IAvatarImage, IGraphicAsset, IPartColor, ISpriteDataContainer } from '@nitrodevco/nitro-api';
-import { Container, ImageLike, Point, PointData, Rectangle, RenderTexture, Sprite, Texture } from 'pixi.js';
+import { Container, Filter, ImageLike, Point, PointData, Rectangle, RenderTexture, Sprite, Texture } from 'pixi.js';
 
 import { GetTickerTime, TexturePool, TextureUtils } from '#renderer/utils';
 
@@ -70,6 +70,15 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
     private _cachedBodyPartsGeometryType: AvatarGeometryType | undefined = undefined;
     private _cachedBodyPartsAvatarSet: AvatarSetType | undefined = undefined;
     private _onDisposed: ((image: AvatarImage) => void) | undefined;
+    /**
+     * The tree a set is laid out in for rendering, reused by every render: an animating avatar is
+     * re-rendered every few frames, and a fresh tree (a root, a container per part and the render
+     * group Pixi gives the root) was ~14KB of garbage each time. Only ever used synchronously.
+     */
+    private _setContainer: Container | undefined = undefined;
+    private _setPartContainers: Container[] = [];
+    private _setPartCount: number = 0;
+    private _setImageFilter: Filter | undefined = undefined;
 
     constructor(structure: AvatarStructure, assets: AssetAliasCollection, container: AvatarFigureContainer | undefined, scale: AvatarScaleType, effectManager: EffectAssetDownloadManager | undefined = undefined, effectListener: IAvatarEffectListener | undefined = undefined, onDisposed: ((image: AvatarImage) => void) | undefined = undefined) {
         this._structure = structure;
@@ -110,6 +119,13 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
         this._image = undefined;
 
         this.disposeCroppedTopImage();
+
+        // The part images belong to the cache; only the containers holding them go.
+        for (const partContainer of this._setPartContainers) partContainer.destroy({ children: false });
+
+        this._setPartContainers = [];
+        this._setContainer?.destroy({ children: false });
+        this._setContainer = undefined;
 
         if (this._cache) this._cache.dispose();
 
@@ -245,7 +261,7 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
         if (!this._image) return undefined;
 
         const parts = this.getBodyParts(setType, this._mainAction.definition.geometryType, this._mainDirection);
-        const container = new Container();
+        const container = this.beginSetContainer();
 
         let isCachable = true;
         let topY = avatarCanvas.height;
@@ -257,7 +273,8 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
 
             isCachable &&= part.isCacheable;
 
-            const point = part.regPoint.clone();
+            // `regPoint` is already a copy.
+            const point = part.regPoint;
 
             point.x += avatarCanvas.offset.x;
             point.y += avatarCanvas.offset.y;
@@ -265,21 +282,14 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
             point.x += avatarCanvas.regPoint.x;
             point.y += avatarCanvas.regPoint.y;
 
-            const partContainer = new Container();
-
-            partContainer.addChild(part.image);
-            partContainer.position.set(point.x, point.y);
-
-            container.addChild(partContainer);
+            this.addSetPart(container, part.image, point.x, point.y);
 
             topY = Math.min(topY, point.y);
         }
 
         this._topCropY = (topY === avatarCanvas.height) ? 0 : Math.max(0, Math.min((avatarCanvas.height - 1), topY));
 
-        const imageFilter = this._avatarSpriteData?.imageFilter;
-
-        if (imageFilter) container.filters = [ imageFilter ];
+        this.endSetContainer(container);
 
         TextureUtils.getRenderer().render({
             target: this._image,
@@ -451,14 +461,15 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
     /** The set's parts laid out on the avatar canvas, with the effect's image filter applied. */
     private buildSetContainer(setType: AvatarSetType, canvasOffset: PointData, canvasRegPoint: PointData): Container {
         const parts = this.getBodyParts(setType, this._mainAction.definition!.geometryType, this._mainDirection);
-        const container = new Container();
+        const container = this.beginSetContainer();
 
         for (let i = parts.length - 1; i >= 0; i--) {
             const part = this._cache.getImageContainer(parts[i], this._frameCounter);
 
             if (!part || !part.image) continue;
 
-            const point = part.regPoint.clone();
+            // `regPoint` is already a copy.
+            const point = part.regPoint;
 
             point.x += canvasOffset.x;
             point.y += canvasOffset.y;
@@ -466,19 +477,59 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
             point.x += canvasRegPoint.x;
             point.y += canvasRegPoint.y;
 
-            const partContainer = new Container();
-
-            partContainer.addChild(part.image);
-            partContainer.position.set(point.x, point.y);
-
-            container.addChild(partContainer);
+            this.addSetPart(container, part.image, point.x, point.y);
         }
 
-        const imageFilter = this._avatarSpriteData?.imageFilter;
-
-        if (imageFilter) container.filters = [ imageFilter ];
+        this.endSetContainer(container);
 
         return container;
+    }
+
+    /** Empties the reused set tree for a new layout: no parts, at the origin. */
+    private beginSetContainer(): Container {
+        const container = (this._setContainer ??= new Container());
+
+        if (container.children.length) container.removeChildren();
+
+        container.position.set(0, 0);
+
+        this._setPartCount = 0;
+
+        return container;
+    }
+
+    /** Adds a part image at its canvas position, in the next pooled part container. */
+    private addSetPart(container: Container, image: Container, x: number, y: number): void {
+        let partContainer = this._setPartContainers[this._setPartCount];
+
+        if (!partContainer) {
+            partContainer = new Container();
+
+            this._setPartContainers[this._setPartCount] = partContainer;
+        }
+
+        this._setPartCount++;
+
+        if ((partContainer.children.length !== 1) || (partContainer.children[0] !== image)) {
+            if (partContainer.children.length) partContainer.removeChildren();
+
+            partContainer.addChild(image);
+        }
+
+        partContainer.position.set(x, y);
+
+        container.addChild(partContainer);
+    }
+
+    /** The effect's image filter on the whole set, set only when it changes (Pixi copies the list on every write). */
+    private endSetContainer(container: Container): void {
+        const imageFilter = this._avatarSpriteData?.imageFilter;
+
+        if (imageFilter === this._setImageFilter) return;
+
+        this._setImageFilter = imageFilter;
+
+        container.filters = imageFilter ? [ imageFilter ] : [];
     }
 
     private renderSetToCanvasTexture(setType: AvatarSetType): RenderTexture | undefined {

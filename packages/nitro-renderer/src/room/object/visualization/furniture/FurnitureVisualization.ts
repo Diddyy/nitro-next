@@ -719,7 +719,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
         sprite.alphaTolerance = AlphaTolerance.MATCH_NOTHING;
         sprite.clickHandling = false;
         sprite.skipMouseHandling = true;
-        sprite.filters = [];
+        sprite.filters = FurnitureVisualization.NO_FILTERS;
         sprite.spriteType = RoomObjectSpriteTypeEnum.Default;
         sprite.varyingDepth = false;
     }

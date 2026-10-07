@@ -583,7 +583,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             extendedSprite.varyingDepth = objectSprite.varyingDepth;
             extendedSprite.clickHandling = objectSprite.clickHandling;
             extendedSprite.skipMouseHandling = objectSprite.skipMouseHandling;
-            extendedSprite.filters = objectSprite.filters;
+            extendedSprite.setFilters(objectSprite.filters);
 
             const alpha = objectSprite.alpha / 255;
 
@@ -656,7 +656,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         extendedSprite.clickHandling = sprite.clickHandling;
         extendedSprite.skipMouseHandling = sprite.skipMouseHandling;
         extendedSprite.blendMode = sprite.blendMode;
-        extendedSprite.filters = sprite.filters;
+        extendedSprite.setFilters(sprite.filters);
 
         if (!textureSet) extendedSprite.setTexture(sprite.texture);
 
