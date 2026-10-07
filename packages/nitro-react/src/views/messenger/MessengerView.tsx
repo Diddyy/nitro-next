@@ -26,7 +26,6 @@ import {
 } from '#base/context/messenger';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useFriends, useUserStore } from '#base/context/user';
-import { useSecondsClock } from '#base/hooks';
 import { Border, Box, Button, CloseButton, ContainerButton, Frame, LayoutImage, Region, ScrollArea, ThemeImage, ThemeText } from '#base/theme';
 
 import { MessengerChatBubble } from './MessengerChatBubble';
@@ -123,7 +122,6 @@ const NoticeItem = ({ text, icon, tintColor }: { text: string; icon: string; tin
 export const MessengerView = () => {
     const t = useTranslation();
     const { send } = useWebSocketContext();
-    const now = useSecondsClock();
     const conversations = useMessengerStore(x => x.conversations);
     const entries = useMessengerStore(x => x.entries);
     const selectedChatId = useMessengerStore(x => x.selectedChatId);
@@ -163,7 +161,6 @@ export const MessengerView = () => {
                         userName={ownName}
                         userId={0}
                         persistedForOffline={!!selectedFriend && !selectedFriend.isOnline && (selectedFriend.persistedUser || selectedFriend.pocketHabboUser)}
-                        now={now}
                         onProfile={userId => openMessengerConversationProfile(send, userId)}
                     />
                 );
@@ -181,7 +178,6 @@ export const MessengerView = () => {
                         userName={first.senderName}
                         userId={first.senderId}
                         persistedForOffline={false}
-                        now={now}
                         onProfile={userId => openMessengerConversationProfile(send, userId)}
                     />
                 );

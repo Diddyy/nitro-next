@@ -328,6 +328,19 @@ await test('a scrollable list reports its viewport, its scrollbar and its conten
     assert.deepEqual(rects.get(items[3]), { x: 0, y: 90, width: 180, height: 30 });
 });
 
+await test('a scrollable list that keeps its scrollbar has it before its items go in, so stretched items keep their width', () => {
+    // The navigator's `block_results` (`createMainWindow`: `autoHideScrollBar = false` before any
+    // category is added): the category container is not narrowed when the scrollbar shows.
+    const items = [ element('container', [ 2, 0, 196, 30 ], { name: 'category', params: { scale: [ 'stretch', 'fixed' ] } }) ];
+    const list = element('scrollable_itemlist_vertical', [ 0, 0, 200, 100 ], { children: items });
+    const windows = buildTemplateWindows([ list ], { ...skinned, autoHideScrollBarOf: e => e !== list });
+    const scrollable = windows.get(list);
+
+    assert.equal(scrollable.scrollbar.visible, true);
+    assert.equal(scrollable.list.width, 183);
+    assert.equal(windows.get(items[0]).width, 196);
+});
+
 await test('a scrollable list resized smaller than its items shows its scrollbar, and hides it again resized to fit them', () => {
     const items = [ 0, 1, 2 ].map(index => element('container', [ 0, 0, 180, 30 ], { name: `row${index}` }));
     const list = element('scrollable_itemlist_vertical', [ 0, 0, 200, 100 ], { params: { scale: [ 'stretch', 'stretch' ] }, children: items });

@@ -1077,6 +1077,11 @@ class ScrollableWindow extends LayoutWindow {
         this.param = saved;
         this.previous = this.rect;
 
+        // Set by the window's code before it adds any items (`createMainWindow`'s
+        // `block_results.autoHideScrollBar = false`), so they go into the list at its final width
+        // rather than being stretched narrower when the scrollbar comes later.
+        this.autoHideScrollBar = input.autoHideScrollBarOf?.(element) ?? true;
+
         // `scrollbar.scrollable = list`: disabled with nothing to scroll, so hidden.
         this.updateScrollbar();
 
@@ -1580,11 +1585,8 @@ export const buildTemplateWindows = (elements: readonly TemplateElement[], input
         for (const list of lists) list.arrange();
     }
 
-    for (const [ element, window ] of windows) {
-        if (!(window instanceof ScrollableWindow)) continue;
-
-        window.autoHideScrollBar = input.autoHideScrollBarOf?.(element) ?? true;
-        window.updateScrollbar();
+    for (const window of windows.values()) {
+        if (window instanceof ScrollableWindow) window.updateScrollbar();
     }
 
     return windows;

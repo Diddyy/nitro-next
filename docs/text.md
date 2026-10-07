@@ -60,7 +60,9 @@ the face at the end of a run rather than dropping it, so the gap stays visible.
   theme styles, so a style it gains is one a view can name that day and one it loses is a
   `textStyle` that stops typechecking - never a hand-written font beside it.
 - Fonts are captured bundles in `public/assets/fonts/*.air51.json`, shipped in `fonts.nitro` and
-  registered once at boot by `preloadFlashFonts()`. They cover printable ASCII. A string with any
+  registered once at boot by `preloadFlashFonts()`. They cover printable ASCII; typographic quotes,
+  dashes, the acute accent used as an apostrophe and the no-break space are drawn as their ASCII
+  look-alikes (`GLYPH_STAND_INS` in `FlashTextRenderer.ts`, one character for one). A string with any
   other character - or a raw `fontFamily`/`fontSize` override - falls back to the browser's text
   in the same `.ttf` faces, so never assume a text is a Flash bitmap. Those faces are
   `font-faces.nitro`, added to `document.fonts` from the archive's own bytes by

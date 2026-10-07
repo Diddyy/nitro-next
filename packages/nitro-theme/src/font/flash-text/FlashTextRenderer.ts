@@ -88,6 +88,41 @@ const toNativeRenderOptions = (format: FlashTextFormat): NativeRenderOptions => 
 };
 
 /**
+ * Typographic punctuation the captured fonts have no glyph data for (they cover printable ASCII),
+ * drawn as its ASCII look-alike: a text with any one of them would otherwise fall back to browser
+ * text whole - softer than every Flash text around it - for a mark the localizations use in place
+ * of an apostrophe (`You don\u00b4t`), a quote or a dash. One character for one, so a caret,
+ * a selection or a markup run still indexes the same text.
+ */
+const GLYPH_STAND_INS: Readonly<Record<string, string>> = {
+    '\u00b4': "'", // acute accent
+    '\u2018': "'", // left single quotation mark
+    '\u2019': "'", // right single quotation mark
+    '\u201a': "'", // single low-9 quotation mark
+    '\u201b': "'", // single high-reversed-9 quotation mark
+    '\u2032': "'", // prime
+    '\u201c': '"', // left double quotation mark
+    '\u201d': '"', // right double quotation mark
+    '\u201e': '"', // double low-9 quotation mark
+    '\u2033': '"', // double prime
+    '\u2010': '-', // hyphen
+    '\u2011': '-', // non-breaking hyphen
+    '\u2012': '-', // figure dash
+    '\u2013': '-', // en dash
+    '\u2014': '-', // em dash
+    '\u2212': '-', // minus sign
+    '\u00a0': ' ', // no-break space
+};
+
+const GLYPH_STAND_IN_CLASS = `[${Object.keys(GLYPH_STAND_INS).join('')}]`;
+/** Tests for one (no `g` flag: a global pattern's `test` keeps its `lastIndex` between calls). */
+const HAS_GLYPH_STAND_IN = new RegExp(GLYPH_STAND_IN_CLASS);
+const GLYPH_STAND_IN_PATTERN = new RegExp(GLYPH_STAND_IN_CLASS, 'g');
+
+/** The text as the captured glyphs draw it (`GLYPH_STAND_INS`); the same length as `text`. */
+const withCapturedGlyphs = (text: string): string => (HAS_GLYPH_STAND_IN.test(text) ? text.replace(GLYPH_STAND_IN_PATTERN, character => GLYPH_STAND_INS[character] ?? character) : text);
+
+/**
  * Why `text` cannot be rendered exactly in `format`, or `null` when it can - the checks in the
  * order the exact renderer needs them. The dev text-fallback report shows these reasons.
  */
@@ -140,11 +175,13 @@ export class FlashTextRenderer {
     }
 
     public static supports(format: FlashTextFormat, text: string = ''): boolean {
-        return !!resolveSupportedFont(format, text);
+        return !!resolveSupportedFont(format, withCapturedGlyphs(text));
     }
 
     /** Why `text` in `format` falls back to browser text, or `null` when it renders exactly. */
     public static unsupportedReason(format: FlashTextFormat, text: string = ''): string | null {
+        text = withCapturedGlyphs(text);
+
         const reason = unsupportedReason(format, text);
 
         if (reason !== null) return reason;
@@ -156,6 +193,8 @@ export class FlashTextRenderer {
 
     /** The run's width in px, or `null` when it cannot be rendered exactly. */
     public static measure(text: string, format: FlashTextFormat): number | null {
+        text = withCapturedGlyphs(text);
+
         const entry = resolveSupportedFont(format, text);
 
         return entry ? layoutRun(entry, text, format).textWidth : null;
@@ -163,6 +202,8 @@ export class FlashTextRenderer {
 
     /** The x of every character's left edge, followed by the run's width. */
     public static measureCharPositions(text: string, format: FlashTextFormat): number[] | null {
+        text = withCapturedGlyphs(text);
+
         const entry = resolveSupportedFont(format, text);
 
         if (!entry) return null;
@@ -200,6 +241,8 @@ export class FlashTextRenderer {
 
     /** One line of text; `retainedPixels` on the result is the premultiplied RGBA bitmap, gutter included. */
     public static render(text: string, format: FlashTextFormat): NativeRenderResult | null {
+        text = withCapturedGlyphs(text);
+
         const entry = resolveSupportedFont(format, text);
 
         if (!entry) return null;
@@ -213,6 +256,8 @@ export class FlashTextRenderer {
 
     /** Renders into a caller-owned premultiplied bitmap, at the target's own offset. */
     public static renderInto(text: string, format: FlashTextFormat, target: RenderTarget): void {
+        text = withCapturedGlyphs(text);
+
         const entry = resolveNativeFont(format);
 
         if (!entry) throw new RangeError(`no captured font for ${format.fontFamily}`);

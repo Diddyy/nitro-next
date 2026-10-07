@@ -39,6 +39,7 @@ import { ContainerButton } from '../ContainerButton';
 import { Droplist } from '../Droplist';
 import { Dropmenu } from '../Dropmenu';
 import { Frame, FrameProps } from '../Frame';
+import { Gradient, GradientDirection } from '../Gradient';
 import { Header } from '../Header';
 import { loadTexture, useTextureFromUrl } from '../hooks/usePixiTexture';
 import { Icon } from '../Icon';
@@ -131,6 +132,19 @@ const flashUint = (value: TemplateValue | undefined): number | undefined => {
 const flashBool = (value: TemplateValue | undefined) => value === true || value === 'true' || value === '1';
 
 const flashString = (value: TemplateValue | undefined) => (typeof value === 'string' ? value : undefined);
+
+/**
+ * The blend mode a `BLEND_<mode>` tag gives a window (`WindowRendererItem.render`: the last such tag,
+ * lower-cased). Only `add` has a Pixi blend mode without the advanced ones; `subtract` and `invert`
+ * (on a few texts) draw normally.
+ */
+const blendModeOf = (element: TemplateElement): 'add' | undefined => {
+    const tag = element.tags?.findLast(each => each.startsWith('BLEND_'));
+
+    return tag?.slice(6).toLowerCase() === 'add' ? 'add' : undefined;
+};
+
+const GRADIENT_DIRECTIONS = new Set<GradientDirection>([ 'up', 'down', 'left', 'right', 'up_left', 'up_right', 'down_left', 'down_right' ]);
 
 /** A tint: a colour that changes anything (white, and none, leave a skin as it is). */
 const tintOf = (element: TemplateElement, binding?: TemplateBinding) => {
@@ -400,6 +414,7 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
             <TemplateBitmap
                 src={src}
                 previous={bitmapSourceOf(element, undefined, context.imageUrl)}
+                blendMode={blendModeOf(element)}
                 // A colour the code sets (`IWindow.color`); the layout's own is not drawn on a bitmap.
                 tint={binding?.color !== undefined ? flashColor(binding.color)?.hex : undefined}
                 bitmap={{ ...bitmapVars(element.vars), ...(binding?.pivot !== undefined && { pivot: binding.pivot }), ...(binding?.rotation !== undefined && { rotation: binding.rotation }) }}
@@ -629,6 +644,21 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
                 layout={{ position: 'absolute', left: 0, top: 0 }}
             />
         );
+        // `GradientController`: its `color1` / `color2`, `mode` and `direction` vars, drawn by `GradientSkinRenderer`.
+        case 'gradient': {
+            const direction = flashString(element.vars.direction);
+
+            return (
+                <Gradient
+                    color1={flashUint(element.vars.color1)}
+                    color2={flashUint(element.vars.color2)}
+                    mode={element.vars.mode === 'radial' ? 'radial' : 'linear'}
+                    direction={direction && GRADIENT_DIRECTIONS.has(direction as GradientDirection) ? direction as GradientDirection : undefined}
+                    blendMode={blendModeOf(element)}
+                    layout={FILL}
+                />
+            );
+        }
         case 'shape': {
             const color = flashColor(element.color);
 
@@ -817,18 +847,37 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     const list = TEMPLATE_LISTS[element.tag];
     const childFlow = FLOWS[element.tag];
     const show = list ? binding?.show : undefined;
+    const childViews = element.children.map((child, index) => (
+        <ElementView
+            key={child.itemKey ?? String(index)}
+            element={child}
+            context={context}
+            id={`${id}.${child.itemKey ?? index}`}
+            flow={childFlow}
+            shown={show ? show.includes(child.name ?? '') : undefined}
+        />
+    ));
     const children = (
         <>
-            {element.children.map((child, index) => (
-                <ElementView
-                    key={child.itemKey ?? String(index)}
-                    element={child}
-                    context={context}
-                    id={`${id}.${child.itemKey ?? index}`}
-                    flow={childFlow}
-                    shown={show ? show.includes(child.name ?? '') : undefined}
-                />
-            ))}
+            {element.tag === 'selector'
+                ? (
+                        <Box
+                            pointerTransparent
+                            sortableChildren
+                            layout={{ position: 'absolute', left: 0, top: 0 }}
+                        >
+                            {childViews.map((view, index) => (
+                                <SelectorItem
+                                    key={view.key}
+                                    element={element.children[index]}
+                                    context={context}
+                                >
+                                    {view}
+                                </SelectorItem>
+                            ))}
+                        </Box>
+                    )
+                : childViews}
             {binding?.children}
         </>
     );
@@ -1051,6 +1100,26 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
 };
 
 const ElementView = memo(ElementContent);
+
+/**
+ * A `selector`'s child: `SelectorController.select` moves the window it selects to the top of its
+ * children, so it draws over the siblings it overlaps (a button group's shared edges). Here the child
+ * its code selects (`selected`) draws over the rest while it is; the box sits at the selector's
+ * origin, so the child is placed as it would be.
+ */
+const SelectorItem = ({ element, context, children }: { element: TemplateElement; context: Context; children: ReactNode }) => {
+    const selected = useSyncExternalStore(context.store.subscribe, () => !!context.store.get(element)?.binding?.selected);
+
+    return (
+        <Box
+            pointerTransparent
+            zIndex={selected ? 1 : 0}
+            layout={{ position: 'absolute', left: 0, top: 0 }}
+        >
+            {children}
+        </Box>
+    );
+};
 
 /** The theme component each caption-sized button type draws as. */
 const BUTTON_CASCADE_KEYS: Readonly<Record<string, string>> = {

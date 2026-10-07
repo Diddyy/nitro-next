@@ -23,8 +23,7 @@ import { AvatarImage } from '#base/components/AvatarImage';
 import { useHabbiconsStore } from '#base/context/habbicons';
 import { MessengerChatEntry } from '#base/context/messenger';
 import { useTranslation } from '#base/context/system';
-import { Border, Box, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
-import { GetFriendlyTime } from '#base/utils';
+import { Border, Box, LayoutImage, Region, ThemeImage, ThemeText, UpdatingTimeStampWidget } from '#base/theme';
 
 /** `illumina_chat_bubble`: the figure's window, and `bubble_wrapper` right of it. */
 const AVATAR_WIDTH = 52;
@@ -48,18 +47,15 @@ export interface MessengerChatBubbleProps {
     userId: number;
     /** `friendOnlineStatus = false`: an own message to an offline friend who reads it later. */
     persistedForOffline: boolean;
-    /** `performance.now()`, from `useSecondsClock`. */
-    now: number;
     onProfile: (userId: number) => void;
 }
 
-export const MessengerChatBubble = ({ entries, flipped, width, figure, gender, userName, userId, persistedForOffline, now, onProfile }: MessengerChatBubbleProps) => {
+export const MessengerChatBubble = ({ entries, flipped, width, figure, gender, userName, userId, persistedForOffline, onProfile }: MessengerChatBubbleProps) => {
     const t = useTranslation();
     const habbiconPreviews = useHabbiconsStore(x => x.previews);
     const wrapperWidth = width - AVATAR_WIDTH;
     const messageWidth = wrapperWidth - MESSAGE_INSET - (MESSAGE_MARGIN * 2);
     const last = entries[entries.length - 1];
-    const seconds = Math.max(0, (now - last.sentAt) / 1000);
 
     return (
         <Box layout={{ width, flexDirection: flipped ? 'row-reverse' : 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -122,10 +118,9 @@ export const MessengerChatBubble = ({ entries, flipped, width, figure, gender, u
                                 />
                             )))}
                 </Border>
-                <ThemeText
-                    text={GetFriendlyTime(t, seconds, '.ago', 1)}
-                    textStyle="il_regular"
-                    textOptions={{ fill: META_COLOR }}
+                {/* `sentAt` is a `performance.now()` time: from the page's time origin, it is the epoch time the widget takes. */}
+                <UpdatingTimeStampWidget
+                    timeStamp={performance.timeOrigin + last.sentAt}
                     layout={{ height: 16 }}
                 />
                 {persistedForOffline && (
