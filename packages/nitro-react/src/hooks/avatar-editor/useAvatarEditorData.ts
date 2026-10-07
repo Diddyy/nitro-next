@@ -1,10 +1,11 @@
-import { AvatarGenderType, IFigurePartSet, IPartColor } from '@nitrodevco/nitro-api';
+import { IFigurePartSet, IPartColor } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
 import { useMemo } from 'react';
 
 import { useAvatarEditorStore } from '#base/context/avatar-editor';
 import { useConfigValue } from '#base/context/system';
 import { useOwnClubLevel } from '#base/context/user';
+import { firstSelectableColorId, getAvatarEditorPartSets } from '#base/utils';
 
 /**
  * Derives the part grid and colour palettes for one figure set type - the React-first port of
@@ -41,29 +42,6 @@ const MAX_COLOR_LAYERS = 2;
 
 const cssColor = (rgb: number): string => `#${rgb.toString(16).padStart(6, '0')}`;
 
-/** `avatareditor.show.clubitems.first` ordering (`clubSorter`/`noobSorter`). */
-const partSorter = (clubFirst: boolean) => (a: IFigurePartSet, b: IFigurePartSet): number => {
-    if (a.isSellable !== b.isSellable) return a.isSellable ? 1 : -1;
-    if (a.clubLevel !== b.clubLevel) return clubFirst ? b.clubLevel - a.clubLevel : a.clubLevel - b.clubLevel;
-
-    return clubFirst ? b.id - a.id : a.id - b.id;
-};
-
-/** The first colour a set type may select (`avatarSetFirstSelectableColor`) - used when the figure has no colour yet. */
-export const firstSelectableColorId = (setType: string, clubLevel: number): number => {
-    const figureData = GetAvatarRenderManager().structureData;
-    const type = figureData.getSetType(setType);
-    const palette = type && figureData.getPalette(type.paletteId);
-
-    if (!palette) return -1;
-
-    for (const color of palette.colors.values()) {
-        if (color.isSelectable && color.clubLevel <= clubLevel) return color.id;
-    }
-
-    return -1;
-};
-
 export const useAvatarEditorData = (setType: string): { parts: AvatarEditorPartData[]; palettes: AvatarEditorColorData[][]; maxColorLayers: number } => {
     const figureParts = useAvatarEditorStore(x => x.parts);
     const gender = useAvatarEditorStore(x => x.gender);
@@ -87,16 +65,7 @@ export const useAvatarEditorData = (setType: string): { parts: AvatarEditorPartD
         const selectedColors = selectedColorIds.map(colorId => palette.getColor(colorId));
 
         // --- the part grid -----------------------------------------------------------------
-        const sets = [ ...type.partSets.values() ]
-            .filter((partSet) => {
-                if (!partSet.isSelectable) return false;
-                if (partSet.gender !== AvatarGenderType.Unisex && partSet.gender !== gender) return false;
-                if (!clubItemsDimmed && partSet.clubLevel > clubLevel) return false;
-                if (partSet.isSellable && !figureSetIds.includes(partSet.id)) return false;
-
-                return true;
-            })
-            .sort(partSorter(clubItemsFirst));
+        const sets = getAvatarEditorPartSets(type, { gender, clubLevel, figureSetIds, clubItemsFirst, clubItemsDimmed });
 
         const parts: AvatarEditorPartData[] = sets.map(partSet => ({
             id: partSet.id,

@@ -1017,8 +1017,46 @@ class ListContainer extends LayoutWindow {
  * item `n` goes into column `n % columns`.
  */
 class GridWindow extends ListWindow {
+    private _rebuilding = false;
+
     constructor(element: TemplateElement, rect: TemplateRect, param: number, parent?: LayoutWindow, spacing?: number) {
         super(element, rect, param, parent, { horizontal: true, scaleToFit: true, reflectHorizontal: false, spacing });
+    }
+
+    /** `ItemGridController.update`: resized, the grid is rebuilt at its new width (`shouldRebuildGridOnResize`, on by default). */
+    public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
+        super.update(source, type, related);
+
+        if (type === 'RESIZED' && source === this) this.rebuildGridStructure();
+    }
+
+    /**
+     * `rebuildGridStructure`: the items taken out a row at a time - the first of each column in turn,
+     * which is the order they were added in - the columns dropped, and the items added again.
+     */
+    private rebuildGridStructure(): void {
+        const columns = this.columns;
+
+        if (this._rebuilding || !columns.length) return;
+
+        this._rebuilding = true;
+
+        const items: LayoutWindow[] = [];
+        const rows = Math.max(...columns.map(column => column.container.children.length));
+
+        for (let row = 0; row < rows; row++) {
+            for (const column of columns) {
+                const item = column.container.children[row];
+
+                if (item) items.push(item);
+            }
+        }
+
+        for (const column of columns) this.container.removeChild(column);
+
+        for (const item of items) this.push(item);
+
+        this._rebuilding = false;
     }
 
     /**

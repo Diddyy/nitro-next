@@ -40,10 +40,20 @@ const addRoomStage = (app: PixiApplication) => {
     skipLayoutWalk(app, GetRoomStage());
 };
 
+/** A right click on the canvas opens no browser menu: the client's own menus answer it. */
+const blockContextMenu = (app: PixiApplication) => {
+    app.canvas.addEventListener('contextmenu', event => event.preventDefault());
+};
+
+const initClient = (app: PixiApplication) => {
+    addRoomStage(app);
+    blockContextMenu(app);
+};
+
 /** The theme's root, with the client's room stage on it. */
 export const PixiApplicationRoot = (props: Omit<ComponentProps<typeof ThemeApplicationRoot>, 'onInit'>) => (
     <ThemeApplicationRoot
         {...props}
-        onInit={addRoomStage}
+        onInit={initClient}
     />
 );

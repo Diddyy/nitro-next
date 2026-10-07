@@ -21,6 +21,13 @@ export interface RoomPreviewerOptions {
     /** Walls/floor are hidden by default so only the previewed object shows. */
     showWalls?: boolean;
     showFloor?: boolean;
+    /**
+     * Where in the preview the object's location (an avatar's feet) is held, instead of its bounds
+     * being centred - the avatar editor's `room_previewer` widget, whose preview places the object's
+     * location in a fixed spot (`getRoomCanvas`'s `adjustLocation`) and only nudges it when the figure
+     * changes, so a taller hairstyle grows upward rather than pushing the avatar down.
+     */
+    anchor?: PointData;
 }
 
 /** The last object a consumer asked the preview to show - replayed into a room that arrives or is recreated later. */
@@ -90,7 +97,7 @@ const getPreviewerRoom = (roomId: number, createMapForSize: ReturnType<typeof us
  * state, scaled to fit. The same logic serves both render targets - only how the frame reaches
  * the screen differs, see `RoomPreviewerTarget`.
  */
-export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPreviewerTarget | null>, { transparent = false, scale, showWalls = false, showFloor = false }: RoomPreviewerOptions = {}): RoomPreviewerApi => {
+export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPreviewerTarget | null>, { transparent = false, scale, showWalls = false, showFloor = false, anchor }: RoomPreviewerOptions = {}): RoomPreviewerApi => {
     const { createMapForSize } = useRoomMapping();
     const room: IRoom | undefined = getPreviewerRoom(roomId, createMapForSize);
     const mountedMasterRef = useRef<PixiContainer | undefined>(undefined);
@@ -116,6 +123,14 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
         autoStateChange: false,
         autoStateChangeTime: -1,
     });
+    // `anchor`, read by the frame tick, which keeps the closure of the render that set it up.
+    const anchorRef = useRef<PointData | undefined>(anchor);
+    const anchorX = anchor?.x;
+    const anchorY = anchor?.y;
+
+    useEffect(() => {
+        anchorRef.current = ((anchorX !== undefined) && (anchorY !== undefined)) ? { x: anchorX, y: anchorY } : undefined;
+    }, [ anchorX, anchorY ]);
 
     const getValidRoomObjectDirection = (roomObject: IRoomObjectController, forward: boolean) => {
         if (!roomObject?.model) return 0;
@@ -342,6 +357,21 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
         if ((previewData.current.previewWidth <= 0) || (previewData.current.previewHeight <= 0)) return;
 
         let offset = room.getRoomInstanceRenderingCanvasOffset();
+        const anchorPoint = anchorRef.current;
+
+        // Anchored: the object's location moved onto the anchor, whatever its bounds.
+        if (anchorPoint) {
+            const location = room.getRoomObjectScreenLocation(PREVIEW_OBJECT_ID, previewData.current.objectCategory);
+
+            if (!location) return;
+
+            const dx = Math.round(anchorPoint.x - location.x);
+            const dy = Math.round(anchorPoint.y - location.y);
+
+            if (dx || dy) room.setRoomInstanceRenderingCanvasOffset({ x: offset.x + dx, y: offset.y + dy });
+
+            return;
+        }
 
         updatePreviewObjectBoundingRectangle(offset);
 

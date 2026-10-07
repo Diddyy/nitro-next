@@ -41,6 +41,7 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Room events | Creating, editing and cancelling events, and the in-room event promotion. `CatalogRoomAdSlice` notes that nothing opens the room ad page from here. | `Navigator` |
 | NFT wardrobe | Saved NFT outfits and their selection, silver. | `Nft` |
 | Name change | `AvatarEditorNameChangeView` and the in-room name change (`AvatarEditor`). | `Avatar` |
+| Avatar editor | The hot looks and effects lists (`HotLooksView`, `AvatarEditorGridViewEffects`, `effectParamsContainer`) and the `nfts` tab - nothing feeds them. | `AvatarEditor` |
 
 ## Gaps inside ported features
 
