@@ -30,7 +30,7 @@
  * (`createTransitionToIcon`), and what bounces as one lands: `Queue(Wait(duration + 8),
  * DropBounce(icon, 400, 12))` lifts it 12 px and lets it fall back with a bounce.
  */
-import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
+import { CatalogTypeEnum, RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { QuitComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Ticker } from 'pixi.js';
@@ -41,10 +41,11 @@ import { unseenSkipped, useAchievementsStore } from '#base/context/achievements'
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
+import { useOwnRoomObjectId } from '#base/context/room';
 import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
-import { easeOutCubic, useTween, useViewportSize } from '#base/hooks';
+import { easeOutCubic, useRoomObjectSelect, useTween, useViewportSize } from '#base/hooks';
 import { Box, Region, Template, TemplateBindings, TemplateElement, TemplateWindow, TemplateWindows, useLayoutEvent, useTemplate } from '#base/theme';
 import { FriendBarView } from '#base/views/friend-bar/FriendBarView';
 import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
@@ -269,6 +270,21 @@ export const ToolbarView = () => {
         endRoomSession();
     };
 
+    const ownRoomObjectId = useOwnRoomObjectId();
+    const { selectObject } = useRoomObjectSelect();
+    const simpleMeMenu = useConfigValue<boolean>('simple.memenu.enabled') === true;
+
+    /*
+     * `AvatarInfoWidgetHandler.onToolbarClicked`: every click on the me menu icon in a room, with
+     * `simple.memenu.enabled`, selects your own avatar (`AvatarInfoWidget.selectOwnAvatar`) - its
+     * menu opens over it as if it were clicked. Without the flag Flash asks for the own avatar info
+     * instead (`dispatchOwnAvatarInfo`: the name bubble, or the minimized menu when the name can be
+     * changed), which is not ported.
+     */
+    const selectOwnAvatar = () => {
+        if (simpleMeMenu && (ownRoomObjectId >= 0)) selectObject(ownRoomObjectId, RoomObjectCategoryEnum.Unit);
+    };
+
     // `AbstractSubMenuController.onToolbarClick`: the menu's own icon toggles it, any other icon hides it.
     const iconClick = (action?: () => void, menu?: 'me' | 'progression') => () => {
         setOpenMenu(current => ((menu && (current !== menu)) ? menu : undefined));
@@ -313,7 +329,7 @@ export const ToolbarView = () => {
             ),
         },
         MEMENU: {
-            onPointerTap: iconClick(undefined, 'me'),
+            onPointerTap: iconClick(selectOwnAvatar, 'me'),
             children: (
                 <>
                     <Box

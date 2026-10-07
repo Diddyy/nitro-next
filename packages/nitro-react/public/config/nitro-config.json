@@ -180,6 +180,7 @@
     "inventory.bots.enabled": true,
     "infostand.use.button.enabled": true,
     "infostand.place_more.enabled": true,
+    "simple.memenu.enabled": true,
     "link.format.bots.help": "https://help.habbo.com/hc/en-us/articles/360011620199-Bots",
     "memenu.effects.widget.disabled": false,
     "effects.reactivate.on.room.entry": true,
