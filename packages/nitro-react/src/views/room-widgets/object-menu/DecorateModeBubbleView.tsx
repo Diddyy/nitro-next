@@ -1,33 +1,28 @@
 import { useRoomSessionActions } from '#base/context/room';
-import { useTranslation } from '#base/context/system';
+import { TemplateBindings, TemplateWindow } from '#base/theme';
 
-import { InfoBubbleMenuButton } from './InfoBubbleMenuButton';
-import { InfoBubbleMenuFrame } from './InfoBubbleMenuFrame';
-import { OWN_AVATAR_DECORATING_GEOMETRY } from './InfoBubbleMenuGeometry';
+import { useButtonMenu } from './useButtonMenu';
 
-/** `own_avatar_decorating`'s one row: 101x26. */
-const ROW_WIDTH = 101;
-const ROW_HEIGHT = 26;
+/** `DecorateModeView.maximumBlend`: what `ContextInfoView.update` sets the window's blend to every frame. */
+const BLEND = 0.8;
 
 /**
- * The bubble that stays over your avatar while you decorate - `DecorateModeView`, on the
- * `own_avatar_decorating` layout: no header, the black rule at y 7 and its one `decorate` row,
- * which ends decorating.
+ * The bubble that stays over your avatar while you decorate - `DecorateModeView`, drawn from its
+ * `own_avatar_decorating` template: no header, the black rule and its one `decorate` row
+ * (`${widget.avatar.stop_decorating}`), which ends decorating. The layout's own `blend` of 0.5 never
+ * shows: the view draws the bubble at its `maximumBlend`.
  */
 export const DecorateModeBubbleView = () => {
-    const t = useTranslation();
     const { setIsDecorating } = useRoomSessionActions();
+    const { showButton } = useButtonMenu();
+    const bindings: TemplateBindings = { '': { alpha: BLEND } };
+
+    showButton(bindings, 'decorate', () => setIsDecorating(false));
 
     return (
-        <InfoBubbleMenuFrame
-            geometry={OWN_AVATAR_DECORATING_GEOMETRY}
-            rowHeights={[ ROW_HEIGHT ]}
-        >
-            <InfoBubbleMenuButton
-                width={ROW_WIDTH}
-                caption={t('widget.avatar.stop_decorating')}
-                onPress={() => setIsDecorating(false)}
-            />
-        </InfoBubbleMenuFrame>
+        <TemplateWindow
+            id="habbo-room-ui-com/own_avatar_decorating"
+            bindings={bindings}
+        />
     );
 };

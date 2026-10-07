@@ -42,7 +42,7 @@ export type MenuButton = {
 /**
  * What `AvatarMenuView` shows over another user and what each button does: its modes, every row's
  * `updateButtons` condition and action, the trade button's tooltip. `undefined` while the user has
- * no data or a game is being played. Both the hand-placed view and the template's read it.
+ * no data or a game is being played. `InfoBubbleAvatarView` draws it on the menu's template.
  */
 export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => void) => {
     const { objectId } = objectData;

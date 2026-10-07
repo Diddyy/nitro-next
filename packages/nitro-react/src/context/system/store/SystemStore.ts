@@ -199,7 +199,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
             return { localizations };
         });
     },
-    parseFloorItems: (data: IFurnitureType[]) => set((x) => {
+    parseFloorItems: (data: IFurnitureType[]) => set(() => {
         const floorItems: Record<number, IFurnitureData> = {};
 
         for (const furniture of data) {
@@ -267,8 +267,9 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
 
         return { floorItems };
     }),
-    parseWallItems: (data: IFurnitureType[]) => set((x) => {
-        const wallItems = { ...x.wallItems };
+    // A reload replaces the table, as `SessionDataManager.refreshFurniData` clears it: a wall item a publish dropped goes.
+    parseWallItems: (data: IFurnitureType[]) => set(() => {
+        const wallItems: Record<number, IFurnitureData> = {};
 
         for (const furniture of data) {
             if (!furniture) continue;

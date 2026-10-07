@@ -1,6 +1,6 @@
 import { AvatarActionStateType, AvatarExpressionEnum, ClubLevelEnum, ISimpleRoomObjectData, PostureTypeEnum, RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { AvatarExpressionComposer, ChangePostureComposer, DanceComposer, SignComposer } from '@nitrodevco/nitro-packets';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 import { dropCarryItem, openClientLink, openProfile } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
@@ -9,11 +9,9 @@ import { useConfigValue, useTranslation, useWindowActions } from '#base/context/
 import { useOwnClubLevel, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useRoomUserData } from '#base/hooks';
-import { Box, Icon, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
+import { Box, LayoutImage, TemplateBindings, TemplateWindow, ThemeImage } from '#base/theme';
 
-import { InfoBubbleMenuButton } from './InfoBubbleMenuButton';
-import { InfoBubbleMenuFrame } from './InfoBubbleMenuFrame';
-import { OWN_AVATAR_MENU_GEOMETRY } from './InfoBubbleMenuGeometry';
+import { useButtonMenu, useMinimizedMenu } from './useButtonMenu';
 
 export interface InfoBubbleOwnAvatarViewProps {
     objectData: ISimpleRoomObjectData;
@@ -32,70 +30,58 @@ const SWIMMING_EFFECTS = [ 29, 30, 185 ];
 const RIDING_EFFECT = 77;
 const MAX_CARRY_ITEM = 999999;
 
-/**
- * `signs_grid`, in the layout's own order: numbers, then the picture signs. A picture cell is a
- * `<bitmap tags="icon">` that `ButtonMenuView.showButtonGrid` fills by the window's own name
- * (`sign_icon_heart`, `sign_icon_skull`, `sign_icon_13` ... `sign_icon_17`) out of the room UI's
- * asset library - library bitmaps, not icon-set styles.
- */
-const SIGN_BUTTONS: { key: number; icon?: string; label?: string }[] = [
-    { key: 1, label: '1' }, { key: 2, label: '2' }, { key: 3, label: '3' },
-    { key: 4, label: '4' }, { key: 5, label: '5' }, { key: 6, label: '6' },
-    { key: 7, label: '7' }, { key: 8, label: '8' }, { key: 9, label: '9' },
-    { key: 10, label: '10' }, { key: 11, icon: LayoutImage('habbo-room-ui-com/sign_icon_heart.png') }, { key: 12, icon: LayoutImage('habbo-room-ui-com/sign_icon_skull.png') },
-    { key: 0, label: '0' }, { key: 13, icon: LayoutImage('habbo-room-ui-com/sign_icon_13.png') }, { key: 15, icon: LayoutImage('habbo-room-ui-com/sign_icon_15.png') },
-    { key: 14, icon: LayoutImage('habbo-room-ui-com/sign_icon_14.png') }, { key: 17, icon: LayoutImage('habbo-room-ui-com/sign_icon_17.png') }, { key: 16, icon: LayoutImage('habbo-room-ui-com/sign_icon_16.png') },
-];
-
-/** `own_avatar_menu`'s rows are 103 wide; the sign grid is 103 wide with 25-high cells, each over a 39-wide button. */
-const ROW_WIDTH = 103;
-const ROW_HEIGHT = 26;
-const SIGN_CELL_HEIGHT = 25;
-const SIGN_BUTTON_WIDTH = 39;
-const SIGN_BUTTON_HEIGHT = 29;
+/** The rows whose button holds an arrow `icon`. */
+const ICON_ROWS = new Set([ 'expressions', 'dance_menu', 'signs', 'more', 'back' ]);
 
 /**
- * `signs_grid` is an `itemgrid_vertical` with `spacing="1"` and `scale_to_fit_items="true"`: its
- * three columns are stretched to the grid's own 103, not left at the 34/33/33 its cells are
- * authored with. Those sum to 102 with the spacing, which leaves a pixel of the menu showing down
- * the right edge and - the 34 being the first cell rather than the first column - puts every row
- * after the first a pixel out of step with it. 101 over three columns is 33 with 2 over, and the
- * leading columns take the remainder, which is what makes the authored `sign_1` the wide one.
+ * `signs_grid`'s cells, `sign_<n>`: a cell's `button` sends sign `n` (`gridEventProc`). A picture
+ * cell's `<bitmap tags="icon">` is filled by `showButtonGrid` with the room UI's bitmap of the
+ * window's own name (`setImageAsset(icon, icon.name, true)`): copied unscaled into the middle of a
+ * bitmap the window's own size. The bitmap window would stretch an asset set on it, so the picture
+ * is drawn over the cell's button instead, centred in the 39x29 window it fills.
  */
-const SIGN_COLUMNS = 3;
-const SIGN_SPACING = 1;
-const SIGN_CELL_WIDTHS = ((content: number) => Array.from(
-    { length: SIGN_COLUMNS },
-    (_, column) => Math.floor(content / SIGN_COLUMNS) + ((column < (content % SIGN_COLUMNS)) ? 1 : 0),
-))(ROW_WIDTH - (SIGN_SPACING * (SIGN_COLUMNS - 1)));
-/**
- * The grid is as tall as the rows it holds - 155, six 25s a pixel apart, which is where the layout
- * puts them (`sign_14`, the last row, at y 130). The `signs_grid` element itself is declared 152,
- * three short of its own cells: keeping that cut the bottom row off, which reads as the row being
- * spaced differently from the rest. The menu's height follows the grid, so it grows by the three.
- */
-const SIGN_ROWS = Math.ceil(SIGN_BUTTONS.length / SIGN_COLUMNS);
-const SIGNS_GRID_HEIGHT = (SIGN_ROWS * SIGN_CELL_HEIGHT) + ((SIGN_ROWS - 1) * SIGN_SPACING);
+const SIGN_CELLS = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 13, 15, 14, 17, 16 ];
+const SIGN_ICONS: Record<number, string> = {
+    11: 'sign_icon_heart',
+    12: 'sign_icon_skull',
+    13: 'sign_icon_13',
+    14: 'sign_icon_14',
+    15: 'sign_icon_15',
+    16: 'sign_icon_16',
+    17: 'sign_icon_17',
+};
+const SIGN_PICTURES: Record<number, ReactNode> = Object.fromEntries(Object.entries(SIGN_ICONS).map(([ sign, icon ]) => [ sign, (
+    <Box
+        pointerTransparent
+        layout={{ position: 'absolute', left: 0, top: 0, width: 39, height: 29, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}
+    >
+        <ThemeImage
+            src={LayoutImage(`habbo-room-ui-com/${icon}.png`)}
+            layout={{}}
+        />
+    </Box>
+) ]));
 
-/** The rows carrying `arrow_right` (at 92) - each opens a sub-page. */
-const SUBMENU_ROWS = [ 'expressions', 'dance_menu', 'signs', 'more' ];
-/** The expressions the layout marks with icon style 14 at 88,10 - the VIP ones. */
-const VIP_ICON_ROWS = [ 'blow', '67', 'jump', 'laugh' ];
+/** `ButtonMenuView.buttonEventProc` on `profile_link`: the name light blue under the pointer. */
+const NAME_COLOR = 0xffffff;
+const NAME_HOVER_COLOR = 0x91c2ff;
 
 type MenuButton = {
+    /** The row's name in `own_avatar_menu`'s `buttons` list. */
     key: string;
-    caption: string;
     visible: boolean;
+    /** `showButton`'s `enabled`. */
     enabled?: boolean;
-    /** Needs VIP: without it the press opens the club offer instead. */
+    /** A VIP expression: without VIP the row is an advert and its press opens the catalogue. */
     vip?: boolean;
     staysOpen?: boolean;
     onPress: () => void;
 };
 
 /**
- * The menu over your own avatar - `OwnAvatarMenuView`, on the `own_avatar_menu` layout: looks,
- * decorating, dancing, the expressions and signs sub-pages, effects and dropping what you carry.
+ * The menu over your own avatar - `OwnAvatarMenuView`, drawn from its `own_avatar_menu` template:
+ * looks, decorating, dancing, the expressions and signs sub-pages, effects and dropping what you
+ * carry. `updateButtons` shows each mode's rows of `buttons`, the sign grid in the signs mode.
  */
 export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAvatarViewProps) => {
     const info = useRoomUserData(objectData.objectId);
@@ -107,7 +93,7 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const hasClub = clubLevel >= ClubLevelEnum.Club;
     const hasVip = clubLevel >= ClubLevelEnum.Vip;
     const [ mode, setMode ] = useState((isDancing && hasClub) ? MODE_CLUB_DANCES : MODE_NORMAL);
-    const [ collapsed, setCollapsed ] = useState(false);
+    const [ nameHovered, setNameHovered ] = useState(false);
     const effectsDisabled = useConfigValue<boolean>('memenu.effects.widget.disabled') ?? false;
     // `OwnAvatarMenuView`: the config flag, and not while the room's configuration items block hand item control.
     const isHanditemControlBlocked = useRoomStore(x => x.isHanditemControlBlocked);
@@ -116,12 +102,15 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const signsEnabled = useConfigValue<boolean>('avatar.signs.enabled') === true;
     const sittingEnabled = useConfigValue<boolean>('avatar.sitting.enabled') === true;
     const expression67Enabled = useConfigValue<boolean>('avatar.expression.67.enabled') ?? false;
+    const { showButton, button } = useButtonMenu();
+    const { minimizedView, bindings: minimizeBindings } = useMinimizedMenu();
     const t = useTranslation();
     const { send } = useWebSocketContext();
     const { showWindow, toggleWindow } = useWindowActions();
     const { setIsDecorating } = useRoomSessionActions();
 
     if (!info) return null;
+    if (minimizedView) return minimizedView;
 
     const isSwimming = SWIMMING_EFFECTS.includes(info.effectId);
     const isRiding = info.effectId === RIDING_EFFECT;
@@ -134,131 +123,102 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const buttons: Record<number, MenuButton[]> = {
         [MODE_NORMAL]: [
             // Decorating is a club feature, and only where you may move furniture.
-            { key: 'decorate', caption: t('widget.avatar.decorate'), visible: hasClub && ((info.myControllerLevel >= RoomControllerLevelEnum.Guest) || isRoomOwner), onPress: () => setIsDecorating(true) },
-            { key: 'change_looks', caption: t('widget.memenu.myclothes'), visible: true, onPress: () => showWindow('avatar_editor') },
-            { key: 'wave', caption: t('widget.memenu.wave'), visible: !expressionsMenuEnabled, onPress: expression(AvatarExpressionEnum.Wave) },
-            { key: 'expressions', caption: t('infostand.link.expressions'), visible: expressionsMenuEnabled, staysOpen: true, onPress: toMode(MODE_EXPRESSIONS) },
-            { key: 'dance_menu', caption: t('widget.memenu.dance'), visible: hasClub && !isRiding, enabled: !hasEffectOn, staysOpen: true, onPress: toMode(MODE_CLUB_DANCES) },
-            { key: 'dance', caption: t('widget.memenu.dance'), visible: !hasClub && !isDancing && !isRiding, enabled: !hasEffectOn, onPress: dance(1) },
-            { key: 'dance_stop', caption: t('widget.memenu.dance.stop'), visible: !hasClub && isDancing && !isRiding, onPress: dance(0) },
-            { key: 'signs', caption: t('infostand.show.signs'), visible: signsEnabled, staysOpen: true, onPress: toMode(MODE_SIGNS) },
-            { key: 'handitem', caption: t('avatar.widget.drop_hand_item'), visible: handItemDropEnabled && (info.carryItem > 0) && (info.carryItem < MAX_CARRY_ITEM), onPress: () => dropCarryItem(send) },
-            { key: 'effects', caption: t('widget.memenu.effects'), visible: !effectsDisabled && !isRiding, onPress: () => toggleWindow('avatar_effects') },
-            { key: 'wired_inspect', caption: t('infostand.button.wired_inspect'), visible: showWiredInspect, onPress: () => openClientLink(send, `wiredmenu/open/inspection/1/${objectData.objectId}`) },
+            { key: 'decorate', visible: hasClub && ((info.myControllerLevel >= RoomControllerLevelEnum.Guest) || isRoomOwner), onPress: () => setIsDecorating(true) },
+            { key: 'change_looks', visible: true, onPress: () => showWindow('avatar_editor') },
+            { key: 'wave', visible: !expressionsMenuEnabled, onPress: expression(AvatarExpressionEnum.Wave) },
+            { key: 'expressions', visible: expressionsMenuEnabled, staysOpen: true, onPress: toMode(MODE_EXPRESSIONS) },
+            { key: 'dance_menu', visible: hasClub && !isRiding, enabled: !hasEffectOn, staysOpen: true, onPress: toMode(MODE_CLUB_DANCES) },
+            { key: 'dance', visible: !hasClub && !isDancing && !isRiding, enabled: !hasEffectOn, onPress: dance(1) },
+            { key: 'dance_stop', visible: !hasClub && isDancing && !isRiding, onPress: dance(0) },
+            { key: 'signs', visible: signsEnabled, staysOpen: true, onPress: toMode(MODE_SIGNS) },
+            { key: 'handitem', visible: handItemDropEnabled && (info.carryItem > 0) && (info.carryItem < MAX_CARRY_ITEM), onPress: () => dropCarryItem(send) },
+            { key: 'effects', visible: !effectsDisabled && !isRiding, onPress: () => toggleWindow('avatar_effects') },
+            { key: 'wired_inspect', visible: showWiredInspect, onPress: () => openClientLink(send, `wiredmenu/open/inspection/1/${objectData.objectId}`) },
         ],
         [MODE_CLUB_DANCES]: [
-            { key: 'dance_stop', caption: t('widget.memenu.dance.stop'), visible: true, enabled: isDancing, onPress: dance(0) },
-            { key: 'dance_1', caption: t('widget.memenu.dance1'), visible: true, onPress: dance(1) },
-            { key: 'dance_2', caption: t('widget.memenu.dance2'), visible: true, onPress: dance(2) },
-            { key: 'dance_3', caption: t('widget.memenu.dance3'), visible: true, onPress: dance(3) },
-            { key: 'dance_4', caption: t('widget.memenu.dance4'), visible: true, onPress: dance(4) },
-            { key: 'back', caption: t('generic.back'), visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
+            { key: 'dance_stop', visible: true, enabled: isDancing, onPress: dance(0) },
+            { key: 'dance_1', visible: true, onPress: dance(1) },
+            { key: 'dance_2', visible: true, onPress: dance(2) },
+            { key: 'dance_3', visible: true, onPress: dance(3) },
+            { key: 'dance_4', visible: true, onPress: dance(4) },
+            { key: 'back', visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
         ],
         [MODE_EXPRESSIONS]: [
-            { key: 'sit', caption: t('widget.memenu.sit'), visible: sittingEnabled && !isSwimming && !isRiding && (info.posture === String(AvatarActionStateType.Stand)), onPress: () => send(new ChangePostureComposer({ postureType: PostureTypeEnum.Sit })) },
-            { key: 'stand', caption: t('widget.memenu.stand'), visible: sittingEnabled && !isSwimming && !isRiding && info.canStandUp, onPress: () => send(new ChangePostureComposer({ postureType: PostureTypeEnum.Stand })) },
-            { key: 'wave', caption: t('widget.memenu.wave'), visible: true, enabled: !isSwimming, onPress: expression(AvatarExpressionEnum.Wave) },
-            { key: 'blow', caption: t('widget.memenu.blow'), visible: true, enabled: canUseVipExpressions || !hasVip, vip: true, onPress: expression(AvatarExpressionEnum.Blow) },
-            { key: '67', caption: t('widget.memenu.expression_67'), visible: expression67Enabled, enabled: canUseVipExpressions || !hasVip, vip: true, onPress: expression(AvatarExpressionEnum.Expression67) },
-            { key: 'laugh', caption: t('widget.memenu.laugh'), visible: true, enabled: canUseVipExpressions || !hasVip, vip: true, onPress: expression(AvatarExpressionEnum.Laugh) },
-            { key: 'idle', caption: t('widget.memenu.idle'), visible: true, onPress: expression(AvatarExpressionEnum.Idle) },
-            { key: 'back', caption: t('generic.back'), visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
+            { key: 'sit', visible: sittingEnabled && !isSwimming && !isRiding && (info.posture === String(AvatarActionStateType.Stand)), onPress: () => send(new ChangePostureComposer({ postureType: PostureTypeEnum.Sit })) },
+            { key: 'stand', visible: sittingEnabled && !isSwimming && !isRiding && info.canStandUp, onPress: () => send(new ChangePostureComposer({ postureType: PostureTypeEnum.Stand })) },
+            { key: 'wave', visible: true, enabled: !isSwimming, onPress: expression(AvatarExpressionEnum.Wave) },
+            { key: 'blow', visible: true, enabled: canUseVipExpressions, vip: true, onPress: expression(AvatarExpressionEnum.Blow) },
+            { key: '67', visible: expression67Enabled, enabled: canUseVipExpressions, vip: true, onPress: expression(AvatarExpressionEnum.Expression67) },
+            { key: 'laugh', visible: true, enabled: canUseVipExpressions, vip: true, onPress: expression(AvatarExpressionEnum.Laugh) },
+            { key: 'idle', visible: true, onPress: expression(AvatarExpressionEnum.Idle) },
+            { key: 'back', visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
         ],
         [MODE_SIGNS]: [
-            { key: 'back', caption: t('generic.back'), visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
+            { key: 'back', visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
         ],
     };
 
-    const press = (button: MenuButton) => {
-        if (button.enabled === false) return;
-
+    const press = (row: MenuButton) => {
         // `OwnAvatarMenuView.buttonEventProc`: a VIP button pressed without VIP is an advert for it.
-        if (button.vip && !hasVip) {
+        if (row.vip && !hasVip) {
             showWindow('catalog');
             onClose();
 
             return;
         }
 
-        button.onPress();
+        row.onPress();
 
-        if (!button.staysOpen) onClose();
+        if (!row.staysOpen) onClose();
     };
 
-    const visibleButtons = buttons[mode].filter(button => button.visible);
+    const openOwnProfile = () => {
+        openProfile(send, info.webId);
+        onClose();
+    };
+
+    const visibleButtons = buttons[mode].filter(row => row.visible);
     const showsSigns = (mode === MODE_SIGNS);
-    const rowHeights = [ ...(showsSigns ? [ SIGNS_GRID_HEIGHT ] : []), ...visibleButtons.map(() => ROW_HEIGHT) ];
+    const bindings: TemplateBindings = {
+        ...minimizeBindings,
+        profile_link: {
+            tooltip: t('infostand.profile.link.tooltip', 'Click to view profile'),
+            onPointerTap: openOwnProfile,
+            onPointerOver: () => setNameHovered(true),
+            onPointerOut: () => setNameHovered(false),
+        },
+        name: { caption: info.name, setCaptionAfterBuild: true, color: nameHovered ? NAME_HOVER_COLOR : NAME_COLOR },
+        buttons: { show: [ ...visibleButtons.map(row => row.key), ...(showsSigns ? [ 'signs_grid' ] : []) ] },
+    };
+
+    for (const row of visibleButtons) {
+        showButton(bindings, row.key, () => press(row), {
+            enabled: row.enabled,
+            vipAdvert: row.vip && !hasVip,
+            hasIcon: ICON_ROWS.has(row.key),
+        });
+    }
+
+    if (showsSigns) {
+        for (const sign of SIGN_CELLS) {
+            bindings[`sign_${sign}/button`] = {
+                ...button(`sign_${sign}/button`, () => {
+                    send(new SignComposer({ signType: sign }));
+                    onClose();
+                }),
+                children: SIGN_PICTURES[sign],
+            };
+
+            const icon = SIGN_ICONS[sign];
+
+            if (icon) bindings[`sign_${sign}/button/${icon}`] = { visible: false };
+        }
+    }
 
     return (
-        <InfoBubbleMenuFrame
-            geometry={OWN_AVATAR_MENU_GEOMETRY}
-            rowHeights={rowHeights}
-            collapsed={collapsed}
-            onToggleCollapsed={() => setCollapsed(!collapsed)}
-            header={(
-                <Region
-                    name="profile_link"
-                    cursor="pointer"
-                    onPointerTap={() => {
-                        openProfile(send, info.webId);
-                        onClose();
-                    }}
-                    layout={{ position: 'absolute', left: 0, top: 7, width: 107, height: 16, flexDirection: 'row', justifyContent: 'center' }}
-                >
-                    <ThemeText
-                        text={info.name}
-                        textStyle="u_bold"
-                        textOptions={{ fill: '#ffffff', fontSize: 11 }}
-                        name="name"
-                        verticalAlign="top"
-                    />
-                </Region>
-            )}
-        >
-            {showsSigns && (
-                <Box layout={{ flexDirection: 'row', flexWrap: 'wrap', width: ROW_WIDTH, height: SIGNS_GRID_HEIGHT, gap: 1, flexShrink: 0, overflow: 'hidden' }}>
-                    {SIGN_BUTTONS.map(({ key, icon, label }, index) => (
-                        <InfoBubbleMenuButton
-                            key={key}
-                            shape="grid"
-                            width={SIGN_CELL_WIDTHS[index % SIGN_COLUMNS]}
-                            height={SIGN_CELL_HEIGHT}
-                            buttonWidth={SIGN_BUTTON_WIDTH}
-                            caption={label}
-                            // `setImageAsset(icon, name, true)`: the picture is centred in the whole button.
-                            adornment={icon && (
-                                <Box layout={{ position: 'absolute', left: 0, top: 0, width: SIGN_BUTTON_WIDTH, height: SIGN_BUTTON_HEIGHT, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                                    <ThemeImage
-                                        src={icon}
-                                        layout={{}}
-                                    />
-                                </Box>
-                            )}
-                            onPress={() => {
-                                send(new SignComposer({ signType: key }));
-                                onClose();
-                            }}
-                        />
-                    ))}
-                </Box>
-            )}
-            {visibleButtons.map(button => (
-                <InfoBubbleMenuButton
-                    key={button.key}
-                    width={ROW_WIDTH}
-                    caption={button.caption}
-                    arrow={SUBMENU_ROWS.includes(button.key) ? 'right' : ((button.key === 'back') ? 'left' : undefined)}
-                    arrowX={92}
-                    adornment={VIP_ICON_ROWS.includes(button.key) && (
-                        <Icon
-                            variant={14}
-                            layout={{ position: 'absolute', left: 88, top: 10 }}
-                        />
-                    )}
-                    disabled={button.enabled === false}
-                    onPress={() => press(button)}
-                />
-            ))}
-        </InfoBubbleMenuFrame>
+        <TemplateWindow
+            id="habbo-room-ui-com/own_avatar_menu"
+            bindings={bindings}
+        />
     );
 };

@@ -22,11 +22,16 @@ export const RoomCanvas = () => {
     const isDecorating = useRoomStore(x => x.isDecorating);
     const isPlayingGame = useRoomStore(x => x.isPlayingGame);
     const { updateRoomCamera } = useRoomCamera();
-    // The ticker outlives renders; own-avatar targeting and follow settings must stay current.
+    // The ticker and the pointer listeners outlive renders; own-avatar targeting and follow settings,
+    // and whether a drag may start (decorating, a game), must stay current.
     const updateCameraRef = useRef(updateRoomCamera);
+    const isDecoratingRef = useRef(isDecorating);
+    const isPlayingGameRef = useRef(isPlayingGame);
 
     useLayoutEffect(() => {
         updateCameraRef.current = updateRoomCamera;
+        isDecoratingRef.current = isDecorating;
+        isPlayingGameRef.current = isPlayingGame;
     });
     const { hasAndResetCursorUpdate, hasCursorOwners } = useRoomMouseActions();
     const mouseDataRef = useRef<MouseData>({
@@ -45,7 +50,7 @@ export const RoomCanvas = () => {
         ctrlKey: boolean,
         shiftKey: boolean,
     ) => {
-        if (!room || !room.canvas || isPlayingGame) return false;
+        if (!room || !room.canvas || isPlayingGameRef.current) return false;
 
         const mouseData = mouseDataRef.current;
 
@@ -60,7 +65,8 @@ export const RoomCanvas = () => {
         let offsetY = y - mouseData.mouseXY.y;
 
         if (type === MouseEventType.MOUSE_DOWN) {
-            if (!altKey && !ctrlKey && !shiftKey && !isDecorating) {
+            // `RoomEngine.handleRoomDragging` (`isDecorateMode`): decorating, a press starts no room drag.
+            if (!altKey && !ctrlKey && !shiftKey && !isDecoratingRef.current) {
                 mouseData.isDragged = true;
                 mouseData.wasDragged = false;
                 mouseData.dragStartXY = { ...mouseData.mouseXY };
