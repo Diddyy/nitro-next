@@ -4,7 +4,7 @@ import { Container as PixiContainer } from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
-import { requestChatCommandSuggestions, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle } from '#base/commands';
+import { requestChatCommandSuggestions, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { roomStore, useRoom, useRoomChatActions, useRoomStore } from '#base/context/room';
 import { useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
@@ -138,6 +138,13 @@ export const RoomChatInputView = () => {
         inspection: t('widgets.chatinput.command.inspection', 'Open the wired inspection'),
         playTest: t('widgets.chatinput.command.playtest', 'Turn wired play test on or off'),
         wiredReset: t('widgets.chatinput.command.wiredreset', 'Close the wired setup'),
+        userChooser: t('widgets.chatinput.command.chooser', 'List everyone in the room'),
+        furniChooser: t('widgets.chatinput.command.furni', 'List the furni in the room'),
+        pickAll: t('widgets.chatinput.command.pickall', 'Pick up all your furni in the room'),
+        pickAllBuildersClub: t('widgets.chatinput.command.pickallbc', 'Pick up all Builders Club furni in the room'),
+        resetScores: t('widgets.chatinput.command.resetscores', 'Reset the room\'s scores'),
+        ejectAll: t('widgets.chatinput.command.ejectall', 'Eject everyone else\'s furni from the room'),
+        ejectPets: t('widgets.chatinput.command.ejectpets', 'Send the pets in the room home'),
     }, mayUseWired), chatCommands ?? []), [ t, mayUseWired, chatCommands ]);
 
     const completion = useMemo<IChatCommandCompletion>(() => (focused
@@ -336,7 +343,7 @@ export const RoomChatInputView = () => {
         clearTimers();
 
         // `ChatInputWidgetHandler`: a chat command is run, not said.
-        const isCommand = (mode !== 'whisper') && runWiredChatCommand(send, message);
+        const isCommand = (mode !== 'whisper') && (runWiredChatCommand(send, message) || runRoomChatCommand(send, message));
 
         if (message.length && !isCommand) {
             const cleaned = message.replace(/&#[0-9]+;/g, '');

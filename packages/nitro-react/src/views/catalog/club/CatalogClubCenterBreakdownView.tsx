@@ -1,7 +1,6 @@
 /**
- * The HC payday breakdown - Flash's `ClubSpecialInfoBubbleView`, drawn from
- * `club_center_special_info.xml`: a style 7 bubble (374x146, margins 3/36/3/3) pointing at the
- * club centre's post-it, holding the `0xeeeeee` block of the month's figures.
+ * The HC payday breakdown - Flash's `ClubSpecialInfoBubbleView`, the `club_center_special_info_xml`
+ * bubble beside the club centre's post-it.
  *
  * The texts: `hccenter.breakdown.creditsspent` (`%credits%`); the factor from
  * `hccenter.breakdown.paydayfactor.percent` (`%percent%` = the percentage as an int, `%multiplier%`
@@ -11,14 +10,16 @@
  * decimals. Each fills its first placeholder only, as AS3's `String.replace` does.
  *
  * `positionWindow` placed it (`placement`, from the club centre): right of the post-it, or left of
- * it with the pointer turned right when the stage has no room on the right. A press anywhere on it
- * closes it (`onInput`, the payday link opening its help page first), and so does a click anywhere
- * else (`onStageClick`).
+ * it with the pointer turned right (`direction = "right"`) when the stage has no room on the right.
+ * A press anywhere on it closes it (`onInput`'s `WME_DOWN`, the payday link opening its help page
+ * first), and so does a click anywhere else (`onStageClick`).
  */
 import { IScrKickbackData } from '@nitrodevco/nitro-packets';
 
 import { useTranslation } from '#base/context/system';
-import { Border, Bubble, FloatingPopup, Region, ThemeText } from '#base/theme';
+import { FloatingPopup, Region, TemplateWindow } from '#base/theme';
+
+import { catalogTemplateId } from '../page/catalogTemplates';
 
 /** Where `positionWindow` put the bubble, in stage coordinates, and which way its pointer faces. */
 export interface ClubCenterBreakdownPlacement {
@@ -39,6 +40,7 @@ const replaceFirst = (text: string, search: string, replacement: string | number
 
 export const CatalogClubCenterBreakdownView = ({ kickback, placement, onPaydayHelp, onClose }: CatalogClubCenterBreakdownViewProps) => {
     const t = useTranslation();
+
     const percent = Math.trunc(kickback.kickbackPercentage * 100);
     const factorPercent = t('hccenter.breakdown.paydayfactor.percent', '');
     const factor = factorPercent.length
@@ -53,86 +55,22 @@ export const CatalogClubCenterBreakdownView = ({ kickback, placement, onPaydayHe
             y={placement.y}
             onOutsideClick={onClose}
         >
-            <Bubble
-                variant="7"
-                pointer={placement.pointer}
-                margins={[ 3, 36, 3, 3 ]}
-                onPointerDown={onClose}
-                layout={{ width: 374, height: 146 }}
-            >
-                <Region
-                    name="main_content"
-                    layout={{ position: 'absolute', left: 11, width: 345, top: -21 }}
-                >
-                    <Border
-                        variant="3"
-                        tintColor="#eeeeee"
-                        layout={{ width: 345, height: 120 }}
-                    >
-                        <ThemeText
-                            text={t('hccenter.breakdown.title')}
-                            textStyle="u_bold"
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 0, width: 340, top: 0, height: 30 }}
-                        />
-                        <ThemeText
-                            name="info_creditsspent"
-                            text={replaceFirst(t('hccenter.breakdown.creditsspent', 'hccenter.breakdown.creditsspent'), '%credits%', kickback.totalCreditsSpent)}
-                            textStyle="u_regular"
-                            markup
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 0, width: 340, top: 20, height: 30 }}
-                        />
-                        <ThemeText
-                            name="info_factor"
-                            text={factor}
-                            textStyle="u_regular"
-                            markup
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 0, width: 340, top: 40, height: 30 }}
-                        />
-                        <ThemeText
-                            name="info_streakbonus"
-                            text={replaceFirst(t('hccenter.breakdown.streakbonus', 'hccenter.breakdown.streakbonus'), '%credits%', kickback.creditRewardForStreakBonus)}
-                            textStyle="u_regular"
-                            markup
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 0, width: 340, top: 60, height: 30 }}
-                        />
-                        <Border
-                            variant="1"
-                            layout={{ position: 'absolute', left: 0, width: 340, top: 79, height: 1 }}
-                        />
-                        <ThemeText
-                            name="info_total"
-                            text={replaceFirst(replaceFirst(t('hccenter.breakdown.total', 'hccenter.breakdown.total'), '%credits%', total), '%actual%', actual)}
-                            textStyle="u_regular"
-                            markup
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 0, width: 340, top: 80, height: 30 }}
-                        />
-                        <Region
-                            name="special_infolink"
-                            cursor="pointer"
-                            onPointerDown={onPaydayHelp}
-                            layout={{ position: 'absolute', left: 145, width: 190, top: 100, flexDirection: 'row', justifyContent: 'flex-end' }}
-                        >
-                            <ThemeText
-                                text={t('hccenter.special.infolink')}
-                                textStyle="u_regular"
-                                textOptions={{ fill: '#666666', wordWrap: true, wordWrapWidth: 186, align: 'right' }}
-                                flashFormat={{ underline: true }}
-                                verticalAlign="top"
-                            />
-                        </Region>
-                    </Border>
-                </Region>
-            </Bubble>
+            {/* `onInput`'s `WME_DOWN` on any of its windows: the theme's bubble takes no handler from a binding. */}
+            <Region onPointerDown={onClose}>
+                <TemplateWindow
+                    id={catalogTemplateId('club_center_special_info_xml')}
+                    bindings={{
+                        // `(_window as IBubbleWindow).direction`, from `positionWindow`.
+                        '': { direction: placement.pointer },
+                        info_creditsspent: { caption: replaceFirst(t('hccenter.breakdown.creditsspent', 'hccenter.breakdown.creditsspent'), '%credits%', kickback.totalCreditsSpent) },
+                        info_factor: { caption: factor },
+                        info_streakbonus: { caption: replaceFirst(t('hccenter.breakdown.streakbonus', 'hccenter.breakdown.streakbonus'), '%credits%', kickback.creditRewardForStreakBonus) },
+                        info_total: { caption: replaceFirst(replaceFirst(t('hccenter.breakdown.total', 'hccenter.breakdown.total'), '%credits%', total), '%actual%', actual) },
+                        // Opens the help page, and the press goes on to close the bubble.
+                        special_infolink: { onPointerDown: onPaydayHelp },
+                    }}
+                />
+            </Region>
         </FloatingPopup>
     );
 };

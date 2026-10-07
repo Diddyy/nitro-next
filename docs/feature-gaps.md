@@ -49,10 +49,9 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Server-sent links | `InClientLinkMessage` has no listener, so a link the server asks the client to open does nothing. | `handlers/` |
 | Room | The room word filter window (`GetCustomRoomFilter`, `UpdateRoomFilter`) - `RoomInfoView` notes it. | `views/room-widgets/room-info` |
 | Room | YouTube playback control from the server (`YoutubeControlVideoMessage`). | `FurnitureYoutubeView` |
-| Room | Spectator mode (`YouAreSpectatorMessage`), special system chat, Builders Club placement warnings, the object remove confirmation. | |
+| Room | Spectator mode (`YouAreSpectatorMessage`), special system chat, the object remove confirmation. | |
 | Room | Post-its: placing one (`PlacePostItComposer`, `PostItPlacedEventMessage`) and the spam wall. | |
 | Room | Habbicon bubbles over avatars and the habbicon selector in the chat input. | `AvatarLogic`, `AvatarVisualization`, `RoomChatInputView` |
-| Room | Disabling the user chooser (`UserChooserWidgetHandler.isChooserDisabled`). | `registerRoomConfigurationItemsHandlers` |
 | Pets | Infostand actions: supplements, composting a plant, passing a carried item, selecting a pet. | |
 | Pets | The breeding dialogs, and placing a pet opened from a present (it stays in the inventory). | `InventoryPetsView`, `FurniturePresentOpenedWidget` |
 | Navigator | No error for a room that does not exist (`NoSuchFlatMessage`); room event info; report room; the promoted-rooms strip; a block's back button (`goBack` over the search history); syncing the window preferences to the server. | `NavigatorView`, `NavigatorRoomInfoPopup` |

@@ -24,8 +24,12 @@
  * port unmounts a hidden window's widgets, so the purchase widget records here, for its page,
  * what `initPurchase` would buy with, and the catalogue's always-mounted purchase flow
  * (`useCatalogPurchaseFlow`) answers `INIT_PURCHASE` from it.
+ *
+ * `purchaseIconNode` is the confirmation's `product_image` (`getIconWrapper`) while it shows:
+ * `onPurchaseOK` flies its picture into the toolbar.
  */
 import { IObjectData, IPetCustomPart, IPurchasableOffer } from '@nitrodevco/nitro-api';
+import { Container as PixiContainer } from 'pixi.js';
 import { StateCreator } from 'zustand';
 
 /** What Flash's `IRoomEngine.getPetImage(type, palette, color, direction, 64, listener, true, 0, customParts)` is asked for. */
@@ -87,6 +91,7 @@ type State = {
     giftDefaultStuffType: number;
     giveGiftEnabled: boolean;
     purchaseWidgetState: CatalogPurchaseWidgetState | undefined;
+    purchaseIconNode: PixiContainer | undefined;
 };
 
 type Actions = {
@@ -96,6 +101,7 @@ type Actions = {
     openGiftDialog: (giftDefaultStuffType: number) => void;
     setGiveGiftEnabled: (giveGiftEnabled: boolean) => void;
     setPurchaseWidgetState: (purchaseWidgetState: CatalogPurchaseWidgetState | undefined) => void;
+    setPurchaseIconNode: (purchaseIconNode: PixiContainer | undefined) => void;
 };
 
 export const CatalogPurchaseSliceInitialState: State = {
@@ -105,6 +111,7 @@ export const CatalogPurchaseSliceInitialState: State = {
     giftDefaultStuffType: 0,
     giveGiftEnabled: true,
     purchaseWidgetState: undefined,
+    purchaseIconNode: undefined,
 };
 
 export type CatalogPurchaseSlice = State & Actions;
@@ -117,4 +124,5 @@ export const createCatalogPurchaseSlice: StateCreator<CatalogPurchaseSlice, [], 
     openGiftDialog: giftDefaultStuffType => set({ purchaseDialogView: 'gift', giftDefaultStuffType }),
     setGiveGiftEnabled: giveGiftEnabled => set({ giveGiftEnabled }),
     setPurchaseWidgetState: purchaseWidgetState => set({ purchaseWidgetState }),
+    setPurchaseIconNode: purchaseIconNode => set({ purchaseIconNode }),
 });

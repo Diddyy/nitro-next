@@ -398,6 +398,8 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 // `TextFieldController`'s `max_chars`, `word_wrap` / `multiline`, `display_as_password` and `always_show_selection`.
                 maxLength={Number(element.vars.max_chars) > 0 ? Number(element.vars.max_chars) : undefined}
                 multiline={flashBool(element.vars.multiline) || flashBool(element.vars.word_wrap) || undefined}
+                // `word_wrap` alone wraps the text; only `multiline` takes Enter as a new line.
+                lineBreaks={flashBool(element.vars.multiline)}
                 password={flashBool(element.vars.display_as_password) || undefined}
                 alwaysShowSelection={flashBool(element.vars.always_show_selection) || undefined}
                 // Focus the code gives or takes (`ITextFieldWindow.focus()`); left alone, the user's.

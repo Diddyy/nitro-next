@@ -13,8 +13,10 @@
  * is attached to no window in the AS3 client nor in Sulake's JavaScript one, so the page name
  * (`vipPurchasePageName`) is never remembered there - only forgotten and read, as here.
  *
- * `doNotCloseAfterVipPurchase` is not carried: the flag only keeps `hideMainWindow` from closing
- * the catalogue once, and nothing in the port hides the catalogue while a club purchase is pending.
+ * `doNotCloseAfterVipPurchase` (the club buy confirmation's select) is not carried: it sets its flag
+ * to `vipPurchasePageName != null`, which is always false with the page name never remembered, and
+ * the flag only keeps the next `hideMainWindow` (the close button, furni placement) from closing the
+ * catalogue once.
  * `HabboCatalog.onHabboClubExtendOffer` first runs `init()` on a catalogue that was never opened;
  * the port builds the catalogue when its window opens (`CatalogComponent`), so the offer is shown
  * without it.

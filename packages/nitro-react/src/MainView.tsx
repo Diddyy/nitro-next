@@ -35,6 +35,7 @@ import { PurseTemplateView } from './views/purse/PurseTemplateView';
 import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInputView';
 import { SystemDialogsView } from './views/system/SystemDialogsView';
 import { TemplatePreviewView } from './views/system/TemplatePreviewView';
+import { ToolbarTransitionsView } from './views/toolbar/ToolbarTransitionsView';
 import { ToolbarView } from './views/toolbar/ToolbarView';
 
 export const MainView = () => {
@@ -142,6 +143,8 @@ export const MainView = () => {
                 <SystemDialogsView />
                 {/* Context 3: every `ModalDialog` is moved in here, over the windows and their popups. */}
                 <ModalLayer />
+                {/* Desktop 2: the pictures `animateToIcon` flies into the toolbar, over every window. */}
+                <ToolbarTransitionsView />
                 <TooltipLayer />
             </WindowLayer>
         </>

@@ -2,6 +2,8 @@ import { RoomChatFloodSensitivityType, RoomDoorModeEnum, RoomModerationType, Roo
 import { IFlatCategory, IFlatController, IMessengerFriend, RoomSettingsDataEventMessageType } from '@nitrodevco/nitro-packets';
 import { ReactNode, useState } from 'react';
 
+import { openClientLink } from '#base/commands';
+import { useWebSocketContext } from '#base/context/communication';
 import { RoomSettingsErrorField, RoomSettingsFormError } from '#base/context/room';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Border, Box, Button, ButtonThick, CheckBox, Dropmenu, Frame, Icon, RadioButton, Region, ScrollArea, TabButton, TabContent, TabContext, TextInput, ThemeImage, ThemeText } from '#base/theme';
@@ -353,8 +355,8 @@ const UserList = ({ left, top, width, height, listHeight, scrollbarLeft, scrollb
  * There is no Save button: `onUnfocus` saves the whole form on every pick and whenever a text
  * field is left, and `TextFieldManager.displayError` tints a refused field and puts
  * `nav_error_popup` over it; everything the save carries, and every rule that refuses it, is
- * Flash's (`RoomSettingsCtrl.save`). The Builders Club panel's
- * `builders_faq_button` is not drawn: nothing in the port opens that page.
+ * Flash's (`RoomSettingsCtrl.save`). The Builders Club panel's `builders_faq_button` sends the
+ * `habbopages/builders-club/faq` link, which `openClientLink` only logs until the habbo pages are ported.
  *
  * Theme gap worked around here: a `CheckBox` / `RadioButton` stretches its skin over its box,
  * where Flash draws it `fixed` at the window's top left, so each sits at its natural size in a
@@ -369,6 +371,7 @@ export const RoomSettingsView = ({
     onGiveRights, onTakeRights, onTakeAllRights, onSelectBannedUser, onUnban, onDeleteRoom, onClose,
 }: RoomSettingsViewProps) => {
     const t = useTranslation();
+    const { send } = useWebSocketContext();
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
 
     // `setTagError`: only the tag input holding the tag the server named is marked.
@@ -655,6 +658,15 @@ export const RoomSettingsView = ({
                                 width={298}
                                 height={79}
                             />
+                            {/* `onBuildersClubFaqButtonClick`: the `habbopages/builders-club/faq` link. */}
+                            <Button
+                                variant="3"
+                                name="builders_faq_button"
+                                onPointerTap={() => openClientLink(send, 'habbopages/builders-club/faq')}
+                                layout={{ position: 'absolute', left: 11, top: 122, width: 287, height: 30 }}
+                            >
+                                {t('notification.builders_club.room_locked.linkTitle')}
+                            </Button>
                         </Border>
                     )}
                 </Box>

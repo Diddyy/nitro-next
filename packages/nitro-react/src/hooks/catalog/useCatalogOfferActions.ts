@@ -17,7 +17,7 @@ export const useCatalogOfferActions = () => {
     const lookup = { floorItems, wallItems, productData };
 
     const processOffer = (offer: ICatalogOffer) => processCatalogOffer(offer, catalogType, lookup);
-    const processAsOffer = (furnitureData: IFurnitureData) => processFurnitureAsOffer(furnitureData, lookup);
+    const processAsOffer = (furnitureData: IFurnitureData, offerId?: number, isRentOffer?: boolean) => processFurnitureAsOffer(furnitureData, lookup, offerId, isRentOffer);
 
     return { getOfferProduct, processOffer, processAsOffer };
 };

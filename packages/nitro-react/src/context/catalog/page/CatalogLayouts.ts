@@ -55,21 +55,6 @@ export const CATALOG_LAYOUT_WIDGETS = {
 /** A layout the client ships: the `<name>` of an asset `layout_<name>`. */
 export type CatalogLayoutName = keyof typeof CATALOG_LAYOUT_WIDGETS;
 
-/**
- * Each layout's window width. `CatalogViewer.showCatalogPage` sizes the layout container to it and
- * right-aligns it (`_container.x = parent.width - width - 8`), hiding the search and navigation when
- * that leaves them less than 130px - which only the 552px `frontpage_featured` does.
- */
-export const CATALOG_LAYOUT_WIDTHS: Readonly<Record<CatalogLayoutName, number>> = {
-    badge_display: 360, builders_club_addons: 360, builders_club_frontpage: 360, builders_club_loyalty: 360,
-    club_buy: 360, club_gifts: 360, default_3x3: 360, frontpage4: 360, frontpage_featured: 552,
-    guild_custom_furni: 360, guild_forum: 360, guild_frontpage: 360, info_duckets: 360, info_loyalty: 360,
-    info_rentables: 360, loyalty_vip_buy: 360, marketplace: 360, marketplace_own_items: 360, monkey: 360,
-    petcustomization: 360, pets: 360, pets2: 360, pets3: 360, recycler: 360, recycler_info: 360,
-    recycler_prizes: 360, roomads: 360, single_bundle: 360, soundmachine: 360, spaces_new: 360,
-    trophies: 360, vip_buy: 360,
-};
-
 /** The manifest's `ref` assets: a layout code built from another code's layout. */
 export const CATALOG_LAYOUT_ALIASES: Readonly<Record<string, CatalogLayoutName>> = {
     niko: 'monkey',

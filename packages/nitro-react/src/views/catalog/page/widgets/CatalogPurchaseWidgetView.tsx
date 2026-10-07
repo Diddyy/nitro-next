@@ -7,10 +7,10 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Border, Box, Button, ContainerButton, Region, ThemeText } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
+import { useCatalogWidgetView } from '../catalogWidgetView';
 
 /** `PurchaseCatalogWidget.isSoldOut`: a single limited offer with none left. */
 const isSoldOut = (offer: IPurchasableOffer) => {
@@ -183,9 +183,6 @@ export const CatalogPurchaseWidgetView = ({ page, tags }: CatalogWidgetProps) =>
         if (initiatesRoomAdPurchase) sendRoomAdPurchaseInitiatedEvent(send);
     }, [ page ]);
 
-    // `init()`: a builders club page buys by placing, so the widget stays hidden there.
-    if (page.isBuilderPage || !fields.enabled) return null;
-
     const { offer, additionalParameters, quantity, stuffData, buyEnabled, giftEnabled, giftVisible } = fields;
 
     /** `onPurchase(event, isGift)`. */
@@ -225,70 +222,21 @@ export const CatalogPurchaseWidgetView = ({ page, tags }: CatalogWidgetProps) =>
         showPurchaseConfirmation(store, offer, page.pageId, additionalParameters, quantity, stuffData);
     };
 
-    return (
-        <Region layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 30 }}>
-            {!offer && (
-                <Border
-                    variant="6"
-                    name="selection_information"
-                    blend={0.5}
-                    layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 30 }}
-                >
-                    <ThemeText
-                        text={t('catalog.purchase.select.info')}
-                        textStyle="u_headline_small"
-                        textOptions={{ fill: '#666666', align: 'center' }}
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 10, width: 341, top: 5, height: 19 }}
-                    />
-                </Border>
-            )}
-            {offer && (
-                <Region
-                    name="default_buttons"
-                    layout={{ position: 'absolute', left: 0, width: 360, top: 3, height: 25 }}
-                >
-                    <Box
-                        alpha={buyEnabled ? 1 : 0.5}
-                        layout={{ position: 'absolute', left: 185, width: 170, top: 0, height: 24 }}
-                    >
-                        <ContainerButton
-                            variant="3"
-                            name="buy_button"
-                            tintColor="#00aa00"
-                            disabled={!buyEnabled}
-                            onPointerTap={() => buyEnabled && purchase(false)}
-                            layout={{ position: 'absolute', left: 0, width: 170, top: 0, height: 24 }}
-                        >
-                            <ThemeText
-                                name="purchase_label"
-                                text={t(isHabbiconOfferOwned(offer) ? 'generic.owned' : (offer.isRentOffer ? 'catalog.purchase_confirmation.rent' : 'catalog.purchase_confirmation.buy'))}
-                                textStyle="u_regular"
-                                textOptions={{ fill: '#ffffff', align: 'center' }}
-                                flashFormat={{ bold: true }}
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 0, width: 160, top: 3, height: 17 }}
-                            />
-                        </ContainerButton>
-                    </Box>
-                    {giftVisible && (
-                        <Box
-                            alpha={giftEnabled ? 1 : 0.5}
-                            layout={{ position: 'absolute', left: 5, width: 170, top: 0, height: 24 }}
-                        >
-                            <Button
-                                variant="3"
-                                name="gift_button"
-                                disabled={!giftEnabled}
-                                onPointerTap={() => giftEnabled && purchase(true)}
-                                layout={{ position: 'absolute', left: 0, width: 170, top: 0, height: 24 }}
-                            >
-                                {t('catalog.purchase_confirmation.gift')}
-                            </Button>
-                        </Box>
-                    )}
-                </Region>
-            )}
-        </Region>
-    );
+    // `init()`: a builders club page buys by placing, so the widget's window stays hidden there.
+    useCatalogWidgetView(page.isBuilderPage
+        ? { bindings: { '': { visible: false } } }
+        : {
+                template: 'purchaseWidget',
+                bindings: {
+                    '': { visible: fields.enabled },
+                    selection_information: { visible: !offer },
+                    default_buttons: { visible: !!offer },
+                    // `enableButton`: a disabled button is half blended.
+                    buy_button: { disabled: !buyEnabled, alpha: buyEnabled ? 1 : 0.5, onPointerTap: () => buyEnabled && purchase(false) },
+                    purchase_label: offer ? { caption: isHabbiconOfferOwned(offer) ? '${generic.owned}' : (offer.isRentOffer ? '${catalog.purchase_confirmation.rent}' : '${catalog.purchase_confirmation.buy}') } : {},
+                    gift_button: { visible: giftVisible, disabled: !giftEnabled, alpha: giftEnabled ? 1 : 0.5, onPointerTap: () => giftEnabled && purchase(true) },
+                },
+            });
+
+    return null;
 };

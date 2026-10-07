@@ -2,7 +2,7 @@ import { ISimpleRoomObjectData, RoomObjectCategoryEnum, RoomObjectUserType, Room
 import { useState } from 'react';
 
 import { useRoom, useRoomStore } from '#base/context/room';
-import { useRoomEventDispatcher } from '#base/hooks';
+import { useRoomEventDispatcher, useRoomInfostandPlacementHandler } from '#base/hooks';
 import { InfostandUserView } from '#base/views/room-widgets/object-infostand/InfostandUserView';
 
 import { InfostandBot } from './InfostandBot';
@@ -19,6 +19,9 @@ export const RoomObjectInfostandWidget = () => {
     const room = useRoom();
     // The room object's type is a pet's breed name, not its kind; the user list knows the kind.
     const selectedUserType = useRoomStore(x => (selectedData ? x.usersByRoomObjectId[selectedData.objectId]?.userType : undefined));
+
+    // The place more button keeps placing while the stand is closed.
+    useRoomInfostandPlacementHandler();
 
     const onClose = () => {
         setSelectedData(undefined);

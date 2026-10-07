@@ -1,35 +1,27 @@
 import { useState } from 'react';
 
-import { CATALOG_LAYOUT_WIDGETS, CatalogWidgetEnum, CatalogWidgetEventEnum, resolveCatalogLayout } from '#base/context/catalog';
-import { useCatalogWidgetEvent } from '#base/hooks';
-import { TextInput } from '#base/theme';
+import { CatalogWidgetEventEnum } from '#base/context/catalog';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
-
-/** `layout_trophies`' `input_text` `max_chars`. */
-const INPUT_MAX_CHARS = 300;
+import { useCatalogWidgetView } from '../catalogWidgetView';
 
 /**
- * The page's free text, Flash's `TextInputCatalogWidget` - drawn from the `EMBEDDED` container's
- * own child, the only one in a shipped layout being `layout_trophies`' `input_text` (an `input`
- * filling the 349x70 container: multiline, word-wrapped, bold, 300 characters at most, its
- * selection always shown). Every key the field takes (`WKE_KEY_UP`) tells the page the text as it
- * stands (`TextInputEvent`); the trophy widget turns that into the purchase's extra parameter.
+ * The page's free text, Flash's `TextInputCatalogWidget` - it attaches no view (its
+ * `textInputWidget` asset is never built) and binds the container's own `input_text`, the only one
+ * in a shipped layout being `layout_trophies`'. Every key the field takes (`WKE_KEY_UP`) tells the
+ * page the text as it stands (`TextInputEvent`); the trophy widget turns that into the purchase's
+ * extra parameter.
  *
- * `CatalogPage.selectOffer` also focuses and activates `input_text` on a page that has a
- * `trophyWidget`; the page selects its offer right after `WIDGETS_INITIALIZED`, so the field takes
- * the focus then. The widget's own `textInputWidget.xml` is never attached (the class does not
- * call `attachWidgetView`) and is not drawn.
+ * `CatalogPage.selectOffer` also focuses and activates `input_text` on a page with a
+ * `trophyWidget` - every layout with this widget has one. The page selects its offer once its
+ * widgets are up (`CatalogViewer.showCatalogPage`), so the field takes the focus as the widget
+ * mounts and is the user's once it loses it. A `selectOffer` on the page already on show (the
+ * server sending it again) does not focus it again.
  */
 export const CatalogTextInputWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ text, setText ] = useState('');
-    const [ focused, setFocused ] = useState(false);
-    const layout = resolveCatalogLayout(page.layoutCode);
-    const hasTrophyWidget = !!layout && CATALOG_LAYOUT_WIDGETS[layout].some(widget => widget === CatalogWidgetEnum.TROPHY);
-
-    useCatalogWidgetEvent(page, CatalogWidgetEventEnum.WIDGETS_INITIALIZED, () => {
-        if (hasTrophyWidget) setFocused(true);
-    });
+    // `selectOffer`'s `input_text.focus()`: held until the field loses it.
+    const [ focused, setFocused ] = useState<boolean | undefined>(true);
 
     const onChange = (value: string) => {
         setText(value);
@@ -37,21 +29,7 @@ export const CatalogTextInputWidgetView = ({ page }: CatalogWidgetProps) => {
         page.events.dispatchEvent({ type: CatalogWidgetEventEnum.TEXT_INPUT, text: value });
     };
 
-    return (
-        <TextInput
-            value={text}
-            onChange={onChange}
-            focused={focused}
-            onFocusChange={setFocused}
-            maxLength={INPUT_MAX_CHARS}
-            multiline
-            textStyle="u_regular"
-            flashFormat={{ bold: true }}
-            flashPlacement
-            alwaysShowSelection
-            backgroundColor={null}
-            focusedBackgroundColor={null}
-            layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-        />
-    );
+    useCatalogWidgetView({ bindings: { input_text: { caption: text, onChange, focused, onBlur: () => setFocused(undefined) } } });
+
+    return null;
 };

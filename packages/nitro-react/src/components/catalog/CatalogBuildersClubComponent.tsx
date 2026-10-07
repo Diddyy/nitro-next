@@ -1,11 +1,12 @@
+import { RoomEngineObjectEvent } from '@nitrodevco/nitro-api';
 import { BuildersClubQueryFurniCountComposer, GetCatalogIndexComposer } from '@nitrodevco/nitro-packets';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
-import { useIsWindowVisible } from '#base/context/system';
+import { useConfigValue, useIsWindowVisible } from '#base/context/system';
 import { bridgeCatalogRoomChanged, registerCatalogBuildersClubHandlers, registerCatalogHandlers } from '#base/handlers';
-import { useCatalogPageRequest, useCatalogPurchaseFlow, useRegisterHandlers } from '#base/hooks';
+import { useCatalogPageRequest, useCatalogPurchaseFlow, useRegisterHandlers, useRoomEventDispatcher } from '#base/hooks';
 import { CatalogView } from '#base/views/catalog/CatalogView';
 
 /**
@@ -14,17 +15,21 @@ import { CatalogView } from '#base/views/catalog/CatalogView';
  * (`registerCatalogHandlers`, which keep to this store's catalogue type), the Builders Club
  * membership and furni count, and the room-changed bridge; the listeners of the normal
  * catalogue's pages (club, pets, guilds, media, room ads, bundles, limited editions) stay with that
- * window, as none of its layouts is a Builders Club page. The first time the window opens it asks
- * for its index (`toggleCatalog` -> `refreshCatalogIndex("BUILDERS_CLUB")`) and the furni count
- * (`init`'s `BuildersClubQueryFurniCount`), then shows the window - `catalog_ubuntu`, which
- * `CatalogView` draws for this catalogue type.
+ * window, as none of its layouts is a Builders Club page. Until its index is in, it asks for it
+ * (`refreshCatalogIndex("BUILDERS_CLUB")`) and, the first time, for the furni count (`init`'s
+ * `BuildersClubQueryFurniCount`): when the window opens (`toggleCatalog`), and when anything in the
+ * room is selected while `builders.club.enabled` is on (`onObjectSelected`), so the infostand
+ * knows the membership before the catalogue was ever opened. Then it shows the window -
+ * `catalog_ubuntu`, which `CatalogView` draws for this catalogue type.
  */
 export const CatalogBuildersClubComponent = () => {
     const isVisible = useIsWindowVisible('builders_catalog');
     const catalogType = useCatalogStore(x => x.catalogType);
     const rootNode = useCatalogStore(x => x.rootNode);
+    const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();
+    const furniCountRequested = useRef(false);
 
     useRegisterHandlers(socket => registerCatalogHandlers(store, socket));
     useRegisterHandlers(socket => registerCatalogBuildersClubHandlers(store, socket));
@@ -33,10 +38,23 @@ export const CatalogBuildersClubComponent = () => {
     // A builders club offer dragged into the room is bought by placing it (`onObjectPlacedInRoom`).
     useCatalogPurchaseFlow();
 
+    const requestIndex = () => {
+        send(new GetCatalogIndexComposer({ catalogType }));
+
+        if (furniCountRequested.current) return;
+
+        furniCountRequested.current = true;
+        send(new BuildersClubQueryFurniCountComposer({}));
+    };
+
+    useRoomEventDispatcher(RoomEngineObjectEvent.SELECTED, () => {
+        if (buildersClubEnabled && !rootNode) requestIndex();
+    });
+
     useEffect(() => {
         if (!isVisible || rootNode) return;
 
-        send(new GetCatalogIndexComposer({ catalogType }), new BuildersClubQueryFurniCountComposer({}));
+        requestIndex();
     }, [ isVisible, rootNode, catalogType ]);
 
     if (!isVisible) return null;

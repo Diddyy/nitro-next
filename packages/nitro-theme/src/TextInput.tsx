@@ -57,6 +57,12 @@ export interface TextInputProps {
     placeholderColor?: string;
     maxLength?: number;
     multiline?: boolean;
+    /**
+     * Whether a multiline field takes line breaks - Enter and pasted ones - which it does unless told
+     * otherwise. A Flash field with `word_wrap` but not `multiline` wraps its text yet stays one
+     * paragraph: Enter is a key its code hears (`onEnter`), not a new line.
+     */
+    lineBreaks?: boolean;
     /** Masks the value with bullets (the Flash `display_as_password` text field). */
     password?: boolean;
     fontSize?: number;
@@ -228,7 +234,7 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
  * to someone - and a caller can intercept keys (`onKeyDown`) before the browser edits.
  */
 export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TextInputProps>(
-    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
+    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, lineBreaks = true, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
         // The hidden `<textarea>` holds line breaks as `\n` only, and the Flash text layout breaks
         // lines on `\n` only. A value with Flash's `\r` (the floor plan's map text) would never equal
         // the native value and would be measured as one long line - the caret and the selection
@@ -329,6 +335,15 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                     }
                 }
 
+                // A field that takes no line breaks drops pasted ones.
+                if (multiline && !lineBreaks && /[\r\n]/.test(input.value)) {
+                    const caret = input.selectionEnd ?? input.value.length;
+                    const before = input.value.slice(0, caret).replace(/[\r\n]/g, '').length;
+
+                    input.value = input.value.replace(/[\r\n]/g, '');
+                    input.setSelectionRange(before, before);
+                }
+
                 onChangeRef.current(input.value);
                 readSelection();
             };
@@ -342,7 +357,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                 }
 
                 if (event.key === 'Enter') {
-                    if (multiline && !event.shiftKey) {
+                    if (multiline && lineBreaks && !event.shiftKey) {
                         // Let the textarea insert the newline, within `maxLength`.
                         const limit = maxLengthRef.current;
 
@@ -397,7 +412,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
                 if (inputRef.current === input) inputRef.current = null;
             };
-        }, [ multiline, password, readSelection, setFocused ]);
+        }, [ multiline, lineBreaks, password, readSelection, setFocused ]);
 
         // A read-only field still focuses and selects - `TextField.type` `dynamic` with `selectable`.
         useEffect(() => {

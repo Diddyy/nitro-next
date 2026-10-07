@@ -1,10 +1,9 @@
 import { AvatarGenderType, ISimpleRoomObjectData } from '@nitrodevco/nitro-api';
+import { FederatedPointerEvent } from 'pixi.js';
+import { useState } from 'react';
 
-import { AvatarImage } from '#base/components/AvatarImage';
-import { useTranslation } from '#base/context/system';
-import { Border, Box, Button, CloseButton, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
-
-import { InfostandBadgeView } from './InfostandBadgeView';
+import { useConfigValue, useTranslation } from '#base/context/system';
+import { FloatingPopup, getGlobalRect, TemplateBindings, TemplateWindow, TemplateWindows, useAvatarImageTexture } from '#base/theme';
 
 export interface InfostandBotViewProps {
     objectData: ISimpleRoomObjectData;
@@ -28,225 +27,255 @@ export interface InfostandBotViewProps {
     onClose: () => void;
 }
 
-/** Every bot wears the one badge that says it is a bot. */
+/** `InfoStandWidgetHandler.handleGetBotInfoMessage` / `handleGetRentableBotInfoMessage`: every bot's one badge. */
 const BOT_BADGE = 'BOT';
 const MAX_CARRY_ITEM = 999999;
 
-/** Every row of `infostand_element_list` is this wide; its `spacing` is 3. */
-const LIST_WIDTH = 170;
-
-/** `bot_view`'s `motto_text`: `textHeight + 5` high within `MIN_MOTTO_HEIGHT` / `MAX_MOTTO_HEIGHT`, text `margin_top` 6 down. */
+/** `InfoStandBotView.setMotto`: the field `textHeight + 5` high within these, its container 3 taller. */
 const MIN_MOTTO_HEIGHT = 23;
 const MAX_MOTTO_HEIGHT = 50;
-const MOTTO_MARGIN_TOP = 6;
+const MOTTO_TEXT_OFFSET = 3;
+
+/** `setCarryItem`: the hand item text `textHeight + 5` high. */
+const TEXT_PADDING = 5;
+
+/** `updateWindow`: the border is the element list's height plus 20. */
+const BORDER_PADDING = 20;
 
 /** `InfoStandRentableBotView.BUTTONS_MAX_WIDTH` / `BUTTON_HEIGHT` / `BUTTON_MARGIN`. */
 const BUTTONS_MAX_WIDTH = 250;
 const BUTTON_HEIGHT = 25;
 const BUTTON_MARGIN = 5;
 
-/** The `container` spacers between the list's groups - `0xffff333333`, a full-alpha `#333333`. */
-const Spacer = () => (
-    <Region
-        backgroundColor="#333333"
-        layout={{ width: LIST_WIDTH, height: 1, flexShrink: 0 }}
-    />
-);
+/** `button_list`'s `CMD_BUTTON_REGION`s in the layout's order, each holding its `CMD_BUTTON` of the same name. */
+const BUTTON_REGIONS = [ 'whisper', 'ignore', 'unignore', 'move', 'rotate', 'pick' ] as const;
 
-/** `name_text`: Volter Bold, white, sized to the name. */
-const NameText = ({ name }: { name: string }) => (
-    <ThemeText
-        text={name}
-        textOptions={{ fill: '#ffffff', fontFamily: 'VolterBold' }}
-        name="name_text"
-        verticalAlign="top"
-    />
-);
-
-/** `handitem_txt` / `handitem_text`: `textHeight + 5` high - the bitmap and one pixel. */
-const HandItemText = ({ text }: { text: string }) => (
-    <ThemeText
-        text={text}
-        textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-        verticalAlign="top"
-        layout={{ marginBottom: 1 }}
-    />
-);
+/** `badge_details`' window: where `showBadgeInfo` puts it, left of the badge and centred on it. */
+const BADGE_DETAILS_WIDTH = 263;
+const BADGE_DETAILS_HEIGHT = 25;
 
 /**
- * The bot panel. An ordinary bot is `InfoStandBotView` on `bot_view` - its name, its look with
- * the bot badge, its motto and what it is holding. A rentable bot is `InfoStandRentableBotView`
- * on `rentable_bot_view` - the look on the bot info backdrop, what it holds, its description and
- * owner, and the move / rotate / pick up buttons under the panel.
+ * The bot panel. An ordinary bot is `InfoStandBotView` on `habbo-room-ui-com/bot_view` - its name,
+ * its look with the bot badge, its motto and what it is holding. A rentable bot is
+ * `InfoStandRentableBotView` on `habbo-room-ui-com/rentable_bot_view` - the look on the bot info
+ * backdrop, what it holds, its description and owner, and the move / rotate / pick up buttons under
+ * the panel. Both are drawn from their templates; the code's sizing is the `arrange`.
  *
- * The rows are `infostand_element_list` (an `itemlist_vertical` at 10,10 with `spacing` 3) and
- * the border is that list's height plus 20 (`updateWindow`), so the list is a column here. The
- * avatar is a cropped `avatar_image` facing southwest, drawn at its own size where the layout
- * puts it (16,23 in `bot_view`, 16,21 in `rentable_bot_view`). `rentable_bot_view`'s `home_icon`
- * is a blank bitmap nothing fills, so it is not drawn.
+ * `avatar_image` is an `AvatarImageWidget` the templates do not draw: the cropped figure facing
+ * southwest is put in it, and `refresh` sizes the widget to the bitmap - its `hCenter | vCenter`
+ * params then centre it in `grey_bg` (or the backdrop region), as the layout's 34 x 84 rect is.
+ *
+ * `bot_view`'s `badge_0` is the bot badge (`update` -> `updateBadges([ "BOT" ])`); hovering it is
+ * `showBadgeInfo`, which builds `badge_details` and places it left of the badge. The code looks its
+ * `name` and `description` up with `getChildByName`, which finds only direct children - and both are
+ * inside `details_list` - so neither is filled and the window stays its layout's empty 25 high
+ * border, as it is drawn here. `rentable_bot_view`'s `badge` has no hover. `motto_text` is an `input`
+ * the code never reads; it is drawn read-only. `home_icon` is a bitmap nothing fills.
  */
 export const InfostandBotView = ({ rentable, name, motto, figure, gender, ownerName, carryItem, canMove = false, canPickUp = false, onMove, onRotate, onPickUp, onClose }: InfostandBotViewProps) => {
     const t = useTranslation();
+    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const avatar = useAvatarImageTexture(figure, gender, { cropped: true, direction: 4 });
+    const [ badgeDetails, setBadgeDetails ] = useState<{ x: number; y: number } | null>(null);
 
+    // `setCarryItem`: the text and its spacer shown only for a real hand item.
     const carriesItem = (carryItem > 0) && (carryItem < MAX_CARRY_ITEM);
-    const handItemText = t('infostand.text.handitem', '', { item: t(`handitem${carryItem}`, `handitem${carryItem}`) });
+    const handItemText = carriesItem ? t('infostand.text.handitem', '', { item: t(`handitem${carryItem}`, `handitem${carryItem}`) }) : '';
+    const botBadge = badgeUrl.replace('%badgename%', BOT_BADGE);
 
-    // `avatar_image`: `AvatarImageWidget.refresh` sizes the widget to its cropped bitmap and no
-    // `on_resize_align` param moves it, so the image's top-left stays where the layout puts it, 1:1.
-    const avatar = (top: number) => (figure
-        ? (
-                <AvatarImage
-                    figure={figure}
-                    gender={gender}
-                    cropped
-                    direction={4}
-                    layout={{ position: 'absolute', left: 16, top }}
-                />
-            )
-        : null);
+    const avatarImage = avatar.texture && (
+        <pixiSprite
+            texture={avatar.texture}
+            eventMode="none"
+            layout={{ position: 'absolute', left: 0, top: 0, width: avatar.width, height: avatar.height }}
+        />
+    );
+
+    /** `AvatarImageWidget.refresh`: the widget as big as its bitmap, which re-centres it. */
+    const fitAvatar = ({ find }: TemplateWindows) => {
+        const widget = find('avatar_image');
+
+        if (!widget || !avatar.texture) return;
+
+        widget.setWidth(avatar.width);
+        widget.setHeight(avatar.height);
+    };
+
+    /** `updateWindow`'s common part: the list as tall as its items, the border 20 taller. */
+    const fitBorder = ({ find }: TemplateWindows) => {
+        const border = find('info_border');
+        const list = find('info_border/infostand_element_list');
+
+        if (!border || !list) return undefined;
+
+        list.setHeight(list.scrollableRegion.height);
+        border.setHeight(list.height + BORDER_PADDING);
+
+        return border;
+    };
+
+    /** `setCarryItem`: the hand item text as tall as its text. */
+    const fitHandItem = ({ find }: TemplateWindows, key: string) => {
+        const text = find(key);
+
+        if (text) text.setHeight(text.textHeight + TEXT_PADDING);
+    };
 
     if (!rentable) {
+        const bindings: TemplateBindings = {
+            '#close': { onPointerTap: onClose },
+            name_text: { caption: name, visible: true },
+            avatar_image: { children: avatarImage },
+            badge_0: {
+                asset: botBadge,
+                onPointerOver: (event: FederatedPointerEvent) => {
+                    const rect = getGlobalRect(event.currentTarget);
+
+                    setBadgeDetails({ x: rect.x - BADGE_DETAILS_WIDTH, y: Math.trunc(rect.y + ((rect.height - BADGE_DETAILS_HEIGHT) / 2)) });
+                },
+                onPointerOut: () => setBadgeDetails(null),
+            },
+            motto_text: { caption: motto, disabled: true },
+            handitem_spacer: { visible: carriesItem },
+            handitem_txt: { visible: carriesItem, caption: handItemText },
+        };
+
+        const arrange = (windows: TemplateWindows) => {
+            const { find, root } = windows;
+
+            fitAvatar(windows);
+
+            // `setMotto`.
+            const mottoText = find('motto_container/motto_text');
+
+            if (mottoText) {
+                mottoText.setHeight(Math.max(Math.min(mottoText.textHeight + TEXT_PADDING, MAX_MOTTO_HEIGHT), MIN_MOTTO_HEIGHT));
+                find('motto_container')?.setHeight(mottoText.height + MOTTO_TEXT_OFFSET);
+            }
+
+            fitHandItem(windows, 'handitem_txt');
+
+            // `updateWindow`: the window as wide as the border, as tall as its items.
+            const border = fitBorder(windows);
+            const window = root();
+
+            if (!border || !window) return;
+
+            window.setWidth(border.width);
+            window.setHeight(window.scrollableRegion.height);
+        };
+
         return (
-            <Box layout={{ flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                <Border
-                    variant="1"
-                    name="info_border"
-                    layout={{ width: 190, flexShrink: 0, paddingLeft: 10, paddingTop: 10, paddingBottom: 10 }}
-                >
-                    <CloseButton
-                        variant="1"
-                        onPointerTap={onClose}
-                        layout={{ position: 'absolute', left: 168, top: 6, width: 18, height: 16 }}
-                    />
-                    <Box layout={{ flexDirection: 'column', width: LIST_WIDTH, gap: 3 }}>
-                        <NameText name={name} />
-                        <Spacer />
-                        <Box layout={{ width: 193, height: 132, marginLeft: -16, flexShrink: 0 }}>
-                            <Border
-                                variant="0"
-                                name="grey_bg"
-                                tintColor="#666666"
-                                layout={{ position: 'absolute', left: 16, top: 0, width: 67, height: 130, overflow: 'hidden' }}
-                            >
-                                {avatar(23)}
-                            </Border>
-                            <InfostandBadgeView
-                                code={BOT_BADGE}
-                                layout={{ position: 'absolute', left: 88, top: 1 }}
-                            />
-                        </Box>
-                        <Spacer />
-                        <Border
-                            variant="0"
-                            name="motto_container"
-                            tintColor="#666666"
-                            layout={{ width: LIST_WIDTH, flexShrink: 0, paddingLeft: 5, paddingTop: 2, paddingBottom: 1 }}
-                        >
-                            <Box layout={{ width: 160, minHeight: MIN_MOTTO_HEIGHT, maxHeight: MAX_MOTTO_HEIGHT, overflow: 'hidden' }}>
-                                <ThemeText
-                                    text={motto}
-                                    textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: 156 }}
-                                    name="motto_text"
-                                    verticalAlign="top"
-                                    // The bitmap is `textHeight + 4`: down by the margin, it
-                                    // leaves `textHeight + 5` of the field's height.
-                                    layout={{ marginTop: MOTTO_MARGIN_TOP, marginBottom: 1 - MOTTO_MARGIN_TOP }}
-                                />
-                            </Box>
-                        </Border>
-                        {carriesItem && (
-                            <>
-                                <Spacer />
-                                <HandItemText text={handItemText} />
-                            </>
-                        )}
-                    </Box>
-                </Border>
-            </Box>
+            <>
+                <TemplateWindow
+                    id="habbo-room-ui-com/bot_view"
+                    bindings={bindings}
+                    arrange={arrange}
+                />
+                {badgeDetails && (
+                    <FloatingPopup
+                        x={badgeDetails.x}
+                        y={badgeDetails.y}
+                        onOutsideClick={() => setBadgeDetails(null)}
+                    >
+                        <TemplateWindow id="habbo-room-ui-com/badge_details" />
+                    </FloatingPopup>
+                )}
+            </>
         );
     }
 
-    // `arrangeButtons`: the regions are laid right to left in reverse order, wrapping to a new row
-    // at the right edge - a reversed row that wraps, fed the buttons back to front.
-    const buttons = [
-        canPickUp && { key: 'pick', caption: t('infostand.button.pickup'), onPress: onPickUp },
-        canMove && { key: 'rotate', caption: t('infostand.button.rotate'), onPress: onRotate },
-        canMove && { key: 'move', caption: t('infostand.button.move'), onPress: onMove },
-    ].filter(button => !!button);
+    // `update`: whisper and ignore never show for a bot; move and rotate by rights, pick up by ownership.
+    const shown: Record<typeof BUTTON_REGIONS[number], boolean> = { whisper: false, ignore: false, unignore: false, move: canMove, rotate: canMove, pick: canPickUp };
+    const presses: Partial<Record<typeof BUTTON_REGIONS[number], (() => void) | undefined>> = { move: onMove, rotate: onRotate, pick: onPickUp };
+
+    const bindings: TemplateBindings = {
+        '#close': { onPointerTap: onClose },
+        name_text: { caption: name, visible: true },
+        description_text: { caption: motto, visible: true },
+        owner_text: ownerName.length ? { caption: t('infostand.text.botowner', '', { name: ownerName }), visible: true } : { caption: '', visible: false },
+        handitem_spacer: { visible: carriesItem },
+        handitem_text: { visible: carriesItem, caption: handItemText },
+        avatar_image: { children: avatarImage },
+        badge: { asset: botBadge },
+    };
+
+    for (const key of BUTTON_REGIONS) {
+        bindings[`button_list/${key}`] = { visible: shown[key] };
+
+        // `onButtonClicked`, by the clicked button's name.
+        const press = presses[key];
+
+        if (press) bindings[`button_list/${key}/${key}`] = { onPointerTap: () => press() };
+    }
+
+    const arrange = (windows: TemplateWindows) => {
+        const { find, root } = windows;
+
+        fitAvatar(windows);
+        fitHandItem(windows, 'handitem_text');
+
+        const buttons = find('button_list');
+
+        if (buttons) {
+            // `createWindow`: each button's region as wide as its button.
+            for (const key of BUTTON_REGIONS) {
+                const region = find(`button_list/${key}`);
+                const button = find(`button_list/${key}/${key}`);
+
+                if (region && button) region.setWidth(button.width);
+            }
+
+            // `arrangeButtons`: the shown regions, last first, laid right to left from the right edge,
+            // a new row when one does not fit.
+            buttons.setWidth(BUTTONS_MAX_WIDTH);
+
+            let right = BUTTONS_MAX_WIDTH;
+            let top = 0;
+
+            for (const key of [ ...BUTTON_REGIONS ].reverse()) {
+                const region = find(`button_list/${key}`);
+
+                if (!region?.visible) continue;
+
+                if ((right - region.width) < 0) {
+                    right = BUTTONS_MAX_WIDTH;
+                    top += BUTTON_HEIGHT + BUTTON_MARGIN;
+                }
+
+                region.setX(right - region.width);
+                region.setY(top);
+                right = region.x - BUTTON_MARGIN;
+            }
+
+            buttons.setHeight(top + BUTTON_HEIGHT);
+        }
+
+        // `updateWindow`: the window as wide as the wider of the border and the buttons, the narrower
+        // one pushed to its right edge. `arrangeButtons` keeps the list `BUTTONS_MAX_WIDTH` wide, so
+        // its `visible = width > 0` always holds.
+        const border = fitBorder(windows);
+        const window = root();
+
+        if (!border || !window || !buttons) return;
+
+        window.setWidth(Math.max(border.width, buttons.width));
+        window.setHeight(window.scrollableRegion.height);
+
+        if (border.width < buttons.width) {
+            border.setX(window.width - border.width);
+            buttons.setX(0);
+        } else {
+            buttons.setX(window.width - buttons.width);
+            border.setX(0);
+        }
+    };
 
     return (
-        <Box layout={{ flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-            <Border
-                variant="1"
-                name="info_border"
-                layout={{ width: 190, flexShrink: 0, paddingLeft: 10, paddingTop: 10, paddingBottom: 10 }}
-            >
-                <CloseButton
-                    variant="1"
-                    onPointerTap={onClose}
-                    layout={{ position: 'absolute', left: 168, top: 6, width: 18, height: 16 }}
-                />
-                <Box layout={{ flexDirection: 'column', width: LIST_WIDTH, gap: 3 }}>
-                    <NameText name={name} />
-                    <Spacer />
-                    <Box layout={{ width: 193, height: 132, marginLeft: -16, flexShrink: 0 }}>
-                        <Border
-                            variant="0"
-                            name="grey_bg"
-                            tintColor="#666666"
-                            layout={{ position: 'absolute', left: 16, top: 0, width: 67, height: 130 }}
-                        />
-                        <Region layout={{ position: 'absolute', left: 17, top: 2, width: 66, height: 127, overflow: 'hidden' }}>
-                            <ThemeImage
-                                src={LayoutImage('habbo-window-manager-com/infostand_bot_info_bg.png')}
-                                bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
-                                layout={{ position: 'absolute', left: 0, top: 0, width: 66, height: 127 }}
-                            />
-                            {avatar(21)}
-                        </Region>
-                        <InfostandBadgeView
-                            code={BOT_BADGE}
-                            layout={{ position: 'absolute', left: 116, top: 21 }}
-                        />
-                    </Box>
-                    {carriesItem && (
-                        <>
-                            <Spacer />
-                            <HandItemText text={handItemText} />
-                        </>
-                    )}
-                    <ThemeText
-                        text={motto}
-                        textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-                        name="description_text"
-                        clip
-                        verticalAlign="top"
-                        layout={{ width: LIST_WIDTH, height: 31, flexShrink: 0 }}
-                    />
-                    {!!ownerName.length && (
-                        <ThemeText
-                            text={t('infostand.text.botowner', '', { name: ownerName })}
-                            textOptions={{ fill: '#ffffff' }}
-                            name="owner_text"
-                            verticalAlign="top"
-                        />
-                    )}
-                </Box>
-            </Border>
-            {/* `button_list` is always `BUTTONS_MAX_WIDTH` wide and at least a row high, buttons or not. */}
-            <Box layout={{ flexDirection: 'row-reverse', flexWrap: 'wrap', width: BUTTONS_MAX_WIDTH, minHeight: BUTTON_HEIGHT, columnGap: BUTTON_MARGIN, rowGap: BUTTON_MARGIN }}>
-                {buttons.map(({ key, caption, onPress }) => (
-                    <Button
-                        key={key}
-                        variant="1"
-                        name={key}
-                        onPointerTap={onPress}
-                        layout={{ height: BUTTON_HEIGHT, flexShrink: 0 }}
-                    >
-                        {caption}
-                    </Button>
-                ))}
-            </Box>
-        </Box>
+        <TemplateWindow
+            id="habbo-room-ui-com/rentable_bot_view"
+            bindings={bindings}
+            arrange={arrange}
+        />
     );
 };

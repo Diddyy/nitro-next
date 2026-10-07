@@ -1,6 +1,5 @@
 import {
     EventDispatcher,
-    FurniId,
     FurnitureUsagePolicyEnum,
     GetConfigValue,
     GetObjectDataForFlags,
@@ -1594,80 +1593,13 @@ export class Room implements IRoom {
         return true;
     }
 
-    public removeRoomObjectFloor(objectId: number, isOwner: boolean = false): void {
-        if (isOwner && !FurniId.isBuilderClubId(objectId)) {
-            const roomObject = this.getRoomObject(objectId, RoomObjectCategoryEnum.Floor);
-
-            if (roomObject) {
-                const screenLocation = this.getRoomObjectScreenLocation(objectId, RoomObjectCategoryEnum.Floor);
-
-                if (screenLocation) {
-                    const disabledPickingAnimation
-                        = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureDisablePickingAnimation)
-                            === 1;
-
-                    if (!disabledPickingAnimation) {
-                        const typeId = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureTypeId);
-                        const extras = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureExtras);
-                        const dataKey = roomObject.model.getValue<ObjectDataFlagsEnum>(RoomObjectVariableEnum.FurnitureDataFormat);
-                        const objectData = GetObjectDataForFlags(dataKey);
-                        /* const icon = this.getFurnitureFloorIcon(typeId, null, extras, objectData).data;
-
-                        if (icon) {
-                            (async () => {
-                                const image = await TextureUtils.generateImage(icon);
-                                const event = new NitroToolbarAnimateIconEvent(
-                                    image,
-                                    screenLocation.x,
-                                    screenLocation.y,
-                                );
-
-                                event.iconName = ToolbarIconEnum.INVENTORY;
-
-                                EventStore.getState().emit(event);
-                            })();
-                        } */
-                    }
-                }
-            }
-        }
-
+    /** `RoomEngine.disposeObjectFurniture`; the flight of a picked up item to the toolbar is the client's (`createPickupTransition`). */
+    public removeRoomObjectFloor(objectId: number): void {
         this.removeRoomObject(objectId, RoomObjectCategoryEnum.Floor);
     }
 
-    public removeRoomObjectWall(objectId: number, isOwner: boolean = false): void {
-        if (isOwner && !FurniId.isBuilderClubId(objectId)) {
-            const roomObject = this.getRoomObject(objectId, RoomObjectCategoryEnum.Wall);
-
-            if (
-                roomObject
-                && roomObject.type.indexOf('post_it') === -1
-                && roomObject.type.indexOf('external_image_wallitem') === -1
-            ) {
-                const screenLocation = this.getRoomObjectScreenLocation(objectId, RoomObjectCategoryEnum.Wall);
-
-                if (screenLocation) {
-                    const typeId = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureTypeId);
-                    const objectData = roomObject.model.getValue<string>(RoomObjectVariableEnum.FurnitureData);
-                    /* const icon = this.getFurnitureWallIcon(typeId, null, objectData).data;
-
-                    if (icon)
-                    {
-                        (async () =>
-                        {
-                            const image = await TextureUtils.generateImage(icon);
-
-                            const event = new NitroToolbarAnimateIconEvent(image, screenLocation.x, screenLocation.y);
-
-                            event.iconName = ToolbarIconEnum.INVENTORY;
-
-                            EventStore.getState().emit(event);
-                        })();
-                    } */
-                }
-            }
-        }
-
+    /** `RoomEngine.disposeObjectWallItem`; the flight of a picked up item to the toolbar is the client's (`createPickupTransition`). */
+    public removeRoomObjectWall(objectId: number): void {
         this.removeRoomObject(objectId, RoomObjectCategoryEnum.Wall);
 
         this.updateRoomObjectMask(objectId, false);

@@ -10,9 +10,9 @@ import { useRoomObjectSelect } from './useRoomObjectSelect';
 import { useRoomObjectValidation } from './useRoomObjectValidation';
 
 /**
- * Placing an object from the inventory or the catalogue - `RoomObjectEventHandler.placeObject`
+ * Placing an object from the inventory, the catalogue or the infostand - `RoomObjectEventHandler.placeObject`
  * and `handleObjectPlace`: a ghost of the object follows the mouse, and a click where it fits
- * sends the placement.
+ * places it - the inventory's sent from here, the others by whoever started them, on `REOE_PLACED`.
  */
 export const useRoomObjectPlace = () => {
     const room = useRoom();
@@ -56,7 +56,8 @@ export const useRoomObjectPlace = () => {
 
             if (objectId < 0 && category === RoomObjectCategoryEnum.Unit) objectId = -objectId;
 
-            if (objectPlacementSource !== RoomObjectPlacementSource.CATALOG) {
+            // Only the inventory's placements are sent here: the catalogue and the infostand send their own when they hear `REOE_PLACED`.
+            if (objectPlacementSource === RoomObjectPlacementSource.INVENTORY) {
                 if (category === RoomObjectCategoryEnum.Unit) {
                     if (Number(selectedObject.typeId) === Number(RoomObjectUserType.Pet)) {
                         NitroLogger.sendPacket(`new PetPlaceComposer(${selectedObject.objectId}, Math.trunc(${x}), Math.trunc(${y}))`);

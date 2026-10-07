@@ -2,6 +2,8 @@ import { Box } from '#base/theme';
 
 import { RoomBotSkillConfigurationWidget } from './bot-skills/RoomBotSkillConfigurationWidget';
 import { RoomChatWidget } from './chat/RoomChatWidget';
+import { RoomFurniChooserWidget } from './chooser/RoomFurniChooserWidget';
+import { RoomUserChooserWidget } from './chooser/RoomUserChooserWidget';
 import { RoomDoorbellWidget } from './doorbell/RoomDoorbellWidget';
 import { RoomEffectsWidget } from './effects/RoomEffectsWidget';
 import { FloorPlanEditorWidget } from './floor-plan-editor/FloorPlanEditorWidget';
@@ -45,6 +47,8 @@ export const RoomWidgets = () => {
             <RoomBreedingResultWidget />
             <RoomNestBreedingSuccessWidget />
             <RoomAdWidget />
+            <RoomUserChooserWidget />
+            <RoomFurniChooserWidget />
             <Box layout={{ position: 'absolute', right: 4, bottom: 58 }}>
                 <RoomObjectInfostandWidget />
             </Box>

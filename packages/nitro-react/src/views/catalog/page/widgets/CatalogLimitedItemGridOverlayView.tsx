@@ -1,21 +1,25 @@
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { useEffect, useState } from 'react';
 
-import { LayoutImage, Region, ThemeImage } from '#base/theme';
+import { LayoutImage, TemplateWindow, ThemeImage } from '#base/theme';
 import { GlyphNumber } from '#base/views/room-widgets/object-infostand/UniqueItemPlaqueView';
 
 /** `LimitedItemGridOverlayWidget.SHINE_INTERVAL_MS` / `SHINE_LENGTH_MS`. */
 const SHINE_INTERVAL_MS = 10000;
 const SHINE_LENGTH_MS = 250;
-/** `unique_item_label_plaque_metal`'s height, and the plaque background window's size. */
+/** `unique_item_label_plaque_metal`'s height. */
 const PLAQUE_METAL_HEIGHT = 36;
+/** `unique_item_overlay_plaque_background_bitmap`'s size in `unique_item_overlay_griditem_xml`. */
 const PLAQUE_WIDTH = 34;
 const PLAQUE_HEIGHT = 7;
+/** `unique_item_overlay_plaque_number_bitmap`'s width, the slot the number is centred in. */
+const NUMBER_WIDTH = 24;
+const PLAQUE_METAL = LayoutImage('habbo-window-manager-com/unique_item_label_plaque_metal.png');
 
 /**
  * The shine that runs down the metal plaque (`LimitedItemGridOverlayWidget.update`, an animated
- * overlay): every 10 seconds the 34x7 window over `unique_item_label_plaque_metal` slides down the
- * 36px sheet for a quarter second, then snaps back to the top.
+ * overlay): every 10 seconds the slice of `unique_item_label_plaque_metal` the plaque background
+ * shows slides down the sheet for a quarter second, then snaps back to the top.
  */
 const usePlaqueShineOffset = () => {
     const [ offset, setOffset ] = useState(0);
@@ -58,48 +62,38 @@ export interface CatalogLimitedItemGridOverlayViewProps {
 
 /**
  * The limited edition plaque over a grid item's icon - the `limited_item_overlay_grid` window
- * widget, `LimitedItemGridOverlayWidget` on `unique_item_overlay_griditem.xml`: the metal plaque
- * background (shining, since the catalogue sets `animated`), its border, the number in the
- * `unique_item_number_glyph_*` digits centred in a 24x5 slot, the studs and the glass shine over
- * the whole 36x36 icon.
+ * widget, `LimitedItemGridOverlayWidget`, which builds `unique_item_overlay_griditem_xml` as its
+ * root window. The code draws two of its bitmaps: `unique_item_overlay_plaque_background_bitmap`
+ * gets the metal sheet (the shining slice of it, as the catalogue sets `animated`), and
+ * `set serialNumber` fills `unique_item_overlay_plaque_number_bitmap` with
+ * `LimitedItemNumberBitmap.createBitmap`.
  */
 export const CatalogLimitedItemGridOverlayView = ({ serialNumber }: CatalogLimitedItemGridOverlayViewProps) => {
     const offset = usePlaqueShineOffset();
 
     return (
-        <Region
-            name="unique_item_overlay_container_internal"
-            layout={{ position: 'absolute', left: 0, width: 36, top: 0, height: 36 }}
-        >
-            <ThemeImage
-                name="unique_item_overlay_plaque_background_bitmap"
-                src={LayoutImage('habbo-window-manager-com/unique_item_label_plaque_metal.png')}
-                frame={{ x: 0, y: offset, width: PLAQUE_WIDTH, height: PLAQUE_HEIGHT }}
-                layout={{ position: 'absolute', left: 1, top: 28 }}
-            />
-            <ThemeImage
-                name="unique_item_plaque_foreground_bitmap"
-                src={LayoutImage('habbo-window-manager-com/unique_item_label_plaque_border.png')}
-                bitmap={{ stretchedX: false, stretchedY: false }}
-                layout={{ position: 'absolute', left: 0, width: 36, top: 27, height: 9 }}
-            />
-            <GlyphNumber
-                value={serialNumber}
-                width={24}
-                layout={{ left: 6, top: 29 }}
-            />
-            <ThemeImage
-                name="unique_item_plaque_studs_bitmap"
-                src={LayoutImage('habbo-window-manager-com/unique_item_label_studs.png')}
-                bitmap={{ stretchedX: false, stretchedY: false }}
-                layout={{ position: 'absolute', left: 0, width: 36, top: 27, height: 9 }}
-            />
-            <ThemeImage
-                name="unique_item_overlay_glaze_bitmap"
-                src={LayoutImage('habbo-window-manager-com/unique_item_label_glass_shine.png')}
-                bitmap={{}}
-                layout={{ position: 'absolute', left: 0, width: 36, top: 0, height: 36 }}
-            />
-        </Region>
+        <TemplateWindow
+            id="habbo-window-manager-com/unique_item_overlay_griditem_xml"
+            bindings={{
+                unique_item_overlay_plaque_background_bitmap: {
+                    children: (
+                        <ThemeImage
+                            src={PLAQUE_METAL}
+                            frame={{ x: 0, y: offset, width: PLAQUE_WIDTH, height: PLAQUE_HEIGHT }}
+                            layout={{ position: 'absolute', left: 0, top: 0 }}
+                        />
+                    ),
+                },
+                unique_item_overlay_plaque_number_bitmap: {
+                    children: (
+                        <GlyphNumber
+                            value={serialNumber}
+                            width={NUMBER_WIDTH}
+                            layout={{ left: 0, top: 0 }}
+                        />
+                    ),
+                },
+            }}
+        />
     );
 };

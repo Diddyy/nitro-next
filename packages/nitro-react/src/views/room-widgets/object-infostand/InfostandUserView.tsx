@@ -1,14 +1,13 @@
 import { AvatarGenderType, ISimpleRoomObjectData } from '@nitrodevco/nitro-api';
 import { ChangeMottoComposer } from '@nitrodevco/nitro-packets';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { openProfile, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_SMILE, requestUserDetails, showGroupBadgeInfo } from '#base/commands';
-import { AvatarImage } from '#base/components/AvatarImage';
+import { openClientLink, openProfile, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_SMILE, requestUserDetails, showGroupBadgeInfo } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useRoomUserData } from '#base/hooks';
-import { Border, Box, CloseButton, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { LayoutImage, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture } from '#base/theme';
 
 import { InfostandBadgeView } from './InfostandBadgeView';
 
@@ -31,54 +30,54 @@ const RELATIONSHIP_ROWS: { type: number; name: string }[] = [
 const CROCODILE_MOTTO = 'crikey';
 
 /** `InfoStandUserView.LINK_COLOR_ACTIONS_DEFAULT` / `_HOVER`: the name link's colour, out and over. */
-const NAME_COLOR = '#ffffff';
-const NAME_HOVER_COLOR = '#91c2ff';
+const NAME_COLOR = 0xffffff;
+const NAME_HOVER_COLOR = 0x91c2ff;
 
-/** `MOTTO_UNCHANGED_COLOR` / `MOTTO_EDITED_COLOR`: a motto, and the change prompt standing in for none. */
-const MOTTO_COLOR = '#ffffff';
-const MOTTO_PROMPT_COLOR = '#aaaaaa';
+/** `MOTTO_UNCHANGED_COLOR` / `MOTTO_EDITED_COLOR`: a motto as it stands, and one being edited or the change prompt. */
+const MOTTO_COLOR = 0xffffff;
+const MOTTO_EDITED_COLOR = 0xaaaaaa;
 
 /** `MIN_MOTTO_HEIGHT` / `MAX_MOTTO_HEIGHT`: the motto field's height is `textHeight + 5` between these. */
 const MIN_MOTTO_HEIGHT = 23;
 const MAX_MOTTO_HEIGHT = 50;
 
-/** The `motto_text` input's `margin_top` var. */
-const MOTTO_MARGIN_TOP = 6;
+/** `onMottoKeyboard`: Enter sends a motto at most once in this many milliseconds. */
+const MOTTO_SEND_INTERVAL = 2000;
 
-/** Every row of `infostand_element_list` is this wide; its `spacing` is 3. */
-const LIST_WIDTH = 170;
+/** `createWindow`: the badge widgets `badge_0` to `badge_4`. */
+const BADGE_SLOTS = [ 0, 1, 2, 3, 4 ];
 
-/** The `container` spacers between the list's groups - `0xffff333333`, a full-alpha `#333333`. */
-const Spacer = () => (
-    <Region
-        backgroundColor="#333333"
-        layout={{ width: LIST_WIDTH, height: 1, flexShrink: 0 }}
-    />
-);
+/** `getLink(0, -1, getBadgeLeaderboardPageForCurrentUser())`: the badge leaderboard's first page. */
+const BADGE_LEADERBOARD_LINK = 'badge_leaderboard/0/-1/0';
 
-/** The badge slots of `image_and_badges_container`: `badge_<n>` at the layout's `x, y`. */
-const BADGE_SLOTS: { slot: number; left: number; top: number }[] = [
-    { slot: 0, left: 88, top: 1 },
-    { slot: 1, left: 88, top: 44 },
-    { slot: 2, left: 131, top: 44 },
-    { slot: 3, left: 88, top: 87 },
-    { slot: 4, left: 131, top: 87 },
-];
+/** The cropped render's direction - `avatar_image:direction` `southwest`. */
+const AVATAR_DIRECTION = 4;
 
 /**
- * The infostand for a user - `InfoStandUserView`, on the `user_view` layout: their name (a link
- * to their profile), their look and badges with the group badge, their motto (editable when it is
- * your own), their badge rank, achievement score and what they carry, and who they have a
- * relationship with. Selecting them asks for the badges and relationships, which fill in a moment
- * later.
+ * The infostand for a user - `InfoStandUserView`, drawn from its Flash template
+ * (`habbo-room-ui-com/user_view`): their name (a link to their profile), their look and badges with
+ * the group badge, their motto (editable when it is your own), their badge rank, achievement score
+ * and what they carry, and who they have a relationship with. Selecting them asks for the badges and
+ * relationships, which fill in a moment later.
  *
- * The rows are `infostand_element_list` (an `itemlist_vertical` at 10,10 with `spacing` 3 that
- * resizes to its items) and the border is that list's height plus 20 (`updateWindow`), so the
- * list is a column here; everything else keeps the layout's absolute rects.
+ * What the code sets on the layout's elements are the bindings: `setMotto`'s text, colour and pen,
+ * the crocodile sticker over the avatar, the `badgesRank`, `achievementScore` and `carryItem` rows and
+ * their spacers, `setRelationshipStatuses`' rows, and `createWindow`'s config gates. What it measures
+ * and moves is `arrange`: the motto field `textHeight + 5` high within 23-50 and its container 3
+ * higher, the hand item text `textHeight + 5`, and `updateWindow` - the border the element list's
+ * height plus 20, the window the border's size. The element list follows its items itself
+ * (`resize_on_item_update`).
  *
- * `setRealName` looks for a `realname_text` the layout does not have, so Flash never shows the
- * real name, and neither does this. The avatar is `avatar_image` with `avatar_image:cropped` and
- * `avatar_image:direction` `southwest` (4): the cropped render at its own size, never scaled.
+ * The badge widgets hold `InfostandBadgeView`, which draws the badge and names it on hover with its
+ * owner count (`showBadgeInfo`'s details); a `badge_image` binding draws the badge only. `home_icon`
+ * holds `icon_home` drawn at 0,0 unstretched - `createWindow` copies it into a bitmap of the window's
+ * own 16x15, which a binding's `asset` would stretch to the window. `avatar_image` holds the cropped
+ * render: `AvatarImageWidget.refresh` sizes the widget to it, and the widget is centred in its region
+ * (`params` centre both ways), so a resize re-centres it as `WE_RESIZED` does.
+ *
+ * Not drawn, as in this revision: `setRealName` looks for a `realname_text` the layout does not have,
+ * and `xp` an `xp_text`. The rarity glow (`playGlow`) and the badge details window's rarity tag are
+ * not ported.
  */
 export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProps) => {
     const info = useRoomUserData(objectData.objectId);
@@ -87,6 +86,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
     const [ editingObjectId, setEditingObjectId ] = useState<number | undefined>(undefined);
     const [ motto, setMotto ] = useState('');
     const [ nameHovered, setNameHovered ] = useState(false);
+    const lastMottoSent = useRef(0);
     const mottoMaxLength = useConfigValue<number>('motto.max.length') ?? 38;
     const mottoChangeEnabled = useConfigValue<boolean>('infostand.motto.change.enabled') === true;
     // `InfoStandWidgetHandler.isActivityDisplayEnabled` shows `score_spacer`, `score_text` and `score_value`.
@@ -95,6 +95,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
     const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
     const t = useTranslation();
     const { send } = useWebSocketContext();
+    const avatar = useAvatarImageTexture(info?.figure || undefined, info?.gender ?? AvatarGenderType.Male, { cropped: true, direction: AVATAR_DIRECTION });
 
     const webId = info?.webId ?? -1;
 
@@ -109,6 +110,8 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
 
     // Which object's motto is being edited: selecting someone else simply stops matching.
     const isEditingMotto = editingObjectId === objectData.objectId;
+    const canEditMotto = info.isOwnUser && mottoChangeEnabled;
+    const mottoPrompt = t('infostand.motto.change');
 
     const submitMotto = () => {
         if (motto.length > mottoMaxLength) return;
@@ -117,8 +120,19 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
         setEditingObjectId(undefined);
     };
 
+    // `onMottoKeyboard`: Enter sends the motto unless one went less than 2 seconds ago, or it is the prompt.
+    const enterMotto = () => {
+        const now = Date.now();
+
+        if (((now - lastMottoSent.current) <= MOTTO_SEND_INTERVAL) || (motto === mottoPrompt)) return;
+
+        lastMottoSent.current = now;
+        submitMotto();
+    };
+
+    // `onMottoClicked`: the prompt is cleared for typing.
     const startEditingMotto = () => {
-        if (!info.isOwnUser || !mottoChangeEnabled) return;
+        if (!canEditMotto || isEditingMotto) return;
 
         setMotto(info.motto);
         setEditingObjectId(objectData.objectId);
@@ -129,249 +143,151 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
     const carriesItem = (info.carryItem > 0) && (info.carryItem < MAX_CARRY_ITEM);
     // `setMotto`: your own empty motto reads as the change prompt, in the edited colour.
     const showsMottoPrompt = info.isOwnUser && !info.motto.length;
+    const showsBadgesRank = badgesRank >= 0;
+
+    const bindings: TemplateBindings = {
+        '#close': { onPointerTap: onClose },
+        // `onButtonClicked`: `RWUAM_OPEN_HOME_PAGE`, the user's profile.
+        home_icon: {
+            onPointerTap: () => openProfile(send, info.webId),
+            children: (
+                <ThemeImage
+                    src={LayoutImage('habbo-room-ui-com/icon_home.png')}
+                    bitmap={{ stretchedX: false, stretchedY: false }}
+                    eventMode="none"
+                    layout={{ position: 'absolute', left: 0, top: 0, width: 16, height: 15 }}
+                />
+            ),
+        },
+        sticker_croco: { visible: showsCrocodile },
+        // `onProfileLink`: a click opens the profile; over and out colour the name.
+        profile_link: {
+            onPointerTap: () => openProfile(send, info.webId),
+            onPointerOver: () => setNameHovered(true),
+            onPointerOut: () => setNameHovered(false),
+        },
+        name_text: { caption: info.name, color: nameHovered ? NAME_HOVER_COLOR : NAME_COLOR },
+        avatar_image_profile_link: { onPointerTap: () => openProfile(send, info.webId) },
+        avatar_image: {
+            visible: !showsCrocodile,
+            children: avatar.texture && (
+                <pixiSprite
+                    texture={avatar.texture}
+                    eventMode="none"
+                    layout={{ position: 'absolute', left: 0, top: 0, width: avatar.width, height: avatar.height }}
+                />
+            ),
+        },
+        badge_group: {
+            children: (
+                <InfostandBadgeView
+                    code={info.groupBadge}
+                    group
+                    // `selectGroupBadge`: `HabboGroupsManager.showGroupBadgeInfo`, the group's own window.
+                    onPress={info.groupId ? () => showGroupBadgeInfo(send, info.groupId) : undefined}
+                    layout={{ position: 'absolute', left: 0, top: 0 }}
+                />
+            ),
+        },
+        // `setMotto`: the pen and an enabled field for your own motto only.
+        'changemotto.image': { visible: info.isOwnUser, onPointerTap: startEditingMotto },
+        motto_text: {
+            caption: isEditingMotto ? motto : (showsMottoPrompt ? mottoPrompt : info.motto),
+            color: (isEditingMotto || showsMottoPrompt) ? MOTTO_EDITED_COLOR : MOTTO_COLOR,
+            disabled: !canEditMotto,
+            focused: isEditingMotto,
+            onFocus: startEditingMotto,
+            onChange: setMotto,
+            // `word_wrap` without `multiline`: the field wraps, and Enter is a key, not a line break.
+            onEnter: enterMotto,
+            onBlur: () => {
+                if (isEditingMotto) submitMotto();
+            },
+        },
+        badges_rank_spacer: { visible: showsBadgesRank },
+        // `onBadgesRankClicked`: the badge leaderboard.
+        badges_rank_region: { visible: showsBadgesRank, onPointerTap: () => openClientLink(send, BADGE_LEADERBOARD_LINK) },
+        badges_rank_text: { caption: t('infostand.text.badges_rank', '', { rank: `#${badgesRank}` }) },
+        score_spacer: { visible: activityDisplayEnabled },
+        score_text: { visible: activityDisplayEnabled },
+        score_value: { visible: activityDisplayEnabled, caption: String(info.achievementScore) },
+        handitem_spacer: { visible: carriesItem },
+        handitem_txt: {
+            visible: carriesItem,
+            caption: carriesItem ? t('infostand.text.handitem', '', { item: t(`handitem${info.carryItem}`, `handitem${info.carryItem}`) }) : undefined,
+        },
+        relationship_status_container: { visible: relationshipsEnabled },
+    };
+
+    // `setBadge`: the slot's badge, cleared (`clearBadges`) when there is none.
+    for (const slot of BADGE_SLOTS) {
+        const selected = badgeInSlot(slot);
+
+        bindings[`badge_${slot}`] = {
+            children: (
+                <InfostandBadgeView
+                    code={selected?.badgeCode}
+                    ownerCount={selected?.ownerCount}
+                    layout={{ position: 'absolute', left: 0, top: 0 }}
+                />
+            ),
+        };
+    }
+
+    // `setRelationshipStatuses`: a row for each status with friends, its random friend a link to their
+    // profile, and how many others there are.
+    for (const { type, name } of RELATIONSHIP_ROWS) {
+        const relationship = info.relationships.find(entry => entry.relationshipStatusType === type);
+        const shown = !!relationship && (relationship.friendCount > 0);
+
+        bindings[`relationship_${name}`] = { visible: shown };
+
+        if (!relationship) continue;
+
+        bindings[`${name}_randomusername`] = { caption: relationship.randomFriendName, onPointerTap: () => openProfile(send, relationship.randomFriendId) };
+        bindings[`${name}_others`] = {
+            visible: relationship.friendCount > 1,
+            caption: t(`infostand.relstatus.${name}.others`, '', { amount: String(relationship.friendCount - 1) }),
+        };
+    }
+
+    const arrange = ({ find, root }: TemplateWindows) => {
+        // `AvatarImageWidget.refresh`: the widget takes its bitmap's size, and its centring params re-centre it.
+        const avatarImage = find('avatar_image');
+
+        if (avatarImage && avatar.texture) avatarImage.setRectangle(avatarImage.x, avatarImage.y, avatar.width, avatar.height);
+
+        // `setMotto` / `onMottoKeyboard`: the field `textHeight + 5` high within 23-50, its container 3 higher.
+        const mottoText = find('motto_text');
+        const mottoContainer = find('motto_container');
+
+        if (mottoText && mottoContainer) {
+            mottoText.setHeight(Math.max(Math.min(mottoText.textHeight + 5, MAX_MOTTO_HEIGHT), MIN_MOTTO_HEIGHT));
+            mottoContainer.setHeight(mottoText.height + 3);
+        }
+
+        // `carryItem`: the text `textHeight + 5` high.
+        const handItem = find('handitem_txt');
+
+        if (handItem) handItem.setHeight(handItem.textHeight + 5);
+
+        // `updateWindow`: the border the element list's height plus 20, the window the border's size.
+        const list = find('infostand_element_list');
+        const border = find('info_border');
+        const view = root();
+
+        if (!list || !border || !view) return;
+
+        border.setHeight(list.height + 20);
+        view.setWidth(border.width);
+        view.setHeight(border.height);
+    };
 
     return (
-        <Box layout={{ flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-            <Border
-                variant="1"
-                layout={{ width: 190, flexShrink: 0, paddingLeft: 10, paddingTop: 10, paddingBottom: 10 }}
-            >
-                <ThemeImage
-                    name="home_icon"
-                    src={LayoutImage('habbo-room-ui-com/icon_home.png')}
-                    cursor="pointer"
-                    onPointerTap={() => openProfile(send, info.webId)}
-                    // `InfoStandUserView`: `icon_home` copied at 0,0 into a bitmap of the window's own 16x15, all of it clickable.
-                    bitmap={{ stretchedX: false, stretchedY: false }}
-                    layout={{ position: 'absolute', left: 8, top: 11, width: 16, height: 15 }}
-                />
-                <CloseButton
-                    variant="1"
-                    onPointerTap={onClose}
-                    layout={{ position: 'absolute', left: 168, top: 6, width: 18, height: 16 }}
-                />
-                {showsCrocodile && (
-                    <ThemeImage
-                        name="sticker_croco"
-                        src={LayoutImage('habbo-window-manager-com/sticker_croco.png')}
-                        bitmap={{ stretchedX: false, stretchedY: false }}
-                        layout={{ position: 'absolute', left: 2, top: 64, width: 92, height: 63 }}
-                    />
-                )}
-                <Box layout={{ flexDirection: 'column', width: LIST_WIDTH, gap: 3 }}>
-                    <Region
-                        tooltip={t('infostand.profile.link.tooltip')}
-                        tooltipDelay={100}
-                        cursor="pointer"
-                        onPointerTap={() => openProfile(send, info.webId)}
-                        onPointerOver={() => setNameHovered(true)}
-                        onPointerOut={() => setNameHovered(false)}
-                        layout={{ width: 135, height: 12, marginLeft: 18, flexShrink: 0 }}
-                    >
-                        <ThemeText
-                            text={info.name}
-                            textOptions={{ fill: nameHovered ? NAME_HOVER_COLOR : NAME_COLOR, fontFamily: 'VolterBold' }}
-                            flashFormat={{ antiAliasType: 'advanced' }}
-                            verticalAlign="top"
-                        />
-                    </Region>
-                    <Spacer />
-                    <Box layout={{ width: 193, height: 132, marginLeft: -16, flexShrink: 0 }}>
-                        <Border
-                            variant="0"
-                            tintColor="#666666"
-                            layout={{ position: 'absolute', left: 16, top: 0, width: 67, height: 130 }}
-                        />
-                        <Region
-                            tooltip={t('infostand.profile.link.tooltip')}
-                            tooltipDelay={100}
-                            cursor="pointer"
-                            onPointerTap={() => openProfile(send, info.webId)}
-                            layout={{ position: 'absolute', left: 17, top: 2, width: 66, height: 127, overflow: 'hidden' }}
-                        >
-                            {!showsCrocodile && info.figure && (
-                                // `avatar_image`: `AvatarImageWidget.refresh` sizes the widget to its
-                                // bitmap and no `on_resize_align` param moves it, so the image's
-                                // top-left stays at the layout's 16,21, drawn 1:1.
-                                <AvatarImage
-                                    figure={info.figure}
-                                    gender={info.gender ?? AvatarGenderType.Male}
-                                    cropped
-                                    direction={4}
-                                    layout={{ position: 'absolute', left: 16, top: 21 }}
-                                />
-                            )}
-                        </Region>
-                        {BADGE_SLOTS.map(({ slot, left, top }) => {
-                            const selected = badgeInSlot(slot);
-
-                            return (
-                                <InfostandBadgeView
-                                    key={slot}
-                                    code={selected?.badgeCode}
-                                    ownerCount={selected?.ownerCount}
-                                    layout={{ position: 'absolute', left, top }}
-                                />
-                            );
-                        })}
-                        <InfostandBadgeView
-                            code={info.groupBadge}
-                            group
-                            // `HabboGroupsManager.showGroupBadgeInfo`: the group's own window.
-                            onPress={info.groupId ? () => showGroupBadgeInfo(send, info.groupId) : undefined}
-                            layout={{ position: 'absolute', left: 131, top: 1 }}
-                        />
-                    </Box>
-                    <Spacer />
-                    <Border
-                        variant="0"
-                        tintColor="#666666"
-                        layout={{ width: LIST_WIDTH, flexShrink: 0, paddingLeft: 20, paddingTop: 2, paddingBottom: 1 }}
-                    >
-                        {/* `changemotto.image` (`common_small_pen`), shown for your own motto only. */}
-                        {info.isOwnUser && (
-                            <ThemeImage
-                                name="changemotto.image"
-                                src={LayoutImage('habbo-window-manager-com/common_small_pen.png')}
-                                cursor={mottoChangeEnabled ? 'pointer' : undefined}
-                                onPointerTap={startEditingMotto}
-                                bitmap={{}}
-                                layout={{ position: 'absolute', left: 3, width: 17, height: 18, alignSelf: 'center', marginTop: -0.5, marginBottom: 0.5 }}
-                            />
-                        )}
-                        {!isEditingMotto && (
-                            // `motto_text`: 140 wide, `textHeight + 5` high within 23-50, the text
-                            // `margin_top` below its top and cut at its bottom.
-                            <Box
-                                cursor={(info.isOwnUser && mottoChangeEnabled) ? 'pointer' : undefined}
-                                onPointerTap={startEditingMotto}
-                                layout={{ width: 140, minHeight: MIN_MOTTO_HEIGHT, maxHeight: MAX_MOTTO_HEIGHT, overflow: 'hidden' }}
-                            >
-                                <ThemeText
-                                    text={showsMottoPrompt ? t('infostand.motto.change') : info.motto}
-                                    textOptions={{ fill: showsMottoPrompt ? MOTTO_PROMPT_COLOR : MOTTO_COLOR, wordWrap: true, wordWrapWidth: 136 }}
-                                    flashFormat={{ antiAliasType: 'advanced' }}
-                                    verticalAlign="top"
-                                    // The bitmap is `textHeight + 4` with its gutter: down by the
-                                    // margin, it leaves `textHeight + 5` of the field's height.
-                                    layout={{ marginTop: MOTTO_MARGIN_TOP, marginBottom: 1 - MOTTO_MARGIN_TOP }}
-                                />
-                            </Box>
-                        )}
-                        {isEditingMotto && (
-                            <Box layout={{ width: 140, height: MIN_MOTTO_HEIGHT, paddingTop: MOTTO_MARGIN_TOP }}>
-                                <TextInput
-                                    value={motto}
-                                    onChange={setMotto}
-                                    onEnter={submitMotto}
-                                    onFocusChange={focused => !focused && submitMotto()}
-                                    focused
-                                    maxLength={mottoMaxLength}
-                                    textStyle="regular"
-                                    textColor={MOTTO_PROMPT_COLOR}
-                                    flashPlacement
-                                    alwaysShowSelection
-                                    backgroundColor={null}
-                                    focusedBackgroundColor={null}
-                                    layout={{ width: 140, height: MIN_MOTTO_HEIGHT - MOTTO_MARGIN_TOP }}
-                                />
-                            </Box>
-                        )}
-                    </Border>
-                    {(badgesRank >= 0) && (
-                        <>
-                            <Spacer />
-                            <Box layout={{ width: LIST_WIDTH, height: 15, flexShrink: 0, overflow: 'hidden' }}>
-                                <ThemeText
-                                    text={t('infostand.text.badges_rank', '', { rank: `#${badgesRank}` })}
-                                    textOptions={{ fill: '#ffffff', fontFamily: 'VolterBold', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-                                    flashFormat={{ antiAliasType: 'advanced' }}
-                                    verticalAlign="top"
-                                />
-                            </Box>
-                        </>
-                    )}
-                    {activityDisplayEnabled && (
-                        <>
-                            <Spacer />
-                            <ThemeText
-                                text={t('infostand.text.achievement_score')}
-                                textOptions={{ fill: '#ffffff', fontFamily: 'VolterBold', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-                                flashFormat={{ antiAliasType: 'advanced' }}
-                                clip
-                                verticalAlign="top"
-                                layout={{ width: LIST_WIDTH, height: 15, flexShrink: 0 }}
-                            />
-                            <ThemeText
-                                text={String(info.achievementScore)}
-                                textOptions={{ fill: '#ffffff', fontFamily: 'VolterBold', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-                                flashFormat={{ antiAliasType: 'advanced' }}
-                                clip
-                                verticalAlign="top"
-                                layout={{ width: LIST_WIDTH, height: 15, flexShrink: 0 }}
-                            />
-                        </>
-                    )}
-                    {carriesItem && (
-                        <>
-                            <Spacer />
-                            {/* `handitem_txt`: `textHeight + 5` high - the bitmap and one pixel. */}
-                            <ThemeText
-                                text={t('infostand.text.handitem', '', { item: t(`handitem${info.carryItem}`, `handitem${info.carryItem}`) })}
-                                textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-                                flashFormat={{ antiAliasType: 'advanced' }}
-                                verticalAlign="top"
-                                layout={{ marginBottom: 1 }}
-                            />
-                        </>
-                    )}
-                    <Spacer />
-                    {relationshipsEnabled && (
-                        <Box layout={{ flexDirection: 'column', width: LIST_WIDTH, height: 55, gap: 3, flexShrink: 0 }}>
-                            {RELATIONSHIP_ROWS.map(({ type, name }) => {
-                                const relationship = info.relationships.find(entry => entry.relationshipStatusType === type);
-
-                                if (!relationship || (relationship.friendCount <= 0)) return null;
-
-                                return (
-                                    <Box
-                                        key={type}
-                                        layout={{ flexDirection: 'row', width: 172, height: 16, flexShrink: 0, overflow: 'hidden' }}
-                                    >
-                                        <ThemeImage
-                                            src={LayoutImage(`habbo-window-manager-com/relationship_status_${name}.png`)}
-                                            bitmap={{ stretchedX: false, stretchedY: false }}
-                                            layout={{ width: 17, height: 14, flexShrink: 0 }}
-                                        />
-                                        <Region
-                                            cursor="pointer"
-                                            onPointerTap={() => openProfile(send, relationship.randomFriendId)}
-                                            layout={{ height: 13, flexShrink: 0 }}
-                                        >
-                                            <ThemeText
-                                                text={relationship.randomFriendName}
-                                                textStyle="bold"
-                                                textOptions={{ fill: '#ffffff' }}
-                                                flashFormat={{ underline: true, antiAliasType: 'advanced' }}
-                                                verticalAlign="top"
-                                            />
-                                        </Region>
-                                        {(relationship.friendCount > 1) && (
-                                            <ThemeText
-                                                text={t(`infostand.relstatus.${name}.others`, '', { amount: String(relationship.friendCount - 1) })}
-                                                textStyle="regular"
-                                                textOptions={{ fill: '#ffffff' }}
-                                                verticalAlign="top"
-                                                layout={{ height: 13, flexShrink: 0 }}
-                                            />
-                                        )}
-                                    </Box>
-                                );
-                            })}
-                        </Box>
-                    )}
-                </Box>
-            </Border>
-        </Box>
+        <TemplateWindow
+            id="habbo-room-ui-com/user_view"
+            bindings={bindings}
+            arrange={arrange}
+        />
     );
 };

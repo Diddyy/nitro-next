@@ -46,8 +46,8 @@
  *   offers one item instead (`requestCurrentActionOnSelection`).
  *
  * Not ported: the 200-item pages and their `item_grid_pages` / `items.shown` row (the grid scrolls
- * instead), `furni_extra` (rarity, chest name, rent time), the rarity, limited, chest and rent
- * overlays, the `goto_room` and `use` buttons, and
+ * instead), `furni_extra` (rarity, chest name, rent time), the rarity, limited and rent overlays
+ * (a chest's is drawn: `ChestItemGridOverlayView`), the `goto_room` and `use` buttons, and
  * `placeinroom_btn`'s disabling outside a private room. A song disk (category 8) is named by its
  * furni, not by its song. The grid is the theme's `InfiniteGrid` in its `itemGrid` mode - Flash's
  * `ItemGridController`: 42px thumbs 2px apart both ways, the 17px scrollbar flush at the
@@ -60,7 +60,7 @@ import { useEffect, useRef, useState } from 'react';
 import { cancelInventoryFurniInMover, checkFurniInventoryInitialization, checkMarketplaceInitialization, offerSelectedFurniToTrade, openRentConfirmationWindow, recycleSelectedInventoryFurni, requestSelectedFurniPlacement, requestSelectedFurniSelling } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import {
-    canOfferInventoryFurniToWiredTrade, getInventoryFurniRecyclableCount, getInventoryFurniTradeableCount, getInventoryFurniTypeFilters, getInventoryFurniUnlockedCount, getStuffDataChestName, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_MAIN_FILTERS,
+    canOfferInventoryFurniToWiredTrade, getInventoryFurniRecyclableCount, getInventoryFurniTradeableCount, getInventoryFurniTypeFilters, getInventoryFurniUnlockedCount, getStuffDataChestName, getStuffDataContentsCount, INVENTORY_FURNI_CATEGORY_CHEST_BROWN, INVENTORY_FURNI_CATEGORY_CHEST_GOLD, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_MAIN_FILTERS,
     INVENTORY_FURNI_MIN_ITEMS_TO_SHOW_COUNTER, INVENTORY_RECYCLER_STATE_ACTIVE, InventoryFurniGroup, isInventoryFurniGroupWallItem,
     passInventoryFurniFilter, peekInventoryFurni, useInventoryFurniActions, useInventoryStore,
 } from '#base/context/inventory';
@@ -69,6 +69,7 @@ import { useUserStore } from '#base/context/user';
 import { useWiredTradingStore } from '#base/context/wired-trading';
 import { Border, Box, Button, Dropmenu, DropmenuOption, InfiniteGrid, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
 
+import { ChestItemGridOverlayView, ChestOverlayColor } from './ChestItemGridOverlayView';
 import { InventoryFurniPreview } from './InventoryFurniPreview';
 import { InventoryOptionsContainer } from './InventoryOptionsContainer';
 
@@ -159,6 +160,19 @@ interface FurniThumbProps {
  * `TextField` white (no `color`, so `TextField.backgroundColor` stays white): blue digits on
  * white, framed by the container's one blue pixel on the left and top.
  */
+/**
+ * `GroupItem`'s overlays, the first that applies: a limited item's plaque, a rarity's, else a chest's -
+ * gold for category 25, brown for 24. Only the chest's is drawn here; an item the first two take
+ * shows none.
+ */
+const chestColorOf = (group: InventoryFurniGroup): ChestOverlayColor | undefined => {
+    if ((group.stuffData.uniqueNumber > 0) || (group.stuffData.rarityLevel >= 0)) return undefined;
+    if (group.category === INVENTORY_FURNI_CATEGORY_CHEST_GOLD) return 'gold';
+    if (group.category === INVENTORY_FURNI_CATEGORY_CHEST_BROWN) return 'brown';
+
+    return undefined;
+};
+
 const FurniThumb = ({ group, selected, showRecyclable, onSelect, onAction, onDragOut, onRelease }: FurniThumbProps) => {
     const unlockedCount = getInventoryFurniUnlockedCount(group);
     const iconUrl = getGroupIconUrl(group);
@@ -166,6 +180,7 @@ const FurniThumb = ({ group, selected, showRecyclable, onSelect, onAction, onDra
     const recyclable = showRecyclable && group.items.some(item => item.recyclable && !item.locked);
     // `GroupItem.§_-F1a§`: the thumb is being held, so leaving it is a drag rather than a hover.
     const held = useRef(false);
+    const chestColor = chestColorOf(group);
 
     return (
         <Region
@@ -197,6 +212,15 @@ const FurniThumb = ({ group, selected, showRecyclable, onSelect, onAction, onDra
                 tintColor={group.hasUnseenItems ? THUMB_COLOR_UNSEEN : THUMB_COLOR}
                 layout={{ position: 'absolute', left: 1, top: 1, width: 40, height: 40 }}
             >
+                {chestColor && (
+                    <ThemeImage
+                        name="chest_background_bitmap"
+                        // `chest_overlay_<color>_background`, under the icon.
+                        src={LayoutImage(`habbo-window-manager-com/chest_overlay_${chestColor}_background.png`)}
+                        bitmap={{ stretchedX: false, stretchedY: false }}
+                        layout={{ position: 'absolute', left: 2, top: 2, width: 36, height: 36 }}
+                    />
+                )}
                 {(iconUrl !== '') && (
                     <ThemeImage
                         src={iconUrl}
@@ -212,6 +236,14 @@ const FurniThumb = ({ group, selected, showRecyclable, onSelect, onAction, onDra
                         bitmap={{}}
                         layout={{ position: 'absolute', left: 2, top: 3, width: 16, height: 16 }}
                     />
+                )}
+                {chestColor && (
+                    <Box layout={{ position: 'absolute', left: 2, top: 2, width: 36, height: 36 }}>
+                        <ChestItemGridOverlayView
+                            contentsCount={getStuffDataContentsCount(group.stuffData)}
+                            color={chestColor}
+                        />
+                    </Box>
                 )}
                 {(unlockedCount >= INVENTORY_FURNI_MIN_ITEMS_TO_SHOW_COUNTER) && (
                     <Region

@@ -1,4 +1,5 @@
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
+import { TemplateBindings, TemplateElement, TemplateItem } from '@nitrodevco/nitro-theme';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -11,27 +12,32 @@ import { useRoomStore } from '#base/context/room';
 import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredTradingStore } from '#base/context/wired-trading';
 import { useSecondsClock } from '#base/hooks';
-import { Border, Box, Bubble, Button, Icon, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
+import { findTemplateChild, LayoutImage, ThemeImage, useTemplateLibrary } from '#base/theme';
 import { RecyclerEngineAnimator } from '#base/views/catalog/recycler/RecyclerEngineAnimator';
+
+import { CATALOG_LIBRARY, catalogTemplateId } from '../catalogTemplates';
+import { findLayoutChild, useCatalogWidgetView } from '../catalogWidgetView';
 
 /** `onAbortClick` / `onAnimationComplete`: how long the gauge waits before swinging back. */
 const ABORT_RESET_DELAY = 650;
 const FINISH_RESET_DELAY = 1000;
 
-/** The 12 slot positions of `slots` (37px apart, rows at 0, 44 and 90); `numberOfSlots` of them are used. */
-const SLOT_POSITIONS = [ 0, 44, 90 ].flatMap(top => [ 0, 37, 74, 111 ].map(left => ({ left, top })));
+/** `emoji_2_template`'s `y`, where an emotion starts. */
+const EMOTION_START_Y = 210;
+
+/** The `slot_bg_<n>` / `slot_img_<n>` the layout has. */
+const LAYOUT_SLOTS = 12;
 
 /** `FrankRecyclerEmotion`'s art. */
 const EMOTIONS = [ 'franks_emotions_blush', 'franks_emotions_heart' ];
-
-/** `emoji_2_template`: where each emotion starts, and its size. */
-const EMOTION_TEMPLATE = { left: 32, top: 210, size: 40 };
 
 interface FrankEmotion {
     key: number;
     asset: string;
     offsetX: number;
     speed: number;
+    /** Seconds since it started (`getTimer() - _startTime`). */
+    elapsed: number;
 }
 
 /** `getFurniImageResult`: a floor slot's icon, or a wall slot's with its extra. */
@@ -45,62 +51,58 @@ const getSlotIconUrl = (slot: RecyclerSlotItem): string => {
 };
 
 /**
- * One `FrankRecyclerEmotion`: a copy of `emoji_2_template` with a blush or a heart, shifted -20 to
- * +49px, rising at 30 to 110px a second while it fades in over 0.8s in steps of a tenth, gone once
- * it is 50px above the top.
+ * `pointer_arrow` turned to `RecyclerEngineAnimator`'s rotation (`_arrow.rotation`): drawn into the
+ * bitmap, whose own asset is cleared. A `rotation` binding would republish the widget's view, and so
+ * redraw the page's template, on every one of the gauge's 60fps ticks; this reads the rotation
+ * itself, so a tick redraws only the arrow.
  */
-const FrankEmotionView = ({ emotion, onDone }: { emotion: FrankEmotion; onDone: (key: number) => void }) => {
-    const [ elapsed, setElapsed ] = useState(0);
-
-    // `start` / `onTick`: a 60fps timer until the emotion has risen out of sight.
-    useEffect(() => {
-        const start = performance.now();
-        const timer = setInterval(() => {
-            const seconds = (performance.now() - start) / 1000;
-
-            if ((EMOTION_TEMPLATE.top + (emotion.speed * seconds)) < -50) {
-                clearInterval(timer);
-                onDone(emotion.key);
-
-                return;
-            }
-
-            setElapsed(seconds);
-        }, 1000 / 60);
-
-        return () => clearInterval(timer);
-    }, [ emotion, onDone ]);
-
-    const y = EMOTION_TEMPLATE.top + (emotion.speed * elapsed);
-    // `blend` follows `min(1, t * 1.25)` a tenth at a time, and lands on 1 exactly.
-    const fade = Math.min(1, elapsed * 1.25);
-    const alpha = (fade === 1) ? 1 : (Math.floor(fade * 10) / 10);
+const RecyclerPointerArrow = () => {
+    const rotation = useRecyclerStore(x => x.recyclerArrowRotation);
 
     return (
         <ThemeImage
-            src={LayoutImage(`habbo-window-manager-com/${emotion.asset}.png`)}
-            bitmap={{}}
-            alpha={alpha}
-            layout={{ position: 'absolute', left: EMOTION_TEMPLATE.left + emotion.offsetX, width: EMOTION_TEMPLATE.size, top: Math.trunc(y), height: EMOTION_TEMPLATE.size }}
+            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_indicator_pointer_arrow.png')}
+            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true, rotation }}
+            layout={{ position: 'absolute', left: 0, top: 0 }}
         />
     );
 };
 
+const POINTER_ARROW = <RecyclerPointerArrow />;
+
 /**
- * `recyclerWidget` - Flash's `RecyclerCatalogWidget` with `recyclerWidget.xml` attached into the
- * page's container (tagged `E`, not `EMBEDDED`):
- *
- * - the ducket cost (`recycler.ducket_cost`, the bold number and the style 32 ducket icon in a row;
- *   neither is shown when it is 0) and the green style 6 `recycle` button, which reads
- *   `catalog.recycler.button.wait` with the seconds left while the recycler cools down;
- * - the slots panel (the `recycler_furnimatic_container_*` art) with `numberOfSlots` 34x34 slots
- *   (`ctlg_recycler_slot_bg`), each showing its item's icon centred; releasing the pointer on a
- *   filled slot takes its item back (`releaseSlot`);
- * - the gauge panel: the indicator, the pointer arrow `RecyclerEngineAnimator` swings, its base,
- *   and the underlined `abort` link while it runs;
- * - `disabled_border` (grey, 0.7) over everything while the server has the recycler closed:
- *   Frank, his speech bubble (`recycler.broken`, the sad emotion) and `pat_frank_btn`, which sends
- *   a blush or a heart floating up (`FrankRecyclerEmotion`).
+ * One `FrankRecyclerEmotion`: a clone of `emoji_2_template` added to `disabled_border` with a blush
+ * or a heart, shifted -20 to +49px, rising at 30 to 110px a second while it fades in over 0.8s in
+ * steps of a tenth.
+ */
+const emotionItem = (from: TemplateElement, emotion: FrankEmotion): TemplateItem => {
+    // `blend` follows `min(1, t * 1.25)` a tenth at a time, and lands on 1 exactly.
+    const fade = Math.min(1, emotion.elapsed * 1.25);
+    const alpha = (fade === 1) ? 1 : (Math.floor(fade * 10) / 10);
+
+    return {
+        key: String(emotion.key),
+        from,
+        bindings: { '': { asset: `habbo-window-manager-com-${emotion.asset}`, alpha } },
+        arrange: ({ root }) => {
+            const window = root();
+
+            window?.setRectangle(window.x + emotion.offsetX, Math.trunc(window.y + (emotion.speed * emotion.elapsed)), window.width, window.height);
+        },
+    };
+};
+
+/**
+ * `recyclerWidget` - Flash's `RecyclerCatalogWidget`, its view attached into the page's container
+ * (`attachWidgetView`): `renderDucketCost` (`ducket_cost` and `ducket_icon`, both hidden at a cost
+ * of 0), `recycler_recycle` (`updateRecycleButton`: `catalog.recycler.button.wait` with the seconds
+ * left while the recycler cools down), the slots (`renderSlotGraphics`: `slot_bg_<n>` and
+ * `slot_img_<n>` given `ctlg_recycler_slot_bg` up to `numberOfSlots`; `updateSlots`: each item's
+ * icon centred in its `slot_img`; `WME_UP` on a slot takes its item back - `releaseSlot`), the
+ * gauge (`pointer_arrow`, which `RecyclerEngineAnimator` swings while it shakes the page's
+ * `recycle_machine`, and `abort_region` while it runs), and `disabled_border` while the server has
+ * the recycler closed (`updateUI`), whose `pat_frank_btn` sends a blush or a heart floating up
+ * (`FrankRecyclerEmotion`).
  *
  * `init` registers the widget with the recycler, which asks the server for its status; `dispose`
  * cancels it (the inventory stops recycling and the slots empty). `recycle` checks the duckets
@@ -121,13 +123,14 @@ export const CatalogRecyclerWidgetView = () => {
     const systemStatus = useRecyclerStore(x => x.recyclerSystemStatus);
     const nextAllowedAt = useRecyclerStore(x => x.recyclerNextAllowedAt);
     const slots = useRecyclerStore(x => x.recyclerSlots);
-    const arrowRotation = useRecyclerStore(x => x.recyclerArrowRotation);
+    const shake = useRecyclerStore(x => x.recyclerMachineShake);
     const inRoom = useRoomStore(x => !!x.room);
     const tradingActive = useWiredTradingStore(x => x.tradeRunning);
     const floorItems = useSystemStore(x => x.floorItems);
     const showAlert = useSystemStore(x => x.showAlert);
     const { setRecyclerArrowRotation, setRecyclerMachineShake } = useRecyclerActions();
     const now = useSecondsClock();
+    const templates = useTemplateLibrary(CATALOG_LIBRARY);
     const [ animating, setAnimating ] = useState(false);
     const [ abortVisible, setAbortVisible ] = useState(false);
     const [ emotions, setEmotions ] = useState<FrankEmotion[]>([]);
@@ -166,6 +169,23 @@ export const CatalogRecyclerWidgetView = () => {
         };
     }, [ send, setRecyclerArrowRotation, setRecyclerMachineShake ]);
 
+    // `FrankRecyclerEmotion.onTick`: a 60fps timer while an emotion rises, each gone once it is 50px above the top.
+    const rising = emotions.length > 0;
+
+    useEffect(() => {
+        if (!rising) return;
+
+        const timer = setInterval(() => {
+            const time = performance.now();
+
+            setEmotions(list => list
+                .map(emotion => ({ ...emotion, elapsed: (time - emotion.key) / 1000 }))
+                .filter(emotion => (EMOTION_START_Y + (emotion.speed * emotion.elapsed)) >= -50));
+        }, 1000 / 60);
+
+        return () => clearInterval(timer);
+    }, [ rising ]);
+
     const secondsToWait = getRecyclerSecondsToWait(systemStatus, nextAllowedAt, now);
     const recycleEnabled = isRecyclerReadyToRecycle(localStatus, systemStatus, slots, numberOfSlots, inRoom, tradingActive) && !animating && (secondsToWait <= 0);
     const disabled = (systemStatus === RECYCLER_SYSTEM_STATUS_CLOSED);
@@ -202,222 +222,63 @@ export const CatalogRecyclerWidgetView = () => {
         asset: EMOTIONS[Math.floor(Math.random() * EMOTIONS.length)],
         offsetX: Math.floor(Math.random() * 70) - 20,
         speed: -((Math.random() * 80) + 30),
+        elapsed: 0,
     } ]);
 
-    const removeEmotion = (key: number) => setEmotions(list => list.filter(emotion => emotion.key !== key));
+    const bindings: TemplateBindings = {
+        ducket_cost: { visible: ducketCost !== 0, caption: String(ducketCost) },
+        ducket_icon: { visible: ducketCost !== 0 },
+        recycler_recycle: {
+            caption: (secondsToWait > 0) ? t('catalog.recycler.button.wait', '', { s: String(secondsToWait) }) : '${catalog.recycler.button.recycle}',
+            disabled: !recycleEnabled,
+            onPointerTap: onRecycle,
+        },
+        pointer_arrow: { asset: '', children: POINTER_ARROW },
+        abort_region: { visible: abortVisible, onPointerTap: onAbort },
+        disabled_border: {
+            visible: disabled,
+            added: templates
+                ? emotions.flatMap((emotion) => {
+                        const template = findTemplateChild(templates[catalogTemplateId('recyclerWidget')]?.elements ?? [], 'emoji_2_template');
 
-    return (
-        <Region layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 208 }}>
-            <Region
-                name="normal"
-                layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 208 }}
-            >
-                {(ducketCost !== 0) && (
-                    <Box layout={{ position: 'absolute', left: 19, top: 7, height: 30, flexDirection: 'row', alignItems: 'flex-start' }}>
-                        <ThemeText
-                            name="ducket_cost"
-                            text={String(ducketCost)}
-                            textStyle="u_regular"
-                            flashFormat={{ bold: true }}
-                            verticalAlign="top"
-                            layout={{ marginTop: 6 }}
-                        />
-                        <Box layout={{ width: 2, height: 30 }} />
-                        <Icon
-                            name="ducket_icon"
-                            variant={32}
-                            layout={{ marginTop: 4, width: 23, height: 21 }}
-                        />
-                    </Box>
-                )}
-                <Button
-                    variant="6"
-                    name="recycler_recycle"
-                    textStyle="button_shiny_regular"
-                    tintColor="#00aa00"
-                    disabled={!recycleEnabled}
-                    onPointerTap={onRecycle}
-                    layout={{ position: 'absolute', left: 19, width: 194, top: 41, height: 30 }}
-                >
-                    {(secondsToWait > 0) ? t('catalog.recycler.button.wait', '', { s: String(secondsToWait) }) : t('catalog.recycler.button.recycle')}
-                </Button>
-                <Region
-                    name="slots_wrapper"
-                    layout={{ position: 'absolute', left: 16, width: 185, top: 85, height: 156 }}
-                >
-                    <Region layout={{ position: 'absolute', left: 0, width: 185, top: 0, height: 115 }}>
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_left.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                            layout={{ position: 'absolute', left: 0, top: 0 }}
-                        />
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_slice.png')}
-                            bitmap={{}}
-                            layout={{ position: 'absolute', left: 15, width: 158, top: 0, height: 115 }}
-                        />
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_right.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                            layout={{ position: 'absolute', left: 172, top: 0 }}
-                        />
-                    </Region>
-                    <Region
-                        name="slots"
-                        layout={{ position: 'absolute', left: 21, width: 145, top: 16, height: 124 }}
-                    >
-                        {SLOT_POSITIONS.slice(0, numberOfSlots).map((position, index) => {
-                            const slot = slots[index];
-                            const iconUrl = slot ? getSlotIconUrl(slot) : '';
+                        return template ? [ emotionItem(template, emotion) ] : [];
+                    })
+                : [],
+        },
+        pat_frank_btn: { onPointerTap: onPatFrank },
+    };
 
-                            return (
-                                <Region
-                                    key={index}
-                                    name={`slot_img_${index + 1}`}
-                                    onPointerUp={() => releaseRecyclerSlot(index)}
-                                    layout={{ position: 'absolute', left: position.left, width: 34, top: position.top, height: 34 }}
-                                >
-                                    <ThemeImage
-                                        name={`slot_bg_${index + 1}`}
-                                        src={LayoutImage('habbo-catalog-com/ctlg_recycler_slot_bg.png')}
-                                        bitmap={{}}
-                                        layout={{ position: 'absolute', left: 0, width: 34, top: 0, height: 34 }}
-                                    />
-                                    {(iconUrl !== '') && (
-                                        <ThemeImage
-                                            src={iconUrl}
-                                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                                            layout={{ position: 'absolute', left: 0, width: 34, top: 0, height: 34, overflow: 'hidden' }}
-                                        />
-                                    )}
-                                </Region>
-                            );
-                        })}
-                    </Region>
-                </Region>
-                <Region
-                    name="indicator_wrapper"
-                    layout={{ position: 'absolute', left: 214, width: 123, top: 85, height: 115 }}
-                >
-                    <Region layout={{ position: 'absolute', left: 0, width: 123, top: 0, height: 115 }}>
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_left.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                            layout={{ position: 'absolute', left: 0, top: 0 }}
-                        />
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_slice.png')}
-                            bitmap={{}}
-                            layout={{ position: 'absolute', left: 15, width: 96, top: 0, height: 115 }}
-                        />
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_container_right.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                            layout={{ position: 'absolute', left: 110, top: 0 }}
-                        />
-                    </Region>
-                    <Region
-                        name="indicator"
-                        layout={{ position: 'absolute', left: 1, width: 123, top: 0, height: 115 }}
-                    >
-                        <ThemeImage
-                            name="indicator"
-                            src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_indicator.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            layout={{ position: 'absolute', left: 0, width: 122, top: 0, height: 115 }}
-                        />
-                        <Region
-                            name="indicator_pointer"
-                            layout={{ position: 'absolute', left: 37, width: 50, top: 43, height: 50 }}
-                        >
-                            <ThemeImage
-                                name="pointer_arrow"
-                                src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_indicator_pointer_arrow.png')}
-                                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true, rotation: arrowRotation }}
-                                layout={{ position: 'absolute', left: 0, top: 0 }}
-                            />
-                            <ThemeImage
-                                name="pointer_base"
-                                src={LayoutImage('habbo-window-manager-com/recycler_furnimatic_indicator_pointer_base.png')}
-                                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
-                                layout={{ position: 'absolute', left: 0, top: 0 }}
-                            />
-                        </Region>
-                        {abortVisible && (
-                            <Region
-                                name="abort_region"
-                                cursor="pointer"
-                                onPointerTap={onAbort}
-                                layout={{ position: 'absolute', left: 29, width: 65, top: 91, height: 17 }}
-                            >
-                                <ThemeText
-                                    text={t('catalog.recycler.button.abort')}
-                                    textStyle="u_regular"
-                                    textOptions={{ fontSize: 10 }}
-                                    flashFormat={{ underline: true }}
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 0, top: 0 }}
-                                />
-                            </Region>
-                        )}
-                    </Region>
-                </Region>
-            </Region>
-            {disabled && (
-                <Region
-                    alpha={0.7}
-                    layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 208 }}
-                >
-                    <Border
-                        variant="3"
-                        name="disabled_border"
-                        tintColor="#888888"
-                        layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 208, overflow: 'hidden' }}
-                    >
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/image_frank_dont_know.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                            layout={{ position: 'absolute', left: 235, top: 99 }}
-                        />
-                        <Bubble
-                            variant="7"
-                            pointer="right"
-                            margins={[ 8, 8, 8, 8 ]}
-                            layout={{ position: 'absolute', left: 107, width: 155, top: 98, height: 81 }}
-                        >
-                            <ThemeText
-                                text={t('recycler.broken')}
-                                textStyle="u_regular"
-                                textOptions={{ wordWrap: true, wordWrapWidth: 103 }}
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 4, width: 107, top: 4 }}
-                            />
-                            <ThemeImage
-                                name="emoji_1"
-                                src={LayoutImage('habbo-window-manager-com/franks_emotions_sad.png')}
-                                bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                                layout={{ position: 'absolute', left: 115, top: 5 }}
-                            />
-                        </Bubble>
-                        <Button
-                            variant="3"
-                            name="pat_frank_btn"
-                            textStyle="button_shiny_regular"
-                            onPointerTap={onPatFrank}
-                            layout={{ position: 'absolute', left: 235, width: 115, top: 11, height: 30 }}
-                        >
-                            {t('recycler.pat_frank')}
-                        </Button>
-                        {emotions.map(emotion => (
-                            <FrankEmotionView
-                                key={emotion.key}
-                                emotion={emotion}
-                                onDone={removeEmotion}
-                            />
-                        ))}
-                    </Border>
-                </Region>
-            )}
-        </Region>
-    );
+    for (let index = 0; index < Math.min(numberOfSlots, LAYOUT_SLOTS); index++) {
+        const slot = slots[index];
+        const iconUrl = slot ? getSlotIconUrl(slot) : '';
+        const onPointerUp = () => releaseRecyclerSlot(index);
+
+        bindings[`slot_bg_${index + 1}`] = { asset: 'habbo-catalog-com-ctlg_recycler_slot_bg', onPointerUp };
+        bindings[`slot_img_${index + 1}`] = {
+            onPointerUp,
+            children: (iconUrl !== '') && (
+                <ThemeImage
+                    src={iconUrl}
+                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
+                    layout={{ position: 'absolute', left: 0, width: 34, top: 0, height: 34, overflow: 'hidden' }}
+                />
+            ),
+        };
+    }
+
+    useCatalogWidgetView({
+        template: 'recyclerWidget',
+        bindings,
+        // `RecyclerEngineAnimator.setShake`: the page's `recycle_machine` moved off its place.
+        arrange: ((shake.x !== 0) || (shake.y !== 0))
+            ? ({ root }) => {
+                    const page = root()?.parent?.parent;
+                    const machine = page && findLayoutChild(page, 'recycle_machine');
+
+                    machine?.setRectangle(machine.x + shake.x, machine.y + shake.y, machine.width, machine.height);
+                }
+            : undefined,
+    });
+
+    return null;
 };

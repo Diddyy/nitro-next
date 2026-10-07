@@ -12,7 +12,7 @@ import { registerNavigatorHandlers, registerRoomQueueHandlers } from './navigato
 import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
 import {
-    registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
+    registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
     registerRoomDirectoryHandlers, registerRoomDoorbellHandlers, registerRoomFloorPlanHandlers, registerRoomFriendFurniHandlers, registerRoomFriendRequestHandlers,
     registerRoomFurnitureHandlers, registerRoomGenericErrorHandlers, registerRoomGuildFurniHandlers, registerRoomInfostandHandlers, registerRoomJukeboxHandlers, registerRoomLinkHandlers, registerRoomMappingHandlers,
     registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers,
@@ -40,6 +40,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
     const unsubscribes = [
         registerHotelViewHandlers(socket),
         registerRoomAreaHideHandlers(socket),
+        registerRoomBuildersClubHandlers(socket),
         registerRoomChatHandlers(socket),
         registerRoomConfigurationItemsHandlers(socket),
         registerRoomDataHandlers(socket),

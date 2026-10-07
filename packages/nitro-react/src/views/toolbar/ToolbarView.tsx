@@ -34,11 +34,17 @@
  * The arrows are `TOGGLE` items too, and `checkSize` only swaps them when the state lands at the
  * end, so the left arrow fades out with the icons on the way in and the right one holds until the
  * end on the way out. A press while it runs is ignored, as Flash's is.
+ *
+ * The inventory icon (`icons_toolbar_inventory`, its bitmap) and the me menu (`MEMENU`, the whole
+ * region) are what `animateToIcon` flies pictures into (`createTransitionToIcon`), and what bounces
+ * as one lands: `Queue(Wait(duration + 8), DropBounce(icon, 400, 12))` lifts it 12 px and lets it
+ * fall back with a bounce.
  */
 import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
 import { QuitComposer } from '@nitrodevco/nitro-packets';
-import { Container as PixiContainer } from 'pixi.js';
-import { ReactNode, useState } from 'react';
+import { GetTicker } from '@nitrodevco/nitro-renderer';
+import { Container as PixiContainer, Ticker } from 'pixi.js';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog } from '#base/commands';
 import { AvatarImage } from '#base/components';
@@ -46,7 +52,7 @@ import { unseenSkipped, useAchievementsStore } from '#base/context/achievements'
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
-import { useConfigValue, useIsLandingViewVisible, useSystemActions, useTranslation } from '#base/context/system';
+import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useTween } from '#base/hooks';
@@ -67,6 +73,76 @@ const ITEM_WIDTH = 45;
 const ITEM_SPACING = 8;
 /** `BottomBarLeft.COLLAPSE_ANIMATION_DURATION_MS`. */
 const COLLAPSE_ANIMATION_DURATION_MS = 140;
+/** `animateToIcon`'s `DropBounce(icon, 400, 12)`. */
+const BOUNCE_DURATION_MS = 400;
+const BOUNCE_HEIGHT = 12;
+
+/** `DropBounce.getBounceOffset`: how far down the drop is, 0 to 1, bouncing as it lands. */
+const getBounceOffset = (progress: number): number => {
+    if (progress < 0.364) return 7.5625 * progress * progress;
+
+    if (progress < 0.727) {
+        const k = progress - 0.545;
+
+        return (7.5625 * k * k) + 0.75;
+    }
+
+    if (progress < 0.909) {
+        const k = progress - 0.9091;
+
+        return (7.5625 * k * k) + 0.9375;
+    }
+
+    const k = progress - 0.955;
+
+    return (7.5625 * k * k) + 0.984375;
+};
+
+/**
+ * A transition target: registers its window for `createTransitionToIcon` to aim at, and answers
+ * how far up the `ToolBarBouncing[ <icon> ]` motion holds it - nothing through the wait, the full
+ * 12 px as the `DropBounce` starts, nothing again (`stop()`) once it ends.
+ */
+const useToolbarTransitionTarget = (icon: ToolbarTransitionIcon | undefined) => {
+    const { setToolbarIconNode, setToolbarIconBounce } = useSystemActions();
+    const waitMs = useSystemStore(x => (icon ? x.toolbarIconBounces[icon] : undefined));
+    const [ lift, setLift ] = useState(0);
+
+    const attachTarget = useCallback((node: PixiContainer | null) => {
+        if (icon) setToolbarIconNode(icon, node);
+    }, [ icon, setToolbarIconNode ]);
+
+    useEffect(() => {
+        if (!icon || (waitMs === undefined)) return;
+
+        let elapsed = 0;
+
+        const tick = (ticker: Ticker) => {
+            elapsed += ticker.deltaMS;
+
+            if (elapsed < waitMs) return;
+
+            const progress = (elapsed - waitMs) / BOUNCE_DURATION_MS;
+
+            if (progress < 1) {
+                setLift(Math.round(BOUNCE_HEIGHT - (getBounceOffset(progress) * BOUNCE_HEIGHT)));
+
+                return;
+            }
+
+            setToolbarIconBounce(icon, undefined);
+        };
+
+        GetTicker().add(tick);
+
+        return () => {
+            GetTicker().remove(tick);
+            setLift(0);
+        };
+    }, [ icon, waitMs, setToolbarIconBounce ]);
+
+    return { attachTarget, lift };
+};
 
 interface ToolbarItemProps {
     tooltip: string;
@@ -79,26 +155,33 @@ interface ToolbarItemProps {
     height?: number;
     /** What the region holds over its icon - the unseen item counter. */
     children?: ReactNode;
+    /** The transitions aimed at this icon's bitmap. */
+    transitionIcon?: ToolbarTransitionIcon;
 }
 
 /** One `lifted_hover` region of `toolbar_items`, its icon where `bottom_bar_left` places it. */
-const ToolbarItem = ({ tooltip, onPointerTap, src, icon: [ x, y, width, height ], height: itemHeight = 41, children }: ToolbarItemProps) => (
-    <Region
-        dynamicStyle="lifted_hover"
-        onPointerTap={onPointerTap}
-        tooltip={tooltip}
-        cursor="pointer"
-        layout={{ width: ITEM_WIDTH, height: itemHeight, flexShrink: 0 }}
-    >
-        <ThemeImage
-            dynamicRole="icon"
-            src={LayoutImage(src)}
-            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
-            layout={{ position: 'absolute', left: x, top: y, width, height }}
-        />
-        {children}
-    </Region>
-);
+const ToolbarItem = ({ tooltip, onPointerTap, src, icon: [ x, y, width, height ], height: itemHeight = 41, children, transitionIcon }: ToolbarItemProps) => {
+    const { attachTarget, lift } = useToolbarTransitionTarget(transitionIcon);
+
+    return (
+        <Region
+            dynamicStyle="lifted_hover"
+            onPointerTap={onPointerTap}
+            tooltip={tooltip}
+            cursor="pointer"
+            layout={{ width: ITEM_WIDTH, height: itemHeight, flexShrink: 0 }}
+        >
+            <ThemeImage
+                ref={attachTarget}
+                dynamicRole="icon"
+                src={LayoutImage(src)}
+                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
+                layout={{ position: 'absolute', left: x, top: y - lift, width, height }}
+            />
+            {children}
+        </Region>
+    );
+};
 
 interface ToolbarToggleSlotProps {
     /** How much of the icon is left: 1 in the expanded bar, 0 in the collapsed one. */
@@ -169,6 +252,7 @@ export const ToolbarView = () => {
     const collectiblesHubEnabled = useConfigValue<boolean>('collectibles.hub.enabled') === true;
     const unseenInventoryCount = useInventoryUnseenTotalCount();
     const unseenMiniMailCount = useMessengerStore(x => x.miniMailUnreadCount);
+    const { attachTarget: attachMeMenuTarget, lift: meMenuLift } = useToolbarTransitionTarget('HTIE_ICON_MEMENU');
 
     // HabboLandingView.onToolbarClick HTIE_ICON_RECEPTION: quit and dispose the room session right away (RSE_ENDED shows the hotel view)
     const goToHotelView = () => {
@@ -297,6 +381,7 @@ export const ToolbarView = () => {
                                 src="habbo-window-manager-com/bottom_bar_inventory.png"
                                 height={43}
                                 icon={[ 0, 0, 44, 41 ]}
+                                transitionIcon="HTIE_ICON_INVENTORY"
                             >
                                 <UnseenItemCounterView
                                     count={unseenInventoryCount}
@@ -305,11 +390,12 @@ export const ToolbarView = () => {
                             </ToolbarItem>
                         )}
                         <Region
+                            ref={attachMeMenuTarget}
                             dynamicStyle="lifted_hover"
                             onPointerTap={() => toggleMenu('me')}
                             tooltip={t('toolbar.icon.label.memenu')}
                             cursor="pointer"
-                            layout={{ width: ITEM_WIDTH, height: 45, flexShrink: 0, overflow: 'hidden' }}
+                            layout={{ width: ITEM_WIDTH, height: 45, flexShrink: 0, overflow: 'hidden', top: -meMenuLift }}
                         >
                             <ThemeImage
                                 src={LayoutImage('habbo-window-manager-com/bottom_bar_memenu_bg.png')}

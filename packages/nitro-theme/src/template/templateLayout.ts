@@ -51,6 +51,8 @@ export interface TemplateTextSize {
     height: number;
     /** `TextField.textWidth`: the text alone, without the gutters. */
     textWidth?: number;
+    /** `TextField.textHeight`: the text's lines alone, without the gutters. */
+    textHeight?: number;
 }
 
 export interface TemplateLayoutInput {
@@ -583,6 +585,19 @@ export class LayoutWindow {
         return 0;
     }
 
+    /**
+     * `IItemListWindow.scrollableRegion`: the extent of a list's items - its inner container, which it
+     * sizes to the items it places. Any other window's is its own size.
+     */
+    public get scrollableRegion(): { width: number; height: number } {
+        return { width: this.width, height: this.height };
+    }
+
+    /** `ITextWindow.textHeight`: the height of a text window's text; 0 for any other window. */
+    public get textHeight(): number {
+        return 0;
+    }
+
     /** A caption set on the window (`WindowController.caption`): the text controllers lay theirs out. */
     public setCaption(_caption: string, _input: TemplateLayoutInput): void {}
 }
@@ -612,6 +627,13 @@ const measuredTextWidth = (element: TemplateElement | undefined, caption: string
     return field ? (field.textWidth ?? Math.max(0, field.width - 4)) : 0;
 };
 
+/** A text's height as its field lays it out: `textHeight`, or the field less its two 2px gutters. */
+const measuredTextHeight = (element: TemplateElement | undefined, caption: string, input: TemplateLayoutInput | undefined, wrapWidth: number | undefined): number => {
+    const field = element && input && caption ? input.measure(element, caption, wrapWidth) : undefined;
+
+    return field ? (field.textHeight ?? Math.max(0, field.height - 4)) : 0;
+};
+
 /** `TextLabelController`: the window takes its text field's size on every `refresh`. */
 class LabelWindow extends LayoutWindow {
     private _caption = '';
@@ -626,6 +648,10 @@ class LabelWindow extends LayoutWindow {
 
     public override get textWidth(): number {
         return measuredTextWidth(this.element, this._caption, this._input, undefined);
+    }
+
+    public override get textHeight(): number {
+        return measuredTextHeight(this.element, this._caption, this._input, undefined);
     }
 
     /** `TextLabelController.refresh`. */
@@ -678,6 +704,13 @@ class TextWindow extends LayoutWindow {
         const wraps = !!element && flashBool(element.vars.word_wrap);
 
         return measuredTextWidth(element, this._caption, this._input, wraps && element ? Math.max(1, this.width - marginsOf(element).horizontal) : undefined);
+    }
+
+    public override get textHeight(): number {
+        const element = this.element;
+        const wraps = !!element && flashBool(element.vars.word_wrap);
+
+        return measuredTextHeight(element, this._caption, this._input, wraps && element ? Math.max(1, this.width - marginsOf(element).horizontal) : undefined);
     }
 
     public override setRectangle(x: number, y: number, width: number, height: number): void {
@@ -745,6 +778,10 @@ class TextFieldWindow extends LayoutWindow {
 
     public override get textWidth(): number {
         return measuredTextWidth(this.element, this._caption, this._input, this.wraps ? Math.max(1, this.width) : undefined);
+    }
+
+    public override get textHeight(): number {
+        return measuredTextHeight(this.element, this._caption, this._input, this.wraps ? Math.max(1, this.width) : undefined);
     }
 
     public override setRectangle(x: number, y: number, width: number, height: number): void {
@@ -830,6 +867,10 @@ class ListWindow extends LayoutWindow {
      */
     public override push(child: LayoutWindow): void {
         this.addListItemAt(child, this.container.children.length);
+    }
+
+    public override get scrollableRegion(): { width: number; height: number } {
+        return { width: this.container.width, height: this.container.height };
     }
 
     /** `ItemListController.addListItemAt`. */

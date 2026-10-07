@@ -26,6 +26,8 @@ export const ClientGates = {
     AnyRoomController: { node: 'room.control.any', level: SecurityLevelEnum.Moderator },
     /** `HabboCatalog` - the Builders Club catalogue without a membership (security 5). */
     BuildersClubCatalog: { node: 'catalog.builders_club.without_membership', level: SecurityLevelEnum.Moderator },
+    /** `ChatInputWidgetHandler` `:furni` - the furni chooser in any room (security 2); no server node stands behind it. */
+    FurniChooserAnyRoom: { node: null, level: SecurityLevelEnum.Partner },
     /** `GroupDetailsCtrl` - delete any group (security 5). */
     DeleteAnyGroup: { node: 'guild.delete_any', level: SecurityLevelEnum.Moderator },
     /** `BCFloorPlanEditor` / `ImportExportDialog` - save a floor plan without Builders Club (security 4). */

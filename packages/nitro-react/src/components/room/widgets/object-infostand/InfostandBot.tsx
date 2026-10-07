@@ -44,10 +44,8 @@ export const InfostandBot = ({ objectData, onClose }: { objectData: ISimpleRoomO
             canPickUp={hasOwner && (isRoomOwner || isAnyRoomController)}
             onMove={() => modifyRoomObject(objectData.objectId, RoomObjectCategoryEnum.Unit, RoomObjectOperationType.OBJECT_MOVE)}
             onRotate={() => modifyRoomObject(objectData.objectId, RoomObjectCategoryEnum.Unit, RoomObjectOperationType.OBJECT_ROTATE_POSITIVE)}
-            onPickUp={() => {
-                send(new RemoveBotFromFlatComposer({ botId: userData.webID }));
-                onClose();
-            }}
+            // `onButtonClicked`'s `pick` only asks; the bot leaving the room closes the stand.
+            onPickUp={() => send(new RemoveBotFromFlatComposer({ botId: userData.webID }))}
             onClose={onClose}
         />
     );

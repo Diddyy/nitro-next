@@ -20,13 +20,16 @@ export const useWiredChestItemFurniData = (type: IChestItemType | undefined): IF
 };
 
 /** The icon's URL, `''` for none: a floor type's own icon, a wall type's with the poster id as its extra. */
-export const useWiredChestItemIconUrl = (type: IChestItemType | undefined): string => {
+export const getWiredChestItemIconUrl = (type: IChestItemType | undefined): string => {
     if (!type) return '';
 
     const engine = GetRoomEngine();
 
     return (type.isWallItem ? engine.getFurnitureWallIconUrl(type.typeId, type.legacyPosterId || undefined) : engine.getFurnitureFloorIconUrl(type.typeId)) ?? '';
 };
+
+/** `getWiredChestItemIconUrl`, for a component that shows one item. */
+export const useWiredChestItemIconUrl = (type: IChestItemType | undefined): string => getWiredChestItemIconUrl(type);
 
 /** `getChestBasedItemName` as a function, for a list of items (the furni chest's search). */
 export const useWiredChestItemNameResolver = (): ((type: IChestItemType, specialType: number) => string) => {

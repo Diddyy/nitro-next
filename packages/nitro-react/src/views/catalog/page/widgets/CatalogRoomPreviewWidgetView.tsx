@@ -5,25 +5,28 @@ import { useRef, useState } from 'react';
 import { requestSelectedItemToMover } from '#base/commands';
 import { CatalogWidgetEventEnum, CatalogWidgetUpdateRoomPreviewEvent, useCatalogStoreApi } from '#base/context/catalog';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Region } from '#base/theme';
+import { Box } from '#base/theme';
 
 import { useRoomEngineTexture } from '../../useRoomEngineTexture';
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
+import { useCatalogWidgetView } from '../catalogWidgetView';
 
 /** `onUpdateRoomPreview`'s window: the wall item drawn over the room and cut into its wall. */
 const PREVIEW_WINDOW_TYPE = 'window_double_default';
 /** `setRoomImage`'s nudge of the room from the bitmap's centre. */
 const ROOM_OFFSET_X = -45;
 const ROOM_OFFSET_Y = 20;
-/** `catalog_floor_preview_example`'s size in `layout_spaces_new`. */
+/** `catalog_floor_preview_example`'s size in `layout_spaces_new`, which `setRoomImage` centres by. */
 const PREVIEW_WIDTH = 360;
 const PREVIEW_HEIGHT = 240;
 
 /**
  * The spaces page's room preview, Flash's `RoomPreviewCatalogWidget` - the layout's
- * `roomPreviewWidget` container (360x240), whose `catalog_floor_preview_example` bitmap it draws
- * into. The layout's other two bitmaps (`catalog_wall_preview_b_right`,
- * `catalog_space_preview_window`) name no asset and nothing fills them, so they draw nothing.
+ * `roomPreviewWidget` container, which attaches no view: it draws into the layout's
+ * `catalog_floor_preview_example` bitmap (the engine's pictures injected into it, cut at its
+ * rect as `copyPixels` into the bitmap is). The layout's other two bitmaps
+ * (`catalog_wall_preview_b_right`, `catalog_space_preview_window`) name no asset and nothing fills
+ * them, so they draw nothing.
  *
  * `onUpdateRoomPreview` (`CatalogWidgetUpdateRoomPreviewEvent`, sent by the spaces widget) renders
  * a small room with the chosen floor, wall and landscape (`RoomEngine.getRoomImage`, with
@@ -76,30 +79,31 @@ export const CatalogRoomPreviewWidgetView = ({ page }: CatalogWidgetProps) => {
     const windowX = Math.trunc((PREVIEW_WIDTH / 2) + ROOM_OFFSET_X) + 1;
     const windowY = Math.trunc((PREVIEW_HEIGHT / 2) + ROOM_OFFSET_Y - (windowImage?.height ?? 0)) + 44;
 
-    return (
-        <Region
-            name="catalog_floor_preview_example"
-            onPointerDown={() => {
-                pressed.current = true;
-            }}
-            onPointerUp={() => {
-                pressed.current = false;
-            }}
-            onPointerOut={onPointerOut}
-            layout={{ position: 'absolute', left: 0, width: PREVIEW_WIDTH, top: 0, height: PREVIEW_HEIGHT, overflow: 'hidden' }}
-        >
-            {ready && (
-                <>
-                    <pixiSprite
-                        texture={room}
-                        layout={{ position: 'absolute', left: roomX, top: roomY, width: room.width, height: room.height }}
-                    />
-                    <pixiSprite
-                        texture={windowImage}
-                        layout={{ position: 'absolute', left: windowX, top: windowY, width: windowImage.width, height: windowImage.height }}
-                    />
-                </>
-            )}
-        </Region>
-    );
+    useCatalogWidgetView({
+        bindings: {
+            catalog_floor_preview_example: {
+                onPointerDown: () => {
+                    pressed.current = true;
+                },
+                onPointerUp: () => {
+                    pressed.current = false;
+                },
+                onPointerOut,
+                children: ready && (
+                    <Box layout={{ position: 'absolute', left: 0, width: PREVIEW_WIDTH, top: 0, height: PREVIEW_HEIGHT, overflow: 'hidden' }}>
+                        <pixiSprite
+                            texture={room}
+                            layout={{ position: 'absolute', left: roomX, top: roomY, width: room.width, height: room.height }}
+                        />
+                        <pixiSprite
+                            texture={windowImage}
+                            layout={{ position: 'absolute', left: windowX, top: windowY, width: windowImage.width, height: windowImage.height }}
+                        />
+                    </Box>
+                ),
+            },
+        },
+    });
+
+    return null;
 };

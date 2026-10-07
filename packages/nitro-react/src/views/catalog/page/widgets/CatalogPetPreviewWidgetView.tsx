@@ -3,14 +3,16 @@ import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
 import { useState } from 'react';
 
 import { CatalogWidgetEventEnum, PetImageRequest } from '#base/context/catalog';
-import { useTranslation } from '#base/context/system';
+import { useConfigData, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Region, ThemeImage, ThemeText } from '#base/theme';
+import { ThemeImage, useTemplateLibrary } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
 
 import { usePetImageTexture } from '../../usePetImageTexture';
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
-import { CatalogProductPriceView } from './CatalogProductPriceView';
+import { CATALOG_LIBRARY } from '../catalogTemplates';
+import { useCatalogWidgetView } from '../catalogWidgetView';
+import { priceBoxItem } from './catalogPrice';
 
 /** `PET_TYPE_ID`, `BREED`, `COLOR`, `PALETTE_ID` and `PART_ID`: the horse `init()` draws, and the defaults a product fills in. */
 const PET_TYPE_ID = 15;
@@ -93,23 +95,23 @@ const INITIAL_PET_IMAGE: PetImageRequest = { typeId: PET_TYPE_ID, paletteId: PAL
 /**
  * The pet customisation page's preview, the `petPreviewWidget` container of
  * `layout_petcustomization.xml` - Flash's `PetPreviewCatalogWidget`, whose view is the container's
- * own children: `ctlg_teaserimg_1` (the pet, centred and unscaled at the 64 scale), the offer's
- * name in `ctlg_product_name` and its description 5px under it in `ctlg_description`, and the
- * offer's price box hanging 6px into the picture's top right corner.
+ * own children: `ctlg_teaserimg_1` (`§_-Zf§`: the pet, centred and unscaled at the 64 scale), the
+ * offer's name in `ctlg_product_name` and its description 5px under it in `ctlg_description`
+ * (`init()` empties both), and the offer's price box against the picture's top right corner
+ * (`showPriceOnProduct(offer, _window, box, §_-Zf§, -6, true, 6)`).
  *
  * It starts on a white horse and redraws on every `SELECT_PRODUCT`: the product's
  * `customParams` (`<pet type> ...`) say what the pet wears - a shampoo (`PetShampoo`) is the
  * palette of the tagged colour for breed 1, and on the horse also its master mane and tail; a
  * custom part, a part shampoo or a saddle are custom parts laid over palette 2. An offer it cannot
  * draw leaves the picture empty.
- *
- * The container's `petPreviewBackground` border is `visible="false"` and nothing shows it, so it is
- * not drawn.
  */
 export const CatalogPetPreviewWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ offer, setOffer ] = useState<IPurchasableOffer | undefined>(undefined);
     const [ imageRequest, setImageRequest ] = useState<PetImageRequest | undefined>(INITIAL_PET_IMAGE);
     const petTexture = usePetImageTexture(imageRequest);
+    const templates = useTemplateLibrary(CATALOG_LIBRARY);
+    const config = useConfigData();
     const t = useTranslation();
 
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.SELECT_PRODUCT, (event) => {
@@ -120,48 +122,36 @@ export const CatalogPetPreviewWidgetView = ({ page }: CatalogWidgetProps) => {
     const productData = offer ? getOfferProduct(offer)?.productData : undefined;
     const name = offer ? (productData ? t(productData.name, productData.name) : t(offer.localizationId, offer.localizationId)) : '';
     const description = offer ? (productData ? t(productData.description, productData.description) : t(offer.localizationId, offer.localizationId)) : '';
+    const priceBox = (templates && offer)
+        ? priceBoxItem(templates, offer, { config, builder: page.isBuilderPage, placement: { reference: 'ctlg_teaserimg_1', dx: -6, top: true, dy: 6 } })
+        : undefined;
 
-    return (
-        <Region layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
-            <Region
-                name="ctlg_teaserimg_1"
-                layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 240 }}
-            >
-                {imageRequest && petTexture && (
+    useCatalogWidgetView({
+        bindings: {
+            '': { added: priceBox ? [ priceBox ] : [] },
+            ctlg_teaserimg_1: {
+                asset: '',
+                children: imageRequest && petTexture && (
                     <ThemeImage
                         texture={petTexture}
                         bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                         layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 240 }}
                     />
-                )}
-            </Region>
-            <Region layout={{ position: 'absolute', left: 8, top: 12, flexDirection: 'column', gap: 5 }}>
-                <ThemeText
-                    name="ctlg_product_name"
-                    text={name}
-                    textStyle="u_bold"
-                    markup
-                    verticalAlign="top"
-                    layout={{ flexShrink: 0 }}
-                />
-                <ThemeText
-                    name="ctlg_description"
-                    text={description}
-                    textStyle="u_regular"
-                    textOptions={{ wordWrap: true, wordWrapWidth: 158 }}
-                    markup
-                    verticalAlign="top"
-                    layout={{ width: 162, flexShrink: 0 }}
-                />
-            </Region>
-            {offer && !page.isBuilderPage && (
-                <Region layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 240 }}>
-                    <CatalogProductPriceView
-                        offer={offer}
-                        layout={{ right: 6, top: 6 }}
-                    />
-                </Region>
-            )}
-        </Region>
-    );
+                ),
+            },
+            ctlg_product_name: { caption: name },
+            ctlg_description: { caption: description },
+        },
+        // `onPreviewProduct`: `ctlg_description.y = ctlg_product_name.y + ctlg_product_name.height + 5`.
+        arrange: offer
+            ? ({ find }) => {
+                    const productName = find('ctlg_product_name');
+                    const productDescription = find('ctlg_description');
+
+                    if (productName && productDescription) productDescription.setY(productName.y + productName.height + 5);
+                }
+            : undefined,
+    });
+
+    return null;
 };

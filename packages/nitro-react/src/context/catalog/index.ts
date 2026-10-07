@@ -2,6 +2,7 @@
 export * from './actions';
 export * from './CatalogContext';
 export * from './CatalogContextProvider';
+export * from './catalogStores';
 export * from './CatalogWindowName';
 export * from './page';
 export * from './store';

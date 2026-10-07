@@ -26,6 +26,9 @@ const actions = {
     startRoomSession: state.startRoomSession,
     endRoomSession: state.endRoomSession,
     showConfirm: state.showConfirm,
+    setToolbarIconNode: state.setToolbarIconNode,
+    removeToolbarTransition: state.removeToolbarTransition,
+    setToolbarIconBounce: state.setToolbarIconBounce,
 };
 
 export const useSystemActions = () => actions;

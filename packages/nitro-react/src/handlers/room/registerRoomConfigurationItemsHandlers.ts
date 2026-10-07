@@ -12,8 +12,8 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * way `RoomEngine.setHanditemControlBlocked` and its siblings did, and `setInvisibleFurni` also
  * hides the tagged layers of the furni in the room. The two that gate React - hand item control
  * and free furni movements - are mirrored into the store, since a room value does not re-render
- * anything. `ChooserDisabled` stays on the room only: the user chooser that reads it
- * (`UserChooserWidgetHandler.isChooserDisabled`) is not ported.
+ * anything. `ChooserDisabled` stays on the room only: `:chooser` reads it when it is typed
+ * (`activeRoomHasChooserDisabled`, `runRoomChatCommand`).
  */
 export const registerRoomConfigurationItemsHandlers = ({ subscribe }: WebSocketConnection) => {
     const { setIsHanditemControlBlocked, setIsFreeFurniMovementsMode } = roomStore.getState();

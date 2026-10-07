@@ -1,15 +1,17 @@
 import { IPurchasableOffer, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { useState } from 'react';
 
-import { CatalogWidgetEventEnum, getCatalogPageImage } from '#base/context/catalog';
-import { useConfigValue } from '#base/context/system';
+import { CatalogWidgetEventEnum } from '#base/context/catalog';
+import { useConfigData } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { ContainerButton, Icon, Region, ThemeImage } from '#base/theme';
+import { ThemeImage, useTemplateLibrary } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
 
 import { useFurnitureImageTexture } from '../../useFurnitureImageTexture';
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
-import { CatalogProductPriceView } from './CatalogProductPriceView';
+import { CATALOG_LIBRARY } from '../catalogTemplates';
+import { useCatalogWidgetView } from '../catalogWidgetView';
+import { priceBoxItem } from './catalogPrice';
 
 /** `TrophyCatalogWidget.gold` / `silver` / `bronze`: the colour grid's three swatches, in the order its index picks the type. */
 const TROPHY_COLOURS: readonly number[] = [ 16763904, 13421772, 13395456 ];
@@ -74,10 +76,10 @@ const getTrophyOffer = (models: Map<string, Map<string, IPurchasableOffer>>, mod
 };
 
 /**
- * The trophy page's model picker, Flash's `TrophyCatalogWidget` - drawn from `layout_trophies`'
- * `EMBEDDED` container (360x135): the `ctlg_teaserimg_1` bitmap with the preview centred in it,
- * and the `ctlg_prevmodel_button` / `ctlg_nextmodel_button` style 3 container buttons with the
- * left and right arrows (icon styles 2 and 3) at 115,101 and 210,101.
+ * The trophy page's model picker, Flash's `TrophyCatalogWidget` - it attaches no view and binds
+ * `layout_trophies`' `EMBEDDED` container: the `ctlg_teaserimg_1` bitmap and the
+ * `ctlg_prevmodel_button` / `ctlg_nextmodel_button` buttons (`WME_CLICK`: `onClickPrev` /
+ * `onClickNext`).
  *
  * The page's offers are trophy models in three metals: `init` groups them by the localization id
  * without its `_g` / `_s` / `_b` (`getBaseNameFromProduct`) and by that letter. The buttons step
@@ -88,15 +90,16 @@ const getTrophyOffer = (models: Map<string, Map<string, IPurchasableOffer>>, mod
  * The inscription typed into the text input widget (`TEXT_INPUT`) becomes the purchase's extra
  * parameter.
  *
- * Whatever selects a product, the preview follows it: the offer's furniture drawn at direction 2
- * and scale 64 (`getFurnitureImage`), centred in the bitmap, with the price box
+ * Whatever selects a product, the preview follows it (`onSelectProduct`): the offer's furniture
+ * drawn at direction 2 and scale 64 (`getFurnitureImage`), centred in the bitmap, with the
+ * `priceDisplayWidget` box added to the container
  * (`showPriceOnProduct(offer, window, _, ctlg_teaserimg_1, 0, false, 0)`) in the bitmap's bottom
- * right corner; a builders club page has no price box. A page with one offer hides both buttons;
- * when that offer cannot be coloured the widget also hides the layout's colour grid, which
- * `CatalogLayoutTrophiesView` does from the same test.
+ * right corner; a builders club page has no price box. A page with one offer hides both buttons.
+ * `init` then also hides the page's `colourGridWidget` (found through the container's parent) when
+ * that offer cannot be coloured.
  *
  * Until the first preview the bitmap shows the page's second image, which
- * `LocalizationCatalogWidget.setElementImage` copies into it centred; the preview is drawn over it
+ * `LocalizationCatalogWidget.setElementImage` puts in it; the preview replaces it
  * (`setPreviewImage` clears the bitmap first). Flash's catalogue images load in the background, so
  * one that finishes after the first preview would cover it until the next selection - the port
  * does not reproduce that race. `§_-L1t§.PRODUCT_IMAGES` names no trophy, so its branch is not
@@ -106,10 +109,10 @@ export const CatalogTrophyWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ modelIndex, setModelIndex ] = useState(0);
     const [ trophyType, setTrophyType ] = useState('g');
     const [ offer, setOffer ] = useState<IPurchasableOffer | undefined>(undefined);
-    const catalogImageUrl = useConfigValue<string>('asset.urls.catalog') ?? '';
+    const templates = useTemplateLibrary(CATALOG_LIBRARY);
+    const config = useConfigData();
     const models = groupTrophyOffers(page.offers);
     const product = offer ? getOfferProduct(offer) : undefined;
-    const pageImage = getCatalogPageImage(page, 'ctlg_teaserimg_1');
 
     const { texture } = useFurnitureImageTexture(
         product?.furnitureData?.className,
@@ -153,52 +156,35 @@ export const CatalogTrophyWidgetView = ({ page }: CatalogWidgetProps) => {
     };
 
     const singleOffer = (page.offers.length === 1);
+    const box = (templates && offer)
+        ? priceBoxItem(templates, offer, { config, builder: page.isBuilderPage, placement: { reference: 'ctlg_teaserimg_1', dx: 0, top: false, dy: 0 } })
+        : undefined;
 
-    return (
-        <Region layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
-            <ThemeImage
-                name="ctlg_teaserimg_1"
-                texture={offer ? texture : undefined}
-                src={(!offer && pageImage) ? catalogImageUrl.replace('%name%', pageImage) : undefined}
-                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-            />
-            {!singleOffer && (
-                <>
-                    <ContainerButton
-                        variant="3"
-                        name="ctlg_prevmodel_button"
-                        onPointerTap={() => stepModel(-1)}
-                        layout={{ position: 'absolute', left: 115, width: 30, top: 101, height: 30, maxWidth: 100 }}
-                    >
-                        <Icon
-                            variant="2"
-                            name="icon"
-                            tintColor="#000000"
-                            layout={{ position: 'absolute', left: 9, width: 13, top: 8, height: 13 }}
-                        />
-                    </ContainerButton>
-                    <ContainerButton
-                        variant="3"
-                        name="ctlg_nextmodel_button"
-                        onPointerTap={() => stepModel(1)}
-                        layout={{ position: 'absolute', left: 210, width: 30, top: 101, height: 30, maxWidth: 100 }}
-                    >
-                        <Icon
-                            variant="3"
-                            name="icon"
-                            tintColor="#000000"
-                            layout={{ position: 'absolute', left: 9, width: 13, top: 8, height: 13 }}
-                        />
-                    </ContainerButton>
-                </>
-            )}
-            {offer && !page.isBuilderPage && (
-                <CatalogProductPriceView
-                    offer={offer}
-                    layout={{ right: 0, bottom: 0 }}
-                />
-            )}
-        </Region>
-    );
+    // `init()`: a page of one offer that cannot be coloured (`Product.isColorable`: no `*` in its full name) hides the page's colour grid.
+    const single = (page.offers.length === 1) ? getOfferProduct(page.offers[0]) : undefined;
+    const colourable = !!single?.furnitureData?.fullName?.includes('*');
+
+    useCatalogWidgetView({
+        page: (single && !colourable) ? { colourGridWidget: { visible: false } } : undefined,
+        bindings: {
+            '': { added: box ? [ box ] : [] },
+            // `setPreviewImage`: the bitmap cleared and the furniture centred in it; the page's image until then.
+            ctlg_teaserimg_1: offer
+                ? {
+                        asset: '',
+                        children: texture && (
+                            <ThemeImage
+                                texture={texture}
+                                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
+                                layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+                            />
+                        ),
+                    }
+                : {},
+            ctlg_prevmodel_button: { visible: !singleOffer, onPointerTap: () => stepModel(-1) },
+            ctlg_nextmodel_button: { visible: !singleOffer, onPointerTap: () => stepModel(1) },
+        },
+    });
+
+    return null;
 };

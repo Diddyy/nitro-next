@@ -1,39 +1,60 @@
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
-import { ReactNode, useState } from 'react';
+import { useState } from 'react';
 
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { Border, Box, Button, CloseButton, ContainerButton, Icon, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { findTemplateChild, LayoutImage, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useTemplate } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 import { useFurnitureImageTexture } from '../../catalog/useFurnitureImageTexture';
-import { InfostandBadgeView } from './InfostandBadgeView';
 import { UniqueItemPlaqueView } from './UniqueItemPlaqueView';
 
 /** `PickupMode` values the pickup button reads. */
 const PICKUP_NONE = 0;
 const PICKUP_FULL = 2;
 
-/** Every row of `infostand_element_list` is this wide; its `spacing` is 5. */
-const LIST_WIDTH = 170;
-
-/** `setImage`: the picture's window is at most this high, and `height_min` keeps it at least 45. */
+/** `setImage`: the picture's window is at most this high; no picture is a blank this high (`height_min` lifts it to 45). */
 const MAX_IMAGE_HEIGHT = 200;
-const MIN_IMAGE_HEIGHT = 45;
+const NO_IMAGE_HEIGHT = 40;
+
+/** `set isNft`: `nft_indicator` is this high while it shows, and 0 while it does not. */
+const NFT_INDICATOR_HEIGHT = 22;
 
 /**
  * `InfoStandFurniView.update`: the border's `color` and the spacers' by who the furni belongs to -
- * a Builders Club furni, a temporary one, or anyone's.
+ * a Builders Club furni, a temporary one, or anyone's. The border is tinted (`0xRRGGBB`); a spacer is a
+ * background-filled window whose colour is `0xAARRGGBB`, as `set spacerColor` passes it - without the
+ * alpha byte it would be filled fully transparent.
  */
 const KIND_COLORS = {
-    builders_club: { border: '#331c00', spacer: '#543d18' },
-    temporary: { border: '#142b44', spacer: '#2f4c6b' },
-    user: { border: '#3d3d3d', spacer: '#333333' },
+    builders_club: { border: 0x331c00, spacer: 0xff543d18 },
+    temporary: { border: 0x142b44, spacer: 0xff2f4c6b },
+    user: { border: 0x3d3d3d, spacer: 0xff333333 },
 };
+
+/** The spacers `set spacerColor` colours. */
+const SPACERS = [ 'images_spacer', 'owner_spacer', 'group_details_spacer', 'furni_details_spacer' ];
+
+/**
+ * Which furni view `InfoStandWidget.onFurniInfo` selects, by the furni's extra param: the jukebox
+ * (`RWEIEP_JUKEBOX`), a song disk (`RWEIEP_SONGDISK`), a crackable (`RWEIEP_CRACKABLE_FURNI`), or
+ * any other furni - each on a layout of its own.
+ */
+export type InfostandFurniVariant = 'furni' | 'jukebox' | 'songdisk' | 'crackable';
+
+const VARIANT_TEMPLATES: Record<InfostandFurniVariant, string> = {
+    furni: 'habbo-room-ui-com/furni_view',
+    jukebox: 'habbo-room-ui-com/jukebox_view',
+    songdisk: 'habbo-room-ui-com/songdisk_view',
+    crackable: 'habbo-room-ui-com/crackable_furni_view',
+};
+
+/** `createAdElement`'s layout: one branding key and its value. */
+const BRANDING_ELEMENT_TEMPLATE = 'habbo-room-ui-com/furni_view_branding_element';
 
 /** Everything the furni infostand shows, worked out by its component. */
 export interface InfostandFurniDetails {
+    variant: InfostandFurniVariant;
     name: string;
-    description: string;
     className: string;
     colorIndex: number;
     isNft: boolean;
@@ -46,12 +67,15 @@ export interface InfostandFurniDetails {
     group: { name: string; badge: string } | undefined;
     uniqueSerial: { number: number; series: number } | undefined;
     chest: { name: string; contents: string; isCoins: boolean; isWiredEnabled: boolean; isLocked: boolean } | undefined;
-    customVariables: { name: string; value: string }[];
+    /** `custom_variables`, which `createWindow` disposes without `hasSecurity(5)` - `undefined` then. */
+    customVariables: { name: string; value: string }[] | undefined;
     /** Staff see the object id and a branded furni's settings. */
     staffDetails: { id: number; branding: { key: string; value: string }[] } | undefined;
     crackable: { hits: number; target: number } | undefined;
     jukebox: { playing: boolean; songName: string; creator: string } | undefined;
     songDisk: { songName: string; creator: string } | undefined;
+    /** `bc_place_button`: another of it can be placed from the Builders Club. */
+    canPlaceMore: boolean;
     canBuy: boolean;
     canRent: boolean;
     /** `extend_button`: your own rental whose type's rent offer can extend it. */
@@ -69,11 +93,14 @@ export interface InfostandFurniViewProps {
     canWiredInspect: boolean;
     pickupMode: number;
     canSaveBranding: boolean;
+    /** `button_list.visible`: what `update` works out from the buttons it shows. */
+    buttonsVisible: boolean;
     onMove: () => void;
     onRotate: () => void;
     onPickup: () => void;
     onUse: () => void;
     onWiredInspect: () => void;
+    onPlaceMore: () => void;
     onBuy: () => void;
     onRent: () => void;
     /** `onExtendButtonClicked` / `onBuyoutButtonClicked`: the rent confirmation (`HabboCatalog.openRentConfirmationWindow`). */
@@ -82,553 +109,234 @@ export interface InfostandFurniViewProps {
     onOpenOwner: () => void;
     onOpenGroup: () => void;
     onSaveBranding: (values: { key: string; value: string }[]) => void;
+    /** `customVarsWindowProcedure`'s `set_values`: every variable's value as its field holds it. */
+    onSetCustomVariables: (values: { name: string; value: string }[]) => void;
     onClose: () => void;
 }
 
-/** A white `word_wrap` text of the list, `textHeight + 5` high - the bitmap and one pixel. */
-const ListText = ({ text, bold = false, name }: { text: string; bold?: boolean; name?: string }) => (
-    <ThemeText
-        text={text}
-        textOptions={{ fill: '#ffffff', fontFamily: bold ? 'VolterBold' : undefined, wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-        flashFormat={{ antiAliasType: 'advanced' }}
-        name={name}
-        verticalAlign="top"
-        layout={{ marginBottom: 1, flexShrink: 0 }}
-    />
-);
-
 /**
- * The furniture infostand - `InfoStandFurniView` on the `furni_view` layout: the name (and a
- * chest's own name), the picture - in its glass case for a limited edition - with the NFT mark,
- * who owns it and which group it belongs to, the rent expiry, the catalogue buttons, the staff
- * details, the `custom_variables` panel and the move / rotate / pick up / branding / use / wired
- * inspect row underneath.
+ * The furniture infostand - `InfoStandFurniView` and its jukebox, song disk and crackable
+ * variants, drawn from their Flash templates (`furni_view`, `jukebox_view`, `songdisk_view`,
+ * `crackable_furni_view`): what the view's code does to the layout's named windows is bound here,
+ * and `arrange` is its `updateWindow` - the element list sized to its items, the border 20 taller,
+ * the window as wide as the wider of the border and the button row, both right aligned in it.
  *
- * The rows are `infostand_element_list` (an `itemlist` at 10,10, `spacing` 5) and the border is
- * that list's height plus 20 (`updateWindow`), so the list is a column here. The picture's
- * window is its height (at most 200, at least 45) and, through `reflect_vertical_resize_to_parent`,
- * the `image_container` is that plus 10 - the glass case's pieces stretch or stay at its bottom
- * with it.
+ * The picture (`setImage`), the limited edition plaque (`limited_item_overlay_preview`) and the
+ * jukebox icons are what the code puts into the layout, so they go into its windows; everything
+ * else - borders, spacers, buttons, their art and text styles - is the template's. A variant's
+ * layout has fewer windows (no place more button, custom variables, group or chest), and a binding
+ * of a window it does not have binds nothing, as Flash's `findChildByName` finds nothing there.
  *
  * `furni_view` has no `description_text`, so `set description` finds nothing and Flash shows no
- * description; neither does this. What the port does not draw, and why:
- * - `bc_place_button` of `purchase_buttons`, and the `custom_variables` panel's `set_values`:
- *   the port has no command behind them;
- * - `rarity_item_overlay_widget`: the theme has no `rarity_item_overlay_preview` widget;
- * - the crackable, jukebox and song disk lines come from `InfoStandCrackableFurniView`,
- *   `InfoStandJukeboxView` and `InfoStandSongDiskView`, which have layouts of their own; here
- *   they are plain rows under the picture.
+ * description; neither does this. The `rarity_item_overlay_widget` (`rarity_item_overlay_preview`)
+ * is not drawn: the theme has no such widget, and its container stays hidden.
  */
-export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWiredInspect, pickupMode, canSaveBranding, onMove, onRotate, onPickup, onUse, onWiredInspect, onBuy, onRent, onExtend, onBuyout, onOpenOwner, onOpenGroup, onSaveBranding, onClose }: InfostandFurniViewProps) => {
+export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWiredInspect, pickupMode, canSaveBranding, buttonsVisible, onMove, onRotate, onPickup, onUse, onWiredInspect, onPlaceMore, onBuy, onRent, onExtend, onBuyout, onOpenOwner, onOpenGroup, onSaveBranding, onSetCustomVariables, onClose }: InfostandFurniViewProps) => {
     const t = useTranslation();
-    const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
+    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const { texture, height } = useFurnitureImageTexture(details.className, details.colorIndex, 2, RoomGeometryScaleType.ZoomedIn);
-    // Branding edits are kept per staff details id, so another furni starts from its own values.
+    const template = useTemplate(VARIANT_TEMPLATES[details.variant]);
+    const brandingTemplate = useTemplate(BRANDING_ELEMENT_TEMPLATE);
+    // Branding and custom variable edits are kept per furni id, so another furni starts from its own values.
     const [ branding, setBranding ] = useState<{ id: number; values: { key: string; value: string }[] } | undefined>(undefined);
+    const [ customValues, setCustomValues ] = useState<{ id: number; values: Record<string, string> } | undefined>(undefined);
     // `onOwnerRegion`: `owner_link` is icon style 21, and 22 while the pointer is over the region.
     const [ ownerHovered, setOwnerHovered ] = useState(false);
 
-    const brandingValues = (details.staffDetails && (branding?.id === details.staffDetails.id)) ? branding.values : (details.staffDetails?.branding ?? []);
-    // `update`: `button_list.visible = move || rotate || pickupMode != 0 || use`.
-    const hasButtons = canMove || canRotate || (pickupMode !== PICKUP_NONE) || canUse;
+    const staffId = details.staffDetails?.id ?? -1;
+    const brandingValues = (details.staffDetails && (branding?.id === staffId)) ? branding.values : (details.staffDetails?.branding ?? []);
+    const editedValues = (customValues?.id === staffId) ? customValues.values : {};
+    const customVariables = (details.customVariables ?? []).map(variable => ({ name: variable.name, value: editedValues[variable.name] ?? variable.value }));
     const colors = KIND_COLORS[details.ownerKind];
-    // `setImage`: no picture is a 40-high blank, and `height_min` lifts that to 45.
-    const imageHeight = Math.max(MIN_IMAGE_HEIGHT, Math.min(texture ? height : 40, MAX_IMAGE_HEIGHT));
-    const containerHeight = imageHeight + 10;
-
-    const spacer = (
-        <Region
-            backgroundColor={colors.spacer}
-            layout={{ width: LIST_WIDTH, height: 1, flexShrink: 0 }}
-        />
-    );
-
+    const imageHeight = texture ? Math.min(height, MAX_IMAGE_HEIGHT) : NO_IMAGE_HEIGHT;
+    // `setOwnerInfo`: a builders club or temporary furni always names its catalogue; no owner hides the region.
+    const showsOwner = (details.ownerKind !== 'user') || (details.ownerId !== 0);
     const ownerName = (details.ownerKind === 'builders_club')
         ? t('builder.catalog.title')
         : ((details.ownerKind === 'temporary') ? t('temp.catalog.title') : details.ownerName);
+    // `updatePurchaseButtonVisibility`: the row shows when any of its buttons does.
+    const showsPurchaseButtons = details.canPlaceMore || details.canBuy || details.canRent || details.canExtend || details.canBuyout;
+    const isStaff = !!details.staffDetails;
+    const hasBranding = isStaff && !!brandingValues.length;
 
-    const purchaseButtons: ReactNode[] = [];
+    // `variable_list`'s first row is the prototype `createWindow` takes out; `updateCustomVarsWindow` clones it per variable.
+    const variableRow = template ? findTemplateChild(template.elements, 'variable_list')?.children[0] : undefined;
+    const variableItems: TemplateItem[] = variableRow
+        ? customVariables.map(variable => ({
+                key: variable.name,
+                from: variableRow,
+                bindings: {
+                    name: { caption: variable.name },
+                    value: {
+                        caption: variable.value,
+                        onChange: value => setCustomValues({ id: staffId, values: { ...editedValues, [variable.name]: value } }),
+                    },
+                },
+            }))
+        : [];
 
-    if (details.canBuy) {
-        purchaseButtons.push(
-            // `catalog_button`: its `itemlist_horizontal` at x 2 widens the button with its text.
-            <ContainerButton
-                key="catalog_button"
-                variant="0"
-                name="catalog_button"
-                onPointerTap={onBuy}
-                layout={{ height: 23, flexShrink: 0, flexDirection: 'row', paddingLeft: 2, paddingRight: 6 }}
-            >
+    // `showAdFurnitureDetails` -> `createAdElement`: a `furni_view_branding_element` per key, added to the list.
+    const brandingItems: TemplateItem[] = (brandingTemplate && hasBranding)
+        ? brandingValues.map((entry, index) => ({
+                key: `branding_${entry.key}`,
+                from: brandingTemplate,
+                bindings: {
+                    element_name: { caption: entry.key },
+                    element_value: {
+                        caption: entry.value,
+                        onChange: value => setBranding({ id: staffId, values: brandingValues.map((other, i) => ((i === index) ? { ...other, value } : other)) }),
+                    },
+                },
+            }))
+        : [];
+
+    const track = details.jukebox
+        ? { name: details.jukebox.playing ? details.jukebox.songName : '', creator: details.jukebox.playing ? details.jukebox.creator : '' }
+        : (details.songDisk ? { name: details.songDisk.songName, creator: details.songDisk.creator } : undefined);
+
+    const bindings: TemplateBindings = {
+        info_border: { color: colors.border },
+        'info_border/#close': { onPointerTap: onClose },
+        name_text: { caption: details.name },
+        // `showChestData`: a chest's own name, its wired lock and its contents.
+        name_extra_text: { visible: !!details.chest?.name.length, caption: details.chest?.name ?? '' },
+        wired_chest_elements: { visible: !!details.chest?.isWiredEnabled },
+        locked_icon: { visible: !!details.chest?.isLocked },
+        chest_item_count: {
+            visible: !!details.chest,
+            caption: details.chest ? t(details.chest.isCoins ? 'infostand.chest_contents.coin' : 'infostand.chest_contents.furni', '', { amount: details.chest.contents }) : '',
+        },
+        image: {
+            children: texture && (
                 <ThemeImage
-                    name="icon"
-                    src={LayoutImage('habbo-window-manager-com/infostand_furni_shop.png')}
+                    texture={texture}
                     bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
-                    layout={{ width: 20, height: 18, marginTop: 3, flexShrink: 0 }}
+                    layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
                 />
-                <ThemeText
-                    text={t('infostand.button.buy')}
-                    textStyle="regular"
-                    flashFormat={{ antiAliasType: 'advanced' }}
-                    verticalAlign="top"
-                    layout={{ marginTop: 4, flexShrink: 0 }}
+            ),
+        },
+        // `showLimitedItem`: the glass case round the picture, and the plaque over it.
+        unique_item_background_container: { visible: !!details.uniqueSerial },
+        unique_item_overlay_container: { visible: !!details.uniqueSerial },
+        unique_item_plaque_widget: {
+            children: details.uniqueSerial && (
+                <UniqueItemPlaqueView
+                    serialNumber={details.uniqueSerial.number}
+                    seriesSize={details.uniqueSerial.series}
+                    layout={{ left: 0, top: 0 }}
                 />
-            </ContainerButton>,
-        );
-    }
+            ),
+        },
+        rarity_item_overlay_container: { visible: false },
+        nft_indicator: { visible: details.isNft },
+        nft_icon: { asset: LayoutImage('habbo-room-ui-com/icon_nft.png') },
+        owner_spacer: { visible: showsOwner },
+        owner_region: {
+            visible: showsOwner,
+            tooltip: (details.ownerKind === 'user') ? t('infostand.profile.link.tooltip') : '',
+            onPointerTap: onOpenOwner,
+            onPointerOver: () => setOwnerHovered(true),
+            onPointerOut: () => setOwnerHovered(false),
+        },
+        owner_link: { visible: details.ownerKind === 'user', style: ownerHovered ? '22' : '21' },
+        bcw_icon: { visible: details.ownerKind === 'builders_club' },
+        temp_icon: { visible: details.ownerKind === 'temporary' },
+        owner_name: { caption: ownerName },
+        // `showGroupInfo`: the badge and the name show once the group's details are in.
+        group_details_spacer: { visible: !!details.group },
+        group_details_container: { visible: !!details.group, onPointerTap: onOpenGroup },
+        group_badge_image: { visible: !!details.group?.badge.length, asset: details.group?.badge.length ? groupBadgeUrl.replace('%badgedata%', details.group.badge) : undefined },
+        group_name: { visible: !!details.group?.name.length, caption: details.group?.name ?? '' },
+        // `set expiration`: your own running rental.
+        expiration_text: {
+            visible: details.expiration >= 0,
+            caption: t('infostand.rent.expiration', '', { time: GetFriendlyTime(t, Math.max(0, details.expiration)) }),
+        },
+        purchase_buttons: { visible: showsPurchaseButtons },
+        bc_place_button: { visible: details.canPlaceMore, onPointerTap: onPlaceMore },
+        catalog_button: { visible: details.canBuy, onPointerTap: onBuy },
+        rent_button: { visible: details.canRent, onPointerTap: onRent },
+        extend_button: { visible: details.canExtend, onPointerTap: onExtend },
+        buyout_button: { visible: details.canBuyout, onPointerTap: onBuyout },
+        // `showAdFurnitureDetails`: staff see the furni's id and its branding keys.
+        furni_details_spacer: { visible: isStaff },
+        furni_details_text: { visible: isStaff, caption: `id: ${staffId}` },
+        infostand_element_list: { added: brandingItems },
+        custom_variables: { visible: !!customVariables.length },
+        variable_list: { items: variableItems },
+        set_values: { onPointerTap: () => onSetCustomVariables(customVariables) },
+        button_list: { visible: buttonsVisible },
+        move: { visible: canMove, onPointerTap: onMove },
+        rotate: { visible: canRotate, onPointerTap: onRotate },
+        // `localizePickupButton`: eject someone else's furni.
+        pickup: { visible: pickupMode !== PICKUP_NONE, caption: t((pickupMode === PICKUP_FULL) ? 'infostand.button.pickup' : 'infostand.button.eject'), onPointerTap: onPickup },
+        save_branding_configuration: { visible: canSaveBranding && hasBranding, onPointerTap: () => onSaveBranding(brandingValues) },
+        use: { visible: canUse, onPointerTap: onUse },
+        wired_inspect: { visible: canWiredInspect, onPointerTap: onWiredInspect },
+        // The crackable's hits, and the jukebox's and the song disk's track (`set trackName` / `set authorName`).
+        hits_remaining: { visible: !!details.crackable, caption: details.crackable ? t('infostand.crackable_furni.hits_remaining', '', { hits: String(details.crackable.hits), target: String(details.crackable.target) }) : '' },
+        now_playing_text: { caption: t(details.jukebox?.playing ? 'infostand.jukebox.text.now.playing' : 'infostand.jukebox.text.not.playing') },
+        icon_disc: { asset: LayoutImage('habbo-room-ui-com/jb_icon_disc.png') },
+        icon_composer: { asset: LayoutImage('habbo-room-ui-com/jb_icon_composer.png') },
+        ...(track && {
+            track_name_text: { caption: track.name },
+            track_creator_text: { caption: track.creator },
+        }),
+    };
 
-    if (details.canRent) {
-        purchaseButtons.push(
-            <Button
-                key="rent_button"
-                variant="0"
-                name="rent_button"
-                onPointerTap={onRent}
-                layout={{ height: 23, flexShrink: 0 }}
-            >
-                {t('infostand.button.rent')}
-            </Button>,
-        );
-    }
+    for (const spacer of SPACERS) bindings[spacer] = { ...bindings[spacer], color: colors.spacer };
 
-    if (details.canExtend) {
-        purchaseButtons.push(
-            <Button
-                key="extend_button"
-                variant="0"
-                name="extend_button"
-                onPointerTap={onExtend}
-                layout={{ height: 23, flexShrink: 0 }}
-            >
-                {t('infostand.button.extend')}
-            </Button>,
-        );
-    }
+    // A variant's layout lacks some of these windows; the code's `findChildByName` finds nothing there and does nothing.
+    const elements = template?.elements ?? [];
+    const layoutBindings = Object.fromEntries(Object.entries(bindings).filter(([ key ]) => key.includes('/') || !!findTemplateChild(elements, key)));
 
-    if (details.canBuyout) {
-        purchaseButtons.push(
-            <Button
-                key="buyout_button"
-                variant="0"
-                name="buyout_button"
-                onPointerTap={onBuyout}
-                layout={{ height: 23, flexShrink: 0 }}
-            >
-                {t('infostand.button.buyout')}
-            </Button>,
-        );
-    }
+    // `set name`, `setImage`, `set isNft`, the track setters, then `updateWindow`.
+    const arrange = ({ find, root }: TemplateWindows) => {
+        const fitText = (key: string) => {
+            const text = find(key);
+
+            text?.setHeight(text.textHeight + 5);
+        };
+
+        fitText('name_text');
+
+        if (track) {
+            fitText('track_name_text');
+            fitText('track_creator_text');
+        }
+
+        find('image')?.setHeight(imageHeight);
+        find('nft_indicator')?.setHeight(details.isNft ? NFT_INDICATOR_HEIGHT : 0);
+
+        const window = root();
+        const border = find('info_border');
+        const list = find('infostand_element_list');
+        const buttonList = find('button_list');
+
+        if (!window || !border || !list || !buttonList) return;
+
+        buttonList.setWidth(buttonList.scrollableRegion.width);
+        list.setHeight(list.scrollableRegion.height);
+        border.setHeight(list.height + 20);
+        window.setWidth(Math.max(border.width, buttonList.width));
+        window.setHeight(window.scrollableRegion.height);
+
+        if (border.width < buttonList.width) {
+            border.setX(window.width - border.width);
+            buttonList.setX(0);
+        } else {
+            buttonList.setX(window.width - buttonList.width);
+            border.setX(0);
+        }
+
+        find('custom_variables')?.setX(border.x);
+    };
 
     return (
-        <Box layout={{ flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-            <Border
-                variant="2"
-                name="info_border"
-                tintColor={colors.border}
-                layout={{ width: 190, flexShrink: 0, paddingLeft: 10, paddingTop: 10, paddingBottom: 10 }}
-            >
-                <CloseButton
-                    variant="1"
-                    onPointerTap={onClose}
-                    layout={{ position: 'absolute', left: 168, top: 6, width: 18, height: 16 }}
-                />
-                <Box layout={{ flexDirection: 'column', width: LIST_WIDTH, gap: 5 }}>
-                    <ThemeText
-                        text={details.name}
-                        textOptions={{ fill: '#ffffff', fontFamily: 'VolterBold', wordWrap: true, wordWrapWidth: 155 }}
-                        flashFormat={{ antiAliasType: 'advanced' }}
-                        name="name_text"
-                        verticalAlign="top"
-                        layout={{ width: 159, marginBottom: 1, flexShrink: 0 }}
-                    />
-                    {!!details.chest?.name.length && (
-                        <ThemeText
-                            text={details.chest.name}
-                            textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: 155 }}
-                            flashFormat={{ antiAliasType: 'advanced' }}
-                            name="name_extra_text"
-                            clip
-                            verticalAlign="top"
-                            layout={{ width: 159, height: 12, flexShrink: 0 }}
-                        />
-                    )}
-                    {spacer}
-                    {details.chest?.isWiredEnabled && (
-                        <Box layout={{ flexDirection: 'row', height: 15, marginLeft: 137, gap: 3, flexShrink: 0 }}>
-                            {details.chest.isLocked && (
-                                <ThemeImage
-                                    name="locked_icon"
-                                    src={LayoutImage('habbo-window-manager-com/forum_forum_locked.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                                    layout={{ marginTop: -3, flexShrink: 0 }}
-                                />
-                            )}
-                            <ThemeImage
-                                name="wired_icon"
-                                src={`${imageLibraryUrl}catalogue/icon_80.png`}
-                                bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
-                                layout={{ width: 15, height: 15, flexShrink: 0 }}
-                            />
-                        </Box>
-                    )}
-                    <Box layout={{ width: LIST_WIDTH, height: containerHeight, flexShrink: 0 }}>
-                        {details.uniqueSerial && (
-                            <>
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_iron.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false }}
-                                    layout={{ position: 'absolute', left: 8, top: -1, width: 5, height: 9 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_iron.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false }}
-                                    layout={{ position: 'absolute', left: 155, top: -1, width: 5, height: 9 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_glass_mid.png')}
-                                    bitmap={{}}
-                                    layout={{ position: 'absolute', left: 0, top: 5, width: LIST_WIDTH, height: containerHeight - 10 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_glass_top.png')}
-                                    bitmap={{}}
-                                    layout={{ position: 'absolute', left: 0, top: 0, width: LIST_WIDTH, height: 5 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_glass_bottom.png')}
-                                    bitmap={{}}
-                                    layout={{ position: 'absolute', left: 0, top: containerHeight - 5, width: LIST_WIDTH, height: 5 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_iron.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false }}
-                                    layout={{ position: 'absolute', left: 8, top: containerHeight - 7, width: 5, height: 9 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_iron.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false }}
-                                    layout={{ position: 'absolute', left: 155, top: containerHeight - 7, width: 5, height: 9 }}
-                                />
-                            </>
-                        )}
-                        {texture && (
-                            <ThemeImage
-                                name="image"
-                                texture={texture}
-                                bitmap={{ pivot: 'center', stretchedX: false, stretchedY: false }}
-                                layout={{ position: 'absolute', left: 5, top: 5, width: 140, height: imageHeight }}
-                            />
-                        )}
-                        {details.uniqueSerial && (
-                            <>
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/unique_item_large_glass_shine.png')}
-                                    bitmap={{}}
-                                    layout={{ position: 'absolute', left: 0, top: 5, width: LIST_WIDTH, height: containerHeight - 10 }}
-                                />
-                                <UniqueItemPlaqueView
-                                    serialNumber={details.uniqueSerial.number}
-                                    seriesSize={details.uniqueSerial.series}
-                                    layout={{ left: 128, top: 6 }}
-                                />
-                            </>
-                        )}
-                    </Box>
-                    {details.isNft && (
-                        // `set isNft`: `nft_indicator` is 22 high with the 18x18 `icon_nft` at its top left.
-                        <Box layout={{ width: LIST_WIDTH, height: 22, flexShrink: 0 }}>
-                            <ThemeImage
-                                name="nft_icon"
-                                src={LayoutImage('habbo-room-ui-com/icon_nft.png')}
-                                bitmap={{ stretchedX: false, stretchedY: false }}
-                                layout={{ position: 'absolute', left: 0, top: 0, width: 18, height: 18 }}
-                            />
-                        </Box>
-                    )}
-                    {details.crackable && (
-                        <ListText text={t('infostand.crackable_furni.hits_remaining', '', { hits: String(details.crackable.hits), target: String(details.crackable.target) })} />
-                    )}
-                    {details.jukebox && (
-                        <>
-                            <ListText
-                                text={t(details.jukebox.playing ? 'infostand.jukebox.text.now.playing' : 'infostand.jukebox.text.not.playing')}
-                                bold
-                            />
-                            {details.jukebox.playing && !!details.jukebox.songName.length && <ListText text={details.jukebox.songName} />}
-                            {details.jukebox.playing && !!details.jukebox.creator.length && <ListText text={details.jukebox.creator} />}
-                        </>
-                    )}
-                    {details.songDisk && (
-                        <>
-                            {!!details.songDisk.songName.length && (
-                                <ListText
-                                    text={details.songDisk.songName}
-                                    bold
-                                />
-                            )}
-                            {!!details.songDisk.creator.length && <ListText text={details.songDisk.creator} />}
-                        </>
-                    )}
-                    {(details.ownerId !== 0) && (
-                        <>
-                            {spacer}
-                            <Region
-                                tooltip={(details.ownerKind === 'user') ? t('infostand.profile.link.tooltip') : undefined}
-                                tooltipDelay={100}
-                                cursor={(details.ownerKind === 'user') ? 'pointer' : undefined}
-                                onPointerTap={(details.ownerKind === 'user') ? onOpenOwner : undefined}
-                                onPointerOver={() => setOwnerHovered(true)}
-                                onPointerOut={() => setOwnerHovered(false)}
-                                layout={{ width: LIST_WIDTH, height: 17, flexShrink: 0 }}
-                            >
-                                {(details.ownerKind === 'user') && (
-                                    <Icon
-                                        variant={ownerHovered ? 22 : 21}
-                                        name="owner_link"
-                                        layout={{ position: 'absolute', left: 0, top: 2 }}
-                                    />
-                                )}
-                                {(details.ownerKind === 'builders_club') && (
-                                    <ThemeImage
-                                        name="bcw_icon"
-                                        src={`${imageLibraryUrl}/catalogue/icon_193.png`}
-                                        bitmap={{ fitSizeToContents: true }}
-                                        layout={{ position: 'absolute', left: 0, top: 0 }}
-                                    />
-                                )}
-                                <ThemeText
-                                    text={ownerName}
-                                    textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: 146 }}
-                                    flashFormat={{ antiAliasType: 'advanced' }}
-                                    clip
-                                    name="owner_name"
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 20, top: 0, width: 150, height: 15 }}
-                                />
-                                {(details.ownerKind === 'temporary') && (
-                                    <ThemeImage
-                                        name="temp_icon"
-                                        src={`${imageLibraryUrl}catalogue/icon_80.png`}
-                                        bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                                        layout={{ position: 'absolute', left: 0, top: 0 }}
-                                    />
-                                )}
-                            </Region>
-                        </>
-                    )}
-                    {details.group && (
-                        <>
-                            {spacer}
-                            <Region
-                                tooltip={t('infostand.group.link.tooltip')}
-                                tooltipDelay={100}
-                                cursor="pointer"
-                                onPointerTap={onOpenGroup}
-                                layout={{ width: LIST_WIDTH, height: 40, flexShrink: 0, overflow: 'hidden' }}
-                            >
-                                {!!details.group.badge.length && (
-                                    <InfostandBadgeView
-                                        code={details.group.badge}
-                                        group
-                                        layout={{ position: 'absolute', left: 0, top: 0, width: 40, height: 40 }}
-                                    />
-                                )}
-                                {!!details.group.name.length && (
-                                    <ThemeText
-                                        text={details.group.name}
-                                        textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: 124 }}
-                                        flashFormat={{ antiAliasType: 'advanced' }}
-                                        clip
-                                        name="group_name"
-                                        verticalAlign="top"
-                                        layout={{ position: 'absolute', left: 45, top: 10, width: 128, height: 37 }}
-                                    />
-                                )}
-                            </Region>
-                        </>
-                    )}
-                    {(details.expiration >= 0) && (
-                        // `expiration_text`: 170x23, the text `margin_top` 6 down and cut at the field.
-                        <Box layout={{ width: LIST_WIDTH, height: 23, flexShrink: 0, overflow: 'hidden' }}>
-                            <ThemeText
-                                text={t('infostand.rent.expiration', '', { time: GetFriendlyTime(t, details.expiration) })}
-                                textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-                                flashFormat={{ antiAliasType: 'advanced' }}
-                                name="expiration_text"
-                                verticalAlign="top"
-                                layout={{ marginTop: 6 }}
-                            />
-                        </Box>
-                    )}
-                    {!!purchaseButtons.length && (
-                        <Box layout={{ flexDirection: 'row', width: LIST_WIDTH, height: 23, gap: 5, flexShrink: 0, overflow: 'hidden' }}>
-                            {purchaseButtons}
-                        </Box>
-                    )}
-                    {details.staffDetails && spacer}
-                    {details.chest && (
-                        <ThemeText
-                            text={t(details.chest.isCoins ? 'infostand.chest_contents.coin' : 'infostand.chest_contents.furni', '', { amount: details.chest.contents })}
-                            textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-                            flashFormat={{ antiAliasType: 'advanced' }}
-                            name="chest_item_count"
-                            verticalAlign="top"
-                            layout={{ flexShrink: 0 }}
-                        />
-                    )}
-                    {details.staffDetails && (
-                        <>
-                            <ThemeText
-                                text={`id: ${details.staffDetails.id}`}
-                                textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: LIST_WIDTH - 4 }}
-                                flashFormat={{ antiAliasType: 'advanced' }}
-                                name="furni_details_text"
-                                verticalAlign="top"
-                                layout={{ flexShrink: 0 }}
-                            />
-                            {brandingValues.map((entry, index) => (
-                                // `createAdElement`: a `furni_view_branding_element` (180x65, a style 1 border) per key.
-                                <Border
-                                    key={entry.key}
-                                    variant="1"
-                                    name="element_border"
-                                    layout={{ width: 180, height: 65, flexShrink: 0 }}
-                                >
-                                    <ThemeText
-                                        text={entry.key}
-                                        textOptions={{ fill: '#ffffff', fontFamily: 'VolterBold', wordWrap: true, wordWrapWidth: 156 }}
-                                        clip
-                                        name="element_name"
-                                        verticalAlign="top"
-                                        layout={{ position: 'absolute', left: 0, top: 0, width: 160, height: 12 }}
-                                    />
-                                    <TextInput
-                                        value={entry.value}
-                                        onChange={value => setBranding({ id: details.staffDetails!.id, values: brandingValues.map((other, i) => ((i === index) ? { ...other, value } : other)) })}
-                                        textColor="#ffffff"
-                                        flashPlacement
-                                        border="#ffffff"
-                                        alwaysShowSelection
-                                        backgroundColor={null}
-                                        focusedBackgroundColor={null}
-                                        layout={{ position: 'absolute', left: 0, top: 13, width: 160, height: 40 }}
-                                    />
-                                </Border>
-                            ))}
-                        </>
-                    )}
-                </Box>
-            </Border>
-            {/* `createWindow` disposes `custom_variables` unless the user has security level 5; the widget passes none then. */}
-            {!!details.customVariables.length && (
-                // `custom_variables`: a row of `variable_list` per variable, the panel growing with the list.
-                <Border
-                    variant="2"
-                    name="custom_variables"
-                    tintColor="#999999"
-                    layout={{ width: 190, height: 36 + (26 * details.customVariables.length), flexShrink: 0 }}
-                >
-                    <Border
-                        variant="3"
-                        tintColor="#333333"
-                        layout={{ position: 'absolute', left: 3, top: 3, width: 184, height: 30 + (26 * details.customVariables.length), overflow: 'hidden' }}
-                    >
-                        <Box layout={{ position: 'absolute', left: 0, top: 32, flexDirection: 'column' }}>
-                            {details.customVariables.map(variable => (
-                                <Box
-                                    key={variable.name}
-                                    layout={{ width: 183, height: 26, flexShrink: 0 }}
-                                >
-                                    <ThemeText
-                                        text={variable.name}
-                                        textOptions={{ fill: '#ffffff' }}
-                                        name="name"
-                                        verticalAlign="top"
-                                        layout={{ position: 'absolute', left: 1, top: 2, width: 41, height: 17 }}
-                                    />
-                                    <TextInput
-                                        value={variable.value}
-                                        onChange={() => {}}
-                                        editable={false}
-                                        flashPlacement
-                                        backgroundColor={null}
-                                        focusedBackgroundColor={null}
-                                        layout={{ position: 'absolute', left: 80, top: 2, width: 100, height: 17 }}
-                                    />
-                                    <Border
-                                        variant="3"
-                                        tintColor="#cccccc"
-                                        layout={{ position: 'absolute', left: 80, top: 0, width: 100, height: 20 }}
-                                    />
-                                </Box>
-                            ))}
-                        </Box>
-                    </Border>
-                </Border>
-            )}
-            {hasButtons && (
-                <Box layout={{ flexDirection: 'row', height: 25, gap: 10 }}>
-                    {canMove && (
-                        <Button
-                            variant="1"
-                            name="move"
-                            onPointerTap={onMove}
-                            layout={{ height: 25, flexShrink: 0 }}
-                        >
-                            {t('infostand.button.move')}
-                        </Button>
-                    )}
-                    {canRotate && (
-                        <Button
-                            variant="1"
-                            name="rotate"
-                            onPointerTap={onRotate}
-                            layout={{ height: 25, flexShrink: 0 }}
-                        >
-                            {t('infostand.button.rotate')}
-                        </Button>
-                    )}
-                    {(pickupMode !== PICKUP_NONE) && (
-                        <Button
-                            variant="1"
-                            name="pickup"
-                            onPointerTap={onPickup}
-                            layout={{ height: 25, flexShrink: 0 }}
-                        >
-                            {t((pickupMode === PICKUP_FULL) ? 'infostand.button.pickup' : 'infostand.button.eject')}
-                        </Button>
-                    )}
-                    {canSaveBranding && !!brandingValues.length && (
-                        <Button
-                            variant="1"
-                            name="save_branding_configuration"
-                            onPointerTap={() => onSaveBranding(brandingValues)}
-                            layout={{ height: 25, flexShrink: 0 }}
-                        >
-                            {t('infostand.button.savebranding')}
-                        </Button>
-                    )}
-                    {canUse && (
-                        <Button
-                            variant="1"
-                            name="use"
-                            onPointerTap={onUse}
-                            layout={{ height: 25, flexShrink: 0 }}
-                        >
-                            {t('infostand.button.use')}
-                        </Button>
-                    )}
-                    {canWiredInspect && (
-                        <Button
-                            variant="1"
-                            name="wired_inspect"
-                            onPointerTap={onWiredInspect}
-                            layout={{ height: 25, flexShrink: 0 }}
-                        >
-                            {t('infostand.button.wired_inspect')}
-                        </Button>
-                    )}
-                </Box>
-            )}
-        </Box>
+        <TemplateWindow
+            id={VARIANT_TEMPLATES[details.variant]}
+            bindings={layoutBindings}
+            arrange={arrange}
+        />
     );
 };

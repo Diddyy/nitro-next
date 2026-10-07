@@ -113,7 +113,7 @@ export const measureTemplateText = (element: TemplateElement, text: string, wrap
     const format = resolveFlashTextFormat({ style: HABBO_TEXT_STYLES[style], field: flash, face: flashFaceOverride(fontFamily), fontSize });
     const content = markup ? parseFlashTextMarkup(text, format, { resolveFace: resolveMarkupFace }) : text;
     const rendered = content.length ? renderFlashTextCanvas(content, format, wrapWidth === undefined ? {} : { wordWrap: true, wrapWidth: templateWrapWidth(wrapWidth) }) : null;
-    const size = rendered ? { width: rendered.width, height: rendered.height, textWidth: rendered.textWidth } : undefined;
+    const size = rendered ? { width: rendered.width, height: rendered.height, textWidth: rendered.textWidth, textHeight: rendered.textHeight } : undefined;
 
     if (cache.size >= MAX_CACHED) cache.delete(cache.keys().next().value);
 

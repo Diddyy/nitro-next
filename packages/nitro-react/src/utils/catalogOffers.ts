@@ -104,6 +104,21 @@ export const getOfferProduct = (offer: IPurchasableOffer): IProduct | undefined 
 };
 
 /**
+ * An offer's product data: `Offer.localizationName` / `localizationDescription` read the product data
+ * the offer's localization id names. When there is none - a server whose offers carry the furni's
+ * class name (`anna_chair*1`) where Habbo's carry the product code (`anna_chair_blue`) - the
+ * product's own furni data stands in, its name and description as `FurnitureOffer.localizationName`
+ * falls back to them. Flash would show the raw `${...}` key there instead.
+ */
+export const getOfferProductData = (localizationId: string, furnitureData: IFurnitureData | undefined, lookup: CatalogFurnitureLookup): IProductData | undefined => {
+    const productData = lookup.productData[localizationId];
+
+    if (productData || !furnitureData?.localizedName) return productData;
+
+    return { code: localizationId, name: furnitureData.localizedName, description: furnitureData.description ?? '' };
+};
+
+/**
  * An offer of `CatalogPageMessage` / `ProductOfferMessage` as a page offer - `HabboCatalog.onCatalogPage`:
  * every product becomes a `Product` whatever its type (furniture data only where the furni data
  * knows the class), an offer with no products is dropped unless it is a Builders Club one, and a
@@ -112,9 +127,9 @@ export const getOfferProduct = (offer: IPurchasableOffer): IProduct | undefined 
 export const processCatalogOffer = (offer: ICatalogOffer, catalogType: CatalogTypeEnum, lookup: CatalogFurnitureLookup): IPurchasableOffer | undefined => {
     if (!offer) return undefined;
 
-    const productData = lookup.productData[offer.localizationId];
     const products: IProduct[] = offer.products.map((product) => {
         const furnitureData = getFurnitureData(lookup, product.spriteId, product.productType);
+        const productData = getOfferProductData(offer.localizationId, furnitureData, lookup);
 
         return {
             productType: product.productType,
@@ -177,23 +192,27 @@ export const processCatalogOffer = (offer: ICatalogOffer, catalogType: CatalogTy
 };
 
 /**
- * A search hit as a lazy offer - Flash's `FurnitureOffer` in a `FurniProductContainer`: it carries
- * the furniture only, and selecting it asks the server for the real offer (`sendGetProductOffer`).
+ * A search hit as a lazy offer - Flash's `FurnitureOffer(furniData, catalog, offerId, isRent)` in a
+ * `FurniProductContainer`: it carries the furniture only, and selecting it asks the server for the
+ * real offer (`sendGetProductOffer`). The search names the offer it found the furni by
+ * (`createSearchResultOffer`); without one it is the rent offer, else the purchase offer.
  */
-export const processFurnitureAsOffer = (furnitureData: IFurnitureData, lookup: CatalogFurnitureLookup): IPurchasableOffer | undefined => {
+export const processFurnitureAsOffer = (furnitureData: IFurnitureData, lookup: CatalogFurnitureLookup, offerId?: number, isRentOffer?: boolean): IPurchasableOffer | undefined => {
     if (!furnitureData) return undefined;
+
+    const rent = isRentOffer ?? (furnitureData.rentOfferId > -1);
 
     return {
         pricingModel: CatalogPricingModelEnum.Furniture,
         pricingType: CatalogPricingTypeEnum.None,
-        offerId: furnitureData.rentOfferId > -1 ? furnitureData.rentOfferId : furnitureData.purchaseOfferId,
+        offerId: offerId ?? (rent ? furnitureData.rentOfferId : furnitureData.purchaseOfferId),
         localizationId: `roomItem.name.${furnitureData.id}`,
         priceInCredits: 0,
         priceInActivityPoints: 0,
         activityPointType: 0,
         priceInSilver: 0,
         giftable: false,
-        isRentOffer: furnitureData.rentOfferId > -1,
+        isRentOffer: rent,
         clubLevel: 0,
         products: [
             {

@@ -13,6 +13,7 @@ const actions = {
     setSelectedObject: state.setSelectedObject,
     setPlacedObject: state.setPlacedObject,
     setObjectPlacementSource: state.setObjectPlacementSource,
+    setInfostandPlaceMoreFurni: state.setInfostandPlaceMoreFurni,
 };
 
 export const useRoomSelectedObjectActions = () => actions;

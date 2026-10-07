@@ -7,12 +7,14 @@ import { CatalogRoomAdPurchaseData, CatalogRoomAdPurchaseInfo, CatalogWidgetEven
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorStore } from '#base/context/navigator';
 import { useRoom } from '#base/context/room';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Border, Dropmenu, Region, TextInput, ThemeText } from '#base/theme';
+import { useTemplateLibrary } from '#base/theme';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
-import { CatalogPriceDisplayView } from './CatalogProductPriceView';
+import { CATALOG_LIBRARY } from '../catalogTemplates';
+import { useCatalogWidgetView } from '../catalogWidgetView';
+import { priceDisplayItem } from './catalogPrice';
 
 /** `getInteger("room_ad.duration.minutes", 120)`'s default. */
 const DEFAULT_ROOM_AD_DURATION_MINUTES = 120;
@@ -34,9 +36,10 @@ const getExtensionMinutes = (data: CatalogRoomAdPurchaseData | undefined, minute
 /**
  * The room ad page's widget - Flash's `RoomAdsCatalogWidget`, whose view is its
  * `roomAdsCatalogWidget` container's own children (`layout_roomads.xml`): the ad's length
- * (`ctlg_text_1`, `roomad.catalog_text` with its `%duration%`), the event category drop menu, the
- * ad's name (up to 25 characters) and description (up to 100), the room drop menu, the price and
- * the purchase widget (`NO_GIFT_OPTION`, `ROOM_INITIATE_PURCHASE`) nested in it.
+ * (`ctlg_text_1`, `roomad.catalog_text` with its `%duration%`), the `categories_list` drop menu, the
+ * ad's name (`name_input_text`) and description (`desc_input_text`), the `room_drop_menu`, the
+ * price (`showPriceInContainer` into `price_container`) and the purchase widget (`NO_GIFT_OPTION`,
+ * `ROOM_INITIATE_PURCHASE`) nested in it.
  *
  * `init()` asks which rooms the user may advertise (`getRoomAdsPurchaseInfo`), and the answer
  * (`onPurchaseInfoEvent`) fills the page: an ad being extended (`openRoomAdCatalogPageInExtendedMode`)
@@ -56,7 +59,7 @@ const getExtensionMinutes = (data: CatalogRoomAdPurchaseData | undefined, minute
  * (`onRoomDropMenuEvent`) is attached as Sulake's JavaScript client attaches it; the AS3 build
  * defines it and never attaches it, so a pick there would not change the room.
  */
-export const CatalogRoomAdsWidgetView = ({ page, children }: CatalogWidgetProps) => {
+export const CatalogRoomAdsWidgetView = ({ page }: CatalogWidgetProps) => {
     const roomAdPurchaseData = useCatalogStore(x => x.roomAdPurchaseData);
     const eventCategories = useNavigatorStore(x => x.eventCategories);
     const durationMinutes = useConfigValue<number>('room_ad.duration.minutes') ?? DEFAULT_ROOM_AD_DURATION_MINUTES;
@@ -66,6 +69,8 @@ export const CatalogRoomAdsWidgetView = ({ page, children }: CatalogWidgetProps)
     const { updateRoomAdPurchaseData, clearRoomAdPurchaseData } = useCatalogRoomAdActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
+    const templates = useTemplateLibrary(CATALOG_LIBRARY);
+    const config = useConfigData();
     const [ duration, setDuration ] = useState(() => getExtensionMinutes(roomAdPurchaseData, durationMinutes, limitedExtension, Date.now()));
     // `ctlg_text_1` is the page's text until a room is picked, which puts `roomad.catalog_text` back.
     const [ durationTextShown, setDurationTextShown ] = useState(false);
@@ -234,90 +239,25 @@ export const CatalogRoomAdsWidgetView = ({ page, children }: CatalogWidgetProps)
     };
 
     const durationText = t('roomad.catalog_text', '', { duration: String(duration) });
-    const categoryLabels = visibleCategories.map(category => t(`navigator.searchcode.title.eventcategory__${category.categoryId}`));
 
-    return (
-        <Region layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
-            <ThemeText
-                name="ctlg_text_1"
-                text={durationTextShown ? durationText : (getCatalogPageText(page, 'ctlg_text_1') ?? durationText)}
-                textStyle="u_headline_small"
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, top: 14 }}
-            />
-            <Region layout={{ position: 'absolute', left: 10, width: 329, top: 44, height: 24 }}>
-                <Dropmenu
-                    variant="3"
-                    caption={categoryLabels[categorySelection] ?? ''}
-                    options={categoryLabels.map((label, index) => ({ key: index, label, selected: (index === categorySelection), onSelect: () => selectCategory(index, roomAdPurchaseData) }))}
-                    layout={{ width: 329, height: 24 }}
-                />
-            </Region>
-            <ThemeText
-                text={t('roomad.catalog_name')}
-                textStyle="u_small"
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, top: 83 }}
-            />
-            <Border
-                variant="105"
-                layout={{ position: 'absolute', left: 10, width: 330, top: 102, height: 33 }}
-            >
-                <TextInput
-                    value={name}
-                    onChange={onNameChange}
-                    maxLength={25}
-                    textStyle="u_regular"
-                    flashPlacement
-                    alwaysShowSelection
-                    backgroundColor={null}
-                    focusedBackgroundColor={null}
-                    layout={{ position: 'absolute', left: 5, width: 318, top: 5, height: 22 }}
-                />
-            </Border>
-            <ThemeText
-                text={t('roomad.catalog_description')}
-                textStyle="u_small"
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, top: 149 }}
-            />
-            <Border
-                variant="105"
-                layout={{ position: 'absolute', left: 10, width: 330, top: 168, bottom: 148 }}
-            >
-                <TextInput
-                    value={description}
-                    onChange={onDescriptionChange}
-                    maxLength={100}
-                    multiline
-                    textStyle="u_regular"
-                    flashPlacement
-                    backgroundColor={null}
-                    focusedBackgroundColor={null}
-                    layout={{ position: 'absolute', left: 5, right: 5, top: 4, bottom: 6 }}
-                />
-            </Border>
-            <ThemeText
-                text={t('roomad.catalog_roomname')}
-                textStyle="u_small"
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, bottom: 119 }}
-            />
-            <Region layout={{ position: 'absolute', left: 10, width: 330, bottom: 91, height: 24 }}>
-                <Dropmenu
-                    variant="3"
-                    caption={roomLabels[roomSelection] ?? ''}
-                    options={roomLabels.map((label, index) => ({ key: index, label, selected: (index === roomSelection), onSelect: () => selectRoom(index, rooms, roomAdPurchaseData) }))}
-                    layout={{ width: 330, height: 24 }}
-                />
-            </Region>
-            <Region
-                name="price_container"
-                layout={{ position: 'absolute', left: 0, right: 0, bottom: 58, height: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start' }}
-            >
-                {priceOffer && <CatalogPriceDisplayView offer={priceOffer} />}
-            </Region>
-            {children}
-        </Region>
-    );
+    useCatalogWidgetView({
+        bindings: {
+            ctlg_text_1: { caption: durationTextShown ? durationText : (getCatalogPageText(page, 'ctlg_text_1') ?? durationText) },
+            categories_list: {
+                options: visibleCategories.map(category => `\${navigator.searchcode.title.eventcategory__${category.categoryId}}`),
+                selection: categorySelection,
+                onSelect: index => selectCategory(index, roomAdPurchaseData),
+            },
+            name_input_text: { caption: name, onChange: onNameChange },
+            desc_input_text: { caption: description, onChange: onDescriptionChange },
+            room_drop_menu: {
+                options: roomLabels,
+                selection: roomSelection,
+                onSelect: index => selectRoom(index, rooms, roomAdPurchaseData),
+            },
+            price_container: { items: (templates && priceOffer) ? [ priceDisplayItem(templates, priceOffer, { config }) ] : [] },
+        },
+    });
+
+    return null;
 };

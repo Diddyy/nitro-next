@@ -1,16 +1,16 @@
-import { CrackableDataType, FurniId, FurnitureUsagePolicyEnum, ISimpleRoomObjectData, MapDataType, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectVariableEnum, RoomWidgetEnumItemExtradataParameter } from '@nitrodevco/nitro-api';
+import { CatalogTypeEnum, CrackableDataType, FurniId, FurnitureUsagePolicyEnum, ISimpleRoomObjectData, MapDataType, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectVariableEnum, RoomWidgetEnumItemExtradataParameter } from '@nitrodevco/nitro-api';
 import { GetSongInfoComposer, SetObjectDataComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
 
-import { openClientLink, openGroupInfo, openProfile, openRentConfirmationWindow, requestGroupDetails } from '#base/commands';
+import { openClientLink, openGroupInfo, openProfile, openRentConfirmationWindow, requestGroupDetails, requestInfostandItemToMover, toggleCatalog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
 import { useOwnControllerLevel, useRoom, useRoomStore } from '#base/context/room';
-import { useConfigValue, useSystemActions } from '#base/context/system';
+import { useConfigValue, useSystemActions, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
-import { useRoomFurnitureData, useRoomObjectInteraction, useRoomObjectModify, useSecondsClock } from '#base/hooks';
-import { InfostandFurniDetails, InfostandFurniView } from '#base/views/room-widgets/object-infostand/InfostandFurniView';
+import { useCanPlaceWithBuildersClub, useRoomFurnitureData, useRoomObjectInteraction, useRoomObjectModify, useSecondsClock } from '#base/hooks';
+import { InfostandFurniDetails, InfostandFurniVariant, InfostandFurniView } from '#base/views/room-widgets/object-infostand/InfostandFurniView';
 
 type InfostandFurniProps = {
     objectData: ISimpleRoomObjectData;
@@ -23,10 +23,28 @@ export const PICKUP_EJECT = 1;
 export const PICKUP_FULL = 2;
 
 /**
- * The infostand for furniture - `InfoStandFurniView`, with the crackable, jukebox and song disk
- * variants folded in. It works out what you may do with the object - move, rotate, pick up or
- * eject, use, wired inspect - the way `InfoStandFurniView.update` did, and gathers what the
- * variants show. In wired play test mode (`playTestMode`) only what a visitor could do is offered.
+ * `InfoStandWidget.onFurniInfo`'s choice of view, by the furni's infostand extra param: the jukebox,
+ * a song disk, a crackable, or the plain furni view.
+ */
+const furniVariant = (extraParam: string): InfostandFurniVariant => {
+    if (extraParam === RoomWidgetEnumItemExtradataParameter.JUKEBOX) return 'jukebox';
+    if (extraParam.indexOf(RoomWidgetEnumItemExtradataParameter.SONGDISK) !== -1) return 'songdisk';
+    if (extraParam.indexOf(RoomWidgetEnumItemExtradataParameter.CRACKABLE_FURNI) !== -1) return 'crackable';
+
+    return 'furni';
+};
+
+/**
+ * The infostand for furniture - `InfoStandFurniView` and its crackable, jukebox and song disk
+ * variants. It works out what you may do with the object - move, rotate, pick up or eject, use,
+ * wired inspect - the way `InfoStandFurniView.update` did, and gathers what the variants show. In
+ * wired play test mode (`playTestMode`) only what a visitor could do is offered.
+ *
+ * The Builders Club parts: the place more button (`bcOfferId >= 0 && availableForBuildersClub &&
+ * canPlaceWithBC()`, under `infostand.place_more.enabled`) starts placing another from the
+ * Builders Club (`InfoStandWidget.requestItemToMover`); the owner line of a Builders Club furni opens
+ * that catalogue at the furni's offer, or just the catalogue (`onOwnerRegion`); and picking up a
+ * Builders Club furni the Builders Club no longer offers asks first (`pickupObjectWithConfirmation`).
  */
 export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => {
     const { objectId, category } = objectData;
@@ -47,9 +65,13 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const groupDetails = useGroupStore(x => (furniData?.groupId ? x.detailsById[furniData.groupId] : undefined));
     const useButtonEnabled = useConfigValue<boolean>('infostand.use.button.enabled') === true;
     const clockMs = useSecondsClock();
+    const placeMoreEnabled = useConfigValue<boolean>('infostand.place_more.enabled') === true;
+    const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
+    const canPlaceWithBuildersClub = useCanPlaceWithBuildersClub();
     const { modifyRoomObject } = useRoomObjectModify();
     const { changeItemState } = useRoomObjectInteraction();
-    const { showWindow } = useSystemActions();
+    const { showWindow, hideWindow, showConfirm } = useSystemActions();
+    const t = useTranslation();
     const { send } = useWebSocketContext();
 
     const groupId = furniData?.groupId ?? 0;
@@ -82,7 +104,8 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const hasRights = controllerLevel >= RoomControllerLevelEnum.Guest;
     // Free furni movements mode (a wired configuration item) hands move, rotate and use to everyone; play test mode takes them from the rest.
     const canMove = isFreeFurniMovementsMode || (!playTestMode && (hasRights || isOwner || isRoomOwner || isAnyRoomController));
-    const isCrackable = extraParam.startsWith(RoomWidgetEnumItemExtradataParameter.CRACKABLE_FURNI);
+    const variant = furniVariant(extraParam);
+    const isCrackable = (variant === 'crackable');
 
     let canUse = false;
 
@@ -124,24 +147,31 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const mapData = (stuffData instanceof MapDataType) ? stuffData : undefined;
     const song = songInfoById[songToName];
 
+    const furnitureData = furniData.furnitureData;
+    const ownerKind = FurniId.isBuilderClubId(objectId) ? 'builders_club' : (FurniId.isTempId(objectId) ? 'temporary' : 'user');
+    // `set expiration`: shown while the owner line names you - never on a builders club or temporary furni.
+    const showsExpiration = (ownerKind === 'user') && isOwner && (expiration >= 0);
+    const bcOfferId = furnitureData?.bcOfferId ?? -1;
+
     const details: InfostandFurniDetails = {
+        variant,
         name: furniData.name,
-        description: furniData.description,
         className: furniData.furnitureData?.className ?? roomObject.type,
         colorIndex: furniData.furnitureData?.colorIndex ?? 0,
         isNft: (furniData.furnitureData?.className ?? '').startsWith('nft_'),
-        ownerKind: FurniId.isBuilderClubId(objectId) ? 'builders_club' : (FurniId.isTempId(objectId) ? 'temporary' : 'user'),
+        ownerKind,
         ownerId: furniData.ownerId,
         ownerName: furniData.ownerName,
-        expiration: (isOwner && (expiration >= 0)) ? expiration : -1,
+        expiration: showsExpiration ? expiration : -1,
         group: (groupId > 0) ? { name: groupDetails?.groupName ?? '', badge: groupDetails?.badgeCode ?? '' } : undefined,
         uniqueSerial: stuffData.isUnique ? { number: stuffData.uniqueNumber, series: stuffData.uniqueSeries } : undefined,
         chest: (mapData && mapData.chestName.length) ? { name: mapData.chestName, contents: mapData.getValue('contents_count'), isCoins: furniData.furnitureData?.category === 'coin_chest', isWiredEnabled: mapData.getValue('is_wired_enabled') === '1', isLocked: mapData.getValue('locked') === '1' } : undefined,
-        customVariables: !canSeeCustomVariables ? [] : customVariableNames.map(name => ({ name, value: furnitureDataMap[name] ?? '' })),
+        customVariables: !canSeeCustomVariables ? undefined : customVariableNames.map(name => ({ name, value: furnitureDataMap[name] ?? '' })),
         staffDetails: isAnyRoomController ? { id: objectId, branding: brandingOptions } : undefined,
         crackable: (isCrackable && (stuffData instanceof CrackableDataType)) ? { hits: stuffData.hits, target: stuffData.target } : undefined,
         jukebox: (extraParam === RoomWidgetEnumItemExtradataParameter.JUKEBOX) ? { playing: nowPlayingSongId >= 0, songName: song?.songName ?? '', creator: song?.creator ?? '' } : undefined,
         songDisk: (songDiskId >= 0) ? { songName: song?.songName ?? '', creator: song?.creator ?? '' } : undefined,
+        canPlaceMore: placeMoreEnabled && (bcOfferId >= 0) && !!furnitureData?.availableForBuildersClub && canPlaceWithBuildersClub,
         canBuy: !((isOwner && (expiration >= 0))) && ((furniData.furnitureData?.purchaseOfferId ?? -1) >= 0),
         canRent: !((isOwner && (expiration >= 0))) && ((furniData.furnitureData?.rentOfferId ?? -1) >= 0),
         // `updatePurchaseButtonVisibility`: your own running rental can be extended or bought out when its type allows it.
@@ -157,12 +187,28 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
             canUse={canUse}
             canWiredInspect={!playTestMode && showWiredInspectButton}
             pickupMode={pickupMode}
+            // `update`: `button_list.visible = move || rotate || pickupMode != 0 || use` - rotate only ever with move.
+            buttonsVisible={canMove || (pickupMode !== PICKUP_NONE) || canUse}
             canSaveBranding={canSaveBranding}
             onMove={() => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_MOVE)}
             onRotate={() => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_ROTATE_POSITIVE)}
             onPickup={() => {
-                modifyRoomObject(objectId, category, (pickupMode === PICKUP_FULL) ? RoomObjectOperationType.OBJECT_PICKUP : RoomObjectOperationType.OBJECT_EJECT);
                 onClose();
+
+                if (pickupMode !== PICKUP_FULL) {
+                    modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_EJECT);
+
+                    return;
+                }
+
+                // `pickupObjectWithConfirmation`: a builders club furni the Builders Club no longer has is gone once picked up.
+                if (FurniId.isBuilderClubId(objectId) && buildersClubEnabled && !furnitureData?.availableForBuildersClub) {
+                    showConfirm(t('generic.alert.title'), t('room.confirm.not_in_warehouse'), () => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_PICKUP));
+
+                    return;
+                }
+
+                modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_PICKUP);
             }}
             onUse={() => changeItemState(objectId, category, 0, false)}
             onWiredInspect={() => (wiredInspectId !== undefined) && openClientLink(send, `wiredmenu/open/inspection/0/${wiredInspectId}`)}
@@ -170,9 +216,25 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
             onRent={() => showWindow('catalog', { offerId: furniData.furnitureData?.rentOfferId })}
             onExtend={() => furniData.furnitureData && openRentConfirmationWindow(send, furniData.furnitureData, false, objectId)}
             onBuyout={() => furniData.furnitureData && openRentConfirmationWindow(send, furniData.furnitureData, true, objectId)}
-            onOpenOwner={() => (furniData.ownerId > 0) && openProfile(send, furniData.ownerId)}
+            onPlaceMore={() => requestInfostandItemToMover({ bcOfferId, category, classId: furnitureData?.id ?? 0, extraParam })}
+            onOpenOwner={() => {
+                // `onOwnerRegion`: a builders club furni opens that catalogue - at its offer while it still has one.
+                if (ownerKind === 'builders_club') {
+                    if (furnitureData?.availableForBuildersClub && (furnitureData.purchaseOfferId >= 0)) {
+                        hideWindow('catalog');
+                        showWindow('builders_catalog', { offerId: furnitureData.purchaseOfferId });
+                    } else {
+                        toggleCatalog(CatalogTypeEnum.BuildersClub);
+                    }
+
+                    return;
+                }
+
+                if ((ownerKind === 'user') && (furniData.ownerId > 0)) openProfile(send, furniData.ownerId);
+            }}
             onOpenGroup={() => openGroupInfo(send, groupId)}
             onSaveBranding={values => send(new SetObjectDataComposer({ objectId, data: new Map(values.map(({ key, value }) => [ key, value.split('\t').join('') ])) }))}
+            onSetCustomVariables={values => send(new SetObjectDataComposer({ objectId, data: new Map(values.map(({ name, value }) => [ name, value ])) }))}
             onClose={onClose}
         />
     );

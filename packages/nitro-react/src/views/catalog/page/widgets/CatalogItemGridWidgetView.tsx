@@ -5,17 +5,16 @@ import { useEffect, useRef, useState } from 'react';
 import { requestSelectedItemToMover } from '#base/commands';
 import { CATALOG_NO_GUILD_SELECTED, CatalogPage, CatalogWidgetEventEnum, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
+import { useConfigData } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Border, Box, InfiniteGrid, Region } from '#base/theme';
+import { useTemplateLibrary } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
-import { CatalogItemGridWidgetItemView } from './CatalogItemGridWidgetItemView';
-
-/** `ItemGridCatalogWidget.select`: `border_outline`'s colour, 6538729 in the normal catalogue and 16758076 in the builders club. */
-const HILIGHT_COLOR_NORMAL = '#63c5e9';
-const HILIGHT_COLOR_BUILDERS_CLUB = '#ffb63c';
+import { CATALOG_LIBRARY } from '../catalogTemplates';
+import { fitWidgetView, useCatalogWidgetView } from '../catalogWidgetView';
+import { catalogGridItem, GRID_HILIGHT_BUILDERS_CLUB, GRID_HILIGHT_NORMAL } from './catalogGridItem';
 
 /** The colour art `select` hands the colour grid (`CatalogWidgetColoursEvent`). */
 const COLOUR_BACKGROUND_ASSET = 'ctlg_clr_27x22_1';
@@ -102,10 +101,9 @@ const getCurrentItemColourIndex = (offer: IPurchasableOffer | undefined): number
 };
 
 /**
- * The page's offer grid, `itemGridWidget.xml` - Flash's `ItemGridCatalogWidget`: a half-blended
- * style 6 border with the `itemGrid` `scrollable_itemgrid_vertical` (style 3) 4px inside it, its
- * items 3px apart side by side and flush top to bottom (`init` sets `verticalSpacing` to 0). The
- * grid is the theme's virtualised `InfiniteGrid` in its `itemGrid` mode (`ItemGridController`).
+ * The page's offer grid - Flash's `ItemGridCatalogWidget`: its `itemGridWidget` view fitted to the
+ * container (unless `FIXED`), a grid item per offer in `itemGrid` (`populateItemGrid`,
+ * `createGridItem` - `catalogGridItem`), with `verticalSpacing` 0.
  *
  * `select` is the widget's heart, and the page reaches it too (`CatalogPage.selectOffer`, which
  * the grid registers for): the old item deactivates, the new one shows its highlight, and a lazy
@@ -121,26 +119,22 @@ const getCurrentItemColourIndex = (offer: IPurchasableOffer | undefined): number
  *   (`<family>*<index + 1>`) and selects it without telling the colour grid again.
  * - `onGuildSelected`: every item is rebuilt with the guild's `StringArrayStuffData` for its icon
  *   (`loadGraphics`), so the guild furni show the guild's colours.
- * - `createGridItem`: the template follows the price (see `CatalogItemGridWidgetItemView`), and
- *   the builders club always takes the bare `gridItem`.
- *
- * Flash's grid is a row of item lists, each as wide as its widest item, so a page that mixes a
- * free offer (the bare 36x36 `gridItem`) with priced ones (53x74) stacks the free one short in its
- * column. The virtualised grid has one cell size, so every cell here takes the priced size when
- * the page has a priced offer - a free offer on such a page sits at its cell's top left, where a
- * column of Flash's would pull the items under it up by 38px.
  *
  * `startDragAndDrop` / `onDragAndDropDone`: a press that leaves an item hands its offer to the
  * catalogue's object mover (`requestSelectedItemToMover`) when the user's club level allows the
  * offer, and a drop in the room buys it (`CatalogWidgetInitPurchaseEvent`).
  */
-export const CatalogItemGridWidgetView = ({ page }: CatalogWidgetProps) => {
+export const CatalogItemGridWidgetView = ({ page, tags }: CatalogWidgetProps) => {
     const [ content, setContent ] = useState<ItemGridContent>(() => populateItemGrid(page));
     const [ selectedOffer, setSelectedOffer ] = useState<IPurchasableOffer | undefined>(undefined);
     const [ guildStuffData, setGuildStuffData ] = useState<readonly string[] | undefined>(undefined);
     const clubLevel = useUserStore(x => x.clubLevel);
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();
+    const templates = useTemplateLibrary(CATALOG_LIBRARY);
+    const config = useConfigData();
+    // `ProductGridItem.eventProc`'s pressed item, kept from the press until it is released or left.
+    const [ pressed, setPressed ] = useState<IPurchasableOffer | undefined>(undefined);
 
     /**
      * `startDragAndDrop`: an offer the user's club level allows goes to the object mover with the
@@ -206,36 +200,36 @@ export const CatalogItemGridWidgetView = ({ page }: CatalogWidgetProps) => {
         if (Number(offer.pricingModel) === Number(CatalogPricingModelEnum.Bundle)) bundleCounters.set(offer, bundleCounters.size + 1);
     }
 
-    const hasPricedOffer = !page.isBuilderPage && content.gridOffers.some(offer => (offer.priceInCredits > 0) || (offer.priceInActivityPoints > 0) || (offer.priceInSilver > 0));
-    const hilightColor = (page.catalogType === CatalogTypeEnum.Normal) ? HILIGHT_COLOR_NORMAL : HILIGHT_COLOR_BUILDERS_CLUB;
+    const hilightColor = (page.catalogType === CatalogTypeEnum.Normal) ? GRID_HILIGHT_NORMAL : GRID_HILIGHT_BUILDERS_CLUB;
 
-    return (
-        <Region layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
-            <Border
-                variant="6"
-                blend={0.5}
-                layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
-            />
-            <Box layout={{ position: 'absolute', left: 4, top: 4, right: 4, bottom: 4, flexDirection: 'column' }}>
-                <InfiniteGrid
-                    items={content.gridOffers}
-                    itemGrid={hasPricedOffer ? { width: 53, height: 74, spacing: 3, verticalSpacing: 0 } : { width: 36, height: 36, spacing: 3, verticalSpacing: 0 }}
-                    scrollResetKey={page}
-                    getKey={offer => offer.offerId}
-                    itemRender={offer => (
-                        <CatalogItemGridWidgetItemView
-                            offer={offer}
-                            isActive={offer === selectedOffer}
-                            hilightColor={hilightColor}
-                            isBuilderPage={page.isBuilderPage}
-                            bundleCounter={bundleCounters.get(offer)}
-                            guildStuffData={guildStuffData}
-                            onSelect={offer => select(offer, true)}
-                            onDragOut={startDragAndDrop}
-                        />
-                    )}
-                />
-            </Box>
-        </Region>
-    );
+    useCatalogWidgetView(templates && {
+        template: 'itemGridWidget',
+        bindings: {
+            itemGrid: {
+                items: content.gridOffers.map(offer => catalogGridItem(offer, String(offer.offerId), {
+                    templates,
+                    config,
+                    isBuilderPage: page.isBuilderPage,
+                    isActive: offer === selectedOffer,
+                    hilightColor,
+                    bundleCounter: bundleCounters.get(offer),
+                    guildStuffData,
+                    onPointerDown: () => {
+                        setPressed(offer);
+                        select(offer, true);
+                    },
+                    onPointerUp: () => setPressed(undefined),
+                    onPointerOut: () => {
+                        if (pressed !== offer) return;
+
+                        setPressed(undefined);
+                        startDragAndDrop(offer);
+                    },
+                })),
+            },
+        },
+        arrange: tags.includes('FIXED') ? undefined : fitWidgetView,
+    });
+
+    return null;
 };

@@ -3,4 +3,5 @@ export * from './HotelViewSlice';
 export * from './HotelViewWidgets';
 export * from './SystemDialogsSlice';
 export * from './SystemStore';
+export * from './ToolbarTransitionsSlice';
 export * from './WindowRegistry';

@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 
 import { CatalogWidgetEventEnum } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
-import { useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
+import { TemplateWindow } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
+import { useCatalogWidgetView } from '../catalogWidgetView';
 
 /** `UniqueLimitedItemWidget.SUPPLY_REFRESH_PERIOD_MS`. */
 const SUPPLY_REFRESH_PERIOD_MS = 20000;
@@ -21,9 +21,8 @@ const isLimitedOffer = (offer: IPurchasableOffer) => ((Number(offer.pricingModel
  * The supply of a limited edition offer, the `limitedItemWidget` container of the page layout -
  * Flash's `UniqueLimitedItemWidget` driving the container's `unique_item_overlay_container`, a
  * `limited_item_overlay_supply` window widget (`LimitedItemSupplyLeftOverlayWidget` on
- * `unique_item_overlay_supply.xml`): the wide plaque with `unique.items.left` and the items left
- * in bold 12px, `unique.items.number.sold` and the series size under it, in Ubuntu over the
- * `regular` style. The sold-out label of that layout is hidden by the widget whatever the count.
+ * `unique_item_overlay_supply_xml`): the wide plaque with `unique.items.left` and the items left,
+ * `unique.items.number.sold` and the series size under it. The sold-out label of that layout is hidden by the widget whatever the count.
  *
  * Shown while a limited offer is selected (`SELECT_PRODUCT`, or its `CWE_PRODUCT_OFFER_UPDATED`),
  * and then the supply is refreshed: `sendGetProductOffer` right away and every 20 seconds while
@@ -39,7 +38,6 @@ export const CatalogLimitedItemWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ offer, setOffer ] = useState<IPurchasableOffer | undefined>(undefined);
     const offerRef = useRef<IPurchasableOffer | undefined>(undefined);
     const { send } = useWebSocketContext();
-    const t = useTranslation();
 
     /** `update(offer, refresh)`. */
     const update = (next: IPurchasableOffer, refresh: boolean) => {
@@ -68,57 +66,25 @@ export const CatalogLimitedItemWidgetView = ({ page }: CatalogWidgetProps) => {
         return () => clearInterval(timer);
     }, [ offerId, send ]);
 
-    if (!visible) return null;
+    const product = visible ? getOfferProduct(offer) : undefined;
 
-    const product = getOfferProduct(offer);
+    useCatalogWidgetView({
+        bindings: {
+            '': { visible },
+            unique_item_overlay_container: {
+                children: (
+                    <TemplateWindow
+                        id="habbo-window-manager-com/unique_item_overlay_supply_xml"
+                        bindings={{
+                            items_left_count: { caption: String(product?.uniqueLeft ?? 0) },
+                            items_total_count: { caption: String(product?.uniqueSize ?? 0) },
+                            unique_item_sold_out_bitmap: { visible: false },
+                        }}
+                    />
+                ),
+            },
+        },
+    });
 
-    return (
-        <Region
-            name="unique_item_overlay_container"
-            layout={{ position: 'absolute', left: 0, width: 200, top: 0, height: 40 }}
-        >
-            <ThemeImage
-                name="plaque"
-                src={LayoutImage('habbo-window-manager-com/unique_item_large_background_wide.png')}
-                bitmap={{ stretchedX: false, stretchedY: false }}
-                layout={{ position: 'absolute', left: 0, width: 170, top: 0, height: 29 }}
-            />
-            <ThemeText
-                name="items_left"
-                text={t('unique.items.left')}
-                textStyle="regular"
-                textOptions={{ fontFamily: 'Ubuntu' }}
-                flashFormat={{ antiAliasType: 'advanced' }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 40, top: 2 }}
-            />
-            <ThemeText
-                name="items_left_count"
-                text={String(product?.uniqueLeft ?? 0)}
-                textStyle="regular"
-                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, align: 'right' }}
-                flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 108, width: 35, top: 0 }}
-            />
-            <ThemeText
-                name="items_total"
-                text={t('unique.items.number.sold')}
-                textStyle="regular"
-                textOptions={{ fontFamily: 'Ubuntu' }}
-                flashFormat={{ antiAliasType: 'advanced' }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 40, top: 15 }}
-            />
-            <ThemeText
-                name="items_total_count"
-                text={String(product?.uniqueSize ?? 0)}
-                textStyle="regular"
-                textOptions={{ fontFamily: 'Ubuntu', align: 'right' }}
-                flashFormat={{ antiAliasType: 'advanced' }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 120, width: 23, top: 15 }}
-            />
-        </Region>
-    );
+    return null;
 };

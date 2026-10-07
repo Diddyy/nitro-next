@@ -1,20 +1,17 @@
 import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 
 import { CatalogContext } from './CatalogContext';
-import { createCatalogStore } from './store';
+import { getCatalogStore } from './catalogStores';
 
 type ProviderProps = {
     catalogType: CatalogTypeEnum;
     children: ReactNode;
 };
 
-export const CatalogContextProvider = ({ catalogType, children }: ProviderProps) => {
-    const [ ctx ] = useState(() => createCatalogStore(catalogType));
-
-    return (
-        <CatalogContext value={ctx}>
-            {children}
-        </CatalogContext>
-    );
-};
+/** A catalogue window's store - its type's one store (`getCatalogStore`) - for the window inside it. */
+export const CatalogContextProvider = ({ catalogType, children }: ProviderProps) => (
+    <CatalogContext value={getCatalogStore(catalogType)}>
+        {children}
+    </CatalogContext>
+);

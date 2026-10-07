@@ -1,22 +1,95 @@
 import { IPurchasableOffer } from '@nitrodevco/nitro-api';
+import { TemplateBindings } from '@nitrodevco/nitro-theme';
 import { useEffect, useState } from 'react';
 
 import { CatalogWidgetEventEnum, CatalogWidgetSpinnerEvent } from '#base/context/catalog';
-import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigData, useConfigValue } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Region, ThemeText } from '#base/theme';
-import { calculateBundlePrice, getSeasonalCurrencyActivityPointType } from '#base/utils';
+import { calculateBundlePrice, getCurrencyIconStyle, getSeasonalCurrencyActivityPointType } from '#base/utils';
 
-import { CatalogCurrencyIcon } from '../../CatalogCurrencyIcon';
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
+import { CatalogWidgetView, useCatalogWidgetView } from '../catalogWidgetView';
 
 /** Silver as `§_-u1R§.getIconStyleFor` names it. */
 const UNIT_SILVER = 1000;
 
+/** A total and the total before the bundle discount, for one `total_left` / `total_right`. */
+interface Total {
+    raw: number;
+    discounted: number;
+}
+
+/**
+ * `clear`, `createCurrencyIndicators` and `updateCurrencyIndicators` for the offer and quantity: the
+ * window shows for a bulk offer.
+ */
+const totalPriceView = (offer: IPurchasableOffer | undefined, quantity: number, seasonal: boolean, config: Record<string, unknown>): CatalogWidgetView => {
+    const bindings: TemplateBindings = {
+        '': { visible: !!offer?.bundlePurchaseAllowed },
+        plus: { visible: false },
+        amount_text_left: { visible: false },
+        total_left: { visible: false },
+        total_right: { visible: false },
+        currency_indicator_bitmap_left: { visible: false },
+    };
+    const totals: Record<string, Total> = {};
+    let comboIcon: string | undefined = undefined;
+
+    if (!offer) return { template: 'totalPriceWidget', bindings };
+
+    // `bundleDiscountEnabled` is true here: a builders club page never gets this far.
+    const credits: Total = { raw: quantity * offer.priceInCredits, discounted: calculateBundlePrice(true, offer.priceInCredits, quantity) };
+    const points: Total = { raw: quantity * offer.priceInActivityPoints, discounted: calculateBundlePrice(true, offer.priceInActivityPoints, quantity) };
+    const silver: Total = { raw: quantity * offer.priceInSilver, discounted: calculateBundlePrice(true, offer.priceInSilver, quantity) };
+
+    if (offer.priceInCredits > 0) {
+        const side = ((offer.priceInActivityPoints > 0) || (offer.priceInSilver > 0)) ? 'left' : 'right';
+        const icon = `currency_indicator_bitmap_${side}`;
+
+        bindings[`amount_text_${side}`] = { visible: true, caption: String(credits.discounted) };
+        bindings[icon] = { visible: true, style: String(seasonal ? getCurrencyIconStyle(getSeasonalCurrencyActivityPointType(config), config, true, true) : getCurrencyIconStyle(-1, config, true)) };
+        totals[`total_${side}`] = credits;
+
+        if (side === 'left') bindings.plus = { visible: true };
+        if (seasonal) comboIcon = icon;
+    }
+
+    // The points' or the silver's total takes `total_left`, over the credits' there.
+    if ((offer.priceInActivityPoints > 0) || (offer.priceInSilver > 0)) {
+        const total = (offer.priceInSilver > 0) ? silver : points;
+
+        bindings.amount_text_right = { caption: String(total.discounted) };
+        bindings.currency_indicator_bitmap_right = { style: String(getCurrencyIconStyle((offer.priceInActivityPoints > 0) ? offer.activityPointType : UNIT_SILVER, config, true)) };
+        totals.total_left = total;
+    }
+
+    for (const [ key, total ] of Object.entries(totals)) {
+        const shown = (total.raw !== total.discounted);
+
+        bindings[key] = { visible: shown };
+        bindings[`${key}/text`] = { caption: shown ? String(total.raw) : '0' };
+    }
+
+    return {
+        template: 'totalPriceWidget',
+        bindings,
+        arrange: ({ find }) => {
+            if (comboIcon) find(comboIcon)?.setWidth(53);
+
+            // The strike as wide as the total it strikes.
+            for (const key of Object.keys(totals)) {
+                const text = find(`${key}/text`);
+
+                if (text) find(`${key}/strike`)?.setWidth(text.width);
+            }
+        },
+    };
+};
+
 /**
  * The quantity's total, the embedded `totalPriceWidget` of `layout_default_3x3.xml` - Flash's
  * `TotalPriceWidget`, shown only for an offer that can be bought in bulk. The `totalprice_container`
- * list holds the total in bold `u_regular` beside the big currency icon.
+ * list holds the total beside the big currency icon.
  *
  * `createCurrencyIndicators` places the prices: credits alone go right (`amount_text_right` and its
  * icon); credits with activity points or silver go left (`amount_text_left`, its icon and a `+`),
@@ -27,7 +100,8 @@ const UNIT_SILVER = 1000;
  *
  * The totals go through `calculateBundlePrice` (outside the builders club), which is the price
  * times the quantity in this client, so the struck-through undiscounted `total_left` /
- * `total_right` - shown only when the two differ - stay hidden.
+ * `total_right` - shown only when the two differ - stay hidden. The points' or silver's total
+ * takes `total_left` even when the credits' is there too, as in Flash.
  *
  * With `catalog.multiple.purchase.enabled` on (and not on a builders club page) `init` subscribes
  * to `SELECT_PRODUCT` (the offer, the quantity back to 1, shown for a bulk offer) and
@@ -39,7 +113,6 @@ export const CatalogTotalPriceWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ quantity, setQuantity ] = useState(1);
     const multiplePurchaseEnabled = (useConfigValue<boolean>('catalog.multiple.purchase.enabled') === true) && !page.isBuilderPage;
     const config = useConfigData();
-    const t = useTranslation();
 
     useCatalogWidgetEvent(page, CatalogWidgetSpinnerEvent.VALUE_CHANGED, (event) => {
         if (multiplePurchaseEnabled) setQuantity(event.value);
@@ -56,92 +129,7 @@ export const CatalogTotalPriceWidgetView = ({ page }: CatalogWidgetProps) => {
         if (multiplePurchaseEnabled) page.events.dispatchEvent({ type: CatalogWidgetEventEnum.TOTAL_PRICE_WIDGET_INITIALIZED });
     }, [ page, multiplePurchaseEnabled ]);
 
-    if (!activeOffer || !activeOffer.bundlePurchaseAllowed) return null;
+    useCatalogWidgetView(totalPriceView(activeOffer, quantity, page.acceptSeasonCurrencyAsCredits, config));
 
-    // `bundleDiscountEnabled` is true here: a builders club page never gets this far.
-    const credits = calculateBundlePrice(true, activeOffer.priceInCredits, quantity);
-    const activityPoints = calculateBundlePrice(true, activeOffer.priceInActivityPoints, quantity);
-    const silver = calculateBundlePrice(true, activeOffer.priceInSilver, quantity);
-    const hasCredits = (activeOffer.priceInCredits > 0);
-    const hasActivityPoints = (activeOffer.priceInActivityPoints > 0);
-    const hasSilver = (activeOffer.priceInSilver > 0);
-    const creditsLeft = hasCredits && (hasActivityPoints || hasSilver);
-    const seasonal = page.acceptSeasonCurrencyAsCredits;
-    const creditsIcon = (
-        <CatalogCurrencyIcon
-            type={seasonal ? getSeasonalCurrencyActivityPointType(config) : -1}
-            big
-            combo={seasonal}
-            layout={{ marginTop: 1 }}
-        />
-    );
-
-    let rightText: string | undefined = undefined;
-    let rightIcon: number | undefined = undefined;
-
-    if (hasCredits && !creditsLeft) rightText = String(credits);
-
-    if (hasActivityPoints || hasSilver) {
-        rightText = String(hasSilver ? silver : activityPoints);
-        rightIcon = hasActivityPoints ? activeOffer.activityPointType : UNIT_SILVER;
-    }
-
-    return (
-        <>
-            <ThemeText
-                text={t('catalog.bundlewidget.price')}
-                textStyle="u_regular"
-                textOptions={{ fill: '#666666' }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 20, top: 3 }}
-            />
-            <Region
-                name="totalprice_container"
-                layout={{ position: 'absolute', left: 85, top: 1, flexDirection: 'row', alignItems: 'flex-start' }}
-            >
-                {creditsLeft && (
-                    <>
-                        <ThemeText
-                            name="amount_text_left"
-                            text={String(credits)}
-                            textStyle="u_regular"
-                            flashFormat={{ bold: true, gridFitType: 'subpixel' }}
-                            verticalAlign="top"
-                            layout={{ marginTop: 3 }}
-                        />
-                        {creditsIcon}
-                        <ThemeText
-                            name="plus"
-                            text="+"
-                            textStyle="u_regular"
-                            flashFormat={{ bold: true }}
-                            verticalAlign="top"
-                            layout={{ marginTop: 3, marginLeft: -2 }}
-                        />
-                    </>
-                )}
-                {(rightText !== undefined) && (
-                    <>
-                        <ThemeText
-                            name="amount_text_right"
-                            text={rightText}
-                            textStyle="u_regular"
-                            flashFormat={{ bold: true, gridFitType: 'subpixel' }}
-                            verticalAlign="top"
-                            layout={{ marginTop: 3 }}
-                        />
-                        {(rightIcon === undefined)
-                            ? creditsIcon
-                            : (
-                                    <CatalogCurrencyIcon
-                                        type={rightIcon}
-                                        big
-                                        layout={{ marginTop: 1 }}
-                                    />
-                                )}
-                    </>
-                )}
-            </Region>
-        </>
-    );
+    return null;
 };

@@ -5,6 +5,7 @@ import { fillLocalizationParameters } from '#base/utils';
 
 import { createHotelViewSlice, HotelViewSlice } from './HotelViewSlice';
 import { createSystemDialogsSlice, SystemDialogsSlice } from './SystemDialogsSlice';
+import { createToolbarTransitionsSlice, ToolbarTransitionsSlice } from './ToolbarTransitionsSlice';
 import { VisibleWindows, WindowName, WindowRegistry } from './WindowRegistry';
 
 type State = {
@@ -101,7 +102,7 @@ const initialState: State = {
     roomSessionRequest: undefined,
 };
 
-export type SystemStore = State & Actions & SystemDialogsSlice & HotelViewSlice;
+export type SystemStore = State & Actions & SystemDialogsSlice & HotelViewSlice & ToolbarTransitionsSlice;
 
 export const createSystemStore = () => createStore<SystemStore>()((set, get, store) => ({
     ...initialState,
@@ -246,6 +247,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
                 rentOfferId: furniture.rentofferid,
                 rentCouldBeUsedForBuyout: furniture.rentbuyout,
                 availableForBuildersClub: furniture.bc,
+                bcOfferId: furniture.bcofferid ?? -1,
                 customParams: furniture.customparams ?? '',
                 specialType: furniture.specialtype,
                 canStandOn: furniture.canstandon,
@@ -292,6 +294,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
                 rentOfferId: furniture.rentofferid,
                 rentCouldBeUsedForBuyout: furniture.rentbuyout,
                 availableForBuildersClub: furniture.bc,
+                bcOfferId: furniture.bcofferid ?? -1,
                 customParams: '',
                 specialType: furniture.specialtype,
                 canStandOn: false,
@@ -377,6 +380,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
     endRoomSession: () => set(x => ({ roomSessionRequest: { type: 'end', roomId: 0, sequence: (x.roomSessionRequest?.sequence ?? 0) + 1 } })),
     ...createSystemDialogsSlice(set, get, store),
     ...createHotelViewSlice(set, get, store),
+    ...createToolbarTransitionsSlice(set, get, store),
 }));
 
 /**

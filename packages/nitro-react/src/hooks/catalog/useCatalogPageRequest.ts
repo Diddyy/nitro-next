@@ -12,7 +12,7 @@ export const useCatalogPageRequest = () => {
     const windowName = getCatalogWindowName(useCatalogStore(x => x.catalogType));
     const { isWindowVisible } = useWindowVisibility(windowName);
     const rootNode = useCatalogStore(x => x.rootNode);
-    const activePage = useCatalogStore(x => x.activePage);
+    const activeNodes = useCatalogStore(x => x.activeNodes);
     const requestedPage = useCatalogStore(x => x.requestedPage);
     const { activateNode, openPageById, openPageByName, openPageByOfferId } = useCatalogNavigation();
     const { setRequestedPage } = useCatalogActions();
@@ -44,7 +44,10 @@ export const useCatalogPageRequest = () => {
 
         switch (requestedPage.type) {
             case CatalogPageRequestType.None: {
-                if (activePage) return;
+                // The front page only when nothing is open yet. Not `activePage`: a requested page
+                // is still on its way from the server when the request is cleared, and the front
+                // page would replace it.
+                if (activeNodes.length) return;
 
                 if (rootNode.children.length > 0) for (const child of rootNode.children) {
                     if (child.visible) {

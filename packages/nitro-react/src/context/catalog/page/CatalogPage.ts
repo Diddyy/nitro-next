@@ -92,7 +92,8 @@ export class CatalogPage implements IActivePage {
     /**
      * `CatalogPage.selectOffer`: select the offer through the item grid, which tells the widgets.
      * A page with no item grid selects nothing here. Flash also focuses the trophy page's
-     * `input_text`; the trophy widget does that itself when it mounts.
+     * `input_text`; the text input widget does that itself when it mounts (not on a later
+     * re-selection of the page on show).
      */
     public selectOffer(offerId: number): void {
         if (!this._itemGrid || (offerId <= -1)) return;

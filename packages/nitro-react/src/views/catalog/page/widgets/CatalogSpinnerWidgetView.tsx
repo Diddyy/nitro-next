@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { CatalogWidgetSpinnerEvent, useCatalogStore } from '#base/context/catalog';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Border, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
 import { getDiscountItemsCount } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
+import { useCatalogWidgetView } from '../catalogWidgetView';
 
 /** `SpinnerCatalogWidget`'s starting minimum and maximum. */
 const MIN_VALUE = 1;
@@ -14,8 +14,8 @@ const MAX_VALUE = 100;
 
 /**
  * The quantity picker, the embedded `spinnerWidget` of `layout_default_3x3.xml` (its
- * `quantitySelection`) - Flash's `SpinnerCatalogWidget`: the `quantityLabel` in grey and the
- * digits-only `text_value` input in a 30x25 style 0 border.
+ * `quantitySelection`) - Flash's `SpinnerCatalogWidget`: the `quantityLabel` and the digits-only
+ * `text_value` input.
  *
  * Hidden until the product view shows it (`CWSE_SHOW` / `CWSE_HIDE`); with
  * `catalog.multiple.purchase.enabled` off, or on a builders club page, it ignores every event and
@@ -84,61 +84,15 @@ export const CatalogSpinnerWidgetView = ({ page }: CatalogWidgetProps) => {
         refresh(isNaN(typed) ? 1 : typed, text);
     };
 
-    if (!visible) return null;
+    useCatalogWidgetView({
+        template: 'spinnerWidget',
+        bindings: {
+            '': { visible },
+            text_value: { caption: valueText, onChange: onInput, restrict: '0123456789' },
+            discountContainer: { visible: discountItemsCount > 0 },
+            'promo.info': { caption: t('shop.bonus.items.count', '', { amount: String(discountItemsCount) }) },
+        },
+    });
 
-    return (
-        <Region
-            name="quantitySelection"
-            layout={{ position: 'absolute', left: 0, width: 200, top: 0, height: 25 }}
-        >
-            <ThemeText
-                name="quantityLabel"
-                text={t('catalog.bundlewidget.quantity')}
-                textStyle="u_regular"
-                textOptions={{ fill: '#666666' }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 0, top: 3, maxWidth: 100 }}
-            />
-            {(discountItemsCount > 0) && (
-                <Border
-                    variant="3"
-                    name="discountContainer"
-                    tintColor="#92d27c"
-                    layout={{ position: 'absolute', left: 65, width: 135, top: 0, height: 25 }}
-                >
-                    <ThemeImage
-                        name="thumbStar"
-                        src={LayoutImage('habbo-window-manager-com/catalogue_bundle_star.png')}
-                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                        layout={{ position: 'absolute', left: 108, width: 30, top: -2, height: 30 }}
-                    />
-                    <ThemeText
-                        name="promo.info"
-                        text={t('shop.bonus.items.count', '', { amount: String(discountItemsCount) })}
-                        textStyle="u_regular"
-                        textOptions={{ fontSize: 10 }}
-                        flashFormat={{ italic: true }}
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 28, top: 5, maxWidth: 82 }}
-                    />
-                </Border>
-            )}
-            <Border
-                variant="0"
-                name="quantityInput"
-                layout={{ position: 'absolute', left: 65, width: 30, top: 0, height: 25 }}
-            >
-                <TextInput
-                    value={valueText}
-                    onChange={onInput}
-                    textStyle="u_small"
-                    flashPlacement
-                    restrict="0123456789"
-                    backgroundColor={null}
-                    focusedBackgroundColor={null}
-                    layout={{ position: 'absolute', left: 3, width: 22, top: 5, height: 15 }}
-                />
-            </Border>
-        </Region>
-    );
+    return null;
 };

@@ -1,37 +1,54 @@
 /**
- * The club offers, the embedded `clubBuyWidget` of `layout_club_buy.xml` - Flash's
- * `ClubBuyCatalogWidget` as the `ClubBuyController`'s visualisation: the `u_headline_small` header
- * in its `0xdfdfdf` bar, the wrapped info, the style 18 club icon, the HC and VIP item lists
- * (spacing 4), the remaining-days bar and the underlined link.
+ * The club offers, the `clubBuyWidget` of `layout_club_buy.xml` - Flash's `ClubBuyCatalogWidget`
+ * as the `ClubBuyController`'s visualisation. `init` attaches `clubBuyWidget` (the layout's
+ * container is tagged `EMBEDDED`, so its own children stay), registers with the controller and asks
+ * for the offers with source 0.
  *
- * `init` registers with the controller and asks for the offers with source 0. Until they come the
- * layout's captions stand; then `initClubType` (the purse's `getClubType`) picks the texts: no
- * club - `header.none` / `info.none` and no remaining bar; HC - `header.hc`, `info.hc`,
- * `remaining.hc`; VIP - `header.vip`, `info.vip`, `remaining.vip`, and the `club_buy_info_item` at
- * the top of the HC list (`showClubInfo`). The remaining texts get `days` = the purse's periods
- * times 31 plus its days. `showOffer` puts every offer with months (only the promoted months while
- * `catalog.vip.buy.promo` names any) into the VIP or the HC list as a `ClubBuyItem`.
+ * Until they come the layout's captions stand; then `initClubType` (the purse's `getClubType`)
+ * picks the texts: no club - `header.none` / `info.none`, and `club_remaining` with its
+ * `club_remaining_bg` hidden; HC - `header.hc`, `info.hc`, `remaining.hc`; VIP - `header.vip`,
+ * `info.vip`, `remaining.vip`, and `showClubInfo` adds `club_buy_info_item` at the top of
+ * `item_list_hc`. The remaining texts get `days` = the purse's periods times 31 plus its days.
+ * `showOffer` puts every offer with months (only the promoted months while `catalog.vip.buy.promo`
+ * names any) into `item_list_vip` or `item_list_hc` as a `ClubBuyItem`.
  *
  * `club_link` opens `link.format.club` behind the "leaving the hotel" alert. Flash registers two
  * listeners on it - this widget's `initLinks` and the page's `LocalizationCatalogWidget.initLinks`
  * (`LAYOUT_LINKS.club_buy`) - which both open the same link, so one click shows the alert twice;
- * the port opens it once.
+ * the port leaves it to the page's, which opens it once.
  */
+import { Template, TemplateBindings, TemplateItem } from '@nitrodevco/nitro-theme';
 import { useEffect } from 'react';
 
-import { onCatalogPageLink, requestClubOffers, showClubPurchaseConfirmation } from '#base/commands';
-import { CLUB_OFFERS_SOURCE_CLUB_BUY, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { requestClubOffers, showClubPurchaseConfirmation } from '#base/commands';
+import { CLUB_OFFERS_SOURCE_CLUB_BUY, ClubBuyOfferData, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData, useTranslation } from '#base/context/system';
 import { getPurseClubType, useUserStore } from '#base/context/user';
-import { Border, Icon, Region, ThemeText } from '#base/theme';
+import { useTemplateLibrary } from '#base/theme';
 import { getClubOffersToShow } from '#base/utils';
 
-import { CatalogClubBuyInfoItemView, CatalogClubBuyItemView } from '../../club/CatalogClubBuyItemView';
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
+import { CATALOG_LIBRARY, catalogTemplateId } from '../catalogTemplates';
+import { useCatalogWidgetView } from '../catalogWidgetView';
 
-/** The item lists' width. */
-const LIST_WIDTH = 171;
+type Translate = ReturnType<typeof useTranslation>;
+
+/**
+ * Flash's `ClubBuyItem`: `club_buy_vip_item` for a VIP offer, `club_buy_hc_item` otherwise, its
+ * `item_header` the `catalog.club.item.header` with `months`, its `item_price` the
+ * `catalog.club.price` with `price` (the credits), and `item_buy` opening the purchase
+ * confirmation for the offer on the page (`showPurchaseConfirmation(offer, pageId)`).
+ */
+const clubBuyItem = (templates: Record<string, Template>, offer: ClubBuyOfferData, t: Translate, onBuy: () => void): TemplateItem => ({
+    key: String(offer.offerId),
+    from: templates[catalogTemplateId(offer.vip ? 'club_buy_vip_item' : 'club_buy_hc_item')],
+    bindings: {
+        item_header: { caption: t('catalog.club.item.header', '', { months: String(offer.months) }) },
+        item_price: { caption: t('catalog.club.price', '', { price: String(offer.priceCredits) }) },
+        item_buy: { onPointerTap: onBuy },
+    },
+});
 
 export const CatalogClubBuyWidgetView = ({ page }: CatalogWidgetProps) => {
     const offers = useCatalogStore(x => x.clubOffers);
@@ -40,6 +57,7 @@ export const CatalogClubBuyWidgetView = ({ page }: CatalogWidgetProps) => {
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();
     const t = useTranslation();
+    const templates = useTemplateLibrary(CATALOG_LIBRARY);
 
     useEffect(() => {
         requestClubOffers(send, store, CLUB_OFFERS_SOURCE_CLUB_BUY);
@@ -49,111 +67,45 @@ export const CatalogClubBuyWidgetView = ({ page }: CatalogWidgetProps) => {
     const days = String((subscription.clubPeriods * 31) + subscription.clubDays);
     const shown = offers ? getClubOffersToShow(offers, config, false) : [];
 
-    let header = t('catalog.club.buy.header');
-    let info = t('catalog.club.buy.info');
-    let remaining: string | undefined = t('catalog.club.buy.remaining');
+    /** `initClubType`'s captions; before the offers, the layout's. */
+    const captions = ((): TemplateBindings => {
+        switch (clubType) {
+            case 0: return {
+                club_header: { caption: '${catalog.club.buy.header.none}' },
+                club_info: { caption: '${catalog.club.buy.info.none}' },
+                club_remaining: { visible: false },
+                club_remaining_bg: { visible: false },
+            };
+            case 1: return {
+                club_header: { caption: '${catalog.club.buy.header.hc}' },
+                club_info: { caption: '${catalog.club.buy.info.hc}' },
+                club_remaining: { caption: t('catalog.club.buy.remaining.hc', '', { days }) },
+            };
+            case 2: return {
+                club_header: { caption: '${catalog.club.buy.header.vip}' },
+                club_info: { caption: '${catalog.club.buy.info.vip}' },
+                club_remaining: { caption: t('catalog.club.buy.remaining.vip', '', { days }) },
+            };
+            default: return {};
+        }
+    })();
 
-    switch (clubType) {
-        case 0:
-            header = t('catalog.club.buy.header.none');
-            info = t('catalog.club.buy.info.none');
-            remaining = undefined;
-            break;
-        case 1:
-            header = t('catalog.club.buy.header.hc');
-            info = t('catalog.club.buy.info.hc');
-            remaining = t('catalog.club.buy.remaining.hc', '', { days });
-            break;
-        case 2:
-            header = t('catalog.club.buy.header.vip');
-            info = t('catalog.club.buy.info.vip');
-            remaining = t('catalog.club.buy.remaining.vip', '', { days });
-            break;
-    }
+    const items = (vip: boolean) => (templates ? shown.filter(offer => (offer.vip === vip)).map(offer => clubBuyItem(templates, offer, t, () => showClubPurchaseConfirmation(store, offer, page.pageId))) : []);
 
-    const items = (vip: boolean) => shown.filter(offer => (offer.vip === vip)).map(offer => (
-        <CatalogClubBuyItemView
-            key={offer.offerId}
-            vip={offer.vip}
-            months={offer.months}
-            priceCredits={offer.priceCredits}
-            onBuy={() => showClubPurchaseConfirmation(store, offer, page.pageId)}
-        />
-    ));
+    useCatalogWidgetView(templates && {
+        template: 'clubBuyWidget',
+        bindings: {
+            ...captions,
+            item_list_hc: {
+                items: [
+                    // `showClubInfo`.
+                    ...((clubType === 2) ? [ { key: 'club_buy_info_item', from: templates[catalogTemplateId('club_buy_info_item')] } ] : []),
+                    ...items(false),
+                ],
+            },
+            item_list_vip: { items: items(true) },
+        },
+    });
 
-    return (
-        <>
-            <Border
-                variant="2"
-                tintColor="#dfdfdf"
-                layout={{ position: 'absolute', left: 10, width: 340, top: 0, height: 22 }}
-            >
-                <ThemeText
-                    name="club_header"
-                    text={header}
-                    textStyle="u_headline_small"
-                    textOptions={{ align: 'center' }}
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 0, width: 307, top: 2 }}
-                />
-            </Border>
-            {(remaining !== undefined) && (
-                <Border
-                    variant="2"
-                    name="club_remaining_bg"
-                    tintColor="#dfdfdf"
-                    layout={{ position: 'absolute', left: 10, width: 340, bottom: 25, height: 25 }}
-                >
-                    <ThemeText
-                        name="club_remaining"
-                        text={remaining}
-                        textStyle="u_regular"
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 6, top: 5 }}
-                    />
-                </Border>
-            )}
-            <ThemeText
-                name="club_info"
-                text={info}
-                textStyle="u_regular"
-                textOptions={{ wordWrap: true, wordWrapWidth: 303 }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 7, width: 307, top: 30 }}
-            />
-            <Icon
-                variant="18"
-                name="icon_vip"
-                layout={{ position: 'absolute', left: 40, width: 85, top: 104, height: 40 }}
-            />
-            <Region
-                name="item_list_hc"
-                layout={{ position: 'absolute', left: 0, width: LIST_WIDTH, top: 155, bottom: 55, flexDirection: 'column', gap: 4, overflow: 'hidden' }}
-            >
-                {(clubType === 2) && <CatalogClubBuyInfoItemView />}
-                {items(false)}
-            </Region>
-            <Region
-                name="item_list_vip"
-                layout={{ position: 'absolute', left: 180, width: LIST_WIDTH, top: 155, bottom: 55, flexDirection: 'column', gap: 4, overflow: 'hidden' }}
-            >
-                {items(true)}
-            </Region>
-            <Region
-                name="club_link"
-                cursor="pointer"
-                onPointerTap={() => onCatalogPageLink(page, 'club_link')}
-                layout={{ position: 'absolute', left: 10, width: 340, bottom: 3 }}
-            >
-                <ThemeText
-                    text={t('catalog.club.buy.link')}
-                    textStyle="u_regular"
-                    textOptions={{ align: 'center' }}
-                    flashFormat={{ underline: true }}
-                    verticalAlign="top"
-                    layout={{ width: 340 }}
-                />
-            </Region>
-        </>
-    );
+    return null;
 };

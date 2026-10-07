@@ -3,7 +3,7 @@ import { PetInfoMessageType } from '@nitrodevco/nitro-packets';
 
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useChatPetFace } from '#base/hooks';
-import { Border, Box, Button, CloseButton, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
+import { Box, CountdownWidget, LayoutImage, Region, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage } from '#base/theme';
 import { petTypeFromFigure } from '#base/utils';
 
 export interface InfostandPetViewProps {
@@ -17,7 +17,22 @@ export interface InfostandPetViewProps {
     name: string;
     /** How many pet respects the viewer has left today. */
     respectLeft: number;
+    /** `InfoStandPetData.isOwnPet`: the pet's owner is the viewer. */
+    isOwnPet: boolean;
+    /** `InfoStandPetData.canRemovePet`, as `InfoStandWidgetHandler` works it out. */
+    canRemovePet: boolean;
+    /** `InfoStandPetView.update`'s gate on `move` and `rotate`, less its monsterplant test. */
+    canMoveAndRotate: boolean;
     onRespect: () => void;
+    /** `btn_pick` and `btn_kick` - both `RWUAM_PICKUP_PET`. */
+    onPickUp: () => void;
+    /** `btn_buy_food`: `openCatalogPage("pet_accessories")`. */
+    onBuyFood: () => void;
+    /** `btn_pettreat`: `RWUAM_TREAT_PET`. */
+    onTreat: () => void;
+    /** `btn_move` / `btn_rotate`: `RWFAM_MOVE` / `RWFUAM_ROTATE` on the pet's room object. */
+    onMove: () => void;
+    onRotate: () => void;
     onClose: () => void;
 }
 
@@ -29,11 +44,16 @@ const STATUS_BAR_HIGHLIGHT_HEIGHT = 4;
 const STATUS_BAR_BORDER_COLOR = '#dadada';
 const STATUS_BAR_BG_COLOR = '#3a3a3a';
 
+interface BarColors {
+    content: string;
+    highlight: string;
+}
+
 /** The content and highlight colours `update` hands `updateStateElement` for each bar. */
-const HAPPINESS_COLORS = { content: '#009ac0', highlight: '#1fd1f2' };
-const EXPERIENCE_COLORS = { content: '#8547be', highlight: '#a06ad2' };
-const ENERGY_COLORS = { content: '#5e9d00', highlight: '#8ac51e' };
-const WELLBEING_COLORS = { content: '#5e9d00', highlight: '#8ac51e' };
+const HAPPINESS_COLORS: BarColors = { content: '#009ac0', highlight: '#1fd1f2' };
+const EXPERIENCE_COLORS: BarColors = { content: '#8547be', highlight: '#a06ad2' };
+const ENERGY_COLORS: BarColors = { content: '#5e9d00', highlight: '#8ac51e' };
+const WELLBEING_COLORS: BarColors = { content: '#5e9d00', highlight: '#8ac51e' };
 
 /** `setRarityLevel`: the pet types whose rarity line shows. */
 const RARITY_PET_TYPES = [ 16, 26 ];
@@ -46,8 +66,21 @@ const BUTTONS_MAX_WIDTH = 250;
 const BUTTON_HEIGHT = 25;
 const BUTTON_MARGIN = 5;
 
-/** `infostand_element_list` is 173 wide; its rows are centred on it (`params` 208). */
-const LIST_WIDTH = 173;
+/** `updateWindow`: the border is the element list's height plus this. */
+const BORDER_PADDING = 20;
+
+/** `pet_view`'s `avatar_image` (80x83): `set image` copies the picture into a bitmap of its size. */
+const AVATAR_IMAGE_WIDTH = 80;
+const AVATAR_IMAGE_HEIGHT = 83;
+
+/** `button_list`'s `CMD_BUTTON_REGION`s in child order - `arrangeButtons`' order - each holding `btn_<name>`. */
+const BUTTON_REGIONS = [ 'pick', 'train', 'buy_food', 'petrespect', 'pettreat', 'kick', 'rotate', 'move' ] as const;
+
+type ButtonRegion = typeof BUTTON_REGIONS[number];
+
+/** The bars `update` fills: the default list's three, or the monsterplant's wellbeing. */
+const DEFAULT_STATES = [ 'happiness', 'experience', 'energy' ] as const;
+const MONSTERPLANT_STATES = [ 'wellbeing' ] as const;
 
 /**
  * `InfoStandPetView.getSkillLevelIndex`: how many of the pet's positive skill thresholds its
@@ -65,24 +98,12 @@ const formatSeconds = (value: number) => {
     return `${hours}:${(minutes < 10) ? '0' : ''}${minutes}:${(seconds < 10) ? '0' : ''}${seconds}`;
 };
 
-/** A centred, auto-sized white text - the list's `params="208"` texts. */
-const CentredText = ({ text, fill = '#ffffff', name, layout }: { text: string; fill?: string; name?: string; layout?: { marginTop?: number; marginBottom?: number; height?: number } }) => (
-    <ThemeText
-        text={text}
-        textOptions={{ fill }}
-        flashFormat={{ antiAliasType: 'advanced' }}
-        name={name}
-        verticalAlign="top"
-        layout={{ alignSelf: 'center', flexShrink: 0, ...layout }}
-    />
-);
-
 /**
  * `createPercentageBar`: a 162x16 bitmap - a one-pixel `STATUS_BAR_BORDER_COLOR` frame round the
  * `STATUS_BAR_BG_COLOR` well, the content colour filled from four pixels down and the highlight
  * over the top four, both `value / max` of the inner width.
  */
-const PercentageBar = ({ value, max, colors }: { value: number; max: number; colors: { content: string; highlight: string } }) => {
+const PercentageBar = ({ value, max, colors }: { value: number; max: number; colors: BarColors }) => {
     const total = Math.max(max, 1);
     const ratio = Math.min(Math.max(value, 0), total) / total;
     const innerWidth = STATUS_BAR_WIDTH - 2;
@@ -92,7 +113,7 @@ const PercentageBar = ({ value, max, colors }: { value: number; max: number; col
     return (
         <Region
             backgroundColor={STATUS_BAR_BORDER_COLOR}
-            layout={{ position: 'absolute', left: 6, top: 17, width: STATUS_BAR_WIDTH, height: STATUS_BAR_HEIGHT }}
+            layout={{ position: 'absolute', left: 0, top: 0, width: STATUS_BAR_WIDTH, height: STATUS_BAR_HEIGHT }}
         >
             <Region
                 backgroundColor={STATUS_BAR_BG_COLOR}
@@ -114,66 +135,38 @@ const PercentageBar = ({ value, max, colors }: { value: number; max: number; col
     );
 };
 
-/** One `status_<state>_container` (169x34): the label, the bar, its value over it and the icon. */
-const StatusBar = ({ label, icon, value, max, colors, valueText }: { label: string; icon: string; value: number; max: number; colors: { content: string; highlight: string }; valueText?: string }) => (
-    <Box layout={{ width: 169, height: 34, flexShrink: 0 }}>
-        <Box layout={{ position: 'absolute', left: 0, top: 1, width: 169, flexDirection: 'row', justifyContent: 'center' }}>
-            <ThemeText
-                text={label}
-                textOptions={{ fill: '#ffffff' }}
-                flashFormat={{ antiAliasType: 'advanced' }}
-                verticalAlign="top"
-            />
-        </Box>
-        <PercentageBar
-            value={value}
-            max={max}
-            colors={colors}
-        />
-        <Box layout={{ position: 'absolute', left: 0, top: 18, width: 169, flexDirection: 'row', justifyContent: 'center' }}>
-            <ThemeText
-                text={valueText ?? `${value}/${max}`}
-                textOptions={{ fill: '#ffffff' }}
-                flashFormat={{ antiAliasType: 'advanced' }}
-                verticalAlign="top"
-            />
-        </Box>
-        <ThemeImage
-            src={icon}
-            layout={{ position: 'absolute', left: 0, top: 16, width: 18, height: 18 }}
-        />
-    </Box>
-);
-
 /**
- * The pet panel - `InfoStandPetView` on the `pet_view` layout (190 wide): the pet's name and
- * breed, its picture and level, the three bars it lives by, its respect, age and owner, and the
- * respect button under the panel.
+ * The pet panel - `InfoStandPetView` drawn from its Flash template (`habbo-room-ui-com/pet_view`):
+ * the pet's name and breed, its picture and level, the three bars it lives by, its respect, age
+ * and owner, and the command buttons under the panel. Everything drawn that the code does not set
+ * - the border, the close button, the icons, the texts' formats and places - is the layout's.
  *
- * A monsterplant is the odd one out - `status_item_list_monsterplant` swaps the bars for its
- * wellbeing (shown as `formatSeconds` of what is left) and how long it has left to grow, and it
- * has no level or respect line.
+ * `update` is the bindings: the texts' captions with their parameters, `showStatusContainer`
+ * swapping `status_item_list_default` for `status_item_list_monsterplant` (its wellbeing as
+ * `formatSeconds` of what is left, and the `countdown` widget of the time left to grow, both
+ * hidden once grown - `updateStateWidget`), `setLevelText` / `updatePetRespect` hiding the level
+ * and respect for a monsterplant, `setSpecialSkillLevel` showing the skill text and
+ * `pet_skill_level_<getSkillLevelIndex>` only for pet type 15 under `pet.enhancements.enabled`,
+ * `setRarityLevel` the rarity line for types 16 and 26, and `showButton` each command's region.
+ * The bars (`createPercentageBar`), the picture (`set image`), the countdown (`CountdownWidget`,
+ * never `countdown:running` in this layout, so it shows the seconds it was given) and the rarity
+ * plaque (`RarityItemPreviewOverlayWidget`'s `rarity_item_overlay_preview_xml`) go into their
+ * elements as children.
  *
- * The rows are `infostand_element_list` (an `itemlist_vertical` at 10,10, 173 wide, no spacing)
- * and the border is the list's height plus 20 (`updateWindow`), so the list is a column here.
- * `button_list` is `BUTTONS_MAX_WIDTH` wide and filled right to left in child order
- * (`arrangeButtons`).
+ * `arrange` is what the code measures and moves: `updatePetRespect` puts the respect icon 2 past
+ * its text, `updateStateElement` sizes each bar's bitmap to the bar, `onButtonResized` gives each
+ * region its button's width, `arrangeButtons` fills `button_list` right to left within
+ * `BUTTONS_MAX_WIDTH`, wrapping onto a new row, and `updateWindow` fits the element list to its
+ * items, the border to the list plus 20 and the window to both, the narrower right-aligned.
  *
- * `updatePetRespect` puts `petrespect_icon` (`icon_petrespect`, 13x21) 2 after the centred
- * respect text, at the layout's y 3 - its bottom 3 rows cut by the 21-high container - and hides
- * both for a monsterplant. `setSpecialSkillLevel` fills `skill_level_indicator` (78x18 at 8,47 of
- * `level_container`) with `pet_skill_level_<getSkillLevelIndex>` and shows it, with the skill
- * text, only for pet type 15 under `pet.enhancements.enabled`.
+ * Until the info arrives the panel is the name and picture alone, with no buttons.
  *
- * What is not drawn, and why:
- * - the pick up, train, buy food, treat, kick, move and rotate buttons: the port has no command
- *   behind any of them yet, so only the respect button is in the list;
- * - `growth_status_widget` is Flash's `countdown` widget, which the theme does not have: the
- *   time left is `formatSeconds` text in its 99x37 slot;
- * - `rarity_item_overlay_widget` (`rarity_item_overlay_preview`) has no theme widget either; its
- *   40x28 slot is kept empty so the rows below stay where Flash puts them.
+ * What is not done, and why:
+ * - `btn_train` opens Flash's `PetCommandTool` window, which the port does not have (its commands
+ *   are the pet menu's rows), so the train button stays hidden;
+ * - `btn_buy_food`'s `trackGoogle` has no tracking receiver here.
  */
-export const InfostandPetView = ({ info, figure, posture, name, respectLeft, onRespect, onClose }: InfostandPetViewProps) => {
+export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isOwnPet, canRemovePet, canMoveAndRotate, onRespect, onPickUp, onBuyFood, onTreat, onMove, onRotate, onClose }: InfostandPetViewProps) => {
     const t = useTranslation();
     const { texture: petTexture } = useChatPetFace(figure, posture, { scale: RoomGeometryScaleType.ZoomedIn, direction: 2 });
     // `InfoStandPetView.setSpecialSkillLevel`: `getBoolean("pet.enhancements.enabled")`.
@@ -181,213 +174,191 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, onR
     // `InfoStandPetView.update`: `type == 16`, the type from the pet's figure (`getPetType`) - not its breed.
     const petType = petTypeFromFigure(figure);
     const isMonsterplant = !!info && (petType === PetType.MONSTERPLANT);
-    const showsSkill = petEnhancementsEnabled && (petType === SKILL_PET_TYPE);
-    const showsRarity = !!info && RARITY_PET_TYPES.includes(petType);
-    const rarityText = info ? t('infostand.pet.text.raritylevel', '', { level: t(`infostand.pet.raritylevel.${info.rarityLevel}`) }) : '';
-    // `updateRespectButton`: shown while respects are left, never for a monsterplant.
-    const showsRespectButton = !!info && !isMonsterplant && (respectLeft > 0);
+    const showsSkill = !!info && petEnhancementsEnabled && (petType === SKILL_PET_TYPE);
+    const showsRarity = RARITY_PET_TYPES.includes(petType);
+    const growing = !!info && (info.remainingGrowingSeconds > 0);
+
+    // `InfoStandPetView.update`'s `showButton` calls, `updateRespectButton` last for the respect.
+    const shownButtons: Record<ButtonRegion, boolean> = info
+        ? {
+                pick: isMonsterplant ? canRemovePet : isOwnPet,
+                train: false,
+                buy_food: !isMonsterplant,
+                petrespect: !isMonsterplant && (respectLeft > 0),
+                pettreat: isMonsterplant && (info.energy > 0) && ((info.energy / info.maxEnergy) < 0.98),
+                kick: !isMonsterplant && canRemovePet,
+                rotate: isMonsterplant && canMoveAndRotate,
+                move: isMonsterplant && canMoveAndRotate,
+            }
+        : { pick: false, train: false, buy_food: false, petrespect: false, pettreat: false, kick: false, rotate: false, move: false };
+
+    const bindings: TemplateBindings = {
+        '#close': { onPointerTap: onClose },
+        name_text: { caption: info?.name.length ? info.name : name },
+        // `set image`: the picture copied centred into `avatar_image`'s bitmap, cut at its edges.
+        avatar_image: {
+            children: petTexture && (
+                <Box layout={{ position: 'absolute', left: 0, top: 0, width: AVATAR_IMAGE_WIDTH, height: AVATAR_IMAGE_HEIGHT, overflow: 'hidden' }}>
+                    <ThemeImage
+                        texture={petTexture}
+                        width={petTexture.width}
+                        height={petTexture.height}
+                        layout={{ position: 'absolute', left: Math.round((AVATAR_IMAGE_WIDTH - petTexture.width) / 2), top: Math.round((AVATAR_IMAGE_HEIGHT - petTexture.height) / 2) }}
+                    />
+                </Box>
+            ),
+        },
+        level_container: { visible: !!info },
+        // The buttons are `showButton`'s; each click is `onButtonClicked`'s by the button's name.
+        btn_pick: { onPointerTap: onPickUp },
+        btn_kick: { onPointerTap: onPickUp },
+        btn_buy_food: { onPointerTap: onBuyFood },
+        btn_petrespect: { onPointerTap: onRespect, caption: t('infostand.button.petrespect', '', { count: String(respectLeft) }) },
+        btn_pettreat: { onPointerTap: onTreat },
+        btn_move: { onPointerTap: onMove },
+        btn_rotate: { onPointerTap: onRotate },
+    };
+
+    for (const region of BUTTON_REGIONS) bindings[`button_list/${region}`] = { visible: shownButtons[region] };
+
+    if (!info) bindings.infostand_element_list = { show: [ 'name_text', 'image_container' ] };
+
+    if (info) {
+        const rarityText = t('infostand.pet.text.raritylevel', '', { level: t(`infostand.pet.raritylevel.${info.rarityLevel}`) });
+        // `updateStateElement`: the value over the bar, and the bar.
+        const state = (key: string, value: number, max: number, colors: BarColors, valueText?: string) => {
+            bindings[`status_${key}_value_text`] = { caption: valueText ?? `${value}/${max}` };
+            bindings[`status_${key}_bitmap`] = {
+                children: (
+                    <PercentageBar
+                        value={value}
+                        max={max}
+                        colors={colors}
+                    />
+                ),
+            };
+        };
+
+        Object.assign(bindings, {
+            breed_text: { caption: t(`pet.breed.${petType}.${info.breedId}`) },
+            level_text: { visible: !isMonsterplant, caption: t('pet.level', '', { level: String(info.level), maxlevel: String(info.maxLevel) }) },
+            status_skill_text: { visible: showsSkill, caption: t(`infostand.pet.text.skill.${petType}`) },
+            skill_level_indicator: { visible: showsSkill, asset: LayoutImage(`habbo-room-ui-com/pet_skill_level_${getSkillLevelIndex(info.level, info.skillTresholds)}.png`) },
+            status_item_list_default: { visible: !isMonsterplant },
+            status_item_list_monsterplant: { visible: isMonsterplant },
+            'status_item_list_default/status_rarity_level': { visible: showsRarity, caption: rarityText },
+            'status_item_list_monsterplant/status_rarity_level': { visible: showsRarity, caption: rarityText },
+            growth_status_text: { visible: growing },
+            growth_status_widget: {
+                visible: growing,
+                children: (
+                    <CountdownWidget
+                        seconds={info.remainingGrowingSeconds}
+                        layout={{ position: 'absolute', left: 0, top: 0 }}
+                    />
+                ),
+            },
+            // `showRarityItem`: the plaque's level, set only for a level of 0 or more.
+            rarity_item_overlay_widget: {
+                children: (
+                    <Box layout={{ position: 'absolute', left: 0, top: 0 }}>
+                        <TemplateWindow
+                            id="habbo-window-manager-com/rarity_item_overlay_preview_xml"
+                            bindings={(info.rarityLevel >= 0) ? { level: { caption: String(info.rarityLevel) } } : undefined}
+                        />
+                    </Box>
+                ),
+            },
+            petrespect_text: { visible: !isMonsterplant, caption: t('infostand.text.petrespect', '', { count: String(info.respect) }) },
+            petrespect_icon: { visible: !isMonsterplant, asset: LayoutImage('habbo-room-ui-com/icon_petrespect.png') },
+            age_text: { caption: t('pet.age', '', { age: String(info.age) }) },
+            owner_text: { caption: t('infostand.text.petowner', '', { name: info.ownerName }) },
+        } satisfies TemplateBindings);
+
+        if (isMonsterplant) {
+            state('wellbeing', info.remainingWellBeingSeconds, info.maxWellBeingSeconds, WELLBEING_COLORS, formatSeconds(info.remainingWellBeingSeconds));
+        } else {
+            state('happiness', info.nutrition, info.maxNutrition, HAPPINESS_COLORS);
+            state('experience', info.experience, info.experienceRequiredToLevel, EXPERIENCE_COLORS);
+            state('energy', info.energy, info.maxEnergy, ENERGY_COLORS);
+        }
+    }
+
+    const arrange = ({ find, root }: TemplateWindows) => {
+        // `updatePetRespect`: `petrespect_icon.x = petrespect_text.x + petrespect_text.width + 2`.
+        const respectText = find('petrespect_container/petrespect_text');
+
+        if (respectText) find('petrespect_container/petrespect_icon')?.setX(respectText.x + respectText.width + 2);
+
+        // `updateStateElement`: the bitmap takes the bar's size.
+        if (info) {
+            for (const key of (isMonsterplant ? MONSTERPLANT_STATES : DEFAULT_STATES)) {
+                const bar = find(`status_${key}_bitmap`);
+
+                bar?.setWidth(STATUS_BAR_WIDTH);
+                bar?.setHeight(STATUS_BAR_HEIGHT);
+            }
+        }
+
+        const buttons = find('button_list');
+
+        if (buttons) {
+            // `createWindow` / `onButtonResized`: each region as wide as its button.
+            for (const region of BUTTON_REGIONS) {
+                const button = find(`btn_${region}`);
+
+                if (button) find(`button_list/${region}`)?.setWidth(button.width);
+            }
+
+            // `arrangeButtons`: right to left from `BUTTONS_MAX_WIDTH`, a new row when one does not fit.
+            buttons.setWidth(BUTTONS_MAX_WIDTH);
+
+            let right = BUTTONS_MAX_WIDTH;
+            let top = 0;
+
+            for (const name of BUTTON_REGIONS) {
+                const region = find(`button_list/${name}`);
+
+                if (!region?.visible) continue;
+
+                if ((right - region.width) < 0) {
+                    right = BUTTONS_MAX_WIDTH;
+                    top += BUTTON_HEIGHT + BUTTON_MARGIN;
+                }
+
+                region.setRectangle(right - region.width, top, region.width, region.height);
+                right = region.x - BUTTON_MARGIN;
+            }
+
+            buttons.setHeight(top + BUTTON_HEIGHT);
+        }
+
+        // `updateWindow`: the list to its items, the border to the list, the window to them both.
+        const list = find('infostand_element_list');
+        const border = find('info_border');
+        const window = root();
+
+        if (!list || !border || !window || !buttons) return;
+
+        list.setHeight(list.scrollableRegion.height);
+        border.setHeight(list.height + BORDER_PADDING);
+        window.setWidth(Math.max(border.width, buttons.width));
+        window.setHeight(window.scrollableRegion.height);
+
+        if (border.width < buttons.width) {
+            border.setX(window.width - border.width);
+            buttons.setX(0);
+        } else {
+            buttons.setX(window.width - buttons.width);
+            border.setX(0);
+        }
+    };
 
     return (
-        <Box layout={{ flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-            <Border
-                variant="1"
-                name="info_border"
-                layout={{ width: 190, flexShrink: 0, paddingLeft: 10, paddingTop: 10, paddingBottom: 10 }}
-            >
-                <CloseButton
-                    variant="1"
-                    onPointerTap={onClose}
-                    layout={{ position: 'absolute', left: 170, top: 6, width: 18, height: 16 }}
-                />
-                <Box layout={{ flexDirection: 'column', width: LIST_WIDTH }}>
-                    <ThemeText
-                        text={info?.name.length ? info.name : name}
-                        textOptions={{ fill: '#ffffff', fontFamily: 'VolterBold' }}
-                        flashFormat={{ antiAliasType: 'advanced' }}
-                        name="name_text"
-                        verticalAlign="top"
-                        layout={{ alignSelf: 'center', flexShrink: 0 }}
-                    />
-                    {!!info && (
-                        <CentredText
-                            text={t(`pet.breed.${petType}.${info.breedId}`)}
-                            name="breed_text"
-                        />
-                    )}
-                    <Box layout={{ width: 163, height: 83, flexShrink: 0, overflow: 'hidden' }}>
-                        {/* `set image`: the picture copied centred into the 80x83 `avatar_image`, cut at its edges. */}
-                        <Box layout={{ position: 'absolute', left: 0, top: 0, width: 80, height: 83, overflow: 'hidden' }}>
-                            {petTexture && (
-                                <pixiSprite
-                                    texture={petTexture}
-                                    layout={{ position: 'absolute', left: Math.round((80 - petTexture.width) / 2), top: Math.round((83 - petTexture.height) / 2), width: petTexture.width, height: petTexture.height }}
-                                />
-                            )}
-                        </Box>
-                        {!!info && (
-                            <Box layout={{ position: 'absolute', left: 76, top: 0, width: 95, height: 78, flexDirection: 'column' }}>
-                                {!isMonsterplant && (
-                                    <CentredText
-                                        text={t('pet.level', '', { level: String(info.level), maxlevel: String(info.maxLevel) })}
-                                        name="level_text"
-                                        layout={{ marginTop: 10 }}
-                                    />
-                                )}
-                                {showsSkill && (
-                                    <ThemeText
-                                        text={t(`infostand.pet.text.skill.${petType}`)}
-                                        textOptions={{ fill: '#a4a4a4' }}
-                                        flashFormat={{ antiAliasType: 'advanced' }}
-                                        name="status_skill_text"
-                                        verticalAlign="top"
-                                        layout={{ position: 'absolute', top: 31, alignSelf: 'center' }}
-                                    />
-                                )}
-                                {showsSkill && (
-                                    <ThemeImage
-                                        name="skill_level_indicator"
-                                        src={LayoutImage(`habbo-room-ui-com/pet_skill_level_${getSkillLevelIndex(info.level, info.skillTresholds)}.png`)}
-                                        bitmap={{}}
-                                        layout={{ position: 'absolute', left: 8, top: 47, width: 78, height: 18 }}
-                                    />
-                                )}
-                            </Box>
-                        )}
-                    </Box>
-                    {!!info && (
-                        <Box layout={{ width: 170, height: 140, flexShrink: 0, overflow: 'hidden' }}>
-                            {!isMonsterplant && (
-                                <Box layout={{ flexDirection: 'column', width: 170 }}>
-                                    <StatusBar
-                                        label={t('infostand.pet.text.happiness')}
-                                        icon={LayoutImage('habbo-room-ui-com/icon_pet_happiness.png')}
-                                        value={info.nutrition}
-                                        max={info.maxNutrition}
-                                        colors={HAPPINESS_COLORS}
-                                    />
-                                    <StatusBar
-                                        label={t('infostand.pet.text.experience')}
-                                        icon={LayoutImage('habbo-room-ui-com/icon_pet_experience.png')}
-                                        value={info.experience}
-                                        max={info.experienceRequiredToLevel}
-                                        colors={EXPERIENCE_COLORS}
-                                    />
-                                    <StatusBar
-                                        label={t('infostand.pet.text.energy')}
-                                        icon={LayoutImage('habbo-room-ui-com/icon_pet_energy.png')}
-                                        value={info.energy}
-                                        max={info.maxEnergy}
-                                        colors={ENERGY_COLORS}
-                                    />
-                                    {showsRarity && (
-                                        // `status_rarity_level`: `margin_top` 5, 18 high, centred on the 170-wide list.
-                                        <Box layout={{ width: 170, height: 18, flexShrink: 0, flexDirection: 'row', justifyContent: 'center', paddingTop: 5 }}>
-                                            <ThemeText
-                                                text={rarityText}
-                                                textOptions={{ fill: '#ffffff' }}
-                                                flashFormat={{ antiAliasType: 'advanced' }}
-                                                name="status_rarity_level"
-                                                verticalAlign="top"
-                                            />
-                                        </Box>
-                                    )}
-                                </Box>
-                            )}
-                            {isMonsterplant && (
-                                <Box layout={{ flexDirection: 'column', width: 170, gap: 2 }}>
-                                    <StatusBar
-                                        label={t('infostand.pet.text.wellbeing')}
-                                        icon={LayoutImage('habbo-room-ui-com/icon_pet_wellbeing.png')}
-                                        value={info.remainingWellBeingSeconds}
-                                        max={info.maxWellBeingSeconds}
-                                        colors={WELLBEING_COLORS}
-                                        valueText={formatSeconds(info.remainingWellBeingSeconds)}
-                                    />
-                                    {/* `updateStateWidget`: the growth label and countdown go once it has grown. */}
-                                    {(info.remainingGrowingSeconds > 0) && (
-                                        <>
-                                            <CentredText
-                                                text={t('infostand.pet.text.growth')}
-                                                name="growth_status_text"
-                                                layout={{ marginBottom: 2 }}
-                                            />
-                                            <Box layout={{ width: 99, height: 37, flexShrink: 0, alignSelf: 'center', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                                                <ThemeText
-                                                    text={formatSeconds(info.remainingGrowingSeconds)}
-                                                    textOptions={{ fill: '#ffffff' }}
-                                                    flashFormat={{ antiAliasType: 'advanced' }}
-                                                />
-                                            </Box>
-                                        </>
-                                    )}
-                                    {showsRarity && (
-                                        // `status_rarity_level`: `margin_top` -2 over a 15-high field.
-                                        <Box layout={{ width: 170, height: 15, flexShrink: 0, flexDirection: 'row', justifyContent: 'center', overflow: 'hidden' }}>
-                                            <ThemeText
-                                                text={rarityText}
-                                                textOptions={{ fill: '#ffffff' }}
-                                                flashFormat={{ antiAliasType: 'advanced' }}
-                                                name="status_rarity_level"
-                                                verticalAlign="top"
-                                                layout={{ marginTop: -2 }}
-                                            />
-                                        </Box>
-                                    )}
-                                    <Box layout={{ width: 40, height: 28, marginLeft: 67, flexShrink: 0 }} />
-                                </Box>
-                            )}
-                        </Box>
-                    )}
-                    {!!info && (
-                        <Box layout={{ width: 164, height: 21, flexShrink: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', overflow: 'hidden' }}>
-                            {!isMonsterplant && (
-                                <>
-                                    <ThemeText
-                                        text={t('infostand.text.petrespect', '', { count: String(info.respect) })}
-                                        textOptions={{ fill: '#ffffff' }}
-                                        flashFormat={{ antiAliasType: 'advanced' }}
-                                        name="petrespect_text"
-                                        verticalAlign="top"
-                                        layout={{ marginTop: 5 }}
-                                    />
-                                    {/* `updatePetRespect`: `text.x + text.width + 2`; the negative right margin keeps the text alone centred. */}
-                                    <ThemeImage
-                                        name="petrespect_icon"
-                                        src={LayoutImage('habbo-room-ui-com/icon_petrespect.png')}
-                                        bitmap={{}}
-                                        layout={{ width: 13, height: 21, marginLeft: 2, marginRight: -15, marginTop: 3, flexShrink: 0 }}
-                                    />
-                                </>
-                            )}
-                        </Box>
-                    )}
-                    {!!info && (
-                        <>
-                            <CentredText
-                                text={t('pet.age', '', { age: String(info.age) })}
-                                name="age_text"
-                            />
-                            <CentredText
-                                text={t('infostand.text.petowner', '', { name: info.ownerName })}
-                                name="owner_text"
-                            />
-                        </>
-                    )}
-                </Box>
-            </Border>
-            <Box layout={{ flexDirection: 'row-reverse', flexWrap: 'wrap', width: BUTTONS_MAX_WIDTH, minHeight: BUTTON_HEIGHT, columnGap: BUTTON_MARGIN, rowGap: BUTTON_MARGIN }}>
-                {showsRespectButton && (
-                    <Button
-                        variant="1"
-                        name="btn_petrespect"
-                        textStyle="button_regular"
-                        onPointerTap={onRespect}
-                        layout={{ height: BUTTON_HEIGHT, flexShrink: 0 }}
-                    >
-                        {t('infostand.button.petrespect', '', { count: String(respectLeft) })}
-                    </Button>
-                )}
-            </Box>
-        </Box>
+        <TemplateWindow
+            id="habbo-room-ui-com/pet_view"
+            bindings={bindings}
+            arrange={arrange}
+        />
     );
 };

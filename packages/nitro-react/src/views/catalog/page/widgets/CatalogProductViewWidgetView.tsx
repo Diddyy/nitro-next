@@ -1,25 +1,28 @@
 import { AvatarActionStateType, AvatarActionStateTypeUtilities, AvatarGenderType, CatalogPricingModelEnum, FurnitureSpecialType, FurnitureTypeEnum, IObjectData, IProduct, IPurchasableOffer, RoomId, RoomObjectCategoryEnum, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager, GetRoomContentLoader, GetTicker } from '@nitrodevco/nitro-renderer';
+import { TemplateBinding, TemplateItem } from '@nitrodevco/nitro-theme';
 import { Container as PixiContainer } from 'pixi.js';
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { RefObject, useEffect, useRef, useState } from 'react';
 
-import { GetChatStyleLibrary } from '#base/chat';
 import { productImageWidgetPreview, requestSelectedItemToMover } from '#base/commands';
 import { AvatarImage, RoomPreviewer, RoomPreviewerHandle } from '#base/components';
 import { CatalogWidgetBundleDisplayExtraInfoEvent, CatalogWidgetEventEnum, CatalogWidgetSpinnerEvent, getCatalogPageImage, getCatalogPageText, SelectProductEvent, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { COLLECTIBLE_PREVIEW_EASTER_EGG_INITIAL, COLLECTIBLE_PRODUCT_TYPE_CHAT_STYLE, CollectiblePreview, CollectiblePreviewEasterEgg, CollectibleProductInfo } from '#base/context/collectibles';
 import { useHabbiconsStore } from '#base/context/habbicons';
 import { getRoom } from '#base/context/room';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Box, ContainerButton, Icon, InfiniteGrid, LayoutImage, Region, ThemeImage, ThemeText, useLayoutSize } from '#base/theme';
-import { EFFECT_CLASSID_NINJA_DISAPPEAR, getOfferProduct, PRODUCT_IMAGES } from '#base/utils';
+import { Box, Region, ThemeImage, useLayoutSize, useTemplateLibrary } from '#base/theme';
+import { getOfferProduct, PRODUCT_IMAGES } from '#base/utils';
 import { CollectiblesPreviewSlots, CollectiblesProductPreview } from '#base/views/collectibles/CollectiblesProductPreview';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
-import { CatalogBundleGridItemView } from './CatalogBundleGridItemView';
-import { CatalogProductPriceView } from './CatalogProductPriceView';
+import { CATALOG_LIBRARY } from '../catalogTemplates';
+import { fitWidgetView, useCatalogWidgetView } from '../catalogWidgetView';
+import { bundleProductItem } from './catalogGridItem';
+import { priceBoxItem } from './catalogPrice';
+import { productExtraItem } from './catalogProductExtra';
 
 /** `ExtraInfoItemData.TYPE_RESET_MESSAGE`: the row `setBundleInfoWidgetToOffer` resets the bundle info with. */
 const EXTRA_INFO_TYPE_RESET_MESSAGE = 5;
@@ -89,9 +92,6 @@ const getPreviewAvatarLocation = (action: number) => {
     }
 };
 
-/** `ninjaEffectBundled`: a two-product offer, one of them the ninja disappear effect. */
-const ninjaEffectBundled = (offer: IPurchasableOffer) => ((offer.products.length === 2) && offer.products.some(item => (item.productType === FurnitureTypeEnum.Effect) && (item.classId === EFFECT_CLASSID_NINJA_DISAPPEAR)));
-
 /** `ProductDisplayWrapper.isSupported`: the product types the `product_image_widget` draws - of those, only a chat style reaches it (a bot has its own case). */
 const productDisplayWrapper = (product: IProduct): CollectibleProductInfo | null => ((product.productType === FurnitureTypeEnum.ChatStyle)
     ? { productTypeId: COLLECTIBLE_PRODUCT_TYPE_CHAT_STYLE, itemTypeId: product.extraParam, petFigureString: '', figureSetIds: [], extraData: '', amount: 0 }
@@ -102,76 +102,12 @@ const PRODUCT_IMAGE_SLOTS: CollectiblesPreviewSlots = { productPreview: { left: 
 
 const isBundle = (offer: IPurchasableOffer) => (Number(offer.pricingModel) === Number(CatalogPricingModelEnum.Bundle));
 
-/**
- * `showExtraOnProduct` / `showAssetImageAsBadgeOnProduct` / `hideExtraFromProduct`: the
- * `badgeDisplayWidget` 6px from the right and 44px from the bottom - an offer's badge on
- * `catalogue_badge_background` (42x42), else its extra chat style's selector preview on
- * `catalogue_chatstyle_background` (60x42), else, for an offer bundled with the ninja effect, the
- * widget as `showAssetImageAsBadgeOnProduct` leaves it: it hides the badge and the chat style and
- * gives `catalogue_effects_ninja` to the (hidden) `badge_image` widget, so only the layout's
- * `catalogue_badge_background` shows - the behaviour of Sulake's own JavaScript client; the AS3
- * client's cast of that widget to a static bitmap throws there instead.
- */
-const ProductExtraView = ({ offer }: { offer: IPurchasableOffer }) => {
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
-
-    let background = 'habbo-window-manager-com/catalogue_badge_background.png';
-    let width = 42;
-    let content: ReactNode = null;
-
-    if (offer.badgeCode) {
-        content = (
-            <ThemeImage
-                name="badge_image"
-                src={badgeUrl.replace('%badgename%', offer.badgeCode)}
-                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                layout={{ position: 'absolute', left: 0, width: 42, top: 0, height: 42 }}
-            />
-        );
-    } else if (offer.extraChatStyleCode) {
-        const preview = GetChatStyleLibrary().getStyle(parseInt(offer.extraChatStyleCode))?.selectorPreviewTexture;
-
-        background = 'habbo-window-manager-com/catalogue_chatstyle_background.png';
-        width = 60;
-        content = preview && (
-            <ThemeImage
-                name="chat_style"
-                texture={preview}
-                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                layout={{ position: 'absolute', left: 0, width: 60, top: 0, height: 42 }}
-            />
-        );
-    } else if (!ninjaEffectBundled(offer)) {
-        return null;
-    }
-
-    return (
-        <Region
-            name="HCU_dynamic_badge"
-            backgroundColor="#000000"
-            backgroundAlpha={0}
-            layout={{ position: 'absolute', right: 6, width, bottom: 44, height: 42 }}
-        >
-            <ThemeImage
-                name="asset_image"
-                src={LayoutImage(background)}
-                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
-                layout={{ position: 'absolute', left: 0, top: 0 }}
-            />
-            {content}
-        </Region>
-    );
-};
-
 /** `getHabbiconPreviewBitmap`: the habbicon's preview, or Flash's grey 40x40 square until the habbicon assets are in. */
 const HabbiconPreview = ({ habbiconId }: { habbiconId: number }) => {
     const preview = useHabbiconsStore(state => state.previews[habbiconId]);
 
     return (
-        <Region
-            name="ctlg_teaserimg_1"
-            layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}
-        >
+        <Box layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
             {preview
                 ? (
                         <ThemeImage
@@ -186,7 +122,7 @@ const HabbiconPreview = ({ habbiconId }: { habbiconId: number }) => {
                             layout={{ width: 40, height: 40 }}
                         />
                     )}
-        </Region>
+        </Box>
     );
 };
 
@@ -197,6 +133,72 @@ type PreviewImage
         | { kind: 'deal' }
         | { kind: 'bot'; figure: string }
         | { kind: 'habbicon'; habbiconId: number };
+
+/** `setPreviewImage`: what `ctlg_teaserimg_1` shows - the page's picture until an offer is selected. */
+const teaserBinding = (image: PreviewImage | undefined, pageImageUrl: string): TemplateBinding => {
+    switch (image?.kind) {
+        case undefined: return { asset: pageImageUrl };
+        case 'url': return { asset: image.url };
+        case 'deal': return { asset: 'habbo-catalog-com-ctlg_dyndeal_background' };
+        case 'bot': return {
+            asset: '',
+            children: (
+                <Box layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
+                    <AvatarImage
+                        figure={image.figure}
+                        gender={AvatarGenderType.Male}
+                        direction={4}
+                    />
+                </Box>
+            ),
+        };
+        case 'habbicon': return { asset: '', children: <HabbiconPreview habbiconId={image.habbiconId} /> };
+        default: return { asset: '' };
+    }
+};
+
+interface RoomCanvasProps {
+    previewerRef: RefObject<RoomPreviewerHandle | null>;
+    zoomProgress: number;
+    /** The previewer's room exists: a selection made before it is shown again. */
+    onReady: () => void;
+}
+
+/**
+ * `room_canvas`: the room previewer's display object, filling the canvas, under the zoom transform
+ * (`applyRoomCanvasZoom`). Kept mounted while the canvas is hidden; its room is made a render after
+ * it mounts, and a selection made before that is shown again once it is there.
+ */
+const RoomCanvas = ({ previewerRef, zoomProgress, onReady }: RoomCanvasProps) => {
+    const [ node, setNode ] = useState<PixiContainer | null>(null);
+    const { width, height } = useLayoutSize(node);
+    const zoomScale = 1 + progressScale(zoomProgress);
+
+    return (
+        <Box
+            ref={setNode}
+            layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
+        >
+            <pixiContainer
+                scale={zoomScale}
+                x={-((width * zoomScale) - width) / 2}
+                y={(-((height * zoomScale) - height) / 2) - (PREVIEW_ZOOM_IN_CAMERA_OFFSET_Y * zoomProgress)}
+            >
+                {/* A layout root of its own under the zoom transform. */}
+                <Box layout={{ width, height }}>
+                    <RoomPreviewer
+                        ref={previewerRef}
+                        roomId={RoomId.TEMP_ROOM_CATALOG}
+                        showFloor={true}
+                        showWalls={true}
+                        onReady={onReady}
+                        layout={{ position: 'absolute', top: 0, left: 0, width, height }}
+                    />
+                </Box>
+            </pixiContainer>
+        </Box>
+    );
+};
 
 /** The avatar preview's pose - `§_-ZO§`, `§_-t1p§`, `§_-s1W§` and `§_-1q§`. */
 interface AvatarPose {
@@ -249,7 +251,7 @@ const DEFAULT_POSE: AvatarPose = { direction: PREVIEW_AVATAR_DEFAULT_BODY_DIRECT
  *
  * A single chat style offer shows its style in the `product_image_widget` (`ProductDisplayWrapper`
  * through `ProductImageWidget.previewImage`, easter egg included), and a habbicon its preview. The
- * extra over the preview is `ProductExtraView`'s.
+ * extra over the preview is `productExtraItem`'s.
  *
  * Not exact: an effect on a page without a room canvas, which Flash draws as a still of the user's
  * avatar with the effect on the `pixelsBackground` colour, shows nothing there - the port's avatar
@@ -270,7 +272,6 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
     const [ pose, setPose ] = useState<AvatarPose>(DEFAULT_POSE);
     const [ zoomProgress, setZoomProgress ] = useState(0);
     const [ zoomTarget, setZoomTarget ] = useState(0);
-    const [ canvasNode, setCanvasNode ] = useState<PixiContainer | null>(null);
     const lastSelection = useRef<SelectProductEvent | undefined>(undefined);
     const overrideStuffData = useRef<IObjectData | undefined>(undefined);
     const totalPriceWidgetInitialized = useRef(false);
@@ -283,7 +284,9 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
     const store = useCatalogStoreApi();
     const ownFigure = useUserStore(x => x.figure);
     const ownGender = useUserStore(x => x.sex);
-    const { width: canvasWidth, height: canvasHeight } = useLayoutSize(canvasNode);
+    const templates = useTemplateLibrary(CATALOG_LIBRARY);
+    const config = useConfigData();
+    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
     const t = useTranslation();
     const roomCanvasEnabled = !tags.includes('NO_ROOM_CANVAS');
     const bundleDiscountEnabled = !page.isBuilderPage;
@@ -706,231 +709,72 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
     const controlsVisible = (previewMode !== PREVIEW_MODE_NONE);
     const rotateEnabled = controlsVisible && ((previewMode !== PREVIEW_MODE_FLOOR_FURNITURE) || canRotateFloor);
     const avatarControls = (previewMode === PREVIEW_MODE_AVATAR);
-    const textColor = (roomCanvasEnabled && canvasVisible) ? '#ffffff' : '#000000';
+    const textColor = (roomCanvasEnabled && canvasVisible) ? 0xffffff : 0x000000;
     const furnitureData = product?.furnitureData;
     const availabilityShown = !page.isBuilderPage && !!product && !!furnitureData && ((product.productType === FurnitureTypeEnum.Floor) || (product.productType === FurnitureTypeEnum.Wall));
     const pageImage = getCatalogPageImage(page, 'ctlg_teaserimg_1');
-    const zoomScale = 1 + progressScale(zoomProgress);
-    const bundleCells = (offer && isBundle(offer)) ? offer.products.filter(item => (item.productType !== FurnitureTypeEnum.Badge)).map((item, index) => ({ product: item, index })) : [];
+    const bundleProducts = (offer && isBundle(offer)) ? offer.products.filter(item => (item.productType !== FurnitureTypeEnum.Badge)) : [];
+    const added: TemplateItem[] = [];
 
-    return (
-        <Region
-            name="main_container"
-            layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
-        >
-            {/* Measures the room canvas, which fills the widget, even while the canvas is hidden. */}
-            <Box
-                ref={setCanvasNode}
-                layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-            />
-            {(previewImage === undefined) && pageImage && (
-                <ThemeImage
-                    name="ctlg_teaserimg_1"
-                    src={catalogImageUrl.replace('%name%', pageImage)}
-                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                    layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+    if (templates && offer && priceBox) {
+        const box = priceBoxItem(templates, offer, { config, seasonal: priceBox.seasonal, combo: priceBox.seasonal, builder: page.isBuilderPage, placement: { dx: -6, top: false, dy: 6 } });
+
+        if (box) added.push(box);
+    }
+
+    const extra = (templates && offer) ? productExtraItem(templates, offer, badgeUrl) : undefined;
+
+    if (extra) added.push(extra);
+
+    useCatalogWidgetView(templates && {
+        template: 'productViewWidget',
+        bindings: {
+            main_container: { added },
+            ctlg_teaserimg_1: teaserBinding(previewImage, pageImage ? catalogImageUrl.replace('%name%', pageImage) : ''),
+            product_image_widget: { visible: !!productImagePreview, children: productImagePreview && (
+                <CollectiblesProductPreview
+                    preview={productImagePreview}
+                    slots={PRODUCT_IMAGE_SLOTS}
                 />
-            )}
-            {(previewImage?.kind === 'url') && (
-                <ThemeImage
-                    name="ctlg_teaserimg_1"
-                    src={previewImage.url}
-                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                    layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-                />
-            )}
-            {(previewImage?.kind === 'deal') && (
-                <ThemeImage
-                    name="ctlg_teaserimg_1"
-                    src={LayoutImage('habbo-catalog-com/ctlg_dyndeal_background.png')}
-                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                    layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-                />
-            )}
-            {(previewImage?.kind === 'habbicon') && (
-                <HabbiconPreview habbiconId={previewImage.habbiconId} />
-            )}
-            {productImagePreview && (
-                <Region
-                    name="product_image_widget"
-                    layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 200 }}
-                >
-                    <CollectiblesProductPreview
-                        preview={productImagePreview}
-                        slots={PRODUCT_IMAGE_SLOTS}
-                    />
-                </Region>
-            )}
-            {(previewImage?.kind === 'bot') && (
-                <Region
-                    name="ctlg_teaserimg_1"
-                    layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}
-                >
-                    <AvatarImage
-                        figure={previewImage.figure}
-                        gender={AvatarGenderType.Male}
-                        direction={4}
-                    />
-                </Region>
-            )}
-            <Region
-                name="room_canvas_container"
-                backgroundColor="#000000"
-                backgroundAlpha={1}
-                visible={canvasVisible}
-                onPointerTap={() => previewerRef.current?.changeObjectState()}
-                onPointerDown={() => {
+            ) },
+            room_canvas_container: {
+                visible: canvasVisible,
+                keepMounted: true,
+                onPointerTap: () => previewerRef.current?.changeObjectState(),
+                onPointerDown: () => {
                     pressed.current = true;
-                }}
-                onPointerUp={() => {
+                },
+                onPointerUp: () => {
                     pressed.current = false;
-                }}
-                onPointerOver={() => {
+                },
+                onPointerOver: () => {
                     pressed.current = false;
-                }}
-                onPointerOut={onCanvasPointerOut}
-                layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
-            >
-                <pixiContainer
-                    scale={zoomScale}
-                    x={-((canvasWidth * zoomScale) - canvasWidth) / 2}
-                    y={(-((canvasHeight * zoomScale) - canvasHeight) / 2) - (PREVIEW_ZOOM_IN_CAMERA_OFFSET_Y * zoomProgress)}
-                >
-                    {/* A layout root of its own under the zoom transform; mounted from the start, so the
-                        first selection reaches the previewer while the canvas is still hidden. */}
-                    <Box layout={{ width: canvasWidth, height: canvasHeight }}>
-                        <RoomPreviewer
-                            ref={previewerRef}
-                            roomId={RoomId.TEMP_ROOM_CATALOG}
-                            showFloor={true}
-                            showWalls={true}
-                            layout={{ position: 'absolute', top: 0, left: 0, width: canvasWidth, height: canvasHeight }}
-                        />
-                    </Box>
-                </pixiContainer>
-            </Region>
-            <ContainerButton
-                variant="5"
-                name="rotate_avatar_left"
-                visible={controlsVisible}
-                disabled={!rotateEnabled}
-                onPointerTap={() => rotateCurrentPreview(1)}
-                layout={{ position: 'absolute', right: 35, width: 25, top: 8, height: 24, overflow: 'hidden' }}
-            >
-                <Icon
-                    variant="2"
-                    tintColor="#000000"
-                    layout={{ position: 'absolute', left: 7, width: 30, top: 7, height: 30 }}
+                },
+                onPointerOut: onCanvasPointerOut,
+            },
+            room_canvas: { children: (
+                <RoomCanvas
+                    previewerRef={previewerRef}
+                    zoomProgress={zoomProgress}
+                    onReady={() => {
+                        if (lastSelection.current) onPreviewProduct(lastSelection.current);
+                    }}
                 />
-            </ContainerButton>
-            <ContainerButton
-                variant="5"
-                name="rotate_avatar_right"
-                visible={controlsVisible}
-                disabled={!rotateEnabled}
-                onPointerTap={() => rotateCurrentPreview(-1)}
-                layout={{ position: 'absolute', right: 6, width: 25, top: 8, height: 24, overflow: 'hidden' }}
-            >
-                <Icon
-                    variant="3"
-                    tintColor="#000000"
-                    layout={{ position: 'absolute', left: 9, width: 28, top: 7, height: 29 }}
-                />
-            </ContainerButton>
-            <Region
-                name="toggle_preview_zoom"
-                dynamicStyle="button"
-                visible={avatarControls}
-                disabled={!avatarControls}
-                onPointerTap={togglePreviewZoom}
-                cursor="pointer"
-                layout={{ position: 'absolute', right: 9, width: 20, top: 37, height: 22 }}
-            >
-                <ThemeImage
-                    src={LayoutImage('habbo-window-manager-com/roomtools_magnifier.png')}
-                    bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
-                    dynamicRole="icon"
-                    layout={{ position: 'absolute', left: 3, top: 0 }}
-                />
-            </Region>
-            <Region
-                name="toggle_preview_magic"
-                dynamicStyle="button"
-                visible={avatarControls}
-                disabled={!avatarControls}
-                onPointerTap={cyclePreviewAvatarAction}
-                cursor="pointer"
-                layout={{ position: 'absolute', right: 7, width: 22, top: 63, height: 22, overflow: 'hidden' }}
-            >
-                <ThemeImage
-                    src={LayoutImage('habbo-window-manager-com/avatar_editor_tabs_ae_tabs_generic.png')}
-                    bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
-                    dynamicRole="icon"
-                    layout={{ position: 'absolute', left: -10, top: 0 }}
-                />
-            </Region>
-            {(bundleCells.length > 0) && (
-                <Region
-                    name="bundleGrid"
-                    layout={{ position: 'absolute', left: 11, width: 137, top: 88, height: 76, flexDirection: 'column' }}
-                >
-                    <InfiniteGrid
-                        items={bundleCells}
-                        itemGrid={{ width: 36, height: 36, spacing: 2 }}
-                        scrollResetKey={offer}
-                        getKey={cell => cell.index}
-                        itemRender={cell => <CatalogBundleGridItemView product={cell.product} />}
-                    />
-                </Region>
-            )}
-            <Region layout={{ position: 'absolute', left: 5, width: 280, top: 12, flexDirection: 'column' }}>
-                <ThemeText
-                    name="ctlg_product_name"
-                    text={offer ? (product?.productData?.name ?? t(offer.localizationId)) : ''}
-                    textStyle="u_bold"
-                    textOptions={{ fill: textColor, wordWrap: true, wordWrapWidth: 276 }}
-                    markup
-                    verticalAlign="top"
-                    layout={{ width: 280, marginLeft: 5, flexShrink: 0 }}
-                />
-                <ThemeText
-                    name="ctlg_description"
-                    text={offer ? (product?.productData?.description ?? t(offer.localizationId)) : (getCatalogPageText(page, 'ctlg_description') ?? '')}
-                    textStyle="u_small"
-                    textOptions={{ fill: textColor, wordWrap: true, wordWrapWidth: 276 }}
-                    flashFormat={{ italic: true }}
-                    markup
-                    verticalAlign="top"
-                    layout={{ width: 280, marginLeft: 5, flexShrink: 0 }}
-                />
-                {availabilityShown && !furnitureData.tradeable && (
-                    <ThemeImage
-                        name="tradeable_icon"
-                        src={LayoutImage('habbo-window-manager-com/inventory_furni_no_trade_icon.png')}
-                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                        layout={{ height: 16, width: 40, marginLeft: 5, flexShrink: 0 }}
-                    />
-                )}
-                {availabilityShown && (!furnitureData.recyclable || !furnitureData.tradeable) && (
-                    <ThemeImage
-                        name="recyclable_icon"
-                        src={LayoutImage('habbo-window-manager-com/inventory_furni_no_recycle_icon.png')}
-                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                        layout={{ height: 16, width: 28, marginLeft: 5, flexShrink: 0 }}
-                    />
-                )}
-            </Region>
-            {offer && priceBox && (
-                <CatalogProductPriceView
-                    offer={offer}
-                    seasonal={priceBox.seasonal}
-                    combo={priceBox.seasonal}
-                    layout={{ right: 6, bottom: 6 }}
-                />
-            )}
-            {offer && <ProductExtraView offer={offer} />}
-        </Region>
-    );
+            ) },
+            rotate_avatar_left: { visible: controlsVisible, disabled: !rotateEnabled, onPointerTap: () => rotateCurrentPreview(1) },
+            rotate_avatar_right: { visible: controlsVisible, disabled: !rotateEnabled, onPointerTap: () => rotateCurrentPreview(-1) },
+            toggle_preview_zoom: { visible: avatarControls, disabled: !avatarControls, onPointerTap: togglePreviewZoom },
+            toggle_preview_magic: { visible: avatarControls, disabled: !avatarControls, onPointerTap: cyclePreviewAvatarAction },
+            bundleGrid: { visible: bundleProducts.length > 0, items: templates ? bundleProducts.map((item, index) => bundleProductItem(item, String(index), templates)) : [] },
+            ctlg_product_name: { caption: offer ? (product?.productData?.name ?? t(offer.localizationId)) : '', color: textColor },
+            ctlg_description: { caption: offer ? (product?.productData?.description ?? t(offer.localizationId)) : (getCatalogPageText(page, 'ctlg_description') ?? ''), color: textColor },
+            tradeable_icon: { visible: availabilityShown && !furnitureData.tradeable },
+            recyclable_icon: { visible: availabilityShown && (!furnitureData.recyclable || !furnitureData.tradeable) },
+        },
+        arrange: tags.includes('FIXED') ? undefined : fitWidgetView,
+    });
+
+    return null;
 };
 
 /** `applyRoomCanvasZoom`'s scale above 1: `(PREVIEW_ZOOM_IN - PREVIEW_ZOOM_NORMAL) * progress`. */
