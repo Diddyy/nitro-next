@@ -210,7 +210,7 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose }: 
                                         </Button>
                                     )}
                                     {/* `EffectView.update` hides the count while there is only the one. */}
-                                    {(effect.inactiveEffectsInInventory >= 2) && (
+                                    {(effect.amountInInventory >= 2) && (
                                         <Region
                                             name="effect_amount_bg1"
                                             backgroundColor="#dddddd"
@@ -222,7 +222,7 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose }: 
                                                 layout={{ position: 'absolute', left: 1, width: 18, top: 1, height: 13, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'flex-start' }}
                                             >
                                                 <ThemeText
-                                                    text={String(effect.inactiveEffectsInInventory)}
+                                                    text={String(effect.amountInInventory)}
                                                     textOptions={{ fill: '#eeeeee' }}
                                                     clip
                                                     name="effect_amount"

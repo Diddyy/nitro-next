@@ -181,6 +181,7 @@
     "infostand.use.button.enabled": true,
     "link.format.bots.help": "https://help.habbo.com/hc/en-us/articles/360011620199-Bots",
     "memenu.effects.widget.disabled": true,
+    "effects.reactivate.on.room.entry": true,
     "navigator.thumbnail.url_base": "https://habbo-stories-content.s3.amazonaws.com/navigator-thumbnail/hhus/",
     "nft.credit.converting.enabled": true,
     "classic.collectibles.hub.enabled": true,
