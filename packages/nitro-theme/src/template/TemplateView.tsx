@@ -92,12 +92,13 @@ export interface TemplateViewProps {
      * How the window manager opens the root frame, when the template is a window of its own
      * (`buildFromXML(xml, 1)`): its id on the desktop, where it opens, and what its close button
      * does (`findChildByTag("close").procedure`). It is dragged like any window. Without it, a root
-     * frame is drawn where the template is, fixed.
+     * frame is drawn where the template is, fixed. Its `onHelp` is the window manager's
+     * `helpButtonAction` (`openHelpPage`), which `buildFromXML` gives the root frame.
      */
     frame?: TemplateFrameOptions;
 }
 
-export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection' | 'rememberPosition'>;
+export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection' | 'rememberPosition' | 'onHelp'>;
 
 type FrameSize = { width: number; height: number };
 
@@ -1080,6 +1081,9 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 rememberPosition={!!window && (window.rememberPosition ?? true)}
                 draggable={!!window}
                 onClose={window?.onClose}
+                // `FrameController`'s `help_page` property: a page shows the header's help button.
+                helpPage={flashString(element.vars.help_page)}
+                onHelp={window?.onHelp}
                 resizeDirection={resizeDirection}
                 onResize={resizeDirection !== 'none' ? context.onFrameResize : undefined}
                 layout={{ width: rect.width, height: rect.height, minWidth: horizontal.min, maxWidth: horizontal.max, minHeight: vertical.min, maxHeight: vertical.max }}
