@@ -15,6 +15,12 @@ export interface UserAvatarEffect extends IAvatarEffect {
      * `inactiveEffectsInInventory` leaves it out, which is why the window never reads that.
      */
     amountInInventory: number;
+    /**
+     * When (`Date.now()`) the running copy's time left was known: when the list arrived, or the copy
+     * was switched on. `Effect` stamps the same moment with a `Date` and counts down from it, since
+     * the server sends the time left once and never again.
+     */
+    activatedAt: number;
 }
 
 /** `secondsLeftIfActive` of a copy that is not running: the list's `-1`. */
@@ -27,7 +33,7 @@ export const NO_LAST_WORN = -1;
 export const lastWornAfterChoice = (type: number): number => ((type > 0) ? type : NO_LAST_WORN);
 
 /** `IncomingMessages.onAvatarEffects`: zero or more seconds left is running; only `-1` is not. */
-const toUserEffect = (effect: IAvatarEffect): UserAvatarEffect => {
+const toUserEffect = (effect: IAvatarEffect, now: number): UserAvatarEffect => {
     const isActive = effect.isPermanent || (effect.secondsLeftIfActive >= 0);
 
     return {
@@ -35,16 +41,31 @@ const toUserEffect = (effect: IAvatarEffect): UserAvatarEffect => {
         isActive,
         isInUse: false,
         amountInInventory: effect.inactiveEffectsInInventory + (isActive ? 1 : 0),
+        activatedAt: now,
     };
 };
 
-export const effectsFromList = (effects: IAvatarEffect[]): UserAvatarEffect[] => effects.map(toUserEffect);
+export const effectsFromList = (effects: IAvatarEffect[], now: number = Date.now()): UserAvatarEffect[] => effects.map(effect => toUserEffect(effect, now));
+
+/**
+ * `Effect.secondsLeft`: a running copy counts down from when its time left was known, and never
+ * goes below zero - Flash never ends it by itself either, it waits for the server's expiry. A copy
+ * that is not running shows what it was sent, and a permanent one has no countdown.
+ */
+export const secondsLeftOf = (effect: UserAvatarEffect, now: number = Date.now()): number => {
+    if (!effect.isActive || effect.isPermanent) return effect.secondsLeftIfActive;
+
+    // A clock read before the copy started (a window left open while nothing counted) is no time spent.
+    const elapsedSeconds = Math.max(0, now - effect.activatedAt) / 1000;
+
+    return Math.max(0, Math.floor(effect.secondsLeftIfActive - elapsedSeconds));
+};
 
 /**
  * `EffectsModel.addEffect`: one more copy of an effect it has, or a new one that is not running.
  * An effect given for good arrives running, since there is no timer to start.
  */
-export const effectsAfterAdded = (effects: UserAvatarEffect[], added: IAvatarEffect): UserAvatarEffect[] => {
+export const effectsAfterAdded = (effects: UserAvatarEffect[], added: IAvatarEffect, now: number = Date.now()): UserAvatarEffect[] => {
     if (effects.some(effect => effect.type === added.type)) {
         return effects.map(effect => ((effect.type === added.type)
             ? { ...effect, amountInInventory: effect.amountInInventory + 1, inactiveEffectsInInventory: effect.inactiveEffectsInInventory + 1 }
@@ -57,7 +78,7 @@ export const effectsAfterAdded = (effects: UserAvatarEffect[], added: IAvatarEff
             ...added,
             inactiveEffectsInInventory: added.isPermanent ? 0 : 1,
             secondsLeftIfActive: added.isPermanent ? added.duration : NOT_RUNNING,
-        }),
+        }, now),
     ];
 };
 
@@ -66,7 +87,7 @@ export const effectsAfterAdded = (effects: UserAvatarEffect[], added: IAvatarEff
  * and worn. A waiting copy is the one that started, so there is one fewer waiting; the total is
  * the same, because the running copy counts.
  */
-export const effectsAfterActivated = (effects: UserAvatarEffect[], type: number, duration: number, isPermanent: boolean): UserAvatarEffect[] => effects.map((effect) => {
+export const effectsAfterActivated = (effects: UserAvatarEffect[], type: number, duration: number, isPermanent: boolean, now: number = Date.now()): UserAvatarEffect[] => effects.map((effect) => {
     if (effect.type !== type) return effect.isInUse ? { ...effect, isInUse: false } : effect;
 
     const startsACopy = !effect.isActive && !isPermanent;
@@ -77,6 +98,7 @@ export const effectsAfterActivated = (effects: UserAvatarEffect[], type: number,
         isInUse: true,
         isPermanent,
         secondsLeftIfActive: effect.isActive ? effect.secondsLeftIfActive : duration,
+        activatedAt: effect.isActive ? effect.activatedAt : now,
         inactiveEffectsInInventory: startsACopy ? Math.max(0, effect.inactiveEffectsInInventory - 1) : effect.inactiveEffectsInInventory,
     };
 });

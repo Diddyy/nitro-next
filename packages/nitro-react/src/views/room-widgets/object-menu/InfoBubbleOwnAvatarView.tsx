@@ -106,7 +106,8 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const isRoomOwner = useRoomStore(x => x.isRoomOwner);
     const hasClub = clubLevel >= ClubLevelEnum.Club;
     const hasVip = clubLevel >= ClubLevelEnum.Vip;
-    const [ mode, setMode ] = useState((isDancing && hasClub) ? MODE_CLUB_DANCES : MODE_NORMAL);
+    // `OwnAvatarMenuView.setup`: the dance menu is the first view only for a club member who dances and has no effect on.
+    const [ mode, setMode ] = useState((isDancing && hasClub && !hasEffectOn) ? MODE_CLUB_DANCES : MODE_NORMAL);
     const [ collapsed, setCollapsed ] = useState(false);
     const effectsDisabled = useConfigValue<boolean>('memenu.effects.widget.disabled') ?? false;
     // `OwnAvatarMenuView`: the config flag, and not while the room's configuration items block hand item control.

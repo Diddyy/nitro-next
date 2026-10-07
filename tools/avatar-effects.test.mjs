@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-const { effectsAfterActivated, effectsAfterAdded, effectsAfterExpired, effectsAfterSelected, effectsFromList, lastWornAfterChoice, NO_LAST_WORN, wearAgain } = await import('../packages/nitro-react/src/context/user/store/avatarEffectsModel.ts');
+const { effectsAfterActivated, effectsAfterAdded, effectsAfterExpired, effectsAfterSelected, effectsFromList, lastWornAfterChoice, NO_LAST_WORN, secondsLeftOf, wearAgain } = await import('../packages/nitro-react/src/context/user/store/avatarEffectsModel.ts');
 
 const entry = (type, over = {}) => ({ type, subType: 0, duration: 600, inactiveEffectsInInventory: 1, secondsLeftIfActive: -1, isPermanent: false, ...over });
 const find = (effects, type) => effects.find(effect => effect.type === type);
@@ -170,4 +170,45 @@ await test('leaving a room deselects every effect (select none); what to wear ne
     assert.equal(find(left, 5).isActive, true, 'the effect keeps running; only the wearing stops');
     assert.equal(find(left, 5).secondsLeftIfActive, 100);
     assert.equal(wearAgain(left, 5).activate, false, 'and can be worn again in the next room without a second copy');
+});
+
+await test('a running copy counts down from when its time left was known, never below zero', () => {
+    const [ effect ] = effectsFromList([ entry(1, { secondsLeftIfActive: 100 }) ], 1_000_000);
+
+    assert.equal(secondsLeftOf(effect, 1_000_000), 100);
+    assert.equal(secondsLeftOf(effect, 1_000_000 + 30_000), 70);
+    assert.equal(secondsLeftOf(effect, 1_000_000 + 30_999), 69, 'whole seconds, rounded down, as Effect.secondsLeft');
+    assert.equal(secondsLeftOf(effect, 1_000_000 + 100_000), 0);
+    assert.equal(secondsLeftOf(effect, 1_000_000 + 900_000), 0, 'it waits at zero for the server to expire it');
+});
+
+await test('a copy that is not running, or is permanent, shows what it was sent', () => {
+    const [ waiting, permanent ] = effectsFromList([ entry(1), entry(2, { inactiveEffectsInInventory: 0, secondsLeftIfActive: 600, isPermanent: true }) ], 1_000_000);
+
+    assert.equal(secondsLeftOf(waiting, 9_000_000), -1);
+    assert.equal(secondsLeftOf(permanent, 9_000_000), 600);
+});
+
+await test('switching a copy on starts its clock then, and a copy already running keeps its own', () => {
+    const waiting = effectsFromList([ entry(1, { inactiveEffectsInInventory: 2 }) ], 1_000_000);
+    const [ started ] = effectsAfterActivated(waiting, 1, 600, false, 5_000_000);
+
+    assert.equal(secondsLeftOf(started, 5_000_000 + 60_000), 540);
+
+    // The same message again (or the room-entry repeat) must not restart the clock.
+    const [ again ] = effectsAfterActivated([ started ], 1, 600, false, 9_000_000);
+
+    assert.equal(again.activatedAt, 5_000_000);
+});
+
+await test('a new effect that arrives running (permanent) is not counted down', () => {
+    const [ added ] = effectsAfterAdded([], entry(7, { isPermanent: true }), 1_000_000);
+
+    assert.equal(secondsLeftOf(added, 8_000_000), added.secondsLeftIfActive);
+});
+
+await test('a clock read before the copy started spends no time, so a stale window shows the full time', () => {
+    const [ effect ] = effectsFromList([ entry(1, { secondsLeftIfActive: 100 }) ], 5_000_000);
+
+    assert.equal(secondsLeftOf(effect, 1_000_000), 100);
 });

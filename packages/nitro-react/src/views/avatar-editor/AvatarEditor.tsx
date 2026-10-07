@@ -1,4 +1,4 @@
-import { AvatarEditorCategory, AvatarEditorColor, AvatarFigurePartType, AvatarGenderType, RoomId, SubTab } from '@nitrodevco/nitro-api';
+import { AvatarEditorCategory, AvatarEditorColor, AvatarFigurePartType, AvatarGenderType, GetConfigValue, RoomId, SubTab } from '@nitrodevco/nitro-api';
 import { GetWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useRef, useState } from 'react';
 
@@ -46,7 +46,19 @@ export type AvatarEditorViewWindowParams = {
     };
 };
 
-const availableCategories: AvatarEditorCategory[] = [ AvatarEditorCategory.Generic, AvatarEditorCategory.Head, AvatarEditorCategory.Torso, AvatarEditorCategory.Legs, AvatarEditorCategory.Misc, AvatarEditorCategory.HotLooks, AvatarEditorCategory.Effects ];
+/**
+ * `AvatarEditorView` adds the effects tab only when `effects.in.avatar.editor` is true. The tab's
+ * list is not ported yet, so left on it is a tab with nothing in it; the key ships `false`.
+ */
+const availableCategories = (): AvatarEditorCategory[] => [
+    AvatarEditorCategory.Generic,
+    AvatarEditorCategory.Head,
+    AvatarEditorCategory.Torso,
+    AvatarEditorCategory.Legs,
+    AvatarEditorCategory.Misc,
+    AvatarEditorCategory.HotLooks,
+    ...((GetConfigValue<boolean>('effects.in.avatar.editor') === true) ? [ AvatarEditorCategory.Effects ] : []),
+];
 
 /** Each `mainTabs` button's `bitmap` offset in the layout (52x42, centred): the icons are not all at the same height. */
 const MAIN_TAB_BITMAP_OFFSET: Partial<Record<AvatarEditorCategory, { left: number; top: number }>> = {
@@ -327,7 +339,7 @@ export const AvatarEditor = () => {
                                         variant="3"
                                         layout={{ position: 'absolute', left: 0, width: 486, top: 30, height: 363, marginTop: 0, padding: 0, paddingLeft: 0, paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}
                                     />
-                                    { availableCategories.map((x, index) => {
+                                    { availableCategories().map((x, index) => {
                                         const offset = MAIN_TAB_BITMAP_OFFSET[x] ?? { left: 0, top: 0 };
 
                                         return (
