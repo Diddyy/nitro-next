@@ -432,6 +432,9 @@ export class RoomGeometry implements IRoomGeometry {
     }
 
     private getDisplacenent(k: IVector3D): IVector3D | undefined {
+        // Most rooms set none; skip building the key, as every moving object asks each frame.
+        if (!this._displacements.size) return undefined;
+
         return this._displacements.get(
             Math.trunc(Math.round(k.x)) + '_' + Math.trunc(Math.round(k.y)) + '_' + Math.trunc(Math.round(k.z)),
         );

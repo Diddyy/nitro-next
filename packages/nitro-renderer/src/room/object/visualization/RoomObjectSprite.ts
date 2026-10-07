@@ -294,6 +294,8 @@ export class RoomObjectSprite implements IRoomObjectSprite {
     }
 
     public set filters(filters: Filter[]) {
+        if (this._filters === filters) return;
+
         this._filters = filters;
 
         this._updateCounter++;
