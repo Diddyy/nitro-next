@@ -1,70 +1,42 @@
 /**
  * `WiredErrorInfoView` on `error_info_view_xml` - what an error of the monitor tab's log means:
- * its category's icon, its name, and the explanation `wiredmenu.error_info.<errorId>`. The window
- * grows with the explanation (`_window.height = contents.height + 48`). It belongs to the monitor
- * tab and goes when the menu's view does.
+ * its category's icon, its name, and the explanation `wiredmenu.error_info.<errorId>`, drawn from
+ * the Flash template (`initialize`). The explanation's text grows the `contents` container, and the
+ * window follows it (`_window.height = contents.height + 48`). It belongs to the monitor tab and
+ * goes when the menu's view does.
  */
 import type { IWiredErrorLogsError } from '@nitrodevco/nitro-packets';
-import { Container as PixiContainer } from 'pixi.js';
-import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { Box, Frame, LayoutImage, ThemeImage, ThemeText, useLayoutSize } from '#base/theme';
-
-/** `contents`' `height_min` and the explanation's. */
-const CONTENTS_MIN_HEIGHT = 100;
-const TEXT_MIN_HEIGHT = 50;
-const TEXT_TOP = 46;
+import { LayoutImage, TemplateWindow, TemplateWindows } from '#base/theme';
 
 export interface WiredErrorInfoViewProps {
     error: IWiredErrorLogsError;
     onClose: () => void;
 }
 
+/** `initialize`'s last line: the frame's caption bar and padding around `contents`. */
+const FRAME_EXTRA_HEIGHT = 48;
+
+const arrange = ({ find, root }: TemplateWindows) => {
+    const contents = find('contents');
+
+    if (contents) root()?.setHeight(contents.height + FRAME_EXTRA_HEIGHT);
+};
+
 export const WiredErrorInfoView = ({ error, onClose }: WiredErrorInfoViewProps) => {
     const t = useTranslation();
-    const [ textNode, setTextNode ] = useState<PixiContainer | null>(null);
-    const textSize = useLayoutSize(textNode);
-    const contentsHeight = Math.max(CONTENTS_MIN_HEIGHT, TEXT_TOP + Math.max(TEXT_MIN_HEIGHT, textSize.height));
 
     return (
-        <Frame
-            variant="3"
-            id="wired_error_info"
-            caption={t('wiredmenu.error_info.title', 'wiredmenu.error_info.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            resizeDirection="none"
-            defaultPosition={{ x: 35, y: 30 }}
-            onClose={onClose}
-            layout={{ position: 'absolute', width: 337, height: contentsHeight + 48, minWidth: 300 }}
-            margins={[ 0, 36, 0, 0 ]}
-        >
-            <Box layout={{ position: 'absolute', left: 8, right: 9, top: 3, height: contentsHeight }}>
-                <ThemeImage
-                    src={LayoutImage(`habbo-window-manager-com/icon_wired_${error.category.toLowerCase()}.png`)}
-                    bitmap={{}}
-                    layout={{ position: 'absolute', left: 280, top: 0, width: 40, height: 40 }}
-                />
-                <ThemeText
-                    text={error.errorName}
-                    textStyle="u_regular"
-                    flashFormat={{ bold: true }}
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 109, top: 11, height: 17 }}
-                />
-                <Box
-                    ref={setTextNode}
-                    layout={{ position: 'absolute', left: 0, top: TEXT_TOP, width: 319 }}
-                >
-                    <ThemeText
-                        text={t(`wiredmenu.error_info.${error.errorId}`, `wiredmenu.error_info.${error.errorId}`)}
-                        textStyle="u_regular"
-                        textOptions={{ wordWrap: true, wordWrapWidth: 315 }}
-                        verticalAlign="top"
-                    />
-                </Box>
-            </Box>
-        </Frame>
+        <TemplateWindow
+            id="habbo-user-defined-room-events-com/error_info_view_xml"
+            frame={{ id: 'wired_error_info', defaultPosition: { x: 35, y: 30 }, onClose }}
+            arrange={arrange}
+            bindings={{
+                error_name: { caption: error.errorName },
+                type_icon: { asset: LayoutImage(`habbo-window-manager-com/icon_wired_${error.category.toLowerCase()}.png`) },
+                error_text: { caption: t(`wiredmenu.error_info.${error.errorId}`, `wiredmenu.error_info.${error.errorId}`) },
+            }}
+        />
     );
 };
