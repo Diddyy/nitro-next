@@ -1,37 +1,50 @@
-import { AvatarEditorCategory, AvatarEditorColor, AvatarFigurePartType, AvatarGenderType, GetConfigValue, RoomId, SubTab } from '@nitrodevco/nitro-api';
+/**
+ * The avatar editor window - Flash `AvatarEditorView`: `habbo-avatar-editor-com/AvatarEditorFrame`
+ * (`getFrame`, opened at `DEFAULT_LOCATION` 100,30) with `AvatarEditorContent` embedded in its
+ * `maincontent` (`embedToContext`).
+ *
+ * - `createWindow`: `avatar_name` is the user's name. `mainTabs` keeps only the available
+ *   categories, in layout order (later tabs move left into a removed one's place): generic, head,
+ *   torso, legs, hot looks, and effects only with `effects.in.avatar.editor`, misc only with
+ *   `clothing.misc.tab.enabled`. The `nfts` tab is not kept - nothing in the port feeds it.
+ * - `setViewToCategory`: `contentArea` shows the selected category's `<category>_content`; the
+ *   parts grid (`AvatarEditorGridView`, `grid_container`) shows for the part categories, not for
+ *   hot looks or effects; `effectParamsContainer` only on effects.
+ * - The category views (`BodyView`, `HeadView`, ...): each sub tab's `BITMAP` is its `_off` art
+ *   unless it is the current one or under the pointer (`TabUtils.setElementImage`); the gender tabs
+ *   light the editing gender, and pressing one changes it.
+ * - `AvatarEditorGridView.initFromList`: `thumbs` holds a clone of `thumb_template` per part
+ *   (`AvatarEditorGridPartItem`: `BG_COLOR` full while selected, at half under the pointer; the
+ *   thumbnail in `bitmap`; `CLUB_ICON` and `SELLABLE_ICON`), the palettes a clone of
+ *   `palette_template` per colour (`AvatarEditorGridColorItem`: the swatch in `COLOR_IMAGE`, the
+ *   `BORDER` `_3` while selected or under the pointer, else `_1`; `CLUB_ICON`). A category without
+ *   parts shows `content_title` and `content_notification` instead. `showPalettes`: one palette as
+ *   wide as `thumbs`, or two `(width - 10) / 2` wide, 10 apart.
+ * - `avatarWidget` is the room previewer with the editing figure; `rotate_avatar` turns it,
+ *   `save` saves the look (or a clothing booth's) and closes the editor.
+ * - `setSideContent`: `wardrobe` toggles the wardrobe (`AvatarEditorWardrobe`) into
+ *   `sideContainer`, which takes its width; the content and the frame grow with it.
+ *
+ * Not ported: `avatar_name_change` (`premium.name.change.enabled`, `AvatarEditorNameChangeView`),
+ * the hot looks and effects lists - the port has no data for them, so their headers show over an
+ * empty page and `effectParamsContainer` stays hidden - and `collectible_avatar_info` (an NFT outfit).
+ */
+import { AvatarEditorCategory, AvatarFigurePartType, AvatarGenderType, RoomId } from '@nitrodevco/nitro-api';
 import { GetWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
 import { DEFAULT_WARDROBE_SLOTS, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useTranslation, useWindowParams } from '#base/context/system';
+import { useConfigValue, useSystemActions, useWindowParams } from '#base/context/system';
 import { useOwnClubLevel, useUserStore } from '#base/context/user';
-import { AvatarEditorPartData, firstSelectableColorId, useAvatarEditorData, usePartThumbnailLifetime, useWindowVisibility } from '#base/hooks';
-import { Button, ButtonThick, Frame, InfiniteGrid, LayoutImage, Region, TabButton, TabContent, TabContext, ThemeImage, ThemeText } from '#base/theme';
+import { AvatarEditorColorData, AvatarEditorPartData, useAvatarEditorData, usePartThumbnailLifetime, useWindowVisibility } from '#base/hooks';
+import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
+import { firstSelectableColorId } from '#base/utils';
 
-import { AvatarEditorPaletteThumb } from './AvatarEditorPaletteThumb';
-import { AvatarEditorPartThumb } from './AvatarEditorPartThumb';
+import { AvatarEditorPartImage } from './AvatarEditorPartImage';
 import { AvatarEditorWardrobe } from './AvatarEditorWardrobe';
-
-/**
- * The avatar editor window - the Flash `AvatarEditorView`: the `AvatarEditorFrame` layout
- * (`memenu_clothes`, a style 3 frame whose `maincontent` holds the editor) around the
- * `AvatarEditorContent` layout (`avatarEditorContent`, 490x490): the name banner, the wardrobe
- * toggle, the `mainTabs` tab context with each category's sub tabs in `contentArea`, the parts
- * and colour grids of `grid_container` (`AvatarEditorGridView`), the room previewer, the rotate
- * button and save. The wardrobe (`avatareditor_wardrobe`) goes into `sideContainer` at x 487, and
- * the content - and with it the frame, which reflects its size - grows by the wardrobe's 182px.
- *
- * Not drawn, because nothing in the port feeds them: `avatar_name_change` (Flash shows it under
- * `premium.name.change.enabled`, and its `AvatarEditorNameChangeView` is not ported), the `nfts`
- * tab and its content, the hot looks list and the effects list with their `effectParamsContainer`
- * (the port has no hot looks or effects data yet - their headers are drawn), and
- * `collectible_avatar_info`, which Flash only shows for an NFT outfit. The parts and palette grids
- * are the theme's virtualised `InfiniteGrid` in its `itemGrid` mode (`ItemGridController`: fixed
- * cells, no spacing, the scrollbar flush right; a part's cell mounts - and downloads its library -
- * only in view). The previewer has no `room_previewer:offsetx/offsety` (-65, -30) to take.
- */
 
 /**
  * How the editor is opened. A clothing-change booth borrows it to dress itself: the outfit it
@@ -46,96 +59,115 @@ export type AvatarEditorViewWindowParams = {
     };
 };
 
-/**
- * `AvatarEditorView` adds the effects tab only when `effects.in.avatar.editor` is true. The tab's
- * list is not ported yet, so left on it is a tab with nothing in it; the key ships `false`.
- */
-const availableCategories = (): AvatarEditorCategory[] => [
-    AvatarEditorCategory.Generic,
-    AvatarEditorCategory.Head,
-    AvatarEditorCategory.Torso,
-    AvatarEditorCategory.Legs,
-    AvatarEditorCategory.Misc,
-    AvatarEditorCategory.HotLooks,
-    ...((GetConfigValue<boolean>('effects.in.avatar.editor') === true) ? [ AvatarEditorCategory.Effects ] : []),
+const LIBRARY = 'habbo-avatar-editor-com';
+
+/** `AvatarEditorView._allCategories` in `mainTabs`' order; effects and misc each behind a setting. */
+const CATEGORIES: readonly { category: AvatarEditorCategory; setting?: string }[] = [
+    { category: AvatarEditorCategory.Generic },
+    { category: AvatarEditorCategory.Head },
+    { category: AvatarEditorCategory.Torso },
+    { category: AvatarEditorCategory.Legs },
+    { category: AvatarEditorCategory.Misc, setting: 'clothing.misc.tab.enabled' },
+    { category: AvatarEditorCategory.HotLooks },
+    { category: AvatarEditorCategory.Effects, setting: 'effects.in.avatar.editor' },
 ];
 
-/** Each `mainTabs` button's `bitmap` offset in the layout (52x42, centred): the icons are not all at the same height. */
-const MAIN_TAB_BITMAP_OFFSET: Partial<Record<AvatarEditorCategory, { left: number; top: number }>> = {
-    [AvatarEditorCategory.Generic]: { left: 1, top: -5 },
-    [AvatarEditorCategory.Head]: { left: 0, top: -6 },
-    [AvatarEditorCategory.Torso]: { left: 0, top: -6 },
-    [AvatarEditorCategory.Legs]: { left: 0, top: -6 },
-    [AvatarEditorCategory.Misc]: { left: 0, top: -4 },
-    [AvatarEditorCategory.HotLooks]: { left: 0, top: -7 },
-    [AvatarEditorCategory.Effects]: { left: 0, top: -5 },
+/** Each category's sub tabs (`<category>_content`'s regions) and the set type each switches to - `HeadView.switchCategory` and its kin. */
+const CATEGORY_TABS: Partial<Record<AvatarEditorCategory, readonly { tab: string; setType: AvatarFigurePartType }[]>> = {
+    [AvatarEditorCategory.Head]: [
+        { tab: 'tab_hair', setType: AvatarFigurePartType.Hair },
+        { tab: 'tab_hat', setType: AvatarFigurePartType.HeadAccessory },
+        { tab: 'tab_accessories', setType: AvatarFigurePartType.HeadAccessoryExtra },
+        { tab: 'tab_eyewear', setType: AvatarFigurePartType.EyeAccessory },
+        { tab: 'tab_masks', setType: AvatarFigurePartType.FaceAccessory },
+    ],
+    [AvatarEditorCategory.Torso]: [
+        { tab: 'tab_shirt', setType: AvatarFigurePartType.Chest },
+        { tab: 'tab_prints', setType: AvatarFigurePartType.ChestPrint },
+        { tab: 'tab_jacket', setType: AvatarFigurePartType.CoatChest },
+        { tab: 'tab_accessories', setType: AvatarFigurePartType.ChestAccessory },
+    ],
+    [AvatarEditorCategory.Legs]: [
+        { tab: 'tab_pants', setType: AvatarFigurePartType.Legs },
+        { tab: 'tab_shoes', setType: AvatarFigurePartType.Shoes },
+        { tab: 'tab_belts', setType: AvatarFigurePartType.WaistAccessory },
+    ],
+    [AvatarEditorCategory.Misc]: [
+        { tab: 'tab_pets', setType: AvatarFigurePartType.Pet },
+        { tab: 'tab_misc', setType: AvatarFigurePartType.Misc },
+    ],
 };
 
-/** The `habbo_window_layout_tab_context_3` selector's x: the tab buttons start 8px in. */
-const TAB_SELECTOR_X = 8;
-/** Each `mainTabs` `tab_container_button` is 52x46; the style 3 skin draws its 32px art at the top. */
-const MAIN_TAB_WIDTH = 52;
-const MAIN_TAB_HEIGHT = 46;
+/** `BodyView`'s gender tabs. */
+const GENDER_TABS: readonly { tab: string; gender: AvatarGenderType; icon: string }[] = [
+    { tab: 'tab_boy', gender: AvatarGenderType.Male, icon: 'avatar_editor_tabs_gender_male' },
+    { tab: 'tab_girl', gender: AvatarGenderType.Female, icon: 'avatar_editor_tabs_gender_female' },
+];
 
-/** The sub tabs of a `*_content` container: 47x35 regions from x 6, 52px apart. */
-const SUB_TAB_X = 6;
-const SUB_TAB_STEP = 52;
+/** Each sub tab's art, as the layout names it without its `_off`. */
+const SUB_TAB_ICONS: Record<string, string> = {
+    'head/tab_hair': 'avatar_editor_tabs_head_hair',
+    'head/tab_hat': 'avatar_editor_tabs_head_hats',
+    'head/tab_accessories': 'avatar_editor_tabs_head_accessories',
+    'head/tab_eyewear': 'avatar_editor_tabs_head_eyewear',
+    'head/tab_masks': 'avatar_editor_tabs_head_face_accessories',
+    'torso/tab_shirt': 'avatar_editor_tabs_top_shirt',
+    'torso/tab_prints': 'avatar_editor_tabs_top_prints',
+    'torso/tab_jacket': 'avatar_editor_tabs_top_jacket',
+    'torso/tab_accessories': 'avatar_editor_tabs_top_accessories',
+    'legs/tab_pants': 'avatar_editor_tabs_bottom_trousers',
+    'legs/tab_shoes': 'avatar_editor_tabs_bottom_shoes',
+    'legs/tab_belts': 'avatar_editor_tabs_bottom_accessories',
+    'misc/tab_pets': 'avatar_editor_tabs_icon_misc_pets',
+    'misc/tab_misc': 'avatar_editor_tabs_icon_misc_misc',
+};
 
-/** The sub tab bitmap the layout draws 48px wide in its 47px region, clipped by it (`tab_misc`; `tab_girl` is the other, drawn by `genderTab`). */
-const WIDE_SUB_TAB_ICONS = new Set([ 'avatar_editor_tabs_icon_misc_misc' ]);
+/** `TabUtils.setElementImage`: the art itself while active, its `_off` art otherwise. */
+const subTabAsset = (icon: string, active: boolean) => `habbo-window-manager-com-${icon}${active ? '' : '_off'}`;
 
-/** `avatarEditorContent` is 490x490; its `sideContainer` sits at x 487 and the wardrobe layout is 182 wide. */
-const CONTENT_WIDTH = 490;
+/** `AvatarEditorGridColorItem`'s swatch and its two borders. */
+const COLOR_ASSET = 'habbo-window-manager-com-avatar_editor_editor_clr_13x21_2';
+const COLOR_BORDER_SELECTED = 'habbo-window-manager-com-avatar_editor_editor_clr_13x21_3';
+const COLOR_BORDER = 'habbo-window-manager-com-avatar_editor_editor_clr_13x21_1';
+
+/** `AvatarEditorGridPartItem.onMouseOver`: the highlight's blend under the pointer. */
+const HOVER_ALPHA = 0.5;
+
+/** `AvatarEditorView.SAVE_TIMEOUT_MS`. */
+const SAVE_TIMEOUT_MS = 1500;
+
+/** `showPalettes`: two palettes share the parts grid's width, 10 apart. */
+const PALETTE_GAP = 10;
+
+/** `AvatarEditorContent` is 490 high; the frame's `maincontent` sits 33 down with 2 under it. */
 const CONTENT_HEIGHT = 490;
+const FRAME_CHROME_HEIGHT = 35;
+
+/**
+ * `avatarWidget` (125x210) - `RoomPreviewerWidget` with `room_previewer:zoom` 2 and `offsetx` / `offsety`
+ * -65 / -30: the preview canvas, the widget's size, has the object's location at its centre
+ * (`RoomPreviewer.getRoomCanvas`), and is drawn twice its size at that offset. The port renders the
+ * room at scale 2 into the widget, so the feet are held where that centre lands.
+ */
+const AVATAR_WIDGET_WIDTH = 125;
+const AVATAR_WIDGET_HEIGHT = 210;
+const AVATAR_WIDGET_ZOOM = 2;
+const AVATAR_WIDGET_OFFSET_X = -65;
+const AVATAR_WIDGET_OFFSET_Y = -30;
+const AVATAR_ANCHOR = {
+    x: ((AVATAR_WIDGET_ZOOM * AVATAR_WIDGET_WIDTH) / 2) + AVATAR_WIDGET_OFFSET_X,
+    y: ((AVATAR_WIDGET_ZOOM * AVATAR_WIDGET_HEIGHT) / 2) + AVATAR_WIDGET_OFFSET_Y,
+};
+
+/** `sideContainer`'s x, the wardrobe layout's width, and `setSideContent`'s width for an empty side. */
 const SIDE_CONTAINER_X = 487;
 const WARDROBE_WIDTH = 182;
-
-/** `AvatarEditorFrame`: `maincontent` at y 33 with 2px under it. */
-const FRAME_CONTENT_TOP = 33;
-const FRAME_CONTENT_BOTTOM = 2;
-
-/** `thumbs` and the palettes are 330 wide; `AvatarEditorGridView.showPalettes` splits two layers `(330 - 10) / 2` each, 10 apart. */
-const GRID_WIDTH = 330;
-const PALETTE_GAP = 10;
-/** `thumbs` and `palette0` / `palette1`: `thumb_template` (50x50) and `palette_template` (15x23) cells, no spacing. */
-const PART_GRID = { width: 50, height: 50 } as const;
-const PALETTE_GRID = { width: 15, height: 23 } as const;
+const EMPTY_SIDE_WIDTH = 1;
 
 const DEFAULT_FIGURES: Partial<Record<AvatarGenderType, string>> = {
     [AvatarGenderType.Male]: 'hr-100.hd-180-7.ch-215-66.lg-270-79.sh-305-62.ha-1002-70.wa-2007',
     [AvatarGenderType.Female]: 'hr-515-33.hd-600-1.ch-635-70.lg-716-66-62.sh-735-68',
 };
-
-/** Each category's sub tabs, in the order of its `*_content` container (the torso's is shirt, prints, jacket, accessories). */
-const CATEGORY_TABS: Partial<Record<AvatarEditorCategory, SubTab[]>> = {
-    head: [
-        { setType: AvatarFigurePartType.Hair, icon: 'avatar_editor_tabs_head_hair' },
-        { setType: AvatarFigurePartType.HeadAccessory, icon: 'avatar_editor_tabs_head_hats' },
-        { setType: AvatarFigurePartType.HeadAccessoryExtra, icon: 'avatar_editor_tabs_head_accessories' },
-        { setType: AvatarFigurePartType.EyeAccessory, icon: 'avatar_editor_tabs_head_eyewear' },
-        { setType: AvatarFigurePartType.FaceAccessory, icon: 'avatar_editor_tabs_head_face_accessories' },
-    ],
-    torso: [
-        { setType: AvatarFigurePartType.Chest, icon: 'avatar_editor_tabs_top_shirt' },
-        { setType: AvatarFigurePartType.ChestPrint, icon: 'avatar_editor_tabs_top_prints' },
-        { setType: AvatarFigurePartType.CoatChest, icon: 'avatar_editor_tabs_top_jacket' },
-        { setType: AvatarFigurePartType.ChestAccessory, icon: 'avatar_editor_tabs_top_accessories' },
-    ],
-    legs: [
-        { setType: AvatarFigurePartType.Legs, icon: 'avatar_editor_tabs_bottom_trousers' },
-        { setType: AvatarFigurePartType.Shoes, icon: 'avatar_editor_tabs_bottom_shoes' },
-        { setType: AvatarFigurePartType.WaistAccessory, icon: 'avatar_editor_tabs_bottom_accessories' },
-    ],
-    misc: [
-        { setType: AvatarFigurePartType.Pet, icon: 'avatar_editor_tabs_icon_misc_pets' },
-        { setType: AvatarFigurePartType.Misc, icon: 'avatar_editor_tabs_icon_misc_misc' },
-    ],
-};
-
-/** A sub tab's bitmap: `TabUtils.setElementImage` - the `_off` art unless the tab is the current one or under the pointer. */
-const subTabImage = (icon: string, active: boolean): string => LayoutImage(`habbo-window-manager-com/${icon}${active ? '' : '_off'}.png`);
-
-const SUB_TAB_BITMAP = { stretchedX: false, stretchedY: false, pivot: 'center' } as const;
 
 export const AvatarEditor = () => {
     const name = useUserStore(x => x.name);
@@ -150,19 +182,38 @@ export const AvatarEditor = () => {
     const figure = useAvatarEditorStore(x => x.figure);
     const figureParts = useAvatarEditorStore(x => x.parts);
     const gender = useAvatarEditorStore(x => x.gender);
+    const figureSetIds = useAvatarEditorStore(x => x.figureSetIds);
     const activeSetType = activeSubType[activeCategory];
     const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender } = useAvatarEditorActions();
     const { parts, palettes } = useAvatarEditorData(activeSetType);
     const { hide } = useWindowVisibility('avatar_editor');
-    /** The sub tab under the pointer: `CategoryBaseView.activateTab` on `WME_OVER` lights it until `WME_OUT`. */
+    const miscEnabled = useConfigValue<boolean>('clothing.misc.tab.enabled') === true;
+    const effectsEnabled = useConfigValue<boolean>('effects.in.avatar.editor') === true;
+    const maxWardrobeSlots = useConfigValue<number>(WARDROBE_SLOTS_KEY) ?? DEFAULT_WARDROBE_SLOTS;
+    // `startSellablePurchase`: the catalogue page `catalog.clothes.page` names.
+    const clothesPage = useConfigValue<string>('catalog.clothes.page');
+    const { showWindow } = useSystemActions();
+    // The sub tab, part and colour under the pointer (`WME_OVER` / `WME_OUT`).
     const [ hoveredTab, setHoveredTab ] = useState<string | null>(null);
+    const [ hoveredPart, setHoveredPart ] = useState<number | null>(null);
+    const [ hoveredColor, setHoveredColor ] = useState<string | null>(null);
+    // The room previewer once its room exists: the content template, and the previewer in it, mount after the window.
+    const [ previewer, setPreviewer ] = useState<RoomPreviewerHandle | null>(null);
+    const { send } = useWebSocketContext();
+    // `SAVE_TIMEOUT_MS`: `save` is disabled for a moment after every press.
+    const [ saveLocked, setSaveLocked ] = useState(false);
+    const frame = useMemo(() => ({
+        id: 'avatarEditor',
+        defaultPosition: { x: 100, y: 30 },
+        // `header_button_close`: club items the user may not wear are taken off before it closes.
+        onClose: () => {
+            if (hasAvatarEditorInvalidClubItems(clubLevel)) stripAvatarEditorClubItems(clubLevel);
+
+            hide();
+        },
+    }), [ hide, clubLevel ]);
 
     usePartThumbnailLifetime();
-
-    const previewerRef = useRef<RoomPreviewerHandle>(null);
-    const maxWardrobeSlots = useConfigValue<number>(WARDROBE_SLOTS_KEY) ?? DEFAULT_WARDROBE_SLOTS;
-    const t = useTranslation();
-    const { send } = useWebSocketContext();
 
     const changeGender = (next: AvatarGenderType) => {
         if (next === gender) return;
@@ -171,7 +222,14 @@ export const AvatarEditor = () => {
         loadFigure(DEFAULT_FIGURES[next] ?? '', next);
     };
 
+    /** `CategoryBaseModel.selectPart`: a part above the user's club level is not put on - the club centre opens instead. */
     const selectPart = (part: AvatarEditorPartData) => {
+        if (part.disabled) {
+            openClubCenter(send);
+
+            return;
+        }
+
         if (part.id === -1) {
             removePart(activeSetType);
 
@@ -179,6 +237,20 @@ export const AvatarEditor = () => {
         }
 
         setPart(activeSetType, part.id, figureParts[activeSetType]?.colorIds ?? [ firstSelectableColorId(activeSetType, clubLevel) ]);
+    };
+
+    /** `CategoryBaseModel.selectColor`: as `selectPart`, for a colour. */
+    const selectColor = (color: AvatarEditorColorData, layer: number) => {
+        if (color.disabled) {
+            openClubCenter(send);
+
+            return;
+        }
+
+        const colorIds = [ ...(figureParts[activeSetType]?.colorIds ?? []) ];
+
+        colorIds[layer] = color.id;
+        setColors(activeSetType, colorIds);
     };
 
     /** `WardrobeSlot` set button: the current look goes into the slot (server slots are 1-based). */
@@ -190,38 +262,54 @@ export const AvatarEditor = () => {
     };
 
     /*
-     * Saving usually means wearing the look yourself. While the editor is dressing a booth the
-     * look belongs to that furni instead: it keeps one outfit per gender, and the gender travels
-     * with the look so the server knows which of the two was dressed. The booth is done with the
-     * editor either way, so the window closes behind it.
+     * `windowEventProc`'s `save`, disabled for `SAVE_TIMEOUT_MS` whatever it does: a sellable item the
+     * user does not own opens the catalogue's clothes page (`startSellablePurchase`), a club item above
+     * the user's club level the club centre (`openHabboClubAdWindow`) - neither saves. Otherwise
+     * `saveCurrentSelection()` then `manager.close()`. While the editor dresses a booth the look
+     * belongs to that furni: it keeps one outfit per gender, and the gender travels with the look.
      */
     const saveFigure = () => {
-        if (!clothingChange) {
-            // `AvatarEditorView.windowEventProc` "save": `saveCurrentSelection()` then `manager.close()`.
-            send(new UpdateFigureDataComposer({ figure, gender }));
-            hide();
+        setSaveLocked(true);
+
+        if (hasAvatarEditorInvalidSellableItems()) {
+            if (clothesPage) showWindow('catalog', { pageName: clothesPage });
 
             return;
         }
 
-        send(new SetClothingChangeDataComposer({ objectId: clothingChange.objectId, gender, figure }));
+        if (hasAvatarEditorInvalidClubItems(clubLevel)) {
+            openClubCenter(send);
+
+            return;
+        }
+
+        if (clothingChange) send(new SetClothingChangeDataComposer({ objectId: clothingChange.objectId, gender, figure }));
+        else send(new UpdateFigureDataComposer({ figure, gender }));
+
         hide();
     };
 
-    const selectColor = (color: AvatarEditorColor, layer: number) => {
-        const colorIds = [ ...(figureParts[activeSetType]?.colorIds ?? []) ];
+    useEffect(() => {
+        if (!saveLocked) return;
 
-        colorIds[layer] = color.id;
-        setColors(activeSetType, colorIds);
-    };
+        const timer = setTimeout(() => setSaveLocked(false), SAVE_TIMEOUT_MS);
+
+        return () => clearTimeout(timer);
+    }, [ saveLocked ]);
+
+    // `AvatarEditorView.update`, run as a look is loaded or the club level or owned clothes change:
+    // club items above the club level and sellable items the user does not own are taken off.
+    useEffect(() => {
+        if (hasAvatarEditorInvalidClubItems(clubLevel)) stripAvatarEditorClubItems(clubLevel);
+        if (hasAvatarEditorInvalidSellableItems()) stripAvatarEditorInvalidSellableItems(clubLevel);
+    }, [ figure, clubLevel, figureSetIds ]);
 
     // The previewed avatar follows every edit (re-dressed in place, not re-added).
     useEffect(() => {
-        if (figure) previewerRef.current?.updateAvatar(figure, gender);
-    }, [ figure, gender ]);
+        if (figure) previewer?.updateAvatar(figure, gender);
+    }, [ previewer, figure, gender ]);
 
-    // A booth brings its own outfit; loading it here rather than at the call site keeps the
-    // editing figure something only the editor ever sets.
+    // A booth brings its own outfit; loading it here keeps the editing figure something only the editor sets.
     useEffect(() => {
         if (!clothingChange) return;
 
@@ -243,334 +331,186 @@ export const AvatarEditor = () => {
         if (!wardrobe.length) send(new GetWardrobeComposer({}));
     }, [ wardrobe.length ]);
 
-    // `AvatarEditorView.setViewToCategory`: hot looks and effects hide the parts grid for their own lists.
-    const showGrid = (activeCategory !== AvatarEditorCategory.HotLooks) && (activeCategory !== AvatarEditorCategory.Effects);
-    const paletteWidth = (palettes.length > 1) ? ((GRID_WIDTH - PALETTE_GAP) / 2) : GRID_WIDTH;
-    const contentWidth = wardrobeVisible ? (SIDE_CONTAINER_X + WARDROBE_WIDTH) : CONTENT_WIDTH;
+    const categories = CATEGORIES.filter(({ category }) => {
+        if (category === AvatarEditorCategory.Misc) return miscEnabled;
+        if (category === AvatarEditorCategory.Effects) return effectsEnabled;
 
-    const genderTab = (tabGender: AvatarGenderType, tabName: string, left: number, imageWidth: number, icon: string) => (
-        <Region
-            name={tabName}
-            onPointerTap={_ => changeGender(tabGender)}
-            onPointerOver={_ => setHoveredTab(tabName)}
-            onPointerOut={_ => setHoveredTab(null)}
-            layout={{ position: 'absolute', left, width: 47, top: 0, height: 35, overflow: 'hidden' }}
-        >
-            <ThemeImage
-                src={subTabImage(icon, (gender === tabGender) || (hoveredTab === tabName))}
-                bitmap={SUB_TAB_BITMAP}
-                layout={{ position: 'absolute', left: 0, width: imageWidth, top: 0, height: 35 }}
-            />
-        </Region>
-    );
+        return true;
+    }).map(({ category }) => category);
+    // A category whose tab is gone falls back to the first.
+    const shownCategory = categories.includes(activeCategory) ? activeCategory : categories[0];
+    const showGrid = (shownCategory !== AvatarEditorCategory.HotLooks) && (shownCategory !== AvatarEditorCategory.Effects);
+    // `setSideContent`: the content reaches `sideContainer`'s right edge - the wardrobe's width with it,
+    // 1 with nothing in it - so the name banner ends where the frame's right border begins.
+    const contentWidth = SIDE_CONTAINER_X + (wardrobeVisible ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
+
+    const viewBindings: TemplateBindings = {
+        avatar_name: { caption: name },
+        // `setSideContent('wardrobe')` / `'nothing'`.
+        wardrobe: { onPointerTap: () => setWardrobeVisible(!wardrobeVisible) },
+        sideContainer: {
+            children: wardrobeVisible && (
+                <AvatarEditorWardrobe
+                    slots={wardrobe}
+                    slotCount={maxWardrobeSlots}
+                    clubLevel={clubLevel}
+                    onSave={saveWardrobeSlot}
+                    onLoad={(index, outfit) => loadFigure(outfit.figure, outfit.gender)}
+                />
+            ),
+        },
+
+        mainTabs: {
+            items: categories.map(category => ({
+                key: category,
+                from: `mainTabs/${category}`,
+                bindings: { '': { selected: category === shownCategory, onPointerTap: () => setActiveCategory(category) } },
+            })),
+        },
+
+        // `BodyView.updateGenderTab`; a press changes the editing gender.
+        ...Object.fromEntries(GENDER_TABS.map(({ tab, gender: tabGender }) => [ `generic_content/${tab}`, {
+            onPointerTap: () => changeGender(tabGender),
+            onPointerOver: () => setHoveredTab(`generic/${tab}`),
+            onPointerOut: () => setHoveredTab(null),
+        } ])),
+        ...Object.fromEntries(GENDER_TABS.map(({ tab, gender: tabGender, icon }) => [ `generic_content/${tab}/#BITMAP`, { asset: subTabAsset(icon, (gender === tabGender) || (hoveredTab === `generic/${tab}`)) } ])),
+
+        effectParamsContainer: { visible: false },
+        collectible_avatar_info: { visible: false },
+        grid_container: { visible: showGrid },
+    };
+
+    // `setViewToCategory`: only the selected category's container is in `contentArea`.
+    for (const category of CATEGORIES) viewBindings[`contentArea/${category.category}_content`] = { visible: category.category === shownCategory };
+
+    // The category views' sub tabs.
+    for (const [ category, tabs ] of Object.entries(CATEGORY_TABS)) {
+        for (const { tab, setType } of tabs) {
+            const key = `${category}/${tab}`;
+
+            viewBindings[`${category}_content/${tab}`] = {
+                onPointerTap: () => setActiveSubType(setType),
+                onPointerOver: () => setHoveredTab(key),
+                onPointerOut: () => setHoveredTab(null),
+            };
+            viewBindings[`${category}_content/${tab}/#BITMAP`] = { asset: subTabAsset(SUB_TAB_ICONS[key], (activeSetType === setType) || (hoveredTab === key)) };
+        }
+    }
+
+    // `AvatarEditorGridView.initFromList`.
+    const thumbs: TemplateItem[] = parts.map(part => ({
+        key: String(part.id),
+        from: 'thumb_template',
+        bindings: {
+            '': {
+                onPointerTap: () => selectPart(part),
+                onPointerOver: () => setHoveredPart(part.id),
+                onPointerOut: () => setHoveredPart(current => ((current === part.id) ? null : current)),
+            },
+            '#BG_COLOR': { visible: part.selected || (hoveredPart === part.id), alpha: part.selected ? 1 : HOVER_ALPHA },
+            bitmap: {
+                children: (
+                    <AvatarEditorPartImage
+                        part={part}
+                        setType={activeSetType}
+                        colors={part.partColors}
+                        usesColors={part.usesColors}
+                        isClear={part.isClear}
+                        disabled={part.disabled}
+                    />
+                ),
+            },
+            '#CLUB_ICON': { visible: part.isClub },
+            '#SELLABLE_ICON': { visible: part.isSellable },
+        },
+    }));
+
+    const paletteItems = (layer: number): TemplateItem[] => (palettes[layer] ?? []).map((color) => {
+        const key = `${layer}/${color.id}`;
+
+        return {
+            key: String(color.id),
+            from: 'palette_template',
+            bindings: {
+                '': {
+                    onPointerTap: () => selectColor(color, layer),
+                    onPointerOver: () => setHoveredColor(key),
+                    onPointerOut: () => setHoveredColor(current => ((current === key) ? null : current)),
+                },
+                '#COLOR_IMAGE': { asset: COLOR_ASSET, color: color.partColor.rgb },
+                '#BORDER': { asset: (color.selected || (hoveredColor === key)) ? COLOR_BORDER_SELECTED : COLOR_BORDER },
+                '#CLUB_ICON': { visible: color.isClub },
+            },
+        };
+    });
+
+    const hasParts = parts.length > 0;
+    // `showPalettes(colorLayerCount)`: none without parts.
+    const layers = hasParts ? palettes.length : 0;
+
+    const bindings: TemplateBindings = {
+        ...viewBindings,
+        thumbs: { visible: hasParts, items: thumbs },
+        palette0: { visible: layers > 0, items: paletteItems(0) },
+        palette1: { visible: layers > 1, items: paletteItems(1) },
+        content_title: { visible: !hasParts },
+        content_notification: { visible: !hasParts },
+        avatarWidget: {
+            children: (
+                <RoomPreviewer
+                    onReady={setPreviewer}
+                    roomId={RoomId.TEMP_ROOM_AVATAR_EDITOR}
+                    scale={AVATAR_WIDGET_ZOOM}
+                    anchor={AVATAR_ANCHOR}
+                    layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
+                />
+            ),
+        },
+        rotate_avatar: { onPointerTap: () => previewer?.rotateAvatar() },
+        save: { disabled: saveLocked, onPointerTap: saveFigure },
+    };
+
+    const arrange = ({ find }: TemplateWindows) => {
+        // `setSideContent`: `sideContainer` as wide as the wardrobe, or 1 with nothing in it.
+        find('sideContainer')?.setWidth(wardrobeVisible ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
+
+        // `showPalettes`: one palette as wide as the parts grid, or two sharing it.
+        const grid = find('thumbs');
+        const first = find('palette0');
+        const second = find('palette1');
+
+        if (!grid || !first || !second) return;
+
+        if (layers === 1) {
+            first.setWidth(grid.width);
+        } else if (layers > 1) {
+            const width = Math.trunc((grid.width - PALETTE_GAP) / 2);
+
+            first.setWidth(width);
+            second.setWidth(width);
+            second.setX(first.x + first.width + PALETTE_GAP);
+        }
+    };
 
     return (
-        <Frame
-            variant="3"
-            id="avatarEditor"
-            caption={t('avatareditor.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={hide}
-            resizeDirection="none"
-            defaultPosition={{ x: 100, y: 30 }}
-            margins={[ 0, 0, 0, 0 ]}
-            layout={{ width: contentWidth, height: FRAME_CONTENT_TOP + CONTENT_HEIGHT + FRAME_CONTENT_BOTTOM }}
-        >
-            <Region
-                name="maincontent"
-                layout={{ position: 'absolute', left: 0, right: 0, top: FRAME_CONTENT_TOP, bottom: FRAME_CONTENT_BOTTOM }}
-            >
-                <Region
-                    name="avatarEditorContent"
-                    layout={{ position: 'absolute', left: 0, width: contentWidth, top: 0, height: CONTENT_HEIGHT }}
-                >
-                    <Region
-                        name="avatarNameEditor"
-                        layout={{ position: 'absolute', left: 1, width: 489, top: 0, height: 110 }}
-                    >
-                        <Region
-                            name="name_background"
-                            backgroundColor="#0e3f52"
-                            layout={{ position: 'absolute', left: 0, width: 486, top: 0, height: 110 }}
+        <TemplateWindow
+            id={`${LIBRARY}/AvatarEditorFrame`}
+            frame={frame}
+            width={contentWidth}
+            height={CONTENT_HEIGHT + FRAME_CHROME_HEIGHT}
+            bindings={{
+                maincontent: {
+                    children: (
+                        <TemplateWindow
+                            id={`${LIBRARY}/AvatarEditorContent`}
+                            width={contentWidth}
+                            bindings={bindings}
+                            arrange={arrange}
                         />
-                        <ThemeText
-                            text={name}
-                            textStyle="u_headline_big"
-                            textOptions={{ fill: '#ffffff', fontSize: 28, align: 'center' }}
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 40, width: 400, top: 15, height: 35 }}
-                        />
-                    </Region>
-                    <Region
-                        name="wardrobeButtonContainer"
-                        layout={{ position: 'absolute', left: 424, width: 55, top: 9, height: 30 }}
-                    >
-                        <Button
-                            variant="3"
-                            onPointerTap={_ => setWardrobeVisible(!wardrobeVisible)}
-                            textStyle="button_shiny_regular"
-                            layout={{ position: 'absolute', left: 0, width: 55, top: 0, height: 30 }}
-                        />
-                        <ThemeImage
-                            name="wardrobe_icon"
-                            src={LayoutImage('habbo-window-manager-com/avatar_editor_tabs_ae_tabs_wardrobe.png')}
-                            bitmap={SUB_TAB_BITMAP}
-                            layout={{ position: 'absolute', left: 0, width: 55, top: 0, height: 30 }}
-                        />
-                    </Region>
-                    <Region
-                        name="avatarEditor"
-                        layout={{ position: 'absolute', left: 1, width: 489, top: 70, height: 414 }}
-                    >
-                        <Region
-                            name="tabbedView"
-                            layout={{ position: 'absolute', left: 0, width: 486, top: 4, height: 410, overflow: 'hidden' }}
-                        >
-                            {/* Its own box: `TabContext` stacks itself at zIndex 10, which must not lift it over `contentArea`. */}
-                            <Region layout={{ position: 'absolute', left: 0, width: 486, top: 5, height: 395 }}>
-                                <TabContext
-                                    variant="3"
-                                    name="mainTabs"
-                                    layout={{ position: 'absolute', left: 0, width: 486, top: 0, height: 395, padding: 0, paddingLeft: 0, paddingRight: 0, paddingTop: 0 }}
-                                >
-                                    {/* `habbo_window_layout_tab_context_3`: the `_CONTENT` pane at y 30, 2px short of the bottom. */}
-                                    <TabContent
-                                        variant="3"
-                                        layout={{ position: 'absolute', left: 0, width: 486, top: 30, height: 363, marginTop: 0, padding: 0, paddingLeft: 0, paddingTop: 0, paddingRight: 0, paddingBottom: 0 }}
-                                    />
-                                    { availableCategories().map((x, index) => {
-                                        const offset = MAIN_TAB_BITMAP_OFFSET[x] ?? { left: 0, top: 0 };
-
-                                        return (
-                                            <TabButton
-                                                key={x}
-                                                variant="3"
-                                                name={x}
-                                                selected={activeCategory === x}
-                                                onPointerTap={_ => setActiveCategory(x)}
-                                                layout={{ position: 'absolute', left: TAB_SELECTOR_X + (index * MAIN_TAB_WIDTH), width: MAIN_TAB_WIDTH, top: 0, height: MAIN_TAB_HEIGHT, paddingLeft: 0, paddingRight: 0 }}
-                                            >
-                                                <ThemeImage
-                                                    name="bitmap"
-                                                    src={LayoutImage(`habbo-window-manager-com/avatar_editor_tabs_ae_tabs_${x}.png`)}
-                                                    bitmap={SUB_TAB_BITMAP}
-                                                    layout={{ position: 'absolute', left: offset.left, width: 52, top: offset.top, height: 42 }}
-                                                />
-                                            </TabButton>
-                                        );
-                                    })}
-                                </TabContext>
-                            </Region>
-                            <Region
-                                name="contentArea"
-                                layout={{ position: 'absolute', left: 2, width: 486, top: 36, height: 365 }}
-                            >
-                                { activeCategory === AvatarEditorCategory.Generic && (
-                                    <Region
-                                        name="generic_content"
-                                        layout={{ position: 'absolute', left: 20, width: 250, top: 10, height: 35, overflow: 'hidden' }}
-                                    >
-                                        {genderTab(AvatarGenderType.Male, 'tab_boy', 6, 47, 'avatar_editor_tabs_gender_male')}
-                                        <ThemeText
-                                            text={t('avatareditor.generic.boy')}
-                                            textStyle="u_regular"
-                                            flashFormat={{ bold: true }}
-                                            verticalAlign="top"
-                                            layout={{ position: 'absolute', left: 50, top: 10, height: 17 }}
-                                        />
-                                        {genderTab(AvatarGenderType.Female, 'tab_girl', 100, 48, 'avatar_editor_tabs_gender_female')}
-                                        <ThemeText
-                                            text={t('avatareditor.generic.girl')}
-                                            textStyle="u_regular"
-                                            flashFormat={{ bold: true }}
-                                            verticalAlign="top"
-                                            layout={{ position: 'absolute', left: 150, top: 10, height: 17 }}
-                                        />
-                                    </Region>
-                                )}
-                                { CATEGORY_TABS[activeCategory] !== undefined && (
-                                    <Region
-                                        name={`${activeCategory}_content`}
-                                        layout={{ position: 'absolute', left: 20, width: 280, top: 10, height: 35, overflow: 'hidden' }}
-                                    >
-                                        { CATEGORY_TABS[activeCategory].map((x, index) => (
-                                            <Region
-                                                key={x.setType}
-                                                onPointerTap={_ => setActiveSubType(x.setType)}
-                                                onPointerOver={_ => setHoveredTab(x.icon)}
-                                                onPointerOut={_ => setHoveredTab(null)}
-                                                layout={{ position: 'absolute', left: SUB_TAB_X + (index * SUB_TAB_STEP), width: 47, top: 0, height: 35, overflow: 'hidden' }}
-                                            >
-                                                <ThemeImage
-                                                    src={subTabImage(x.icon, (activeSetType === x.setType) || (hoveredTab === x.icon))}
-                                                    bitmap={SUB_TAB_BITMAP}
-                                                    layout={{ position: 'absolute', left: 0, width: WIDE_SUB_TAB_ICONS.has(x.icon) ? 48 : 47, top: 0, height: 35 }}
-                                                />
-                                            </Region>
-                                        ))}
-                                    </Region>
-                                )}
-                                { activeCategory === AvatarEditorCategory.HotLooks && (
-                                    <Region
-                                        name="hotlooks_content"
-                                        layout={{ position: 'absolute', left: 20, width: 310, top: 10, height: 290 }}
-                                    >
-                                        <ThemeText
-                                            text={t('avatareditor.hotlooks.title')}
-                                            textStyle="u_regular"
-                                            textOptions={{ fontSize: 20 }}
-                                            flashFormat={{ bold: true }}
-                                            verticalAlign="top"
-                                            layout={{ position: 'absolute', left: 0, width: 262, top: 0, height: 26 }}
-                                        />
-                                        <ThemeText
-                                            text={t('avatareditor.hotlooks.choose')}
-                                            textStyle="u_regular"
-                                            verticalAlign="top"
-                                            layout={{ position: 'absolute', left: 0, width: 168, top: 28, height: 17 }}
-                                        />
-                                    </Region>
-                                )}
-                                { activeCategory === AvatarEditorCategory.Effects && (
-                                    <Region
-                                        name="effects_content"
-                                        layout={{ position: 'absolute', left: 20, width: 140, top: 10, height: 35, overflow: 'hidden' }}
-                                    >
-                                        <ThemeImage
-                                            src={LayoutImage('habbo-window-manager-com/avatar_editor_tabs_effects_fx.png')}
-                                            bitmap={SUB_TAB_BITMAP}
-                                            layout={{ position: 'absolute', left: 0, width: 47, top: 0, height: 35 }}
-                                        />
-                                        <ThemeText
-                                            text={t('inventory.effects')}
-                                            textStyle="u_regular"
-                                            textOptions={{ fontSize: 20 }}
-                                            flashFormat={{ bold: true }}
-                                            verticalAlign="top"
-                                            layout={{ position: 'absolute', left: 40, width: 169, top: 4, height: 26 }}
-                                        />
-                                    </Region>
-                                )}
-                            </Region>
-                            { showGrid && (
-                                <Region
-                                    name="grid_container"
-                                    layout={{ position: 'absolute', left: 20, width: GRID_WIDTH, top: 94, height: 302, overflow: 'hidden' }}
-                                >
-                                    { (parts.length > 0) && (
-                                        <Region
-                                            name="thumbs"
-                                            layout={{ position: 'absolute', left: 0, width: GRID_WIDTH, top: 0, height: 200, flexDirection: 'row' }}
-                                        >
-                                            <InfiniteGrid<AvatarEditorPartData>
-                                                items={parts}
-                                                scrollResetKey={activeSetType}
-                                                getKey={x => x.id}
-                                                itemGrid={PART_GRID}
-                                                itemRender={x => (
-                                                    <AvatarEditorPartThumb
-                                                        selected={!!x.selected}
-                                                        part={x}
-                                                        setType={activeSetType}
-                                                        colors={x.partColors}
-                                                        usesColors={x.usesColors}
-                                                        disabled={x.disabled}
-                                                        isClub={x.isClub}
-                                                        isSellable={x.isSellable}
-                                                        isClear={x.isClear}
-                                                        selectPart={() => selectPart(x)}
-                                                    />
-                                                )}
-                                            />
-                                        </Region>
-                                    )}
-                                    { (parts.length > 0) && palettes.map((x, index) => (
-                                        <Region
-                                            key={index}
-                                            name={`palette${index}`}
-                                            layout={{ position: 'absolute', left: index * (paletteWidth + PALETTE_GAP), width: paletteWidth, top: 210, height: 93, flexDirection: 'row' }}
-                                        >
-                                            <InfiniteGrid
-                                                items={x}
-                                                itemGrid={PALETTE_GRID}
-                                                scrollResetKey={activeSetType}
-                                                getKey={y => y.id}
-                                                itemRender={y => (
-                                                    <AvatarEditorPaletteThumb
-                                                        color={y.color}
-                                                        isClub={y.isClub}
-                                                        selected={y.selected}
-                                                        selectPalette={() => selectColor(y, index)}
-                                                    />
-                                                )}
-                                            />
-                                        </Region>
-                                    ))}
-                                    { (parts.length === 0) && (
-                                        <>
-                                            <ThemeText
-                                                text={t('avatar.editor.content.notification')}
-                                                textStyle="u_regular"
-                                                clip
-                                                verticalAlign="top"
-                                                layout={{ position: 'absolute', left: 0, width: 298, top: 30, height: 128 }}
-                                            />
-                                            <ThemeText
-                                                text={t('avatar.editor.content.title')}
-                                                textStyle="u_bold"
-                                                textOptions={{ fontSize: 20 }}
-                                                clip
-                                                verticalAlign="top"
-                                                layout={{ position: 'absolute', left: 0, width: 300, top: 0, height: 30 }}
-                                            />
-                                        </>
-                                    )}
-                                </Region>
-                            )}
-                        </Region>
-                        <RoomPreviewer
-                            ref={previewerRef}
-                            roomId={RoomId.TEMP_ROOM_AVATAR_EDITOR}
-                            scale={2}
-                            layout={{ position: 'absolute', left: 351, width: 125, top: 88, height: 210 }}
-                        />
-                        <ButtonThick
-                            variant="3"
-                            onPointerTap={_ => saveFigure()}
-                            textStyle="button_shiny_bold"
-                            layout={{ position: 'absolute', left: 356, width: 122, top: 373, height: 28, minWidth: 100 }}
-                        >
-                            {t('avatareditor.save')}
-                        </ButtonThick>
-                        <Region
-                            name="rotate_avatar"
-                            onPointerTap={_ => previewerRef.current?.rotateAvatar()}
-                            layout={{ position: 'absolute', left: 389, width: 50, top: 295, height: 31 }}
-                        >
-                            <ThemeImage
-                                src={LayoutImage('habbo-window-manager-com/avatar_editor_rotate_avatar_button.png')}
-                                bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                                layout={{ position: 'absolute', left: 0, width: 44, top: 0, height: 29 }}
-                            />
-                        </Region>
-                    </Region>
-                    { wardrobeVisible && (
-                        <Region
-                            name="sideContainer"
-                            layout={{ position: 'absolute', left: SIDE_CONTAINER_X, width: WARDROBE_WIDTH, top: 0, height: CONTENT_HEIGHT }}
-                        >
-                            <AvatarEditorWardrobe
-                                slots={wardrobe}
-                                slotCount={maxWardrobeSlots}
-                                clubLevel={clubLevel}
-                                onSave={saveWardrobeSlot}
-                                onLoad={(_index, outfit) => loadFigure(outfit.figure, outfit.gender)}
-                            />
-                        </Region>
-                    )}
-                </Region>
-            </Region>
-        </Frame>
+                    ),
+                },
+            }}
+        />
     );
 };

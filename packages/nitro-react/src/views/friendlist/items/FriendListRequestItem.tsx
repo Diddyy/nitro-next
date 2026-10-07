@@ -1,6 +1,6 @@
 import { FriendRequestStateType, IFriendRequest } from '@nitrodevco/nitro-packets';
 
-import { acceptFriendRequest, declineFriendRequest } from '#base/commands';
+import { acceptFriendRequest, declineFriendRequest, openProfile } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsActions } from '#base/context/friend';
 import { useTranslation } from '#base/context/system';
@@ -41,6 +41,9 @@ export const FriendListRequestItem = ({ request, zebraColor }: FriendListRequest
             user={request}
             hideAvatarElement
             zebraColor={zebraColor}
+            // `FriendRequestsView.onEntry`: a click on the row opens the requester's profile.
+            onPress={() => openProfile(send, request.playerId)}
+            onProfilePress={() => openProfile(send, request.playerId)}
         >
             {stateText
                 ? (
@@ -57,7 +60,10 @@ export const FriendListRequestItem = ({ request, zebraColor }: FriendListRequest
                         <>
                             <Region
                                 cursor="pointer"
-                                onPointerTap={() => acceptFriendRequest(send, request.playerId)}
+                                onPointerTap={(event) => {
+                                    event.stopPropagation();
+                                    acceptFriendRequest(send, request.playerId);
+                                }}
                                 onPointerOver={acceptHover.onMouseEnter}
                                 onPointerOut={acceptHover.onMouseLeave}
                                 layout={{ position: 'absolute', right: 25, top: 4, width: 16, height: 14 }}
@@ -71,7 +77,10 @@ export const FriendListRequestItem = ({ request, zebraColor }: FriendListRequest
                             </Region>
                             <Region
                                 cursor="pointer"
-                                onPointerTap={() => declineFriendRequest(send, request.playerId)}
+                                onPointerTap={(event) => {
+                                    event.stopPropagation();
+                                    declineFriendRequest(send, request.playerId);
+                                }}
                                 onPointerOver={declineHover.onMouseEnter}
                                 onPointerOut={declineHover.onMouseLeave}
                                 layout={{ position: 'absolute', right: 0, top: 4, width: 16, height: 14 }}

@@ -21,7 +21,7 @@ import {
 } from './room';
 import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
 import { registerSpecialItemsHandlers } from './special-items';
-import { registerHotelViewHandlers } from './system';
+import { registerFurnitureDataHandlers, registerHotelViewHandlers } from './system';
 import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerChatCommandHandlers, registerFriendBarHandlers, registerMessengerHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
 import { registerProfileHandlers } from './user-profile';
 import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
@@ -97,6 +97,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerWordFilterHandlers(socket),
         // The catalogue's voucher answers - alerts only, whichever catalogue window is open.
         registerCatalogVoucherHandlers(socket),
+        // The furnidata again when a catalogue publish says it changed, once for both catalogue windows.
+        registerFurnitureDataHandlers(socket),
         // The vault's income rewards (`EarningsController`), after the wallet whose duckets its claims weigh.
         registerEarningsHandlers(socket),
         // `HabboCatalog`'s session-long parts outside the catalogue window: the special items

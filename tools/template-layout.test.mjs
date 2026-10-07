@@ -283,6 +283,16 @@ await test('an item grid fills its first row with columns while the next item fi
     assert.deepEqual([ 3, 4 ].map(index => [ rects.get(items[index]).x, rects.get(items[index]).y ]), [ [ 0, 35 ], [ 45, 35 ] ]);
 });
 
+await test('a resized item grid is rebuilt at its new width, its items in the order they were added', () => {
+    // `ItemGridController.update`'s `WE_RESIZED` -> `rebuildGridStructure` - the avatar editor's one palette widened to the parts grid's width.
+    const items = [ 0, 1, 2, 3, 4 ].map(index => element('container', [ 0, 0, 40, 30 ], { name: `item${index}` }));
+    const grid = element('itemgrid_vertical', [ 0, 0, 85, 100 ], { vars: { spacing: 5 }, children: items });
+    const rects = layoutTemplate([ grid ], input(undefined), undefined, windowOf => windowOf(grid).setWidth(130));
+
+    // Two columns at 85 wide; at 130, three - the items row by row in their first order.
+    assert.deepEqual(items.map(item => [ rects.get(item).x, rects.get(item).y ]), [ [ 0, 0 ], [ 45, 0 ], [ 90, 0 ], [ 0, 35 ], [ 45, 35 ] ]);
+});
+
 await test('the grid\'s new-column test leaves out the spacing, as the client\'s does', () => {
     const items = [ 0, 1, 2 ].map(index => element('container', [ 0, 0, 40, 30 ], { name: `item${index}` }));
     const grid = element('itemgrid_vertical', [ 0, 0, 125, 100 ], { vars: { spacing: 5 }, children: items });

@@ -2,7 +2,7 @@ import { IAssetData, IAssetManager, IGraphicAsset, IGraphicAssetCollection, Nitr
 import { AnimatedGIF } from '@pixi/gif';
 import { Spritesheet, SpritesheetData, Texture, TextureSource } from 'pixi.js';
 
-import { NitroBundle, TextureUtils } from '../utils';
+import { LoadMetrics, NitroBundle, TextureUtils } from '../utils';
 import { GraphicAssetCollection } from './GraphicAssetCollection';
 
 export class AssetManager implements IAssetManager {
@@ -121,20 +121,37 @@ export class AssetManager implements IAssetManager {
     }
 
     public async downloadAsset(url: string): Promise<boolean> {
+        const ext = url ? url.slice(url.lastIndexOf('.') + 1) : '';
+        const measured = (ext === 'nitro') && LoadMetrics.enabled;
+
+        let succeeded = false;
+
         try {
             if (!url || !url.length) throw new Error(`Invalid url: ${url}`);
 
-            const ext = url.slice(url.lastIndexOf('.') + 1);
+            if (measured) LoadMetrics.mark(url, 'fetch');
+
             const response = await fetch(url);
 
             if (!response || response.status !== 200) throw new Error('Invalid response');
 
+            if (measured) LoadMetrics.mark(url, 'headers');
+
             const responseData = await response.arrayBuffer();
+
+            if (measured) {
+                LoadMetrics.mark(url, 'body');
+                LoadMetrics.addBytes(url, responseData.byteLength);
+            }
 
             switch (ext) {
                 case 'nitro': {
                     // Not retained, so nothing of it is kept beyond the collection it defines.
-                    await this.processNitroBundle(await NitroBundle.fromBuffer(responseData));
+                    const bundle = await NitroBundle.fromBuffer(responseData, measured ? url : undefined);
+
+                    if (measured) LoadMetrics.mark(url, 'decoded');
+
+                    await this.processNitroBundle(bundle);
                     break;
                 }
                 case 'gif': {
@@ -166,11 +183,15 @@ export class AssetManager implements IAssetManager {
                 }
             }
 
+            succeeded = true;
+
             return true;
         } catch (err) {
             NitroLogger.error(err);
 
             return false;
+        } finally {
+            if (measured) LoadMetrics.end(url, succeeded);
         }
     }
 
