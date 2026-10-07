@@ -20,7 +20,7 @@
  * `dynamic_widget_grid_separator`) are drawn when the hotel turns them on; it does not.
  */
 import { Container as PixiContainer } from 'pixi.js';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { hotelViewColorableFormat, hotelViewCommonSettings, hotelViewPaneWidths, hotelViewProperty, hotelViewSlotWidget, PORTED_LANDING_VIEW_WIDGETS, useConfigData, useTranslation } from '#base/context/system';
 import { useViewportSize } from '#base/hooks';
@@ -120,7 +120,8 @@ export const HotelViewWidgetGrid = () => {
     const configBoolean = (key: string) => configString(key) === 'true';
     const panes = hotelViewPaneWidths(config);
 
-    const onHeight = (slot: number, slotHeight: number) => setHeights(previous => ((previous[slot] === slotHeight) ? previous : { ...previous, [slot]: slotHeight }));
+    // Stable, so a slot reports its height when it changes rather than on every render of the grid.
+    const onHeight = useCallback((slot: number, slotHeight: number) => setHeights(previous => ((previous[slot] === slotHeight) ? previous : { ...previous, [slot]: slotHeight })), []);
 
     const widgetType = (slot: number) => hotelViewSlotWidget(config, slot);
     const occupied = (slot: number) => PORTED_LANDING_VIEW_WIDGETS.has(widgetType(slot));

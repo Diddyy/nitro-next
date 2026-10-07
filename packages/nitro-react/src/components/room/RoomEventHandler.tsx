@@ -1,7 +1,7 @@
 import { IRoomObject, MouseEventType, NitroLogger, RoomBackgroundColorEvent, RoomEngineObjectEvent, RoomObjectBadgeAssetEvent, RoomObjectCategoryEnum, RoomObjectDataRequestEvent, RoomObjectDimmerStateUpdateEvent, RoomObjectEvent, RoomObjectFloorHoleEvent, RoomObjectFurnitureActionEvent, RoomObjectHSLColorEnableEvent, RoomObjectMouseEvent, RoomObjectMoveEvent, RoomObjectRoomAdEvent, RoomObjectStateChangedEvent, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent, RoomSpriteMouseEvent, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
 import { RoomDimmerPresetsMessageType } from '@nitrodevco/nitro-packets';
 import { RoomObjectUpdateMessage } from '@nitrodevco/nitro-renderer';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { useRoom, useRoomIsPlayingGame, useRoomMouseActions, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
@@ -310,21 +310,30 @@ export const RoomEventHandler = () => {
         };
     }, [ room ]);
 
+    // The engine is handed one stable handler per room that calls the latest render's, rather than
+    // a new handler (and a clear in between) on every render.
+    const handleRoomObjectEventRef = useRef(handleRoomObjectEvent);
+    const handleRoomCanvasMouseEventRef = useRef(handleRoomCanvasMouseEvent);
+
+    useLayoutEffect(() => {
+        handleRoomObjectEventRef.current = handleRoomObjectEvent;
+        handleRoomCanvasMouseEventRef.current = handleRoomCanvasMouseEvent;
+    });
+
     useEffect(() => {
         if (!room) return;
 
-        room.eventHandler.setRoomObjectEventHandler(handleRoomObjectEvent);
+        const onRoomObjectEvent: typeof handleRoomObjectEvent = event => handleRoomObjectEventRef.current(event);
+        const onRoomCanvasMouseEvent: typeof handleRoomCanvasMouseEvent = (event, object) => handleRoomCanvasMouseEventRef.current(event, object);
 
-        return () => room.eventHandler.setRoomObjectEventHandler(undefined);
-    }, [ room, handleRoomObjectEvent ]);
+        room.eventHandler.setRoomObjectEventHandler(onRoomObjectEvent);
+        room.eventHandler.setRoomCanvasMouseHandler(onRoomCanvasMouseEvent);
 
-    useEffect(() => {
-        if (!room) return;
-
-        room.eventHandler.setRoomCanvasMouseHandler(handleRoomCanvasMouseEvent);
-
-        return () => room.eventHandler.setRoomCanvasMouseHandler(undefined);
-    }, [ room, handleRoomCanvasMouseEvent ]);
+        return () => {
+            room.eventHandler.setRoomObjectEventHandler(undefined);
+            room.eventHandler.setRoomCanvasMouseHandler(undefined);
+        };
+    }, [ room ]);
 
     return null;
 };

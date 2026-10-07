@@ -1,7 +1,7 @@
 import { FurnitureUsagePolicyEnum, IObjectData, IRoom, IRoomObjectController, IRoomPreviewerData, IVector3D, LegacyDataType, RoomEngineObjectEvent, RoomGeometryScaleType, RoomId, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectUserTypeName, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager, GetRoomEngine, GetTicker, GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, PointData } from 'pixi.js';
-import { RefObject, useEffect, useRef } from 'react';
+import { RefObject, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { useRoomMapping } from './useRoomMapping';
 
@@ -561,6 +561,16 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
         renderIntoContainer(target);
     };
 
+    // The ticker and the layout listener are added once per room; they call the latest render's
+    // functions, which read the current options (`transparent`, `scale`), not the first render's.
+    const renderRef = useRef(render);
+    const resizeRoomPreviewRef = useRef(resizeRoomPreview);
+
+    useLayoutEffect(() => {
+        renderRef.current = render;
+        resizeRoomPreviewRef.current = resizeRoomPreview;
+    });
+
     useEffect(() => {
         room?.canvas?.setBackgroundVisible(!transparent);
         applyFixedScale();
@@ -603,7 +613,7 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
         if (!room) return;
 
         // Presentation runs after the engine's HIGH-priority room tick (default priority is NORMAL).
-        const tick = () => render();
+        const tick = () => renderRef.current();
 
         GetTicker().add(tick);
 
@@ -617,7 +627,7 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
             const width = Math.floor(layoutNode.layout?.computedLayout?.width ?? layoutNode.width ?? 0);
             const height = Math.floor(layoutNode.layout?.computedLayout?.height ?? layoutNode.height ?? 0);
 
-            if (width > 0 && height > 0 && (width !== previewData.current.previewWidth || height !== previewData.current.previewHeight)) resizeRoomPreview(width, height);
+            if (width > 0 && height > 0 && (width !== previewData.current.previewWidth || height !== previewData.current.previewHeight)) resizeRoomPreviewRef.current(width, height);
         };
 
         if (target) {
