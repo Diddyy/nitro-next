@@ -44,6 +44,8 @@ export interface FriendListItemProps {
     /** The row's `color` - `FriendListLaf.getRowShadingColor` for its index in the list. */
     zebraColor?: string;
     onPress?: () => void;
+    /** `user_info_region` clicked (`onUserInfo`): opens the user's profile. Left out where the row has no profile (a group chat). */
+    onProfilePress?: () => void;
     /** The row's right-anchored controls, each placed absolutely at its layout rect. */
     children?: ReactNode;
 }
@@ -59,7 +61,7 @@ export interface FriendListItemProps {
  * `getAvatarFaceBitmap` (the `h`/`sh` head image) into a 20x20 bitmap instead, so the head's own
  * crop is the renderer's rather than Flash's.
  */
-export const FriendListItem = ({ user, entry, selected = false, hideAvatarElement = false, showAvatarHead = true, groupBadge = false, zebraColor, onPress, children }: FriendListItemProps) => {
+export const FriendListItem = ({ user, entry, selected = false, hideAvatarElement = false, showAvatarHead = true, groupBadge = false, zebraColor, onPress, onProfilePress, children }: FriendListItemProps) => {
     const { tooltipHandlers } = useFriendsActions();
     const profileHover = tooltipHandlers('infostand.profile.link.tooltip');
     const { texture: avatarTexture } = useAvatarImageTexture((showAvatarHead && !groupBadge) ? user.figure : undefined, user.gender ?? AvatarGenderType.Unisex, { headOnly: true, direction: 2 });
@@ -99,6 +101,10 @@ export const FriendListItem = ({ user, entry, selected = false, hideAvatarElemen
             )}
             <Region
                 cursor="pointer"
+                onPointerTap={onProfilePress && ((event) => {
+                    event.stopPropagation();
+                    onProfilePress();
+                })}
                 onPointerOver={profileHover.onMouseEnter}
                 onPointerOut={profileHover.onMouseLeave}
                 layout={{ position: 'absolute', left: geometry.eyeLeft, top: 5, width: 15, height: 11 }}

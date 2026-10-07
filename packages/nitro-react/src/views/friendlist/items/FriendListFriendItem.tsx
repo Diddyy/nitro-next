@@ -2,7 +2,7 @@ import { IMessengerFriend, MessengerFriendRelationType } from '@nitrodevco/nitro
 import { Container as PixiContainer } from 'pixi.js';
 import { memo, useRef, useState } from 'react';
 
-import { followFriend, openMessengerConversation, setRelationship } from '#base/commands';
+import { followFriend, openMessengerConversation, openProfile, setRelationship } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsActions, useFriendsStore } from '#base/context/friend';
 import { Border, FloatingPopup, getGlobalRect, GlobalRect, Icon, LayoutImage, Region, ThemeImage } from '#base/theme';
@@ -94,6 +94,7 @@ export const FriendListFriendItem = memo(({ friend, showRelationshipIcon = true,
             groupBadge={isGroupFriend}
             zebraColor={zebraColor}
             onPress={isGroupFriend ? undefined : () => toggleSelectedFriendId(friend.playerId)}
+            onProfilePress={isGroupFriend ? undefined : () => openProfile(send, friend.playerId)}
         >
             {showMessageIcon && (
                 <Region
