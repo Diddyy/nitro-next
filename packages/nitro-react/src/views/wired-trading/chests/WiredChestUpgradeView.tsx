@@ -21,7 +21,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData, useSystemStore, useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { WiredChestUpgradeRequest } from '#base/context/wired-trading';
-import { Border, TemplateWindow, ThemeImage } from '#base/theme';
+import { TemplateWindow, ThemeImage } from '#base/theme';
 import { useFurnitureImageTexture } from '#base/views/catalog/useFurnitureImageTexture';
 
 /** `getActivityPointsForType(5)`: diamonds. */
@@ -57,31 +57,6 @@ export const WiredChestImage = ({ furniTypeId }: { furniTypeId: number }) => {
             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
             layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
         />
-    );
-};
-
-/**
- * `product_image`: the chest furni at 64, facing 90 degrees - a 126x152 bitmap at 1,1 of the
- * `#f1f1f1` style 0 border, unscaled in its middle (`pivot_point` center) and cut at the border.
- */
-export const WiredChestPreview = ({ furniTypeId }: { furniTypeId: number }) => {
-    const furniData = useSystemStore(x => x.floorItems[furniTypeId]);
-    const { texture } = useFurnitureImageTexture(furniData?.className, furniData?.colorIndex ?? 0, 2, RoomGeometryScaleType.ZoomedIn, 0);
-
-    return (
-        <Border
-            variant="0"
-            tintColor="#f1f1f1"
-            layout={{ position: 'absolute', left: 10, top: 12, width: 126, height: 152, overflow: 'hidden' }}
-        >
-            {texture && (
-                <ThemeImage
-                    texture={texture}
-                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                    layout={{ position: 'absolute', left: 1, top: 1, width: 126, height: 152 }}
-                />
-            )}
-        </Border>
     );
 };
 
