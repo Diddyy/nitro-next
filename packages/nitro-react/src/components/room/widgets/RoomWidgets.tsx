@@ -5,7 +5,6 @@ import { RoomChatWidget } from './chat/RoomChatWidget';
 import { RoomFurniChooserWidget } from './chooser/RoomFurniChooserWidget';
 import { RoomUserChooserWidget } from './chooser/RoomUserChooserWidget';
 import { RoomDoorbellWidget } from './doorbell/RoomDoorbellWidget';
-import { RoomEffectsWidget } from './effects/RoomEffectsWidget';
 import { FloorPlanEditorWidget } from './floor-plan-editor/FloorPlanEditorWidget';
 import { RoomFriendRequestWidget } from './friend-request/RoomFriendRequestWidget';
 import { RoomFurnitureWidgets } from './furniture';
@@ -37,7 +36,6 @@ export const RoomWidgets = () => {
             <RoomPollWidget />
             <RoomQuizWidget />
             <RoomFriendRequestWidget />
-            <RoomEffectsWidget />
             <RoomInfoWidget />
             <FloorPlanEditorWidget />
             <RoomBotSkillConfigurationWidget />

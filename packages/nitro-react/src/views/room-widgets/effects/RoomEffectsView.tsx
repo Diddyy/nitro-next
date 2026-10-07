@@ -255,7 +255,7 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose, le
                 {!effects.length && (
                     <Region
                         name="no_effects"
-                        layout={{ position: 'absolute', left: 0, width: 190, top: 30, height: 48 }}
+                        layout={{ position: 'absolute', left: 0, width: 190, top: 30, height: 48, overflow: 'hidden' }}
                     >
                         <ThemeText
                             text={t('widget.memenu.effects.info')}
