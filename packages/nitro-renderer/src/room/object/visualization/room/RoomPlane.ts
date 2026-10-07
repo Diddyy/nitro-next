@@ -72,6 +72,10 @@ export class RoomPlane implements IRoomPlane {
 
     private readonly _type: number;
     private _isVisible = false;
+    /** The plane's texture is out of date and was not drawn yet: a budgeted pass left it for later. */
+    private _rasterPending = false;
+    /** The geometry the texture on show was drawn for (-1 before the first). */
+    private _drawnGeometryUpdateId = -1;
     private _offset: Point = new Point();
     private _relativeDepth = 0;
     private _color = 0;
@@ -187,7 +191,12 @@ export class RoomPlane implements IRoomPlane {
         this._coloredTexture = undefined;
     }
 
-    public update(geometry: IRoomGeometry, timeSinceStartMs: number): boolean {
+    /**
+     * Brings the plane up to date: its visibility, corners and screen rectangle always (cheap), its
+     * texture only when `canRasterize` - a room pass out of time leaves the drawing for a later
+     * frame (`rasterPending`), and the next call draws it whether or not anything changed since.
+     */
+    public update(geometry: IRoomGeometry, timeSinceStartMs: number, canRasterize: boolean = true): boolean {
         if (!geometry || this._disposed) return false;
 
         let geometryChanged = false;
@@ -208,7 +217,16 @@ export class RoomPlane implements IRoomPlane {
             if (result === true) return true;
         }
 
-        if (geometryChanged || this.needsNewTexture(geometry, timeSinceStartMs)) {
+        if (geometryChanged || this._rasterPending || this.needsNewTexture(geometry, timeSinceStartMs)) {
+            if (!canRasterize) {
+                this._rasterPending = true;
+
+                return false;
+            }
+
+            this._rasterPending = false;
+            this._drawnGeometryUpdateId = geometry.updateId;
+
             let width = 1;
             let height = 1;
 
@@ -794,6 +812,30 @@ export class RoomPlane implements IRoomPlane {
         if (!this._canBeVisible) this.resetTextureCache();
 
         this._canBeVisible = flag;
+    }
+
+    /** Whether the texture still has to be drawn (`update` without `canRasterize`). */
+    public get rasterPending(): boolean {
+        return this._rasterPending;
+    }
+
+    /**
+     * Whether the texture on show belongs to another geometry (another scale or view, or none drawn
+     * yet) while the current one waits: shown, it would sit in the wrong place. A plane that only
+     * waits for its next animation frame keeps showing the last one.
+     */
+    public get textureOutOfPlace(): boolean {
+        return this._rasterPending && (this._drawnGeometryUpdateId !== this._geometryUpdateId);
+    }
+
+    /**
+     * Where the plane's sprite covers, from its geometry alone - the rectangle its texture fills
+     * once drawn, known before it is: the sprite sits at `-offset` and is `width` by `height`.
+     */
+    public get screenBounds(): Rectangle | undefined {
+        if (!this.visible) return undefined;
+
+        return new Rectangle(-this._offset.x, -this._offset.y, this._width, this._height);
     }
 
     public get visible(): boolean {

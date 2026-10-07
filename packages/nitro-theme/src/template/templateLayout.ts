@@ -12,9 +12,8 @@
  * prevents them. Each window type's own skin layout (`WindowFactory` element descriptions) is left
  * to the theme's components, except a frame's content area, which children are placed in.
  *
- * Not yet: item grids and selector lists (the renderer flows their items), markup texts, a text's
- * layout while its caption is still empty, a scrollable list's scrollbar taking its width, and a
- * standalone scrollbar scrolling a text.
+ * Not yet: a selector list's items (the renderer flows them), a text's layout while its caption is
+ * still empty, and a standalone scrollbar scrolling a text.
  *
  * Kept free of runtime imports so it runs under Node as it stands.
  */
@@ -74,6 +73,21 @@ export interface TemplateLayoutInput {
     spacingOf?: (element: TemplateElement) => number | undefined;
     /** A scrollable list's `IScrollableListWindow.autoHideScrollBar`: `false` keeps its scrollbar while its items fit. */
     autoHideScrollBarOf?: (element: TemplateElement) => boolean;
+    /**
+     * A button's window layout (`habbo_window_layout_button*`): its size and its `_BTN_TEXT` label's
+     * text style and `margins`. Without one the button keeps its layout rect.
+     */
+    buttonLabelOf?: (element: TemplateElement) => TemplateButtonLabel | undefined;
+    /** A bitmap window's bitmap size, once it is loaded; `undefined` while it is not. */
+    bitmapSizeOf?: (element: TemplateElement) => { width: number; height: number } | undefined;
+}
+
+/** A button's `_BTN_TEXT` label as its window layout gives it, in a layout of `width` x `height`. */
+export interface TemplateButtonLabel {
+    width: number;
+    height: number;
+    textStyle: string;
+    margins: { left: number; top: number; right: number; bottom: number };
 }
 
 /** `WindowParam`'s layout bits. */
@@ -692,6 +706,72 @@ class TextWindow extends LayoutWindow {
     }
 }
 
+/** The `TextFieldController` types: `html` (`HTMLTextController`), `input`, `password`. */
+const FIELD_TAGS = new Set([ 'html', 'input', 'password' ]);
+
+/**
+ * `TextFieldController`: the window is its text field, with no margins. With an `auto_size` other than
+ * `none` the field follows the text as a Flash `TextField` does - unwrapped, its width and height,
+ * keeping its left edge, centre or right edge as `auto_size` names; wrapped, its height - and the
+ * window takes the field's rect (`_Str_18556`, `refreshTextImage`). A resize from outside sets the
+ * field's size, which it then fits to its text again.
+ */
+class TextFieldWindow extends LayoutWindow {
+    private _caption = '';
+    private _input: TemplateLayoutInput | undefined;
+    private _refreshing = false;
+
+    private get autoSize(): string {
+        const value = this.element?.vars.auto_size;
+
+        return typeof value === 'string' ? value : 'none';
+    }
+
+    private get wraps(): boolean {
+        return !!this.element && flashBool(this.element.vars.word_wrap);
+    }
+
+    public override setCaption(caption: string, input: TemplateLayoutInput): void {
+        this._caption = caption;
+        this._input = input;
+        this.refreshTextImage();
+    }
+
+    public override get textWidth(): number {
+        return measuredTextWidth(this.element, this._caption, this._input, this.wraps ? Math.max(1, this.width) : undefined);
+    }
+
+    public override setRectangle(x: number, y: number, width: number, height: number): void {
+        super.setRectangle(x, y, width, height);
+
+        if (!this._refreshing && this.autoSize !== 'none') this.refreshTextImage();
+    }
+
+    /** The field fitted to its text, the window to the field. */
+    public refreshTextImage(): void {
+        const autoSize = this.autoSize;
+
+        if (this._refreshing || !this.element || !this._input || !this._caption || autoSize === 'none') return;
+
+        const wraps = this.wraps;
+        const field = this._input.measure(this.element, this._caption, wraps ? Math.max(1, this.width) : undefined);
+
+        if (!field) return;
+
+        const width = wraps ? this.width : Math.floor(field.width);
+        const height = Math.floor(field.height);
+
+        if (width === this.width && height === this.height) return;
+
+        // An unwrapped field keeps the edge, or the centre, its `autoSize` names.
+        const shift = wraps ? 0 : autoSize === 'center' ? (this.width - width) / 2 : autoSize === 'right' ? this.width - width : 0;
+
+        this._refreshing = true;
+        this.setRectangle(this.x + shift, this.y, width, height);
+        this._refreshing = false;
+    }
+}
+
 /**
  * `ItemListController`: its items in an inner `_CONTAINER`, one after another along the list with
  * `spacing` between, only the visible ones placed; with `resize_on_item_update` the container's
@@ -1023,6 +1103,16 @@ class ScrollableWindow extends LayoutWindow {
     }
 
     /**
+     * Resized - by its parent, or by the window's code fitting it - its list has re-arranged to the new
+     * size, so the scrollbar is checked again, as Flash's follows its scrollable's `WE_RESIZED`.
+     */
+    public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
+        super.update(source, type, related);
+
+        if (type === 'RESIZED' && source === this) this.updateScrollbar();
+    }
+
+    /**
      * `ScrollableItemListWindow._Str_6204` on the scrollbar's `ENABLED` / `DISABLED`: it is enabled
      * while the list's content is taller than the list.
      */
@@ -1044,6 +1134,164 @@ class ScrollableWindow extends LayoutWindow {
             scrollbar.visible = false;
             list.setWidth(this.width);
         }
+    }
+}
+
+/**
+ * `BoxSizerController` (`boxsizer`): on a child added, removed, moved or resized, a child shown or hidden,
+ * or itself resized, its visible children are laid along it - across, or down when `vertical` - the
+ * first `padding_horizontal` / `padding_vertical` in, each next `spacing` after the last, all at the
+ * padding across. A child tagged `relative(n)` takes n shares of the length the others leave. Then the
+ * window's own handling: the layouts' boxes resize to accommodate what they hold.
+ */
+class BoxSizerWindow extends LayoutWindow {
+    private readonly _spacing: number;
+    private readonly _horizontalPadding: number;
+    private readonly _verticalPadding: number;
+    private readonly _vertical: boolean;
+
+    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent?: LayoutWindow) {
+        super(element, rect, param, parent);
+
+        const own = (key: string, fallback: number) => (element.vars[key] !== undefined && Number.isFinite(Number(element.vars[key])) ? int(Number(element.vars[key])) : fallback);
+
+        this._spacing = own('spacing', 5);
+        this._horizontalPadding = own('padding_horizontal', 8);
+        this._verticalPadding = own('padding_vertical', 8);
+        this._vertical = flashBool(element.vars.vertical);
+        this.arrange();
+    }
+
+    public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
+        if (type === 'CHILD_RELOCATED' || type === 'CHILD_REMOVED' || type === 'CHILD_ADDED' || type === 'CHILD_RESIZED' || type === 'RESIZED') this.arrange();
+
+        super.update(source, type, related);
+    }
+
+    /** `_Str_9056`: the n of a `relative(n)` tag - the last one, at least 0 - else 0. */
+    private static share(child: LayoutWindow): number {
+        let share = 0;
+
+        for (const tag of child.element?.tags ?? []) {
+            if (tag.includes('relative')) share = Math.max(0, int(Number(tag.slice(tag.indexOf('(') + 1, tag.indexOf(')'))) || 0));
+        }
+
+        return share;
+    }
+
+    /** `_Str_7516`. */
+    public arrange(): void {
+        // A field initialiser has not run while the constructor's `super` raises events.
+        if (this._spacing === undefined) return;
+
+        const visible = this.children.filter(child => child.visible);
+        const shares = visible.reduce((sum, child) => sum + BoxSizerWindow.share(child), 0);
+        // `_Str_22835`: the length less the padding, the fixed children and the spacing between them all.
+        const free = visible.reduce((length, child) => length - (BoxSizerWindow.share(child) === 0 ? ((this._vertical ? child.height : child.width) + this._spacing) : this._spacing), (this._vertical ? this.height - (this._verticalPadding * 2) : this.width - (this._horizontalPadding * 2))) + this._spacing;
+        let previous: LayoutWindow | undefined;
+
+        for (const child of this.children) {
+            if (!child.visible) continue;
+
+            const share = BoxSizerWindow.share(child);
+
+            if (this._vertical) {
+                child.setY(previous ? previous.y + previous.height + this._spacing : this._verticalPadding);
+                child.setX(this._horizontalPadding);
+
+                if (share > 0) child.setHeight((free * share) / shares);
+            } else {
+                child.setX(previous ? previous.x + previous.width + this._spacing : this._horizontalPadding);
+                child.setY(this._verticalPadding);
+
+                if (share > 0) child.setWidth((free * share) / shares);
+            }
+
+            previous = child;
+        }
+    }
+}
+
+/** The window types whose caption sizes them (`ButtonController`, `ButtonGroupController`, `TabButtonController`). */
+export const TEMPLATE_CAPTION_BUTTON_TAGS: ReadonlySet<string> = new Set([ 'button', 'button_thick', 'button_group_left', 'button_group_center', 'button_group_right', 'tab_button' ]);
+
+/**
+ * `ButtonController` (`button`, `button_thick`, and `ButtonGroupController`'s `button_group_*`): built
+ * from its window layout - a `_BTN_TEXT` label centred in it, made at the layout's size and then
+ * resized to its own rect - and always expanding to accommodate its children. Its caption goes to the
+ * label, which takes its text's size (`TextLabelController.refresh`); on the label's `CHILD_RESIZED`
+ * the button sets `width = 0` - its `width_min` holding it, its resize alignment keeping the edge it
+ * names - and then expands round the label. A button is as wide as its caption, never under its
+ * `width_min`.
+ *
+ * `TabButtonController` (`tab_button`): its layout's `TAB_BUTTON_TITLE` label beside a container at
+ * the layout's size; on a child resized it resizes to accommodate its children
+ * (`resizeToAccommodateChildren`) - growing or shrinking round the title, never under the container.
+ */
+class ButtonWindow extends LayoutWindow {
+    private _label: LayoutWindow;
+    private _skin: TemplateButtonLabel;
+    private _tab: boolean;
+
+    constructor(element: TemplateElement, rect: TemplateRect, param: number, parent: LayoutWindow | undefined, skin: TemplateButtonLabel) {
+        const tab = element.tag === 'tab_button';
+
+        super(element, { x: 0, y: 0, width: skin.width, height: skin.height }, (tab ? param : (param | P.expandToAccommodate)) >>> 0);
+
+        this._skin = skin;
+        this._tab = tab;
+
+        if (tab) {
+            const container = new LayoutWindow(undefined, { x: 0, y: 0, width: skin.width, height: skin.height }, P.parentGraphics);
+
+            container.skinPart = true;
+            this.addChild(container);
+        }
+
+        this._label = new LayoutWindow(undefined, { x: 0, y: 0, width: skin.width, height: skin.height }, (P.hCenter | P.vCenter | P.parentGraphics) >>> 0);
+        this._label.skinPart = true;
+        this.addChild(this._label);
+
+        const saved = this.param;
+
+        this.param = (this.param & ~P.reflect) >>> 0;
+        this.setRectangle(rect.x, rect.y, rect.width, rect.height);
+        this.param = saved;
+        this.previous = this.rect;
+
+        if (parent) {
+            this.parent = parent;
+            parent.addChild(this);
+        }
+    }
+
+    /** `ButtonController.caption`: the label's caption, which it lays out as `TextLabelController.refresh` does. */
+    public override setCaption(caption: string, input: TemplateLayoutInput): void {
+        if (!caption) return;
+
+        const { textStyle, margins } = this._skin;
+        const label: TemplateElement = { tag: 'label', x: 0, y: 0, width: 0, height: 0, vars: { text_style: textStyle }, children: [], style: this.element?.style };
+        const field = input.measure(label, caption, undefined);
+
+        if (!field) return;
+
+        const width = Math.floor(field.width) + margins.left + margins.right;
+        const height = Math.floor(field.height) + margins.top + margins.bottom;
+
+        if (width !== this._label.width || height > this._label.height) this._label.setRectangle(this._label.x, this._label.y, width, height);
+    }
+
+    /**
+     * On a child resized, before the window's own handling: `ButtonController.update`'s `width = 0`, or
+     * `TabButtonController.update`'s `resizeToAccommodateChildren`.
+     */
+    public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
+        if (type === 'CHILD_RESIZED') {
+            if (this._tab) this.resizeToAccommodateChildren();
+            else this.setWidth(0);
+        }
+
+        super.update(source, type, related);
     }
 }
 
@@ -1211,14 +1459,39 @@ const createWindow = (element: TemplateElement, rect: TemplateRect, param: numbe
     if (tabSkin) return new TabContextWindow(element, rect, param, parent, tabSkin, input);
     if (element.tag === 'tab_selector' || element.tag === 'selector_list') return new SelectorListWindow(element, rect, param, parent);
     if (element.tag === 'label') return new LabelWindow(element, rect, param, parent);
-    if (element.tag === 'text' || element.tag === 'link') return new TextWindow(element, rect, param, parent);
+
+    const buttonLabel = TEMPLATE_CAPTION_BUTTON_TAGS.has(element.tag) ? input.buttonLabelOf?.(element) : undefined;
+
+    if (buttonLabel) return new ButtonWindow(element, rect, param, parent, buttonLabel);
+    if (element.tag === 'text' || element.tag === 'link' || element.tag === 'formatted_text') return new TextWindow(element, rect, param, parent);
+    if (FIELD_TAGS.has(element.tag)) return new TextFieldWindow(element, rect, param, parent);
     // Without its window layout, a scrollable list or grid is laid out as the plain one.
     if (LIST_TAGS.has(element.tag)) return new ListWindow(element, rect, param, parent, { spacing: input.spacingOf?.(element) });
     if (GRID_TAGS.has(element.tag)) return new GridWindow(element, rect, param, parent, input.spacingOf?.(element));
     // A bubble is a `FrameController` too (`BubbleController`).
     if (element.tag === 'frame' || element.tag === 'bubble') return new FrameWindow(element, rect, param, parent);
+    if (element.tag === 'boxsizer') return new BoxSizerWindow(element, rect, param, parent);
 
     return new LayoutWindow(element, rect, param, parent);
+};
+
+const BITMAP_TAGS = new Set([ 'bitmap', 'static_bitmap' ]);
+
+/**
+ * `BitmapDataController._Str_8020` (`fit_size_to_contents`): once it has its bitmap, the window takes
+ * the bitmap's size times its zoom - `width` and then `height`, each through `setRectangle`.
+ */
+const fitBitmapToContents = (window: LayoutWindow, element: TemplateElement, input: TemplateLayoutInput): void => {
+    if (!BITMAP_TAGS.has(element.tag) || !flashBool(element.vars.fit_size_to_contents)) return;
+
+    const size = input.bitmapSizeOf?.(element);
+
+    if (!size) return;
+
+    const zoom = (value: TemplateValue | undefined) => (value !== undefined && Number.isFinite(Number(value)) ? Number(value) : 1);
+
+    window.setWidth(Math.abs(size.width * zoom(element.vars.zoom_x)));
+    window.setHeight(Math.abs(size.height * zoom(element.vars.zoom_y)));
 };
 
 /**
@@ -1233,6 +1506,8 @@ const build = (element: TemplateElement, parent: LayoutWindow | undefined, input
     const underIterable = !!parent?.iterable;
     const window = createWindow(element, layoutRect, param, underIterable ? undefined : parent, input);
     const [ minWidth, maxWidth, minHeight, maxHeight ] = element.limits ?? [ null, null, null, null ];
+
+    fitBitmapToContents(window, element, input);
 
     if (minWidth !== null) window.minWidth = minWidth;
     if (maxWidth !== null) window.maxWidth = maxWidth;
@@ -1286,7 +1561,8 @@ export const buildTemplateWindows = (elements: readonly TemplateElement[], input
     for (const element of elements) buildScope(element, undefined);
 
     if (input.visibleOf) {
-        const lists = new Set<ListWindow>();
+        // `CHILD_VISIBILITY`: the lists and boxes whose items were shown or hidden arrange them again.
+        const lists = new Set<ListWindow | BoxSizerWindow>();
 
         for (const [ element, window ] of windows) {
             const visible = input.visibleOf(element);
@@ -1298,6 +1574,7 @@ export const buildTemplateWindows = (elements: readonly TemplateElement[], input
             const list = window.parent instanceof ListContainer ? window.parent.parent : undefined;
 
             if (list instanceof ListWindow) lists.add(list);
+            if (window.parent instanceof BoxSizerWindow) lists.add(window.parent);
         }
 
         for (const list of lists) list.arrange();

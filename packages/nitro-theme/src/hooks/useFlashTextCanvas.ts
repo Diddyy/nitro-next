@@ -40,7 +40,7 @@ export interface FlashTextCanvasConfig {
 }
 
 /** A `<font face>` in markup, resolved the way a raw `fontFamily` override is. */
-const resolveMarkupFace = (face: string): Partial<FlashTextFormat> | undefined => {
+export const resolveMarkupFace = (face: string): Partial<FlashTextFormat> | undefined => {
     const resolved = flashFaceOverride(face);
 
     if (!resolved) return undefined;

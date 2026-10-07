@@ -659,12 +659,22 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         return true;
     }
 
+    /**
+     * How long one update may spend drawing plane textures. A large irregular room has hundreds of
+     * planes; drawn in one frame they stall it for seconds (black on a phone). Past the budget the
+     * rest are drawn in the next frames - every plane still takes its geometry each pass, so its
+     * visibility and screen rectangle (and the room's bounds) are right from the first.
+     */
+    public static PLANE_RASTER_BUDGET_MS: number = 12;
+
     protected updatePlanes(
         geometry: IRoomGeometry,
         geometryUpdate: boolean,
         timeSinceStartMs: number,
     ): boolean {
         this._assetUpdateCounter++;
+
+        const rasterStart = performance.now();
 
         if (geometryUpdate) {
             this._visiblePlanes = [];
@@ -694,7 +704,10 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                 if (plane) {
                     sprite.id = plane.uniqueId;
 
-                    if (plane.update(geometry, timeSinceStartMs)) {
+                    // The first plane is always drawn, so a pass always makes progress.
+                    const canRasterize = (performance.now() - rasterStart) < RoomVisualization.PLANE_RASTER_BUDGET_MS;
+
+                    if (plane.update(geometry, timeSinceStartMs, canRasterize)) {
                         if (plane.visible) {
                             depth = plane.relativeDepth + this.floorRelativeDepth + id / 1000;
 
@@ -712,12 +725,13 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                         updated = true;
                     }
 
-                    if (sprite.visible != (plane.visible && this._typeVisibility[plane.type])) {
+                    // A plane whose texture was drawn for another geometry stays hidden until its own is drawn.
+                    if (sprite.visible != (plane.visible && this._typeVisibility[plane.type] && !plane.textureOutOfPlace)) {
                         sprite.visible = !sprite.visible;
                         updated = true;
                     }
 
-                    if (sprite.visible) {
+                    if (plane.visible && this._typeVisibility[plane.type]) {
                         if (!hasVisiblePlanes) {
                             this._visiblePlanes.push(plane);
                             this._visiblePlaneSpriteNumbers.push(index);
@@ -842,8 +856,14 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         sprite.name = _arg_3 + '_' + this._assetUpdateCounter;
     }
 
+    /**
+     * The room's screen rectangle, from its planes' geometry rather than their drawn sprites: the
+     * planes are drawn over several frames (`PLANE_RASTER_BUDGET_MS`), and bounds taken from the ones
+     * drawn so far would centre the entry camera on a half-drawn room. Before any plane has its
+     * geometry, the sprites'.
+     */
     public override getBoundingRectangle(): Rectangle {
-        if (!this._boundingRectangle) this._boundingRectangle = super.getBoundingRectangle();
+        if (!this._boundingRectangle) this._boundingRectangle = this.getPlaneBounds() ?? super.getBoundingRectangle();
 
         return new Rectangle(
             this._boundingRectangle.x,
@@ -851,6 +871,24 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
             this._boundingRectangle.width,
             this._boundingRectangle.height,
         );
+    }
+
+    /** The union of the shown planes' screen rectangles, or `undefined` when none has one. */
+    private getPlaneBounds(): Rectangle | undefined {
+        let bounds: Rectangle | undefined = undefined;
+
+        for (const plane of this._planes) {
+            if (!plane || !this._typeVisibility[plane.type]) continue;
+
+            const rectangle = plane.screenBounds;
+
+            if (!rectangle || (rectangle.width <= 0) || (rectangle.height <= 0)) continue;
+
+            if (!bounds) bounds = rectangle;
+            else bounds.enlarge(rectangle);
+        }
+
+        return bounds;
     }
 
     public get planes(): IRoomPlane[] {

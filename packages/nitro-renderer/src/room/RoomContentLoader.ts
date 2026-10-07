@@ -12,10 +12,10 @@ import {
     RoomObjectUserType,
     RoomObjectUserTypeName,
     RoomObjectUserTypeUtils } from '@nitrodevco/nitro-api';
-import { Texture } from 'pixi.js';
+import { Texture, TextureSource } from 'pixi.js';
 
 import { GetAssetManager } from '../assets';
-import { GetTickerTime } from '../utils';
+import { GetTickerTime, TextureUtils } from '../utils';
 import { GetRoomEngine } from './GetRoomEngine';
 import { PetColorResult } from './PetColorResult';
 
@@ -38,11 +38,27 @@ export class RoomContentLoader implements IRoomContentLoader {
 
     /** Flash `purge`: how long a collection nothing references is kept before it is released. */
     public static PURGE_IDLE_MS: number = 20000;
+    /**
+     * How many furniture downloads run at once; the rest wait their turn. A large room asks for
+     * hundreds of types together, and decoding them all at once - each sheet's bitmap and GPU
+     * upload at the same moment - is what runs a phone's tab out of memory.
+     */
+    public static MAX_CONCURRENT_FURNITURE_DOWNLOADS: number = 4;
+    /**
+     * Furniture that changes how the room itself looks - the dimmers and the background toners -
+     * skips the queue: its logic, and so the room's colour, only applies once its asset is in.
+     */
+    public static PRIORITY_FURNITURE_PATTERN: RegExp = /dimmer|roombg|bg_color/i;
 
     private _iconListener: IRoomContentListener;
     private _images: Map<string, HTMLImageElement> = new Map();
     private _listeners: Map<string, Set<IEventDispatcher>> = new Map();
     private _downloads: Map<string, Promise<boolean>> = new Map();
+    /** Furniture downloads waiting for a slot, oldest first. */
+    private _downloadQueue: { type: string; start: () => void; cancel: () => void }[] = [];
+    private _activeQueuedDownloads: number = 0;
+    /** The types a `downloadAssetAsync` caller waits on: never dropped from the queue. */
+    private _awaitedTypes: Set<string> = new Set();
     /** The types this loader downloaded - the collections `purge` may release (Flash's own collection map). */
     private _downloadedTypes: Set<string> = new Set();
 
@@ -372,7 +388,50 @@ export class RoomContentLoader implements IRoomContentLoader {
     public async downloadAssetAsync(type: string): Promise<boolean> {
         if (this.getCollection(type)) return true;
 
-        return this.download(type);
+        this._awaitedTypes.add(type);
+
+        try {
+            return await this.download(type);
+        } finally {
+            this._awaitedTypes.delete(type);
+        }
+    }
+
+    /**
+     * A disposed room no longer waits for its content: it leaves every listener set, and a queued
+     * download (not yet started) nothing else waits for is dropped - leaving a big room does not
+     * go on loading its furniture alongside the next one.
+     */
+    public cancelDownloads(events: IEventDispatcher): void {
+        for (const [ type, listeners ] of this._listeners) {
+            listeners.delete(events);
+
+            if (!listeners.size) this._listeners.delete(type);
+        }
+
+        this._downloadQueue = this._downloadQueue.filter((entry) => {
+            if (this._listeners.has(entry.type) || this._awaitedTypes.has(entry.type)) return true;
+
+            entry.cancel();
+
+            return false;
+        });
+    }
+
+    /** Whether a type's download waits for a slot: furniture, but not the kind that changes the room. */
+    private isQueuedType(type: string): boolean {
+        if (RoomContentLoader.MANDATORY_LIBRARIES.includes(type) || (this._pets[type] !== undefined)) return false;
+
+        if ((this._activeObjects[type] === undefined) && (this._wallItems[type] === undefined)) return false;
+
+        return !RoomContentLoader.PRIORITY_FURNITURE_PATTERN.test(type);
+    }
+
+    /** Starts queued downloads while a slot is free. */
+    private pumpDownloadQueue(): void {
+        while ((this._activeQueuedDownloads < RoomContentLoader.MAX_CONCURRENT_FURNITURE_DOWNLOADS) && this._downloadQueue.length) {
+            this._downloadQueue.shift()?.start();
+        }
     }
 
     private download(type: string): Promise<boolean> {
@@ -384,11 +443,36 @@ export class RoomContentLoader implements IRoomContentLoader {
 
         if (!assetUrl || !assetUrl.length) return Promise.resolve(false);
 
-        const promise = GetAssetManager().downloadAsset(assetUrl)
+        const queued = this.isQueuedType(type);
+        const furniture = queued || RoomContentLoader.PRIORITY_FURNITURE_PATTERN.test(type);
+        const fetchAsset = (): Promise<boolean> => GetAssetManager().downloadAsset(assetUrl);
+        // A queued type takes a slot when one is free; dropped from the queue, it settles as a failure.
+        const downloaded: Promise<boolean> = queued
+            ? new Promise<boolean>((resolve) => {
+                    this._downloadQueue.push({
+                        type,
+                        start: () => {
+                            this._activeQueuedDownloads++;
+
+                            fetchAsset().then(resolve, () => resolve(false)).finally(() => {
+                                this._activeQueuedDownloads--;
+                                this.pumpDownloadQueue();
+                            });
+                        },
+                        cancel: () => resolve(false),
+                    });
+
+                    this.pumpDownloadQueue();
+                })
+            : fetchAsset();
+
+        const promise = downloaded
             .then((flag) => {
                 if (!flag) return false;
 
                 this._downloadedTypes.add(type);
+
+                if (furniture) this.makeSheetsGpuResident(type);
 
                 const petIndex = this._pets[type];
                 const collection = this.getCollection(type);
@@ -468,6 +552,31 @@ export class RoomContentLoader implements IRoomContentLoader {
 
             this._downloadedTypes.delete(type);
         }
+    }
+
+    /**
+     * With `furniture.sheets.gpu_resident` on, a furniture collection's sheets are uploaded to the
+     * GPU as soon as they are in and their decoded bitmaps closed (`TextureUtils.makeGpuResident`):
+     * each sheet is then held once, on the GPU, rather than as a bitmap too until its first draw.
+     * Off by default - a lost GPU context cannot restore such a sheet until the collection is
+     * purged and downloaded again.
+     */
+    private makeSheetsGpuResident(type: string): void {
+        if (GetConfigValue<boolean>('furniture.sheets.gpu_resident') !== true) return;
+
+        const collection = this.getCollection(type);
+
+        if (!collection) return;
+
+        const sources = new Set<TextureSource>();
+
+        if (collection.textureSource) sources.add(collection.textureSource);
+
+        for (const texture of collection.textures.values()) {
+            if (texture?.source) sources.add(texture.source);
+        }
+
+        for (const source of sources) TextureUtils.makeGpuResident(source);
     }
 
     public getAssetAliasName(name: string): string {

@@ -80,6 +80,7 @@
     "trading.warning.enabled": true,
     "web3trade.enabled": true,
     "fps.limit": 60,
+    "furniture.sheets.gpu_resident": false,
     "socket.url": "ws://localhost:9001",
     "motto.max.length": 38,
     "zoom.enabled": true,

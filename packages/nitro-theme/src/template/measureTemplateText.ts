@@ -3,7 +3,8 @@
  * out the way `ThemeText` draws it (`renderFlashTextCanvas` in the element's style), so the rect
  * `layoutTemplate` gives a text is the one its drawing fills.
  */
-import { FLASH_TEXT_GUTTER, FlashTextFieldOverrides, HABBO_TEXT_STYLES, renderFlashTextCanvas, resolveFlashTextFormat } from '../font/flash-text';
+import { FLASH_TEXT_GUTTER, FlashTextFieldOverrides, HABBO_TEXT_STYLES, parseFlashTextMarkup, renderFlashTextCanvas, resolveFlashTextFormat } from '../font/flash-text';
+import { resolveMarkupFace } from '../hooks/useFlashTextCanvas';
 import { flashFaceOverride, TextStyleKey, themeDefaultTextStyle } from '../utils';
 import type { TemplateElement } from './templateData';
 import type { TemplateTextSize } from './templateLayout';
@@ -96,17 +97,22 @@ export const templateWrapWidth = (fieldWidth: number) => Math.max(1, fieldWidth 
 const MAX_CACHED = 2000;
 const cache = new Map<string, TemplateTextSize | undefined>();
 
-/** The field size of `text` in `element`'s style; `wrapWidth` is the field's width when it wraps. */
+/** The texts whose caption is the field's `htmlText` (`FormattedTextController`, `HTMLTextController`), drawn as markup. */
+export const isMarkupTemplateText = (element: TemplateElement) => element.tag === 'formatted_text' || element.tag === 'html';
+
+/** The field size of `text` in `element`'s style - parsed as markup for a markup text; `wrapWidth` is the field's width when it wraps. */
 export const measureTemplateText = (element: TemplateElement, text: string, wrapWidth: number | undefined): TemplateTextSize | undefined => {
     const style = templateTextStyle(element);
     const fontSize = templateFontSize(element);
     const { fontFamily, flash } = templateTextFormat(element);
-    const key = `${style}\n${fontSize ?? ''}\n${fontFamily ?? ''}\n${JSON.stringify(flash)}\n${wrapWidth ?? ''}\n${text}`;
+    const markup = isMarkupTemplateText(element);
+    const key = `${markup ? 'markup' : 'plain'}\n${style}\n${fontSize ?? ''}\n${fontFamily ?? ''}\n${JSON.stringify(flash)}\n${wrapWidth ?? ''}\n${text}`;
 
     if (cache.has(key)) return cache.get(key);
 
     const format = resolveFlashTextFormat({ style: HABBO_TEXT_STYLES[style], field: flash, face: flashFaceOverride(fontFamily), fontSize });
-    const rendered = renderFlashTextCanvas(text, format, wrapWidth === undefined ? {} : { wordWrap: true, wrapWidth: templateWrapWidth(wrapWidth) });
+    const content = markup ? parseFlashTextMarkup(text, format, { resolveFace: resolveMarkupFace }) : text;
+    const rendered = content.length ? renderFlashTextCanvas(content, format, wrapWidth === undefined ? {} : { wordWrap: true, wrapWidth: templateWrapWidth(wrapWidth) }) : null;
     const size = rendered ? { width: rendered.width, height: rendered.height, textWidth: rendered.textWidth } : undefined;
 
     if (cache.size >= MAX_CACHED) cache.delete(cache.keys().next().value);

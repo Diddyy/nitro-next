@@ -252,6 +252,19 @@ export class AssetManager implements IAssetManager {
     }
 
     /**
+     * Forgets a retained bundle entirely: its raw entries, and its collection with every texture
+     * and the GPU sources they sit on (`removeCollection`). Only for a bundle nothing draws any
+     * more; asking for it again downloads it again.
+     */
+    public removeAssetBundle(name: string): void {
+        this._bundles.get(name)?.releaseData();
+        this._bundles.delete(name);
+        this._bundlePromises.delete(name);
+
+        this.removeCollection(name);
+    }
+
+    /**
      * A non-JSON, non-PNG entry of a retained bundle, as bytes - a `.ttf` face the client hands
      * to `FontFace`, and anything else carried through the archive verbatim.
      */

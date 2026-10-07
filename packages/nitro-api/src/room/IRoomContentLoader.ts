@@ -14,6 +14,8 @@ export interface IRoomContentLoader {
     downloadAssetAsync(type: string): Promise<boolean>;
     /** Flash `purge`: releases the collections nothing has referenced for a while. */
     purge(): void;
+    /** A disposed room's waits: its queued downloads that nothing else waits for are dropped. */
+    cancelDownloads(events: IEventDispatcher): void;
     isLoaderType(type: string): boolean;
     getCollection(name: string): IGraphicAssetCollection | undefined;
     getPlaceholderName(type: string): string;

@@ -12,7 +12,6 @@ export * from './useRoomFurnitureData';
 export * from './useRoomInventoryPlacementHandler';
 export * from './useRoomIsInitialized';
 export * from './useRoomMapping';
-export * from './useRoomMouse';
 export * from './useRoomObjectInteraction';
 export * from './useRoomObjectModify';
 export * from './useRoomObjectMove';

@@ -15,8 +15,7 @@ node scripts/build-asset-bundles.ts nitro-layouts fonts        # or just these
 | `nitro-layouts` | loose | the client's own art no Flash library has: the floor plan editor's tiles under `assets/window-manager`, `assets/avatar-editor` |
 | `fonts` | loose | the captured `*.air51.json` AIR bundles |
 | `font-faces` | loose | the `.ttf` faces the browser falls back to |
-| `loading-screen` | loose | `assets/loading-screen` - the loading screen's frame, loaded by name before anything else |
-| `loading-screen-photos` | loose | `assets/loading-screen-photos` - the loading screen's photos |
+| `loading-screen` | loose | `assets/loading-screen` - the loading screen's frame and photos, loaded by name before anything else and unloaded (`unloadAssetBundle`) once the client replaces the screen |
 | `sounds` | loose | the `.mp3` sounds under `assets/sounds`, loaded by name the first time one plays |
 
 One bundle is not built here: Nitro Studio builds and publishes them from the client release's

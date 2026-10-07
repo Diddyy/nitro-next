@@ -154,6 +154,27 @@ export class TextureUtils {
         return Texture.from(image);
     }
 
+    /**
+     * Uploads an image-backed source to the GPU now and closes the decoded bitmap behind it, so the
+     * sheet is held once - on the GPU - instead of also as a bitmap until its first draw. The
+     * renderer's texture garbage collection is turned off for it: with no bitmap left, an unloaded
+     * source could not upload again. Its owner releases it (`destroySource`). Does nothing for a
+     * source that is not an `ImageBitmap`, or while there is no renderer.
+     */
+    public static makeGpuResident(source: TextureSource): void {
+        const bitmap = source?.resource as unknown;
+
+        if (!source || source.destroyed || (typeof ImageBitmap === 'undefined') || !(bitmap instanceof ImageBitmap)) return;
+
+        const renderer = this.getRenderer();
+
+        if (!renderer) return;
+
+        source.autoGarbageCollect = false;
+        renderer.texture.initSource(source);
+        bitmap.close();
+    }
+
     /** Decodes an encoded image straight into a texture. A `Blob` is handed to the decoder as is - no intermediate byte copy. */
     public static async textureFromEncodedBytes(bytes: ArrayBuffer | Uint8Array | Blob, mimeType: string = 'image/png', label?: string): Promise<Texture> {
         const bitmap = await createImageBitmap(bytes instanceof Blob ? bytes : new Blob([ bytes as BlobPart ], { type: mimeType }));

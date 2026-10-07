@@ -21,6 +21,7 @@
  * types onto the same components, a text's style, colour, wrap and alignment read from its vars the
  * same way.
  */
+import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Graphics as PixiGraphics } from 'pixi.js';
 import { createContext, memo, ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
@@ -39,7 +40,7 @@ import { Droplist } from '../Droplist';
 import { Dropmenu } from '../Dropmenu';
 import { Frame, FrameProps } from '../Frame';
 import { Header } from '../Header';
-import { useTextureFromUrl } from '../hooks/usePixiTexture';
+import { loadTexture, useTextureFromUrl } from '../hooks/usePixiTexture';
 import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
 import { RadioButton } from '../RadioButton';
@@ -53,11 +54,11 @@ import { TabContext } from '../TabContext';
 import { TextInput } from '../TextInput';
 import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
-import { FlashBitmapVars, WindowPlacedContext } from '../utils';
-import { measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
+import { ButtonVariant, FlashBitmapVars, themeVariantOf, WindowPlacedContext } from '../utils';
+import { isMarkupTemplateText, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
-import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateRect } from './templateLayout';
+import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect } from './templateLayout';
 import { TemplateScrollbar, TemplateScrollTarget } from './TemplateScroll';
 import { TemplateScrollAxis, TemplateScrollStore } from './templateScrollStore';
 
@@ -95,7 +96,7 @@ export interface TemplateViewProps {
     frame?: TemplateFrameOptions;
 }
 
-export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection'>;
+export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection' | 'rememberPosition'>;
 
 type FrameSize = { width: number; height: number };
 
@@ -181,6 +182,62 @@ const bitmapVars = (vars: Record<string, TemplateValue>): FlashBitmapVars => {
     return bitmap;
 };
 
+/**
+ * What a bitmap window draws: the asset its code sets, else its layout's, as `imageUrl` finds it. A
+ * `${key}` in the name is the client's to fill (`${image.library.questing.url}`); any other `$` is an
+ * embedded asset's hashed name, which no bundle carries.
+ */
+const bitmapSourceOf = (element: TemplateElement, binding: TemplateBinding | undefined, imageUrl: ((asset: string) => string) | undefined): string | undefined => {
+    const name = binding?.asset ?? (flashString(element.vars.asset_uri) || flashString(element.vars.bitmap_asset_name));
+
+    return (name && !/\$(?!\{)/.test(name) && imageUrl) ? imageUrl(name) : undefined;
+};
+
+/**
+ * The bitmaps that take their own size (`fit_size_to_contents`) - what the layout reads their size
+ * from - with a redraw as each one loads, so the layout runs again with it.
+ */
+const useFittedBitmapSizes = (elements: readonly TemplateElement[], byElement: ReadonlyMap<TemplateElement, TemplateBinding>, imageUrl: ((asset: string) => string) | undefined) => {
+    const sources = new Map<TemplateElement, string>();
+    const walk = (element: TemplateElement) => {
+        if (BITMAP_TAGS.has(element.tag) && flashBool(element.vars.fit_size_to_contents)) {
+            const src = bitmapSourceOf(element, byElement.get(element), imageUrl);
+
+            if (src) sources.set(element, src);
+        }
+
+        element.children.forEach(walk);
+    };
+
+    elements.forEach(walk);
+
+    const missing = [ ...new Set(sources.values()) ].filter(src => !GetAssetManager().getTexture(src)).sort().join('\n');
+    const [ , setLoaded ] = useState(0);
+
+    useEffect(() => {
+        if (!missing) return;
+
+        let cancelled = false;
+
+        for (const src of missing.split('\n')) {
+            void loadTexture(src).then((texture) => {
+                if (texture && !cancelled) setLoaded(count => count + 1);
+            });
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [ missing ]);
+
+    return (element: TemplateElement) => {
+        const src = sources.get(element);
+        const texture = src ? GetAssetManager().getTexture(src) : undefined;
+
+        return texture ? { width: texture.width, height: texture.height } : undefined;
+    };
+};
+
 /** A widget's own vars, `<type>:`-prefixed in the layout (`badge_image:zoom_x`), without the prefix. */
 const widgetVars = (vars: Record<string, TemplateValue>, type: string): Record<string, TemplateValue> => {
     const prefix = `${type}:`;
@@ -258,7 +315,8 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     const wordWrap = !label && flashBool(element.vars.word_wrap);
     const autoSize = flashString(element.vars.auto_size) ?? (label ? 'left' : 'none');
     const align = autoSize === 'center' || autoSize === 'right' ? autoSize : undefined;
-    const { fontFamily, flash } = templateTextFormat(element);
+    const { fontFamily, flash: layoutFlash } = templateTextFormat(element);
+    const flash = binding?.etchingColor === undefined ? layoutFlash : { ...layoutFlash, etchingColor: binding.etchingColor || undefined };
     const text = captionOf(element, context, binding);
 
     if (!text) return null;
@@ -269,7 +327,7 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
             textStyle={style}
             textOptions={{ fill: color, fontFamily, fontSize: templateFontSize(element), wordWrap: wordWrap || undefined, wordWrapWidth: wordWrap ? templateWrapWidth(rect.width) : undefined, align }}
             flashFormat={flash.etchingColor ? { ...flash, etchingPosition: flash.etchingPosition ?? 'bottom' } : flash}
-            markup={element.tag === 'formatted_text' || element.tag === 'html' ? true : undefined}
+            markup={isMarkupTemplateText(element) || undefined}
             clip={!label && autoSize === 'none' ? true : undefined}
             dynamicRole={dynamicRoleOf(element)}
             verticalAlign="top"
@@ -282,8 +340,11 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
 const optionsOf = (element: TemplateElement, binding: TemplateBinding | undefined): readonly string[] | undefined => binding?.options
     ?? (Array.isArray(element.vars.item_array) ? element.vars.item_array.filter((item): item is string => typeof item === 'string') : undefined);
 
-/** What an element draws of its own, filling its rect, under its children. */
-const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, binding: TemplateBinding | undefined): ReactNode => {
+/**
+ * What an element draws of its own, filling its rect, under its children. `content` is the children
+ * of a face that holds them itself (`container_button`).
+ */
+const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, binding: TemplateBinding | undefined, content?: ReactNode): ReactNode => {
     const variant = binding?.style ?? element.style;
     const tintColor = tintOf(element, binding);
     const caption = captionOf(element, context, binding);
@@ -303,7 +364,20 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
                 value={caption}
                 onChange={text => binding?.onChange?.(text)}
                 onEnter={() => binding?.onEnter?.()}
-                onFocusChange={focused => (focused ? binding?.onFocus?.() : undefined)}
+                onKeyDown={(event) => {
+                    binding?.onKeyDown?.(event.key);
+                }}
+                onFocusChange={focused => (focused ? binding?.onFocus?.() : binding?.onBlur?.())}
+                restrict={binding?.restrict ?? (flashString(element.vars.restrict) || undefined)}
+                // `TextFieldController`'s `max_chars`, `word_wrap` / `multiline`, `display_as_password` and `always_show_selection`.
+                maxLength={Number(element.vars.max_chars) > 0 ? Number(element.vars.max_chars) : undefined}
+                multiline={flashBool(element.vars.multiline) || flashBool(element.vars.word_wrap) || undefined}
+                password={flashBool(element.vars.display_as_password) || undefined}
+                alwaysShowSelection={flashBool(element.vars.always_show_selection) || undefined}
+                // Focus the code gives or takes (`ITextFieldWindow.focus()`); left alone, the user's.
+                focused={binding?.focused}
+                // A disabled field (`Util.disableSection`) shows its text and takes no typing.
+                editable={binding?.disabled ? false : undefined}
                 textStyle={templateTextStyle(element)}
                 fontFamily={fontFamily}
                 fontSize={templateFontSize(element)}
@@ -318,22 +392,17 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     }
 
     if (BITMAP_TAGS.has(element.tag)) {
-        const layoutAsset = flashString(element.vars.asset_uri) || flashString(element.vars.bitmap_asset_name);
-        const asset = binding?.asset ?? layoutAsset;
-        // A `${key}` in it is the client's to fill (`${image.library.questing.url}`); any other `$` is
-        // an embedded asset's hashed name, which no bundle carries.
-        const drawable = (name: string | undefined) => (name && !/\$(?!\{)/.test(name) && context.imageUrl ? context.imageUrl(name) : undefined);
-        const src = drawable(asset);
+        const src = bitmapSourceOf(element, binding, context.imageUrl);
 
         if (!src) return null;
 
         return (
             <TemplateBitmap
                 src={src}
-                previous={drawable(layoutAsset)}
+                previous={bitmapSourceOf(element, undefined, context.imageUrl)}
                 // A colour the code sets (`IWindow.color`); the layout's own is not drawn on a bitmap.
                 tint={binding?.color !== undefined ? flashColor(binding.color)?.hex : undefined}
-                bitmap={bitmapVars(element.vars)}
+                bitmap={{ ...bitmapVars(element.vars), ...(binding?.pivot !== undefined && { pivot: binding.pivot }), ...(binding?.rotation !== undefined && { rotation: binding.rotation }) }}
                 dynamicRole={dynamicRoleOf(element)}
                 layout={{ ...FILL, width: rect.width, height: rect.height }}
             />
@@ -346,10 +415,31 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
 
         return (
             <ThemeImage
+                eventMode="none"
                 src={context.imageUrl(binding.asset)}
                 greyscale={binding.greyscale}
                 bitmap={bitmapVars(widgetVars(element.vars, 'badge_image'))}
                 layout={{ ...FILL, width: rect.width, height: rect.height }}
+            />
+        );
+    }
+
+    // `SeparatorWidget.refresh`: `illumina_light_separator_horizontal` tiled along the widget at
+    // `height / 2 - 1` - or `_vertical` down it at `width / 2 - 1` (`separator:vertical`).
+    if (element.tag === 'widget' && element.vars.widget_type === 'separator') {
+        if (!context.imageUrl) return null;
+
+        const vertical = flashBool(element.vars['separator:vertical']);
+        const offset = Math.trunc((vertical ? rect.width : rect.height) / 2) - 1;
+
+        return (
+            <ThemeImage
+                eventMode="none"
+                src={context.imageUrl(vertical ? 'illumina_light_separator_vertical' : 'illumina_light_separator_horizontal')}
+                bitmap={{ stretchedX: false, stretchedY: false, ...(vertical ? { wrapY: true } : { wrapX: true }) }}
+                layout={vertical
+                    ? { position: 'absolute', left: offset, top: 0, width: rect.width - offset, height: rect.height }
+                    : { position: 'absolute', left: 0, top: offset, width: rect.width, height: rect.height - offset }}
             />
         );
     }
@@ -396,6 +486,9 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
         case 'button_group_left': return (
             <ButtonGroupLeft
                 variant={variant}
+                selected={binding?.selected}
+                tooltip={tooltipOf(element, context, binding)}
+                onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
                 {text}
@@ -404,6 +497,9 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
         case 'button_group_center': return (
             <ButtonGroupCenter
                 variant={variant}
+                selected={binding?.selected}
+                tooltip={tooltipOf(element, context, binding)}
+                onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
                 {text}
@@ -412,6 +508,9 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
         case 'button_group_right': return (
             <ButtonGroupRight
                 variant={variant}
+                selected={binding?.selected}
+                tooltip={tooltipOf(element, context, binding)}
+                onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
                 {text}
@@ -425,11 +524,16 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
                 disabled={binding?.disabled}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
-            />
+            >
+                {content}
+            </ContainerButton>
         );
         case 'iconbutton': return (
             <IconButton
                 variant={variant}
+                tooltip={tooltipOf(element, context, binding)}
+                disabled={binding?.disabled}
+                onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             />
         );
@@ -439,9 +543,14 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
                 layout={{ position: 'absolute', left: 0, top: 0 }}
             />
         );
+        // `ISelectableWindow`: selected and disabled as its code sets them; a click is its code's to
+        // handle (`WE_SELECT` / `WE_UNSELECT`), which decides whether it changes.
         case 'checkbox': return (
             <CheckBox
                 variant={variant}
+                selected={binding?.selected}
+                disabled={binding?.disabled}
+                onPointerTap={binding?.onPointerTap}
                 layout={{ position: 'absolute', left: 0, top: 0 }}
             >
                 {text}
@@ -450,6 +559,9 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
         case 'radiobutton': return (
             <RadioButton
                 variant={variant}
+                selected={binding?.selected}
+                disabled={binding?.disabled}
+                onPointerTap={binding?.onPointerTap}
                 layout={{ position: 'absolute', left: 0, top: 0 }}
             >
                 {text}
@@ -484,6 +596,7 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
                         <Dropmenu
                             variant={variant}
                             tooltip={tooltipOf(element, context, binding)}
+                            disabled={binding?.disabled}
                             caption={context.resolveText(options[selection])}
                             options={options.map((option, index) => ({
                                 key: index,
@@ -529,7 +642,7 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
         }
         default: {
             // A plain window: its rect filled with its colour where it asks for a background.
-            const color = element.background || element.tag === 'background' ? flashColor(element.color) : undefined;
+            const color = (binding?.background ?? element.background) || element.tag === 'background' ? flashColor(binding?.color ?? element.color) : undefined;
 
             return color
                 ? (
@@ -552,9 +665,11 @@ const isRegion = (element: TemplateElement, binding: TemplateBinding | undefined
     || !!element.dynamicStyle
     || !!binding?.onPointerOver
     || !!binding?.onPointerOut
+    || !!binding?.onPointerDown
+    || !!binding?.onPointerUp
     || (!!binding?.onPointerTap && !CLICKABLE_FACES.has(element.tag));
 
-const CLICKABLE_FACES = new Set([ 'button', 'button_thick', 'container_button', 'tab_button', 'tab_container_button' ]);
+const CLICKABLE_FACES = new Set([ 'button', 'button_thick', 'container_button', 'tab_button', 'tab_container_button', 'button_group_left', 'button_group_center', 'button_group_right', 'checkbox', 'radiobutton', 'iconbutton' ]);
 
 /** Each standalone scrollbar's target, each target's axes, and the targets - by the elements, which stay the same array while nothing changes. */
 const SCROLL_LINKS = new WeakMap<readonly TemplateElement[], ScrollLinks>();
@@ -590,6 +705,7 @@ const TemplateBitmap = ({ src, previous, ...image }: ImageProps & { src: string;
         ? (
                 <ThemeImage
                     src={shown}
+                    eventMode="none"
                     {...image}
                 />
             )
@@ -652,6 +768,8 @@ interface ElementViewProps {
     flow?: Flow;
     /** A list's `show` over this item: whether it is one of the names shown. */
     shown?: boolean;
+    /** Drawn as shown whatever it is: an element kept mounted (`keepMounted`), inside the box that shows or hides it. */
+    reveal?: boolean;
 }
 
 /**
@@ -659,15 +777,41 @@ interface ElementViewProps {
  * element reads its binding and laid-out rect from the store itself - so a changed caption redraws
  * that text alone, not its parent or its siblings.
  */
-const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProps) => {
+const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementViewProps) => {
     const state = useSyncExternalStore(context.store.subscribe, () => context.store.get(element));
     const scrollLinks = useContext(ScrollLinksContext);
     const binding = state?.binding;
     const rect: TemplateRect = state?.rect ?? element;
     // A list's `show` decides for its items; otherwise the binding, over the layout.
-    const hidden = !(shown ?? binding?.visible ?? !element.hidden);
+    const hidden = !reveal && !(shown ?? binding?.visible ?? !element.hidden);
 
-    if (hidden && !context.showHidden) return null;
+    const concealed = hidden && !context.showHidden;
+
+    if (concealed && !binding?.keepMounted) return null;
+
+    // Kept mounted: drawn as shown inside a box that only stops drawing it while hidden, so hiding
+    // and showing it keeps what it holds. The box sits at the parent's origin, so the element is
+    // placed as it would be - outside a list's flow.
+    if (binding?.keepMounted && !reveal) {
+        return (
+            <Box
+                pointerTransparent
+                // Not drawn and not hit while hidden, and still laid out: what it holds keeps its size.
+                renderable={!concealed}
+                eventMode={concealed ? 'none' : undefined}
+                layout={{ position: 'absolute', left: 0, top: 0 }}
+            >
+                <ElementContent
+                    element={element}
+                    context={context}
+                    id={id}
+                    flow={flow}
+                    shown={shown}
+                    reveal
+                />
+            </Box>
+        );
+    }
 
     const alpha = (hidden ? 0.4 : 1) * (binding?.alpha ?? element.blend ?? 1);
     const list = TEMPLATE_LISTS[element.tag];
@@ -735,6 +879,8 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
                 onPointerTap={binding?.onPointerTap}
                 onPointerOver={binding?.onPointerOver}
                 onPointerOut={binding?.onPointerOut}
+                onPointerDown={binding?.onPointerDown}
+                onPointerUp={binding?.onPointerUp}
                 alpha={alpha}
                 layout={{ ...rectOf(rect, flow), overflow: rect.clip ? 'hidden' : undefined }}
             >
@@ -767,7 +913,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
                 margins={element.margins ?? [ 0, 0, 0, 0 ]}
                 defaultPosition={window ? window.defaultPosition : { x: 0, y: 0 }}
                 centered={window?.centered}
-                rememberPosition={!!window}
+                rememberPosition={!!window && (window.rememberPosition ?? true)}
                 draggable={!!window}
                 onClose={window?.onClose}
                 resizeDirection={resizeDirection}
@@ -786,6 +932,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
 
         return (
             <Box
+                pointerTransparent
                 layout={rectOf(rect, flow)}
                 alpha={alpha}
             >
@@ -801,6 +948,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
     if (element.tag === 'tab_context') {
         return (
             <Box
+                pointerTransparent
                 layout={rectOf(rect, flow)}
                 alpha={alpha}
             >
@@ -819,7 +967,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
         return (
             <Bubble
                 variant={element.style}
-                pointer={POINTER_DIRECTIONS.has(element.vars.direction as PointerDirection) ? element.vars.direction as PointerDirection : undefined}
+                pointer={binding?.direction ?? (POINTER_DIRECTIONS.has(element.vars.direction as PointerDirection) ? element.vars.direction as PointerDirection : undefined)}
                 tintColor={tintOf(element, binding)}
                 margins={element.margins ?? [ 0, 0, 0, 0 ]}
                 alpha={alpha}
@@ -838,6 +986,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
 
         return (
             <Box
+                pointerTransparent
                 layout={rectOf(rect, flow)}
                 alpha={alpha}
             >
@@ -865,6 +1014,7 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
 
         return (
             <Box
+                pointerTransparent
                 layout={{ ...rectOf(rect, flow), flexDirection: list.direction, flexWrap: list.wrap ? 'wrap' : undefined, gap: Number.isFinite(spacing) && spacing > 0 ? spacing : undefined, overflow: (list.scroll || rect.clip) ? 'hidden' : undefined }}
                 alpha={alpha}
             >
@@ -874,8 +1024,23 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
         );
     }
 
+    // A container button's windows are its children (`ContainerButtonController`): drawn in the button,
+    // where a press on them - an arrow icon over most of the button - is the button's.
+    if (element.tag === 'container_button') {
+        return (
+            <Box
+                pointerTransparent
+                layout={{ ...rectOf(rect, flow), overflow: rect.clip ? 'hidden' : undefined }}
+                alpha={alpha}
+            >
+                {faceOf(element, rect, context, binding, children)}
+            </Box>
+        );
+    }
+
     return (
         <Box
+            pointerTransparent
             layout={{ ...rectOf(rect, flow), overflow: rect.clip ? 'hidden' : undefined }}
             alpha={alpha}
         >
@@ -883,7 +1048,39 @@ const ElementView = memo(({ element, context, id, flow, shown }: ElementViewProp
             {children}
         </Box>
     );
-});
+};
+
+const ElementView = memo(ElementContent);
+
+/** The theme component each caption-sized button type draws as. */
+const BUTTON_CASCADE_KEYS: Readonly<Record<string, string>> = {
+    button: 'button',
+    button_thick: 'buttonThick',
+    button_group_left: 'buttonGroupLeft',
+    button_group_center: 'buttonGroupCenter',
+    button_group_right: 'buttonGroupRight',
+    tab_button: 'tabButton',
+};
+
+/**
+ * A button's window layout as the theme's variant of it carries it: the layout's size its minimum, its
+ * `_BTN_TEXT` label's `margins` its padding and the label's style its text style.
+ */
+const buttonLabelOf = (element: TemplateElement): TemplateButtonLabel | undefined => {
+    const variant = themeVariantOf<ButtonVariant>(BUTTON_CASCADE_KEYS[element.tag] ?? 'button', element.style ?? '0');
+    const layout = variant?.layout;
+
+    if (!variant?.textStyle || !layout || typeof layout !== 'object') return undefined;
+
+    const size = (value: unknown) => (typeof value === 'number' ? value : 0);
+
+    return {
+        width: size(layout.minWidth),
+        height: size(layout.minHeight),
+        textStyle: variant.textStyle,
+        margins: { left: size(layout.paddingLeft), top: size(layout.paddingTop), right: size(layout.paddingRight), bottom: size(layout.paddingBottom) },
+    };
+};
 
 ElementView.displayName = 'TemplateElementView';
 
@@ -904,9 +1101,10 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
     const sources = useMemo(() => (template.elements.length === 1 ? [ { ...template.elements[0], x: 0, y: 0 } ] : template.elements), [ template ]);
     // The clones the code adds, made into elements of their own; the rest are the template's.
     const [ expander ] = useState(() => new TemplateExpander());
-    const { elements, byElement, missing: missingKeys, arranges } = expander.expand(sources, bindings);
+    const { elements, byElement, missing: missingKeys, arranges, skins } = expander.expand(sources, bindings);
     const [ scroll ] = useState(() => new TemplateScrollStore());
     const scrollLinks = scrollLinksOf(elements);
+    const bitmapSizeOf = useFittedBitmapSizes(elements, byElement, imageUrl);
     const missing = missingKeys.join('\n');
 
     const context = useMemo<Context>(() => ({
@@ -959,11 +1157,18 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
         captionOf: element => context.resolveText(byElement.get(element)?.caption ?? element.caption),
         measure: measureTemplateText,
         visibleOf: element => shownBy.get(element) ?? byElement.get(element)?.visible ?? !element.hidden,
-        skinOf: element => template.skins?.[templateSkinKey(element.tag, element.style)],
+        // A clone made from another template - a catalogue widget's view - brings that template's skins.
+        skinOf: (element) => {
+            const key = templateSkinKey(element.tag, element.style);
+
+            return template.skins?.[key] ?? skins[key];
+        },
         scrollTargets: scrollLinks.scrollTargets,
         autoHideScrollBarOf: element => byElement.get(element)?.autoHideScrollBar ?? true,
         spacingOf: element => byElement.get(element)?.spacing,
         setupOf: element => setups.get(element),
+        buttonLabelOf,
+        bitmapSizeOf,
     }, (layoutWidth !== undefined || layoutHeight !== undefined) ? { width: layoutWidth ?? template.width, height: layoutHeight ?? template.height } : undefined, arrangeAll);
     const rootRect = elements.length === 1 ? rects.get(elements[0]) : undefined;
 
@@ -983,7 +1188,10 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
 
     return (
         // Opened as a window, the frame is on the desktop and this box holds nothing in its flow.
-        <Box layout={{ position: frame ? 'absolute' : 'relative', width: rootRect?.width ?? template.width, height: rootRect?.height ?? template.height }}>
+        <Box
+            pointerTransparent
+            layout={{ position: frame ? 'absolute' : 'relative', width: rootRect?.width ?? template.width, height: rootRect?.height ?? template.height }}
+        >
             <ScrollLinksContext.Provider value={scrollLinks}>
                 {elements.map((element, index) => (
                     <ElementView

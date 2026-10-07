@@ -94,7 +94,8 @@ export const FlashText = ({ rendered, layout, visible, alpha, x, y, clipWidth: o
             texture={texture}
             visible={visible}
             alpha={alpha}
-            eventMode={linked ? 'static' : undefined}
+            // Only a field with links takes the pointer; any other lets it through to what it labels.
+            eventMode={linked ? 'static' : 'none'}
             onPointerTap={linked ? onLinkTap : undefined}
             onPointerMove={linked ? onLinkHover : undefined}
             x={nudge ? x : undefined}

@@ -37,3 +37,28 @@ export const useTemplate = (id: string) => {
 
     return template;
 };
+
+const readLibrary = (library: string) => GetAssetManager().getBundleFile<TemplateLibrary>(library, 'templates');
+
+/**
+ * Every template of a library (`habbo-catalog-com`), by id - for code that builds windows from
+ * several of its assets as it goes (`getAssetByName(widgetId)`, each grid item's template), loaded as
+ * `useTemplate` loads one. `undefined` until the bundles are in.
+ */
+export const useTemplateLibrary = (library: string) => {
+    const [ templates, setTemplates ] = useState(() => readLibrary(library)?.templates);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        void Promise.all([ loadTemplateBundle(library), library === WINDOW_MANAGER ? true : loadTemplateBundle(WINDOW_MANAGER) ]).then(() => {
+            if (!cancelled) setTemplates(readLibrary(library)?.templates);
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [ library ]);
+
+    return templates;
+};

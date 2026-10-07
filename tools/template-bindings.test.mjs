@@ -219,3 +219,28 @@ await test('clones nest, their arranges run parents first, and a missing prototy
     assert.equal(missing.length, 1);
     assert.match(missing[0], /lost: nothing$/);
 });
+
+await test('added clones come after an element\'s own children, which stay the template\'s', () => {
+    const expander = new TemplateExpander();
+    const { elements, byElement } = expander.expand([ window ], {
+        window: { added: [ { key: 'badge', from: 'row', bindings: { room_name: { caption: 'Badge' } } } ] },
+    });
+    const [ expandedWindow ] = elements;
+    const [ ownHeader, ownList, badge ] = expandedWindow.children;
+
+    assert.equal(ownHeader, header);
+    assert.equal(ownList, list);
+    assert.equal(badge.itemKey, 'badge');
+    assert.equal(byElement.get(badge.children[0]).caption, 'Badge');
+    assert.equal(byElement.get(expandedWindow)?.added, undefined, 'the added clones are made into elements, not handed on');
+});
+
+await test('a clone made from another template brings that template\'s skins', () => {
+    const skin = { name: 'grid_skin', width: 40, height: 40, elements: [] };
+    const widget = { name: 'widget', width: 100, height: 100, elements: [ element('widget_root') ], skins: { 'scrollable_itemgrid_vertical:3': skin } };
+    const { skins } = new TemplateExpander().expand([ window ], {
+        window: { added: [ { key: 'widget', from: widget } ] },
+    });
+
+    assert.equal(skins['scrollable_itemgrid_vertical:3'], skin);
+});

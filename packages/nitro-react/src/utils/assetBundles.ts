@@ -102,6 +102,12 @@ export const loadAssetBundle = async (name: string): Promise<boolean> => {
 };
 
 /**
+ * Drops a bundle that is done with - the loading screen's, once the client has replaced it - and
+ * frees its textures on the GPU. Nothing may still draw from it.
+ */
+export const unloadAssetBundle = (name: string): void => GetAssetManager().removeAssetBundle(name);
+
+/**
  * A Flash library's window templates and every bitmap of the library's, in a bundle named after it -
  * which Nitro Studio publishes from the client release, one bundle per library, at
  * `ui.templates.url` with `%libname%` the library. Loaded the first time a template of the library

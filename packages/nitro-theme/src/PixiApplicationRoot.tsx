@@ -5,6 +5,7 @@ import { ReactNode, useCallback, useRef } from 'react';
 
 import { useThemeConfigValue } from './host';
 import { GetPixelRatio } from './utils/GetPixelRatio';
+import { gateLayoutWalk } from './utils/layoutWalkGate';
 
 /** `renderer.color.space` in nitro-config.json: the port's own key - Flash drew in sRGB and had no such setting. */
 const COLOR_SPACE_KEY = 'renderer.color.space';
@@ -66,6 +67,9 @@ interface PixiApplicationRootProps {
     children?: ReactNode;
 }
 
+/** The UI's render group: the whole stage, which is the screen's size (`applyScreenLayout`). */
+const UI_LAYOUT = { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' } as const;
+
 /** The client's canvas: the whole window, under everything else on the page. */
 const FULL_WINDOW_CANVAS = 'position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; image-rendering: pixelated;';
 
@@ -98,6 +102,8 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
 
         applyScreenLayout();
         app.renderer.on('resize', applyScreenLayout);
+        // The stage's layout walk runs only after something in its layout changed.
+        gateLayoutWalk(app.renderer, app.stage);
 
         onReady();
     }, [ onReady, onInit, colorSpace, canvasStyle ]);
@@ -114,7 +120,18 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
             preserveDrawingBuffer={false}
             sharedTicker
         >
-            {children}
+            {/* The UI is a render group of its own: what changes in the room under it (sprites
+                added, hidden, re-textured every frame) rebuilds only the stage's instructions, and
+                a window opening or a text changing rebuilds only the UI's - each keeps its batches
+                while the other changes. It fills the stage, so the UI lays out against the screen
+                as it did on the stage itself. */}
+            <pixiContainer
+                label="ui"
+                isRenderGroup
+                layout={UI_LAYOUT}
+            >
+                {children}
+            </pixiContainer>
         </Application>
     );
 };

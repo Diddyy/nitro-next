@@ -6,6 +6,7 @@
 import type { FederatedPointerEvent } from 'pixi.js';
 import type { ReactNode } from 'react';
 
+import type { PivotPoint } from '../utils/flashBitmap';
 import type { Template, TemplateElement } from './templateData';
 import type { LayoutWindow, TemplateRect } from './templateLayout';
 
@@ -31,6 +32,14 @@ export interface TemplateBinding {
      * a `badge_image` widget's badge (`BadgeImageWidget.badgeId`), as its image's url.
      */
     asset?: string;
+    /** `IWindow.background`: a plain window fills its rect with its colour. */
+    background?: boolean;
+    /** A bitmap's `pivotPoint` (`IBitmapWrapperWindow.pivotPoint`), over its `pivot_point`: `'center'`, `'bottom center'`... */
+    pivot?: PivotPoint;
+    /** A bubble's pointer side (`IBubbleWindow.direction`), over its `direction` var. */
+    direction?: 'up' | 'down' | 'left' | 'right';
+    /** A bitmap's `rotation` in degrees, over its `rotation` var. */
+    rotation?: number;
     /** A `badge_image` widget's `greyscale`. */
     greyscale?: boolean;
     /** Over the layout's `style` (`IWindow.style`) - an icon's icon-set style. */
@@ -38,23 +47,39 @@ export interface TemplateBinding {
     /** `IWindow.blend`, over the layout's. */
     alpha?: number;
     disabled?: boolean;
-    /** A tab button's `ISelectableWindow.select()` / `unselect()`. */
+    /** A tab button's or a checkbox's `ISelectableWindow.select()` / `unselect()`. */
     selected?: boolean;
     /** `WME_CLICK`; the event's `currentTarget` is the element's window (`getGlobalRectangle`). */
     onPointerTap?: (event: FederatedPointerEvent) => void;
     /** `WME_OVER` / `WME_OUT` on the element. */
     onPointerOver?: (event: FederatedPointerEvent) => void;
     onPointerOut?: (event: FederatedPointerEvent) => void;
+    /** `WME_DOWN` / `WME_UP` on the element. */
+    onPointerDown?: (event: FederatedPointerEvent) => void;
+    onPointerUp?: (event: FederatedPointerEvent) => void;
     /** An input's text as typed (`WE_CHANGE`); its `caption` is the text it holds. */
     onChange?: (text: string) => void;
     /** An input's Enter (`WKE_KEY_UP` with key code 13). */
     onEnter?: () => void;
+    /** A key pressed in an input (`WKE_KEY_DOWN`), by its `KeyboardEvent.key` (`'Escape'`). */
+    onKeyDown?: (key: string) => void;
+    /** An input losing the focus - a click outside it (`WME_CLICK_AWAY`). */
+    onBlur?: () => void;
+    /**
+     * An input's focus held by its code (`ITextFieldWindow.focus()`): focused exactly while true, and
+     * the user's own when left undefined - so code that sets it follows `onFocus` / `onBlur`.
+     */
+    focused?: boolean;
+    /** An input's `ITextFieldWindow.restrict`: the characters it takes (`'0-9'`). */
+    restrict?: string;
     /** An item list's `spacing` between its items, over the layout's (`IItemListWindow.spacing`). */
     spacing?: number;
     /** A scrollable list's `autoHideScrollBar`: `false` keeps its scrollbar, disabled, while its items fit. */
     autoHideScrollBar?: boolean;
     /** An input taking the focus (`WE_FOCUSED`). */
     onFocus?: () => void;
+    /** A text's etching colour (`ITextWindow.etchingColor`), `0xAARRGGBB`; 0 for none. */
+    etchingColor?: number;
     /** An input's `ITextFieldWindow.italic`. */
     italic?: boolean;
     /** A drop menu's entries (`IDropMenuWindow.populate`), shown in it as its caption is. */
@@ -78,6 +103,17 @@ export interface TemplateBinding {
      * each): laid out as its own, so a list arranges and sizes them. See `TemplateItem`.
      */
     items?: readonly TemplateItem[];
+    /**
+     * While hidden, still built - drawn invisible - so what the code put in it stays: Flash keeps a
+     * hidden window and its children (a room canvas the code keeps feeding while it is hidden).
+     * For a window outside a list's flow.
+     */
+    keepMounted?: boolean;
+    /**
+     * Clones added after its own children (`addChild` of a window built with `buildFromXML` or
+     * cloned), laid out with them - placed by their own rects and their `arrange`.
+     */
+    added?: readonly TemplateItem[];
 }
 
 /** The windows of a laid-out template, found as bindings find elements (a name, or a `/` path). */
@@ -108,7 +144,7 @@ export interface TemplateItem {
 
 /**
  * Bindings by element name, or by a `/`-separated path of names for a lookup scoped to a parent
- * (`panel.findChildByName("name")` is `'panel/name'`); `''` is the window itself - the template's
+ * (`panel.findChildByName("name")` is `'panel/name'`), a `#TAG` part for `findChildByTag`; `''` is the window itself - the template's
  * root, or a clone - which code holds rather than finds (`_window.caption`).
  */
 export type TemplateBindings = Record<string, TemplateBinding>;
@@ -117,13 +153,18 @@ export type TemplateBindings = Record<string, TemplateBinding>;
  * Flash `WindowController.findChildByName`: the direct children first, then each child's subtree in
  * turn - the first match wins, so a name used twice finds the one this order reaches first.
  */
-export const findTemplateChild = (children: readonly TemplateElement[], name: string): TemplateElement | undefined => {
-    const direct = children.find(child => child.name === name);
+export const findTemplateChild = (children: readonly TemplateElement[], name: string): TemplateElement | undefined => findTemplateChildWhere(children, child => child.name === name);
+
+/** `findChildByTag`: the first element, in `findChildByName`'s order, carrying the tag. */
+export const findTemplateChildByTag = (children: readonly TemplateElement[], tag: string): TemplateElement | undefined => findTemplateChildWhere(children, child => !!child.tags?.includes(tag));
+
+const findTemplateChildWhere = (children: readonly TemplateElement[], test: (child: TemplateElement) => boolean): TemplateElement | undefined => {
+    const direct = children.find(test);
 
     if (direct) return direct;
 
     for (const child of children) {
-        const found = findTemplateChild(child.children, name);
+        const found = findTemplateChildWhere(child.children, test);
 
         if (found) return found;
     }
@@ -131,7 +172,10 @@ export const findTemplateChild = (children: readonly TemplateElement[], name: st
     return undefined;
 };
 
-/** A binding key's element: each `/`-separated name looked up inside the last one's children; `''` the first root. */
+/**
+ * A binding key's element: each `/`-separated name looked up inside the last one's children - a
+ * `#TAG` part by its tag (`findChildByTag`); `''` the first root.
+ */
 const findByKey = (elements: readonly TemplateElement[], key: string): TemplateElement | undefined => {
     if (key === '') return elements[0];
 
@@ -139,7 +183,7 @@ const findByKey = (elements: readonly TemplateElement[], key: string): TemplateE
     let found: TemplateElement | undefined;
 
     for (const name of key.split('/')) {
-        found = findTemplateChild(scope, name);
+        found = name.startsWith('#') ? findTemplateChildByTag(scope, name.slice(1)) : findTemplateChild(scope, name);
 
         if (!found) return undefined;
 
@@ -177,6 +221,11 @@ export interface TemplateExpansion {
     missing: string[];
     /** Each clone's `arrange` and the clone it finds in, a parent's before its children's. */
     arranges: { scope: TemplateElement; arrange: (windows: TemplateWindows) => void }[];
+    /**
+     * The window layouts (`Template.skins`) of the templates clones were made from - a catalogue
+     * widget's view built into its page - which the page's own template need not carry.
+     */
+    skins: Record<string, Template>;
 }
 
 interface ExpandedNode {
@@ -200,7 +249,7 @@ export class TemplateExpander {
     private _roots: TemplateElement[] = [];
 
     public expand(elements: readonly TemplateElement[], bindings: TemplateBindings | undefined): TemplateExpansion {
-        const expansion: TemplateExpansion = { elements: [], byElement: new Map(), missing: [], arranges: [] };
+        const expansion: TemplateExpansion = { elements: [], byElement: new Map(), missing: [], arranges: [], skins: {} };
 
         this._next = new Map();
 
@@ -225,28 +274,33 @@ export class TemplateExpander {
         for (const key of missing) expansion.missing.push(path ? `${path}: ${key}` : key);
 
         const build = (source: TemplateElement, nodePath: string, key: string | undefined): TemplateElement => {
-            const { items, ...binding } = bound.get(source) ?? {};
+            const { items, added, ...binding } = bound.get(source) ?? {};
+            const clone = (item: TemplateItem): TemplateElement[] => {
+                const prototype = typeof item.from === 'string' ? findByKey(prototypes, item.from) : 'tag' in item.from ? item.from : item.from.elements[0];
+
+                if (!prototype) {
+                    expansion.missing.push(`${nodePath}#${item.key}: ${typeof item.from === 'string' ? item.from : (item.from.name ?? '')}`);
+
+                    return [];
+                }
+
+                if (typeof item.from !== 'string' && !('tag' in item.from) && item.from.skins) Object.assign(expansion.skins, item.from.skins);
+
+                const entry = item.arrange ? { scope: prototype, arrange: item.arrange } : undefined;
+
+                if (entry) expansion.arranges.push(entry);
+
+                const [ made ] = this.scope([ prototype ], item.bindings, `${nodePath}#${item.key}`, true, item.key, prototypes, expansion);
+
+                if (entry) entry.scope = made;
+
+                return [ made ];
+            };
             const children = items
-                ? items.flatMap((item) => {
-                        const prototype = typeof item.from === 'string' ? findByKey(prototypes, item.from) : 'tag' in item.from ? item.from : item.from.elements[0];
-
-                        if (!prototype) {
-                            expansion.missing.push(`${nodePath}#${item.key}: ${typeof item.from === 'string' ? item.from : (item.from.name ?? '')}`);
-
-                            return [];
-                        }
-
-                        const entry = item.arrange ? { scope: prototype, arrange: item.arrange } : undefined;
-
-                        if (entry) expansion.arranges.push(entry);
-
-                        const [ clone ] = this.scope([ prototype ], item.bindings, `${nodePath}#${item.key}`, true, item.key, prototypes, expansion);
-
-                        if (entry) entry.scope = clone;
-
-                        return [ clone ];
-                    })
+                ? items.flatMap(clone)
                 : source.children.map((child, index) => build(child, `${nodePath}/${index}`, undefined));
+
+            if (added) children.push(...added.flatMap(clone));
             const node = this.node(nodePath, source, children, fresh, key);
 
             if (bound.has(source)) expansion.byElement.set(node, binding);
@@ -292,7 +346,7 @@ export const bindElements = (targets: ReadonlyMap<string, TemplateElement>, bind
 };
 
 /** The handlers a binding carries: each is handed to the element as one stable function that calls the latest. */
-const HANDLERS = [ 'onPointerTap', 'onPointerOver', 'onPointerOut', 'onChange', 'onEnter', 'onFocus', 'onSelect' ] as const;
+const HANDLERS = [ 'onPointerTap', 'onPointerOver', 'onPointerOut', 'onPointerDown', 'onPointerUp', 'onChange', 'onEnter', 'onKeyDown', 'onBlur', 'onFocus', 'onSelect' ] as const;
 
 type TemplateHandler = typeof HANDLERS[number];
 
@@ -317,9 +371,17 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.autoHideScrollBar === b.autoHideScrollBar
         && a.spacing === b.spacing
         && a.italic === b.italic
+        && a.restrict === b.restrict
+        && a.focused === b.focused
+        && a.etchingColor === b.etchingColor
         && a.selection === b.selection
         && (a.options === b.options || (!!a.options && !!b.options && a.options.length === b.options.length && a.options.every((option, index) => option === b.options?.[index])))
         && a.children === b.children
+        && a.keepMounted === b.keepMounted
+        && a.background === b.background
+        && a.pivot === b.pivot
+        && a.rotation === b.rotation
+        && a.direction === b.direction
         && HANDLERS.every(handler => !a[handler] === !b[handler])
         && (a.show === b.show || (!!a.show && !!b.show && a.show.length === b.show.length && a.show.every((name, index) => name === b.show?.[index])));
 };

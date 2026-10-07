@@ -183,5 +183,9 @@ export const getPixiTextStyle = (key: TextStyleKey, overrides?: TextStyleOptions
         return style;
     }
 
-    return new TextStyle({ ...options, ...overrides });
+    // An override left `undefined` keeps the style's own value: spread as it is, it would replace it
+    // (a `fill: undefined` drawing no fill at all).
+    const set = Object.fromEntries(Object.entries(overrides).filter(([ , value ]) => value !== undefined)) as TextStyleOptions;
+
+    return new TextStyle({ ...options, ...set });
 };

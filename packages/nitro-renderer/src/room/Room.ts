@@ -181,6 +181,9 @@ export class Room implements IRoom {
     public dispose(): void {
         if (this._disposed) return;
 
+        // Its furniture still waiting for a download slot is no longer wanted.
+        GetRoomContentLoader().cancelDownloads(this._eventDispatcher);
+
         this.removeAllRoomObjectManagers();
 
         if (this._canvas) {

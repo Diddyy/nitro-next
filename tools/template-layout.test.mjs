@@ -110,6 +110,33 @@ await test('a left auto-sized text takes the field width, growing leftwards when
     assert.deepEqual(layoutTemplate([ count ], input({ width: 31, height: 17 })).get(count), { x: 4, y: 2, width: 31, height: 17 });
 });
 
+await test('a formatted text auto-sizes as a text does', () => {
+    const formatted = element('formatted_text', [ 5, 0, 280, 40 ], { vars: { auto_size: 'left' } });
+
+    assert.deepEqual(layoutTemplate([ formatted ], input({ width: 31, height: 17 })).get(formatted), { x: 5, y: 0, width: 31, height: 17 });
+});
+
+await test('an auto-sized html field takes its text\'s size, keeping the edge or centre its auto size names', () => {
+    const left = element('html', [ 10, 5, 100, 40 ], { vars: { auto_size: 'left' } });
+    const centred = element('html', [ 10, 5, 100, 40 ], { vars: { auto_size: 'center' } });
+    const right = element('html', [ 10, 5, 100, 40 ], { vars: { auto_size: 'right' } });
+    const rects = layoutTemplate([ left, centred, right ], input({ width: 31, height: 17 }));
+
+    assert.deepEqual(rects.get(left), { x: 10, y: 5, width: 31, height: 17 });
+    // (100 - 31) / 2 = 34.5 to the right, truncated as the int argument is.
+    assert.deepEqual(rects.get(centred), { x: 44, y: 5, width: 31, height: 17 });
+    assert.deepEqual(rects.get(right), { x: 79, y: 5, width: 31, height: 17 });
+});
+
+await test('a wrapped auto-sized html field keeps its width and takes its text\'s height; no auto size keeps its rect', () => {
+    const wrapped = element('html', [ 10, 5, 100, 40 ], { vars: { auto_size: 'center', word_wrap: true } });
+    const fixed = element('html', [ 10, 5, 100, 40 ]);
+    const rects = layoutTemplate([ wrapped, fixed ], input({ width: 100, height: 30 }));
+
+    assert.deepEqual(rects.get(wrapped), { x: 10, y: 5, width: 100, height: 30 });
+    assert.deepEqual(rects.get(fixed), { x: 10, y: 5, width: 100, height: 40 });
+});
+
 await test('a centre auto-sized text keeps its width and takes the field height; no auto size keeps its rect', () => {
     const centred = element('text', [ 0, 0, 80, 30 ], { vars: { auto_size: 'center' } });
     const fixed = element('text', [ 0, 0, 80, 30 ]);
@@ -301,6 +328,26 @@ await test('a scrollable list reports its viewport, its scrollbar and its conten
     assert.deepEqual(rects.get(items[3]), { x: 0, y: 90, width: 180, height: 30 });
 });
 
+await test('a scrollable list resized smaller than its items shows its scrollbar, and hides it again resized to fit them', () => {
+    const items = [ 0, 1, 2 ].map(index => element('container', [ 0, 0, 180, 30 ], { name: `row${index}` }));
+    const list = element('scrollable_itemlist_vertical', [ 0, 0, 200, 100 ], { params: { scale: [ 'stretch', 'stretch' ] }, children: items });
+    const root = element('container', [ 0, 0, 200, 100 ], { children: [ list ] });
+    const windows = buildTemplateWindows([ root ], skinned);
+    const scrollable = windows.get(list);
+
+    assert.equal(scrollable.scrollbar.visible, false);
+
+    // The window's code fitting the view to a shorter container (`ItemGridCatalogWidget`'s `fitWidgetView`).
+    windows.get(root).setRectangle(0, 0, 200, 60);
+    assert.equal(scrollable.height, 60);
+    assert.equal(scrollable.scrollbar.visible, true);
+    assert.equal(scrollable.list.width, 183);
+
+    windows.get(root).setRectangle(0, 0, 200, 100);
+    assert.equal(scrollable.scrollbar.visible, false);
+    assert.equal(scrollable.list.width, 200);
+});
+
 /** The client's tab context layout, style 3: a `_SELECTOR` inset 8 at either end, a `_CONTENT` under it. */
 const tabSkin = layoutToTemplate(readFileSync(new URL('../packages/nitro-react/scripts/flash-js-resources/habbo-window-manager-com/habbo_window_layout_tab_context_3.xml', import.meta.url), 'utf8'));
 
@@ -432,4 +479,89 @@ await test('a list\'s spacing as the code sets it goes over the layout\'s', () =
 
     assert.deepEqual(items.map(item => layoutTemplate([ list ], input(undefined)).get(item).y), [ 0, 25, 50 ]);
     assert.deepEqual(items.map(item => layoutTemplate([ list ], { ...input(undefined), spacingOf: () => 0 }).get(item).y), [ 0, 20, 40 ]);
+});
+
+/** `habbo_window_layout_button_shiny`: a 20 x 22 layout whose `_BTN_TEXT` has 8 / 2 / 8 / 3 margins. */
+const buttonInput = textWidth => ({
+    ...input(undefined),
+    captionOf: element => element.caption ?? '',
+    measure: (element, text) => (element.tag === 'label' ? { width: text.length * textWidth, height: 15 } : undefined),
+    buttonLabelOf: () => ({ width: 20, height: 22, textStyle: 'button_shiny_regular', margins: { left: 8, top: 2, right: 8, bottom: 3 } }),
+});
+
+await test('a button takes its caption\'s width, keeping the edge its resize alignment names', () => {
+    // `club_buy_hc_item`'s `item_buy`: 151 wide at -8, aligned right, `width_min` 40.
+    const button = element('button', [ -8, 38, 151, 22 ], { caption: 'Buy', limits: [ 40, null, null, null ], params: { accommodate: 'expand', align: [ 'right', 'top' ] } });
+    const item = element('border', [ 0, 0, 151, 67 ], { children: [ button ] });
+
+    // "Buy" at 10 a character: 30 + 16 = 46 wide, its right edge still at 143.
+    assert.deepEqual(layoutTemplate([ item ], buttonInput(10)).get(button), { x: 97, y: 38, width: 46, height: 22 });
+    // A shorter caption stops at `width_min`.
+    assert.deepEqual(layoutTemplate([ item ], buttonInput(4)).get(button), { x: 103, y: 38, width: 40, height: 22 });
+});
+
+await test('a button without its window layout keeps its layout rect', () => {
+    const button = element('button', [ 10, 5, 151, 22 ], { caption: 'Buy' });
+
+    assert.deepEqual(layoutTemplate([ button ], { ...buttonInput(10), buttonLabelOf: undefined }).get(button), { x: 10, y: 5, width: 151, height: 22 });
+});
+
+await test('a bitmap that fits its contents takes its bitmap\'s size times its zoom, once the bitmap is loaded', () => {
+    const fitted = element('static_bitmap', [ 5, 5, 100, 100 ], { vars: { fit_size_to_contents: true, zoom_x: -2 } });
+    const unfitted = element('static_bitmap', [ 5, 5, 100, 100 ]);
+    const loaded = { ...input(undefined), bitmapSizeOf: () => ({ width: 13, height: 22 }) };
+    const rects = layoutTemplate([ fitted, unfitted ], loaded);
+
+    assert.deepEqual(rects.get(fitted), { x: 5, y: 5, width: 26, height: 22 });
+    assert.deepEqual(rects.get(unfitted), { x: 5, y: 5, width: 100, height: 100 });
+    // Not loaded yet: the layout's rect.
+    assert.deepEqual(layoutTemplate([ fitted ], input(undefined)).get(fitted), { x: 5, y: 5, width: 100, height: 100 });
+});
+
+await test('a fitted bitmap in a list takes its room at its own size', () => {
+    const icons = [ 0, 1 ].map(index => element('static_bitmap', [ 0, 0, 40, 40 ], { name: `icon${index}`, vars: { fit_size_to_contents: true } }));
+    const list = element('itemlist_horizontal', [ 0, 0, 200, 40 ], { vars: { spacing: 2 }, children: icons });
+    const rects = layoutTemplate([ list ], { ...input(undefined), bitmapSizeOf: () => ({ width: 13, height: 22 }) });
+
+    assert.deepEqual(icons.map(icon => rects.get(icon).x), [ 0, 15 ]);
+});
+
+await test('a button group button takes its caption\'s width as a button does', () => {
+    const left = element('button_group_left', [ 0, 0, 120, 22 ], { caption: 'Buy' });
+
+    // 30 + 8 + 8, from its own left edge.
+    assert.deepEqual(layoutTemplate([ left ], buttonInput(10)).get(left), { x: 0, y: 0, width: 46, height: 22 });
+});
+
+await test('a tab button resizes to its title\'s extent from its own origin, the title re-centred first', () => {
+    const tab = element('tab_button', [ 0, 0, 110, 22 ], { caption: 'Furniture' });
+    const short = element('tab_button', [ 0, 0, 110, 22 ], { caption: 'A' });
+
+    // A 90 + 16 wide title, re-centred in the 110 wide tab (55 - 53 = 2): the tab ends at 2 + 106; the
+    // 22 high container keeps the height.
+    assert.deepEqual(layoutTemplate([ tab ], buttonInput(10)).get(tab), { x: 0, y: 0, width: 108, height: 22 });
+    // A 2 + 16 wide title centred at 55 - 9 = 46: the tab shrinks to 46 + 18.
+    assert.equal(layoutTemplate([ short ], buttonInput(2)).get(short).width, 64);
+});
+
+await test('a box sizer lays its visible children across it, padded and spaced, then takes their extent', () => {
+    const cells = [ 0, 1, 2 ].map(index => element('region', [ 0, 0, 50, 48 ], { name: `cell${index}`, hidden: index === 1 }));
+    // `me_menu_new_view`'s box: resize to accommodate, the defaults' 8 padding and 5 spacing.
+    const box = element('boxsizer', [ 3, 3, 543, 50 ], { params: { parentGraphics: true, accommodate: 'resize' }, children: cells });
+    const rects = layoutTemplate([ box ], input(undefined));
+
+    assert.deepEqual([ 0, 2 ].map(index => [ rects.get(cells[index]).x, rects.get(cells[index]).y ]), [ [ 8, 8 ], [ 63, 8 ] ]);
+    // The children's extent from its own origin: 63 + 50 across, 8 + 48 down.
+    assert.deepEqual(rects.get(box), { x: 3, y: 3, width: 113, height: 56 });
+});
+
+await test('a vertical box sizer stacks its children down it, and shares what is left among its relative ones', () => {
+    const fixed = element('container', [ 0, 0, 40, 20 ], { name: 'fixed' });
+    const one = element('container', [ 0, 0, 40, 10 ], { name: 'one', tags: [ 'relative(1)' ] });
+    const three = element('container', [ 0, 0, 40, 10 ], { name: 'three', tags: [ 'relative(3)' ] });
+    const box = element('boxsizer', [ 0, 0, 60, 200 ], { vars: { vertical: true, spacing: 4, padding_horizontal: 2, padding_vertical: 6 }, children: [ fixed, one, three ] });
+    const rects = layoutTemplate([ box ], input(undefined));
+
+    // 200 - 12 padding - (20 + 4) - 4 - 4 + 4 = 160 shared one to three.
+    assert.deepEqual([ fixed, one, three ].map(child => [ rects.get(child).x, rects.get(child).y, rects.get(child).height ]), [ [ 2, 6, 20 ], [ 2, 30, 40 ], [ 2, 74, 120 ] ]);
 });
