@@ -79,6 +79,28 @@ await test('the purse Help label: auto-sized, then centred when pushed onto its 
     assert.deepEqual(layoutTemplate([ button ], input({ width: 26.4, height: 17 })).get(help), { x: 12, y: 1, width: 26, height: 17 });
 });
 
+await test('a label takes its text and its margins, whether given as a map or as margin_* properties', () => {
+    // `TextLabelController.refresh`: the field's size plus the margins - a `margins` map (`setTextMarginMap`) or
+    // `margin_left` / `_top` / `_right` / `_bottom` (the inventory's tab titles).
+    const flat = element('label', [ 0, 0, 107, 34 ], { vars: { margin_left: 10, margin_top: 7, margin_right: 10, margin_bottom: 10 } });
+    const map = element('label', [ 0, 0, 107, 34 ], { vars: { margins: { left: 8, top: 2, right: 8, bottom: 4 } } });
+
+    assert.deepEqual(layoutTemplate([ flat ], input({ width: 60, height: 17 })).get(flat), { x: 0, y: 0, width: 80, height: 34 });
+    assert.deepEqual(layoutTemplate([ map ], input({ width: 60, height: 17 })).get(map), { x: 0, y: 0, width: 76, height: 23 });
+});
+
+await test('a caption the code sets after the build reaches the parent: the unseen counter follows its count', () => {
+    // `unseen_item_counter_xml`: the border keeps its right edge, its `count` text reflects its width onto it.
+    const count = element('text', [ 4, 0, 21, 16 ], { vars: { auto_size: 'left' }, params: { parentGraphics: true, reflectToParent: [ true, false ] }, caption: '999' });
+    const border = element('border', [ 3, 0, 29, 18 ], { params: { parentGraphics: true, align: [ 'right', 'top' ] }, children: [ count ] });
+    const measure = (e, text) => ({ width: (text.length * 6) + 4, height: 16 });
+
+    // Built with the count: the text takes its width there and the border keeps the layout's.
+    assert.equal(layoutTemplate([ border ], { captionOf: () => '2', measure }).get(border).width, 29);
+    // Built with the layout's `999`, then set: the border shrinks by what the text did (22 -> 10), right edge kept.
+    assert.deepEqual(layoutTemplate([ border ], { captionOf: () => '2', builtCaptionOf: () => '999', measure }).get(border), { x: 15, y: 0, width: 17, height: 18 });
+});
+
 await test('under a window with no iterator the child is made with its parent: no centring on add', () => {
     // `button` has no iterator, so the label never hears PARENT_ADDED - only its own resize's alignment moves it.
     const help = element('label', [ 0, 1, 71, 17 ], { params: { ...helpParams, scale: [ 'fixed', 'fixed' ] } });

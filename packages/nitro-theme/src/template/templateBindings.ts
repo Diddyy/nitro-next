@@ -20,6 +20,13 @@ export interface TemplateBinding {
     visible?: boolean;
     /** Over the layout's caption; a `${key}` in it is still read through the texts. */
     caption?: string;
+    /**
+     * The window is built with its layout caption and `caption` set once it is built, as code that
+     * finds the text after `buildFromXML` does (`InventoryMainView.updateCounter`'s `count`): the
+     * text's resize then reaches its parent - a `reflect_horizontal_resize_to_parent` border follows
+     * its text from the layout's `999` to the count's width.
+     */
+    setCaptionAfterBuild?: boolean;
     /** Over the layout's `tool_tip_caption`. */
     tooltip?: string;
     /**
@@ -360,6 +367,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
 
     return a.visible === b.visible
         && a.caption === b.caption
+        && a.setCaptionAfterBuild === b.setCaptionAfterBuild
         && a.tooltip === b.tooltip
         && a.asset === b.asset
         && a.greyscale === b.greyscale

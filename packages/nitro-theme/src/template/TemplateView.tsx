@@ -59,7 +59,7 @@ import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, the
 import { isMarkupTemplateText, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
-import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect, templateUsesParentGraphics } from './templateLayout';
+import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect, templateTextMargins, templateUsesParentGraphics } from './templateLayout';
 import { TemplateScrollbar, TemplateScrollTarget } from './TemplateScroll';
 import { TemplateScrollAxis, TemplateScrollStore } from './templateScrollStore';
 
@@ -267,6 +267,8 @@ interface Context {
     scroll: TemplateScrollStore;
     /** The window's frame resized by the user, which the template is laid out at. */
     onFrameResize: (size: FrameSize | null) => void;
+    /** The template's window layouts (`Template.skins`), by `templateSkinKey`. */
+    skins?: Template['skins'];
 }
 
 /** Each standalone scrollbar's target (`linkTemplateScrollbars`), each target's axes, and the targets. */
@@ -310,6 +312,28 @@ const rectOf = (rect: TemplateRect, flow?: Flow): BoxLayout => (flow
         }
     : { position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height });
 
+/**
+ * Where a part of a window layout ends up once the window built from it is resized from the layout's
+ * size to `rect`: by its `relative_*_scale` params, a stretched side keeping its inset from the far
+ * edge, a moved one its distance, a centred one its centre, a fixed one where it is.
+ */
+const skinPartRect = (part: TemplateElement, skin: Template, rect: TemplateRect): TemplateRect => {
+    const axis = (scale: string | undefined, position: number, size: number, from: number, to: number) => {
+        const delta = to - from;
+
+        switch (scale) {
+            case 'stretch': return [ position, size + delta ];
+            case 'move': return [ position + delta, size ];
+            case 'center': return [ Math.trunc(position + (delta / 2)), size ];
+            default: return [ position, size ];
+        }
+    };
+    const [ x, width ] = axis(part.params?.scale?.[0], part.x, part.width, skin.width, rect.width);
+    const [ y, height ] = axis(part.params?.scale?.[1], part.y, part.height, skin.height, rect.height);
+
+    return { x, y, width, height };
+};
+
 /** The box an element's own face fills: the whole of its rect. */
 const FILL: BoxLayout = { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' };
 
@@ -329,7 +353,13 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
 
     if (!text) return null;
 
-    return (
+    // `TextLabelController`: a label draws its text inside its margins.
+    const margins = label ? templateTextMargins(element) : undefined;
+    // `TextController.background`: the `TextField` fills its rect in its `backgroundColor` - the
+    // window's colour (`set color`), white when it has none. A label has no field background.
+    const background = (!label && (binding?.background ?? element.background)) ? (flashColor(binding?.color ?? element.color) ?? { hex: '#ffffff', alpha: 1 }) : undefined;
+
+    const themeText = (
         <ThemeText
             text={text}
             textStyle={style}
@@ -339,8 +369,22 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
             clip={!label && autoSize === 'none' ? true : undefined}
             dynamicRole={dynamicRoleOf(element)}
             verticalAlign="top"
-            layout={{ position: 'absolute', left: 0, top: 0, width: rect.width, height: rect.height }}
+            layout={margins
+                ? { position: 'absolute', left: margins.left, top: margins.top, width: Math.max(0, rect.width - margins.left - margins.right), height: Math.max(0, rect.height - margins.top - margins.bottom) }
+                : { position: 'absolute', left: 0, top: 0, width: rect.width, height: rect.height }}
         />
+    );
+
+    if (!background) return themeText;
+
+    return (
+        <>
+            <Region
+                backgroundColor={background.hex}
+                layout={FILL}
+            />
+            {themeText}
+        </>
     );
 };
 
@@ -414,6 +458,8 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 flashPlacement
                 backgroundColor={null}
                 focusedBackgroundColor={null}
+                // `TextController`'s `border`: the `TextField`'s one-pixel border, in `border_color` (black by default).
+                border={flashBool(element.vars.border) ? (flashColor(element.vars.border_color)?.hex ?? '#000000') : undefined}
                 layout={FILL}
             />
         );
@@ -595,6 +641,8 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 {text}
             </RadioButton>
         );
+        // A `tab_container_button` is only its skin (no window layout, so no title of its own): its
+        // children - a label, a bitmap - draw what it shows.
         case 'tab_button':
         case 'tab_container_button': return (
             <TabButton
@@ -604,13 +652,14 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
-                {text}
+                {(element.tag === 'tab_button') ? text : undefined}
             </TabButton>
         );
         case 'tab_content': return (
             <TabContent
                 variant={variant}
-                layout={FILL}
+                // The layout places it: none of the theme's own margin or padding for a laid-out one.
+                layout={{ ...FILL, marginTop: 0, padding: 0 }}
             />
         );
         case 'droplist':
@@ -1037,14 +1086,26 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     }
 
     // A tab context holds its tab buttons (`TabContextController`'s selector): drawn in it, which
-    // crops them - not beside it, where its art would lie over them and take their clicks.
+    // crops them - not beside it, where its art would lie over them and take their clicks. Under them
+    // is its window layout's `_CONTENT` part (a `tab_content`), made at the layout's size and resized
+    // with the context, so it keeps its insets from the edges it stretches to.
     if (element.tag === 'tab_context') {
+        const skin = context.skins?.[templateSkinKey(element.tag, element.style)];
+        const content = skin?.elements.find(part => part.tags?.includes('_CONTENT'));
+        const contentRect = (skin && content) ? skinPartRect(content, skin, rect) : undefined;
+
         return (
             <Box
                 pointerTransparent
                 layout={rectOf(rect, flow)}
                 alpha={alpha}
             >
+                {content && contentRect && (contentRect.width > 0) && (contentRect.height > 0) && (
+                    <TabContent
+                        variant={content.style ?? element.style}
+                        layout={{ position: 'absolute', left: contentRect.x, top: contentRect.y, width: contentRect.width, height: contentRect.height, marginTop: 0, padding: 0 }}
+                    />
+                )}
                 <TabContext
                     variant={element.style}
                     layout={FILL}
@@ -1235,7 +1296,8 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
         frame,
         scroll,
         onFrameResize: setFrameSize,
-    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame, scroll ]);
+        skins: template.skins,
+    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame, scroll, template.skins ]);
 
     // A list's `show` over its items; otherwise the binding, over the layout.
     const shownBy = new Map<TemplateElement, boolean>();
@@ -1267,6 +1329,7 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
     // The rects the window's rules settle on, the texts measured as they will draw (cached by text).
     const rects = layoutTemplate(elements, {
         captionOf: element => context.resolveText(byElement.get(element)?.caption ?? element.caption),
+        builtCaptionOf: element => (byElement.get(element)?.setCaptionAfterBuild ? context.resolveText(element.caption) : undefined),
         measure: measureTemplateText,
         visibleOf: element => shownBy.get(element) ?? byElement.get(element)?.visible ?? !element.hidden,
         // A clone made from another template - a catalogue widget's view - brings that template's skins.

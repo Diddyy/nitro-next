@@ -5,18 +5,27 @@ import { makeMarketplaceOffer, releaseMarketplaceOfferItems } from '#base/comman
 import { useWebSocketContext } from '#base/context/communication';
 import { INVENTORY_FURNI_CATEGORY_POSTER, InventoryFurniItem, useInventoryMarketplaceActions, useInventoryStore } from '#base/context/inventory';
 import { useSystemStore, useTranslation } from '#base/context/system';
-import { Border, Box, Button, Frame, Region, TextInput, ThemeText } from '#base/theme';
+import { Box, TemplateBindings, TemplateWindow } from '#base/theme';
 import { calculateMarketplaceFinalPrice } from '#base/utils';
+import { CatalogLimitedItemPreviewOverlayView } from '#base/views/catalog/page/widgets/CatalogLimitedItemPreviewOverlayView';
+import { CatalogRarityItemGridOverlayView } from '#base/views/catalog/page/widgets/CatalogRarityItemGridOverlayView';
 import { useFurnitureImageTexture } from '#base/views/catalog/useFurnitureImageTexture';
 
-/** AS3 `int(...)` over `parseInt`: what is not a number is 0. */
+/** `furni_image`'s size in the layout: the bitmap `setFurniImage` draws the picture into. */
+const FURNI_IMAGE_SIZE = 70;
+
+/** AS3 `int(parseInt(...))`: what is not a number is 0. */
 const toInt = (text: string) => {
     const value = parseInt(text, 10);
 
     return isNaN(value) ? 0 : value;
 };
 
-/** `furni_image`: the item at 64 facing 90 degrees (`getFurnitureImage` / `getWallItemImage`), centred in its 70x70 bitmap. */
+/**
+ * `setFurniImage`: the item at 64 facing 90 degrees (`getFurnitureImage` / `getWallItemImage`),
+ * drawn into a new bitmap of `furni_image`'s size at `int((size - image size) * 0.5)` - centred, and
+ * cut to that bitmap.
+ */
 const OfferItemImage = ({ item }: { item: InventoryFurniItem }) => {
     const floorItems = useSystemStore(x => x.floorItems);
     const wallItems = useSystemStore(x => x.wallItems);
@@ -26,12 +35,16 @@ const OfferItemImage = ({ item }: { item: InventoryFurniItem }) => {
     if (!texture) return null;
 
     return (
-        <pixiSprite
-            texture={texture}
-            width={width}
-            height={height}
-            layout={{}}
-        />
+        <Box
+            pointerTransparent
+            layout={{ position: 'absolute', left: 0, top: 0, width: FURNI_IMAGE_SIZE, height: FURNI_IMAGE_SIZE, overflow: 'hidden' }}
+        >
+            <pixiSprite
+                texture={texture}
+                eventMode="none"
+                layout={{ position: 'absolute', left: Math.trunc((FURNI_IMAGE_SIZE - width) * 0.5), top: Math.trunc((FURNI_IMAGE_SIZE - height) * 0.5), width, height }}
+            />
+        </Box>
     );
 };
 
@@ -41,25 +54,27 @@ interface InventoryMakeMarketplaceOfferViewProps {
 }
 
 /**
- * `make_marketplace_offer` - Flash's `MarketplaceView.showMakeOffer` (300x429, style 3 frame in
- * `0x418db0`, margins 6/30/6/6): the item's picture in a 70x70 style 105 border, its name
- * (`u_headline_medium`; a poster by its poster id), the expiry (`expiration_info_days`, the
- * configuration's hours in days), the price and amount fields (digits only, right-aligned
- * `u_headline_small` labels; `sellinmarketplace.amount` names the most that can go in one offer),
- * then - collapsing when absent, as Flash's item list skips hidden rows - the average, lowest and
- * suggested prices from the item's stats with `copy suggested price`, the revenue box and the two
- * buttons.
+ * Flash's `MarketplaceView.showMakeOffer` on `habbo-inventory-com/make_marketplace_offer_xml`,
+ * built and centred (`center()`): the item's picture (`setFurniImage`), its name and description
+ * (`${<wall|room>Item.name|desc.<type>}`, a poster's `${poster_<id>_name|desc}`; the layout keeps
+ * the description hidden), the expiry (`expiration_info_days`, the configuration's hours in days),
+ * `sellinmarketplace.amount` naming the most that can go in one offer, and the two inputs taking
+ * digits only. A limited item shows its plaque (`unique_item_overlay_widget`,
+ * `limited_item_overlay_preview`) and an item with a rarity level its rarity plaque
+ * (`rarity_item_overlay_widget`).
+ *
+ * `resetPriceStats` hides the three price lines until `updateItemStats` brings the item's stats:
+ * each line then shows only for a value above 0 (`updatePriceStatLine`), and `copy suggested
+ * price` only for a suggested price above 0 - before the stats it shows as the layout has it,
+ * and does nothing.
  *
  * `checkPrice` runs on every change of either field: a price above the maximum becomes the
- * maximum, the amount is kept between 1 and the maximum amount, and the revenue box shows
- * `sell.in.marketplace.revenue.label` with what the seller gets (`calculateFinalPrice`) - or,
- * under the minimum, `shop.marketplace.invalid.price` with the post button disabled. Posting asks
- * for confirmation (`inventory.marketplace.confirm_offer.*`, the `.multiple` text for more than
- * one item) and closes the dialog; the confirmation's OK makes the offer (`makeOffer`), and every
- * way out releases the locked items.
- *
- * The limited item preview plaque and the rarity flag are window widgets this client has not
- * ported. The furni's description (`furni_desc`) is set but the layout keeps it hidden.
+ * maximum, the amount is kept between 1 and the maximum amount (`parseOfferAmount`), and
+ * `final_price` shows `sell.in.marketplace.revenue.label` with what the seller gets
+ * (`calculateFinalPrice`) - or, under the minimum, `shop.marketplace.invalid.price` with the post
+ * button disabled. Posting asks for confirmation (`showConfirmation`: `inventory.marketplace.confirm_offer.*`,
+ * the `.multiple` text for more than one item) and closes the window; the confirmation's OK makes
+ * the offer (`makeOffer`), and every way out releases the locked items (`releaseItems`).
  */
 export const InventoryMakeMarketplaceOfferView = ({ item, maxAmount }: InventoryMakeMarketplaceOfferViewProps) => {
     const { send } = useWebSocketContext();
@@ -69,12 +84,23 @@ export const InventoryMakeMarketplaceOfferView = ({ item, maxAmount }: Inventory
     const showConfirm = useSystemStore(x => x.showConfirm);
     const { setMarketplaceView } = useInventoryMarketplaceActions();
     const [ priceText, setPriceText ] = useState('');
+    // `showMakeOffer`: `amount_input.text = _offerAmount` (1).
     const [ amountText, setAmountText ] = useState('1');
 
-    const posterId = item.stuffData.getLegacyString();
+    /** `clickHandler`'s `cancel_make_offer_button` / `header_button_close`: `releaseItems`, then `disposeView`. */
+    const close = () => {
+        releaseMarketplaceOfferItems();
+        setMarketplaceView(undefined);
+    };
+
+    const [ frame ] = useState(() => ({ id: 'inventory-make-marketplace-offer', centered: true, rememberPosition: false, onClose: close }));
+
+    const legacyString = item.stuffData.getLegacyString();
     const isPoster = (item.category === INVENTORY_FURNI_CATEGORY_POSTER);
-    // `_furniName`: `<wall|room>Item.name.<type>`, or a poster's `poster_<id>_name`.
-    const furniName = t(isPoster ? `poster_${posterId}_name` : `${item.isWallItem ? 'wallItem' : 'roomItem'}.name.${item.typeId}`);
+    const nameKey = isPoster ? `poster_${legacyString}_name` : `${item.isWallItem ? 'wallItem' : 'roomItem'}.name.${item.typeId}`;
+    const descKey = isPoster ? `poster_${legacyString}_desc` : `${item.isWallItem ? 'wallItem' : 'roomItem'}.desc.${item.typeId}`;
+    // `_furniName`: `getLocalization(name key)`, for the confirmation.
+    const furniName = t(nameKey);
 
     // `parseOfferAmount`: 1 to `_maxOfferAmount`, written back into the field.
     const parseOfferAmount = (text: string) => Math.min(maxAmount, Math.max(1, toInt(text)));
@@ -95,12 +121,7 @@ export const InventoryMakeMarketplaceOfferView = ({ item, maxAmount }: Inventory
         ? `${t('sell.in.marketplace.revenue.label')}: ${calculateMarketplaceFinalPrice(price, configuration.sellingFeePercentage, configuration.halfTaxLimit)}`
         : t('shop.marketplace.invalid.price', '', { minPrice: String(configuration.offerMinPrice), maxPrice: String(configuration.offerMaxPrice) });
 
-    const close = () => {
-        releaseMarketplaceOfferItems();
-        setMarketplaceView(undefined);
-    };
-
-    // `make_offer_button` -> `showConfirmation`.
+    // `make_offer_button`: the price and amount read, `showConfirmation`, then `disposeView`.
     const post = () => {
         const offerPrice = toInt(priceText);
         const amount = parseOfferAmount(amountText);
@@ -110,6 +131,7 @@ export const InventoryMakeMarketplaceOfferView = ({ item, maxAmount }: Inventory
             ? t(key, key, { amount: String(amount), furniname: furniName, price: String(offerPrice), total: String(finalPrice * amount) })
             : t(key, key, { furniname: furniName, price: String(finalPrice) });
 
+        // `confirmationCallback`: OK makes the offer; either way the items are released.
         showConfirm(t('inventory.marketplace.confirm_offer.title', 'inventory.marketplace.confirm_offer.title'), text, () => {
             makeMarketplaceOffer(send, offerPrice, amount);
             releaseMarketplaceOfferItems();
@@ -118,6 +140,7 @@ export const InventoryMakeMarketplaceOfferView = ({ item, maxAmount }: Inventory
         setMarketplaceView(undefined);
     };
 
+    // `copy_suggested_price_button`: with a suggested price, into `price_input` and the clipboard (`System.setClipboard`), then `checkPrice`.
     const copySuggestedPrice = () => {
         if (!stats || (stats.suggestedPrice <= 0)) return;
 
@@ -127,166 +150,55 @@ export const InventoryMakeMarketplaceOfferView = ({ item, maxAmount }: Inventory
         checkPrice(suggested, amountText);
     };
 
-    // `updatePriceStatLine`: a line only for a value above 0.
-    const statLines = stats
-        ? [
-                { name: 'average_price', value: stats.averagePrice, text: t('inventory.marketplace.make_offer.average_price', '', { days: String(configuration.averagePricePeriod), price: String(stats.averagePrice) }) },
-                { name: 'lowest_price', value: stats.lowestCurrentPrice, text: t('inventory.marketplace.make_offer.lowest_price', '', { price: String(stats.lowestCurrentPrice) }) },
-                { name: 'suggested_price', value: stats.suggestedPrice, text: t('inventory.marketplace.make_offer.suggested_price', '', { price: String(stats.suggestedPrice) }) },
-            ].filter(line => line.value > 0)
-        : [];
+    /** `updatePriceStatLine`: shown with its text for a value above 0; hidden before the stats (`resetPriceStats`). */
+    const statLine = (value: number | undefined, text: () => string) => ((value !== undefined) && (value > 0))
+        ? { visible: true, caption: text() }
+        : { visible: false, caption: '' };
+
+    const isLimited = (item.stuffData.uniqueNumber > 0);
+    const rarityLevel = item.stuffData.rarityLevel;
+
+    const bindings: TemplateBindings = {
+        furni_image: { children: <OfferItemImage item={item} /> },
+        // `uniqueSerialNumber > 0`: the limited plaque with the serial and series size.
+        unique_item_overlay_widget: isLimited
+            ? {
+                    visible: true,
+                    children: (
+                        <CatalogLimitedItemPreviewOverlayView
+                            serialNumber={item.stuffData.uniqueNumber}
+                            seriesSize={item.stuffData.uniqueSeries}
+                        />
+                    ),
+                }
+            : { visible: false },
+        // `rarityLevel >= 0`: the rarity plaque.
+        rarity_item_overlay_widget: (rarityLevel >= 0)
+            ? { visible: true, children: <CatalogRarityItemGridOverlayView rarityLevel={rarityLevel} /> }
+            : { visible: false },
+        // `setText("furni_name" / "furni_desc", "${key}")`.
+        furni_name: { caption: `\${${nameKey}}` },
+        furni_desc: { caption: `\${${descKey}}` },
+        // The parameters `showMakeOffer` registers before the window is built.
+        expiration_info: { caption: t('inventory.marketplace.make_offer.expiration_info_days', '', { days: String(configuration.expirationHours / 24) }) },
+        amount_request: { caption: t('sellinmarketplace.amount', '', { max_amount: String(maxAmount) }) },
+        // `restrict = "0-9"`; `WE_CHANGE` -> `checkPrice`.
+        price_input: { caption: priceText, restrict: '0-9', onChange: value => checkPrice(value, amountText) },
+        amount_input: { caption: amountText, restrict: '0-9', onChange: value => checkPrice(priceText, value) },
+        average_price: statLine(stats?.averagePrice, () => t('inventory.marketplace.make_offer.average_price', '', { days: String(configuration.averagePricePeriod), price: String(stats?.averagePrice) })),
+        lowest_price: statLine(stats?.lowestCurrentPrice, () => t('inventory.marketplace.make_offer.lowest_price', '', { price: String(stats?.lowestCurrentPrice) })),
+        suggested_price: statLine(stats?.suggestedPrice, () => t('inventory.marketplace.make_offer.suggested_price', '', { price: String(stats?.suggestedPrice) })),
+        copy_suggested_price_button: { visible: stats ? (stats.suggestedPrice > 0) : true, onPointerTap: copySuggestedPrice },
+        final_price: { caption: finalPriceText },
+        make_offer_button: { disabled: !priceValid, onPointerTap: post },
+        cancel_make_offer_button: { onPointerTap: close },
+    };
 
     return (
-        <Frame
-            id="inventory-make-marketplace-offer"
-            variant="3"
-            centered
-            rememberPosition={false}
-            caption={t('inventory.marketplace.make_offer.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            resizeDirection="none"
-            margins={[ 6, 30, 6, 6 ]}
-            onClose={close}
-            layout={{ position: 'absolute', width: 300, height: 429 }}
-        >
-            <Border
-                variant="105"
-                name="image_border"
-                layout={{ position: 'absolute', left: 10, width: 70, top: 12, height: 70, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}
-            >
-                <OfferItemImage item={item} />
-            </Border>
-            <ThemeText
-                name="furni_name"
-                text={furniName}
-                textStyle="u_headline_medium"
-                textOptions={{ wordWrap: true, wordWrapWidth: 186 }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 88, width: 190, top: 13 }}
-            />
-            <ThemeText
-                name="expiration_info"
-                text={t('inventory.marketplace.make_offer.expiration_info_days', '', { days: String(configuration.expirationHours / 24) })}
-                textStyle="u_regular"
-                textOptions={{ wordWrap: true, wordWrapWidth: 264 }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, width: 268, top: 87 }}
-            />
-            <Region layout={{ position: 'absolute', left: -86, width: 295, top: 131, flexDirection: 'row', justifyContent: 'flex-end' }}>
-                <ThemeText
-                    name="price_request"
-                    text={t('inventory.marketplace.make_offer.price_request')}
-                    textStyle="u_headline_small"
-                    verticalAlign="top"
-                />
-            </Region>
-            <Border
-                variant="105"
-                name="input_border"
-                layout={{ position: 'absolute', left: 212, width: 66, top: 129, height: 26 }}
-            >
-                <TextInput
-                    value={priceText}
-                    onChange={value => checkPrice(value, amountText)}
-                    restrict="0-9"
-                    textStyle="u_regular"
-                    flashPlacement
-                    alwaysShowSelection
-                    backgroundColor={null}
-                    focusedBackgroundColor={null}
-                    layout={{ position: 'absolute', left: 8, width: 50, top: 3, height: 19 }}
-                />
-            </Border>
-            <Region layout={{ position: 'absolute', left: -86, width: 295, top: 160, flexDirection: 'row', justifyContent: 'flex-end' }}>
-                <ThemeText
-                    name="amount_request"
-                    text={t('sellinmarketplace.amount', '', { max_amount: String(maxAmount) })}
-                    textStyle="u_headline_small"
-                    verticalAlign="top"
-                />
-            </Region>
-            <Border
-                variant="105"
-                name="amount_input_border"
-                layout={{ position: 'absolute', left: 212, width: 66, top: 158, height: 26 }}
-            >
-                <TextInput
-                    value={amountText}
-                    onChange={value => checkPrice(priceText, value)}
-                    restrict="0-9"
-                    textStyle="u_regular"
-                    flashPlacement
-                    alwaysShowSelection
-                    backgroundColor={null}
-                    focusedBackgroundColor={null}
-                    layout={{ position: 'absolute', left: 8, width: 50, top: 3, height: 19 }}
-                />
-            </Border>
-            <Box layout={{ position: 'absolute', left: 10, width: 268, top: 190, flexDirection: 'column', gap: 7 }}>
-                {statLines.map(line => (
-                    <ThemeText
-                        key={line.name}
-                        name={line.name}
-                        text={line.text}
-                        textStyle="u_regular"
-                        verticalAlign="top"
-                        layout={{ width: 268, height: 18, flexShrink: 0 }}
-                    />
-                ))}
-                {stats && (stats.suggestedPrice > 0) && (
-                    <Box layout={{ width: 268, height: 24, flexShrink: 0 }}>
-                        <Button
-                            variant="3"
-                            name="copy_suggested_price_button"
-                            textStyle="button_shiny_regular"
-                            onPointerTap={copySuggestedPrice}
-                            layout={{ position: 'absolute', left: 130, width: 138, top: 0, height: 24 }}
-                        >
-                            {t('inventory.marketplace.make_offer.copy_suggested_price')}
-                        </Button>
-                    </Box>
-                )}
-                <Border
-                    variant="105"
-                    name="final_price_border"
-                    layout={{ width: 268, height: 54, flexShrink: 0 }}
-                >
-                    <Region layout={{ position: 'absolute', left: 6, width: 257, top: 11, flexDirection: 'row', justifyContent: 'center' }}>
-                        <ThemeText
-                            name="final_price"
-                            text={finalPriceText}
-                            textStyle="u_regular"
-                            textOptions={{ wordWrap: true, wordWrapWidth: 253, align: 'center' }}
-                            verticalAlign="top"
-                        />
-                    </Region>
-                </Border>
-                <Region
-                    name="buttons"
-                    layout={{ width: 270, height: 30, flexShrink: 0 }}
-                >
-                    <Button
-                        variant="3"
-                        name="cancel_make_offer_button"
-                        textStyle="button_shiny_regular"
-                        onPointerTap={close}
-                        layout={{ position: 'absolute', left: 138, width: 130, top: 0, height: 28 }}
-                    >
-                        {t('inventory.marketplace.make_offer.cancel')}
-                    </Button>
-                    <Button
-                        variant="3"
-                        name="make_offer_button"
-                        textStyle="button_shiny_regular"
-                        disabled={!priceValid}
-                        onPointerTap={post}
-                        layout={{ position: 'absolute', left: 0, width: 130, top: 0, height: 28 }}
-                    >
-                        {t('inventory.marketplace.make_offer.post')}
-                    </Button>
-                </Region>
-            </Box>
-        </Frame>
+        <TemplateWindow
+            id="habbo-inventory-com/make_marketplace_offer_xml"
+            frame={frame}
+            bindings={bindings}
+        />
     );
 };

@@ -1,4 +1,4 @@
-import { CatalogTypeEnum, CrackableDataType, FurniId, FurnitureUsagePolicyEnum, ISimpleRoomObjectData, MapDataType, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectVariableEnum, RoomWidgetEnumItemExtradataParameter } from '@nitrodevco/nitro-api';
+import { CatalogTypeEnum, CrackableDataType, FurniId, FurnitureSpecialType, FurnitureUsagePolicyEnum, ISimpleRoomObjectData, MapDataType, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectVariableEnum, RoomWidgetEnumItemExtradataParameter } from '@nitrodevco/nitro-api';
 import { GetSongInfoComposer, SetObjectDataComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
 
@@ -152,6 +152,8 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     // `set expiration`: shown while the owner line names you - never on a builders club or temporary furni.
     const showsExpiration = (ownerKind === 'user') && isOwner && (expiration >= 0);
     const bcOfferId = furnitureData?.bcOfferId ?? -1;
+    const isCoins = (furnitureData?.specialType === FurnitureSpecialType.CoinsChest);
+    const isChest = isCoins || (furnitureData?.specialType === FurnitureSpecialType.FurniChest);
 
     const details: InfostandFurniDetails = {
         variant,
@@ -165,7 +167,8 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
         expiration: showsExpiration ? expiration : -1,
         group: (groupId > 0) ? { name: groupDetails?.groupName ?? '', badge: groupDetails?.badgeCode ?? '' } : undefined,
         uniqueSerial: stuffData.isUnique ? { number: stuffData.uniqueNumber, series: stuffData.uniqueSeries } : undefined,
-        chest: (mapData && mapData.chestName.length) ? { name: mapData.chestName, contents: mapData.getValue('contents_count'), isCoins: furniData.furnitureData?.category === 'coin_chest', isWiredEnabled: mapData.getValue('is_wired_enabled') === '1', isLocked: mapData.getValue('locked') === '1' } : undefined,
+        // `showChestData`: a furni or coins chest (`FurniCategory` 24 / 25 - the furnidata's special type) with map data, named or not.
+        chest: (mapData && isChest) ? { name: mapData.chestName, contents: mapData.getValue('contents_count'), isCoins, isWiredEnabled: mapData.getValue('is_wired_enabled') === '1', isLocked: mapData.getValue('locked') === '1' } : undefined,
         customVariables: !canSeeCustomVariables ? undefined : customVariableNames.map(name => ({ name, value: furnitureDataMap[name] ?? '' })),
         staffDetails: isAnyRoomController ? { id: objectId, branding: brandingOptions } : undefined,
         crackable: (isCrackable && (stuffData instanceof CrackableDataType)) ? { hits: stuffData.hits, target: stuffData.target } : undefined,

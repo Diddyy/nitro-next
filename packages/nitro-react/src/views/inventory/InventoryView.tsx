@@ -1,207 +1,213 @@
 /**
- * The inventory window - Flash `InventoryMainView` over `inventory_xml`: a style 3 frame (490x342,
- * content margins 6/35/6/6, width fixed, height down to 300) whose `top_content` holds the
- * `tabs` tab context, the `empty_container` and `loading_container` a page shows while it has
- * nothing to list, and the `contentArea` (5,35 468x261) the selected page draws in, with
- * `subContentArea` (0,301) under it for the trade.
+ * The inventory window - Flash `InventoryMainView` over `habbo-inventory-com/inventory_xml`: a
+ * frame (490x342, height down to 300) whose `top_content` holds the `tabs`, the `empty_container`
+ * and `loading_container` the furni page shows while it has nothing to list, and `contentArea`, with
+ * `subContentArea` under it for the trade.
  *
- * - The frame opens at `DEFAULT_VIEW_LOCATION` (120,150) and scales only with
- *   `inventory.allow.scaling` (`getWindow`'s `setParamFlag(65536, ...)`).
- * - The tab context's `tab_content` (style 3) is drawn at 0,30 over the whole context, its
- *   `tab_selector` at 8,0, 32 high; each `tab_container_button` is as wide as its label (margins
- *   10 left and right, the text 7 down, `u_regular` from the Ubuntu theme) and they are laid
- *   left to right (`SelectorListController.updateSelectableRegion`).
- * - `getWindow` re-adds the tabs in layout order - furni, collectibles, rentables, pets, badges,
- *   bots. The port has five of those pages and keeps them all: `rentables` (`duckets.enabled`
- *   without `mergeRentFurni`) is not ported, and `bots` shows only with `inventory.bots.enabled`,
- *   as it does in Flash.
- * - `empty_container` / `loading_container` follow `FurniView.updateContainerVisibility` on the
- *   furni page - loading until the list has arrived, empty while it holds nothing - and the
- *   empty page's `open_catalog_btn` opens the catalog (`InventoryMainView.windowEventProc`).
- * - A tab carries the red unseen item counter (`updateUnseenItemCounts`: furni category 1, pets 3,
- *   badges 4, bots 5 - collectibles and games have none) while its count is above 0:
- *   `createCounter` puts it 3 from the tab's right edge and 3 down, and `updateCounter` widens the
- *   title's right margin to the counter's width plus 6, so the tab grows by the counter and the
- *   counter ends 3 before the tab does.
- * - Leaving a tab resets its unseen items (`windowEventProc`'s `WE_SELECTED` ->
- *   `resetUnseenCounters`), and so does closing the window on it (`hideInventory` ->
- *   `closingInventoryView`, each model resetting while its page is the one showing).
- * - While a trade runs it is docked in `subContentArea` and the window grows by exactly its height
- *   (`TradingView.resizeWindow` -> `InventoryMainView.resizeToFitContents`). Leaving the furni page
- *   cancels the trade (`TradingModel.categorySwitch` / `subCategorySwitch`), and closing the window
- *   closes it (`closingInventoryView`).
+ * - `getWindow`: the frame opens at `DEFAULT_VIEW_LOCATION` (120,150) and scales only with
+ *   `inventory.allow.scaling`; every page is taken out of `contentArea` (`extractWindow`) and only
+ *   the selected one is put back (`setViewToCategory`), which is each page window's `visible` here.
+ *   The tabs are taken out and re-added in layout order - furni, collectibles, rentables, pets,
+ *   badges, bots: `collectibles` only with `web3trade.enabled` and only while a trade runs
+ *   (`showCollectiblesTab`), `rentables` never (the port merges rented furni into the furni page,
+ *   `mergeRentFurni`), `bots` only with `inventory.bots.enabled`.
+ * - `disableNonTradingTabs`: while a trade runs, every tab but furni and collectibles is disabled
+ *   (`Util.disableSection`).
+ * - `windowEventProc`: `WE_SELECTED` on the tabs switches the page, resetting the unseen items of
+ *   the page left (`resetUnseenCounters`); closing the window on a page resets that page's
+ *   (`hideInventory` -> `closingInventoryView`); `open_catalog_btn` opens the catalogue.
+ * - `createCounter` / `updateCounter`: a tab with unseen items (furni category 1, pets 3, badges 4,
+ *   bots 5) gets the window manager's red counter (`unseen_item_counter_xml`), its right edge 3 in
+ *   from the tab's and 3 down; the count is set once it is built, so the border shrinks from the
+ *   layout's `999` to the count. `updateCounter` would widen the title's right margin by the counter,
+ *   but it finds the title by its `TITLE` tag, which `inventory_xml`'s tab labels do not carry: the
+ *   tab keeps its width and the counter lies over the end of its caption.
+ * - The pages' `updateContainerVisibility`: `loading_container` until the selected page's list has
+ *   arrived and `empty_container` while it holds nothing (`InventoryPage.state`).
+ * - `setSubViewToCategory` / `resizeToFitContents`: while a trade runs it is docked in
+ *   `subContentArea` - the window drops to its least height (`disableScaling`, which also stops
+ *   `top_content` stretching), the dock goes 5 under `top_content`, takes the trade's height, and
+ *   the window fits its content. The trade follows the tab and the window's closing
+ *   (`InventoryTradingDock`).
+ *
+ * The pages are `useInventory<Page>Page` (`inventoryPage`). Not ported: `enableScaling` after a
+ * trade - Flash leaves the window at its least height once a trade has docked and gone; here it
+ * goes back to the size it had.
  */
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { resetInventoryUnseenCounters } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { UnseenItemCategory, useInventoryStore, useInventoryUnseenItemCount } from '#base/context/inventory';
-import { useConfigValue, useSystemActions, useTranslation, useWindowParams, WindowParams } from '#base/context/system';
-import { Button, Frame, LayoutImage, Region, TabButton, TabContent, TabContext, ThemeImage, ThemeText } from '#base/theme';
-import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
+import { useConfigValue, useSystemActions, useWindowParams, WindowParams } from '#base/context/system';
+import { useWiredTradingStore } from '#base/context/wired-trading';
+import { LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateLibrary } from '#base/theme';
 
-import { InventoryBadgesView } from './InventoryBadgesView';
-import { InventoryBotsView } from './InventoryBotsView';
-import { InventoryCollectiblesView } from './InventoryCollectiblesView';
-import { InventoryFurniView } from './InventoryFurniView';
-import { InventoryPetsView } from './InventoryPetsView';
+import { INVENTORY_LIBRARY, InventoryPage, InventoryPageName, inventoryPagePath, inventoryTemplateId } from './inventoryPage';
 import { InventoryTradingDock } from './trading/InventoryTradingDock';
 import { useInventoryTradingDockHeight } from './trading/inventoryTradingLayout';
+import { useInventoryBadgesPage } from './useInventoryBadgesPage';
+import { useInventoryBotsPage } from './useInventoryBotsPage';
+import { useInventoryCollectiblesPage } from './useInventoryCollectiblesPage';
+import { useInventoryFurniPage } from './useInventoryFurniPage';
+import { useInventoryPetsPage } from './useInventoryPetsPage';
 
-export type InventoryViewWindowParams = { tab?: 'furni' | 'collectibles' | 'pets' | 'bots' | 'badges' };
+export type InventoryViewWindowParams = { tab?: InventoryPageName };
 
 type InventoryTab = NonNullable<WindowParams<'inventory'>['tab']>;
 
-/** `inventory_xml`: `top_content` is 478x301, and `subContentArea` starts where it ends. */
-const TOP_CONTENT_HEIGHT = 301;
-/** The frame's own height with nothing docked - its 35/6 margins around `top_content`. */
-const FRAME_HEIGHT = 342;
+/** `getWindow`'s tab order, as the layout has the tabs. */
+const TABS: readonly InventoryTab[] = [ 'furni', 'collectibles', 'pets', 'badges', 'bots' ];
 
-/** The ported tabs in `inventory_xml`'s order, with their captions and the unseen item category their counter shows (-1 for none). */
-const TABS: readonly { id: InventoryTab; caption: string; unseenCategory: number }[] = [
-    { id: 'furni', caption: 'inventory.furni', unseenCategory: UnseenItemCategory.OWNED_FURNI },
-    { id: 'collectibles', caption: 'inventory.collectibles', unseenCategory: -1 },
-    { id: 'pets', caption: 'inventory.furni.tab.pets', unseenCategory: UnseenItemCategory.PET },
-    { id: 'badges', caption: 'inventory.badges', unseenCategory: UnseenItemCategory.BADGE },
-    { id: 'bots', caption: 'inventory.bots', unseenCategory: UnseenItemCategory.BOT },
-];
+/** `InventoryMainView.COUNTER_MARGIN`. */
+const COUNTER_MARGIN = 3;
 
-/** `InventoryMainView.createCounter`: the counter's right edge 3 in from the tab's. */
-const TAB_COUNTER_MARGIN = 3;
-/** `updateCounter`: the title's right margin with a counter is the counter's width plus twice that. */
-const TAB_TITLE_MARGIN = 10;
+/** `Util.disableSection`'s blend for what it disables. */
+const DISABLED_ALPHA = 0.5;
 
-interface InventoryTabButtonProps {
-    caption: string;
-    unseenCategory: number;
-    selected: boolean;
-    onSelect: () => void;
-}
+/** `setSubViewToCategory`: the dock goes this far under `top_content`. */
+const SUB_CONTENT_GAP = 5;
 
-/** One `tab_container_button`, with its unseen item counter. */
-const InventoryTabButton = ({ caption, unseenCategory, selected, onSelect }: InventoryTabButtonProps) => {
-    const unseenCount = useInventoryUnseenItemCount(unseenCategory);
+/** `relative_vertical_scale_strech`, which `disableScaling` takes off `top_content`. */
+const VERTICAL_STRETCH = 2048;
 
-    return (
-        <TabButton
-            variant="3"
-            textStyle="u_regular"
-            selected={selected}
-            onPointerTap={onSelect}
-            layout={{ flexShrink: 0, alignItems: 'flex-start', paddingLeft: TAB_TITLE_MARGIN, paddingTop: 7, paddingRight: (unseenCount > 0) ? TAB_COUNTER_MARGIN : TAB_TITLE_MARGIN }}
-        >
-            {caption}
-            {/* `y = 3`, where the title sits 7 down; the title's margin plus 6 leaves 3 either side of the counter. */}
-            <UnseenItemCounterView
-                count={Math.max(unseenCount, 0)}
-                layout={{ marginLeft: TAB_COUNTER_MARGIN, marginTop: 3 - 7 }}
-            />
-        </TabButton>
-    );
-};
+/** `DEFAULT_VIEW_LOCATION`. */
+const DEFAULT_VIEW_LOCATION = { x: 120, y: 150 };
+
+const COUNTER_TEMPLATE = 'habbo-window-manager-com/unseen_item_counter_xml';
+
+/** `Util.getLowestPoint`: the bottom of the lowest visible child with a height. */
+const lowestPoint = (window: LayoutWindow) => window.children.reduce((lowest, child) => ((child.visible && child.height > 0) ? Math.max(lowest, child.y + child.height) : lowest), 0);
 
 export const InventoryView = () => {
     const { tab: activeTab = 'furni' } = useWindowParams('inventory');
-    const t = useTranslation();
     const { toggleWindow, showWindow, updateWindowParams } = useSystemActions();
     const allowScaling = useConfigValue<boolean>('inventory.allow.scaling') === true;
     const botsEnabled = useConfigValue<boolean>('inventory.bots.enabled') === true;
-    const furniListInitialized = useInventoryStore(x => x.furniListInitialized);
-    const furniCount = useInventoryStore(x => x.furniGroups.length);
-    const dockedHeight = useInventoryTradingDockHeight();
+    const web3TradeEnabled = useConfigValue<boolean>('web3trade.enabled') === true;
+    const userTradeActive = useInventoryStore(x => x.tradingActive);
+    const wiredTradeRunning = useWiredTradingStore(x => x.tradeRunning);
+    const dockHeight = useInventoryTradingDockHeight();
+    const unseenCounts: Partial<Record<InventoryTab, number>> = {
+        furni: useInventoryUnseenItemCount(UnseenItemCategory.OWNED_FURNI),
+        pets: useInventoryUnseenItemCount(UnseenItemCategory.PET),
+        badges: useInventoryUnseenItemCount(UnseenItemCategory.BADGE),
+        bots: useInventoryUnseenItemCount(UnseenItemCategory.BOT),
+    };
+    const templates = useTemplateLibrary(INVENTORY_LIBRARY);
+    const counterTemplate = useTemplate(COUNTER_TEMPLATE);
     const { send } = useWebSocketContext();
+
+    // `HabboInventory.tradingActive`: either trade.
+    const tradingActive = userTradeActive || wiredTradeRunning;
+    const docked = dockHeight > 0;
+
+    const frame = useMemo(() => ({
+        id: 'inventory',
+        defaultPosition: DEFAULT_VIEW_LOCATION,
+        // `setParamFlag(65536, inventory.allow.scaling)`; `disableScaling` while the trade is docked.
+        resizeDirection: (allowScaling && !docked) ? 'y' as const : 'none' as const,
+        onClose: () => toggleWindow('inventory'),
+    }), [ allowScaling, docked, toggleWindow ]);
 
     // `resetUnseenCounters(previous tab)` on a switch, and the showing page's `closingInventoryView` on close.
     useEffect(() => () => resetInventoryUnseenCounters(send, activeTab), [ send, activeTab ]);
 
-    // `FurniView.setViewToState`: 1 loading, 2 empty, 3 the page.
-    const furniLoading = (activeTab === 'furni') && !furniListInitialized;
-    const furniEmpty = (activeTab === 'furni') && furniListInitialized && !furniCount;
+    const pageContext = (page: InventoryPageName) => ({ active: !!templates && (activeTab === page), templates: templates ?? {} });
+    const pages: Record<InventoryPageName, InventoryPage> = {
+        furni: useInventoryFurniPage(pageContext('furni')),
+        collectibles: useInventoryCollectiblesPage(pageContext('collectibles')),
+        pets: useInventoryPetsPage(pageContext('pets')),
+        bots: useInventoryBotsPage(pageContext('bots')),
+        badges: useInventoryBadgesPage(pageContext('badges')),
+    };
+
+    if (!templates) return null;
+
+    const shownTabs = TABS.filter((tab) => {
+        if (tab === 'collectibles') return web3TradeEnabled && tradingActive;
+        if (tab === 'bots') return botsEnabled;
+
+        return true;
+    });
+
+    /** A tab, re-added: the counter it carries while it has unseen items, disabled by a trade. */
+    const tabItem = (tab: InventoryTab): TemplateItem => {
+        const count = unseenCounts[tab] ?? 0;
+        const disabled = tradingActive && (tab !== 'furni') && (tab !== 'collectibles');
+
+        return {
+            key: tab,
+            from: `tabs/${tab}`,
+            bindings: {
+                '': {
+                    selected: activeTab === tab,
+                    alpha: disabled ? DISABLED_ALPHA : undefined,
+                    // `WE_SELECTED`: the page changes only when the tab is another one.
+                    onPointerTap: disabled ? undefined : () => (activeTab !== tab) && updateWindowParams('inventory', { tab }),
+                    added: (counterTemplate && (count > 0)) ? [ { key: 'counter', from: counterTemplate, bindings: { count: { caption: String(count), setCaptionAfterBuild: true } } } ] : undefined,
+                },
+            },
+        };
+    };
+
+    const bindings: TemplateBindings = {
+        tabs: { items: shownTabs.map(tabItem) },
+        empty_container: { visible: pages[activeTab].state === 'empty' },
+        loading_container: { visible: pages[activeTab].state === 'loading' },
+        // `windowEventProc`: `catalog.openCatalog()`.
+        open_catalog_btn: { onPointerTap: () => showWindow('catalog') },
+        subContentArea: { visible: docked, keepMounted: true, children: <InventoryTradingDock activeTab={activeTab} /> },
+    };
+
+    for (const [ page, view ] of Object.entries(pages) as [ InventoryPageName, InventoryPage ][]) {
+        bindings[inventoryPagePath(page)] = { visible: page === activeTab };
+
+        Object.assign(bindings, view.bindings);
+    }
+
+    const arrange = (windows: TemplateWindows) => {
+        const { find, root } = windows;
+
+        // `createCounter`: the counter's right edge 3 in from the tab's, 3 down.
+        for (const tab of shownTabs) {
+            const counter = find(`tabs/${tab}/unseen_item_container`);
+            const button = find(`tabs/${tab}`);
+
+            if (!counter || !button) continue;
+
+            counter.setX(button.width - counter.width - COUNTER_MARGIN);
+            counter.setY(COUNTER_MARGIN);
+        }
+
+        pages[activeTab].arrange?.(windows);
+
+        const window = root();
+        const top = find('top_content');
+        const sub = find('subContentArea');
+
+        if (!window || !top || !sub?.parent) return;
+
+        if (!docked) {
+            sub.setHeight(0);
+
+            return;
+        }
+
+        // `disableScaling`, then `setSubViewToCategory` and `resizeToFitContents`.
+        window.setHeight(window.minHeight);
+        top.setParamFlag(VERTICAL_STRETCH, false);
+        sub.setY(top.y + top.height + SUB_CONTENT_GAP);
+        sub.setHeight(dockHeight);
+        window.setHeight(window.height - sub.parent.height + lowestPoint(sub.parent));
+    };
 
     return (
-        <Frame
-            id="inventory"
-            variant="3"
-            caption={t('inventory.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            resizeDirection={allowScaling ? 'y' : 'none'}
-            defaultPosition={{ x: 120, y: 150 }}
-            onClose={() => toggleWindow('inventory')}
-            layout={{ position: 'absolute', width: 490, height: FRAME_HEIGHT + dockedHeight, minWidth: 490, maxWidth: 490, minHeight: 300 + dockedHeight }}
-            margins={[ 6, 35, 6, 6 ]}
-        >
-            <Region layout={{ position: 'absolute', left: 0, top: 0, width: 478, height: TOP_CONTENT_HEIGHT }}>
-                <TabContent
-                    variant="3"
-                    layout={{ position: 'absolute', left: 0, top: 30, width: 478, bottom: 0, marginTop: 0, padding: 0 }}
-                />
-                <TabContext
-                    variant="3"
-                    layout={{ position: 'absolute', left: 8, top: 0, width: 462, height: 32, padding: 0, overflow: 'hidden' }}
-                >
-                    {TABS.filter(tab => (tab.id !== 'bots') || botsEnabled).map(tab => (
-                        <InventoryTabButton
-                            key={tab.id}
-                            caption={t(tab.caption)}
-                            unseenCategory={tab.unseenCategory}
-                            selected={activeTab === tab.id}
-                            onSelect={() => updateWindowParams('inventory', { tab: tab.id })}
-                        />
-                    ))}
-                </TabContext>
-                {furniEmpty && (
-                    <Region layout={{ position: 'absolute', left: 0, top: 20, width: 478, bottom: 3 }}>
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/inventory_inventory_empty.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            layout={{ position: 'absolute', left: 46, top: 42, width: 180, height: 180 }}
-                        />
-                        <Region layout={{ position: 'absolute', left: 287, top: 64, width: 176, height: 154, flexDirection: 'column', gap: 5 }}>
-                            <ThemeText
-                                text={t('inventory.empty.title')}
-                                textStyle="il_heading_2"
-                                textOptions={{ fill: '#dd0000', wordWrap: true, wordWrapWidth: 172 }}
-                                verticalAlign="top"
-                                layout={{ width: 176, flexShrink: 0 }}
-                            />
-                            <ThemeText
-                                text={t('inventory.empty.desc')}
-                                textStyle="u_regular"
-                                textOptions={{ wordWrap: true, wordWrapWidth: 172 }}
-                                verticalAlign="top"
-                                layout={{ width: 176, flexShrink: 0 }}
-                            />
-                        </Region>
-                        <Button
-                            variant="3"
-                            textStyle="button_shiny_regular"
-                            onPointerTap={() => showWindow('catalog')}
-                            layout={{ position: 'absolute', left: 241, width: 149, bottom: 2, height: 51 }}
-                        >
-                            {t('inventory.open.catalog')}
-                        </Button>
-                    </Region>
-                )}
-                {furniLoading && (
-                    <ThemeImage
-                        src={LayoutImage('habbo-window-manager-com/inventory_download_icon.png')}
-                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                        layout={{ position: 'absolute', left: 6, top: 27, width: 264, bottom: 6 }}
-                    />
-                )}
-                <Region layout={{ position: 'absolute', left: 5, top: 35, width: 468, height: 261 }}>
-                    {(activeTab === 'furni') && <InventoryFurniView />}
-                    {(activeTab === 'collectibles') && <InventoryCollectiblesView />}
-                    {(activeTab === 'pets') && <InventoryPetsView />}
-                    {(activeTab === 'badges') && <InventoryBadgesView />}
-                    {(activeTab === 'bots') && <InventoryBotsView />}
-                </Region>
-            </Region>
-            <InventoryTradingDock
-                activeTab={activeTab}
-                top={TOP_CONTENT_HEIGHT}
-            />
-        </Frame>
+        <TemplateWindow
+            id={inventoryTemplateId('inventory_xml')}
+            frame={frame}
+            bindings={bindings}
+            arrange={arrange}
+        />
     );
 };

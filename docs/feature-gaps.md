@@ -53,15 +53,14 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Room | Post-its: placing one (`PlacePostItComposer`, `PostItPlacedEventMessage`) and the spam wall. | |
 | Room | Habbicon bubbles over avatars and the habbicon selector in the chat input. | `AvatarLogic`, `AvatarVisualization`, `RoomChatInputView` |
 | Pets | Infostand actions: supplements, composting a plant, passing a carried item, selecting a pet. | |
-| Pets | The breeding dialogs, and placing a pet opened from a present (it stays in the inventory). | `InventoryPetsView`, `FurniturePresentOpenedWidget` |
+| Pets | The breeding dialogs, and placing a pet opened from a present (it stays in the inventory). | `useInventoryPetsPage`, `FurniturePresentOpenedWidget` |
 | Navigator | No error for a room that does not exist (`NoSuchFlatMessage`); room event info; report room; the promoted-rooms strip; a block's back button (`goBack` over the search history); syncing the window preferences to the server. | `NavigatorView`, `NavigatorRoomInfoPopup` |
 | Navigator | The room category enforcement dialog (`ShowEnforceRoomCategoryDialogMessage`). | |
 | Marketplace | Redeeming the credits of sold offers (`RedeemMarketplaceOfferCreditsComposer`). | |
 | Catalogue | The next-limited-rare countdown, the page with the earliest expiry, the gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
-| Inventory | The 200-item pages (the grids scroll instead), merged rentable furni, paging through an external image wall item. | `InventoryFurniView`, `InventoryBadgesView`, `InventoryCollectiblesView`, `InventoryFurniPreview` |
-| Trading | The collectible (`nft_image`) layout of the item popup. | `InventoryTradingItemPopup` |
+| Inventory | Merged rentable furni (the `rentables` tab) and a rented item's rent state and expiry, the `use_btn` and paging through an external image wall item (`showUseProductSelection`), the achievement score under the badges. | `useInventoryFurniPage`, `useInventoryBadgesPage`, `InventoryView` |
 | Wired | The hover popup in the wired trade view, and the limited-edition plaque on chest item icons. | `WiredTradeView`, `WiredChestItemCell` |
 | Notifications | The new-feature window, the moderation disclaimer, the notification feed. `ClubGiftSelectedEventMessage` and `PetReceivedMessage` have empty stub parsers. | `NotificationStore`, `registerAlertDialogHandlers` |
 | Purse | What clicking the currency icons opens. | `PurseView` |

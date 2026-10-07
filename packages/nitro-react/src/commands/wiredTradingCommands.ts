@@ -8,7 +8,7 @@
  * The wired menu's chests tab (another window) uses `openWiredChest`,
  * `requestWiredRoomTransactionLogs` and `requestWiredTransactionDetails` from here.
  *
- * The reference server (turbo-cloud) answers none of these packets: every flow follows Flash.
+ * Every flow follows Flash, which is the specification here; Turbo implements the chest packets.
  */
 import { IChestItemType, RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import {

@@ -58,6 +58,12 @@ export interface TemplateTextSize {
 export interface TemplateLayoutInput {
     /** The text an element shows: its bound or layout caption, texts resolved. */
     captionOf: (element: TemplateElement) => string;
+    /**
+     * The caption an element is built with when its code sets `captionOf`'s only once the window is
+     * built (`TemplateBinding.setCaptionAfterBuild`): its layout caption. The change then reaches its
+     * parents as any later resize does - a reflected width, a list re-arranged.
+     */
+    builtCaptionOf?: (element: TemplateElement) => string | undefined;
     /** The text field of `text` in `element`'s style; `wrapWidth` is the field's width when it wraps. */
     measure: (element: TemplateElement, text: string, wrapWidth: number | undefined) => TemplateTextSize | undefined;
     /** Whether the element shows: its binding or list `show` over the layout's `visible`. */
@@ -612,12 +618,28 @@ const ITERABLE_TAGS = new Set([
 
 const flashBool = (value: TemplateValue | undefined) => value === true || value === 'true';
 
-/** A text window's `margins` variable (`{ left, top, right, bottom }`), as `int(...)` of each. */
-const marginsOf = (element: TemplateElement) => {
+/**
+ * A text window's margins (`TextLabelController.margins`, `TextController`'s): its `margins` map
+ * (`setTextMarginMap`) and its `margin_left` / `_top` / `_right` / `_bottom` properties, each side
+ * as `int(...)`.
+ */
+export const templateTextMargins = (element: TemplateElement): { left: number; top: number; right: number; bottom: number } => {
     const margins = element.vars.margins;
-    const side = (key: string) => (margins && typeof margins === 'object' && !Array.isArray(margins) ? int(Number(margins[key]) || 0) : 0);
+    const side = (key: 'left' | 'top' | 'right' | 'bottom') => {
+        const own = element.vars[`margin_${key}`];
 
-    return { horizontal: side('left') + side('right'), vertical: side('top') + side('bottom') };
+        if (own !== undefined) return int(Number(own) || 0);
+
+        return (margins && typeof margins === 'object' && !Array.isArray(margins)) ? int(Number(margins[key]) || 0) : 0;
+    };
+
+    return { left: side('left'), top: side('top'), right: side('right'), bottom: side('bottom') };
+};
+
+const marginsOf = (element: TemplateElement) => {
+    const { left, top, right, bottom } = templateTextMargins(element);
+
+    return { horizontal: left + right, vertical: top + bottom };
 };
 
 /** A text's width as its field lays it out: `textWidth`, or the field less its two 2px gutters. */
@@ -1567,7 +1589,7 @@ const build = (element: TemplateElement, parent: LayoutWindow | undefined, input
     if (maxHeight !== null) window.maxHeight = maxHeight;
 
     window.limit();
-    window.setCaption(input.captionOf(element), input);
+    window.setCaption(input.builtCaptionOf?.(element) ?? input.captionOf(element), input);
     window.visible = !element.hidden;
 
     if (parent && underIterable) {
@@ -1605,6 +1627,22 @@ export const buildTemplateWindows = (elements: readonly TemplateElement[], input
         const clones: { element: TemplateElement; parent: LayoutWindow }[] = [];
 
         build(element, parent, input, windows, clones);
+
+        // The captions the code sets on the built window (`findChildByName("count").caption = ...`).
+        if (input.builtCaptionOf) {
+            const setCaptions = (scope: TemplateElement) => {
+                const window = windows.get(scope);
+
+                if (!window) return;
+
+                if (input.builtCaptionOf?.(scope) !== undefined) window.setCaption(input.captionOf(scope), input);
+
+                for (const child of scope.children) setCaptions(child);
+            };
+
+            setCaptions(element);
+        }
+
         input.setupOf?.(element)?.(windowOf);
 
         for (const clone of clones) buildScope(clone.element, clone.parent);

@@ -3,5 +3,4 @@ export * from './WiredChestComponent';
 export * from './WiredContractComponent';
 export * from './WiredRewardNotificationsComponent';
 export * from './WiredSelfDonationComponent';
-export * from './WiredTradeComponent';
 export * from './WiredTransactionsComponent';

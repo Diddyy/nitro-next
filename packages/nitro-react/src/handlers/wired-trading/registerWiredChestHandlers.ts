@@ -9,7 +9,9 @@
  * (the chest's options live in its map stuff data) redraws it or, when the viewer may no longer
  * read it, closes it. These run after the room's own furni handlers, so the model is current.
  *
- * The reference server (turbo-cloud) sends none of the chest packets; this follows Flash.
+ * This follows Flash. Flash keeps one chest window and only ever closes the chest it last
+ * opened (`setClosedStatus`), so opening another chest leaves closing the previous one to the
+ * server - Turbo does (`RoomWiredChestSystem.CloseOtherChestsAsync`).
  */
 import {
     ChestPreferencesUpdateSuccessMessage, CoinsChestContentsMessage, ItemsChestContentsChunkMessage, ItemsChestContentsUpdatedMessage, ObjectDataUpdateMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage,

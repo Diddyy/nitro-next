@@ -26,6 +26,11 @@ export interface TemplateWindowProps {
     /** The window's size as its code sets it (`TemplateView`'s `width` / `height`). */
     width?: number;
     height?: number;
+    /**
+     * The parameters the window's code registers for its texts before it builds the window
+     * (`Localization.registerParameter`), by key: a caption's `${key}` is read filled with them.
+     */
+    parameters?: Readonly<Record<string, Record<string, string>>>;
 }
 
 /** The template cut down to its window `part`, as its own template. */
@@ -36,14 +41,16 @@ const templatePart = (template: Template, part: string): Template | undefined =>
 };
 
 /** Draws nothing until the template is loaded, as a Flash window opens once its library is in. */
-export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, height }: TemplateWindowProps) => {
+export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, height, parameters }: TemplateWindowProps) => {
     const loaded = useTemplate(id);
     const template = useMemo(() => (loaded && part !== undefined ? templatePart(loaded, part) : loaded), [ loaded, part ]);
     const t = useTranslation();
-    // The texts' identity: a new table (texts loaded, or another language) is a new `resolveText`,
-    // which redraws every text of the template. Between those it stays the same function.
+    // The texts' identity: a new table (texts loaded, or another language) or new parameters is a new
+    // `resolveText`, which redraws every text of the template. Between those it stays the same function.
     const localizations = useSystemStore(x => x.localizations);
-    const resolveText = useCallback((key: string) => (localizations[key] !== undefined ? t(key) : undefined), [ t, localizations ]);
+    const parametersKey = parameters ? JSON.stringify(parameters) : '';
+    const registered = useMemo(() => (parametersKey ? JSON.parse(parametersKey) as Record<string, Record<string, string>> : undefined), [ parametersKey ]);
+    const resolveText = useCallback((key: string) => (localizations[key] !== undefined ? t(key, '', registered?.[key]) : undefined), [ t, localizations, registered ]);
     // A bitmap the template names is a bundled asset already: `ThemeImage` reads the name as it is.
     // A `${key}` in it is a hotel variable (`${image.library.questing.url}ach_category_pets.png`).
     const config = useSystemStore(x => x.config);

@@ -9,8 +9,7 @@
  * that read, taken when the window opens and again on each of Flash's `REOE_UPDATED` for the
  * viewed chest (a data update of that furni), so the window draws from the store.
  *
- * The reference server (turbo-cloud) implements none of the chest packets; Flash's behaviour is
- * the specification.
+ * Flash's behaviour is the specification; Turbo implements the chest packets against it.
  */
 import type { IChestStorage } from '@nitrodevco/nitro-api';
 import { StateCreator } from 'zustand';

@@ -4,10 +4,11 @@
  * on the right (or, for a payment, the payment picture of the requirement's layout type), the
  * lock between them, the info line above and accept / cancel below.
  *
- * Flash drew this as the inventory's "wired_trading" sub page, the `subContentArea` under the tabs
- * (`InventoryMainView.setSubViewToCategory`); here it is a window of its own in the inventory's
- * frame - style 3, `#418db0`, the 4px shadow and `inventory_xml`'s margins around the 478x274 page. Items are offered from the inventory's furni page
- * (`InventoryFurniView`) and the offer changes through the server's `WiredTradeItemsUpdate`.
+ * It is the inventory's "wired_trading" sub page, docked in the `subContentArea` under the tabs
+ * (`InventoryMainView.setSubViewToCategory`, `InventoryTradingDock`) as the user trade is: the
+ * trade opens the inventory on its furni page (`toggleInventorySubPage("wired_trading")`), and
+ * closing the inventory cancels it (`closingInventoryView`). Items are offered from the inventory's furni page
+ * (`useInventoryFurniPage`) and the offer changes through the server's `WiredTradeItemsUpdate`.
  * Removing an offered item (a click on it while adding items, `requestRemoveItemFromTrading`)
  * works.
  *
@@ -17,7 +18,7 @@
  * - `updateSecondsLeftUI`: under two minutes left of the trade's timeout, "m:ss left" in red.
  * - `updateOfferInfoUI`: item and credit counts under both sides.
  * - The "i" toggles the requirements bubble (`WiredTradeRequirementsView`).
- * - Closing the window cancels the trade (`closingInventoryView` -> `close(true, true)`).
+ * - The requirements bubble floats over the window layer, by the "i"'s place on screen.
  */
 import type { ITradingItemListData } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer } from 'pixi.js';
@@ -28,22 +29,20 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
 import { useWiredTradeActions, useWiredTradingStore, WIRED_TRADE_STATE_ADDING_ITEMS, WIRED_TRADE_STATE_CONFIRMED, WIRED_TRADE_STATE_CONFIRMING, WIRED_TRADE_STATE_COUNTDOWN, WIRED_TRADE_STATE_READY } from '#base/context/wired-trading';
 import { useSecondsClock, useWiredChestItemIconUrl } from '#base/hooks';
-import { Border, Box, Button, Frame, LayoutImage, Region, ThemeImage, ThemeText, useLayoutEvent, useLayoutSize } from '#base/theme';
+import { Border, Box, Button, FloatingPopup, LayoutImage, Region, ThemeImage, ThemeText, useLayoutEvent, useLayoutSize } from '#base/theme';
 import { isWiredTradePaymentOnly } from '#base/utils';
+import { INVENTORY_TRADING_WIDTH, INVENTORY_WIRED_TRADING_HEIGHT } from '#base/views/inventory/trading/inventoryTradingLayout';
 import { getWiredTradingBubbleAnchor, WiredTradingBubbleAnchor } from '#base/views/wired-trading/common/wiredTradingBubbleAnchor';
 
 import { WiredTradeRequirementsView } from './WiredTradeRequirementsView';
 
-const WIDTH = 478;
-const HEIGHT = 274;
+const WIDTH = INVENTORY_TRADING_WIDTH;
+const HEIGHT = INVENTORY_WIRED_TRADING_HEIGHT;
 /** `startConfirmCountdown`: three ticks of a second. */
 const COUNTDOWN_SECONDS = 3;
 /** The seconds-left line shows under this. */
 const SECONDS_LEFT_LIMIT = 120;
 const GRID_CELLS = 9;
-/** `inventory_xml`'s frame: style 3 in the inventory's blue, content at 6,35 and 6,6 from the far edges. */
-const INVENTORY_FRAME_COLOR = '#418db0';
-const INVENTORY_MARGINS = [ 6, 35, 6, 6 ] as const;
 const TEXT_BLEND = 0.6;
 const BORDER_COLOR = '#27556a';
 /** `item_grid_*`'s cells. */
@@ -330,139 +329,128 @@ export const WiredTradeView = () => {
 
     return (
         <>
-            <Frame
-                variant="3"
-                id="wired-trade"
-                caption={tradeTypeName}
-                tintColor={INVENTORY_FRAME_COLOR}
-                dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-                resizeDirection="none"
-                defaultPosition={{ x: 20, y: 380 }}
-                onClose={() => closeWiredTrade(send, true)}
-                margins={INVENTORY_MARGINS}
-                layout={{ position: 'absolute', width: WIDTH + INVENTORY_MARGINS[0] + INVENTORY_MARGINS[2], height: HEIGHT + INVENTORY_MARGINS[1] + INVENTORY_MARGINS[3] }}
-            >
-                <Box layout={{ position: 'absolute', left: 0, top: 0, width: WIDTH, height: HEIGHT }}>
-                    <Border
-                        variant="102"
-                        tintColor={BORDER_COLOR}
-                        layout={{ position: 'absolute', left: 0, top: 0, width: WIDTH, height: 233 }}
+            <Box layout={{ position: 'absolute', left: 0, top: 0, width: WIDTH, height: HEIGHT }}>
+                <Border
+                    variant="102"
+                    tintColor={BORDER_COLOR}
+                    layout={{ position: 'absolute', left: 0, top: 0, width: WIDTH, height: 233 }}
+                >
+                    <Region
+                        alpha={TEXT_BLEND}
+                        layout={{ position: 'absolute', left: 38, width: 401, top: 7, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' }}
                     >
-                        <Region
-                            alpha={TEXT_BLEND}
-                            layout={{ position: 'absolute', left: 38, width: 401, top: 7, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' }}
-                        >
-                            <ThemeText
-                                text={infoText}
-                                textStyle="u_regular"
-                                textOptions={{ align: 'center' }}
-                            />
-                        </Region>
+                        <ThemeText
+                            text={infoText}
+                            textStyle="u_regular"
+                            textOptions={{ align: 'center' }}
+                        />
+                    </Region>
+                    <OfferSide
+                        title={t('inventory.wired_trading.offering')}
+                        groups={ownGroups}
+                        itemCount={items?.firstUserNumItems ?? 0}
+                        credits={items?.firstUserNumCredits ?? 0}
+                        left={17}
+                        titleLeft={52}
+                        titleWidth={95}
+                        gridBorderWidth={136}
+                        onPressGroup={group => removeWiredTradeItem(send, group.items[0].itemId)}
+                    />
+                    <ThemeImage
+                        src={LayoutImage(locked ? 'habbo-window-manager-com/inventory_trading_trading_locked_icon.png' : 'habbo-window-manager-com/inventory_trading_trading_unlocked_icon.png')}
+                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
+                        layout={{ position: 'absolute', left: 223, width: 32, top: 192, height: 34 }}
+                    />
+                    {/* `updateUI`: a payment hides `offers_1` and shows `offers_1_payment_placeholder`. */}
+                    {!isPayment && (
                         <OfferSide
-                            title={t('inventory.wired_trading.offering')}
-                            groups={ownGroups}
-                            itemCount={items?.firstUserNumItems ?? 0}
-                            credits={items?.firstUserNumCredits ?? 0}
-                            left={17}
-                            titleLeft={52}
-                            titleWidth={95}
-                            gridBorderWidth={136}
-                            onPressGroup={group => removeWiredTradeItem(send, group.items[0].itemId)}
+                            title={t('inventory.wired_trading.receiving')}
+                            groups={wiredGroups}
+                            itemCount={items?.secondUserNumItems ?? 0}
+                            credits={items?.secondUserNumCredits ?? 0}
+                            left={263}
+                            titleLeft={54}
+                            titleWidth={90}
+                            gridBorderWidth={180}
+                            clip
                         />
-                        <ThemeImage
-                            src={LayoutImage(locked ? 'habbo-window-manager-com/inventory_trading_trading_locked_icon.png' : 'habbo-window-manager-com/inventory_trading_trading_unlocked_icon.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            layout={{ position: 'absolute', left: 223, width: 32, top: 192, height: 34 }}
-                        />
-                        {/* `updateUI`: a payment hides `offers_1` and shows `offers_1_payment_placeholder`. */}
-                        {!isPayment && (
-                            <OfferSide
-                                title={t('inventory.wired_trading.receiving')}
-                                groups={wiredGroups}
-                                itemCount={items?.secondUserNumItems ?? 0}
-                                credits={items?.secondUserNumCredits ?? 0}
-                                left={263}
-                                titleLeft={54}
-                                titleWidth={90}
-                                gridBorderWidth={180}
-                                clip
-                            />
-                        )}
-                        {isPayment && (
-                            <Region layout={{ position: 'absolute', left: 263, width: 200, top: 29, height: 200 }}>
-                                <ThemeImage
-                                    src={LayoutImage(`habbo-window-manager-com/wired_chests_images_${requirement?.layoutType ?? 'generic'}_payments.png`)}
-                                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
-                                    layout={{ position: 'absolute', left: 20, width: 170, top: 9, height: 173 }}
-                                />
-                            </Region>
-                        )}
-                        <ThemeImage
-                            src={LayoutImage(isPayment ? 'habbo-window-manager-com/inventory_trading_trading_arrow_icon.png' : 'habbo-window-manager-com/inventory_trading_trading_split_icon.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            layout={{ position: 'absolute', left: 212, width: 53, top: 95, height: 42 }}
-                        />
-                        <Region
-                            ref={setInfoNode}
-                            cursor="pointer"
-                            onPointerTap={(event) => {
-                                setAnchor(getWiredTradingBubbleAnchor(event));
-                                setTradeRequirementsVisible(!requirementsVisible);
-                            }}
-                            layout={{ position: 'absolute', left: 453, width: 18, top: 6, height: 18 }}
-                        >
+                    )}
+                    {isPayment && (
+                        <Region layout={{ position: 'absolute', left: 263, width: 200, top: 29, height: 200 }}>
                             <ThemeImage
-                                src={LayoutImage('habbo-window-manager-com/icons_info_grey.png')}
-                                bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                                layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 18 }}
+                                src={LayoutImage(`habbo-window-manager-com/wired_chests_images_${requirement?.layoutType ?? 'generic'}_payments.png`)}
+                                bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
+                                layout={{ position: 'absolute', left: 20, width: 170, top: 9, height: 173 }}
                             />
                         </Region>
-                    </Border>
-                    <Region layout={{ position: 'absolute', left: 0, width: WIDTH, top: 240, height: 32 }}>
-                        <Region layout={{ position: 'absolute', left: 5, top: 0, height: 28, flexDirection: 'row', gap: 6 }}>
-                            <Button
-                                variant="3"
-                                disabled={acceptDisabled}
-                                onPointerTap={onAccept}
-                                layout={{ width: 157, height: 28, flexShrink: 0 }}
-                            >
-                                {acceptCaption}
-                            </Button>
-                            {(secondsLeft >= 0) && (secondsLeft < SECONDS_LEFT_LIMIT) && (
-                                <ThemeText
-                                    text={t('inventory.wired_trading.seconds_left', '', { seconds: (seconds < 10) ? `0${seconds}` : String(seconds), minutes: String(minutes) })}
-                                    textStyle="u_regular"
-                                    textOptions={{ fill: '#bf272a' }}
-                                    verticalAlign="top"
-                                    layout={{ width: 136, height: 17, marginTop: 5, flexShrink: 0 }}
-                                />
-                            )}
-                        </Region>
+                    )}
+                    <ThemeImage
+                        src={LayoutImage(isPayment ? 'habbo-window-manager-com/inventory_trading_trading_arrow_icon.png' : 'habbo-window-manager-com/inventory_trading_trading_split_icon.png')}
+                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
+                        layout={{ position: 'absolute', left: 212, width: 53, top: 95, height: 42 }}
+                    />
+                    <Region
+                        ref={setInfoNode}
+                        cursor="pointer"
+                        onPointerTap={(event) => {
+                            setAnchor(getWiredTradingBubbleAnchor(event));
+                            setTradeRequirementsVisible(!requirementsVisible);
+                        }}
+                        layout={{ position: 'absolute', left: 453, width: 18, top: 6, height: 18 }}
+                    >
+                        <ThemeImage
+                            src={LayoutImage('habbo-window-manager-com/icons_info_grey.png')}
+                            bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
+                            layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 18 }}
+                        />
+                    </Region>
+                </Border>
+                <Region layout={{ position: 'absolute', left: 0, width: WIDTH, top: 240, height: 32 }}>
+                    <Region layout={{ position: 'absolute', left: 5, top: 0, height: 28, flexDirection: 'row', gap: 6 }}>
                         <Button
                             variant="3"
-                            onPointerTap={() => closeWiredTrade(send, true)}
-                            layout={{ position: 'absolute', left: 415, width: 56, top: 0, height: 28 }}
+                            disabled={acceptDisabled}
+                            onPointerTap={onAccept}
+                            layout={{ width: 157, height: 28, flexShrink: 0 }}
                         >
-                            {t('generic.cancel')}
+                            {acceptCaption}
                         </Button>
+                        {(secondsLeft >= 0) && (secondsLeft < SECONDS_LEFT_LIMIT) && (
+                            <ThemeText
+                                text={t('inventory.wired_trading.seconds_left', '', { seconds: (seconds < 10) ? `0${seconds}` : String(seconds), minutes: String(minutes) })}
+                                textStyle="u_regular"
+                                textOptions={{ fill: '#bf272a' }}
+                                verticalAlign="top"
+                                layout={{ width: 136, height: 17, marginTop: 5, flexShrink: 0 }}
+                            />
+                        )}
                     </Region>
-                </Box>
-            </Frame>
+                    <Button
+                        variant="3"
+                        onPointerTap={() => closeWiredTrade(send, true)}
+                        layout={{ position: 'absolute', left: 415, width: 56, top: 0, height: 28 }}
+                    >
+                        {t('generic.cancel')}
+                    </Button>
+                </Region>
+            </Box>
             {/* `WiredTradeRequirementsView.recenter`: the bubble window 4px right of the "i", centred on it; its pointer hangs 2px out of the window's left edge. */}
             {requirementsVisible && requirement && anchor && (
-                <Box
-                    ref={setBubbleNode}
-                    zIndex={100000}
-                    layout={{ position: 'absolute', left: Math.round(anchor.x + anchor.width + 4), top: Math.round(anchor.y + (anchor.height / 2) - (bubbleSize.height / 2)) }}
+                <FloatingPopup
+                    x={Math.round(anchor.x + anchor.width + 4)}
+                    y={Math.round(anchor.y + (anchor.height / 2) - (bubbleSize.height / 2))}
+                    onOutsideClick={() => undefined}
                 >
-                    <WiredTradeRequirementsView
-                        requirement={requirement}
-                        tradeTypeName={tradeTypeName}
-                        canAccept={canAccept}
-                        extra={extra}
-                        highlightCount={highlightCount}
-                    />
-                </Box>
+                    <Box ref={setBubbleNode}>
+                        <WiredTradeRequirementsView
+                            requirement={requirement}
+                            tradeTypeName={tradeTypeName}
+                            canAccept={canAccept}
+                            extra={extra}
+                            highlightCount={highlightCount}
+                        />
+                    </Box>
+                </FloatingPopup>
             )}
         </>
     );
