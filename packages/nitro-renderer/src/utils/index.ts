@@ -3,6 +3,7 @@ export * from './GetRenderer';
 export * from './GetRoomStage';
 export * from './GetTicker';
 export * from './GetTickerTime';
+export * from './LoadMetrics';
 export * from './NitroBundle';
 export * from './NumberBank';
 export * from './PaletteMapFilter';
