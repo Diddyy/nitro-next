@@ -6023,7 +6023,7 @@ __metadata:
 
 "pixi.js@patch:pixi.js@npm%3A8.21.0#~/.yarn/patches/pixi.js-npm-8.21.0-d776aa6eb9.patch":
   version: 8.21.0
-  resolution: "pixi.js@patch:pixi.js@npm%3A8.21.0#~/.yarn/patches/pixi.js-npm-8.21.0-d776aa6eb9.patch::version=8.21.0&hash=7435b3"
+  resolution: "pixi.js@patch:pixi.js@npm%3A8.21.0#~/.yarn/patches/pixi.js-npm-8.21.0-d776aa6eb9.patch::version=8.21.0&hash=aacd49"
   dependencies:
     "@pixi/colord": "npm:^2.9.6"
     "@types/earcut": "npm:^3.0.0"
@@ -6035,7 +6035,7 @@ __metadata:
     ismobilejs: "npm:^1.1.1"
     parse-svg-path: "npm:^0.2.0"
     tiny-lru: "npm:^11.4.7"
-  checksum: 10c0/bf7037edeb486216744995bf370ef163cb5a7d4e8c076df10ea21b80b7572194843f49c4ffc874766bb4c0a94b8db50e73044956557e704aaffec92d17f1db95
+  checksum: 10c0/e351a762a6687f4bb5acac51b778dfd48b43a38f57b86c19875916b87f85bcdc7afaac3ddc5f6b5d01194878a76eeab0eb45215c914e5a82458ed852be406879
   languageName: node
   linkType: hard
 

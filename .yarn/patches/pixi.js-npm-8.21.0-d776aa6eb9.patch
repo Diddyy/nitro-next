@@ -74,10 +74,10 @@ index 90fec795cbc9b37aba921921be58b1681b630c4e..2f39a2db31fe3a7bb1885ae0a2ba2e53
 +export declare function pruneTextureBatchBindGroups(now: number, maxIdle: number): number;
  export declare function getTextureBatchBindGroup(textures: TextureSource[], size: number, maxTextures: number): BindGroup;
 diff --git a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
-index c87625041835cbaf9d1280d6eaef70a3feccf4d2..c2529c317670bcadd6cb02d2a972656c254a7341 100644
+index c87625041835cbaf9d1280d6eaef70a3feccf4d2..21d25051e8af687cac066f7d3265aae0cbaa1fee 100644
 --- a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
 +++ b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.js
-@@ -2,9 +2,59 @@
+@@ -2,9 +2,91 @@
  
  var BindGroup = require('../../renderers/gpu/shader/BindGroup.js');
  var Texture = require('../../renderers/shared/texture/Texture.js');
@@ -99,15 +99,47 @@ index c87625041835cbaf9d1280d6eaef70a3feccf4d2..c2529c317670bcadd6cb02d2a972656c
 + * @returns The number of groups dropped.
 + */
 +function pruneTextureBatchBindGroups(now, maxIdle) {
-+  let pruned = 0;
++  const pruned = /* @__PURE__ */ new Set();
 +  for (const bindGroup of attachedGroups) {
 +    if (now - bindGroup._lastUsed <= maxIdle) continue;
 +    attachedGroups.delete(bindGroup);
 +    if (cachedGroups[bindGroup._batchKey] === bindGroup) delete cachedGroups[bindGroup._batchKey];
-+    bindGroup._detach();
-+    pruned++;
++    pruned.add(bindGroup);
 +  }
-+  return pruned;
++  if (pruned.size) detachTextureBatchBindGroups(pruned);
++  return pruned.size;
++}
++/**
++ * Detaches many groups at once. Every texture batch group binds the shared empty texture in its
++ * unused slots, so that source and its style carry a listener per slot of every attached group.
++ * eventemitter3's `off` copies the whole listener list on each call, so detaching groups one by one
++ * was quadratic in the cache size - seconds of frame time and hundreds of MB of garbage on a prune.
++ * This rebuilds each affected emitter's list once.
++ * @param groups - The groups to detach.
++ */
++function detachTextureBatchBindGroups(groups) {
++  const handler = BindGroup.BindGroup.prototype.onResourceChange;
++  const emitters = /* @__PURE__ */ new Set();
++  for (const bindGroup of groups) {
++    if (bindGroup._detached || !bindGroup.resources) continue;
++    for (const i in bindGroup.resources) {
++      const resource = bindGroup.resources[i];
++      if (resource && resource._events) emitters.add(resource);
++    }
++    bindGroup._detached = true;
++  }
++  for (const emitter of emitters) {
++    const listeners = emitter._events.change;
++    if (!listeners) continue;
++    if (!Array.isArray(listeners)) {
++      if (listeners.fn === handler && groups.has(listeners.context)) emitter.removeAllListeners("change");
++      continue;
++    }
++    const kept = listeners.filter((listener) => listener.fn !== handler || !groups.has(listener.context));
++    if (kept.length === listeners.length) continue;
++    if (!kept.length) emitter.removeAllListeners("change");
++    else emitter._events.change = kept.length === 1 ? kept[0] : kept;
++  }
 +}
 +/**
 + * Whether every texture this group binds is still alive. A source destroyed while a batch still
@@ -137,7 +169,7 @@ index c87625041835cbaf9d1280d6eaef70a3feccf4d2..c2529c317670bcadd6cb02d2a972656c
  function getTextureBatchBindGroup(textures, size, maxTextures) {
    let uid = 2166136261;
    for (let i = 0; i < size; i++) {
-@@ -12,20 +62,32 @@ function getTextureBatchBindGroup(textures, size, maxTextures) {
+@@ -12,20 +94,32 @@ function getTextureBatchBindGroup(textures, size, maxTextures) {
      uid = Math.imul(uid, 16777619);
      uid >>>= 0;
    }
@@ -175,10 +207,10 @@ index c87625041835cbaf9d1280d6eaef70a3feccf4d2..c2529c317670bcadd6cb02d2a972656c
 +exports.pruneTextureBatchBindGroups = pruneTextureBatchBindGroups;
  //# sourceMappingURL=getTextureBatchBindGroup.js.map
 diff --git a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
-index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..099cac540271f73239ca76b80ebc0a688adc2a1e 100644
+index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..cf598cc9f69d2c6ef2a493aaf13f640a7d17ac01 100644
 --- a/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
 +++ b/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
-@@ -1,8 +1,58 @@
+@@ -1,8 +1,90 @@
  import { BindGroup } from '../../renderers/gpu/shader/BindGroup.mjs';
  import { Texture } from '../../renderers/shared/texture/Texture.mjs';
 +import { warn } from '../../../utils/logging/warn.mjs';
@@ -199,15 +231,47 @@ index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..099cac540271f73239ca76b80ebc0a68
 + * @returns The number of groups dropped.
 + */
 +function pruneTextureBatchBindGroups(now, maxIdle) {
-+  let pruned = 0;
++  const pruned = /* @__PURE__ */ new Set();
 +  for (const bindGroup of attachedGroups) {
 +    if (now - bindGroup._lastUsed <= maxIdle) continue;
 +    attachedGroups.delete(bindGroup);
 +    if (cachedGroups[bindGroup._batchKey] === bindGroup) delete cachedGroups[bindGroup._batchKey];
-+    bindGroup._detach();
-+    pruned++;
++    pruned.add(bindGroup);
 +  }
-+  return pruned;
++  if (pruned.size) detachTextureBatchBindGroups(pruned);
++  return pruned.size;
++}
++/**
++ * Detaches many groups at once. Every texture batch group binds the shared empty texture in its
++ * unused slots, so that source and its style carry a listener per slot of every attached group.
++ * eventemitter3's `off` copies the whole listener list on each call, so detaching groups one by one
++ * was quadratic in the cache size - seconds of frame time and hundreds of MB of garbage on a prune.
++ * This rebuilds each affected emitter's list once.
++ * @param groups - The groups to detach.
++ */
++function detachTextureBatchBindGroups(groups) {
++  const handler = BindGroup.prototype.onResourceChange;
++  const emitters = /* @__PURE__ */ new Set();
++  for (const bindGroup of groups) {
++    if (bindGroup._detached || !bindGroup.resources) continue;
++    for (const i in bindGroup.resources) {
++      const resource = bindGroup.resources[i];
++      if (resource && resource._events) emitters.add(resource);
++    }
++    bindGroup._detached = true;
++  }
++  for (const emitter of emitters) {
++    const listeners = emitter._events.change;
++    if (!listeners) continue;
++    if (!Array.isArray(listeners)) {
++      if (listeners.fn === handler && groups.has(listeners.context)) emitter.removeAllListeners("change");
++      continue;
++    }
++    const kept = listeners.filter((listener) => listener.fn !== handler || !groups.has(listener.context));
++    if (kept.length === listeners.length) continue;
++    if (!kept.length) emitter.removeAllListeners("change");
++    else emitter._events.change = kept.length === 1 ? kept[0] : kept;
++  }
 +}
 +/**
 + * Whether every texture this group binds is still alive. A source destroyed while a batch still
@@ -237,7 +301,7 @@ index 433fedc5a99dea5dd01d0f55f0aba7dffdb6c795..099cac540271f73239ca76b80ebc0a68
  function getTextureBatchBindGroup(textures, size, maxTextures) {
    let uid = 2166136261;
    for (let i = 0; i < size; i++) {
-@@ -10,20 +60,30 @@ function getTextureBatchBindGroup(textures, size, maxTextures) {
+@@ -10,20 +92,30 @@ function getTextureBatchBindGroup(textures, size, maxTextures) {
      uid = Math.imul(uid, 16777619);
      uid >>>= 0;
    }
@@ -314,7 +378,7 @@ index 89d340f065e87f6d84bcef4c2eabb6e07635433e..c0982cf3247118d9ca3e02224cf6c2e8
      destroy(): void;
      protected onResourceChange(resource: BindResource): void;
 diff --git a/lib/rendering/renderers/gpu/shader/BindGroup.js b/lib/rendering/renderers/gpu/shader/BindGroup.js
-index 54aee731d5bf4d2451525f3b26906aaf6b76ef20..6386507d633c4d74539f3756833edca9e12faaaf 100644
+index 54aee731d5bf4d2451525f3b26906aaf6b76ef20..45568caf241345c8965b320eb5e16bc77b373839 100644
 --- a/lib/rendering/renderers/gpu/shader/BindGroup.js
 +++ b/lib/rendering/renderers/gpu/shader/BindGroup.js
 @@ -24,7 +24,7 @@ class BindGroup {
@@ -335,7 +399,7 @@ index 54aee731d5bf4d2451525f3b26906aaf6b76ef20..6386507d633c4d74539f3756833edca9
      const resources = this.resources;
      for (const i in resources) {
        const resource = resources[i];
-@@ -75,6 +77,32 @@ class BindGroup {
+@@ -75,6 +77,36 @@ class BindGroup {
      }
    }
    /** Destroys this bind group and removes all listeners. */
@@ -346,8 +410,12 @@ index 54aee731d5bf4d2451525f3b26906aaf6b76ef20..6386507d633c4d74539f3756833edca9
 +   */
 +  _detach() {
 +    if (this._detached || !this.resources) return;
++    const seen = /* @__PURE__ */ new Set();
 +    for (const i in this.resources) {
-+      this.resources[i]?.off?.("change", this.onResourceChange, this);
++      const resource = this.resources[i];
++      if (!resource || seen.has(resource)) continue;
++      seen.add(resource);
++      resource.off?.("change", this.onResourceChange, this);
 +    }
 +    this._detached = true;
 +  }
@@ -369,7 +437,7 @@ index 54aee731d5bf4d2451525f3b26906aaf6b76ef20..6386507d633c4d74539f3756833edca9
      const resources = this.resources;
      for (const i in resources) {
 diff --git a/lib/rendering/renderers/gpu/shader/BindGroup.mjs b/lib/rendering/renderers/gpu/shader/BindGroup.mjs
-index 6c0d131c4eca916aaed87f4cb5098c00a426f579..66d19df4d945f3cc3b693f636e15f53f824c3200 100644
+index 6c0d131c4eca916aaed87f4cb5098c00a426f579..ba00630e6499c824791ab580551e41f3d09c9daf 100644
 --- a/lib/rendering/renderers/gpu/shader/BindGroup.mjs
 +++ b/lib/rendering/renderers/gpu/shader/BindGroup.mjs
 @@ -22,7 +22,7 @@ class BindGroup {
@@ -390,7 +458,7 @@ index 6c0d131c4eca916aaed87f4cb5098c00a426f579..66d19df4d945f3cc3b693f636e15f53f
      const resources = this.resources;
      for (const i in resources) {
        const resource = resources[i];
-@@ -73,6 +75,32 @@ class BindGroup {
+@@ -73,6 +75,36 @@ class BindGroup {
      }
    }
    /** Destroys this bind group and removes all listeners. */
@@ -401,8 +469,12 @@ index 6c0d131c4eca916aaed87f4cb5098c00a426f579..66d19df4d945f3cc3b693f636e15f53f
 +   */
 +  _detach() {
 +    if (this._detached || !this.resources) return;
++    const seen = /* @__PURE__ */ new Set();
 +    for (const i in this.resources) {
-+      this.resources[i]?.off?.("change", this.onResourceChange, this);
++      const resource = this.resources[i];
++      if (!resource || seen.has(resource)) continue;
++      seen.add(resource);
++      resource.off?.("change", this.onResourceChange, this);
 +    }
 +    this._detached = true;
 +  }

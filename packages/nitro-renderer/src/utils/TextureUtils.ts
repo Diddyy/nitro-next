@@ -16,6 +16,7 @@ type BindListener = { fn: () => void; context: unknown };
 type BindEmitter = {
     _events?: Record<string, BindListener | BindListener[]>;
     off(event: string, fn: () => void, context: unknown): void;
+    removeAllListeners(event: string): void;
 };
 
 export class TextureUtils {
@@ -99,23 +100,37 @@ export class TextureUtils {
         const handler = (BindGroup.prototype as unknown as { onResourceChange: () => void }).onResourceChange;
 
         for (const emitter of [ source, source.style ] as unknown as BindEmitter[]) {
-            if (!emitter) continue;
+            if (!emitter?._events) continue;
 
-            const events = emitter._events?.change;
+            const events = emitter._events.change;
 
             if (!events) continue;
 
-            for (const { fn, context } of Array.isArray(events) ? [ ...events ] : [ events ]) {
-                if ((fn !== handler) || !(context instanceof BindGroup)) continue;
+            const listeners = Array.isArray(events) ? events : [ events ];
+            const kept: BindListener[] = [];
 
-                emitter.off('change', fn, context);
+            for (const listener of listeners) {
+                const { fn, context } = listener;
+
+                if ((fn !== handler) || !(context instanceof BindGroup)) {
+                    kept.push(listener);
+
+                    continue;
+                }
 
                 for (const key in context.resources) {
-                    if (context.resources[key] === emitter) delete context.resources[key];
+                    if ((context.resources[key] as unknown) === emitter) delete context.resources[key];
                 }
 
                 (context as unknown as { _dirty: boolean })._dirty = true;
             }
+
+            if (kept.length === listeners.length) continue;
+
+            // One rebuild of the list: eventemitter3's `off` copies the whole list per call, and a pooled
+            // source can be subscribed to hundreds of groups, so removing them one by one was quadratic.
+            if (kept.length) emitter._events.change = (kept.length === 1) ? kept[0] : kept;
+            else emitter.removeAllListeners('change');
         }
     }
 
