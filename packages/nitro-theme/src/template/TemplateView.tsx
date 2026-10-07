@@ -357,7 +357,9 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     const margins = label ? templateTextMargins(element) : undefined;
     // `TextController.background`: the `TextField` fills its rect in its `backgroundColor` - the
     // window's colour (`set color`), white when it has none. A label has no field background.
-    const background = (!label && (binding?.background ?? element.background)) ? (flashColor(binding?.color ?? element.color) ?? { hex: '#ffffff', alpha: 1 }) : undefined;
+    // A binding's `color` is the text's colour (`textColor` above), so it fills the field only when
+    // the binding itself asks for a background: the infostand's white name over its dark `color`.
+    const background = (!label && (binding?.background ?? element.background)) ? (flashColor(binding?.background ? (binding.color ?? element.color) : element.color) ?? { hex: '#ffffff', alpha: 1 }) : undefined;
 
     const themeText = (
         <ThemeText
