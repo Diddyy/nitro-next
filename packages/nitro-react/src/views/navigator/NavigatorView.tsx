@@ -493,7 +493,6 @@ export const NavigatorView = () => {
             />
             {roomInfoBubble && (
                 <NavigatorRoomInfoPopup
-                    key={roomInfoBubble.room.roomId}
                     room={roomInfoBubble.room}
                     x={roomInfoBubble.x}
                     y={roomInfoBubble.y}

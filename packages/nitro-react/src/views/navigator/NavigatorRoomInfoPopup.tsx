@@ -142,11 +142,19 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
     const { showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
-    // `roomIsFavorite` / `roomIsHome` set by the toggles; `setData` of another room drops both,
-    // which the parent's `key` on the room does here.
+    // `roomIsFavorite` / `roomIsHome` set by the toggles; `setData` of another room drops both.
+    // The bubble stays mounted across rooms, as Flash reuses its window, so its laid-out height
+    // carries over and it does not rebuild and flash on every row hovered.
     const [ favouriteOverride, setFavouriteOverride ] = useState<boolean>();
     // `refreshHomeState` drops the home answer when `NavigatorSettingsMessage` lands: kept only while the home room it was set over is still the one the store has.
     const [ homeOverride, setHomeOverride ] = useState<{ isHome: boolean; over: number }>();
+    const [ overridesRoomId, setOverridesRoomId ] = useState(room.roomId);
+
+    if (overridesRoomId !== room.roomId) {
+        setOverridesRoomId(room.roomId);
+        setFavouriteOverride(undefined);
+        setHomeOverride(undefined);
+    }
 
     useCloseWhenMouseLeaves(bubbleRef, serial, onClose);
 

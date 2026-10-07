@@ -1,9 +1,13 @@
+// The blend modes Pixi draws as filters - Flash's `subtract` and `invert` (`utils/flashBlendMode.ts`).
+import 'pixi.js/advanced-blend-modes';
+
 import { SetRenderer, TextureUtils } from '@nitrodevco/nitro-renderer';
 import { Application } from '@pixi/react';
 import { Application as PixiApplication, RendererType, WebGLRenderer } from 'pixi.js';
 import { ReactNode, useCallback, useRef } from 'react';
 
 import { useThemeConfigValue } from './host';
+import { setAdvancedBlendModes } from './utils/flashBlendMode';
 import { GetPixelRatio } from './utils/GetPixelRatio';
 import { gateLayoutWalk } from './utils/layoutWalkGate';
 
@@ -85,6 +89,7 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
         app.canvas.style = canvasStyle;
 
         SetRenderer(app.renderer);
+        setAdvancedBlendModes(app.renderer);
         applyCanvasColorSpace(app, colorSpace);
 
         onInit?.(app);

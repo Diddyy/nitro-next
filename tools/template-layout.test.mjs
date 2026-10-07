@@ -578,3 +578,16 @@ await test('a vertical box sizer stacks its children down it, and shares what is
     // 200 - 12 padding - (20 + 4) - 4 - 4 + 4 = 160 shared one to three.
     assert.deepEqual([ fixed, one, three ].map(child => [ rects.get(child).x, rects.get(child).y, rects.get(child).height ]), [ [ 2, 6, 20 ], [ 2, 30, 40 ], [ 2, 74, 120 ] ]);
 });
+
+await test('a window clips the children drawn into its graphic context, not those with a context of their own', () => {
+    // The VIP page's `hccenter_link`: 13px above its 17px container, with no `use_parent_graphic_context`.
+    const link = element('html', [ 40, -13, 236, 30 ], { name: 'hccenter_link' });
+    const container = element('container', [ 19, 434, 316, 17 ], { children: [ link ] });
+    // The avatar menu's 143 x 35 button in its 137 x 26 row draws into the row's context.
+    const button = element('container_button', [ -3, -4, 143, 35 ], { params: { parentGraphics: true } });
+    const row = element('container', [ 0, 0, 137, 26 ], { children: [ button ] });
+    const rects = layoutTemplate([ container, row ], input(undefined));
+
+    assert.equal(rects.get(container).clip, undefined);
+    assert.equal(rects.get(row).clip, true);
+});

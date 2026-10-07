@@ -112,6 +112,12 @@ const P = {
     reflect: 12582912,
 } as const;
 
+/**
+ * `use_parent_graphic_context`: the window draws into its parent's graphic context - under the
+ * parent's clip - rather than a display object of its own.
+ */
+export const templateUsesParentGraphics = (element: TemplateElement): boolean => !!element.params?.parentGraphics;
+
 /** An element's layout params as the `uint` `WindowParser` read, rebuilt from its decoded `params`. */
 export const templateParamBits = (element: TemplateElement): number => {
     const params = element.params;
@@ -1670,13 +1676,19 @@ export const layoutTemplate = (elements: readonly TemplateElement[], input: Temp
     }
 
     // Clipping (`WindowController.clipping`, true unless the layout says otherwise) cuts what reaches
-    // outside a window - an avatar menu row's 143 x 35 button in its 137 x 26 row. Marked only where
-    // something does, so the renderer masks no window it need not. A frame's and a bubble's children
-    // are in their content area, which their components place and clip.
+    // outside a window - an avatar menu row's 143 x 35 button in its 137 x 26 row. It cuts only what is
+    // drawn into the window's own graphic context: its children with `use_parent_graphic_context`
+    // (`WindowRenderer`'s clip walks up the parents only while each draws into its parent's). A child
+    // with a context of its own is a display object over the parent's, which the parent's mask does
+    // not reach - the VIP page's `hccenter_link` rises 13px out of its 17px container. Marked only
+    // where something is cut, so the renderer masks no window it need not. A frame's and a bubble's
+    // children are in their content area, which their components place and clip.
     for (const [ element, rect ] of rects) {
         if (element.clipping === false || element.tag === 'frame' || element.tag === 'bubble' || rect.scroll || rect.scrollContent) continue;
 
         const outside = element.children.some((child) => {
+            if (!templateUsesParentGraphics(child)) return false;
+
             const inner = rects.get(child);
 
             return !!inner && (inner.x < 0 || inner.y < 0 || inner.x + inner.width > rect.width || inner.y + inner.height > rect.height);

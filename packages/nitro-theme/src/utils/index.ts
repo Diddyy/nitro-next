@@ -7,6 +7,7 @@ export * from './dynamicStyles';
 export * from './expandSides';
 export * from './FillLayout';
 export * from './flashBitmap';
+export * from './flashBlendMode';
 export * from './framePositionStorage';
 export * from './frameSizeStorage';
 export * from './getGlobalRect';

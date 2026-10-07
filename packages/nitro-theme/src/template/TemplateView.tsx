@@ -55,11 +55,11 @@ import { TabContext } from '../TabContext';
 import { TextInput } from '../TextInput';
 import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
-import { ButtonVariant, FlashBitmapVars, themeVariantOf, WindowPlacedContext } from '../utils';
+import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, themeVariantOf, WindowPlacedContext } from '../utils';
 import { isMarkupTemplateText, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
-import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect } from './templateLayout';
+import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect, templateUsesParentGraphics } from './templateLayout';
 import { TemplateScrollbar, TemplateScrollTarget } from './TemplateScroll';
 import { TemplateScrollAxis, TemplateScrollStore } from './templateScrollStore';
 
@@ -133,16 +133,8 @@ const flashBool = (value: TemplateValue | undefined) => value === true || value 
 
 const flashString = (value: TemplateValue | undefined) => (typeof value === 'string' ? value : undefined);
 
-/**
- * The blend mode a `BLEND_<mode>` tag gives a window (`WindowRendererItem.render`: the last such tag,
- * lower-cased). Only `add` has a Pixi blend mode without the advanced ones; `subtract` and `invert`
- * (on a few texts) draw normally.
- */
-const blendModeOf = (element: TemplateElement): 'add' | undefined => {
-    const tag = element.tags?.findLast(each => each.startsWith('BLEND_'));
-
-    return tag?.slice(6).toLowerCase() === 'add' ? 'add' : undefined;
-};
+/** The Flash blend mode a window's `BLEND_<mode>` tag names (`WindowRendererItem.render`: the last such tag, lower-cased). */
+const flashBlendTag = (element: TemplateElement): string | undefined => element.tags?.findLast(each => each.startsWith('BLEND_'))?.slice(6).toLowerCase();
 
 const GRADIENT_DIRECTIONS = new Set<GradientDirection>([ 'up', 'down', 'left', 'right', 'up_left', 'up_right', 'down_left', 'down_right' ]);
 
@@ -325,7 +317,9 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     const label = element.tag === 'label';
     const style = templateTextStyle(element);
     const textColor = binding?.color ?? element.vars.text_color;
-    const color = (label ? textColor !== undefined : !!flashColor(textColor)?.hex && textColor !== '0x0' && textColor !== 0) ? flashColor(textColor)?.hex : undefined;
+    // An inverting text inverts what is behind it whatever its colour: drawn white under `difference`.
+    const inverts = (flashBlendTag(element) === 'invert') && !!flashBlendMode('invert');
+    const color = inverts ? FLASH_INVERT_COLOR : (label ? textColor !== undefined : !!flashColor(textColor)?.hex && textColor !== '0x0' && textColor !== 0) ? flashColor(textColor)?.hex : undefined;
     const wordWrap = !label && flashBool(element.vars.word_wrap);
     const autoSize = flashString(element.vars.auto_size) ?? (label ? 'left' : 'none');
     const align = autoSize === 'center' || autoSize === 'right' ? autoSize : undefined;
@@ -356,9 +350,27 @@ const optionsOf = (element: TemplateElement, binding: TemplateBinding | undefine
 
 /**
  * What an element draws of its own, filling its rect, under its children. `content` is the children
- * of a face that holds them itself (`container_button`).
+ * of a face that holds them itself (`container_button`). A window's `BLEND_<mode>` tag blends what it
+ * draws into what is behind it (`flashBlendMode`).
  */
 const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, binding: TemplateBinding | undefined, content?: ReactNode): ReactNode => {
+    const face = ownFaceOf(element, rect, context, binding, content);
+    const blendMode = face ? flashBlendMode(flashBlendTag(element)) : undefined;
+
+    return blendMode
+        ? (
+                <Box
+                    pointerTransparent
+                    blendMode={blendMode}
+                    layout={FILL}
+                >
+                    {face}
+                </Box>
+            )
+        : face;
+};
+
+const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Context, binding: TemplateBinding | undefined, content?: ReactNode): ReactNode => {
     const variant = binding?.style ?? element.style;
     const tintColor = tintOf(element, binding);
     const caption = captionOf(element, context, binding);
@@ -414,7 +426,6 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
             <TemplateBitmap
                 src={src}
                 previous={bitmapSourceOf(element, undefined, context.imageUrl)}
-                blendMode={blendModeOf(element)}
                 // A colour the code sets (`IWindow.color`); the layout's own is not drawn on a bitmap.
                 tint={binding?.color !== undefined ? flashColor(binding.color)?.hex : undefined}
                 bitmap={{ ...bitmapVars(element.vars), ...(binding?.pivot !== undefined && { pivot: binding.pivot }), ...(binding?.rotation !== undefined && { rotation: binding.rotation }) }}
@@ -654,7 +665,6 @@ const faceOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
                     color2={flashUint(element.vars.color2)}
                     mode={element.vars.mode === 'radial' ? 'radial' : 'linear'}
                     direction={direction && GRADIENT_DIRECTIONS.has(direction as GradientDirection) ? direction as GradientDirection : undefined}
-                    blendMode={blendModeOf(element)}
                     layout={FILL}
                 />
             );
@@ -882,6 +892,39 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
         </>
     );
 
+    /**
+     * The face and the children, as a window that clips draws them: its mask cuts only what is drawn
+     * into its own graphic context - its face, the children with `use_parent_graphic_context`, and
+     * what its code adds - while a child with a context of its own lies over all of that, uncut
+     * (`templateUsesParentGraphics`).
+     */
+    const drawn = (face: ReactNode) => {
+        if (!rect.clip || element.tag === 'selector') {
+            return (
+                <>
+                    {face}
+                    {children}
+                </>
+            );
+        }
+
+        const ownContext = (index: number) => !templateUsesParentGraphics(element.children[index]);
+
+        return (
+            <>
+                <Box
+                    pointerTransparent
+                    layout={{ ...FILL, overflow: 'hidden' }}
+                >
+                    {face}
+                    {childViews.filter((_, index) => !ownContext(index))}
+                    {binding?.children}
+                </Box>
+                {childViews.filter((_, index) => ownContext(index))}
+            </>
+        );
+    };
+
     // A layout's own scrollbar, and the list it scrolls (`ScrollBarController.resolveScrollTarget`).
     const scrollTarget = scrollLinks.scrollbars.get(element);
 
@@ -931,10 +974,9 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 onPointerDown={binding?.onPointerDown}
                 onPointerUp={binding?.onPointerUp}
                 alpha={alpha}
-                layout={{ ...rectOf(rect, flow), overflow: rect.clip ? 'hidden' : undefined }}
+                layout={rectOf(rect, flow)}
             >
-                {faceOf(element, rect, context, binding)}
-                {children}
+                {drawn(faceOf(element, rect, context, binding))}
             </Region>
         );
     }
@@ -1090,11 +1132,10 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     return (
         <Box
             pointerTransparent
-            layout={{ ...rectOf(rect, flow), overflow: rect.clip ? 'hidden' : undefined }}
+            layout={rectOf(rect, flow)}
             alpha={alpha}
         >
-            {faceOf(element, rect, context, binding)}
-            {children}
+            {drawn(faceOf(element, rect, context, binding))}
         </Box>
     );
 };
