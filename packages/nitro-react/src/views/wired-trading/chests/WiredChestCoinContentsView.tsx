@@ -3,18 +3,20 @@
  * `coins_chest_contents_xml` (413x263): a picture of the chest whose fill follows the balance,
  * the balance on its plaque, and a withdraw row.
  *
- * - `CHEST_STATES`: the picture is `zero` below 1 coin, `low` from 1, `medium` from 20, `high`
- *   from 100; `DARK_THEME_CHEST_NAMES` (`wf_storage_coins1`) get the dark pictures.
- * - The amount and the coin icon (`<icon style="35">`) are centred on the plaque.
+ * The view is the Flash template itself, set up as the controller sets it:
+ *
+ * - `CHEST_STATES`: the picture (`bg_img`) is `zero` below 1 coin, `low` from 1, `medium` from 20,
+ *   `high` from 100; `DARK_THEME_CHEST_NAMES` (`wf_storage_coins1`) get the dark pictures.
+ * - `onCoinsMessage`: the amount in `coins_amount_txt`, and `balance_container` (the amount and its
+ *   coin icon) centred on the plaque.
  * - `updateUI`: withdraw is disabled unless the viewer `canWithdraw` and the chest has coins.
  */
 import { useState } from 'react';
 
 import { withdrawWiredChestCoins } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useTranslation } from '#base/context/system';
 import { useWiredTradingStore } from '#base/context/wired-trading';
-import { Box, Button, Icon, LayoutImage, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { LayoutImage, TemplateWindow, TemplateWindows } from '#base/theme';
 
 /** `CoinChestSubController.DARK_THEME_CHEST_NAMES`. */
 const DARK_THEME_CHEST_NAMES = [ 'wf_storage_coins1' ];
@@ -33,6 +35,14 @@ const chestState = (coins: number): string => {
     return state;
 };
 
+/** `onCoinsMessage`: `balanceContainerList.x = parent.width / 2 - width / 2`. */
+const arrange = ({ find }: TemplateWindows) => {
+    const balance = find('balance_container');
+    const parent = find('balance_cont');
+
+    if (balance && parent) balance.setX(Math.trunc((parent.width / 2) - (balance.width / 2)));
+};
+
 export interface WiredChestCoinContentsViewProps {
     chestId: number;
     /** The chest furni's class name, for the dark or light picture. */
@@ -42,7 +52,6 @@ export interface WiredChestCoinContentsViewProps {
 
 export const WiredChestCoinContentsView = ({ chestId, className, canWithdraw }: WiredChestCoinContentsViewProps) => {
     const { send } = useWebSocketContext();
-    const t = useTranslation();
     const coins = useWiredTradingStore(x => x.chestCoins);
     const [ withdrawAmount, setWithdrawAmount ] = useState('1');
     const theme = DARK_THEME_CHEST_NAMES.includes(className) ? 'dark' : 'light';
@@ -57,56 +66,20 @@ export const WiredChestCoinContentsView = ({ chestId, className, canWithdraw }: 
     };
 
     return (
-        <Box layout={{ position: 'relative', width: WIRED_COIN_CHEST_WIDTH, height: WIRED_COIN_CHEST_HEIGHT, flexShrink: 0 }}>
-            <Box layout={{ position: 'absolute', left: 44, top: 24, width: 324, height: 228 }}>
-                <ThemeImage
-                    src={LayoutImage(`habbo-window-manager-com/wired_chests_images_${theme}_coins_chest_balance_${chestState(coins)}.png`)}
-                    bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                    layout={{ position: 'absolute', left: 0, top: 0, width: 324, height: 228 }}
-                />
-                <Box layout={{ position: 'absolute', left: 9, top: 68, width: 54, height: 47 }}>
-                    <ThemeText
-                        text={t('wiredchests.coin_chest.balance')}
-                        textStyle="u_regular"
-                        textOptions={{ align: 'center', fontSize: 11 }}
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 2, top: 7, width: 45, height: 16 }}
-                    />
-                    <Box layout={{ position: 'absolute', left: 0, top: 22, width: 54, flexDirection: 'row', justifyContent: 'center', gap: 1 }}>
-                        <ThemeText
-                            text={String(coins)}
-                            textStyle="u_bold"
-                        />
-                        <Icon
-                            variant={35}
-                            layout={{ marginTop: 2 }}
-                        />
-                    </Box>
-                </Box>
-                <Box layout={{ position: 'absolute', left: 160, top: 18, height: 28, flexDirection: 'row', gap: 5 }}>
-                    <TextInput
-                        value={withdrawAmount}
-                        onChange={value => setWithdrawAmount(value.replace(/[^0-9]/g, ''))}
-                        onEnter={onWithdraw}
-                        textStyle="u_regular"
-                        flashPlacement
-                        restrict="0-9"
-                        border="#000000"
-                        alwaysShowSelection
-                        backgroundColor={null}
-                        focusedBackgroundColor={null}
-                        layout={{ width: 27, height: 19, marginTop: 1, flexShrink: 0 }}
-                    />
-                    <Button
-                        variant="3"
-                        disabled={!canWithdraw || isEmpty}
-                        onPointerTap={onWithdraw}
-                        layout={{ minWidth: 60, width: 73, height: 22 }}
-                    >
-                        {t('wiredchests.withdraw')}
-                    </Button>
-                </Box>
-            </Box>
-        </Box>
+        <TemplateWindow
+            id="habbo-user-defined-room-events-com/coins_chest_contents_xml"
+            arrange={arrange}
+            bindings={{
+                bg_img: { asset: LayoutImage(`habbo-window-manager-com/wired_chests_images_${theme}_coins_chest_balance_${chestState(coins)}.png`) },
+                coins_amount_txt: { caption: String(coins) },
+                withdraw_input: {
+                    caption: withdrawAmount,
+                    restrict: '0-9',
+                    onChange: setWithdrawAmount,
+                    onEnter: onWithdraw,
+                },
+                withdraw_btn: { disabled: !canWithdraw || isEmpty, onPointerTap: onWithdraw },
+            }}
+        />
     );
 };
