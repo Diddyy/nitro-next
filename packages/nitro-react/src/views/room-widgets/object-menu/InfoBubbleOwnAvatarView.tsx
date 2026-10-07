@@ -119,7 +119,7 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const expression67Enabled = useConfigValue<boolean>('avatar.expression.67.enabled') ?? false;
     const t = useTranslation();
     const { send } = useWebSocketContext();
-    const { showWindow, toggleWindow } = useWindowActions();
+    const { showWindow } = useWindowActions();
     const { setIsDecorating } = useRoomSessionActions();
 
     if (!info) return null;
@@ -144,7 +144,7 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
             { key: 'dance_stop', caption: t('widget.memenu.dance.stop'), visible: !hasClub && isDancing && !isRiding, onPress: dance(0) },
             { key: 'signs', caption: t('infostand.show.signs'), visible: signsEnabled, staysOpen: true, onPress: toMode(MODE_SIGNS) },
             { key: 'handitem', caption: t('avatar.widget.drop_hand_item'), visible: handItemDropEnabled && (info.carryItem > 0) && (info.carryItem < MAX_CARRY_ITEM), onPress: () => dropCarryItem(send) },
-            { key: 'effects', caption: t('widget.memenu.effects'), visible: !effectsDisabled && !isRiding, onPress: () => toggleWindow('avatar_effects') },
+            { key: 'effects', caption: t('widget.memenu.effects'), visible: !effectsDisabled && !isRiding, onPress: () => showWindow('avatar_effects') },
             { key: 'wired_inspect', caption: t('infostand.button.wired_inspect'), visible: showWiredInspect, onPress: () => openClientLink(send, `wiredmenu/open/inspection/1/${objectData.objectId}`) },
         ],
         [MODE_CLUB_DANCES]: [

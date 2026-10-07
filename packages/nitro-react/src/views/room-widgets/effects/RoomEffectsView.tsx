@@ -12,6 +12,8 @@ export interface RoomEffectsViewProps {
     /** Wearing one that is already running, or taking it off again. */
     onToggleWear: (type: number, isInUse: boolean) => void;
     onClose: () => void;
+    /** `EffectsWidget.open`: `toolbar.getRect().right + 2` - the toolbar's width, plus the two it stands off. */
+    left: number;
 }
 
 /**
@@ -72,7 +74,7 @@ const formatTimeLeft = (seconds: number) => {
  * long was left (`secondsLeftOf`), as `EffectView`'s one-second timer does; a permanent effect
  * shows no time left, as before. The count stops at zero and waits for the server's expiry.
  */
-export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose }: RoomEffectsViewProps) => {
+export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose, left }: RoomEffectsViewProps) => {
     const t = useTranslation();
     /** The row the pointer is over, with the state `EffectView.update` last built it in. */
     const [ hovered, setHovered ] = useState<{ type: number; isInUse: boolean; isActive: boolean } | null>(null);
@@ -98,7 +100,7 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose }: 
     };
 
     return (
-        <Box layout={{ position: 'absolute', left: 60, bottom: 60, width: 190, height: WIDGET_HEIGHT_WITHOUT_LIST + listHeight }}>
+        <Box layout={{ position: 'absolute', left, bottom: 0, width: 190, height: WIDGET_HEIGHT_WITHOUT_LIST + listHeight }}>
             <Border
                 variant="6"
                 tintColor="#5b5953"

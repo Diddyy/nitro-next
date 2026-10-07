@@ -2,6 +2,8 @@ import { GetConfigValue } from '@nitrodevco/nitro-api';
 import { AvatarEffectActivatedComposer, AvatarEffectActivatedMessage, AvatarEffectAddedMessage, AvatarEffectExpiredMessage, AvatarEffectSelectedComposer, AvatarEffectSelectedMessage, AvatarEffectsMessage, RoomEntryInfoMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
+import { roomStore } from '#base/context/room';
+import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { wearAgain } from '#base/context/user/store/avatarEffectsModel';
 
@@ -14,9 +16,22 @@ import { on, subscribeAll } from '../packetSubscriptions';
 export const registerAvatarEffectsHandlers = ({ subscribe, send }: WebSocketConnection) => {
     const { setAvatarEffects, addAvatarEffect, expireAvatarEffect, activateAvatarEffect, selectAvatarEffect } = userStore.getState();
 
+    /*
+     * `HabboInventory.notifyChangedEffects` -> `EffectsWidgetHandler.onEffectsChanged` ->
+     * `EffectsWidget.open`: the list, an added effect, one switched on and one used up each show the
+     * window. The handler is only listening once a room has its UI, so the list sent at login, before
+     * any room, shows nothing.
+     */
+    const showEffectsWindow = () => {
+        if (!roomStore.getState().room) return;
+
+        systemStore.getState().showWindow('avatar_effects');
+    };
+
     return subscribeAll(subscribe, [
         on(AvatarEffectsMessage, (data) => {
             setAvatarEffects(data.effects);
+            showEffectsWindow();
         }),
 
         on(AvatarEffectAddedMessage, (data) => {
@@ -30,14 +45,17 @@ export const registerAvatarEffectsHandlers = ({ subscribe, send }: WebSocketConn
                 secondsLeftIfActive: -1,
                 isPermanent: data.isPermanent,
             });
+            showEffectsWindow();
         }),
 
         on(AvatarEffectExpiredMessage, (data) => {
             expireAvatarEffect(data.type);
+            showEffectsWindow();
         }),
 
         on(AvatarEffectActivatedMessage, (data) => {
             activateAvatarEffect(data.type, data.duration, data.isPermanent);
+            showEffectsWindow();
         }),
 
         on(AvatarEffectSelectedMessage, (data) => {

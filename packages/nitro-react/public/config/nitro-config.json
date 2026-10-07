@@ -180,7 +180,7 @@
     "inventory.bots.enabled": true,
     "infostand.use.button.enabled": true,
     "link.format.bots.help": "https://help.habbo.com/hc/en-us/articles/360011620199-Bots",
-    "memenu.effects.widget.disabled": true,
+    "memenu.effects.widget.disabled": false,
     "effects.reactivate.on.room.entry": true,
     "effects.in.avatar.editor": false,
     "navigator.thumbnail.url_base": "https://habbo-stories-content.s3.amazonaws.com/navigator-thumbnail/hhus/",
