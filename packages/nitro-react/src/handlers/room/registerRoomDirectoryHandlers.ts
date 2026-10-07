@@ -1,9 +1,10 @@
-import { CantConnectMessage, CloseConnectionMessage, FlatAccessDeniedMessage, OpenConnectionMessage, RoomReadyMessage } from '@nitrodevco/nitro-packets';
+import { AvatarEffectSelectedComposer, CantConnectMessage, CloseConnectionMessage, FlatAccessDeniedMessage, OpenConnectionMessage, RoomReadyMessage } from '@nitrodevco/nitro-packets';
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
+import { userStore } from '#base/context/user';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -12,9 +13,21 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * the session, `RoomReady` names the room the engine should build, and closing, an access
  * denial or a failed connect ends it and puts the hotel view back.
  */
-export const registerRoomDirectoryHandlers = ({ subscribe }: WebSocketConnection) => {
+export const registerRoomDirectoryHandlers = ({ subscribe, send }: WebSocketConnection) => {
     // RoomMessageHandler keeps the current room id so it can dispose it on the next enter
     let currentRoomId = 0;
+
+    /*
+     * `HabboInventory.roomSessionEventHandler` on RSE_ENDED: `deselectAllEffects` - no effect is
+     * worn any more, so the effects window stops showing one as worn, and the server is told to
+     * take the worn effect off. The effect the player last chose is kept, so it can be put back on
+     * in the next room (`effects.reactivate.on.room.entry`).
+     */
+    const deselectAllEffects = () => {
+        userStore.getState().selectAvatarEffect(0);
+
+        send(new AvatarEffectSelectedComposer({ effectType: -1 }));
+    };
 
     /*
      * The room instance exists from the moment a session starts, the way Flash does it:
@@ -34,6 +47,8 @@ export const registerRoomDirectoryHandlers = ({ subscribe }: WebSocketConnection
         if (!force && currentRoomId === roomId) return;
 
         if (currentRoomId !== 0) {
+            deselectAllEffects();
+
             GetRoomEngine().disposeRoom(currentRoomId);
             // `RoomSessionManager.disposeSession`: the ended session's content may go once nothing uses it.
             GetRoomEngine().purgeRoomContent();
@@ -48,6 +63,8 @@ export const registerRoomDirectoryHandlers = ({ subscribe }: WebSocketConnection
     // RSE_ENDED: resetCurrentRoom(); disposeRoom(session.roomId); the landing view comes back
     const leaveRoom = () => {
         if (currentRoomId !== 0) {
+            deselectAllEffects();
+
             GetRoomEngine().disposeRoom(currentRoomId);
             // `RoomSessionManager.disposeSession` -> `purgeRoomContent`.
             GetRoomEngine().purgeRoomContent();

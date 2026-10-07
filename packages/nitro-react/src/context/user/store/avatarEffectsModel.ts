@@ -20,6 +20,12 @@ export interface UserAvatarEffect extends IAvatarEffect {
 /** `secondsLeftIfActive` of a copy that is not running: the list's `-1`. */
 export const NOT_RUNNING = -1;
 
+/** `EffectsModel.lastActivatedEffect` when there is none. */
+export const NO_LAST_WORN = -1;
+
+/** The effect to wear again in the next room after the player chose `type`; choosing none (zero or less) leaves none. */
+export const lastWornAfterChoice = (type: number): number => ((type > 0) ? type : NO_LAST_WORN);
+
 /** `IncomingMessages.onAvatarEffects`: zero or more seconds left is running; only `-1` is not. */
 const toUserEffect = (effect: IAvatarEffect): UserAvatarEffect => {
     const isActive = effect.isPermanent || (effect.secondsLeftIfActive >= 0);

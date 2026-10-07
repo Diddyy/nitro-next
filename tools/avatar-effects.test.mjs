@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-const { effectsAfterActivated, effectsAfterAdded, effectsAfterExpired, effectsAfterSelected, effectsFromList, wearAgain } = await import('../packages/nitro-react/src/context/user/store/avatarEffectsModel.ts');
+const { effectsAfterActivated, effectsAfterAdded, effectsAfterExpired, effectsAfterSelected, effectsFromList, lastWornAfterChoice, NO_LAST_WORN, wearAgain } = await import('../packages/nitro-react/src/context/user/store/avatarEffectsModel.ts');
 
 const entry = (type, over = {}) => ({ type, subType: 0, duration: 600, inactiveEffectsInInventory: 1, secondsLeftIfActive: -1, isPermanent: false, ...over });
 const find = (effects, type) => effects.find(effect => effect.type === type);
@@ -149,4 +149,25 @@ await test('wearing again activates first when the effect is not running, and do
     assert.equal(wearAgain(effects, 3), undefined);
     assert.equal(wearAgain(effects, -1), undefined);
     assert.equal(wearAgain(effects, 0), undefined);
+});
+
+await test('the effect to wear next is the one chosen; choosing none, or an unwear, remembers nothing', () => {
+    assert.equal(lastWornAfterChoice(5), 5);
+    assert.equal(lastWornAfterChoice(0), NO_LAST_WORN);
+    assert.equal(lastWornAfterChoice(-1), NO_LAST_WORN);
+    assert.equal(NO_LAST_WORN, -1);
+});
+
+await test('leaving a room deselects every effect (select none); what to wear next is a separate thing', () => {
+    const worn = effectsAfterSelected(effectsFromList([ entry(5, { secondsLeftIfActive: 100 }), entry(6) ]), 5);
+
+    assert.equal(find(worn, 5).isInUse, true);
+
+    // RSE_ENDED: deselectAllEffects() selects none. It changes who is worn and nothing else.
+    const left = effectsAfterSelected(worn, 0);
+
+    assert.equal(left.some(effect => effect.isInUse), false);
+    assert.equal(find(left, 5).isActive, true, 'the effect keeps running; only the wearing stops');
+    assert.equal(find(left, 5).secondsLeftIfActive, 100);
+    assert.equal(wearAgain(left, 5).activate, false, 'and can be worn again in the next room without a second copy');
 });

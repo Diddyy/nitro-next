@@ -1,12 +1,9 @@
 import { IAvatarEffect } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
-import { effectsAfterActivated, effectsAfterAdded, effectsAfterExpired, effectsAfterSelected, effectsFromList, UserAvatarEffect } from './avatarEffectsModel';
+import { effectsAfterActivated, effectsAfterAdded, effectsAfterExpired, effectsAfterSelected, effectsFromList, lastWornAfterChoice, NO_LAST_WORN, UserAvatarEffect } from './avatarEffectsModel';
 
 export type { UserAvatarEffect } from './avatarEffectsModel';
-
-/** `EffectsModel.lastActivatedEffect` when there is none. */
-const NO_LAST_WORN = -1;
 
 type State = {
     avatarEffects: UserAvatarEffect[];
@@ -47,5 +44,5 @@ export const createUserEffectsSlice: StateCreator<UserEffectsSlice, [], [], User
     expireAvatarEffect: type => set(x => ({ avatarEffects: effectsAfterExpired(x.avatarEffects, type), lastWornEffect: NO_LAST_WORN })),
     activateAvatarEffect: (type, duration, isPermanent) => set(x => ({ avatarEffects: effectsAfterActivated(x.avatarEffects, type, duration, isPermanent) })),
     selectAvatarEffect: type => set(x => ({ avatarEffects: effectsAfterSelected(x.avatarEffects, type) })),
-    setLastWornEffect: type => set({ lastWornEffect: (type > 0) ? type : NO_LAST_WORN }),
+    setLastWornEffect: type => set({ lastWornEffect: lastWornAfterChoice(type) }),
 });
