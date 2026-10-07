@@ -86,6 +86,44 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
     private static readonly _zComparator = (a: SortableSprite, b: SortableSprite): number => b.z - a.z;
 
+    /**
+     * Sorts the sprites back to front - the same order as a stable `sort` by `_zComparator`. The list
+     * keeps last frame's order, so when something moves it is nearly sorted and an insertion sort
+     * finishes in about one pass, where `Array.sort` allocated merge buffers (50-150KB in a busy room)
+     * on every frame anything moved. A list far out of order (a room still loading) goes to `sort`.
+     */
+    private static sortByZ(sprites: SortableSprite[]): void {
+        const length = sprites.length;
+        const moveLimit = (length * 8) + 64;
+
+        let moves = 0;
+
+        for (let i = 1; i < length; i++) {
+            const sprite = sprites[i];
+            const z = sprite.z;
+
+            let j = i - 1;
+
+            if (!(z > sprites[j].z)) continue;
+
+            do {
+                sprites[j + 1] = sprites[j];
+                j--;
+                moves++;
+            } while ((j >= 0) && (z > sprites[j].z));
+
+            sprites[j + 1] = sprite;
+
+            // Only ever moved past strictly lower sprites, so equal ones keep their order and `sort`
+            // finishes exactly as it would have from the start.
+            if (moves > moveLimit) {
+                sprites.sort(RoomSpriteCanvas._zComparator);
+
+                return;
+            }
+        }
+    }
+
     private _objectCache: RoomObjectCache;
 
     constructor(
@@ -347,7 +385,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         }
 
         if (this._zDirty || spriteCount !== this._sortableSprites.length) {
-            this._sortableSprites.sort(RoomSpriteCanvas._zComparator);
+            RoomSpriteCanvas.sortByZ(this._sortableSprites);
 
             update = true;
         }

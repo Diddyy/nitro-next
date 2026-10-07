@@ -59,13 +59,13 @@ export class EventDispatcher implements IEventDispatcher {
 
         if (!listeners || !listeners.length) return;
 
-        const callbacks: ((event: INitroEvent) => void)[] = [];
+        // A copy, so a listener added or removed while dispatching does not change this round. Read by
+        // index: draining it with `shift()` moved every remaining listener per call, for every event.
+        const callbacks = listeners.slice();
 
-        for (const cb of listeners) callbacks.push(cb);
-
-        while (callbacks.length) {
+        for (let i = 0; i < callbacks.length; i++) {
             try {
-                callbacks.shift()?.(event);
+                callbacks[i]?.(event);
             } catch (err) {
                 NitroLogger.error(err.stack);
 
