@@ -13,10 +13,10 @@
  *   what was withdrawn and deposited (`summarize`), the number of chests, and a "details" link
  *   that asks for `WiredTransactionLogDetails`.
  *
- * The frame is the layout's: tinted `0xff418db0`, content under `margin_top` 33, and resizable in
- * height from 391 to 700 (a `mouse_scaling_target` frame whose width is fixed), the table taking
- * what the header and footer leave. The header's `warning_text` starts hidden and nothing in
- * `WiredTransactionLogsView` shows it, so it is not drawn.
+ * The window is the Flash template itself: the code fills `list_type_value`, `id_key` and
+ * `id_value`, shows `searching_icon` while a page is on its way, puts the table into `table_view`
+ * and pages through the layout's own `footer` (`useWiredPagedTableTemplate`). The header's
+ * `warning_text` starts hidden and nothing in `WiredTransactionLogsView` shows it.
  */
 import type { IWiredTransactionInfo, IWiredTransactionLogList } from '@nitrodevco/nitro-packets';
 import { WiredTransactionLogListType } from '@nitrodevco/nitro-packets';
@@ -26,48 +26,15 @@ import { openWiredTransactionUserProfile, requestWiredTransactionDetails, reques
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
 import { WIRED_TRANSACTION_PAGE_SIZE } from '#base/context/wired-trading';
-import { Box, Button, Frame, ThemeText } from '#base/theme';
+import { TemplateWindow } from '#base/theme';
 import { summarizeWiredTransaction } from '#base/utils';
+import { useWiredPagedTableTemplate } from '#base/views/wired-common/useWiredPagedTableState';
 import { useWiredPageRequests } from '#base/views/wired-common/useWiredPageRequests';
-import { WiredLoadingIcon } from '#base/views/wired-common/WiredLoadingIcon';
-import { WiredPagedTable } from '#base/views/wired-common/WiredPagedTable';
 import { calculateLastPage } from '#base/views/wired-common/wiredPaging';
 import { WiredTableCell, WiredTableColumn } from '#base/views/wired-common/WiredTableView';
 
 /** `WiredTransactionLogsView.REQUEST_PAGE_RATELIMIT`: this view's own, not `PagedTableView`'s 200. */
 const REQUEST_PAGE_RATELIMIT = 280;
-/** `header`, above `middle`. */
-const HEADER_HEIGHT = 62;
-/** The frame's `margin_*` vars: the content box starts under the 33px title bar. */
-const FRAME_MARGINS = [ 0, 33, 0, 0 ] as const;
-/** `pair`: 20 high, `spacing` 2, 17 high texts - the key `u_regular` made bold, the value `u_regular`. */
-const PAIR_HEIGHT = 20;
-const PAIR_TEXT_HEIGHT = 17;
-
-interface KeyValueProps {
-    name: string;
-    value: string;
-}
-
-/** One `pair` of the header: a bold key and its value, 2 apart. */
-const KeyValue = ({ name, value }: KeyValueProps) => (
-    <Box layout={{ flexDirection: 'row', gap: 2, height: PAIR_HEIGHT, flexShrink: 0 }}>
-        <ThemeText
-            text={name}
-            textStyle="u_regular"
-            flashFormat={{ bold: true }}
-            verticalAlign="top"
-            layout={{ height: PAIR_TEXT_HEIGHT }}
-        />
-        <ThemeText
-            text={value}
-            textStyle="u_regular"
-            verticalAlign="top"
-            layout={{ height: PAIR_TEXT_HEIGHT }}
-        />
-    </Box>
-);
-
 export interface WiredTransactionLogsViewProps {
     logs: IWiredTransactionLogList;
     onClose: () => void;
@@ -125,59 +92,34 @@ export const WiredTransactionLogsView = ({ logs, onClose }: WiredTransactionLogs
 
     const isChestLog = (Number(logs.logListType) === Number(WiredTransactionLogListType.Chest));
 
+    const paged = useWiredPagedTableTemplate({
+        columns,
+        rows: logs.logs,
+        getRowId: info => String(info.transactionId),
+        getCell,
+        currentPage: logs.currentPage,
+        totalEntries: logs.totalLogs,
+        lastPage,
+        pagingTextKey: 'wiredchests.logs.bottom_text',
+        entriesToken: '%transaction_count%',
+        pageKey: logs,
+        requests,
+        scrollResetKey: logs,
+    });
+
     return (
-        <Frame
-            variant="3"
-            id="wired-transaction-logs"
-            caption={t('wiredchests.logs.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            resizeDirection="y"
-            rememberPosition={false}
-            centered
-            onClose={onClose}
-            margins={FRAME_MARGINS}
-            contentLayout={{ flexDirection: 'column' }}
-            layout={{ position: 'absolute', width: 880, height: 391, minWidth: 880, maxWidth: 880, minHeight: 391, maxHeight: 700 }}
-        >
-            <Box layout={{ position: 'relative', width: 880, height: HEADER_HEIGHT, flexShrink: 0 }}>
-                <Box layout={{ position: 'absolute', left: 15, top: 13, flexDirection: 'column', gap: 2 }}>
-                    <KeyValue
-                        name={loc('wiredchests.logs.list_type')}
-                        value={loc(`wiredchests.logs.type.${logs.logListType}`)}
-                    />
-                    <KeyValue
-                        name={loc(isChestLog ? 'wiredchests.logs.chest_id' : 'wiredchests.logs.room_id')}
-                        value={String(logs.logListId)}
-                    />
-                </Box>
-                <Button
-                    variant="3"
-                    onPointerTap={requests.refresh}
-                    layout={{ position: 'absolute', left: 801, top: 13, width: 62, height: 30 }}
-                >
-                    {t('wiredchests.logs.refresh')}
-                </Button>
-                <WiredLoadingIcon
-                    visible={loading}
-                    layout={{ position: 'absolute', left: 777, top: 20 }}
-                />
-            </Box>
-            <WiredPagedTable
-                columns={columns}
-                rows={logs.logs}
-                getRowId={info => String(info.transactionId)}
-                getCell={getCell}
-                currentPage={logs.currentPage}
-                totalEntries={logs.totalLogs}
-                lastPage={lastPage}
-                pagingTextKey="wiredchests.logs.bottom_text"
-                entriesToken="%transaction_count%"
-                pageKey={logs}
-                requests={requests}
-                scrollResetKey={logs}
-                layout={{ flex: 1 }}
-            />
-        </Frame>
+        <TemplateWindow
+            id="habbo-user-defined-room-events-com/transaction_overview_xml"
+            frame={{ id: 'wired-transaction-logs', centered: true, rememberPosition: false, resizeDirection: 'y', onClose }}
+            bindings={{
+                list_type_value: { caption: loc(`wiredchests.logs.type.${logs.logListType}`) },
+                id_key: { caption: loc(isChestLog ? 'wiredchests.logs.chest_id' : 'wiredchests.logs.room_id') },
+                id_value: { caption: String(logs.logListId) },
+                refresh_btn: { onPointerTap: requests.refresh },
+                searching_icon: { visible: loading },
+                table_view: { children: paged.table },
+                ...paged.bindings,
+            }}
+        />
     );
 };
