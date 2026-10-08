@@ -6,7 +6,7 @@ import { openClientLink, openProfile } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { RoomSettingsErrorField, RoomSettingsFormError } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
-import { findTemplateChild, TemplateBindings, TemplateFrameOptions, TemplateWindow, TemplateWindows, TextInput, useTemplate } from '#base/theme';
+import { findTemplateChild, TemplateBindings, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { flatCategoryName } from '#base/utils';
 import { NavigatorErrorPopup } from '#base/views/navigator/NavigatorErrorPopup';
 
@@ -142,31 +142,11 @@ const MAX_TAGS = 2;
 /** `disableWindow` / `enableWindow`: a disabled window is blended to half. */
 const DISABLED_ALPHA = 0.5;
 
-/** `ros_room_settings`' `password` fields' `border_color`. */
-const PASSWORD_BORDER = '#959595';
+/** `TextFieldManager.displayError`: a refused field's `textBackgroundColor` (`0xFFF18F9B`). */
+const ERROR_BACKGROUND = 0xf18f9b;
 
 /** A timeout typed: its digits, as many as the field takes. */
 const parseTimeout = (text: string) => Number(text.replace(/\D/g, '').slice(0, MAX_TIMEOUT_LENGTH)) || 0;
-
-/**
- * A `password` field (`TextFieldController` with `display_as_password`) drawn at its window's rect,
- * as the template draws an `input`: the template draws no `password` window of its own.
- */
-const PasswordField = ({ value, onChange, onCommit }: { value: string; onChange: (value: string) => void; onCommit: () => void }) => (
-    <TextInput
-        value={value}
-        onChange={text => onChange(text.slice(0, MAX_PASSWORD_LENGTH))}
-        onFocusChange={focused => !focused && onCommit()}
-        maxLength={MAX_PASSWORD_LENGTH}
-        password
-        textStyle="u_regular"
-        flashPlacement
-        backgroundColor={null}
-        focusedBackgroundColor={null}
-        border={PASSWORD_BORDER}
-        layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
-    />
-);
 
 /**
  * The room settings, drawn from `habbo-navigator-com/ros_room_settings` - `RoomSettingsCtrl`, which
@@ -198,10 +178,8 @@ const PasswordField = ({ value, onChange, onCommit }: { value: string; onChange:
  * field's parent. The Builders Club panel's `builders_faq_button` sends the
  * `habbopages/builders-club/faq` link, which `openClientLink` only logs until the habbo pages are ported.
  *
- * Template engine gaps worked around: a `password` window draws nothing, so each is drawn here as
- * the `input` would be (`PasswordField`); an input's `maxChars` cannot be bound, so the typed text is
- * cut to it; and `displayError`'s `textBackgroundColor` tint of a refused field cannot be bound
- * either - only its popup shows.
+ * `TextFieldManager` gives each field its `maxChars`, and `displayError` tints a refused one
+ * (`textBackgroundColor`) as well as putting its popup over it.
  */
 export const RoomSettingsView = ({
     settings, categories, controllers, bannedUsers, selectedBannedUser, friends, friendFilter,
@@ -216,7 +194,7 @@ export const RoomSettingsView = ({
     const flatControllerTemplate = useTemplate(FLAT_CONTROLLER_TEMPLATE);
     const friendTemplate = useTemplate(FRIEND_TEMPLATE);
     const bannedUserTemplate = useTemplate(BANNED_USER_TEMPLATE);
-    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'room-settings', centered: true, rememberPosition: false, onClose }));
+    const frame = useTemplateFrame({ id: 'room-settings', centered: true, rememberPosition: false, onClose });
     // `onBgMouseOver` / `onBgMouseOut` and `onUserInfoMouseOver` / `Out`: the row, and the eye, under the pointer.
     const [ hoveredRow, setHoveredRow ] = useState<string>();
     const [ hoveredEye, setHoveredEye ] = useState<string>();
@@ -240,6 +218,9 @@ export const RoomSettingsView = ({
                 )
             : null;
     };
+
+    /** `displayError`'s tint on the field the last save was refused for. */
+    const refusedBackground = (field: RoomSettingsErrorField) => ((error?.field === field) ? ERROR_BACKGROUND : undefined);
 
     // `setTagError`: only the tag input holding the tag the server named is marked.
     const isTagError = (index: number) => (error?.field === 'tags') && !!settings.tags[index]
@@ -296,8 +277,8 @@ export const RoomSettingsView = ({
             visible: tab === 1,
             children: [ errorPopup('name', 'room_name'), errorPopup('description', 'description') ],
         },
-        room_name: { caption: settings.name, onChange: name => onChange({ name: name.slice(0, MAX_NAME_LENGTH) }), onBlur: onCommit },
-        description: { caption: settings.description, onChange: description => onChange({ description: description.slice(0, MAX_DESCRIPTION_LENGTH) }), onBlur: onCommit },
+        room_name: { caption: settings.name, maxChars: MAX_NAME_LENGTH, backgroundColor: refusedBackground('name'), onChange: name => onChange({ name }), onBlur: onCommit },
+        description: { caption: settings.description, maxChars: MAX_DESCRIPTION_LENGTH, backgroundColor: refusedBackground('description'), onChange: description => onChange({ description }), onBlur: onCommit },
         categories: {
             options: shownCategories.map(category => flatCategoryName(category, t)),
             selection: categoryIndex,
@@ -315,10 +296,13 @@ export const RoomSettingsView = ({
         },
         ...Object.fromEntries([ ...Array(MAX_TAGS).keys() ].map(index => [ `tag${index + 1}`, {
             caption: settings.tags[index] ? `#${settings.tags[index]}` : '',
+            // The field holds the tag with its `#`.
+            maxChars: MAX_TAG_LENGTH + 1,
+            backgroundColor: isTagError(index) ? ERROR_BACKGROUND : undefined,
             onChange: (text: string) => {
                 const tags = [ ...settings.tags ];
 
-                tags[index] = text.slice(0, MAX_TAG_LENGTH + 1).replace(/^#/, '');
+                tags[index] = text.replace(/^#/, '');
                 onChange({ tags });
             },
             onBlur: onCommit,
@@ -340,24 +324,8 @@ export const RoomSettingsView = ({
             visible: doorMode === Number(RoomDoorModeEnum.Password),
             children: [ errorPopup('password', 'password'), errorPopup('passwordConfirm', 'password_confirm') ],
         },
-        password: {
-            children: (
-                <PasswordField
-                    value={password}
-                    onChange={onChangePassword}
-                    onCommit={onCommit}
-                />
-            ),
-        },
-        password_confirm: {
-            children: (
-                <PasswordField
-                    value={passwordConfirm}
-                    onChange={onChangePasswordConfirm}
-                    onCommit={onCommit}
-                />
-            ),
-        },
+        password: { caption: password, maxChars: MAX_PASSWORD_LENGTH, backgroundColor: refusedBackground('password'), onChange: onChangePassword, onBlur: onCommit },
+        password_confirm: { caption: passwordConfirm, maxChars: MAX_PASSWORD_LENGTH, backgroundColor: refusedBackground('passwordConfirm'), onChange: onChangePasswordConfirm, onBlur: onCommit },
         doormode_override_info: { visible: settings.hiddenByBc && !isStaff },
         // `onBuildersClubFaqButtonClick`.
         builders_faq_button: { onPointerTap: () => openClientLink(send, 'habbopages/builders-club/faq') },

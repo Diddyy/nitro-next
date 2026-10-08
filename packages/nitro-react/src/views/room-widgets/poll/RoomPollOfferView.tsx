@@ -5,16 +5,13 @@
  * `onClose`: `RWPM_REJECT`, which tells the server); `poll_offer_button_later` only drops the offer
  * (`onLater`), sending nothing.
  *
- * The headline and summary are the poll's `htmlText`, here as plain text (`pollPlainText`: a template
- * text has no `htmlText`). The constructor then grows (or shrinks) the window by what
+ * The headline and summary are the poll's `htmlText`, set as markup. The constructor then grows (or shrinks) the window by what
  * `poll_offer_summary_wrapper` holds beyond its own height (`scrollableRegion.height -
  * visibleRegion.height`), which moves the border and the buttons anchored to its bottom. It does the
  * same for `poll_offer_headline_wrapper`, a name the layout does not have - its wrapper is
  * `poll_offer_header_wrapper` - so the headline never moves the window.
  */
 import { TemplateWindow, TemplateWindows } from '#base/theme';
-
-import { pollPlainText } from './pollPlainText';
 
 export interface RoomPollOfferViewProps {
     headline: string;
@@ -43,8 +40,8 @@ export const RoomPollOfferView = ({ headline, summary, onAccept, onDecline, onLa
         id={OFFER_TEMPLATE}
         frame={{ id: 'poll_offer_frame', centered: true, rememberPosition: false, onClose: onDecline }}
         bindings={{
-            poll_offer_headline: { caption: pollPlainText(headline) },
-            poll_offer_summary: { caption: pollPlainText(summary) },
+            poll_offer_headline: { htmlText: headline },
+            poll_offer_summary: { htmlText: summary },
             poll_offer_button_ok: { onPointerTap: onAccept },
             poll_offer_button_cancel: { onPointerTap: onDecline },
             poll_offer_button_later: { onPointerTap: onLater },

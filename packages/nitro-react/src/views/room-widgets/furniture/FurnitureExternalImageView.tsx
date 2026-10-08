@@ -92,7 +92,6 @@ export const FurnitureExternalImageView = ({ imageUrl, creatorName, time, onClos
                 y: (texture && (((viewport.height - 200) / texture.height) < 1)) ? 50 : Math.trunc((viewport.height - height) * 0.5),
             }}
             size={{ width, height }}
-            dragByRoot
             arrange={arrange}
             bindings={{
                 imageLoader: {

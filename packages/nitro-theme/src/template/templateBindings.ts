@@ -21,6 +21,11 @@ export interface TemplateBinding {
     /** Over the layout's caption; a `${key}` in it is still read through the texts. */
     caption?: string;
     /**
+     * A text's `ITextWindow.htmlText`, over its caption: drawn and sized as markup (`<b>`, `<font>`,
+     * `<br>`) whatever the window's type, and never read as a text key.
+     */
+    htmlText?: string;
+    /**
      * The window is built with its layout caption and `caption` set once it is built, as code that
      * finds the text after `buildFromXML` does (`InventoryMainView.updateCounter`'s `count`): the
      * text's resize then reaches its parent - a `reflect_horizontal_resize_to_parent` border follows
@@ -32,8 +37,10 @@ export interface TemplateBinding {
     /** `IInteractiveWindow.toolTipDelay`: how long, in ms, the pointer rests before the tooltip shows. */
     tooltipDelay?: number;
     /**
-     * `0xRRGGBB`: a text's colour (`ITextWindow.textColor`) over its `text_color`, anything else's tint
-     * (`IWindow.color`) over its `color`.
+     * A text's colour (`ITextWindow.textColor`, `0xRRGGBB`) over its `text_color`; anything else's
+     * `IWindow.color` over its `color`. That is `0xAARRGGBB`: a window that fills its background (a
+     * `background` container, a `title_bg`) takes its alpha from the top byte, so `0xRRGGBB` there
+     * draws nothing - pass `0xFF` in front, as the AS3's colours have it.
      */
     color?: number;
     /**
@@ -86,6 +93,14 @@ export interface TemplateBinding {
     focused?: boolean;
     /** An input's `ITextFieldWindow.restrict`: the characters it takes (`'0-9'`). */
     restrict?: string;
+    /** An input's `ITextFieldWindow.maxChars`, over the layout's `max_chars`; 0 for no limit. */
+    maxChars?: number;
+    /**
+     * `0xRRGGBB`: a text field's background colour - `IWindow.color` on a text or an input, which
+     * Flash hands to its `TextField.backgroundColor` (`TextFieldManager.displayError`'s refused field).
+     * It fills the field whether or not the layout gives it a `background`.
+     */
+    backgroundColor?: number;
     /** An item list's `spacing` between its items, over the layout's (`IItemListWindow.spacing`). */
     spacing?: number;
     /** A scrollable list's `autoHideScrollBar`: `false` keeps its scrollbar, disabled, while its items fit. */
@@ -165,7 +180,7 @@ export interface TemplateItem {
 
 /**
  * Bindings by element name, or by a `/`-separated path of names for a lookup scoped to a parent
- * (`panel.findChildByName("name")` is `'panel/name'`), a `#TAG` part for `findChildByTag`; `''` is the window itself - the template's
+ * (`panel.findChildByName("name")` is `'panel/name'`), a `#TAG` part for `findChildByTag` (`#bg` finds the `#bg` role tag too); `''` is the window itself - the template's
  * root, or a clone - which code holds rather than finds (`_window.caption`).
  */
 export type TemplateBindings = Record<string, TemplateBinding>;
@@ -204,7 +219,7 @@ const findByKey = (elements: readonly TemplateElement[], key: string): TemplateE
     let found: TemplateElement | undefined;
 
     for (const name of key.split('/')) {
-        found = name.startsWith('#') ? findTemplateChildByTag(scope, name.slice(1)) : findTemplateChild(scope, name);
+        found = name.startsWith('#') ? (findTemplateChildByTag(scope, name.slice(1)) ?? findTemplateChildByTag(scope, name)) : findTemplateChild(scope, name);
 
         if (!found) return undefined;
 
@@ -381,6 +396,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
 
     return a.visible === b.visible
         && a.caption === b.caption
+        && a.htmlText === b.htmlText
         && a.setCaptionAfterBuild === b.setCaptionAfterBuild
         && a.tooltip === b.tooltip
         && a.tooltipDelay === b.tooltipDelay
@@ -397,6 +413,8 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.underline === b.underline
         && a.crop === b.crop
         && a.restrict === b.restrict
+        && a.maxChars === b.maxChars
+        && a.backgroundColor === b.backgroundColor
         && a.focused === b.focused
         && a.etchingColor === b.etchingColor
         && a.selection === b.selection

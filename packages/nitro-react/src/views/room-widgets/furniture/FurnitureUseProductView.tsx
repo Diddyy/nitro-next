@@ -1,6 +1,6 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 
-import { TemplateFrameOptions, TemplateWindow, useTemplate } from '#base/theme';
+import { TemplateWindow, useTemplate, useTemplateFrame } from '#base/theme';
 
 export interface FurnitureUseProductViewProps {
     /** Frame caption key, e.g. `useproduct.widget.title.plant_seed`. */
@@ -40,7 +40,7 @@ export const FurnitureUseProductView = ({
     captionKey, descriptionKey, infoKey, confirmKey, preview, onConfirm, onCancel,
 }: FurnitureUseProductViewProps) => {
     const content = useTemplate(CONTENT_TEMPLATE);
-    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'use-product', centered: true, rememberPosition: false, onClose: onCancel }));
+    const frame = useTemplateFrame({ id: 'use-product', centered: true, rememberPosition: false, onClose: onCancel });
 
     if (!content) return null;
 

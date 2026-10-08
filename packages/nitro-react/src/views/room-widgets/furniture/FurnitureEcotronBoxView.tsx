@@ -32,7 +32,6 @@ export const FurnitureEcotronBoxView = ({ furniTypeName, date, onOpen, onClose }
         <FurnitureTemplatePanel
             id={isFurnimatic ? 'habbo-room-ui-com/ecotronbox_card_furnimatic' : 'habbo-room-ui-com/ecotronbox_card'}
             position={{ x: CARD_POSITION, y: CARD_POSITION }}
-            dragByRoot
             bindings={{
                 ecotronbox_card_date: { caption: date },
                 ecotronbox_card_btn_open: { onPointerTap: onOpen },

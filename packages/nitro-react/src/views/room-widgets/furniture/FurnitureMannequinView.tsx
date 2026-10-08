@@ -2,7 +2,7 @@ import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { Box, LayoutImage, TemplateBindings, TemplateFrameOptions, TemplateWindow, ThemeImage, useAvatarImageTexture, useTemplateLibrary } from '#base/theme';
+import { Box, LayoutImage, TemplateBindings, TemplateWindow, ThemeImage, useAvatarImageTexture, useTemplateFrame, useTemplateLibrary } from '#base/theme';
 
 /**
  * Which face of the dialog is showing. Flash cycled one window through the same five, and only
@@ -75,7 +75,7 @@ export const FurnitureMannequinView = ({
     const t = useTranslation();
     const templates = useTemplateLibrary(LIBRARY);
     const { texture } = useAvatarImageTexture(figure, gender, { direction: 2 });
-    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'mannequin', centered: true, rememberPosition: false, onClose }));
+    const frame = useTemplateFrame({ id: 'mannequin', centered: true, rememberPosition: false, onClose });
     const [ draft, setDraft ] = useState<string>(name);
     const [ nameState, setNameState ] = useState<NameState>(name.length ? 'saved' : 'hint');
     const [ lastName, setLastName ] = useState<string>(name);

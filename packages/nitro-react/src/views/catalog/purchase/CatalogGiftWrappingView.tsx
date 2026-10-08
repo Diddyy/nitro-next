@@ -7,7 +7,7 @@ import { CatalogPurchaseRequest, useCatalogStore, useCatalogStoreApi } from '#ba
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
-import { Box, LayoutImage, TemplateWindow, ThemeImage, ThemeText, useAvatarImageTexture, useTemplateLibrary } from '#base/theme';
+import { Box, LayoutImage, TemplateWindow, ThemeImage, useAvatarImageTexture, useTemplateLibrary } from '#base/theme';
 
 import { CATALOG_LIBRARY, catalogTemplateId } from '../page/catalogTemplates';
 import { useFurnitureImageTexture } from '../useFurnitureImageTexture';
@@ -89,23 +89,8 @@ const suggestionItem = (from: Template, name: string, typed: string, index: numb
         from,
         bindings: {
             '': { color: highlighted ? COLOR_HIGHLIGHT : (((index % 2) === 0) ? COLOR_EVEN : COLOR_ODD), onPointerOver: onHover, onPointerTap: onSelect },
-            // A template text takes no partial format: the bolded name is drawn into it.
-            name_text: (markup === undefined)
-                ? { caption: name }
-                : {
-                        caption: '',
-                        children: (
-                            <ThemeText
-                                text={markup}
-                                markup
-                                textStyle="u_regular"
-                                flashFormat={{ thickness: -15, sharpness: 80 }}
-                                clip
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 0, top: 0, width: 261, height: SUGGESTION_ROW_HEIGHT }}
-                            />
-                        ),
-                    },
+            // `IHTMLTextWindow.htmlText`: the matching part of the name in bold.
+            name_text: (markup === undefined) ? { caption: name } : { htmlText: markup },
         },
     };
 };

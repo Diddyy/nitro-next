@@ -261,6 +261,21 @@ const convertElement = (node: LayoutXmlNode, options: LayoutToTemplateOptions): 
     if (attrs.treshold !== undefined && Number(attrs.treshold) !== 10) element.mouseThreshold = Number(attrs.treshold);
     if (attrs.tags) element.tags = unescapeAs3(attrs.tags).split(',').map(tag => tag.trim()).filter(Boolean);
 
+    // `WindowParser`'s `DropShadowFilter`, with its defaults; `GraphicContext` draws the first outer one.
+    const shadow = (child(node, 'filters')?.children ?? []).find(entry => (entry.tag === 'DropShadowFilter') && (entry.attrs.inner !== 'true'));
+
+    if (shadow) {
+        const value = (key: string, fallback: number) => (shadow.attrs[key] === undefined ? fallback : Number(shadow.attrs[key]));
+
+        element.dropShadow = {
+            distance: value('distance', 0),
+            angle: value('angle', 45),
+            color: value('color', 0),
+            alpha: value('alpha', 1),
+            blur: Math.max(0, value('blurX', 0), value('blurY', 0)),
+        };
+    }
+
     // `FrameController` and `BubbleController`, which extends it: children go into a content area.
     if (element.tag === 'frame' || element.tag === 'bubble') {
         const margins = options.frameMargins?.(element);

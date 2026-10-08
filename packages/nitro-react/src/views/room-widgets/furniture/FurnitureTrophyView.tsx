@@ -46,7 +46,6 @@ export const FurnitureTrophyView = ({ color, title, ownerName, date, message, on
         <FurnitureTemplatePanel
             id="habbo-room-ui-com/trophy"
             position="center"
-            dragByRoot
             bindings={{
                 close: { onPointerTap: onClose },
                 title_bg: { color: theme.header },

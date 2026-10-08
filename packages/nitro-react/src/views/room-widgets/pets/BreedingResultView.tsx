@@ -3,7 +3,7 @@ import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { Box, TemplateBindings, TemplateWindow } from '#base/theme';
 
 import { useFurnitureImageTexture } from '../../catalog/useFurnitureImageTexture';
-import { BREED_PREVIEW_BACKGROUND, resizeToFitContent } from './breedingWindow';
+import { BREED_PREVIEW_BACKGROUND } from './breedingWindow';
 
 /** One seed a breeding produced, or the empty place of one. */
 export interface BreedingSeed {
@@ -110,7 +110,7 @@ export const BreedingResultView = ({ seeds, luckyUser, onClose }: BreedingResult
                 preview_buttonlist: { visible: false },
                 close_button: { onPointerTap: onClose },
             }}
-            arrange={({ root }) => resizeToFitContent(root())}
+            arrange={({ root }) => root()?.resizeToFitContent()}
         />
     );
 };

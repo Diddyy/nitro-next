@@ -1,7 +1,5 @@
-import { useMemo } from 'react';
-
 import { useTranslation } from '#base/context/system';
-import { Box, Button, ModalDialog, ScrollArea, TemplateFrameOptions, TemplateWindow, ThemeText } from '#base/theme';
+import { Box, Button, ModalDialog, ScrollArea, TemplateWindow, ThemeText, useTemplateFrame } from '#base/theme';
 
 export interface CraftingProduct {
     recipeCode: string;
@@ -54,7 +52,7 @@ export const FurnitureCraftingView = ({
     products, selectedRecipeCode, ingredients, isOwner, canCraft, result, onSelectRecipe, onCraft, onClose,
 }: FurnitureCraftingViewProps) => {
     const t = useTranslation();
-    const frame = useMemo<TemplateFrameOptions>(() => ({ id: 'furniture-crafting', modal: true, draggable: false, rememberPosition: false, onClose }), [ onClose ]);
+    const frame = useTemplateFrame({ id: 'furniture-crafting', modal: true, draggable: false, rememberPosition: false, onClose });
     const craftEnabled = isOwner && canCraft;
 
     return (

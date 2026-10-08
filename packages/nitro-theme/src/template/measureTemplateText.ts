@@ -100,12 +100,14 @@ const cache = new Map<string, TemplateTextSize | undefined>();
 /** The texts whose caption is the field's `htmlText` (`FormattedTextController`, `HTMLTextController`), drawn as markup. */
 export const isMarkupTemplateText = (element: TemplateElement) => element.tag === 'formatted_text' || element.tag === 'html';
 
-/** The field size of `text` in `element`'s style - parsed as markup for a markup text; `wrapWidth` is the field's width when it wraps. */
-export const measureTemplateText = (element: TemplateElement, text: string, wrapWidth: number | undefined): TemplateTextSize | undefined => {
+/**
+ * The field size of `text` in `element`'s style - parsed as markup for a markup text, or when `markup`
+ * says so (a plain text whose code set its `htmlText`); `wrapWidth` is the field's width when it wraps.
+ */
+export const measureTemplateText = (element: TemplateElement, text: string, wrapWidth: number | undefined, markup: boolean = isMarkupTemplateText(element)): TemplateTextSize | undefined => {
     const style = templateTextStyle(element);
     const fontSize = templateFontSize(element);
     const { fontFamily, flash } = templateTextFormat(element);
-    const markup = isMarkupTemplateText(element);
     const key = `${markup ? 'markup' : 'plain'}\n${style}\n${fontSize ?? ''}\n${fontFamily ?? ''}\n${JSON.stringify(flash)}\n${wrapWidth ?? ''}\n${text}`;
 
     if (cache.has(key)) return cache.get(key);
