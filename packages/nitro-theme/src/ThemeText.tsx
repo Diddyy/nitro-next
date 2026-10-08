@@ -115,11 +115,18 @@ const NativeText = ({ text: source, markup, textStyle, textOptions, flashFormat,
     // Markup the exact renderer could not take shows as its text alone.
     const text = useMemo(() => (markup ? parseFlashTextMarkup(source, DEFAULT_FLASH_TEXT_FORMAT).map(run => run.text).join('') : source), [ markup, source ]);
     // The layout's `font_face`/`bold`/`italic` vars again, in the face names Pixi's canvas text
-    // knows - `fontFamily` alone would leave a `bold` var out of the fallback.
-    const style = useMemo(() => getPixiTextStyle(textStyle ?? DEFAULT_TEXT_STYLE, {
-        ...textOptions,
-        ...browserFaceOverride(textStyle ?? DEFAULT_TEXT_STYLE, flashFaceOverride(textOptions?.fontFamily), flashFormat),
-    }), [ textStyle, textOptions, flashFormat ]);
+    // knows - `fontFamily` alone would leave a `bold` var out of the fallback. A family none of the
+    // captured faces covers (the floor plan map's `Courier`) is the very reason for falling back,
+    // so it is kept rather than swapped for the style's own face.
+    const style = useMemo(() => {
+        const face = flashFaceOverride(textOptions?.fontFamily);
+        const keepsFamily = !face && (typeof textOptions?.fontFamily === 'string');
+
+        return getPixiTextStyle(textStyle ?? DEFAULT_TEXT_STYLE, {
+            ...textOptions,
+            ...(keepsFamily ? {} : browserFaceOverride(textStyle ?? DEFAULT_TEXT_STYLE, face, flashFormat)),
+        });
+    }, [ textStyle, textOptions, flashFormat ]);
     const metrics = useMemo(() => (text?.length ? CanvasTextMetrics.measureText(text, style) : undefined), [ text, style ]);
 
     if (!text?.length || !metrics) return null;
