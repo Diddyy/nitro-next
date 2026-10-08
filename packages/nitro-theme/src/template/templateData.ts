@@ -41,6 +41,21 @@ export interface TemplateParams {
     unnamedBits?: number[];
 }
 
+/**
+ * A window's outer drop shadow - the first `<DropShadowFilter>` of its `<filters>` that is not `inner`,
+ * the one `GraphicContext` draws - with `WindowParser`'s defaults for what the layout leaves out.
+ */
+export interface TemplateDropShadow {
+    distance: number;
+    /** Degrees, Flash's: 45 is down and right. */
+    angle: number;
+    /** `0xRRGGBB`. */
+    color: number;
+    alpha: number;
+    /** `max(blurX, blurY)`, as `GraphicContext` blurs it. */
+    blur: number;
+}
+
 /** One element of a template, as its `<layout>` XML has it. */
 export interface TemplateElement {
     /** The Flash window type (`container`, `text`, `button`, ...). */
@@ -73,6 +88,8 @@ export interface TemplateElement {
     mouseThreshold?: number;
     /** Its `tags` (`#icon`, `#bg`, ...). */
     tags?: string[];
+    /** Its outer drop shadow, from its `<filters>`. */
+    dropShadow?: TemplateDropShadow;
     /** Its `<variables>`, by key. */
     vars: Record<string, TemplateValue>;
     /** A frame's content area, from its edges (`FrameController.margins`): where its children are placed. */

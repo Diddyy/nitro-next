@@ -13,6 +13,7 @@ export * from './RunningNumberWidget';
 export * from './TemplateWindow';
 export * from './UpdatingTimeStampWidget';
 export * from './useTemplate';
+export * from './useTemplateFrame';
 export * from '@nitrodevco/nitro-theme';
 // Over the theme's own: the client's puts its room stage under the UI.
 export { PixiApplicationRoot } from './PixiApplicationRoot';

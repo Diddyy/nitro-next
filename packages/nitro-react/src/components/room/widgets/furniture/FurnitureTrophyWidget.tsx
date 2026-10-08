@@ -27,7 +27,8 @@ export const FurnitureTrophyWidget = () => {
 
     return (
         <FurnitureTrophyView
-            color={roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureColor) ?? 0}
+            // `TrophyFurniWidget`: `TrophyTheme.normalize(color - 1)` - the furni's colours count from 1 (`prizetrophy*1` is gold).
+            color={(roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureColor) ?? 0) - 1}
             ownerName={ownerName}
             date={date}
             message={message}

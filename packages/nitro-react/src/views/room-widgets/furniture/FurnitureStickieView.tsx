@@ -83,7 +83,6 @@ export const FurnitureStickieView = ({ objectType, colorHex, text, canModify, on
         <FurnitureTemplatePanel
             id="habbo-room-ui-com/stickie"
             position={{ x: NOTE_POSITION, y: NOTE_POSITION }}
-            dragTriggerName="bg"
             bindings={bindings}
         />
     );

@@ -1,7 +1,5 @@
-import { useState } from 'react';
-
 import { useTranslation } from '#base/context/system';
-import { TemplateFrameOptions, TemplateWindow } from '#base/theme';
+import { TemplateWindow, useTemplateFrame } from '#base/theme';
 
 export interface FurnitureCreditViewProps {
     /** Credits the bag, bar or coin is worth. */
@@ -28,7 +26,7 @@ const WINDOW_POSITION = { x: 100, y: 100 };
  */
 export const FurnitureCreditView = ({ value, isNftCredit, onExchange, onClose }: FurnitureCreditViewProps) => {
     const t = useTranslation();
-    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'creditExchangeTitle', defaultPosition: WINDOW_POSITION, rememberPosition: false, onClose }));
+    const frame = useTemplateFrame({ id: 'creditExchangeTitle', defaultPosition: WINDOW_POSITION, rememberPosition: false, onClose });
     const description = t(isNftCredit ? 'nft.creditfurni.redeem.description' : 'widgets.furniture.credit.redeem.value', '', { value: value.toString() });
 
     const openInfoUrl = () => {

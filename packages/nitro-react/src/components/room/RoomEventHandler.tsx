@@ -11,6 +11,7 @@ import { handleRoomObjectSoundEvent, isRoomObjectSoundEvent } from '#base/sound'
 
 import { DisposeRoomBackgroundColor, SetRoomBackgroundColor } from './roomBackgroundColor';
 import { DisposeRoomViewColor, SetRoomViewColor } from './roomViewColor';
+import { isTouchPlacementDrop } from './touchPlacementDrop';
 
 export const RoomEventHandler = () => {
     const room = useRoom();
@@ -161,6 +162,9 @@ export const RoomEventHandler = () => {
         let category = room.getRoomObjectCategoryForType(object.type);
 
         if (category !== RoomObjectCategoryEnum.Room && (!isPlayingGame || category !== RoomObjectCategoryEnum.Unit)) category = RoomObjectCategoryEnum.Minimum;
+
+        // A finger dropping an object: its ghost's own hit is passed over, so the floor under it takes the click.
+        if ((event.type === MouseEventType.MOUSE_CLICK) && isTouchPlacementDrop(object.id, room.getRoomObjectCategoryForType(object.type))) return;
 
         const eventId = getMouseEventId(category, event.type);
 

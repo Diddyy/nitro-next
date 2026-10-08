@@ -18,7 +18,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData, useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredStore } from '#base/context/wired';
 import { useViewportSize } from '#base/hooks';
-import { LayoutWindow, TemplateFrameOptions, TemplateWindow, TemplateWindows } from '#base/theme';
+import { LayoutWindow, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
 import { getBadgeDesc, getBadgeName, getCurrencyIconStyle } from '#base/utils';
 
 import { AchievementCategoryEntry, CATEGORY_HEIGHT, CATEGORY_WIDTH } from './AchievementCategoryEntry';
@@ -111,7 +111,7 @@ export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
     const viewport = useViewportSize();
     const [ hover, setHover ] = useState(NO_HOVER);
     // `prepareWindow`: `_window.center(); _window.y = 20`, once.
-    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'achievements', defaultPosition: { x: Math.round((viewport.width - WINDOW_WIDTH) / 2), y: 20 }, onClose }));
+    const frame = useTemplateFrame({ id: 'achievements', defaultPosition: { x: Math.round((viewport.width - WINDOW_WIDTH) / 2), y: 20 }, onClose });
     const badgeUrl = useCallback((code: string) => badgeAssetUrl.replace('%badgename%', code), [ badgeAssetUrl ]);
 
     // `onAchievements` opens the window once the list is in.

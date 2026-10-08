@@ -63,7 +63,7 @@
 import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { LayoutImage, LayoutWindow, TemplateBindings, TemplateFrameOptions, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
+import { LayoutImage, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 
 export interface RoomInfoViewProps {
     roomName: string;
@@ -217,7 +217,7 @@ export const RoomInfoView = ({
     // `tagProcedure`: the tag under the pointer.
     const [ hoveredTag, setHoveredTag ] = useState(-1);
     // `prepareWindow`: `_window.center()`, once.
-    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'room-info', centered: true, rememberPosition: false, resizeDirection: 'none', onClose }));
+    const frame = useTemplateFrame({ id: 'room-info', centered: true, rememberPosition: false, resizeDirection: 'none', onClose });
 
     // `refreshTags`: a tag for each of the first four that has text.
     const shownTags = tags.slice(0, MAX_TAGS).map((tag, index) => ({ tag, index })).filter(({ tag }) => !!tag.length);

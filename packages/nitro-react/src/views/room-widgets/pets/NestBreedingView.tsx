@@ -3,7 +3,6 @@ import { useState } from 'react';
 
 import { Template, TemplateBindings, TemplateWindow, useTemplate } from '#base/theme';
 
-import { resizeToFitContent } from './breedingWindow';
 import { PetPortraitView } from './PetPortraitView';
 
 export interface NestBreedingViewProps {
@@ -120,7 +119,7 @@ export const NestBreedingView = ({ pet1, pet2, rarityCategories, resultPetType, 
                 },
                 cancel_button: { disabled: locked, onPointerTap: () => !locked && onCancel() },
             }}
-            arrange={({ root }) => resizeToFitContent(root())}
+            arrange={({ root }) => root()?.resizeToFitContent()}
         />
     );
 };

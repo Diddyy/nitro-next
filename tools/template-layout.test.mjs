@@ -623,3 +623,47 @@ await test('a window clips the children drawn into its graphic context, not thos
     assert.equal(rects.get(container).clip, undefined);
     assert.equal(rects.get(row).clip, true);
 });
+
+await test('_Str_14067: only the children that show count when a window takes its children\'s extent', () => {
+    const parent = new LayoutWindow(undefined, { x: 0, y: 0, width: 10, height: 10 }, 0);
+    const shown = new LayoutWindow(undefined, { x: 0, y: 0, width: 43, height: 20 }, 0, parent);
+    const hidden = new LayoutWindow(undefined, { x: 0, y: 0, width: 52, height: 30 }, 0, parent);
+
+    hidden.visible = false;
+    parent.resizeToAccommodateChildren();
+
+    assert.equal(shown.visible, true);
+    assert.deepEqual([ parent.width, parent.height ], [ 43, 20 ]);
+});
+
+await test('WindowParser: a layout\'s outer DropShadowFilter, with its defaults for what it leaves out', () => {
+    const template = layoutToTemplate(readFileSync(new URL('../packages/nitro-react/scripts/flash-js-resources/habbo-room-ui-com/nestBreedingSuccess.xml', import.meta.url), 'utf8'));
+
+    assert.deepEqual(template.elements[0].dropShadow, { distance: 0, angle: 0, color: 0, alpha: 0.34901960784313724, blur: 20 });
+});
+
+const { localizeCaption } = await import('../packages/nitro-theme/src/template/localizeCaption.ts');
+
+await test('TextController.set text: only a caption starting with ${ is a text key', () => {
+    const texts = { 'a.b': 'Read', 'mannequin.widget.savetext': 'Saved' };
+    const resolve = text => text.replace(/\$\{([^}]+)\}/g, (whole, key) => texts[key] ?? whole);
+
+    assert.equal(localizeCaption('${a.b}', resolve), 'Read');
+    // An unclosed key loses its last character, as `slice(2, indexOf("}"))` does with -1.
+    assert.equal(localizeCaption('${mannequin.widget.savetext ', resolve), 'Saved');
+    // A player's text is shown as typed, a ${key} inside it included.
+    assert.equal(localizeCaption('my note ${a.b}', resolve), 'my note ${a.b}');
+    assert.equal(localizeCaption(undefined, resolve), '');
+});
+
+await test('the static resizeToAccommodateChildren: as far as the shown children reach from the origin', () => {
+    const content = new LayoutWindow(undefined, { x: 6, y: 30, width: 300, height: 300 }, 0);
+    const list = new LayoutWindow(undefined, { x: 4, y: 2, width: 274, height: 180 }, 0, content);
+    const hidden = new LayoutWindow(undefined, { x: 0, y: 0, width: 400, height: 400 }, 0, content);
+
+    hidden.visible = false;
+    content.sizeToChildren();
+
+    assert.equal(list.x, 4);
+    assert.deepEqual([ content.x, content.y, content.width, content.height ], [ 6, 30, 278, 182 ]);
+});

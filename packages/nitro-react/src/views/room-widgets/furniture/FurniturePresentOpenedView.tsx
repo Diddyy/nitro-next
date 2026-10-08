@@ -4,8 +4,6 @@ import { Texture } from 'pixi.js';
 import { useTranslation } from '#base/context/system';
 import { LayoutImage, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture } from '#base/theme';
 
-import { resizeFrameToFitContent } from './resizeFrameToFitContent';
-
 /** What came out of the gift, drawn centred in `gift_image`: a bitmap asset or url, or a render. */
 export interface FurniturePresentOpenedIcon {
     src?: string;
@@ -60,7 +58,7 @@ export const FurniturePresentOpenedView = ({ senderName, senderFigure, trustedSe
 
         if (avatar && container && head.texture) avatar.setRectangle(Math.trunc((container.width / 2) - (head.width / 2)), Math.trunc((container.height / (trustedSender ? 1.5 : 2)) - (head.height / 2)), head.width, head.height);
 
-        resizeFrameToFitContent(root());
+        root()?.resizeToFitContent();
     };
 
     return (

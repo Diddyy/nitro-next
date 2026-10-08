@@ -15,8 +15,8 @@ import { AvatarImage } from './AvatarImage';
 /** The face's top-left in the head image, by direction; -100 where the focuser has none. */
 const FACE_X = [ -100, -100, 21, 21, -100, -100, -100, -100, -100 ];
 const FACE_Y = [ -100, -100, 28, 30, -100, -100, -100, -100, -100 ];
-/** `ICON_WIDTH_NORMAL` / `ICON_HEIGHT_NORMAL`. */
-const FACE_SIZE = 50;
+/** `ICON_WIDTH_NORMAL` / `ICON_HEIGHT_NORMAL`: the face box's size at scale 1. */
+export const AVATAR_FACE_SIZE = 50;
 
 export interface AvatarFaceImageProps {
     figure: string;
@@ -28,7 +28,7 @@ export interface AvatarFaceImageProps {
 }
 
 export const AvatarFaceImage = forwardRef<PixiContainer, AvatarFaceImageProps>(({ figure, gender, direction, scale = 1, layout }, ref) => {
-    const size = FACE_SIZE * scale;
+    const size = AVATAR_FACE_SIZE * scale;
 
     return (
         <Box

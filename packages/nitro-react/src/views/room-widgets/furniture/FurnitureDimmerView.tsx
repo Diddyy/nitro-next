@@ -98,8 +98,6 @@ export const FurnitureDimmerView = ({
                 } ])),
                 color_grid: { items: cells },
                 type_checkbox: {
-                    // The layout gives the checkbox the frame's caption, which a Flash checkbox (a skin without a label) never draws.
-                    caption: '',
                     selected: effectId === EFFECT_BACKGROUND_ONLY,
                     onPointerTap: () => onChangeEffect(effectId === EFFECT_BACKGROUND_ONLY ? EFFECT_COLOR : EFFECT_BACKGROUND_ONLY),
                 },

@@ -476,7 +476,8 @@ export class LayoutWindow {
     /**
      * `WindowController._Str_14067` (`resize_to_accommodate_children`): the window takes its
      * children's extent from its own origin - growing or shrinking - moved by any child left or above
-     * it, the children offset back, their centring held off meanwhile.
+     * it, the children offset back, their centring held off meanwhile. Only the children that show
+     * count (`scaleToAccommodateChildren`'s `visible` checks): a hidden button takes no room.
      */
     public resizeToAccommodateChildren(): void {
         if (!this.children.length) return;
@@ -488,24 +489,24 @@ export class LayoutWindow {
         let changed = false;
 
         for (const child of this.children) {
-            if (child.x < left) {
+            if (child.visible && (child.x < left)) {
                 right -= child.x - left;
                 left = child.x;
                 changed = true;
             }
 
-            if (child.x + child.width > right) {
+            if (child.visible && (child.x + child.width > right)) {
                 right = child.x + child.width;
                 changed = true;
             }
 
-            if (child.y < top) {
+            if (child.visible && (child.y < top)) {
                 bottom -= child.y - top;
                 top = child.y;
                 changed = true;
             }
 
-            if (child.y + child.height > bottom) {
+            if (child.visible && (child.y + child.height > bottom)) {
                 bottom = child.y + child.height;
                 changed = true;
             }
@@ -532,6 +533,48 @@ export class LayoutWindow {
         }
 
         if (own) this.setParamFlag(own, true);
+    }
+
+    /**
+     * The static `WindowController.resizeToAccommodateChildren`: the window as wide and as high as its
+     * shown children's right and bottom edges reach from its own origin - growing or shrinking, never
+     * moved - its own accommodate params held off meanwhile.
+     */
+    public sizeToChildren(): void {
+        let right = Number.MIN_SAFE_INTEGER;
+        let bottom = Number.MIN_SAFE_INTEGER;
+        let changed = false;
+
+        for (const child of this.children) {
+            if (child.visible && ((child.x + child.width) > right)) {
+                right = child.x + child.width;
+                changed = true;
+            }
+
+            if (child.visible && ((child.y + child.height) > bottom)) {
+                bottom = child.y + child.height;
+                changed = true;
+            }
+        }
+
+        if (!changed) return;
+
+        const own = this.param & (P.expandToAccommodate | P.resizeToAccommodate);
+
+        if (own) this.setParamFlag(own, false);
+
+        this.setWidth(right);
+        this.setHeight(bottom);
+
+        if (own) this.setParamFlag(own, true);
+    }
+
+    /**
+     * `FrameController.resizeToFitContent`: the frame's content area sized to its children
+     * (`sizeToChildren`), which the content's reflect params pass on to the frame, within its limits.
+     */
+    public resizeToFitContent(): void {
+        this.children.find(child => child.frameContent)?.sizeToChildren();
     }
 
     /**

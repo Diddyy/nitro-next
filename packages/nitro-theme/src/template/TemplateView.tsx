@@ -301,11 +301,20 @@ const ScrollLinksContext = createContext<ScrollLinks>({ scrollbars: new Map(), s
 /** Whether nothing in a window's subtree is a display object of its own: all of it draws into its parent's graphic context. */
 const drawsIntoParentOnly = (element: TemplateElement): boolean => templateUsesParentGraphics(element) && element.children.every(drawsIntoParentOnly);
 
+/**
+ * The checkbox and radio button styles whose `habbo_element_description` entry has a `window_layout`
+ * with a `_CAPTION_TEXT` field (`CheckBoxController.set caption` writes the caption there): the
+ * illumina switch (100) and basic checkbox (101), and the illumina radio button (100). The Habbo
+ * styles (0-2) are only their skin, so their caption is not drawn.
+ */
+const CAPTIONED_CHECKBOX_STYLES = new Set([ 100, 101 ]);
+const CAPTIONED_RADIO_STYLES = new Set([ 100 ]);
+
 /** A `#icon` / `#bg` tag: the part of its `dynamicStyle` host's look it takes. */
 const dynamicRoleOf = (element: TemplateElement) => (element.tags?.includes('#icon') ? 'icon' : element.tags?.includes('#bg') ? 'bg' : undefined);
 
 /** Its caption: the binding's over the layout's. */
-const captionOf = (element: TemplateElement, context: Context, binding: TemplateBinding | undefined) => localizeCaption(binding?.caption ?? element.caption, context.resolveText);
+const captionOf = (element: TemplateElement, context: Context, binding: TemplateBinding | undefined) => binding?.htmlText ?? localizeCaption(binding?.caption ?? element.caption, context.resolveText);
 
 /** Its tooltip: the binding's over the layout's `tool_tip_caption`. */
 const tooltipOf = (element: TemplateElement, context: Context, binding: TemplateBinding | undefined) => {
@@ -385,7 +394,7 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
             textStyle={style}
             textOptions={{ fill: color, fontFamily, fontSize: templateFontSize(element), wordWrap: wordWrap || undefined, wordWrapWidth: wordWrap ? templateWrapWidth(rect.width) : undefined, align }}
             flashFormat={flash.etchingColor ? { ...flash, etchingPosition: flash.etchingPosition ?? 'bottom' } : flash}
-            markup={isMarkupTemplateText(element) || undefined}
+            markup={(binding?.htmlText !== undefined) || isMarkupTemplateText(element) || undefined}
             clip={!label && autoSize === 'none' ? true : undefined}
             crop={binding?.crop ? rect.width : undefined}
             dynamicRole={dynamicRoleOf(element)}
@@ -445,10 +454,18 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
     if (TEXT_TAGS.has(element.tag)) return textOf(element, rect, context, binding);
 
     // `TextFieldController`: the field its code reads and writes - its caption the text, its colour
-    // and italic the code's (a search field's grey italic placeholder).
-    if (element.tag === 'input') {
+    // and italic the code's (a search field's grey italic placeholder). A `password` window is the
+    // same field with `displayAsPassword` on.
+    if (element.tag === 'input' || element.tag === 'password') {
         const color = flashColor(binding?.color ?? element.vars.text_color);
         const { fontFamily, flash } = templateTextFormat(element);
+        const layoutMaxChars = Number(element.vars.max_chars) > 0 ? Number(element.vars.max_chars) : undefined;
+        const maxChars = (binding?.maxChars !== undefined) ? (binding.maxChars > 0 ? binding.maxChars : undefined) : layoutMaxChars;
+        // `TextController.background` / `color`: the field filled in the window's colour - white when it
+        // has none - when the layout or the code gives it a background, or in the colour the code sets.
+        const fill = (binding?.backgroundColor !== undefined)
+            ? flashColor(binding.backgroundColor)
+            : ((binding?.background ?? element.background) ? (flashColor(element.color) ?? { hex: '#ffffff', alpha: 1 }) : undefined);
 
         return (
             <TextInput
@@ -461,11 +478,11 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 onFocusChange={focused => (focused ? binding?.onFocus?.() : binding?.onBlur?.())}
                 restrict={binding?.restrict ?? (flashString(element.vars.restrict) || undefined)}
                 // `TextFieldController`'s `max_chars`, `word_wrap` / `multiline`, `display_as_password` and `always_show_selection`.
-                maxLength={Number(element.vars.max_chars) > 0 ? Number(element.vars.max_chars) : undefined}
+                maxLength={maxChars}
                 multiline={flashBool(element.vars.multiline) || flashBool(element.vars.word_wrap) || undefined}
                 // `word_wrap` alone wraps the text; only `multiline` takes Enter as a new line.
                 lineBreaks={flashBool(element.vars.multiline)}
-                password={flashBool(element.vars.display_as_password) || undefined}
+                password={(element.tag === 'password') || flashBool(element.vars.display_as_password) || undefined}
                 alwaysShowSelection={flashBool(element.vars.always_show_selection) || undefined}
                 // Focus the code gives or takes (`ITextFieldWindow.focus()`); left alone, the user's.
                 focused={binding?.focused}
@@ -477,8 +494,8 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 textColor={color?.hex ?? '#000000'}
                 flashFormat={{ ...flash, ...(binding?.italic !== undefined && { italic: binding.italic }) }}
                 flashPlacement
-                backgroundColor={null}
-                focusedBackgroundColor={null}
+                backgroundColor={fill?.hex ?? null}
+                focusedBackgroundColor={fill?.hex ?? null}
                 // `TextController`'s `border`: the `TextField`'s one-pixel border, in `border_color` (black by default).
                 border={flashBool(element.vars.border) ? (flashColor(element.vars.border_color)?.hex ?? '#000000') : undefined}
                 layout={FILL}
@@ -668,7 +685,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 onPointerTap={binding?.onPointerTap}
                 layout={{ position: 'absolute', left: 0, top: 0 }}
             >
-                {text}
+                {CAPTIONED_CHECKBOX_STYLES.has(Number(element.style)) ? text : undefined}
             </CheckBox>
         );
         case 'radiobutton': return (
@@ -679,7 +696,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 onPointerTap={binding?.onPointerTap}
                 layout={{ position: 'absolute', left: 0, top: 0 }}
             >
-                {text}
+                {CAPTIONED_RADIO_STYLES.has(Number(element.style)) ? text : undefined}
             </RadioButton>
         );
         // A `tab_container_button` is only its skin (no window layout, so no title of its own): its
@@ -794,7 +811,16 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
  * A window drawn as a `Region` rather than a plain box: one with a look that follows the pointer
  * (`dynamic_style`), a tooltip, or a click its window's code handles.
  */
+/**
+ * `WindowMouseDragger`'s params: a `mouse_dragging_target` moves when a `mouse_dragging_trigger` in it
+ * (or itself) is pressed. A frame is not one of these here - it drags by its header (`useFrameDrag`).
+ */
+const dragTargetOf = (element: TemplateElement) => (element.tag !== 'frame') && !!element.params?.events?.includes('dragTarget');
+const dragTriggerOf = (element: TemplateElement) => (element.tag !== 'frame') && !!element.params?.events?.includes('dragTrigger');
+
 const isRegion = (element: TemplateElement, binding: TemplateBinding | undefined) => element.tag === 'region'
+    || dragTargetOf(element)
+    || dragTriggerOf(element)
     || !!element.dynamicStyle
     || !!binding?.onPointerOver
     || !!binding?.onPointerOut
@@ -1097,6 +1123,9 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 tooltipDelay={binding?.tooltipDelay}
                 dynamicStyle={element.dynamicStyle as RegionProps['dynamicStyle']}
                 interactive={element.params?.events?.includes('input') || undefined}
+                dragTarget={dragTargetOf(element) || undefined}
+                dragTrigger={dragTriggerOf(element) || undefined}
+                boundToParentRect={element.params?.boundToParent || undefined}
                 disabled={binding?.disabled}
                 onPointerTap={binding?.onPointerTap}
                 onPointerOver={binding?.onPointerOver}
@@ -1132,6 +1161,13 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 caption={captionOf(element, context, binding)}
                 tintColor={tintOf(element, binding)}
                 margins={element.margins ?? [ 0, 0, 0, 0 ]}
+                dropShadow={element.dropShadow && {
+                    distance: element.dropShadow.distance,
+                    angle: element.dropShadow.angle,
+                    color: `#${element.dropShadow.color.toString(16).padStart(6, '0')}`,
+                    alpha: element.dropShadow.alpha,
+                    blur: element.dropShadow.blur,
+                }}
                 defaultPosition={window ? window.defaultPosition : { x: 0, y: 0 }}
                 centered={window?.centered}
                 rememberPosition={!!window && (window.rememberPosition ?? true)}
@@ -1411,9 +1447,10 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
 
     // The rects the window's rules settle on, the texts measured as they will draw (cached by text).
     const rects = layoutTemplate(elements, {
-        captionOf: element => localizeCaption(byElement.get(element)?.caption ?? element.caption, context.resolveText),
+        captionOf: element => byElement.get(element)?.htmlText ?? localizeCaption(byElement.get(element)?.caption ?? element.caption, context.resolveText),
         builtCaptionOf: element => (byElement.get(element)?.setCaptionAfterBuild ? localizeCaption(element.caption, context.resolveText) : undefined),
-        measure: measureTemplateText,
+        // A text whose code set its `htmlText` is sized as markup, as it is drawn.
+        measure: (element, text, wrapWidth) => measureTemplateText(element, text, wrapWidth, (byElement.get(element)?.htmlText !== undefined) || isMarkupTemplateText(element)),
         visibleOf: element => shownBy.get(element) ?? byElement.get(element)?.visible ?? !element.hidden,
         // A clone made from another template - a catalogue widget's view - brings that template's skins.
         skinOf: (element) => {

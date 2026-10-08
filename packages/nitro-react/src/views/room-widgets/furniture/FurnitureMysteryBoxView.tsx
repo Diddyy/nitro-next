@@ -1,6 +1,4 @@
-import { useMemo } from 'react';
-
-import { LayoutImage, ModalDialog, TemplateFrameOptions, TemplateWindow } from '#base/theme';
+import { LayoutImage, ModalDialog, TemplateWindow, useTemplateFrame } from '#base/theme';
 
 export interface FurnitureMysteryBoxViewProps {
     /**
@@ -30,7 +28,7 @@ const mysteryBoxImage = (name: string) => LayoutImage(`habbo-window-manager-com/
  * the port's session does not keep, so they draw in their own colour.
  */
 export const FurnitureMysteryBoxView = ({ isOwner, onCancel, onClose }: FurnitureMysteryBoxViewProps) => {
-    const frame = useMemo<TemplateFrameOptions>(() => ({ id: 'mystery-box-open-dialog', modal: true, draggable: false, rememberPosition: false, onClose }), [ onClose ]);
+    const frame = useTemplateFrame({ id: 'mystery-box-open-dialog', modal: true, draggable: false, rememberPosition: false, onClose });
     const prefix = isOwner ? 'mysterybox.dialog.owner.' : 'mysterybox.dialog.other.';
     const mine = isOwner ? 'box' : 'key';
     const theirs = isOwner ? 'key' : 'box';

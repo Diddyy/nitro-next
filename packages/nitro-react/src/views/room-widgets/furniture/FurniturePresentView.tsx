@@ -3,8 +3,6 @@ import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { useTranslation } from '#base/context/system';
 import { LayoutImage, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture } from '#base/theme';
 
-import { resizeFrameToFitContent } from './resizeFrameToFitContent';
-
 export interface FurniturePresentViewProps {
     message: string;
     purchaserName: string;
@@ -85,7 +83,7 @@ export const FurniturePresentView = ({ message, purchaserName, purchaserFigure, 
         if (!list) return;
 
         list.setX(LIST_SPACING);
-        resizeFrameToFitContent(root());
+        root()?.resizeToFitContent();
         list.parent?.setHeight(list.x + list.height);
     };
 

@@ -5,8 +5,8 @@ import { FurnitureTemplatePanel } from './FurnitureTemplatePanel';
 
 /**
  * `TrophyTheme`: gold, silver and bronze - the plaque's art (`BACKGROUND_ASSET_NAMES`) and the colour
- * of its title bar (`HEADER_COLORS`) both follow the trophy's `furniture_color`, and anything
- * outside 0-2 is gold (`normalize`). The colours are whole `0xAARRGGBB` values: `title_bg` fills with
+ * of its title bar (`HEADER_COLORS`) both follow the theme, and anything outside 0-2 is gold
+ * (`normalize`). The colours are whole `0xAARRGGBB` values: `title_bg` fills with
  * the colour it is given, alpha and all.
  */
 const TROPHY_THEMES = [
@@ -16,6 +16,10 @@ const TROPHY_THEMES = [
 ];
 
 export interface FurnitureTrophyViewProps {
+    /**
+     * The `TrophyTheme`: 0 gold, 1 silver, 2 bronze, anything else gold. A trophy's is its furni colour
+     * less one (`TrophyFurniWidget`), the furni colours counting from 1.
+     */
     color: number;
     /** The plaque's own title (`frameTitle`); a trophy says "Trophy", a badge display says what it is. */
     title?: string;
@@ -46,7 +50,6 @@ export const FurnitureTrophyView = ({ color, title, ownerName, date, message, on
         <FurnitureTemplatePanel
             id="habbo-room-ui-com/trophy"
             position="center"
-            dragByRoot
             bindings={{
                 close: { onPointerTap: onClose },
                 title_bg: { color: theme.header },

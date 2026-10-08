@@ -1,7 +1,5 @@
-import { useState } from 'react';
-
 import { useTranslation } from '#base/context/system';
-import { TemplateFrameOptions, TemplateWindow } from '#base/theme';
+import { TemplateWindow, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 export interface FurnitureRentableSpaceViewProps {
@@ -57,7 +55,7 @@ export const FurnitureRentableSpaceView = ({
     rented, canCancelRent, canRent, canRentErrorCode, canAfford, renterName, timeRemaining, price, onRent, onCancelRent, onClose,
 }: FurnitureRentableSpaceViewProps) => {
     const t = useTranslation();
-    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'furniture-rentable-space', centered: true, rememberPosition: false, onClose }));
+    const frame = useTemplateFrame({ id: 'furniture-rentable-space', centered: true, rememberPosition: false, onClose });
     const errorCode = !canRent ? canRentErrorCode : (!canAfford ? NOT_ENOUGH_CREDITS : undefined);
 
     return (

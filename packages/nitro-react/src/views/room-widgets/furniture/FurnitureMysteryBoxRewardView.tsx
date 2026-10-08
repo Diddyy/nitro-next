@@ -1,7 +1,6 @@
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
-import { useMemo } from 'react';
 
-import { Box, ModalDialog, TemplateFrameOptions, TemplateWindow, TemplateWindows, ThemeImage } from '#base/theme';
+import { Box, ModalDialog, TemplateWindow, TemplateWindows, ThemeImage, useTemplateFrame } from '#base/theme';
 import { useFurnitureImageTexture } from '#base/views/catalog/useFurnitureImageTexture';
 
 export interface FurnitureMysteryBoxRewardViewProps {
@@ -23,7 +22,7 @@ export interface FurnitureMysteryBoxRewardViewProps {
  * `e` and `h` prizes; the port has neither icon to hand, so those show the star alone.
  */
 export const FurnitureMysteryBoxRewardView = ({ rewardType, rewardColorIndex, onClose }: FurnitureMysteryBoxRewardViewProps) => {
-    const frame = useMemo<TemplateFrameOptions>(() => ({ id: 'mystery-box-reward', modal: true, draggable: false, rememberPosition: false, onClose }), [ onClose ]);
+    const frame = useTemplateFrame({ id: 'mystery-box-reward', modal: true, draggable: false, rememberPosition: false, onClose });
     const reward = useFurnitureImageTexture(rewardType, rewardColorIndex, 90, RoomGeometryScaleType.ZoomedIn);
 
     // `set rewardBitmap`: the container takes the bitmap's size, then one more across.

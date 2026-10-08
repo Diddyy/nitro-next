@@ -1,6 +1,6 @@
 import { TemplateBinding, TemplateWindow } from '#base/theme';
 
-import { BREED_PREVIEW_BACKGROUND, resizeToFitContent } from './breedingWindow';
+import { BREED_PREVIEW_BACKGROUND } from './breedingWindow';
 import { PetPortraitView } from './PetPortraitView';
 
 /** One of the two plants, as the room knows it. */
@@ -81,7 +81,7 @@ export const PlantBreedingView = ({ mode, plant1, plant2, onBreed, onAccept, onC
                 save_button: { visible: ask, onPointerTap: onBreed },
                 accept_button: { visible: !ask, onPointerTap: onAccept },
             }}
-            arrange={({ root }) => resizeToFitContent(root())}
+            arrange={({ root }) => root()?.resizeToFitContent()}
         />
     );
 };

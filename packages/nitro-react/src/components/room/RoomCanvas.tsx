@@ -1,11 +1,13 @@
 /** Room canvas lifecycle and input bridge, including RoomEngine camera updates on each render tick. */
-import { IRoomObject, MouseEventType, RoomDragEvent, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectMouseEvent, RoomRenderedEvent } from '@nitrodevco/nitro-api';
+import { IRoomObject, MouseEventType, RoomDragEvent, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectMouseEvent, RoomObjectOperationType, RoomRenderedEvent } from '@nitrodevco/nitro-api';
 import { GetRenderer, GetRoomStage, GetTicker, RoomAreaSelectionManager } from '@nitrodevco/nitro-renderer';
 import { FederatedPointerEvent, Ticker } from 'pixi.js';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
-import { useRoom, useRoomMouseActions, useRoomStore } from '#base/context/room';
+import { roomStore, useRoom, useRoomMouseActions, useRoomStore } from '#base/context/room';
 import { useRoomCamera } from '#base/hooks';
+
+import { touchPlacementDrop } from './touchPlacementDrop';
 
 type MouseData = {
     mouseXY: { x: number; y: number };
@@ -17,6 +19,20 @@ type MouseData = {
 
 const DRAG_THRESHOLD: number = 15;
 
+/**
+ * A touch while an object follows the pointer - placed from the inventory or the catalogue, or moved.
+ * Flash's placement is a mouse's: the ghost follows the hover (`ROE_MOUSE_MOVE`) and a later click
+ * drops it where the ghost is. A finger has no hover, so for it the press puts the ghost under the
+ * finger, dragging moves it rather than the room, and lifting drops it there.
+ */
+const isTouchPlacing = (event: FederatedPointerEvent) => {
+    if (event.pointerType !== 'touch') return false;
+
+    const operation = roomStore.getState().selectedObject?.operation;
+
+    return (operation === RoomObjectOperationType.OBJECT_PLACE) || (operation === RoomObjectOperationType.OBJECT_MOVE);
+};
+
 export const RoomCanvas = () => {
     const room = useRoom();
     const isDecorating = useRoomStore(x => x.isDecorating);
@@ -27,6 +43,8 @@ export const RoomCanvas = () => {
     const updateCameraRef = useRef(updateRoomCamera);
     const isDecoratingRef = useRef(isDecorating);
     const isPlayingGameRef = useRef(isPlayingGame);
+    // Whether the press being handled is a finger placing an object (`isTouchPlacing`).
+    const touchPlacingRef = useRef(false);
 
     useLayoutEffect(() => {
         updateCameraRef.current = updateRoomCamera;
@@ -66,7 +84,8 @@ export const RoomCanvas = () => {
 
         if (type === MouseEventType.MOUSE_DOWN) {
             // `RoomEngine.handleRoomDragging` (`isDecorateMode`): decorating, a press starts no room drag.
-            if (!altKey && !ctrlKey && !shiftKey && !isDecoratingRef.current) {
+            // Nor does a finger placing an object: it drags the object, not the room (see `isTouchPlacing`).
+            if (!altKey && !ctrlKey && !shiftKey && !isDecoratingRef.current && !touchPlacingRef.current) {
                 mouseData.isDragged = true;
                 mouseData.wasDragged = false;
                 // The press's own position: a finger has no hover, so the last one seen is where the
@@ -284,10 +303,72 @@ export const RoomCanvas = () => {
             handleRoomDragging(event.clientX, event.clientY, MouseEventType.MOUSE_UP, false, false, false);
         };
 
+        /*
+         * A finger lifted while placing drops the object where it was lifted. Done on the next frame,
+         * after the engine's tick: the room takes one move per frame (`RoomSpriteCanvas.handleMouseEvent`,
+         * and the handler's per-frame event ids), so the finger's last moves may not have reached the
+         * ghost yet - a fresh move puts it under the finger, and the click then drops it there.
+         */
+        const dropWhereLifted = (x: number, y: number) => {
+            GetTicker().addOnce(() => {
+                const selected = roomStore.getState().selectedObject;
+                const operation = selected?.operation;
+
+                if (!selected || ((operation !== RoomObjectOperationType.OBJECT_PLACE) && (operation !== RoomObjectOperationType.OBJECT_MOVE))) return;
+
+                dispatchMouseEvent(x, y, MouseEventType.MOUSE_MOVE, false, false, false, false);
+
+                touchPlacementDrop.objectId = selected.objectId;
+                touchPlacementDrop.category = selected.category;
+
+                try {
+                    dispatchMouseEvent(x, y, MouseEventType.MOUSE_CLICK, false, false, false, false);
+                } finally {
+                    touchPlacementDrop.category = -1;
+                }
+            });
+        };
+
+        /** `isTouchPlacing`: the press puts the ghost under the finger, a drag moves it, lifting drops it. */
+        const handleTouchPlacing = (event: FederatedPointerEvent) => {
+            const x = event.clientX;
+            const y = event.clientY;
+
+            switch (event.type) {
+                case 'pointerdown':
+                    isMouseDown = true;
+                    didMouseMove = false;
+                    dispatchMouseEvent(x, y, MouseEventType.MOUSE_MOVE, false, false, false, false);
+                    touchPlacingRef.current = true;
+                    dispatchMouseEvent(x, y, MouseEventType.MOUSE_DOWN, false, false, false, true);
+                    touchPlacingRef.current = false;
+                    return true;
+                case 'pointerup': {
+                    // A press that began off the room - dragged out of the inventory - ends with no
+                    // tap on the room, so its release is the drop; one that began here is dropped by its tap.
+                    const pressedHere = isMouseDown;
+
+                    isMouseDown = false;
+                    dispatchMouseEvent(x, y, MouseEventType.MOUSE_UP, false, false, false, false);
+
+                    if (!pressedHere) dropWhereLifted(x, y);
+
+                    return true;
+                }
+                case 'tap':
+                    dropWhereLifted(x, y);
+                    return true;
+                default:
+                    return false;
+            }
+        };
+
         const handlePointerEvent = (event: FederatedPointerEvent) => {
             // A second finger is not a second mouse: its moves, measured from the first finger's
             // position, threw the room about, and its release ended the first finger's drag.
             if (!room || !event.isPrimary) return;
+
+            if (isTouchPlacing(event) && handleTouchPlacing(event)) return;
 
             let eventType = event.type === 'tap' ? 'click' : event.type;
 
