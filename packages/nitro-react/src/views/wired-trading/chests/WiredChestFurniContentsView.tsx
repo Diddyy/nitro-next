@@ -43,7 +43,7 @@ export const WIRED_FURNI_CHEST_WIDTH = 458;
 export const WIRED_FURNI_CHEST_HEIGHT = 264;
 
 /** `furni_icon`, the `product_icon` widget: the furni's icon unscaled in its middle. */
-const ChestItemIcon = ({ itemType }: { itemType: IChestItemType }) => {
+export const ChestItemIcon = ({ itemType }: { itemType: IChestItemType }) => {
     const iconUrl = useWiredChestItemIconUrl(itemType);
 
     if (iconUrl === '') return null;
@@ -100,7 +100,7 @@ const groupItem = (group: WiredChestItemGroup, active: boolean, hovered: boolean
             unique_item_background_bitmap: { visible: sample.stuffData.uniqueNumber > 0 },
             furni_icon: { children: <ChestItemIcon itemType={sample.type} /> },
             number_container: { visible: count > 1 },
-            furni_quantity: { caption: String(count) },
+            furni_quantity: { caption: String(count), setCaptionAfterBuild: true },
             outline_focus: { visible: active },
         },
     };
