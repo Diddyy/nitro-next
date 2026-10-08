@@ -200,7 +200,9 @@ const findTemplateChildWhere = (children: readonly TemplateElement[], test: (chi
 
 /**
  * A binding key's element: each `/`-separated name looked up inside the last one's children - a
- * `#TAG` part by its tag (`findChildByTag`); `''` the first root.
+ * `#TAG` part by its tag (`findChildByTag`), an `@N` part as the N-th child of the last one
+ * (`IItemListWindow.getListItemAt(N)`, for the unnamed items a controller reaches by position);
+ * `''` the first root.
  */
 const findByKey = (elements: readonly TemplateElement[], key: string): TemplateElement | undefined => {
     if (key === '') return elements[0];
@@ -209,7 +211,9 @@ const findByKey = (elements: readonly TemplateElement[], key: string): TemplateE
     let found: TemplateElement | undefined;
 
     for (const name of key.split('/')) {
-        found = name.startsWith('#') ? findTemplateChildByTag(scope, name.slice(1)) : findTemplateChild(scope, name);
+        if (name.startsWith('#')) found = findTemplateChildByTag(scope, name.slice(1));
+        else if (name.startsWith('@') && (found !== undefined)) found = scope[Number(name.slice(1))];
+        else found = findTemplateChild(scope, name);
 
         if (!found) return undefined;
 
