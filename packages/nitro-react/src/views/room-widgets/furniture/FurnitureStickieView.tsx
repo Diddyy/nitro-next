@@ -1,13 +1,27 @@
 import { useState } from 'react';
 
-import { LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { LayoutImage, TemplateBindings } from '#base/theme';
+
+import { FurnitureTemplatePanel } from './FurnitureTemplatePanel';
 
 /**
- * The eight colours the `stickie` layout offers (its `blue` .. `cyan` buttons), in its own
- * left-to-right order. They are the eight `FurnitureStickieLogic.setColorIndexFromItemData`
- * maps to `furniture_color` 1-8 in the room; a colour outside the list is shown as yellow (4).
+ * `StickieFurniWidget.COLOR_BUTTON_NAMES`, with the colour each button of the `stickie` layout is
+ * (`sendSetColor(button.color)`). They are the eight `FurnitureStickieLogic.setColorIndexFromItemData`
+ * maps to `furniture_color` 1-8 in the room.
  */
-const STICKIE_COLORS: string[] = [ '9CCEFF', 'FF9CFF', '9CFF9C', 'FFFF33', 'FFFFFF', 'FF9C9C', 'FFCC66', '9CFFFF' ];
+const STICKIE_COLORS: readonly (readonly [ name: string, hex: string ])[] = [
+    [ 'blue', '9CCEFF' ],
+    [ 'purple', 'FF9CFF' ],
+    [ 'green', '9CFF9C' ],
+    [ 'yellow', 'FFFF33' ],
+    [ 'white', 'FFFFFF' ],
+    [ 'red', 'FF9C9C' ],
+    [ 'orange', 'FFCC66' ],
+    [ 'cyan', '9CFFFF' ],
+];
+
+/** `showInterface`: the container the layout is built into is made at (100, 100). */
+const NOTE_POSITION = 100;
 
 export interface FurnitureStickieViewProps {
     /** The object's type: a themed post-it (`post_it_dreams`) has its own paper and no colours. */
@@ -21,16 +35,17 @@ export interface FurnitureStickieViewProps {
 }
 
 /**
- * A post-it, on the `stickie` layout (185x178) that `StickieFurniWidget.showInterface` builds at
- * (100, 100): the colour strip and the bin along the top, the close button opposite them, and the
- * note filling the rest. The whole note drags by its paper (`bg` is the drag trigger of the
- * container, and like the buttons it answers only where its bitmap is at least 10 opaque).
+ * A post-it - `StickieFurniWidget.showInterface`, which builds the `stickie` layout into a container
+ * at (100, 100): `text` the note, `bg` (tag `bg`) its paper, `close_button` the close and
+ * `delete_button` the bin, each bitmap drawn from the library's art (`stickie_close`,
+ * `stickie_remove`), and the colour buttons (`setColorButtons`) shown only to a controller of a
+ * plain `post_it`. The note drags by its paper: the root is only the drag target, `bg` its trigger.
  *
- * A plain `post_it` is blank paper tinted to its colour, and is the only kind that offers the
- * colour strip; a themed one (`post_it_dreams` and friends) brings its own art untinted, which
- * is how `StickieFurniWidget` resolved it. Editing is for the room's owner and its controllers;
- * Flash leaves the field editable for everyone and lets the server refuse, where this shows the
- * text read-only in the field's box.
+ * A plain `post_it` is `stickie_blanco` tinted to its colour (`bg.color = 0xFF<colour>`); a themed one
+ * brings its own art untinted (`post_it` read as `stickie` in its type). The bin and its press are
+ * the controller's only. Flash leaves the field editable for everyone and lets the server refuse,
+ * where this shows the text read-only in the field (`disabled`); the text is saved when the field
+ * loses the focus, and a colour press saves it with the colour (`storeTextFromField`).
  */
 export const FurnitureStickieView = ({ objectType, colorHex, text, canModify, onSave, onDelete, onClose }: FurnitureStickieViewProps) => {
     const [ draft, setDraft ] = useState<string>(text);
@@ -44,71 +59,32 @@ export const FurnitureStickieView = ({ objectType, colorHex, text, canModify, on
     }
 
     const isPlain = objectType === 'post_it';
+    const showColors = canModify && isPlain;
+
+    const bindings: TemplateBindings = {
+        bg: isPlain
+            ? { asset: LayoutImage('habbo-room-ui-com/stickie_blanco.png'), color: (0xff000000 | Number.parseInt(colorHex, 16)) >>> 0 }
+            : { asset: LayoutImage(`habbo-room-ui-com/${objectType.replace('post_it', 'stickie')}.png`) },
+        close: { asset: LayoutImage('habbo-room-ui-com/stickie_close.png'), onPointerTap: onClose },
+        delete: { visible: canModify, asset: LayoutImage('habbo-room-ui-com/stickie_remove.png'), onPointerTap: canModify ? onDelete : undefined },
+        text: {
+            caption: draft,
+            onChange: setDraft,
+            disabled: !canModify,
+            onBlur: () => {
+                if (canModify && (draft !== text)) onSave(colorHex, draft);
+            },
+        },
+    };
+
+    for (const [ name, hex ] of STICKIE_COLORS) bindings[name] = { visible: showColors, onPointerTap: showColors ? () => onSave(hex, draft) : undefined };
 
     return (
-        <Region
-            dragTarget
-            layout={{ position: 'absolute', left: 100, top: 100, width: 185, height: 178 }}
-        >
-            <ThemeImage
-                src={LayoutImage(isPlain ? 'habbo-room-ui-com/stickie_blanco.png' : `habbo-room-ui-com/${objectType.replace('post_it', 'stickie')}.png`)}
-                tint={isPlain ? `#${colorHex}` : undefined}
-                bitmap={{}}
-                hitThreshold={10}
-                dragTrigger
-                layout={{ position: 'absolute', left: 0, top: 0, width: 185, height: 178 }}
-            />
-            {canModify && (
-                <ThemeImage
-                    src={LayoutImage('habbo-room-ui-com/stickie_remove.png')}
-                    bitmap={{}}
-                    hitThreshold={10}
-                    cursor="pointer"
-                    onPointerTap={onDelete}
-                    layout={{ position: 'absolute', left: 9, top: 4, width: 10, height: 10 }}
-                />
-            )}
-            {canModify && isPlain && STICKIE_COLORS.map((color, index) => (
-                <Region
-                    key={color}
-                    backgroundColor={`#${color}`}
-                    cursor="pointer"
-                    onPointerTap={() => onSave(color, draft)}
-                    layout={{ position: 'absolute', left: 26 + (index * 12), top: 5, width: 9, height: 9 }}
-                />
-            ))}
-            <ThemeImage
-                src={LayoutImage('habbo-room-ui-com/stickie_close.png')}
-                bitmap={{}}
-                hitThreshold={10}
-                cursor="pointer"
-                onPointerTap={onClose}
-                layout={{ position: 'absolute', left: 168, top: 5, width: 10, height: 10 }}
-            />
-            {canModify
-                ? (
-                        <TextInput
-                            value={draft}
-                            onChange={setDraft}
-                            onFocusChange={focused => (!focused && draft !== text) && onSave(colorHex, draft)}
-                            multiline
-                            maxLength={500}
-                            flashPlacement
-                            alwaysShowSelection
-                            backgroundColor={null}
-                            focusedBackgroundColor={null}
-                            layout={{ position: 'absolute', left: 5, top: 24, width: 175, height: 135 }}
-                        />
-                    )
-                : (
-                        <ThemeText
-                            text={text}
-                            textOptions={{ wordWrap: true, wordWrapWidth: 171 }}
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 5, top: 24, width: 175, height: 135 }}
-                        />
-                    )}
-        </Region>
+        <FurnitureTemplatePanel
+            id="habbo-room-ui-com/stickie"
+            position={{ x: NOTE_POSITION, y: NOTE_POSITION }}
+            dragTriggerName="bg"
+            bindings={bindings}
+        />
     );
 };

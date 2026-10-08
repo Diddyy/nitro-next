@@ -54,6 +54,8 @@ export type TextConfig = {
     clip?: boolean;
     /** The window's `overflow_replace` truncation - see `FlashTextOverflowReplace`. Exact rendering only. */
     overflowReplace?: FlashTextOverflowReplace;
+    /** `TextCropper.crop` to a field this wide: cut with `...` near its right edge. Exact rendering only. */
+    crop?: number;
 } & ThemeLayoutMeta;
 
 /** The resolved config the renderers take: the effect already folded into colour, opacity and offset. */
@@ -163,7 +165,7 @@ const NativeText = ({ text: source, markup, textStyle, textOptions, flashFormat,
 };
 
 /** What `useFlashTextCanvas` needs from a text's config. */
-const flashTextConfig = (textOptions: TextStyleOptions | undefined, flashFormat: FlashTextFieldOverrides | undefined, markup: boolean | undefined, overflowReplace: FlashTextOverflowReplace | undefined): FlashTextCanvasConfig => ({
+const flashTextConfig = (textOptions: TextStyleOptions | undefined, flashFormat: FlashTextFieldOverrides | undefined, markup: boolean | undefined, overflowReplace: FlashTextOverflowReplace | undefined, crop: number | undefined): FlashTextCanvasConfig => ({
     color: (typeof textOptions?.fill === 'string') ? textOptions.fill : undefined,
     fontSize: (typeof textOptions?.fontSize === 'number') ? textOptions.fontSize : undefined,
     face: flashFaceOverride(textOptions?.fontFamily),
@@ -176,6 +178,7 @@ const flashTextConfig = (textOptions: TextStyleOptions | undefined, flashFormat:
     lineHeight: (typeof textOptions?.lineHeight === 'number') ? textOptions.lineHeight : undefined,
     markup,
     overflowReplace,
+    crop,
 });
 
 /**
@@ -185,8 +188,8 @@ const flashTextConfig = (textOptions: TextStyleOptions | undefined, flashFormat:
  * character they do not carry, so no call site ever goes blank.
  */
 const RenderedText = (props: TextRenderConfig) => {
-    const { text, textStyle, textOptions, flashFormat, layout, verticalAlign, visible, alpha, x, y, markup, clip, overflowReplace, onLink } = props;
-    const rendered = useFlashTextCanvas(text, resolveFlashStyle(textStyle, textOptions), flashTextConfig(textOptions, flashFormat, markup, overflowReplace));
+    const { text, textStyle, textOptions, flashFormat, layout, verticalAlign, visible, alpha, x, y, markup, clip, overflowReplace, crop, onLink } = props;
+    const rendered = useFlashTextCanvas(text, resolveFlashStyle(textStyle, textOptions), flashTextConfig(textOptions, flashFormat, markup, overflowReplace, crop));
 
     if (rendered) {
         return (

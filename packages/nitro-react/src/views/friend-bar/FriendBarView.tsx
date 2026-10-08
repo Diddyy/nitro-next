@@ -1,24 +1,27 @@
 /**
- * The friend bar - `HabboFriendBarView` on the `new_bar` layout of `habbo-friend-bar-com`, at the
- * right end of the bottom bar, 1 above the desktop's bottom (`NEW_BAR_BOTTOM_OFFSET`). Its windows
- * are laid side by side and the bar is as wide as they are (`arrangeWindows`):
+ * The friend bar - `HabboFriendBarView`, drawn from its `new_bar` template at the right end of the
+ * bottom bar, 1 above the desktop's bottom (`NEW_BAR_BOTTOM_OFFSET`). `arrangeWindows` lays the bar's
+ * shown windows side by side, each at its own y, and makes the bar as wide as they are:
  *
- * - `friendtools` (150 wide): the divider `line`, `icon_all_friends` (the friend list, with the
- *   unseen counter of friend requests), `icon_find_friends` (the friend list's search tab),
- *   `icon_messenger` (`ToolbarMessengerIcon`) and, while the bar is collapsed, `collapse_left`.
- * - `button_left_page`, the tabs, `button_right_page` - the arrows only while there are more tabs
- *   than room, each faded to 0.2 and disabled when it cannot page (`toggleArrowButtons`).
+ * - `friendtools`: the divider `line` (at x 1, hidden while collapsed), `icon_all_friends` (the friend
+ *   list, with the unseen counter of friend requests), `icon_find_friends` (the friend list's search
+ *   tab), `icon_messenger` (`useFriendBarMessengerIcon`) and, while the bar is collapsed,
+ *   `collapse_left`.
+ * - `button_left_page`, `list` - the tabs (`friendBarTabs`) - and `button_right_page`, the arrows only
+ *   while there are more tabs than room, each faded to 0.2 and disabled when it cannot page
+ *   (`toggleArrowButtons`), paging on a press (`WME_DOWN`).
  * - `collapse_right`, while the bar is open.
  *
- * The tabs are the bar's online friends from `_startIndex` (`FriendBarFriendTab`), as many as fit
- * right of the toolbar (`maxNumOfTabsVisible`), then find friends tabs (`FriendBarFindFriendsTab`)
- * - enough to make three tabs when there are few friends, or one after the last page of friends.
- * One tab is selected at a time (`selectTab` / `deSelect`); paging deselects it.
+ * The tabs are the bar's online friends from `_startIndex`, as many as fit right of the toolbar
+ * (`maxNumOfTabsVisible`), then find friends tabs - enough to make three tabs when there are few
+ * friends, or one after the last page of friends. One tab is selected at a time (`selectTab` /
+ * `deSelect`), and it grows upwards over the bar; paging, a press on the bar's `border` and the bar
+ * losing the focus (`WE_DEACTIVATED`: a press anywhere else) deselect it.
  *
- * Collapsing folds the bar to `friendtools`: over 140 ms, eased `1 - (1 - t)^3`, the bar slides
- * right until only its first 150 show (`startCollapseAnimation`), and the state is saved as bit 1
- * of the account's `uiFlags` (`setFriendBarState`). The width reported to the chat bar is that
- * visible part (`getReservedFriendBarWidth`).
+ * Collapsing folds the bar to `friendtools`: over 140 ms, eased `1 - (1 - t)^3`, the bar slides right
+ * until only its first 150 show (`startCollapseAnimation`), and the state is saved as bit 1 of the
+ * account's `uiFlags` (`setFriendBarState`). The width reported to the chat bar is that visible part
+ * (`getReservedFriendBarWidth`).
  *
  * `icon_all_friends` opens the friend list on its requests tab while there are requests, and
  * otherwise on the friends tab, or closes it (`HabboFriendBarData.toggleFriendList`); the bar only
@@ -27,68 +30,37 @@
  * `friendbar/` link tracker.
  */
 import { FriendRequestStateType, SetUIFlagsComposer } from '@nitrodevco/nitro-packets';
-import { Container as PixiContainer } from 'pixi.js';
-import { forwardRef, useState } from 'react';
+import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
+import { forwardRef, useCallback, useRef, useState } from 'react';
 
+import { findNewFriends, followFriendFromBar, openProfile, startFriendBarConversation } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useIsWindowVisible, useSystemActions, useToolbarAreaWidth, useTranslation } from '#base/context/system';
-import { UiFlagEnum, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserActions, useUserMessengerActions } from '#base/context/user';
+import { FriendBarNotification, UiFlagEnum, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserActions, useUserMessengerActions, useUserStore } from '#base/context/user';
 import { easeOutCubic, useTween, useViewportSize } from '#base/hooks';
-import { Box, Icon, LayoutImage, Region, ThemeImage } from '#base/theme';
-import { RoomToolsMinimizeButton } from '#base/views/room-widgets/room-tools/RoomToolsMinimizeButton';
+import { Region, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useOutsideClick, useTemplate } from '#base/theme';
+import { getBadgeName } from '#base/utils';
 import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
-import { ToolbarMessengerIcon } from '#base/views/toolbar/ToolbarMessengerIcon';
 
-import { FriendBarFindFriendsTab } from './FriendBarFindFriendsTab';
-import { FriendBarFriendTab } from './FriendBarFriendTab';
+import { FRIEND_BAR_BOTTOM_OFFSET, FRIEND_BAR_COLLAPSE_MS, FRIEND_BAR_HEIGHT, FRIEND_BAR_TOOLS_WIDTH, friendBarWidth, layoutFriendBar, maxFriendBarTabs, pageFriendBar } from './friendBarLayout';
 import {
-    FRIEND_BAR_BOTTOM_OFFSET, FRIEND_BAR_COLLAPSE_MS, FRIEND_BAR_COLLAPSE_WIDTH, FRIEND_BAR_HEIGHT, FRIEND_BAR_LEFT_PAGE_WIDTH, FRIEND_BAR_RIGHT_PAGE_WIDTH, FRIEND_BAR_TAB_SPACING, FRIEND_BAR_TOOLS_WIDTH,
-    friendBarWidth, layoutFriendBar, maxFriendBarTabs, pageFriendBar,
-} from './friendBarLayout';
+    CONTROLS_PIECE_TEMPLATE, FIND_FRIENDS_TAB_TEMPLATE, findFriendsTabItem, FRIEND_TAB_TEMPLATE, friendTabItem, friendTokens, growSelectedFindFriendsTab, growSelectedFriendTab, listItemAt, MESSAGE_PIECE_TEMPLATE, TokenTexts,
+} from './friendBarTabs';
+import { GAME_TOKEN_TYPE } from './FriendBarTokenIcon';
+import { useFriendBarMessengerIcon } from './useFriendBarMessengerIcon';
 
-interface FriendBarPageButtonProps {
-    name: string;
-    direction: -1 | 1;
-    enabled: boolean;
-    onPage: () => void;
-}
+const BAR_TEMPLATE = 'habbo-friend-bar-com/new_bar_xml';
 
-/**
- * `button_left_page` / `button_right_page`: the browse backdrop in `0x3b3933` (mirrored on the
- * left) under an arrow from the icon set in `0x9c9791`, paging on a press (`WME_DOWN`).
- */
-const FriendBarPageButton = ({ name, direction, enabled, onPage }: FriendBarPageButtonProps) => {
-    const left = direction < 0;
-
-    return (
-        <Region
-            name={name}
-            dynamicStyle="brightness_and_shadow_under"
-            disabled={!enabled}
-            alpha={enabled ? 1 : 0.2}
-            cursor={enabled ? 'pointer' : undefined}
-            onPointerDown={enabled ? onPage : undefined}
-            layout={{ position: 'relative', marginTop: 4, width: left ? FRIEND_BAR_LEFT_PAGE_WIDTH : FRIEND_BAR_RIGHT_PAGE_WIDTH, height: 40, overflow: 'hidden', flexShrink: 0 }}
-        >
-            <ThemeImage
-                src={LayoutImage('habbo-window-manager-com/friend_bar_friends_browse_bg.png')}
-                bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true, ...(left && { zoomX: -1 }) }}
-                tint="#3b3933"
-                dynamicRole="bg"
-                layout={{ position: 'absolute', left: 0, top: left ? 4 : 5 }}
-            />
-            <Icon
-                variant={left ? 4 : 5}
-                tintColor="#9c9791"
-                dynamicRole="icon"
-                layout={{ position: 'absolute', left: left ? 12 : 11, top: 15, width: 10, height: 10 }}
-            />
-        </Region>
-    );
-};
+/** No notifications: one array for every friend without any. */
+const NO_NOTIFICATIONS: FriendBarNotification[] = [];
 
 /** The selected tab: a friend by id, or a find friends tab by its place among them. */
 type SelectedTab = { friendId: number } | { findIndex: number } | null;
+
+/** A tab by its place in `list`: a friend by id, or a find friends tab by its place among them. */
+type TabKey = { friendId: number } | { findIndex: number };
+
+const sameTab = (a: SelectedTab, b: TabKey) => !!a && (('friendId' in a) ? (('friendId' in b) && (a.friendId === b.friendId)) : (('findIndex' in b) && (a.findIndex === b.findIndex)));
 
 export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
     const { send } = useWebSocketContext();
@@ -97,14 +69,31 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
     const { setUiFlag } = useUserActions();
     const friends = useFriendBarFriends();
     const requests = useFriendRequests();
+    const notificationsByFriend = useUserStore(x => x.friendBarNotifications);
     const requestsEnabled = useConfigValue<boolean>('friendbar.requests.enabled') === true;
     const friendListOpen = useIsWindowVisible('friendlist');
     const collapsed = useFriendBarCollapsed();
     const toolbarAreaWidth = useToolbarAreaWidth();
     const { width: viewportWidth } = useViewportSize();
+    const friendTemplate = useTemplate(FRIEND_TAB_TEMPLATE);
+    const messageTemplate = useTemplate(MESSAGE_PIECE_TEMPLATE);
+    const controlsTemplate = useTemplate(CONTROLS_PIECE_TEMPLATE);
+    const findFriendsTemplate = useTemplate(FIND_FRIENDS_TAB_TEMPLATE);
+    const messengerIcon = useFriendBarMessengerIcon();
     const [ startIndex, setStartIndex ] = useState(0);
     const [ selected, setSelectedTab ] = useState<SelectedTab>(null);
+    const [ exposed, setExposed ] = useState<TabKey | null>(null);
     const { clearViewedFriendBarNotifications } = useUserMessengerActions();
+    const barRef = useRef<PixiContainer | null>(null);
+
+    // The toolbar measures the bar (its reserved width) through the forwarded ref; the bar's own
+    // press-outside check needs it too.
+    const attachBar = useCallback((node: PixiContainer | null) => {
+        barRef.current = node;
+
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+    }, [ ref ]);
 
     /** `selectTab` / `deSelect`: a friend's tab that closes drops its shown-once tokens (`NewFriendEntityTab.deselect`). */
     const setSelected = (next: SelectedTab) => {
@@ -112,8 +101,15 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
 
         if ((closing !== undefined) && !(next && ('friendId' in next) && (next.friendId === closing))) clearViewedFriendBarNotifications(closing);
 
+        // `Tab.select` conceals the tab it opens.
+        if (next) setExposed(null);
+
         setSelectedTab(next);
     };
+
+    // `WE_DEACTIVATED`: a press anywhere off the bar (and its open tab) deselects.
+    useOutsideClick(barRef, () => setSelected(null), selected !== null);
+
     // 0 open, 1 collapsed, and in between while `onCollapseAnimationTimer` runs.
     const collapseProgress = useTween(collapsed ? 1 : 0, FRIEND_BAR_COLLAPSE_MS, easeOutCubic);
 
@@ -149,121 +145,139 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
         else showWindow('friendlist', { tab: (numRequests > 0) ? 'requests' : 'friends' });
     };
 
+    /** A token's `message_piece` texts (`RoomEventToken`, `AchievementToken`, `QuestToken`, `GameToken`). */
+    const tokenTexts = (token: FriendBarNotification): TokenTexts => {
+        switch (token.typeCode) {
+            case 0: return { title: t('friendbar.notify.event'), message: token.message };
+            case 1: return { title: t('friendbar.notify.achievement'), message: getBadgeName(t, token.message) };
+            case 2: return { title: t('friendbar.notify.quest'), message: t(`quests.${token.message}.name`) };
+            case GAME_TOKEN_TYPE: return { title: t('friendbar.notify.game'), message: t(`gamecenter.${token.message}.name`) };
+            default: return { title: '', message: '' };
+        }
+    };
+
+    /** The handlers a tab at `key` gets. */
+    const handlersFor = (key: TabKey) => ({
+        onToggle: () => setSelected(sameTab(selected, key) ? null : key),
+        // `_onMouseOver` / `_onMouseOut`: a selected tab is not exposed.
+        onExpose: (on: boolean) => {
+            if (sameTab(selected, key)) return;
+
+            setExposed(current => (on ? key : ((current && sameTab(current, key)) ? null : current)));
+        },
+        onDeselect: () => setSelected(null),
+    });
+
+    const items: TemplateItem[] = [];
+
+    if (friendTemplate) {
+        for (const friend of shownFriends) {
+            const key = { friendId: friend.playerId };
+
+            items.push(friendTabItem(friendTemplate, {
+                ...handlersFor(key),
+                friend,
+                tokens: friendTokens(notificationsByFriend[friend.playerId] ?? NO_NOTIFICATIONS),
+                selected: sameTab(selected, key),
+                exposed: sameTab(exposed, key),
+                profileTooltip: t('infostand.profile.link.tooltip', ''),
+                tokenTexts,
+                messageTemplate,
+                controlsTemplate,
+                onChat: () => startFriendBarConversation(send, friend.playerId),
+                onVisit: () => followFriendFromBar(send, friend.playerId),
+                onProfile: () => openProfile(send, friend.playerId),
+            }));
+        }
+    }
+
+    if (findFriendsTemplate) {
+        for (let findIndex = 0; findIndex < bar.findFriendsTabs; findIndex++) {
+            const key = { findIndex };
+
+            items.push(findFriendsTabItem(findFriendsTemplate, {
+                ...handlersFor(key),
+                index: findIndex,
+                selected: sameTab(selected, key),
+                exposed: sameTab(exposed, key),
+                onFind: () => findNewFriends(send),
+            }));
+        }
+    }
+
+    // The selected tab's place in `list`, and whether it is a friend's.
+    let selectedIndex = -1;
+
+    if (selected) selectedIndex = ('friendId' in selected) ? shownFriends.findIndex(friend => friend.playerId === selected.friendId) : (shownFriends.length + selected.findIndex);
+
+    const bindings: TemplateBindings = {
+        // `barWindowEventProc`'s `BORDER`: a press on the bar itself deselects.
+        '': {
+            onPointerDown: (event: FederatedPointerEvent) => {
+                if (event.target === event.currentTarget) setSelected(null);
+            },
+        },
+        line: { visible: !collapsed },
+        icon_all_friends: {
+            onPointerTap: toggleFriendList,
+            // `updateFriendRequestCounter`: its right edge 5 in from the region's, at its top.
+            children: (
+                <UnseenItemCounterView
+                    count={numRequests}
+                    layout={{ position: 'absolute', right: 5, top: 0 }}
+                />
+            ),
+        },
+        // `openUserTextSearch`: the friend list on its search tab, or closed if that is where it is.
+        icon_find_friends: { onPointerTap: () => toggleWindow('friendlist', { tab: 'search' }) },
+        ...messengerIcon,
+        collapse_left: { visible: collapsed, onPointerTap: toggleCollapsed },
+        collapse_right: { visible: !collapsed, onPointerTap: toggleCollapsed },
+        button_left_page: { visible: bar.arrows, disabled: !bar.canPageLeft, alpha: bar.canPageLeft ? 1 : 0.2, onPointerDown: bar.canPageLeft ? () => page(-1) : undefined },
+        button_right_page: { visible: bar.arrows, disabled: !bar.canPageRight, alpha: bar.canPageRight ? 1 : 0.2, onPointerDown: bar.canPageRight ? () => page(1) : undefined },
+        list: { items },
+    };
+
+    const arrange = ({ root, find }: TemplateWindows) => {
+        const window = root();
+
+        if (!window) return;
+
+        // `resizeAndPopulate`: the divider at the bar's left edge while it is open.
+        if (!collapsed) find('line')?.setX(1);
+
+        // `selectTab`: the selected tab grows upwards over the bar.
+        const tab = (selectedIndex >= 0) ? listItemAt(find('list'), selectedIndex) : undefined;
+
+        if (tab && selected) {
+            if ('friendId' in selected) growSelectedFriendTab(tab);
+            else if (findFriendsTemplate) growSelectedFindFriendsTab(tab, findFriendsTemplate);
+        }
+
+        // `arrangeWindows`: the shown windows side by side, the bar as wide as they are.
+        let x = 0;
+
+        for (const child of window.children) {
+            if (!child.visible) continue;
+
+            child.setX(x);
+            x += child.width;
+        }
+
+        window.setWidth(x);
+    };
+
     return (
         <Region
-            ref={ref}
-            name="border"
-            onPointerDown={() => setSelected(null)}
-            layout={{ position: 'absolute', right: 0, bottom: FRIEND_BAR_BOTTOM_OFFSET, width: visibleWidth, height: FRIEND_BAR_HEIGHT, overflow: 'hidden' }}
+            ref={attachBar}
+            layout={{ position: 'absolute', right: 0, bottom: FRIEND_BAR_BOTTOM_OFFSET, width: visibleWidth, height: FRIEND_BAR_HEIGHT }}
         >
-            <Box layout={{ position: 'absolute', left: 0, top: 0, width: fullWidth, height: FRIEND_BAR_HEIGHT, flexDirection: 'row', alignItems: 'flex-start' }}>
-                <Region
-                    name="friendtools"
-                    layout={{ position: 'relative', marginTop: 2, width: FRIEND_BAR_TOOLS_WIDTH, height: 46, flexShrink: 0 }}
-                >
-                    {!collapsed && (
-                        <ThemeImage
-                            name="line"
-                            src={LayoutImage('habbo-window-manager-com/bottom_bar_divider_1px.png')}
-                            bitmap={{}}
-                            layout={{ position: 'absolute', left: 1, top: 3, width: 1, height: 40 }}
-                        />
-                    )}
-                    <Region
-                        name="icon_all_friends"
-                        dynamicStyle="lifted_hover"
-                        tooltip={t('friend.bar.friends.title')}
-                        cursor="pointer"
-                        onPointerTap={toggleFriendList}
-                        layout={{ position: 'absolute', left: 18, top: 5, width: 45, height: 41 }}
-                    >
-                        <ThemeImage
-                            dynamicRole="icon"
-                            src={LayoutImage('habbo-window-manager-com/friend_bar_all_friends.png')}
-                            bitmap={{ etchingColor: 0x48000000 }}
-                            layout={{ position: 'absolute', left: 0, top: 0, width: 32, height: 33 }}
-                        />
-                        {/* `updateFriendRequestCounter`: its right edge 5 in from the icon's, at its top. */}
-                        <UnseenItemCounterView
-                            count={numRequests}
-                            layout={{ position: 'absolute', right: 5, top: 0 }}
-                        />
-                    </Region>
-                    <Region
-                        name="icon_find_friends"
-                        dynamicStyle="lifted_hover"
-                        tooltip={t('friend.bar.search.title')}
-                        cursor="pointer"
-                        // `openUserTextSearch`: the friend list on its search tab, or closed if that is where it is.
-                        onPointerTap={() => toggleWindow('friendlist', { tab: 'search' })}
-                        layout={{ position: 'absolute', left: 64, top: 5, width: 45, height: 41 }}
-                    >
-                        <ThemeImage
-                            dynamicRole="icon"
-                            src={LayoutImage('habbo-window-manager-com/friend_bar_search_habbos.png')}
-                            bitmap={{ etchingColor: 0x48000000 }}
-                            layout={{ position: 'absolute', left: 0, top: 0, width: 29, height: 33 }}
-                        />
-                    </Region>
-                    <Box layout={{ position: 'absolute', left: 103, top: 5, width: 31, height: 41 }}>
-                        <ToolbarMessengerIcon />
-                    </Box>
-                    {collapsed && (
-                        <RoomToolsMinimizeButton
-                            layout={{ position: 'absolute', left: 135, top: 0, width: FRIEND_BAR_COLLAPSE_WIDTH, height: 46 }}
-                            border={[ 0, 1, 20, 43 ]}
-                            arrow={[ 1, 0, 13, 45 ]}
-                            onPress={toggleCollapsed}
-                        />
-                    )}
-                </Region>
-                {bar.arrows && (
-                    <FriendBarPageButton
-                        name="button_left_page"
-                        direction={-1}
-                        enabled={bar.canPageLeft}
-                        onPage={() => page(-1)}
-                    />
-                )}
-                <Region
-                    name="list"
-                    layout={{ position: 'relative', marginTop: 6, flexDirection: 'row', alignItems: 'flex-start', gap: FRIEND_BAR_TAB_SPACING, flexShrink: 0 }}
-                >
-                    {shownFriends.map(friend => (
-                        <FriendBarFriendTab
-                            key={friend.playerId}
-                            friend={friend}
-                            selected={!!selected && ('friendId' in selected) && (selected.friendId === friend.playerId)}
-                            onSelect={on => setSelected(on ? { friendId: friend.playerId } : null)}
-                        />
-                    ))}
-                    {Array.from({ length: bar.findFriendsTabs }, (_, findIndex) => (
-                        <FriendBarFindFriendsTab
-                            key={`find-${findIndex}`}
-                            selected={!!selected && ('findIndex' in selected) && (selected.findIndex === findIndex)}
-                            onSelect={on => setSelected(on ? { findIndex } : null)}
-                        />
-                    ))}
-                </Region>
-                {bar.arrows && (
-                    <FriendBarPageButton
-                        name="button_right_page"
-                        direction={1}
-                        enabled={bar.canPageRight}
-                        onPage={() => page(1)}
-                    />
-                )}
-                {!collapsed && (
-                    // `collapse_right`: `roomtools_minimizebutton` mirrored, while the bar is open.
-                    <RoomToolsMinimizeButton
-                        layout={{ position: 'relative', marginTop: 2, width: FRIEND_BAR_COLLAPSE_WIDTH, height: 46, flexShrink: 0 }}
-                        border={[ 0, 1, 20, 43 ]}
-                        arrow={[ 1, 0, 13, 45 ]}
-                        mirrored
-                        onPress={toggleCollapsed}
-                    />
-                )}
-            </Box>
+            <TemplateWindow
+                id={BAR_TEMPLATE}
+                width={fullWidth}
+                bindings={bindings}
+                arrange={arrange}
+            />
         </Region>
     );
 });

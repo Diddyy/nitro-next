@@ -1,9 +1,37 @@
+/**
+ * The effects the user owns - Flash `EffectsWidget`, on `habbo-room-ui-com`'s `effects_widget` layout
+ * (`open`), its bottom-left corner 2 right of the toolbar at the toolbar's bottom
+ * (`toolbar.getRect().right + TOOLBAR_MARGIN`, `bottom - height`). `close` hides it (`onClose`).
+ *
+ * `update` puts one `EffectView` per effect into `list` and sets the list's height to what it holds,
+ * between `LIST_HEIGHT_MIN` and `LIST_HEIGHT_MAX`, which the window follows; `no_effects` shows while
+ * there are none. An `EffectView` (`update`) is built from `memenu_effect_selected` for the effect
+ * being worn, `memenu_effect_unselected` for one that is running, and `memenu_effect_inactive` for one
+ * not switched on yet:
+ *
+ * - `effect_name` is `${fx_<type>}`, `effect_icon` the effect's icon, `effect_amount` how many there
+ *   are, its `effect_amount_bg1` hidden under two.
+ * - inactive: `activate_effect` switches it on (`AvatarEffectActivatedComposer`).
+ * - running: a click on the row wears it or takes it off (`selectEffect`: `AvatarEffectSelectedComposer`);
+ *   `effect_hilite` holds `memenu_fx_pause` over the worn effect or `memenu_fx_play` over the other,
+ *   hidden, and an active effect's row shows it while the pointer is over it (`onMouseEvent`). `update`
+ *   rebuilds the row - hilite hidden again - whenever the effect changes, so a hover is kept for the
+ *   state it began in.
+ * - `time_left` and `loader_bar` (its width the share of the duration left of its layout 94,
+ *   `onUpdate`) count down once a second from when the server last said how long was left
+ *   (`secondsLeftOf`), as `EffectView`'s one-second timer does. The count stops at zero and waits for
+ *   the server's expiry. A permanent effect shows no time left, as the port always has.
+ *
+ * The icons are the client's `effect-icons` bundle (`fx_icon_<type>`), not a library's; it is not in the
+ * boot preload, so the first of these to be drawn pulls the bundle in. `effect_selector`, also in the
+ * library, is built by no class of this revision.
+ */
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
 import { UserAvatarEffect } from '#base/context/user';
 import { secondsLeftOf } from '#base/context/user/store/avatarEffectsModel';
-import { Border, Box, Button, CloseButton, LayoutImage, Region, ScrollArea, ThemeImage, ThemeText } from '#base/theme';
+import { Box, LayoutImage, LayoutWindow, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
 
 export interface RoomEffectsViewProps {
     effects: UserAvatarEffect[];
@@ -16,26 +44,20 @@ export interface RoomEffectsViewProps {
     left: number;
 }
 
-/**
- * The effect icons - one per effect type, outside the generated layout folder. `effect-icons` is
- * not in the boot preload, so the first of these to be drawn pulls the bundle in (see
- * `lazyBundleForAsset`); the list is only on screen once the user opens it.
- */
+const WIDGET_TEMPLATE = 'habbo-room-ui-com/effects_widget';
+const SELECTED_TEMPLATE = 'habbo-room-ui-com/memenu_effect_selected';
+const UNSELECTED_TEMPLATE = 'habbo-room-ui-com/memenu_effect_unselected';
+const INACTIVE_TEMPLATE = 'habbo-room-ui-com/memenu_effect_inactive';
+
 const effectIcon = (type: number) => LayoutImage(`effect-icons/fx_icon_${type}.png`);
 
-/** `EffectView.update`: `effect_hilite` carries `memenu_fx_pause` over the effect being worn, `memenu_fx_play` over one that is only running. */
+/** `EffectView.update`: the hilite's art over the worn effect and over one only running. */
 const FX_PAUSE = LayoutImage('habbo-room-ui-com/memenu_fx_pause.png');
 const FX_PLAY = LayoutImage('habbo-room-ui-com/memenu_fx_play.png');
 
-/** `EffectsWidget.LIST_HEIGHT_MAX` / `LIST_HEIGHT_MIN`: `update` grows the list to what it holds, between these. */
+/** `EffectsWidget.LIST_HEIGHT_MAX` / `LIST_HEIGHT_MIN`. */
 const LIST_HEIGHT_MAX = 320;
 const LIST_HEIGHT_MIN = 48;
-/** Every `memenu_effect_*` row is 154x52. */
-const ROW_HEIGHT = 52;
-/** `effects_widget` is 85 high around its 48px list. */
-const WIDGET_HEIGHT_WITHOUT_LIST = 85 - LIST_HEIGHT_MIN;
-/** `loader_bar`'s width in the layout - `EffectView`'s `_maxWidth`. */
-const LOADER_BAR_WIDTH = 94;
 
 const SECONDS_PER_DAY = 86400;
 const SECONDS_PER_HOUR = 3600;
@@ -55,30 +77,27 @@ const formatTimeLeft = (seconds: number) => {
 };
 
 /**
- * The effects the user owns, on the `effects_widget` layout (190x85, the list growing it) that
- * `EffectsWidget.open` builds, one `EffectView` row per effect: `memenu_effect_selected` for the
- * one being worn, `memenu_effect_unselected` for one that is running, `memenu_effect_inactive`
- * (with its activate button) for one that is not switched on yet.
- *
- * An effect is switched on first and worn second - Flash sent `AvatarEffectActivatedComposer`
- * for the first and `AvatarEffectSelectedComposer` for the second, which is why the rows change
- * shape rather than doing both at once.
- *
- * A running row's `effect_hilite` (the 40x40 bitmap over `effect_icon`) holds the play or pause
- * art and is hidden; `EffectView.onMouseEvent` shows it while the pointer is over the row, and
- * only an active effect's row listens for that. `update` rebuilds the row - hilite hidden again -
- * whenever the effect changes, so a hover is kept for the state it began in and a click that
- * starts or stops wearing the effect hides it until the pointer comes back.
- *
- * The time left and its loader bar count down once a second from when the server last said how
- * long was left (`secondsLeftOf`), as `EffectView`'s one-second timer does; a permanent effect
- * shows no time left, as before. The count stops at zero and waits for the server's expiry.
+ * `update`: the list as high as what it holds, within its limits. `IScrollableListWindow.scrollableRegion`
+ * is its inner list's, which the template's scrollable window does not hand on, so it is read there.
  */
+const arrange = ({ find }: TemplateWindows) => {
+    const list = find('list');
+
+    if (!list) return;
+
+    const inner = ('list' in list) ? (list.list as LayoutWindow | undefined) : undefined;
+    const content = (inner ?? list).scrollableRegion.height;
+
+    list.setHeight(Math.max(Math.min(content, LIST_HEIGHT_MAX), LIST_HEIGHT_MIN));
+};
+
 export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose, left }: RoomEffectsViewProps) => {
     const t = useTranslation();
+    const selectedTemplate = useTemplate(SELECTED_TEMPLATE);
+    const unselectedTemplate = useTemplate(UNSELECTED_TEMPLATE);
+    const inactiveTemplate = useTemplate(INACTIVE_TEMPLATE);
     /** The row the pointer is over, with the state `EffectView.update` last built it in. */
     const [ hovered, setHovered ] = useState<{ type: number; isInUse: boolean; isActive: boolean } | null>(null);
-    const listHeight = Math.max(Math.min(effects.length * ROW_HEIGHT, LIST_HEIGHT_MAX), LIST_HEIGHT_MIN);
     const [ now, setNow ] = useState(() => Date.now());
     const anyCounting = effects.some(effect => effect.isActive && !effect.isPermanent);
 
@@ -91,6 +110,8 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose, le
         return () => clearInterval(timer);
     }, [ anyCounting ]);
 
+    if (!selectedTemplate || !unselectedTemplate || !inactiveTemplate) return null;
+
     const timeLeftText = (effect: UserAvatarEffect) => {
         const secondsLeft = secondsLeftOf(effect, now);
 
@@ -99,174 +120,59 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose, le
         return t('widgets.memenu.effects.active.timeleft', '', { time_left: formatTimeLeft(secondsLeft) });
     };
 
-    return (
-        <Box layout={{ position: 'absolute', left, bottom: 0, width: 190, height: WIDGET_HEIGHT_WITHOUT_LIST + listHeight }}>
-            <Border
-                variant="6"
-                tintColor="#5b5953"
-                layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-            >
-                <Border
-                    variant="3"
-                    tintColor="#292929"
-                    layout={{ position: 'absolute', left: 5, width: 157, top: 5, height: 22 }}
-                />
-                <ThemeText
-                    text={t('widget.memenu.effects')}
-                    textStyle="u_frame_title"
-                    textOptions={{ fill: '#ffffff', align: 'center' }}
-                    name="title"
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 3, width: 184, top: 7, height: 17 }}
-                />
-                <CloseButton
-                    variant="3"
-                    name="close"
-                    onPointerTap={onClose}
-                    layout={{ position: 'absolute', left: 165, width: 20, top: 6, height: 20 }}
-                />
-                <ScrollArea
-                    orientation="vertical"
-                    layout={{ position: 'absolute', left: 6, width: 178, top: 30, height: listHeight }}
-                    contentLayout={{ position: 'relative', width: '100%', flexDirection: 'column' }}
-                >
-                    {effects.map((effect) => {
-                        // `memenu_effect_selected` / `_unselected` answer a click anywhere; `_inactive` only on its button.
-                        const running = effect.isInUse || effect.isActive;
-                        const hiliteVisible = !!hovered && (hovered.type === effect.type) && (hovered.isInUse === effect.isInUse) && (hovered.isActive === effect.isActive);
-                        const barWidth = (effect.isActive && (effect.duration > 0))
-                            ? Math.round((secondsLeftOf(effect, now) / effect.duration) * LOADER_BAR_WIDTH)
-                            : 0;
+    const items: TemplateItem[] = effects.map((effect) => {
+        const common = {
+            effect_name: { caption: `\${fx_${effect.type}}` },
+            effect_icon: { asset: effectIcon(effect.type) },
+            effect_amount: { caption: String(effect.amountInInventory) },
+            effect_amount_bg1: { visible: effect.amountInInventory >= 2 },
+        };
 
-                        return (
-                            <Region
-                                key={effect.type}
-                                name="selected_border"
-                                onPointerTap={running ? () => onToggleWear(effect.type, effect.isInUse) : undefined}
-                                cursor={running ? 'pointer' : undefined}
-                                onPointerOver={effect.isActive ? () => setHovered({ type: effect.type, isInUse: effect.isInUse, isActive: effect.isActive }) : undefined}
-                                onPointerOut={effect.isActive ? () => setHovered(current => ((current?.type === effect.type) ? null : current)) : undefined}
-                                layout={{ position: 'relative', width: 154, height: ROW_HEIGHT, flexShrink: 0, overflow: running ? undefined : 'hidden' }}
-                            >
-                                <Border
-                                    variant="2"
-                                    tintColor={running ? (effect.isInUse ? '#cccccc' : '#666666') : undefined}
-                                    blend={running ? undefined : 0}
-                                    layout={{ position: 'absolute', left: 0, width: running ? 154 : 175, top: 0, height: 48, overflow: 'hidden' }}
-                                >
-                                    <ThemeImage
-                                        name="effect_icon"
-                                        src={effectIcon(effect.type)}
-                                        bitmap={{}}
-                                        layout={{ position: 'absolute', left: 4, width: 40, top: 4, height: 40 }}
-                                    />
-                                    {running && hiliteVisible && (
-                                        <ThemeImage
-                                            name="effect_hilite"
-                                            src={effect.isInUse ? FX_PAUSE : FX_PLAY}
-                                            bitmap={{}}
-                                            layout={{ position: 'absolute', left: 4, width: 40, top: 4, height: 40 }}
-                                        />
-                                    )}
-                                    {running && (
-                                        <Region
-                                            name="loader_border"
-                                            backgroundColor="#ffffff"
-                                            layout={{ position: 'absolute', left: 50, width: 98, top: 20, height: 22 }}
-                                        >
-                                            <Region
-                                                name="loader_bg"
-                                                backgroundColor="#3d3d3d"
-                                                layout={{ position: 'absolute', left: 1, width: 96, top: 1, height: 20 }}
-                                            >
-                                                {(barWidth > 0) && (
-                                                    <Region
-                                                        name="loader_bar"
-                                                        backgroundColor={effect.isInUse ? '#339933' : '#666666'}
-                                                        layout={{ position: 'absolute', left: 1, width: barWidth, top: 1, height: 18, overflow: 'hidden' }}
-                                                    >
-                                                        <Region
-                                                            name="loader_highlight"
-                                                            backgroundColor={effect.isInUse ? '#66cc66' : '#999999'}
-                                                            layout={{ position: 'absolute', left: 0, width: LOADER_BAR_WIDTH, top: 0, height: 2 }}
-                                                        />
-                                                    </Region>
-                                                )}
-                                            </Region>
-                                        </Region>
-                                    )}
-                                    {running && !effect.isPermanent && (
-                                        <Region
-                                            name="time_left"
-                                            alpha={0.8}
-                                            layout={{ position: 'absolute', left: 52, width: 98, top: 24, height: 13, minWidth: 98, maxWidth: 98, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' }}
-                                        >
-                                            <ThemeText
-                                                text={timeLeftText(effect)}
-                                                textOptions={effect.isInUse ? { fill: '#ffffff', align: 'center' } : { align: 'center' }}
-                                                verticalAlign="top"
-                                            />
-                                        </Region>
-                                    )}
-                                    <ThemeText
-                                        text={t(`fx_${effect.type}`)}
-                                        textOptions={effect.isInUse ? { fontFamily: 'VolterBold' } : { fill: '#ffffff', fontFamily: 'VolterBold' }}
-                                        name="effect_name"
-                                        verticalAlign="top"
-                                        layout={{ position: 'absolute', left: 50, width: 163, top: 6, height: 13 }}
-                                    />
-                                    {!running && (
-                                        <Button
-                                            variant="1"
-                                            name="activate_effect"
-                                            onPointerTap={() => onActivate(effect.type)}
-                                            layout={{ position: 'absolute', left: 50, width: 98, top: 20, height: 22 }}
-                                        >
-                                            {t('widgets.memenu.effects.activate')}
-                                        </Button>
-                                    )}
-                                    {/* `EffectView.update` hides the count while there is only the one. */}
-                                    {(effect.amountInInventory >= 2) && (
-                                        <Region
-                                            name="effect_amount_bg1"
-                                            backgroundColor="#dddddd"
-                                            layout={{ position: 'absolute', left: 24, width: 20, top: 4, height: 15 }}
-                                        >
-                                            <Region
-                                                name="effect_amount_bg2"
-                                                backgroundColor="#666666"
-                                                layout={{ position: 'absolute', left: 1, width: 18, top: 1, height: 13, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'flex-start' }}
-                                            >
-                                                <ThemeText
-                                                    text={String(effect.amountInInventory)}
-                                                    textOptions={{ fill: '#eeeeee' }}
-                                                    clip
-                                                    name="effect_amount"
-                                                    verticalAlign="top"
-                                                />
-                                            </Region>
-                                        </Region>
-                                    )}
-                                </Border>
-                            </Region>
-                        );
-                    })}
-                </ScrollArea>
-                {!effects.length && (
-                    <Region
-                        name="no_effects"
-                        layout={{ position: 'absolute', left: 0, width: 190, top: 30, height: 48 }}
-                    >
-                        <ThemeText
-                            text={t('widget.memenu.effects.info')}
-                            textOptions={{ fill: '#ffffff', fontFamily: 'Ubuntu', fontSize: 12, align: 'center' }}
-                            flashFormat={{ italic: true, antiAliasType: 'advanced' }}
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 0, width: 190, top: 15, height: 17 }}
-                        />
-                    </Region>
-                )}
-            </Border>
+        if (!effect.isInUse && !effect.isActive) {
+            return {
+                key: `${effect.type}`,
+                from: inactiveTemplate,
+                bindings: { ...common, activate_effect: { onPointerTap: () => onActivate(effect.type) } },
+            };
+        }
+
+        const state = { type: effect.type, isInUse: effect.isInUse, isActive: effect.isActive };
+        const hiliteVisible = !!hovered && (hovered.type === effect.type) && (hovered.isInUse === effect.isInUse) && (hovered.isActive === effect.isActive);
+        const share = (effect.isActive && (effect.duration > 0)) ? (secondsLeftOf(effect, now) / effect.duration) : 0;
+
+        return {
+            key: `${effect.type}`,
+            from: effect.isInUse ? selectedTemplate : unselectedTemplate,
+            bindings: {
+                ...common,
+                '': {
+                    onPointerTap: () => onToggleWear(effect.type, effect.isInUse),
+                    onPointerOver: effect.isActive ? () => setHovered(state) : undefined,
+                    onPointerOut: effect.isActive ? () => setHovered(current => ((current?.type === effect.type) ? null : current)) : undefined,
+                },
+                effect_hilite: { asset: effect.isInUse ? FX_PAUSE : FX_PLAY, visible: hiliteVisible },
+                time_left: effect.isPermanent ? { visible: false } : { caption: timeLeftText(effect) },
+            },
+            // `onUpdate`: the bar the share left of its layout width (`_maxWidth`).
+            arrange: ({ find }) => {
+                const bar = find('loader_bar');
+
+                if (bar) bar.setWidth(share * bar.width);
+            },
+        };
+    });
+
+    return (
+        <Box layout={{ position: 'absolute', left, bottom: 0 }}>
+            <TemplateWindow
+                id={WIDGET_TEMPLATE}
+                bindings={{
+                    close: { onPointerTap: onClose },
+                    list: { items },
+                    no_effects: { visible: !effects.length },
+                }}
+                arrange={arrange}
+            />
         </Box>
     );
 };

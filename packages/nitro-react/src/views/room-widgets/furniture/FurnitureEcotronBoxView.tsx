@@ -1,5 +1,4 @@
-import { useConfigValue, useTranslation } from '#base/context/system';
-import { Button, ButtonThick, Region, ThemeImage, ThemeText } from '#base/theme';
+import { FurnitureTemplatePanel } from './FurnitureTemplatePanel';
 
 export interface FurnitureEcotronBoxViewProps {
     /** The box's furni class, which picks the card: `matic_box` is the Furni-Matic one, anything else Ecotron's. */
@@ -10,65 +9,35 @@ export interface FurnitureEcotronBoxViewProps {
     onClose: () => void;
 }
 
-const WIDTH = 257;
-const HEIGHT = 114;
+/** `showInterface`: the card's container is made at (100, 100) of the desktop. */
+const CARD_POSITION = 100;
 
 /**
- * The prompt for an Ecotron or Furni-Matic box, on the `ecotronbox_card` / `ecotronbox_card_furnimatic`
- * layout (257x114) that `EcotronBoxFurniWidget.showInterface` picks by the furni's class name
- * (`_interfaceMapByFurniTypeName`): a draggable card with no frame, its art from the image library,
- * the date in its corner, what the box is, and the open and close buttons, each sized to its
- * caption and growing right from its layout x. Opening is a plain use, and the prize arrives as an
- * inventory update.
+ * The prompt for an Ecotron or Furni-Matic box - `EcotronBoxFurniWidget.showInterface`, which builds
+ * `ecotronbox_card` or `ecotronbox_card_furnimatic` by the furni's class name
+ * (`_interfaceMapByFurniTypeName`) into a container at (100, 100): a card with no frame that drags by
+ * itself (`draggable_with_mouse`), the box's date in `ecotronbox_card_date`, and the open
+ * (`ecotronbox_card_btn_open`) and close (`ecotronbox_card_btn_close`) buttons. Opening is a plain
+ * use, and the prize arrives as an inventory update.
  *
- * Flash builds the card at (100, 100) of the desktop. It also hides the open button from anyone who
- * is neither the room's owner nor a controller of any room (`setOpenButton`), and after the open
- * shows the prize's icon in `ecotronbox_card_preview`; the widget offers the button to everyone
- * and closes the card on open, so neither is drawn here.
+ * Flash hides the open button from anyone who is neither the room's owner nor a controller of any
+ * room (`setOpenButton`), and after the open shows the prize's icon in `ecotronbox_card_preview` and
+ * its name in `ecotronbox_card_msg`; the widget offers the button to everyone and closes the card on
+ * open, so neither is drawn here.
  */
 export const FurnitureEcotronBoxView = ({ furniTypeName, date, onOpen, onClose }: FurnitureEcotronBoxViewProps) => {
-    const t = useTranslation();
-    const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const isFurnimatic = (furniTypeName === 'matic_box');
 
     return (
-        <Region
-            dragTarget
-            dragTrigger
-            layout={{ position: 'absolute', left: 100, top: 100, width: WIDTH, height: HEIGHT }}
-        >
-            <ThemeImage
-                src={`${imageLibraryUrl}Giftcards/${isFurnimatic ? 'ecotronbox_card_bg_furnimatic' : 'ecotronbox_card_bg'}.png`}
-                layout={{ position: 'absolute', left: 0, top: 0, width: WIDTH, height: HEIGHT }}
-            />
-            <ButtonThick
-                variant="0"
-                onPointerTap={onOpen}
-                layout={{ position: 'absolute', left: 47, top: 90, height: 22 }}
-            >
-                {t(isFurnimatic ? 'widget.furni.furnimaticbox.open' : 'widget.furni.ecotronbox.open')}
-            </ButtonThick>
-            <Button
-                variant="0"
-                onPointerTap={onClose}
-                layout={{ position: 'absolute', left: 200, top: 90, height: 22 }}
-            >
-                {t('generic.close')}
-            </Button>
-            <ThemeText
-                text={t(isFurnimatic ? 'widget.furni.furnimaticbox.title' : 'widget.furni.ecotronbox.title')}
-                textOptions={{ wordWrap: true, wordWrapWidth: 135 }}
-                clip
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 49, top: 39, width: 139, height: 45 }}
-            />
-            <ThemeText
-                text={date}
-                textOptions={{ wordWrap: true, wordWrapWidth: 100 }}
-                clip
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 12, top: 9, width: 104, height: 12 }}
-            />
-        </Region>
+        <FurnitureTemplatePanel
+            id={isFurnimatic ? 'habbo-room-ui-com/ecotronbox_card_furnimatic' : 'habbo-room-ui-com/ecotronbox_card'}
+            position={{ x: CARD_POSITION, y: CARD_POSITION }}
+            dragByRoot
+            bindings={{
+                ecotronbox_card_date: { caption: date },
+                ecotronbox_card_btn_open: { onPointerTap: onOpen },
+                ecotronbox_card_btn_close: { onPointerTap: onClose },
+            }}
+        />
     );
 };

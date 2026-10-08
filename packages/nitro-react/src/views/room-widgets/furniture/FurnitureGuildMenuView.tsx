@@ -39,7 +39,7 @@ export const FurnitureGuildMenuView = ({
             titleTooltip={t('infostand.profile.link.tooltip', 'Click to view profile')}
             onTitleTap={onProfile}
             buttons={buttons}
-            minimizeGap={0}
+            menu="guild_furni_menu"
         />
     );
 };

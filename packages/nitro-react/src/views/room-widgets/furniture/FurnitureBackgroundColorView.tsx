@@ -1,6 +1,5 @@
-import { useTranslation } from '#base/context/system';
-import { Border, Button, Frame, Region, ThemeText } from '#base/theme';
-import { FurnitureDimmerSliderView } from '#base/views/room-widgets/furniture/FurnitureDimmerSliderView';
+import { Region, TemplateWindow } from '#base/theme';
+import { useFurnitureSlider } from '#base/views/room-widgets/furniture/useFurnitureSlider';
 
 /** `BackgroundColorWidgetSlider`'s min and max: each channel runs the full byte the server stores it in. */
 const MIN_VALUE = 0;
@@ -18,130 +17,49 @@ export interface FurnitureBackgroundColorViewProps {
     onClose: () => void;
 }
 
-interface ChannelProps {
-    label: string;
-    /** The row's y in `tab_content`. */
-    top: number;
-    value: number;
-    onChange: (value: number) => void;
-}
-
 /**
- * One 251x42 slider row of the layout (`hue_container` and its two siblings): the bold `parameter`
- * label and the `BackgroundColorWidgetSlider` under it, whose `slider_base` is at 2, 12 - see
- * `FurnitureDimmerSliderView`. The value follows the button through the whole drag, and the button
- * stays where it is dropped.
- */
-const Channel = ({ label, top, value, onChange }: ChannelProps) => (
-    <Region layout={{ position: 'absolute', left: 4, top, width: 251, height: 42 }}>
-        <ThemeText
-            text={label}
-            textStyle="u_small"
-            flashFormat={{ bold: true }}
-            verticalAlign="top"
-            layout={{ position: 'absolute', left: 0, top: 0, height: 15 }}
-        />
-        <FurnitureDimmerSliderView
-            value={value}
-            min={MIN_VALUE}
-            max={MAX_VALUE}
-            reportOnEveryEvent
-            onChange={onChange}
-            top={12}
-        />
-    </Region>
-);
-
-/**
- * The background toner, on the `background_color_ui` layout (292x255, margins 6, 25, 6, 7) that
- * `BackgroundColorFurniWidget.createWindow` builds and centres: hue, saturation and lightness,
- * with the swatch beside the info text showing what the three currently make
- * (`renderColorPreview`). Nothing previews on the room itself - Flash didn't either - so the colour
- * only reaches the room once Apply has been through the server.
+ * The background toner, on the `background_color_ui` layout (292x255) that
+ * `BackgroundColorFurniWidget.createWindow` builds and centres: hue, saturation and lightness, one
+ * `BackgroundColorWidgetSlider` in each of `hue_container`, `saturation_container` and
+ * `lightness_container` (see `useFurnitureSlider`), with `color_preview_bitmap` filled with what
+ * the three currently make (`renderColorPreview`). The value follows the button through the whole
+ * drag, and the button stays where it is dropped. Nothing previews on the room itself - Flash
+ * didn't either - so the colour only reaches the room once Apply has been through the server.
  *
- * `tab_content` (at 2, 2 in the border) stacks `header_container` (29 high, clipping the swatch's
- * border), a 5px spacer and the three 42px slider rows. The buttons fit their captions;
- * `on_off_button` keeps its right edge.
+ * `windowProcedure`: `apply_button` sends the colour, `on_off_button` uses the furni, the close
+ * button closes. `on_off_button` keeps the layout's one caption whatever the state: the client has
+ * no "off" text for it.
  */
 export const FurnitureBackgroundColorView = ({
     hue, saturation, lightness, previewColor, onChange, onApply, onToggle, onClose,
 }: FurnitureBackgroundColorViewProps) => {
-    const t = useTranslation();
+    const hueSlider = useFurnitureSlider({ container: 'hue_container', value: hue, min: MIN_VALUE, max: MAX_VALUE, reportOnEveryEvent: true, onChange: value => onChange(value, saturation, lightness) });
+    const saturationSlider = useFurnitureSlider({ container: 'saturation_container', value: saturation, min: MIN_VALUE, max: MAX_VALUE, reportOnEveryEvent: true, onChange: value => onChange(hue, value, lightness) });
+    const lightnessSlider = useFurnitureSlider({ container: 'lightness_container', value: lightness, min: MIN_VALUE, max: MAX_VALUE, reportOnEveryEvent: true, onChange: value => onChange(hue, saturation, value) });
+    const sliders = [ hueSlider, saturationSlider, lightnessSlider ];
 
     return (
-        <Frame
-            variant="3"
-            id="backgroundcolor_ui"
-            caption={t('widget.backgroundcolour.title')}
-            tintColor="#67a3bf"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={onClose}
-            centered
-            rememberPosition={false}
-            resizeDirection="none"
-            margins={[ 6, 25, 6, 7 ]}
-            layout={{ width: 292, height: 255, minHeight: 0 }}
-        >
-            <Border
-                variant="100"
-                backgroundColor="#ffffff"
-                layout={{ position: 'absolute', left: 3, top: 16, width: 275, height: 171 }}
-            >
-                <Region layout={{ position: 'absolute', left: 2, top: 2, width: 270, height: 166 }}>
-                    <Region layout={{ position: 'absolute', left: 0, top: 0, width: 270, height: 29, overflow: 'hidden' }}>
-                        <ThemeText
-                            text={t('widget.backgroundcolor.info')}
-                            textStyle="u_small"
-                            textOptions={{ wordWrap: true, wordWrapWidth: 214 }}
-                            clip
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 4, top: 0, width: 218, height: 31 }}
+        <TemplateWindow
+            id="habbo-room-ui-com/background_color_ui_xml"
+            frame={{ id: 'backgroundcolor_ui', centered: true, rememberPosition: false, onClose }}
+            bindings={{
+                ...hueSlider.bindings,
+                ...saturationSlider.bindings,
+                ...lightnessSlider.bindings,
+                color_preview_bitmap: {
+                    children: (
+                        <Region
+                            backgroundColor={previewColor}
+                            layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
                         />
-                        <Border
-                            variant="100"
-                            layout={{ position: 'absolute', left: 239, top: 2, width: 30, height: 28 }}
-                        >
-                            <Region
-                                backgroundColor={previewColor}
-                                layout={{ position: 'absolute', left: 1, top: 1, width: 28, height: 26 }}
-                            />
-                        </Border>
-                    </Region>
-                    <Channel
-                        label={t('widget.backgroundcolor.hue')}
-                        top={34}
-                        value={hue}
-                        onChange={value => onChange(value, saturation, lightness)}
-                    />
-                    <Channel
-                        label={t('widget.backgroundcolor.saturation')}
-                        top={76}
-                        value={saturation}
-                        onChange={value => onChange(hue, value, lightness)}
-                    />
-                    <Channel
-                        label={t('widget.backgroundcolor.lightness')}
-                        top={118}
-                        value={lightness}
-                        onChange={value => onChange(hue, saturation, value)}
-                    />
-                </Region>
-            </Border>
-            <Button
-                variant="0"
-                onPointerTap={onApply}
-                layout={{ position: 'absolute', left: 4, top: 193, height: 24 }}
-            >
-                {t('widget.backgroundcolor.button.apply')}
-            </Button>
-            <Button
-                variant="0"
-                onPointerTap={onToggle}
-                layout={{ position: 'absolute', right: 1, top: 193, height: 24 }}
-            >
-                {/* One caption whatever the state, as `background_color_ui_xml`'s on_off_button has: the client has no "off" text. */}
-                {t('widget.backgroundcolor.button.on')}
-            </Button>
-        </Frame>
+                    ),
+                },
+                apply_button: { onPointerTap: onApply },
+                on_off_button: { onPointerTap: onToggle },
+            }}
+            arrange={(windows) => {
+                for (const slider of sliders) slider.arrange(windows);
+            }}
+        />
     );
 };

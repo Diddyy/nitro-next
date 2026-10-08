@@ -7,7 +7,6 @@ import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator'
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { UiFlagEnum, useRoomToolsCollapsed, useUserActions } from '#base/context/user';
 import { useRoomZoom } from '#base/hooks';
-import { LayoutImage } from '#base/theme';
 import { RoomShareView } from '#base/views/room-widgets/room-tools/RoomShareView';
 import { ROOM_TOOLS_INFO_MARGIN, roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 import { RoomToolsHistoryView } from '#base/views/room-widgets/room-tools/RoomToolsHistoryView';
@@ -96,12 +95,6 @@ export const RoomToolsWidget = () => {
     const buttons: RoomToolsButton[] = [
         {
             key: 'button_settings',
-            icon: LayoutImage('habbo-window-manager-com/roomtools_gear.png'),
-            iconLeft: 3,
-            iconWidth: 25,
-            labelTop: 4,
-            labelKey: 'room.settings.button.text',
-            tooltipKey: 'room.settings.button.tooltip',
             // `RoomToolsWidgetHandler.toggleRoomInfoWindow`.
             onPress: () => toggleWindow('room_info'),
         },
@@ -109,22 +102,11 @@ export const RoomToolsWidget = () => {
 
     if (canRateCurrentRoom) buttons.push({
         key: 'button_like',
-        icon: LayoutImage('habbo-window-manager-com/roomtools_like.png'),
-        iconLeft: 2,
-        iconWidth: 27,
-        labelTop: 3,
-        labelKey: 'room.like.button.text',
-        tooltipKey: 'room.like.button.tooltip',
         onPress: likeRoom,
     });
 
     buttons.push({
         key: 'button_share',
-        icon: LayoutImage('habbo-window-manager-com/navigation_icon_weblink.png'),
-        iconLeft: 2,
-        iconWidth: 27,
-        labelTop: 3,
-        labelKey: 'navigator.embed.caption',
         onPress: () => {
             // Flash put the snippet on the clipboard as it opened the panel.
             if (!shareOpen) void navigator.clipboard?.writeText(embedCode).catch(() => undefined);

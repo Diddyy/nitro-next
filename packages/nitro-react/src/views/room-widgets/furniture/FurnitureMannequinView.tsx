@@ -2,7 +2,7 @@ import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { Button, ButtonThick, Frame, Icon, LayoutImage, Region, TextInput, ThemeImage, ThemeText, useAvatarImageTexture } from '#base/theme';
+import { Box, LayoutImage, TemplateBindings, TemplateFrameOptions, TemplateWindow, ThemeImage, useAvatarImageTexture, useTemplateLibrary } from '#base/theme';
 
 /**
  * Which face of the dialog is showing. Flash cycled one window through the same five, and only
@@ -25,219 +25,159 @@ export interface FurnitureMannequinViewProps {
     onClose: () => void;
 }
 
-/** `sharpness="80"` and `thickness="-15"`, which every text of the mannequin contents sets. */
-const TEXT_FORMAT = { sharpness: 80, thickness: -15 };
+const LIBRARY = 'habbo-room-ui-com';
 
-/** `MannequinWidget.setOutfitNameState`: the field is 0x88AA88 while an unsaved name is typed, black once saved. */
-const TYPING_NAME_COLOR = '#88aa88';
-const SAVED_NAME_COLOR = '#000000';
-/** ...and the hint it shows while empty is 0x777777. */
-const NAME_HINT_COLOR = '#777777';
+/** `MannequinWidget.createWindow`: each content's layout. */
+const CONTENT_TEMPLATES: Record<MannequinScreen, string> = {
+    main: `${LIBRARY}/mannequin_controller_main_xml`,
+    save: `${LIBRARY}/mannequin_controller_save_xml`,
+    peer: `${LIBRARY}/mannequin_peer_main_xml`,
+    'no-club': `${LIBRARY}/mannequin_no_club_xml`,
+    'wrong-gender': `${LIBRARY}/mannequin_wrong_gender_xml`,
+};
+
+/** `NAME_STATE_HINT` / `_WRITING` / `_SAVED`. */
+type NameState = 'hint' | 'writing' | 'saved';
+
+/** `setOutfitNameState`: the field's colour in each state. */
+const NAME_COLORS: Record<NameState, number> = { hint: 0x777777, writing: 0x88aa88, saved: 0x000000 };
+
+/** `updateClubLevelView`: `ICON_STYLE_CLUB` / `ICON_STYLE_VIP`. */
+const CLUB_ICON_STYLE = '13';
+const VIP_ICON_STYLE = '14';
 
 /**
- * A mannequin, on the `mannequin_widget` frame (388x220, margins 3, 36, 3, 3) that
- * `MannequinWidget` centres around whichever of the five 386x180 contents it asked for
- * (`mannequin_controller_main`, `_controller_save`, `mannequin_peer_main`, `_no_club`,
- * `_wrong_gender`): the outfit in the 83x130 `preview_image` on the left of all of them, the club
- * badge over its corner, and on the right either the dummy controls or the offer to put its
- * clothes on. Every text is Ubuntu 13 (12 on the club notice) at sharpness 80 / thickness -15,
- * cut at its box, and every button fits its caption within its `width_min` / `width_max`.
+ * A mannequin - `MannequinWidget`, which builds `mannequin_widget_frame_xml`, centres it, and
+ * replaces the frame's content with one of five layouts (`setWindowContent` / `createWindow`):
+ * `mannequin_controller_main_xml` (the dummy's controls, for whoever may decorate the room),
+ * `_controller_save_xml`, `mannequin_peer_main_xml` (the offer to wear the outfit), `_no_club_xml`
+ * and `_wrong_gender_xml`. Each draws the outfit in `preview_image` and the club level it costs on
+ * `club_icon` (style 13, 14 for VIP, hidden for none - `updateClubLevelView`).
  *
- * `updatePreviewImage` copies the preview backdrop into the bitmap and the large avatar image
- * (default direction) centred over it, clipped by the bitmap rather than scaled. The name field
- * shows its hint as a placeholder in the hint's colour, where Flash wrote the hint into the field
- * in italics. The save screen's description names `${mannequin.widget.savetext` with a stray
- * space and no closing brace in the layout; the port asks for `mannequin.widget.savetext`.
+ * `updatePreviewImage` copies `mannequin_preview_bg_png` into the bitmap and the large avatar image
+ * (default direction) centred over it, clipped by the bitmap rather than scaled; the main screen's
+ * `write_deco` gets `small_pen` (`updateDecorations`).
+ *
+ * `outfit_name_set` follows `setOutfitNameState`: the hint `mannequin.widget.set_name_hint` in grey
+ * italics until a name is saved, cleared by a click on it; green while typed; black once saved.
+ * Enter saves the name (`saveOutfitName`), and so does `configure_button` before it opens the save
+ * screen; as before the port also saves a changed name when the field loses the focus.
+ * `outfit_name_show` quotes the saved name. `save_button` stores what you wear, `back_region`
+ * returns to the controls, `wear_button` checks club then gender (in the widget), and `ok_button`
+ * and the header close close. `get_club_button` only closes: Flash opens the club centre
+ * (`catalog.openClubCenter`). The save screen's description names `${mannequin.widget.savetext `
+ * with a stray space and no closing brace in the layout; the port asks for
+ * `mannequin.widget.savetext`.
  */
 export const FurnitureMannequinView = ({
     name, figure, gender, clubLevel, screen, onScreenChange, onSaveName, onSaveOutfit, onWear, onClose,
 }: FurnitureMannequinViewProps) => {
-    const [ draft, setDraft ] = useState<string>(name);
-    const [ lastName, setLastName ] = useState<string>(name);
-    const { texture } = useAvatarImageTexture(figure, gender, { direction: 2 });
     const t = useTranslation();
+    const templates = useTemplateLibrary(LIBRARY);
+    const { texture } = useAvatarImageTexture(figure, gender, { direction: 2 });
+    const [ frame ] = useState<TemplateFrameOptions>(() => ({ id: 'mannequin', centered: true, rememberPosition: false, onClose }));
+    const [ draft, setDraft ] = useState<string>(name);
+    const [ nameState, setNameState ] = useState<NameState>(name.length ? 'saved' : 'hint');
+    const [ lastName, setLastName ] = useState<string>(name);
 
     if (name !== lastName) {
         setLastName(name);
         setDraft(name);
+        setNameState(name.length ? 'saved' : 'hint');
     }
 
-    const description = (key: string, top: number, width: number, height: number, fontSize?: number) => (
-        <ThemeText
-            text={t(key)}
-            textStyle="u_regular"
-            textOptions={{ ...(fontSize && { fontSize }), wordWrap: true, wordWrapWidth: width - 4 }}
-            flashFormat={TEXT_FORMAT}
-            clip
-            verticalAlign="top"
-            layout={{ position: 'absolute', left: 126, top, width, height }}
-        />
+    const content = templates?.[CONTENT_TEMPLATES[screen]];
+
+    /** `saveOutfitName`: what the field holds is the name, and it shows as saved. */
+    const saveName = () => {
+        onSaveName(draft);
+        setNameState('saved');
+    };
+
+    const preview = (
+        <Box layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+            <ThemeImage
+                src={LayoutImage(`${LIBRARY}/mannequin_preview_bg.png`)}
+                bitmap={{ stretchedX: false, stretchedY: false }}
+                layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
+            />
+            {texture && (
+                <ThemeImage
+                    texture={texture}
+                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
+                    layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
+                />
+            )}
+        </Box>
     );
 
-    const quotedName = `'${name}'`;
+    const quotedName = name.length ? `'${name}'` : undefined;
+
+    const bindings: TemplateBindings = {
+        preview_image: { children: preview },
+        club_icon: { visible: clubLevel > 0, style: (clubLevel > 1) ? VIP_ICON_STYLE : CLUB_ICON_STYLE },
+    };
+
+    switch (screen) {
+        case 'main':
+            Object.assign(bindings, {
+                outfit_name_set: {
+                    caption: (nameState === 'hint') ? t('mannequin.widget.set_name_hint') : draft,
+                    color: NAME_COLORS[nameState],
+                    italic: nameState === 'hint',
+                    // `onMouseClick`'s `outfit_name_set`: the hint is cleared, a saved name is edited.
+                    onPointerTap: () => {
+                        if (nameState === 'hint') setDraft('');
+                        if (nameState !== 'writing') setNameState('writing');
+                    },
+                    onChange: (text: string) => {
+                        setDraft(text);
+                        setNameState('writing');
+                    },
+                    onEnter: saveName,
+                    onBlur: () => {
+                        if ((nameState === 'writing') && (draft !== name)) saveName();
+                    },
+                },
+                write_deco: { asset: LayoutImage(`${LIBRARY}/small_pen.png`) },
+                configure_button: {
+                    onPointerTap: () => {
+                        saveName();
+                        onScreenChange('save');
+                    },
+                },
+                wear_button: { onPointerTap: onWear },
+            } satisfies TemplateBindings);
+            break;
+        case 'save':
+            Object.assign(bindings, {
+                save_button: { onPointerTap: onSaveOutfit },
+                outfit_name_show: { caption: quotedName },
+                description: { caption: '${mannequin.widget.savetext}' },
+                back_region: { onPointerTap: () => onScreenChange('main') },
+            } satisfies TemplateBindings);
+            break;
+        case 'peer':
+            Object.assign(bindings, {
+                wear_button: { onPointerTap: onWear },
+                outfit_name_show: { caption: quotedName },
+            } satisfies TemplateBindings);
+            break;
+        case 'no-club':
+            Object.assign(bindings, { get_club_button: { onPointerTap: onClose } } satisfies TemplateBindings);
+            break;
+        case 'wrong-gender':
+            Object.assign(bindings, { ok_button: { onPointerTap: onClose } } satisfies TemplateBindings);
+            break;
+    }
+
+    if (!content) return null;
 
     return (
-        <Frame
-            variant="3"
-            caption={t('mannequin.widget.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={onClose}
-            centered
-            rememberPosition={false}
-            resizeDirection="none"
-            margins={[ 3, 36, 3, 3 ]}
-            layout={{ width: 388, height: 220 }}
-        >
-            <Region layout={{ position: 'absolute', left: 0, top: 0, width: 386, height: 180 }}>
-                <Region layout={{ position: 'absolute', left: 20, top: 10, width: 83, height: 130, overflow: 'hidden' }}>
-                    <ThemeImage
-                        src={LayoutImage('habbo-room-ui-com/mannequin_preview_bg.png')}
-                        bitmap={{ stretchedX: false, stretchedY: false }}
-                        layout={{ position: 'absolute', left: 0, top: 0, width: 83, height: 130 }}
-                    />
-                    {texture && (
-                        <ThemeImage
-                            texture={texture}
-                            bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            layout={{ position: 'absolute', left: 0, top: 0, width: 83, height: 130 }}
-                        />
-                    )}
-                </Region>
-                {(clubLevel > 0) && (
-                    <Icon
-                        variant={(clubLevel > 1) ? '14' : '13'}
-                        layout={{ position: 'absolute', left: 80, top: 110, width: 43, height: 29 }}
-                    />
-                )}
-                {(screen === 'main') && (
-                    <>
-                        <TextInput
-                            value={draft}
-                            onChange={setDraft}
-                            onEnter={() => onSaveName(draft)}
-                            onFocusChange={focused => !focused && (draft !== name) && onSaveName(draft)}
-                            placeholder={t('mannequin.widget.set_name_hint')}
-                            placeholderColor={NAME_HINT_COLOR}
-                            maxLength={30}
-                            textStyle="u_regular"
-                            fontSize={13}
-                            flashFormat={TEXT_FORMAT}
-                            textColor={(draft !== name) ? TYPING_NAME_COLOR : SAVED_NAME_COLOR}
-                            border="#000000"
-                            flashPlacement
-                            layout={{ position: 'absolute', left: 133, top: 25, width: 190, height: 21 }}
-                        />
-                        <ThemeImage
-                            src={LayoutImage('habbo-window-manager-com/common_small_pen.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false }}
-                            layout={{ position: 'absolute', left: 330, top: 27, width: 17, height: 18 }}
-                        />
-                        <ButtonThick
-                            variant="3"
-                            onPointerTap={() => {
-                                onSaveName(draft);
-                                onScreenChange('save');
-                            }}
-                            layout={{ position: 'absolute', left: 133, top: 58, height: 28, minWidth: 219 }}
-                        >
-                            {t('mannequin.widget.style')}
-                        </ButtonThick>
-                        <Button
-                            variant="3"
-                            onPointerTap={onWear}
-                            layout={{ position: 'absolute', left: 133, top: 98, height: 28, minWidth: 219 }}
-                        >
-                            {t('mannequin.widget.wear')}
-                        </Button>
-                    </>
-                )}
-                {(screen === 'save') && (
-                    <>
-                        <ButtonThick
-                            variant="3"
-                            onPointerTap={onSaveOutfit}
-                            layout={{ position: 'absolute', left: 227, top: 141, height: 28, minWidth: 130, maxWidth: 145 }}
-                        >
-                            {t('mannequin.widget.save')}
-                        </ButtonThick>
-                        {!!name.length && (
-                            <ThemeText
-                                text={quotedName}
-                                textStyle="u_bold"
-                                textOptions={{ fontSize: 13 }}
-                                flashFormat={TEXT_FORMAT}
-                                clip
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 126, top: 30, width: 254, height: 33 }}
-                            />
-                        )}
-                        {description('mannequin.widget.savetext', 60, 197, 61, 13)}
-                        <Region
-                            cursor="pointer"
-                            onPointerTap={() => onScreenChange('main')}
-                            layout={{ position: 'absolute', left: 15, top: 147, width: 151, height: 20 }}
-                        >
-                            <ThemeText
-                                text={t('mannequin.widget.back')}
-                                textStyle="u_regular"
-                                textOptions={{ fontSize: 13 }}
-                                flashFormat={{ ...TEXT_FORMAT, underline: true }}
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 0, top: 0 }}
-                            />
-                        </Region>
-                    </>
-                )}
-                {(screen === 'peer') && (
-                    <>
-                        <ButtonThick
-                            variant="3"
-                            onPointerTap={onWear}
-                            layout={{ position: 'absolute', left: 227, top: 141, height: 28, minWidth: 138, maxWidth: 145 }}
-                        >
-                            {t('mannequin.widget.wear')}
-                        </ButtonThick>
-                        {!!name.length && (
-                            <ThemeText
-                                text={quotedName}
-                                textStyle="u_italic"
-                                textOptions={{ fontSize: 13 }}
-                                flashFormat={TEXT_FORMAT}
-                                clip
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 126, top: 30, width: 244, height: 25 }}
-                            />
-                        )}
-                        {description('mannequin.widget.weartext', 60, 242, 61, 13)}
-                    </>
-                )}
-                {(screen === 'no-club') && (
-                    <>
-                        {/* Flash sent them to the club centre; here the offer simply stands down. */}
-                        <ButtonThick
-                            variant="3"
-                            onPointerTap={onClose}
-                            layout={{ position: 'absolute', left: 206, top: 141, height: 28, minWidth: 164 }}
-                        >
-                            {t('mannequin.widget.getclub')}
-                        </ButtonThick>
-                        {description('mannequin.widget.clubnotification', 52, 241, 61)}
-                    </>
-                )}
-                {(screen === 'wrong-gender') && (
-                    <>
-                        <ButtonThick
-                            variant="3"
-                            onPointerTap={onClose}
-                            layout={{ position: 'absolute', left: 289, top: 141, height: 28, minWidth: 75, maxWidth: 140 }}
-                        >
-                            {t('generic.ok')}
-                        </ButtonThick>
-                        {description('mannequin.widget.wronggender', 52, 245, 86, 13)}
-                    </>
-                )}
-            </Region>
-        </Frame>
+        <TemplateWindow
+            id={`${LIBRARY}/mannequin_widget_frame_xml`}
+            frame={frame}
+            bindings={{ '': { added: [ { key: screen, from: content, bindings } ] } }}
+        />
     );
 };

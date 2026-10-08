@@ -56,6 +56,7 @@ import { TextInput } from '../TextInput';
 import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
 import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, themeVariantOf, WindowPlacedContext } from '../utils';
+import { localizeCaption } from './localizeCaption';
 import { isMarkupTemplateText, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
@@ -97,7 +98,19 @@ export interface TemplateViewProps {
     frame?: TemplateFrameOptions;
 }
 
-export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection' | 'rememberPosition'>;
+export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection' | 'rememberPosition'> & {
+    /**
+     * The frame is a modal dialog's (`buildModalDialogFromXML`), drawn inside a `ModalDialog`: it stays
+     * in the modal's layer, which centres it, rather than going onto the window desktop under the
+     * modal's backdrop. Its close and its drag work as a window's.
+     */
+    modal?: boolean;
+    /**
+     * Whether the user can drag the window (on by default). Off for a frame Flash does not move: a
+     * modal dialog's, or one whose layout is no drag target (`nestBreedingSuccess`).
+     */
+    draggable?: boolean;
+};
 
 type FrameSize = { width: number; height: number };
 
@@ -291,7 +304,7 @@ const drawsIntoParentOnly = (element: TemplateElement): boolean => templateUsesP
 const dynamicRoleOf = (element: TemplateElement) => (element.tags?.includes('#icon') ? 'icon' : element.tags?.includes('#bg') ? 'bg' : undefined);
 
 /** Its caption: the binding's over the layout's. */
-const captionOf = (element: TemplateElement, context: Context, binding: TemplateBinding | undefined) => context.resolveText(binding?.caption ?? element.caption);
+const captionOf = (element: TemplateElement, context: Context, binding: TemplateBinding | undefined) => localizeCaption(binding?.caption ?? element.caption, context.resolveText);
 
 /** Its tooltip: the binding's over the layout's `tool_tip_caption`. */
 const tooltipOf = (element: TemplateElement, context: Context, binding: TemplateBinding | undefined) => {
@@ -351,7 +364,8 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     const autoSize = flashString(element.vars.auto_size) ?? (label ? 'left' : 'none');
     const align = autoSize === 'center' || autoSize === 'right' ? autoSize : undefined;
     const { fontFamily, flash: layoutFlash } = templateTextFormat(element);
-    const flash = binding?.etchingColor === undefined ? layoutFlash : { ...layoutFlash, etchingColor: binding.etchingColor || undefined };
+    const etched = binding?.etchingColor === undefined ? layoutFlash : { ...layoutFlash, etchingColor: binding.etchingColor || undefined };
+    const flash = binding?.underline === undefined ? etched : { ...etched, underline: binding.underline };
     const text = captionOf(element, context, binding);
 
     if (!text) return null;
@@ -372,6 +386,7 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
             flashFormat={flash.etchingColor ? { ...flash, etchingPosition: flash.etchingPosition ?? 'bottom' } : flash}
             markup={isMarkupTemplateText(element) || undefined}
             clip={!label && autoSize === 'none' ? true : undefined}
+            crop={binding?.crop ? rect.width : undefined}
             dynamicRole={dynamicRoleOf(element)}
             verticalAlign="top"
             layout={margins
@@ -545,6 +560,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 variant={variant}
                 tintColor={tintColor}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 disabled={binding?.disabled}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
@@ -557,6 +573,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 variant={variant}
                 tintColor={tintColor}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 disabled={binding?.disabled}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
@@ -569,6 +586,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 variant={variant}
                 selected={binding?.selected}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
@@ -580,6 +598,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 variant={variant}
                 selected={binding?.selected}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
@@ -591,6 +610,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 variant={variant}
                 selected={binding?.selected}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
@@ -602,6 +622,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 variant={variant}
                 tintColor={tintColor}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 disabled={binding?.disabled}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
@@ -613,6 +634,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
             <IconButton
                 variant={variant}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 disabled={binding?.disabled}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
@@ -656,6 +678,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 variant={variant}
                 selected={binding?.selected}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
@@ -911,7 +934,28 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
         );
     }
 
-    const alpha = (hidden ? 0.4 : 1) * (binding?.alpha ?? element.blend ?? 1);
+    const blend = binding?.alpha ?? element.blend ?? 1;
+    const ownAlpha = (hidden ? 0.4 : 1) * blend;
+    /*
+     * A window drawn into its parent's graphic context blends only what it draws itself
+     * (`WindowRendererItem.render` copies its bitmap in at `alphaMultiplier = blend`); its children
+     * draw on their own, unfaded - `colourGridWidget` at `blend="0"` still shows its swatches. A
+     * window with a context of its own fades the context, children and all. A binding's `alpha`
+     * fades the whole subtree, as Flash's code does by blending each child too (`enableWindow`).
+     */
+    const faceOnlyBlend = (binding?.alpha === undefined) && (blend !== 1) && templateUsesParentGraphics(element) && ((element.children.length > 0) || !!binding?.children);
+    const alpha = faceOnlyBlend ? (hidden ? 0.4 : 1) : ownAlpha;
+    const fade = (face: ReactNode) => ((faceOnlyBlend && face)
+        ? (
+                <Box
+                    pointerTransparent
+                    alpha={blend}
+                    layout={FILL}
+                >
+                    {face}
+                </Box>
+            )
+        : face);
     const list = TEMPLATE_LISTS[element.tag];
     const childFlow = FLOWS[element.tag];
     const show = list ? binding?.show : undefined;
@@ -1009,7 +1053,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 axis={TEMPLATE_SCROLLBAR_TAGS[element.tag]}
                 store={context.scroll}
                 layout={rectOf(rect, flow)}
-                alpha={alpha}
+                alpha={ownAlpha}
             />
         );
     }
@@ -1026,7 +1070,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 store={context.scroll}
                 layout={rectOf(rect, flow)}
                 alpha={alpha}
-                face={faceOf(element, rect, context, binding)}
+                face={fade(faceOf(element, rect, context, binding))}
             >
                 {children}
             </TemplateScrollTarget>
@@ -1038,6 +1082,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             <Region
                 name={element.name}
                 tooltip={tooltipOf(element, context, binding)}
+                tooltipDelay={binding?.tooltipDelay}
                 dynamicStyle={element.dynamicStyle as RegionProps['dynamicStyle']}
                 interactive={element.params?.events?.includes('input') || undefined}
                 disabled={binding?.disabled}
@@ -1049,7 +1094,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 alpha={alpha}
                 layout={rectOf(rect, flow)}
             >
-                {drawn(faceOf(element, rect, context, binding))}
+                {drawn(fade(faceOf(element, rect, context, binding)))}
             </Region>
         );
     }
@@ -1078,7 +1123,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 defaultPosition={window ? window.defaultPosition : { x: 0, y: 0 }}
                 centered={window?.centered}
                 rememberPosition={!!window && (window.rememberPosition ?? true)}
-                draggable={!!window}
+                draggable={!!window && (window.draggable ?? true)}
                 onClose={window?.onClose}
                 resizeDirection={resizeDirection}
                 onResize={resizeDirection !== 'none' ? context.onFrameResize : undefined}
@@ -1098,11 +1143,12 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             <Box
                 pointerTransparent
                 layout={rectOf(rect, flow)}
-                alpha={alpha}
+                alpha={ownAlpha}
             >
                 {/* A window is the desktop's own child, sorted among the others as it is activated: not
-                    placed here, so the frame moves its container onto the desktop. */}
-                {window ? <WindowPlacedContext.Provider value={false}>{frame}</WindowPlacedContext.Provider> : frame}
+                    placed here, so the frame moves its container onto the desktop. A modal's dialog is
+                    the modal layer's, where `ModalDialog` has already put it. */}
+                {(window && !window.modal) ? <WindowPlacedContext.Provider value={false}>{frame}</WindowPlacedContext.Provider> : frame}
             </Box>
         );
     }
@@ -1120,7 +1166,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             <Box
                 pointerTransparent
                 layout={rectOf(rect, flow)}
-                alpha={alpha}
+                alpha={ownAlpha}
             >
                 {content && contentRect && (contentRect.width > 0) && (contentRect.height > 0) && (
                     <TabContent
@@ -1146,7 +1192,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 pointer={binding?.direction ?? (POINTER_DIRECTIONS.has(element.vars.direction as PointerDirection) ? element.vars.direction as PointerDirection : undefined)}
                 tintColor={tintOf(element, binding)}
                 margins={element.margins ?? [ 0, 0, 0, 0 ]}
-                alpha={alpha}
+                alpha={ownAlpha}
                 layout={rectOf(rect, flow)}
             >
                 {children}
@@ -1166,7 +1212,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 layout={rectOf(rect, flow)}
                 alpha={alpha}
             >
-                {faceOf(element, rect, context, binding)}
+                {fade(faceOf(element, rect, context, binding))}
                 <ScrollArea
                     orientation="vertical"
                     variant={scrollbar?.style}
@@ -1194,7 +1240,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 layout={{ ...rectOf(rect, flow), flexDirection: list.direction, flexWrap: list.wrap ? 'wrap' : undefined, gap: Number.isFinite(spacing) && spacing > 0 ? spacing : undefined, overflow: (list.scroll || rect.clip) ? 'hidden' : undefined }}
                 alpha={alpha}
             >
-                {faceOf(element, rect, context, binding)}
+                {fade(faceOf(element, rect, context, binding))}
                 {children}
             </Box>
         );
@@ -1207,7 +1253,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             <Box
                 pointerTransparent
                 layout={{ ...rectOf(rect, flow), overflow: rect.clip ? 'hidden' : undefined }}
-                alpha={alpha}
+                alpha={ownAlpha}
             >
                 {faceOf(element, rect, context, binding, children)}
             </Box>
@@ -1220,7 +1266,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             layout={rectOf(rect, flow)}
             alpha={alpha}
         >
-            {drawn(faceOf(element, rect, context, binding))}
+            {drawn(fade(faceOf(element, rect, context, binding)))}
         </Box>
     );
 };
@@ -1350,8 +1396,8 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
 
     // The rects the window's rules settle on, the texts measured as they will draw (cached by text).
     const rects = layoutTemplate(elements, {
-        captionOf: element => context.resolveText(byElement.get(element)?.caption ?? element.caption),
-        builtCaptionOf: element => (byElement.get(element)?.setCaptionAfterBuild ? context.resolveText(element.caption) : undefined),
+        captionOf: element => localizeCaption(byElement.get(element)?.caption ?? element.caption, context.resolveText),
+        builtCaptionOf: element => (byElement.get(element)?.setCaptionAfterBuild ? localizeCaption(element.caption, context.resolveText) : undefined),
         measure: measureTemplateText,
         visibleOf: element => shownBy.get(element) ?? byElement.get(element)?.visible ?? !element.hidden,
         // A clone made from another template - a catalogue widget's view - brings that template's skins.

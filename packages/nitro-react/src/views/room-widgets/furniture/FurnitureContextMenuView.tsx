@@ -83,7 +83,7 @@ export const FurnitureContextMenuView = ({ objectData, menu, onClose }: Furnitur
         <FurnitureMenuBubble
             title={title}
             buttons={[ { key: 'use', label: caption, onPointerTap: useFurniture } ]}
-            minimizeGap={1}
+            menu="generic_usable_menu"
         />
     );
 };

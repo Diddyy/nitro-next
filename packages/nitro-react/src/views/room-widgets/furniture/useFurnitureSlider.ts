@@ -1,15 +1,14 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
-import { LayoutImage, Region, ThemeImage } from '#base/theme';
+import { LayoutImage, TemplateBindings, TemplateWindows } from '#base/theme';
 
 /** `slider_movement_area`'s width less `slider_button`'s: `_referenceWidth` (206 - 12). */
 const REFERENCE_WIDTH = 194;
 
-/** `slider_button`'s y in `slider_movement_area` as the layout places it, before anything moves it. */
-const BUTTON_LAYOUT_TOP = 7;
-
-export interface FurnitureDimmerSliderViewProps {
+export interface FurnitureSliderOptions {
+    /** The window holding `slider_base` and `slider_movement_area`: `brightness_container`, `hue_container`... */
+    container: string;
     value: number;
     min: number;
     max: number;
@@ -21,25 +20,29 @@ export interface FurnitureDimmerSliderViewProps {
      */
     reportOnEveryEvent: boolean;
     onChange: (value: number) => void;
-    /** Where `brightness_container` / `<parameter>_container` puts `slider_base`; the movement area sits one pixel lower. */
-    top: number;
+}
+
+export interface FurnitureSlider {
+    /** `slider_base` and `slider_button` of the container, by path. */
+    bindings: TemplateBindings;
+    /** Puts the button where the value (or the drag) says, through the window model. */
+    arrange: (windows: TemplateWindows) => void;
 }
 
 /**
- * The brightness slider of the dimmer and each channel slider of the background toner - one
- * `slider_base` bitmap (`dimmer_slider_base`, 201x12 at 2, top) and one `slider_movement_area`
- * (206x17 at 0, top + 1) holding the `slider_button` bitmap (`dimmer_slider_button`, 12x17),
- * which is its own drag target and trigger with `bound_to_parent_rect`: `DimmerViewAlphaSlider`
- * and `BackgroundColorWidgetSlider`, which are the same class twice.
+ * The brightness slider of the dimmer and each channel slider of the background toner -
+ * `DimmerViewAlphaSlider` and `BackgroundColorWidgetSlider`, which are the same class twice, on the
+ * layout's `slider_base` bitmap (given `dimmer_slider_base`) and `slider_button` bitmap (given
+ * `dimmer_slider_button`) inside `slider_movement_area`. The button is its own drag target with
+ * `bound_to_parent_rect`.
  *
- * The button's x is `int(_referenceWidth * (value - min) / (max - min))` and a dropped x reads back
- * as `int(x / _referenceWidth * (max - min)) + min`. The layout puts the button at y 7, which the
- * 17-high movement area clips to its top 10 pixels; the first time anything moves it
- * (`setValue` to a new x, or a drag), `WindowController.setRectangle`'s `bound_to_parent_rect`
- * branch pulls it up by its overhang to y 0, where it stays.
+ * The button's x is `int(_referenceWidth * (value - min) / (max - min))` (`setValue`) and a dropped
+ * x reads back as `int(x / _referenceWidth * (max - min)) + min` (`getValue`). The layout puts the
+ * button at y 7, which the 17-high movement area clips to its top 10 pixels; the first time
+ * anything moves it (`set x` to a new x, or a drag), `setRectangle`'s `bound_to_parent_rect` branch
+ * pulls it up by its overhang to y 0, where it stays.
  */
-export const FurnitureDimmerSliderView = ({ value, min, max, reportOnEveryEvent, onChange, top }: FurnitureDimmerSliderViewProps) => {
-    const areaRef = useRef<PixiContainer | null>(null);
+export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEvent, onChange }: FurnitureSliderOptions): FurnitureSlider => {
     const stopRef = useRef<(() => void) | null>(null);
     const [ dragX, setDragX ] = useState<number | null>(null);
     /** The background toner's button stays where it was dropped, while the value is still the one read from there. */
@@ -67,9 +70,9 @@ export const FurnitureDimmerSliderView = ({ value, min, max, reportOnEveryEvent,
     };
 
     const onPointerDown = (event: FederatedPointerEvent) => {
-        const area = areaRef.current;
+        const target = event.currentTarget as PixiContainer | null;
 
-        if (!area) return;
+        if (!target) return;
 
         stopRef.current?.();
 
@@ -77,7 +80,10 @@ export const FurnitureDimmerSliderView = ({ value, min, max, reportOnEveryEvent,
         const pointerId = event.pointerId;
         const startClient = { x: event.clientX, y: event.clientY };
         const startGlobal = { x: event.global.x, y: event.global.y };
-        const grabX = area.toLocal(startGlobal).x;
+        // The button's space as the press found it: what draws it may move with it, so the pointer
+        // is read against where it was, not where the drag has taken it.
+        const space = target.worldTransform.clone();
+        const grabX = space.applyInverse(startGlobal).x;
         const startX = x;
         let current = startX;
 
@@ -89,7 +95,7 @@ export const FurnitureDimmerSliderView = ({ value, min, max, reportOnEveryEvent,
             // Any move of the drag goes through `setRectangle`, which bounds y to the area.
             setMoved(true);
 
-            const pointerX = area.toLocal({ x: startGlobal.x + (moveEvent.clientX - startClient.x), y: startGlobal.y + (moveEvent.clientY - startClient.y) }).x;
+            const pointerX = space.applyInverse({ x: startGlobal.x + (moveEvent.clientX - startClient.x), y: startGlobal.y + (moveEvent.clientY - startClient.y) }).x;
             const next = Math.min(REFERENCE_WIDTH, Math.max(0, startX + Math.trunc(pointerX - grabX)));
 
             if (next === current) return;
@@ -125,26 +131,23 @@ export const FurnitureDimmerSliderView = ({ value, min, max, reportOnEveryEvent,
         window.addEventListener('pointercancel', up);
     };
 
-    return (
-        <>
-            <ThemeImage
-                src={LayoutImage('habbo-room-ui-com/dimmer_slider_base.png')}
-                bitmap={{}}
-                layout={{ position: 'absolute', left: 2, top, width: 201, height: 12 }}
-            />
-            <Region
-                ref={areaRef}
-                layout={{ position: 'absolute', left: 0, top: top + 1, width: 206, height: 17, overflow: 'hidden' }}
-            >
-                <ThemeImage
-                    src={LayoutImage('habbo-room-ui-com/dimmer_slider_button.png')}
-                    bitmap={{}}
-                    hitThreshold={10}
-                    onPointerOver={reportOnEveryEvent ? () => report(x) : undefined}
-                    onPointerDown={onPointerDown}
-                    layout={{ position: 'absolute', left: x, top: moved ? 0 : BUTTON_LAYOUT_TOP, width: 12, height: 17 }}
-                />
-            </Region>
-        </>
-    );
+    return {
+        bindings: {
+            [`${container}/slider_base`]: { asset: LayoutImage('habbo-room-ui-com/dimmer_slider_base.png') },
+            [`${container}/slider_button`]: {
+                asset: LayoutImage('habbo-room-ui-com/dimmer_slider_button.png'),
+                onPointerOver: reportOnEveryEvent ? () => report(x) : undefined,
+                onPointerDown,
+            },
+        },
+        arrange: ({ find }) => {
+            const button = find(`${container}/slider_button`);
+
+            if (!button) return;
+
+            if (moved) button.setY(0);
+
+            button.setX(x);
+        },
+    };
 };

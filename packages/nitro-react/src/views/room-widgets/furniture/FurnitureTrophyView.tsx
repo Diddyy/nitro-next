@@ -1,24 +1,23 @@
 import { useTranslation } from '#base/context/system';
-import { useViewportSize } from '#base/hooks';
-import { LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
+import { LayoutImage } from '#base/theme';
+
+import { FurnitureTemplatePanel } from './FurnitureTemplatePanel';
 
 /**
- * Gold, silver and bronze, as `TrophyTheme` names them: the plaque's art and the colour of its
- * title bar both follow the trophy's `furniture_color`, and anything outside 0-2 is gold.
+ * `TrophyTheme`: gold, silver and bronze - the plaque's art (`BACKGROUND_ASSET_NAMES`) and the colour
+ * of its title bar (`HEADER_COLORS`) both follow the trophy's `furniture_color`, and anything
+ * outside 0-2 is gold (`normalize`). The colours are whole `0xAARRGGBB` values: `title_bg` fills with
+ * the colour it is given, alpha and all.
  */
 const TROPHY_THEMES = [
-    { background: 'trophy_bg_gold.png', header: '#ecc547' },
-    { background: 'trophy_bg_silver.png', header: '#c9bdcc' },
-    { background: 'trophy_bg_bronze.png', header: '#b87834' },
+    { background: 'habbo-room-ui-com/trophy_bg_gold.png', header: 0xffecc547 },
+    { background: 'habbo-room-ui-com/trophy_bg_silver.png', header: 0xffc9bdcc },
+    { background: 'habbo-room-ui-com/trophy_bg_bronze.png', header: 0xffb87834 },
 ];
-
-/** `trophy_general`'s size. */
-const WIDTH = 340;
-const HEIGHT = 173;
 
 export interface FurnitureTrophyViewProps {
     color: number;
-    /** The plaque's own title; a trophy says "Trophy", a badge display says what it is. */
+    /** The plaque's own title (`frameTitle`); a trophy says "Trophy", a badge display says what it is. */
     title?: string;
     ownerName: string;
     date: string;
@@ -27,78 +26,36 @@ export interface FurnitureTrophyViewProps {
 }
 
 /**
- * A trophy's engraving, on the plaque itself - the `trophy_general` layout (340x173) that
- * `TrophyView` builds and centres: the plaque art of the trophy's colour, its title on the
- * `title_bg` bar of the matching `TrophyTheme` header colour, the engraving, the date at its foot
- * on the left and the winner on the right (an auto-size text keeping its right edge). Every text
- * is Ubuntu 12 in the advanced renderer; the engraving and the date are cut at their boxes. The
- * whole plaque drags, and the close button is part of the plaque art: the layout only puts the
- * invisible `close` region over it. Read-only; a trophy is engraved when it is bought, never
- * afterwards.
+ * A trophy's engraving, on the plaque itself - `TrophyView.showInterface`, which builds the `trophy`
+ * layout and centres it: `title_bg` coloured by the theme (`headerColor`), `title` the widget's
+ * `frameTitle`, `greeting` the engraving (its literal `\r`s made line breaks), `date` and `name`, and
+ * `trophy_bg` the theme's plaque art. The plaque drags by itself (`draggable_with_mouse`), and its
+ * close button is part of the art: the layout only puts the invisible `close` region over it.
+ * Read-only; a trophy is engraved when it is bought, never afterwards.
+ *
+ * The texts are set once the window is built: `name` (`on_accommodate_align_right`) keeps its right
+ * edge and `title` its centre as they fit their texts.
+ *
+ * `trophy_bg.color` is `TrophyFurniWidget.color`, white: no tint.
  */
 export const FurnitureTrophyView = ({ color, title, ownerName, date, message, onClose }: FurnitureTrophyViewProps) => {
     const theme = TROPHY_THEMES[color] ?? TROPHY_THEMES[0];
     const t = useTranslation();
-    const viewport = useViewportSize();
 
     return (
-        <Region
-            dragTarget
-            dragTrigger
-            layout={{
-                position: 'absolute',
-                left: Math.max(0, Math.floor((viewport.width - WIDTH) / 2)),
-                top: Math.max(0, Math.floor((viewport.height - HEIGHT) / 2)),
-                width: WIDTH,
-                height: HEIGHT,
+        <FurnitureTemplatePanel
+            id="habbo-room-ui-com/trophy"
+            position="center"
+            dragByRoot
+            bindings={{
+                close: { onPointerTap: onClose },
+                title_bg: { color: theme.header },
+                title: { caption: title ?? t('widget.furni.trophy.title', 'Trophy'), setCaptionAfterBuild: true },
+                greeting: { caption: message.replace(/\\r/g, '\n') },
+                date: { caption: date },
+                name: { caption: ownerName, setCaptionAfterBuild: true },
+                trophy_bg: { asset: LayoutImage(theme.background) },
             }}
-        >
-            <ThemeImage
-                src={LayoutImage(`habbo-room-ui-com/${theme.background}`)}
-                bitmap={{}}
-                layout={{ position: 'absolute', left: 0, top: 0, width: WIDTH, height: HEIGHT }}
-            />
-            <ThemeText
-                // `TrophyView` turns the literal `\r` the engraving is stored with into line breaks.
-                text={message.replace(/\\r/g, '\n')}
-                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, wordWrap: true, wordWrapWidth: 293 }}
-                flashFormat={{ antiAliasType: 'advanced' }}
-                clip
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 22, top: 25, width: 297, height: 116 }}
-            />
-            <ThemeText
-                text={date}
-                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, wordWrap: true, wordWrapWidth: 79 }}
-                flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                clip
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 21, top: 142, width: 83, height: 18 }}
-            />
-            <ThemeText
-                text={ownerName}
-                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12 }}
-                flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                verticalAlign="top"
-                layout={{ position: 'absolute', right: 20, top: 142 }}
-            />
-            <Region
-                cursor="pointer"
-                onPointerTap={onClose}
-                layout={{ position: 'absolute', left: 318, top: 3, width: 18, height: 20 }}
-            />
-            <Region
-                backgroundColor={theme.header}
-                layout={{ position: 'absolute', left: 110, top: 4, width: 120, height: 18 }}
-            >
-                <ThemeText
-                    text={title ?? t('widget.furni.trophy.title')}
-                    textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, align: 'center' }}
-                    flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 0, top: 1, width: 120 }}
-                />
-            </Region>
-        </Region>
+        />
     );
 };
