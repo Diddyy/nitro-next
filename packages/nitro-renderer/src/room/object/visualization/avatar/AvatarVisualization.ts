@@ -294,11 +294,19 @@ export class AvatarVisualization
                 this._updatesUntilFrameUpdate--;
             }
 
-            if (!(this._updatesUntilFrameUpdate <= 0 || (shouldUpdateFrame && (didScaleUpdate || modelUpdated || otherUpdate)))) return;
+            const changed = didScaleUpdate || modelUpdated || otherUpdate;
 
-            this._avatarImage.updateAnimationByFrames(1);
+            if (!(this._updatesUntilFrameUpdate <= 0 || changed)) return;
 
-            this._updatesUntilFrameUpdate = AvatarVisualization.ANIMATION_FRAME_UPDATE_INTERVAL;
+            // Flash runs this whole update on the frame tick, so a posture change and the move
+            // that comes with it land together. Here the object moves every render frame: a
+            // change between ticks redraws now, or a stood-up avatar keeps its sit image at the
+            // new height until the next frame update. Only the tick advances the animation.
+            if (shouldUpdateFrame || this._updatesUntilFrameUpdate <= 0) {
+                this._avatarImage.updateAnimationByFrames(1);
+
+                this._updatesUntilFrameUpdate = AvatarVisualization.ANIMATION_FRAME_UPDATE_INTERVAL;
+            }
 
             let _local_20 = this._avatarImage.getCanvasOffsets();
 
