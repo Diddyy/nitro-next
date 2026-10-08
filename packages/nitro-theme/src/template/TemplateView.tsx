@@ -521,7 +521,8 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         );
     }
 
-    // `SeparatorWidget.refresh`: `illumina_light_separator_horizontal` tiled along the widget at
+    // `SeparatorWidget.refresh`: `illumina_light_separator_horizontal` (a habbo-window-manager-com
+    // bitmap, named with its library as every template bitmap is) tiled along the widget at
     // `height / 2 - 1` - or `_vertical` down it at `width / 2 - 1` (`separator:vertical`).
     if (element.tag === 'widget' && element.vars.widget_type === 'separator') {
         if (!context.imageUrl) return null;
@@ -532,7 +533,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         return (
             <ThemeImage
                 eventMode="none"
-                src={context.imageUrl(vertical ? 'illumina_light_separator_vertical' : 'illumina_light_separator_horizontal')}
+                src={context.imageUrl(vertical ? 'habbo-window-manager-com-illumina_light_separator_vertical' : 'habbo-window-manager-com-illumina_light_separator_horizontal')}
                 bitmap={{ stretchedX: false, stretchedY: false, ...(vertical ? { wrapY: true } : { wrapX: true }) }}
                 layout={vertical
                     ? { position: 'absolute', left: offset, top: 0, width: rect.width - offset, height: rect.height }
