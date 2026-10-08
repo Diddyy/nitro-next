@@ -28,7 +28,7 @@ import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { IMessengerFriend } from '@nitrodevco/nitro-packets';
 import { FederatedPointerEvent } from 'pixi.js';
 
-import { AvatarFaceImage } from '#base/components';
+import { AVATAR_FACE_SIZE, AvatarFaceImage } from '#base/components';
 import { FriendBarNotification } from '#base/context/user';
 import { Box, LayoutImage, LayoutWindow, Template, TemplateBinding, TemplateItem } from '#base/theme';
 
@@ -199,8 +199,17 @@ export const friendTabItem = (template: Template, args: FriendTabArgs): Template
             bubble: { visible: false },
             pieces: { added: pieces },
         },
-        // `allocateFriendTabWindow`.
-        arrange: ({ root }) => root()?.setRectangle(0, 0, FRIEND_BAR_TAB_WIDTH, FRIEND_BAR_TAB_HEIGHT),
+        arrange: ({ root, find }) => {
+            // `allocateFriendTabWindow`.
+            root()?.setRectangle(0, 0, FRIEND_BAR_TAB_WIDTH, FRIEND_BAR_TAB_HEIGHT);
+
+            // `refresh`: `canvas` takes the face bitmap's size, and its `on_resize_align_center` /
+            // `_middle` params keep its centre, so the 10x10 slot becomes the face box around it.
+            const canvas = find('canvas');
+
+            canvas?.setWidth(AVATAR_FACE_SIZE);
+            canvas?.setHeight(AVATAR_FACE_SIZE);
+        },
     };
 };
 

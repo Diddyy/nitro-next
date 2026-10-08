@@ -1,5 +1,5 @@
-import { IRoomObjectController, NitroLogger, RoomEngineObjectEvent, RoomEngineObjectPlacedEvent, RoomEngineObjectPlacedOnUserEvent, RoomObjectCategoryEnum, RoomObjectMouseEvent, RoomObjectPlacementSource, RoomObjectTileMouseEvent, RoomObjectUserType, RoomObjectVariableEnum, RoomObjectWallMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
-import { PlaceObjectComposer } from '@nitrodevco/nitro-packets';
+import { IRoomObjectController, RoomEngineObjectEvent, RoomEngineObjectPlacedEvent, RoomEngineObjectPlacedOnUserEvent, RoomObjectCategoryEnum, RoomObjectMouseEvent, RoomObjectPlacementSource, RoomObjectTileMouseEvent, RoomObjectUserType, RoomObjectVariableEnum, RoomObjectWallMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
+import { PlaceBotComposer, PlaceObjectComposer, PlacePetComposer, PlacePostItComposer } from '@nitrodevco/nitro-packets';
 import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
 import { useWebSocketContext } from '#base/context/communication';
@@ -60,12 +60,12 @@ export const useRoomObjectPlace = () => {
             if (objectPlacementSource === RoomObjectPlacementSource.INVENTORY) {
                 if (category === RoomObjectCategoryEnum.Unit) {
                     if (Number(selectedObject.typeId) === Number(RoomObjectUserType.Pet)) {
-                        NitroLogger.sendPacket(`new PetPlaceComposer(${selectedObject.objectId}, Math.trunc(${x}), Math.trunc(${y}))`);
+                        send(new PlacePetComposer({ petId: objectId, x: Math.trunc(x), y: Math.trunc(y) }));
                     } else if (Number(selectedObject.typeId) === Number(RoomObjectUserType.RentableBot)) {
-                        NitroLogger.sendPacket(`new BotPlaceComposer(${selectedObject.objectId}, Math.trunc(${x}), Math.trunc(${y}))`);
+                        send(new PlaceBotComposer({ botId: objectId, x: Math.trunc(x), y: Math.trunc(y) }));
                     }
                 } else if (roomObject.model.getValue<string>(RoomObjectVariableEnum.FurnitureIsStickie) !== undefined) {
-                    NitroLogger.sendPacket('new FurniturePostItPlaceComposer(objectId, wallLocation)');
+                    send(new PlacePostItComposer({ itemId: objectId, wallLocation }));
                 } else {
                     send(new PlaceObjectComposer({
                         itemId: objectId, category, wallLocation, x: Math.trunc(x), y: Math.trunc(y), rotation: direction,
