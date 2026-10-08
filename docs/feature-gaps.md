@@ -80,20 +80,16 @@ the layouts are the library's in `scripts/flash-js-resources`.
 
 | Area | Views | Layouts |
 |---|---|---|
-| Room UI: furniture widgets | 22 windows in `views/room-widgets/furniture` | `habbo-room-ui-com`: `area_hide_ui`, `background_color_ui`, `custom_stack_height`, `dimmer_ui`, `lock_confirm`, `mannequin_*`, `mystery_box_*`, `rentablespace`, `playlisteditor_*`, `credit_redeem`, `craftingwidget`, `use_product_*`, `placeholder`, `video_viewer`, `vimeo_viewer`, `packagecard*`, `petpackage*`, `boygirl` |
-| Room UI: pets | `BreedingResultView`, `NestBreedingView`, `NestBreedingSuccessView`, `PlantBreedingView` | `breed_pets_confirmation`, `breed_pets_result`, `confirm_pet_breeding`, `nestBreedingSuccess` |
-| Room UI: room tools, poll, quiz, queue, doorbell, friend request, effects | `views/room-widgets/*` | `room_tools_*`, `share_room`, `poll_*`, `wordquiz_*`, `room_queue`, `doorbell`, `instant_friend_request`, `effects_widget`, `effect_selector` |
-| Room UI: infostand leftovers | `InfostandBadgeView`, `UniqueItemPlaqueView` | `badge_details` |
-| Friend bar and hotel view | `views/friend-bar`, `views/hotel-view` | `habbo-friend-bar-com`: `new_bar`, `new_friend_entity`, `new_controls_piece`, `landing_view_*`, `dynamic_widget_grid`, `element_*` |
+| Hotel view | `views/hotel-view` | `habbo-friend-bar-com`: `landing_view_*`, `dynamic_widget_grid`, `element_*` |
 | Friend list and messenger | `views/friendlist`, `views/messenger` | `habbo-friend-list-com`, `habbo-messenger-com` |
 | Navigator leftovers | `NavigatorRoomCreateView`, `NavigatorRoomEntryDialogs`, `NavigatorErrorPopup` | `roc_create_room`, `password_input`, `doorbell`, `nav_error_popup` |
-| Room info and settings | `RoomInfoView`, `RoomSettingsView` | `habbo-navigator-com`: `iro_*`, `ros_*` |
 | Groups and profile | `views/groups`, `UserProfileView` | `habbo-groups-com`: `group_info_window`, `group_management_window`, `badge_editor`, `guild_members_window`, `group_created_window`, `club_required`, `new_extended_profile` |
 | Notifications | `views/notifications` | `habbo-notifications-com`: `layout_notification_popup`, `motd_notification`, ... |
 | Collectibles, habbicons, offer centre, special items | `views/collectibles`, `views/habbicons`, `OfferCenterView`, `SpecialItemsView` | `habbo-catalog-com`: `collectible_view`, `collectible_reward`, `habbicon_view`, `habbicon_purchase_confirmation`, `offer_center`, `special_items_display` |
 | Wired menu, chests and transactions | `views/wired-menu`, `views/wired-trading/chests`, `views/wired-trading/transactions` | `habbo-user-defined-room-events-com`: `wired_menu_view`, `logs_overview`, `error_info_view`, `variables_management_*`, `chest_*`, `transaction_*` |
 | Alerts and dialogs | `SimpleAlertView`, `SystemDialogsView` | the window manager's alert layouts |
 | Inventory leftovers | `InventoryMarketplaceView`, `InventoryTradingDock` | `habbo-inventory-com` |
+| Room UI: product layouts | `FurnitureMonsterplantSeedWidget`, `FurniturePurchasableClothingWidget`, `FurniturePetProductWidget` draw through `FurnitureUseProductView`'s shampoo controller | `use_product_*` (plant seed, clothing with its `avatar_preview`, custom part, saddle, monsterplant) |
 
 The chat bar is drawn from `chatinput_window_new` but keeps the client's own text field in
 `chat_input`'s place, for the command completion the port adds to it.
@@ -102,7 +98,10 @@ No layout to convert to, so these stay hand-placed: the wired setup editor and t
 frame (`views/wired-setup`, `views/wired-common`, `WiredTradingFrame` - Flash builds them in code
 from `UbuntuPresetManager`, and the `wired_style_*` templates are already read by the wired
 styles), the floor plan editor (its layout is not in the bundles), the earnings window and the
-loading screen.
+loading screen. In the room UI, also the pet picker (`FurniturePetPickerView`: Flash floats a
+`use_product_menu` bubble over each pet instead of opening a window), the room ad tooltip (built
+with `createWindow`), the chat command suggestions (the port's own) and `PetPortraitView` (a
+picture the breeding windows draw into their bitmaps).
 
 ## Quick wins
 

@@ -715,7 +715,8 @@ export class RoomPlane implements IRoomPlane {
     private getMergedMasks(geometry: IRoomGeometry, width: number, height: number): Texture | undefined {
         if (!this._useMask || (!this._bitmapMasks.length && !this._rectangleMasks.length)) {
             if (this._maskTexture) {
-                this._maskTexture.destroy(true);
+                // Pooled, and still bound to the alpha mask filter from the last draw.
+                TexturePool.releaseTexture(this._maskTexture);
                 this._maskTexture = undefined;
             }
 

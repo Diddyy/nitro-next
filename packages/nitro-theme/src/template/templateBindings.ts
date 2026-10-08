@@ -29,6 +29,8 @@ export interface TemplateBinding {
     setCaptionAfterBuild?: boolean;
     /** Over the layout's `tool_tip_caption`. */
     tooltip?: string;
+    /** `IInteractiveWindow.toolTipDelay`: how long, in ms, the pointer rests before the tooltip shows. */
+    tooltipDelay?: number;
     /**
      * `0xRRGGBB`: a text's colour (`ITextWindow.textColor`) over its `text_color`, anything else's tint
      * (`IWindow.color`) over its `color`.
@@ -51,7 +53,7 @@ export interface TemplateBinding {
     greyscale?: boolean;
     /** Over the layout's `style` (`IWindow.style`) - an icon's icon-set style. */
     style?: string;
-    /** `IWindow.blend`, over the layout's. */
+    /** `IWindow.blend`, over the layout's - fading the window's children too, where the layout's own blend may not. */
     alpha?: number;
     disabled?: boolean;
     /**
@@ -63,6 +65,11 @@ export interface TemplateBinding {
     selected?: boolean;
     /** `WME_CLICK`; the event's `currentTarget` is the element's window (`getGlobalRectangle`). */
     onPointerTap?: (event: FederatedPointerEvent) => void;
+    /**
+     * `WME_DOUBLE_CLICK`: a second click on the element within `DOUBLE_CLICK_MS` of the first. Both
+     * clicks are still `onPointerTap`s, as Flash sends `WME_CLICK` for each before the double click.
+     */
+    onDoubleClick?: (event: FederatedPointerEvent) => void;
     /** `WME_OVER` / `WME_OUT` on the element. */
     onPointerOver?: (event: FederatedPointerEvent) => void;
     onPointerOut?: (event: FederatedPointerEvent) => void;
@@ -94,6 +101,13 @@ export interface TemplateBinding {
     etchingColor?: number;
     /** An input's `ITextFieldWindow.italic`. */
     italic?: boolean;
+    /** A text's `ITextWindow.underline`, over its layout's. */
+    underline?: boolean;
+    /**
+     * A text cut to its window by the friend bar's `TextCropper.crop`: `...` near its right edge
+     * when its first line is wider than the window.
+     */
+    crop?: boolean;
     /** A drop menu's entries (`IDropMenuWindow.populate`), shown in it as its caption is. */
     options?: readonly string[];
     /** A drop menu's `selection`: the index of the entry it shows. */
@@ -358,7 +372,7 @@ export const bindElements = (targets: ReadonlyMap<string, TemplateElement>, bind
 };
 
 /** The handlers a binding carries: each is handed to the element as one stable function that calls the latest. */
-const HANDLERS = [ 'onPointerTap', 'onPointerOver', 'onPointerOut', 'onPointerDown', 'onPointerUp', 'onChange', 'onEnter', 'onKeyDown', 'onBlur', 'onFocus', 'onSelect' ] as const;
+const HANDLERS = [ 'onPointerTap', 'onDoubleClick', 'onPointerOver', 'onPointerOut', 'onPointerDown', 'onPointerUp', 'onChange', 'onEnter', 'onKeyDown', 'onBlur', 'onFocus', 'onSelect' ] as const;
 
 type TemplateHandler = typeof HANDLERS[number];
 
@@ -374,6 +388,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.caption === b.caption
         && a.setCaptionAfterBuild === b.setCaptionAfterBuild
         && a.tooltip === b.tooltip
+        && a.tooltipDelay === b.tooltipDelay
         && a.asset === b.asset
         && a.greyscale === b.greyscale
         && a.style === b.style
@@ -385,6 +400,8 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.autoHideScrollBar === b.autoHideScrollBar
         && a.spacing === b.spacing
         && a.italic === b.italic
+        && a.underline === b.underline
+        && a.crop === b.crop
         && a.restrict === b.restrict
         && a.focused === b.focused
         && a.etchingColor === b.etchingColor
@@ -399,6 +416,9 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && HANDLERS.every(handler => !a[handler] === !b[handler])
         && (a.show === b.show || (!!a.show && !!b.show && a.show.length === b.show.length && a.show.every((name, index) => name === b.show?.[index])));
 };
+
+/** The longest gap between two clicks that makes them a double click (the Windows default Flash Player follows). */
+export const DOUBLE_CLICK_MS = 500;
 
 /** What one element of a drawn template reads: its binding, and the rect its window's rules gave it. */
 export interface TemplateElementState {
@@ -420,6 +440,8 @@ export class TemplateBindingStore {
     private _current = new Map<TemplateElement, TemplateElementState>();
     private _latest = new Map<TemplateElement, TemplateBinding>();
     private _handlers = new Map<TemplateElement, Partial<Record<TemplateHandler, (...args: never[]) => void>>>();
+    /** When each element was last tapped, for its double click. */
+    private _lastTaps = new Map<TemplateElement, number>();
     private _listeners = new Set<() => void>();
     private _changed = false;
 
@@ -472,6 +494,9 @@ export class TemplateBindingStore {
             if (binding[handler]) Object.assign(stable, { [handler]: this.handlerFor(element, handler) });
         }
 
+        // A double click is told by the element's taps, so an element that only double-clicks taps too.
+        if (binding.onDoubleClick) stable.onPointerTap = this.handlerFor(element, 'onPointerTap');
+
         return stable;
     }
 
@@ -483,10 +508,37 @@ export class TemplateBindingStore {
             this._handlers.set(element, handlers);
         }
 
+        if (kind === 'onPointerTap') return handlers[kind] ??= (event: FederatedPointerEvent) => this.tap(element, event);
+
         return handlers[kind] ??= (...args: never[]) => {
             const handler: ((...latest: never[]) => void) | undefined = this._latest.get(element)?.[kind];
 
             handler?.(...args);
         };
+    }
+
+    /** The element's click, and its double click when it is the second within `DOUBLE_CLICK_MS`. */
+    private tap(element: TemplateElement, event: FederatedPointerEvent): void {
+        const latest = this._latest.get(element);
+
+        latest?.onPointerTap?.(event);
+
+        if (!latest?.onDoubleClick) {
+            this._lastTaps.delete(element);
+
+            return;
+        }
+
+        const now = performance.now();
+        const last = this._lastTaps.get(element);
+
+        if ((last !== undefined) && ((now - last) <= DOUBLE_CLICK_MS)) {
+            this._lastTaps.delete(element);
+            latest.onDoubleClick(event);
+
+            return;
+        }
+
+        this._lastTaps.set(element, now);
     }
 }

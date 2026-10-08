@@ -33,7 +33,8 @@ const DEFAULT_PET_COLOR = 0xffffff;
  * product's sellable palettes, asked for through `getSellablePetPalettes` and kept by the
  * catalogue, listed only when there is more than one), a colour in the colour grid (this widget's
  * fixed per-type table, `PET_AVAILABLE_COLORS`, sent as `CatalogWidgetColoursEvent` - the grid's
- * container is `blend="0"`, so the swatches are there to click but not seen), and types a name into
+ * container is `blend="0"`, which draws into its parent's context, so only its own face is faded
+ * and the swatches show), and types a name into
  * `name_input_text`. `ctlg_teaserimg_1` shows the pet at double size, centred, redrawn on every
  * pick (`updateImage`), with the offer's price box against its bottom right corner
  * (`showPriceOnProduct(offer, _window, box, ctlg_teaserimg_1, -6, false, 6)`).

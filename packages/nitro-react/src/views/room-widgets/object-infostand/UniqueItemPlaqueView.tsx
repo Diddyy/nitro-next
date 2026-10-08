@@ -1,4 +1,4 @@
-import { Box, LayoutImage, Region, ThemeImage } from '#base/theme';
+import { Box, LayoutImage, TemplateWindow, ThemeImage } from '#base/theme';
 
 /** The `unique_item_label_number_glyphs` strip: `x, width` of each digit, from the window manager manifest. */
 const GLYPHS: [number, number][] = [ [ 1, 5 ], [ 6, 3 ], [ 9, 5 ], [ 14, 5 ], [ 19, 5 ], [ 24, 5 ], [ 29, 5 ], [ 34, 5 ], [ 39, 5 ], [ 44, 5 ] ];
@@ -29,32 +29,48 @@ export const GlyphNumber = ({ value, width = 20, layout }: { value: number; widt
     );
 };
 
+/** The width of `unique_item_serial_number_bitmap` and `unique_item_edition_size_bitmap`, the slots the numbers are centred in. */
+const NUMBER_WIDTH = 20;
+
 export interface UniqueItemPlaqueViewProps {
     serialNumber: number;
     seriesSize: number;
+    /** Where the widget's window is in the window that holds it. */
     layout?: { left?: number; top?: number; right?: number; bottom?: number };
 }
 
 /**
- * The little metal plaque a limited edition item wears - `unique_item_overlay_preview` with
- * `LimitedItemPreviewOverlayWidget` filling in the two numbers: the item's serial over the size
- * of its series.
+ * The little metal plaque a limited edition item wears - the infostand's `unique_item_plaque_widget`
+ * (`widget_type` `limited_item_overlay_preview`), `LimitedItemPreviewOverlayWidget`, which builds
+ * `habbo-window-manager-com/unique_item_overlay_preview_xml` as its root window: the
+ * `unique_item_large_tile_upright` plate, and `set serialNumber` / `set seriesSize` filling
+ * `unique_item_serial_number_bitmap` over `unique_item_edition_size_bitmap` with
+ * `LimitedItemNumberBitmap.createBitmap`.
  */
 export const UniqueItemPlaqueView = ({ serialNumber, seriesSize, layout }: UniqueItemPlaqueViewProps) => (
-    <Region layout={{ position: 'absolute', width: 40, height: 40, ...layout }}>
-        <ThemeImage
-            src={LayoutImage('habbo-window-manager-com/unique_item_large_tile_upright.png')}
-            // A `static_bitmap` with no vars: the 34x37 plate stretched over its 30x30 window.
-            bitmap={{}}
-            layout={{ position: 'absolute', left: 5, top: 0, width: 30, height: 30 }}
+    <Box layout={{ position: 'absolute', ...layout }}>
+        <TemplateWindow
+            id="habbo-window-manager-com/unique_item_overlay_preview_xml"
+            bindings={{
+                unique_item_serial_number_bitmap: {
+                    children: (
+                        <GlyphNumber
+                            value={serialNumber}
+                            width={NUMBER_WIDTH}
+                            layout={{ left: 0, top: 0 }}
+                        />
+                    ),
+                },
+                unique_item_edition_size_bitmap: {
+                    children: (
+                        <GlyphNumber
+                            value={seriesSize}
+                            width={NUMBER_WIDTH}
+                            layout={{ left: 0, top: 0 }}
+                        />
+                    ),
+                },
+            }}
         />
-        <GlyphNumber
-            value={serialNumber}
-            layout={{ left: 10, top: 16 }}
-        />
-        <GlyphNumber
-            value={seriesSize}
-            layout={{ left: 10, top: 23 }}
-        />
-    </Region>
+    </Box>
 );

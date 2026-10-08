@@ -1,4 +1,11 @@
-import { Border, Region, ThemeText } from '#base/theme';
+/**
+ * The rooms visited this session, newest last - Flash `RoomToolsHistory`, on `habbo-room-ui-com`'s
+ * `room_tools_history` layout with one `room_tools_history_item` added per room (`populate`): its
+ * `room_name` the room's name, at x 5, the first at y 5 and each 2 under the last, and the panel as
+ * high as the last row's bottom plus `2 * PADDING`. The rows are wider than the panel (169 against 152)
+ * and are cut at its edge. A click on a row goes to its room (`onClick` -> `goToPrivateRoom`).
+ */
+import { TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
 
 export interface RoomToolsHistoryEntry {
     roomId: number;
@@ -10,52 +17,49 @@ export interface RoomToolsHistoryViewProps {
     onSelect: (roomId: number) => void;
 }
 
-/** `RoomToolsHistory.populate`: items at x 5, the first at y 5, each 2 under the last. */
+const HISTORY_TEMPLATE = 'habbo-room-ui-com/room_tools_history_xml';
+const ITEM_TEMPLATE = 'habbo-room-ui-com/room_tools_history_item_xml';
+
+/** `RoomToolsHistory.PADDING` / `SPACING`. */
 const PADDING = 5;
 const SPACING = 2;
-/** The `room_tools_history` panel's width, and the `room_tools_history_item` row (169x24). */
-const WIDTH = 152;
-const ITEM_WIDTH = 169;
-const ITEM_HEIGHT = 24;
 
-/**
- * The rooms visited this session, newest last, on the `room_tools_history` layout with one
- * `room_tools_history_item` per room. `RoomToolsHistory.populate` places the rows itself and sets
- * the panel's height to the last row's bottom plus `2 * 5`, leaving the layout's nominal 97
- * behind. The rows are wider than the panel (169 against 152) and are cut at its edge.
- */
+/** `populate`: the rows stacked from the top, the panel ending under the last. */
+const arrange = ({ root }: TemplateWindows) => {
+    const window = root();
+
+    if (!window) return;
+
+    let bottom = 0;
+
+    for (const item of window.children) {
+        item.setX(PADDING);
+        item.setY(bottom ? (bottom + SPACING) : PADDING);
+        bottom = item.y + item.height;
+    }
+
+    window.setHeight(bottom + (2 * PADDING));
+};
+
 export const RoomToolsHistoryView = ({ entries, onSelect }: RoomToolsHistoryViewProps) => {
-    const listBottom = entries.length
-        ? PADDING + (entries.length * ITEM_HEIGHT) + ((entries.length - 1) * SPACING)
-        : 0;
+    const itemTemplate = useTemplate(ITEM_TEMPLATE);
+
+    if (!itemTemplate) return null;
+
+    const added: TemplateItem[] = entries.map(entry => ({
+        key: String(entry.roomId),
+        from: itemTemplate,
+        bindings: {
+            '': { onPointerTap: () => onSelect(entry.roomId) },
+            room_name: { caption: entry.roomName },
+        },
+    }));
 
     return (
-        <Border
-            variant="2"
-            tintColor="#24231e"
-            blend={0.8}
-            ownGraphicContext
-            layout={{ width: WIDTH, height: listBottom + (2 * PADDING), overflow: 'hidden' }}
-        >
-            {entries.map((entry, index) => (
-                <Region
-                    key={entry.roomId}
-                    dynamicStyle="brightness_and_shadow_under"
-                    onPointerTap={() => onSelect(entry.roomId)}
-                    cursor="pointer"
-                    layout={{ position: 'absolute', left: PADDING, top: PADDING + (index * (ITEM_HEIGHT + SPACING)), width: ITEM_WIDTH, height: ITEM_HEIGHT }}
-                >
-                    <ThemeText
-                        text={entry.roomName}
-                        textStyle="u_regular"
-                        textOptions={{ fill: '#ffffff' }}
-                        dynamicRole="icon"
-                        name="room_name"
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 3, top: 3 }}
-                    />
-                </Region>
-            ))}
-        </Border>
+        <TemplateWindow
+            id={HISTORY_TEMPLATE}
+            bindings={{ '': { added } }}
+            arrange={arrange}
+        />
     );
 };

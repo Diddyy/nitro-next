@@ -37,6 +37,8 @@ export interface FlashTextCanvasConfig {
     /** The text is Flash `htmlText` (`parseFlashTextMarkup`), not plain text. */
     markup?: boolean;
     overflowReplace?: FlashTextOverflowReplace;
+    /** `TextCropper.crop` to a field this wide - see `cropText`. */
+    crop?: number;
 }
 
 /** A `<font face>` in markup, resolved the way a raw `fontFamily` override is. */
@@ -143,6 +145,31 @@ const truncateOverflow = (text: string, format: FlashTextFormat, options: FlashT
     return current;
 };
 
+/** `TextCropper`'s `...`, and how far short of the field's right edge it cuts (`obf_A1A`). */
+const CROP_REPLACE = '...';
+const CROP_MARGIN = 20;
+
+/**
+ * `TextCropper.crop` (the friend bar's): the first line, laid out alone in the text's format, is
+ * measured, and when it is wider than the field the text is cut before the character at
+ * `width - 20` in field space (`getCharIndexAtPoint`, the 2px gutter included) and `...` appended.
+ * A point past the last character finds none, and the text stays as it is.
+ */
+const cropText = (text: string, format: FlashTextFormat, width: number): string => {
+    const line = text.split(/\r\n|\r|\n/)[0] ?? '';
+    const positions = FlashTextRenderer.measureCharPositions(line, format);
+
+    if (!positions || (positions[line.length] <= width)) return text;
+
+    const x = width - CROP_MARGIN - FLASH_TEXT_GUTTER;
+
+    for (let index = 0; index < line.length; index++) {
+        if ((x >= positions[index]) && (x < positions[index + 1])) return text.slice(0, index) + CROP_REPLACE;
+    }
+
+    return text;
+};
+
 /**
  * Rasterises `text` in a Habbo text style, exactly as the Flash client drew it. `undefined`
  * when there is no style to render in or the exact renderer cannot take the string (a glyph
@@ -153,7 +180,7 @@ const truncateOverflow = (text: string, format: FlashTextFormat, options: FlashT
  * text is first truncated the way `TextController.refreshTextImage` does; like Flash's
  * `_field.text = ...`, a truncated markup text loses its tags and renders plain.
  */
-export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | undefined, { color, fontSize, face, field, dropShadow, align, wordWrap, wordWrapWidth, breakWords, lineHeight, markup, overflowReplace }: FlashTextCanvasConfig): FlashTextCanvas | undefined => {
+export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | undefined, { color, fontSize, face, field, dropShadow, align, wordWrap, wordWrapWidth, breakWords, lineHeight, markup, overflowReplace, crop }: FlashTextCanvasConfig): FlashTextCanvas | undefined => {
     // The shadow is compared by value: callers resolve it to a fresh object on every render.
     const shadowAlpha = dropShadow?.alpha;
     const shadowAngle = dropShadow?.angle;
@@ -195,6 +222,13 @@ export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | 
             if (truncated !== plain) content = truncated;
         }
 
+        if (crop !== undefined) {
+            const plain = (typeof content === 'string') ? content : content.map(run => run.text).join('');
+            const cropped = cropText(plain, format, crop);
+
+            if (cropped !== plain) content = cropped;
+        }
+
         if (!content.length) return undefined;
 
         const rendered = renderFlashTextCanvas(content, format, { align, ...layoutOptions, lineHeight, shadow });
@@ -207,5 +241,5 @@ export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | 
 
         // A truncated text is plain (`_field.text = ...`), so it keeps no links.
         return (parsed?.links.length && (typeof content !== 'string')) ? { ...rendered, links: parsed.links } : rendered;
-    }, [ text, habboKey, color, fontSize, faceFamily, faceBold, faceItalic, fieldKey, overflowKey, markup, align, wordWrap, wordWrapWidth, breakWords, lineHeight, shadowAlpha, shadowAngle, shadowDistance, shadowColor ]);
+    }, [ text, habboKey, color, fontSize, faceFamily, faceBold, faceItalic, fieldKey, overflowKey, crop, markup, align, wordWrap, wordWrapWidth, breakWords, lineHeight, shadowAlpha, shadowAngle, shadowDistance, shadowColor ]);
 };

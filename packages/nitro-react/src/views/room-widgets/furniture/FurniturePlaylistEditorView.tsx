@@ -1,5 +1,8 @@
-import { useTranslation } from '#base/context/system';
-import { Border, Box, Button, Frame, Region, ScrollArea, ThemeText } from '#base/theme';
+import { FederatedPointerEvent } from 'pixi.js';
+import { useState } from 'react';
+
+import { useSystemActions } from '#base/context/system';
+import { LayoutImage, Template, TemplateBindings, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 export interface PlaylistEditorSong {
     /** The disk in your inventory, or the slot it occupies in the jukebox. */
@@ -23,141 +26,187 @@ export interface FurniturePlaylistEditorViewProps {
     onClose: () => void;
 }
 
-/** A song length reads as minutes and seconds, which is all a playlist ever needs. */
-const formatLength = (length: number) => {
-    const minutes = Math.floor(length / 60);
-    const seconds = length % 60;
+const MAIN_TEMPLATE = 'habbo-room-ui-com/playlisteditor_main_window';
+const INVENTORY_ITEM_TEMPLATE = 'habbo-room-ui-com/playlisteditor_music_inventory_item';
+const PLAYLIST_ITEM_TEMPLATE = 'habbo-room-ui-com/playlisteditor_playlist_item';
+const GET_MORE_MUSIC_TEMPLATE = 'habbo-room-ui-com/playlisteditor_inventory_subwindow_get_more_music';
+const ADD_SONGS_TEMPLATE = 'habbo-room-ui-com/playlisteditor_playlist_subwindow_add_songs';
+const PLAY_NOW_TEMPLATE = 'habbo-room-ui-com/playlisteditor_playlist_subwindow_play_now';
+const NOW_PLAYING_TEMPLATE = 'habbo-room-ui-com/playlisteditor_playlist_subwindow_nowplaying';
 
-    return `${minutes}:${(seconds < 10) ? '0' : ''}${seconds}`;
-};
+/** `MainWindowHandler.createWindow`: the window at (80, 0). */
+const WINDOW_POSITION = { x: 80, y: 0 };
+
+/** `SHOW_BUY_MORE_MUSIC_DISK_COUNT`: up to this many disks, the inventory offers the catalogue. */
+const SHOW_BUY_MORE_MUSIC_DISK_COUNT = 6;
+
+/** `MY_MUSIC_SHOW_SCROLLBAR_ITEM_COUNT_LIMIT` / `PLAYLIST_SHOW_SCROLLBAR_ITEM_COUNT_LIMIT`: more than this, a scrollbar. */
+const MY_MUSIC_SHOW_SCROLLBAR_ITEM_COUNT_LIMIT = 9;
+const PLAYLIST_SHOW_SCROLLBAR_ITEM_COUNT_LIMIT = 5;
+
+/** `MusicInventoryGridItem.BG_COLOR_SELECTED` / `PlayListEditorItem.BG_COLOR_SELECTED`, and both items' unselected colour. */
+const INVENTORY_SELECTED_COLOR = 0xdef6bf;
+const PLAYLIST_SELECTED_COLOR = 0xd9f0fa;
+const UNSELECTED_COLOR = 0xf1f1f1;
+
+/** `openSongDiskShopCataloguePage`: the song disks' catalogue page. */
+const SONG_DISK_CATALOGUE_PAGE = 'trax_songs';
+
+/** The selected item: an inventory disk by id, or a playlist entry by its place (`_selectedItemIndex`). */
+type Selection = { diskId: number } | { index: number } | null;
+
+/** `select()` / `deselect()`: the item's background colour, its `selected` border and its `action_buttons`. */
+const selectionBindings = (selected: boolean, selectedColor: number): TemplateBindings => ({
+    background: { color: selected ? selectedColor : UNSELECTED_COLOR },
+    selected: { visible: selected },
+    action_buttons: { visible: selected },
+});
+
+/** A window `selectView` puts in a status container, when its template is in. */
+const statusWindow = (key: string, template: Template | undefined, bindings?: TemplateBindings): TemplateItem[] => (template ? [ { key, from: template, bindings } ] : []);
 
 /**
- * The jukebox playlist editor, on the `playlisteditor_main_window` layout (582x437): your own
- * disks on the left, what the jukebox will play on the right, and one click to move a song
- * between them.
+ * The jukebox playlist editor - `MainWindowHandler`, drawn from its `playlisteditor_main_window`
+ * template at (80, 0): your own disks on the left, what the jukebox plays on the right. The header's
+ * close hides it (`findChildByTag("close")`).
  *
- * The window shell is the layout's: both borders, their tinted `style 2` header borders and
- * titles, and each list with its scrollbar at the layout's own rects. What sits in the lists is
- * not: Flash fills the inventory with a grid of `playlisteditor_music_inventory_item` disks and
- * the playlist with `playlisteditor_playlist_item` rows, drawn from the jukebox art (`jb_*` disk
- * images and buttons, the splash images) that the port does not ship yet, so both lists keep a
- * plain row per song with its add or remove button, and the `now_playing_container` keeps a
- * plain text rather than `playlisteditor_playlist_subwindow_nowplaying`.
+ * - `music_inventory_itemgrid`: a `playlisteditor_music_inventory_item` per disk
+ *   (`MusicInventoryGridView.refresh`, `MusicInventoryGridItem`): its song's title, `icon_cd_big` and
+ *   `title_fader`. A press selects it (`select`: 0xDEF6BF, its `selected` border and its
+ *   `action_buttons`) and drops the playlist's selection; its `button_to_playlist` (`icon_arrow`)
+ *   adds the disk and deselects it. The scrollbar shows past 9 disks (`onSongDiskInventoryReceived`).
+ * - `preview_play_container` (`MusicInventoryStatusView`): `get_more_music` while you own 6 disks or
+ *   fewer, whose `open_catalog_button` opens `trax_songs`; hidden otherwise.
+ * - `playlist_editor_itemlist`: a `playlisteditor_playlist_item` per entry (`PlayListEditorItemListView`,
+ *   `PlayListEditorItem`): title, author, `icon_cd_small`. A press selects it (0xD9F0FA) and drops the
+ *   inventory's selection; its `button_remove_from_playlist` (`icon_arrow_left`) removes it. The
+ *   scrollbar shows past 5 entries (`onPlayListUpdated`).
+ * - `now_playing_container` (`PlayListStatusView.selectView`): `nowplaying` with the song's name
+ *   while something plays, `play_now` while the list has songs, `add_songs` while it is empty.
  *
- * Flash could also preview a disk before adding it, which needs the sound system the port has
- * yet to build, so a disk here is added or not at all.
+ * Kept from the port as it was: the add button is disabled while the jukebox is full (Flash sends
+ * it and alerts on `PLAY_LIST_FULL`). Not carried, as the view is handed nothing for them: the
+ * preview (`button_play_pause` and the `play_preview` status are drawn disabled / never chosen),
+ * `play_now_button` and `button_pause` (`sendTogglePlayPauseStateMessage`, drawn disabled), the disk
+ * colours (`getDiskColorTransformFromSongData` needs each song's data), the playing entry's
+ * `icon_notes_small` (needs the play position), the now playing author and a double click adding or
+ * removing. "Playing" is read as a song name being known. The splash and status backgrounds
+ * (`title_mymusic`, `title_playlist`, `background_*`) come from `image.library.playlist.url`, which
+ * the hotel config does not have, so those bitmaps stay empty.
  */
 export const FurniturePlaylistEditorView = ({
     inventory, playList, maxLength, nowPlaying, onAdd, onRemove, onClose,
 }: FurniturePlaylistEditorViewProps) => {
-    const t = useTranslation();
+    const { showWindow } = useSystemActions();
+    const inventoryItemTemplate = useTemplate(INVENTORY_ITEM_TEMPLATE);
+    const playlistItemTemplate = useTemplate(PLAYLIST_ITEM_TEMPLATE);
+    const getMoreMusicTemplate = useTemplate(GET_MORE_MUSIC_TEMPLATE);
+    const addSongsTemplate = useTemplate(ADD_SONGS_TEMPLATE);
+    const playNowTemplate = useTemplate(PLAY_NOW_TEMPLATE);
+    const nowPlayingTemplate = useTemplate(NOW_PLAYING_TEMPLATE);
+    const [ selection, setSelection ] = useState<Selection>(null);
     const isFull = (playList.length >= maxLength);
 
-    const renderSong = (song: PlaylistEditorSong, action: () => void, actionLabel: string, disabled: boolean) => (
-        <Box
-            key={song.id}
-            layout={{ width: '100%', height: 46, flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 4, paddingRight: 4 }}
-        >
-            <Box layout={{ flex: 1, flexDirection: 'column' }}>
-                <ThemeText
-                    text={song.songName}
-                    textStyle="bold"
-                />
-                <ThemeText text={song.creator} />
-            </Box>
-            {!!song.length && <ThemeText text={formatLength(song.length)} />}
-            <Button
-                variant="0"
-                disabled={disabled}
-                onPointerTap={action}
-                layout={{ width: 26, height: 24 }}
-            >
-                {actionLabel}
-            </Button>
-        </Box>
-    );
+    const inventoryItems: TemplateItem[] = inventoryItemTemplate
+        ? inventory.map((song) => {
+                const selected = !!selection && ('diskId' in selection) && (selection.diskId === song.id);
+
+                return {
+                    key: String(song.id),
+                    from: inventoryItemTemplate,
+                    bindings: {
+                    // `gridItemEventProc`: a press on the item selects it.
+                        '': { onPointerTap: () => setSelection({ diskId: song.id }) },
+                        ...selectionBindings(selected, INVENTORY_SELECTED_COLOR),
+                        song_title_text: { caption: song.songName },
+                        disk_image: { asset: LayoutImage('habbo-room-ui-com/icon_cd_big.png') },
+                        title_fader_bitmap: { asset: LayoutImage('habbo-room-ui-com/title_fader.png') },
+                        button_play_pause: { disabled: true },
+                        image_button_play_pause: { asset: LayoutImage('habbo-room-ui-com/icon_play.png') },
+                        button_to_playlist: {
+                            disabled: isFull,
+                            onPointerTap: (event: FederatedPointerEvent) => {
+                                event.stopPropagation();
+
+                                if (isFull) return;
+
+                                setSelection(null);
+                                onAdd(song.id);
+                            },
+                        },
+                        image_button_to_playlist: { asset: LayoutImage('habbo-room-ui-com/icon_arrow.png') },
+                    },
+                };
+            })
+        : [];
+
+    const playlistItems: TemplateItem[] = playlistItemTemplate
+        ? playList.map((song, index) => {
+                const selected = !!selection && ('index' in selection) && (selection.index === index);
+
+                return {
+                    key: String(index),
+                    from: playlistItemTemplate,
+                    bindings: {
+                    // `itemEventProc`: a press on the entry selects it.
+                        '': { onPointerTap: () => setSelection({ index }) },
+                        ...selectionBindings(selected, PLAYLIST_SELECTED_COLOR),
+                        song_title_text: { caption: song.songName },
+                        song_author_text: { caption: song.creator },
+                        disk_image: { asset: LayoutImage('habbo-room-ui-com/icon_cd_small.png') },
+                        button_remove_from_playlist: {
+                            onPointerTap: (event: FederatedPointerEvent) => {
+                                event.stopPropagation();
+                                setSelection(null);
+                                onRemove(index);
+                            },
+                        },
+                        button_remove_from_playlist_image: { asset: LayoutImage('habbo-room-ui-com/icon_arrow_left.png') },
+                    },
+                };
+            })
+        : [];
+
+    // `selectMusicStatusViewByMusicState`: the catalogue offer while you own few disks.
+    const showsGetMoreMusic = (inventory.length <= SHOW_BUY_MORE_MUSIC_DISK_COUNT);
+
+    // `selectPlayListStatusViewByFurniPlayListState`.
+    let playlistStatus: TemplateItem[];
+
+    if (nowPlaying.length) {
+        playlistStatus = statusWindow('now_playing', nowPlayingTemplate, {
+            button_pause: { disabled: true },
+            pause_image: { asset: LayoutImage('habbo-room-ui-com/icon_pause_large.png') },
+            now_playing_track_name: { caption: nowPlaying },
+            now_playing_author_name: { caption: '' },
+        });
+    } else if (playList.length) {
+        playlistStatus = statusWindow('play_now', playNowTemplate, { play_now_button: { disabled: true } });
+    } else {
+        playlistStatus = statusWindow('add_songs', addSongsTemplate);
+    }
+
+    const bindings: TemplateBindings = {
+        music_inventory_itemgrid: { items: inventoryItems },
+        music_inventory_scrollbar: { visible: inventory.length > MY_MUSIC_SHOW_SCROLLBAR_ITEM_COUNT_LIMIT },
+        preview_play_container: {
+            visible: showsGetMoreMusic,
+            added: showsGetMoreMusic
+                ? statusWindow('get_more_music', getMoreMusicTemplate, {
+                        open_catalog_button: { onPointerTap: () => showWindow('catalog', { pageName: SONG_DISK_CATALOGUE_PAGE }) },
+                    })
+                : [],
+        },
+        playlist_editor_itemlist: { items: playlistItems },
+        playlist_scrollbar: { visible: playList.length > PLAYLIST_SHOW_SCROLLBAR_ITEM_COUNT_LIMIT },
+        now_playing_container: { added: playlistStatus },
+    };
 
     return (
-        <Frame
-            variant="0"
-            id="playlist.editor"
-            caption={t('playlist.editor.title')}
-            tintColor="#418caf"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={onClose}
-            defaultPosition={{ x: 60, y: 40 }}
-            rememberPosition={false}
-            resizeDirection="none"
-            margins={[ 6, 25, 6, 7 ]}
-            layout={{ position: 'absolute', width: 582, height: 437 }}
-        >
-            <Border
-                variant="0"
-                layout={{ position: 'absolute', left: 0, top: 0, width: 303, height: 407, overflow: 'hidden' }}
-            >
-                <ScrollArea
-                    orientation="vertical"
-                    variant="0"
-                    // `music_inventory_scrollbar` is the layout's own window: it stays, disabled, while the list fits.
-                    hideDisabledScrollbar={false}
-                    layout={{ position: 'absolute', left: 2, top: 89, width: 295, height: 315 }}
-                    viewportLayout={{ position: 'absolute', left: 0, top: 0, width: 277, height: 315 }}
-                    scrollbarLayout={{ position: 'absolute', left: 278, top: 4, width: 17, height: 306 }}
-                    contentLayout={{ position: 'relative', width: '100%', flexDirection: 'column', gap: 1 }}
-                >
-                    {inventory.map(song => renderSong(song, () => onAdd(song.id), '+', isFull))}
-                </ScrollArea>
-                <Border
-                    variant="2"
-                    tintColor="#60863b"
-                    layout={{ position: 'absolute', left: 4, top: 4, width: 295, height: 79 }}
-                />
-                <ThemeText
-                    text={t('playlist.editor.my.music')}
-                    textStyle="bold"
-                    textOptions={{ fill: '#ffffff', fontFamily: 'Ubuntu', fontSize: 20 }}
-                    flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 96, top: 29 }}
-                />
-            </Border>
-            <Border
-                variant="0"
-                layout={{ position: 'absolute', left: 307, top: 0, width: 263, height: 407, overflow: 'hidden' }}
-            >
-                <ScrollArea
-                    orientation="vertical"
-                    variant="0"
-                    // `playlist_scrollbar` is the layout's own window: it stays, disabled, while the list fits.
-                    hideDisabledScrollbar={false}
-                    layout={{ position: 'absolute', left: 2, top: 89, width: 254, height: 262 }}
-                    viewportLayout={{ position: 'absolute', left: 0, top: 0, width: 236, height: 262 }}
-                    scrollbarLayout={{ position: 'absolute', left: 237, top: 5, width: 17, height: 254 }}
-                    contentLayout={{ position: 'relative', width: '100%', flexDirection: 'column', gap: 1 }}
-                >
-                    {playList.map((song, index) => renderSong(song, () => onRemove(index), '-', false))}
-                </ScrollArea>
-                <Border
-                    variant="2"
-                    tintColor="#34637a"
-                    layout={{ position: 'absolute', left: 5, top: 5, width: 255, height: 79 }}
-                />
-                <ThemeText
-                    text={t('playlist.editor.playlist')}
-                    textStyle="bold"
-                    textOptions={{ fill: '#ffffff', fontFamily: 'Ubuntu', fontSize: 20 }}
-                    flashFormat={{ bold: true, antiAliasType: 'advanced' }}
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 96, top: 29 }}
-                />
-                <Region layout={{ position: 'absolute', left: 1, top: 350, width: 261, height: 56, paddingLeft: 6, paddingTop: 6 }}>
-                    <ThemeText
-                        text={nowPlaying}
-                        textOptions={{ fill: '#000000', wordWrap: true, wordWrapWidth: 250 }}
-                        verticalAlign="top"
-                    />
-                </Region>
-            </Border>
-        </Frame>
+        <TemplateWindow
+            id={MAIN_TEMPLATE}
+            bindings={bindings}
+            frame={{ id: 'playlist.editor', defaultPosition: WINDOW_POSITION, rememberPosition: false, onClose }}
+        />
     );
 };

@@ -97,6 +97,7 @@ export * from './TabButton';
 export * from './TabContent';
 export * from './TabContext';
 export * from './template/layoutToTemplate';
+export * from './template/localizeCaption';
 export * from './template/measureTemplateText';
 export * from './template/templateBindings';
 export * from './template/templateData';

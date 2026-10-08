@@ -183,6 +183,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
                 <InfostandBadgeView
                     code={info.groupBadge}
                     group
+                    groupName={info.groupName}
                     // `selectGroupBadge`: `HabboGroupsManager.showGroupBadgeInfo`, the group's own window.
                     onPress={info.groupId ? () => showGroupBadgeInfo(send, info.groupId) : undefined}
                     layout={{ position: 'absolute', left: 0, top: 0 }}
@@ -228,6 +229,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
                 <InfostandBadgeView
                     code={selected?.badgeCode}
                     ownerCount={selected?.ownerCount}
+                    rarityId={selected?.badgeRarityId}
                     layout={{ position: 'absolute', left: 0, top: 0 }}
                 />
             ),

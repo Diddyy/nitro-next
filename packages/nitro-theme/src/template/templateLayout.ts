@@ -864,7 +864,7 @@ interface ListOptions {
 class ListWindow extends LayoutWindow {
     public readonly container: LayoutWindow;
     protected readonly _horizontal: boolean;
-    protected readonly _spacing: number;
+    protected _spacing: number;
     private readonly _autoArrange: boolean;
     private readonly _scaleToFit: boolean;
     private _length = 0;
@@ -900,6 +900,11 @@ class ListWindow extends LayoutWindow {
 
     public override get scrollableRegion(): { width: number; height: number } {
         return { width: this.container.width, height: this.container.height };
+    }
+
+    /** `IItemListWindow.spacing`: the gap between items, for the items placed from now on. */
+    public set spacing(spacing: number) {
+        this._spacing = spacing;
     }
 
     /** `ItemListController.addListItemAt`. */
@@ -1197,6 +1202,12 @@ class ScrollableWindow extends LayoutWindow {
             if (window instanceof ListWindow && (part.tags?.includes('_ITEMLIST') || part.tags?.includes('_ITEMGRID'))) {
                 this._list = window;
                 window.container.scrollContent = true;
+
+                // `ScrollableItemGridWindow` / `ScrollableItemListWindow.spacing`: the layout's (or the
+                // code's) spacing is the inner list's.
+                const spacing = input.spacingOf?.(element) ?? (typeof element.vars.spacing === 'number' ? int(element.vars.spacing) : undefined);
+
+                if (spacing !== undefined) window.spacing = spacing;
             }
             if (part.tags?.includes('_SCROLLBAR')) this._scrollbar = window;
         }
@@ -1263,13 +1274,16 @@ class ScrollableWindow extends LayoutWindow {
         if (!list || !scrollbar) return;
 
         const overflows = !this.autoHideScrollBar || list.container.height > list.height;
+        // `ScrollableItemListWindow` widens its list into the scrollbar's place while it is hidden;
+        // `ScrollableItemGridWindow` only hides it, the grid keeping its layout width.
+        const resizesList = !(list instanceof GridWindow);
 
         if (overflows && !scrollbar.visible) {
             scrollbar.visible = true;
-            list.setWidth(this.width - scrollbar.width);
+            if (resizesList) list.setWidth(this.width - scrollbar.width);
         } else if (!overflows && scrollbar.visible) {
             scrollbar.visible = false;
-            list.setWidth(this.width);
+            if (resizesList) list.setWidth(this.width);
         }
     }
 }
@@ -1644,7 +1658,7 @@ const fitBitmapToContents = (window: LayoutWindow, element: TemplateElement, inp
  * centred window that moved while it was made put back at its layout position and pushed onto the
  * parent; then its children, in order.
  */
-const build = (element: TemplateElement, parent: LayoutWindow | undefined, input: TemplateLayoutInput, windows: Map<TemplateElement, LayoutWindow>, clones: { element: TemplateElement; parent: LayoutWindow }[]): LayoutWindow => {
+const build = (element: TemplateElement, parent: LayoutWindow | undefined, input: TemplateLayoutInput, windows: Map<TemplateElement, LayoutWindow>, clones: { element: TemplateElement; parent: LayoutWindow }[], deferPush: boolean = false): LayoutWindow => {
     const layoutRect = { x: element.x, y: element.y, width: element.width, height: element.height };
     const param = templateParamBits(element);
     const underIterable = !!parent?.iterable;
@@ -1668,7 +1682,7 @@ const build = (element: TemplateElement, parent: LayoutWindow | undefined, input
             if ((param & P.vCenter) === P.vCenter) window.setY(layoutRect.y);
         }
 
-        parent.push(window);
+        if (!deferPush) parent.push(window);
     }
 
     windows.set(element, window);
@@ -1692,11 +1706,15 @@ export const buildTemplateWindows = (elements: readonly TemplateElement[], input
 
     const windowOf = (element: TemplateElement) => windows.get(element);
     // A scope - the template, or a clone - built with its own windows, set up by its code, and only
-    // then given its clones, each a scope in turn: the order a window's code makes them in.
+    // then given its clones, each a scope in turn: the order a window's code makes them in. A clone
+    // going into a list or grid is set up before the list takes it, as code builds an item, sizes it
+    // and then adds it (`createColorContainer` then `addGridItem`): a grid sizes its columns by the
+    // items it is given. A view attached to a container (`attachWidgetView`) is added first and then
+    // sized against it.
     const buildScope = (element: TemplateElement, parent: LayoutWindow | undefined) => {
         const clones: { element: TemplateElement; parent: LayoutWindow }[] = [];
-
-        build(element, parent, input, windows, clones);
+        const deferPush = (parent instanceof ListWindow) || (parent instanceof ScrollableWindow);
+        const window = build(element, parent, input, windows, clones, deferPush);
 
         // The captions the code sets on the built window (`findChildByName("count").caption = ...`).
         if (input.builtCaptionOf) {
@@ -1714,6 +1732,8 @@ export const buildTemplateWindows = (elements: readonly TemplateElement[], input
         }
 
         input.setupOf?.(element)?.(windowOf);
+
+        if (deferPush) parent?.push(window);
 
         for (const clone of clones) buildScope(clone.element, clone.parent);
     };

@@ -1,27 +1,40 @@
+/**
+ * The room tools - Flash `RoomToolsToolbarCtrl`, on `habbo-room-ui-com`'s `room_tools_toolbar` layout:
+ * the column of room actions in the bottom-left corner (`_window.position = (TOOLBAR_X, desktop.height -
+ * DISTANCE_FROM_BOTTOM - height)`), with the zoom row on top and the visit-history arrows at the bottom,
+ * and the strip down its left side that folds it away.
+ *
+ * - The rows the widget passes show (`setElementVisible`: `button_settings`, `button_like`,
+ *   `button_share` and the rest by their layout names); the others are hidden, `button_zoom` as in the
+ *   layout. A row's press is the widget's (`onWindowEvent`'s `WME_CLICK` by name).
+ * - `updateZoomControls`: `zoom_text` is `room.zoom.text` with the level as its `%zoom_level%`, and
+ *   `zoom_in_btn` / `zoom_out_btn` disabled where the room cannot zoom further.
+ * - `updateRoomHistoryButtons`: `button_history_back` / `_forward` disabled where there is no room
+ *   that way, `button_history` (the list, `toggleHistory`) until somewhere else has been visited.
+ * - `updatePosition` sums the heights of the visible rows and makes the window, the list,
+ *   `window_bg`, both side bars and their regions that high, centring each arrow on it
+ *   (`int(height * 0.5 - arrow.height * 0.5)`); the history list (`RoomToolsHistory`) is parked with its
+ *   right edge on the column's (`right`), above it.
+ * - Collapsing (`button_collapse` / `button_expand`, `setCollapsed`) slides `window_bg` rather than
+ *   switching it: `beginAnimation` moves it between x 1 and its collapsed offset
+ *   (`getCollapsedExpandedOffsetX`: `side_bar_expand.width - window_bg.width - 1`) over 140 ms, eased
+ *   `1 - (1 - t)^3` (`update`), under the strip; `updateVisuals` shows `side_bar_collapse` while it is
+ *   open and `side_bar_expand` once it is shut, and keeps `window_bg` drawn while it is still sliding.
+ *
+ * Not carried: the room mouse block rect (`setMouseEventsDisabledRect`), and the collapse timer cleared
+ * on a click (`clearCollapseTimer`), which the info card's widget owns.
+ */
 import { ReactNode } from 'react';
 
-import { useTranslation } from '#base/context/system';
 import { easeOutCubic, useTween } from '#base/hooks';
-import { Border, Box, LayoutImage, Region, ThemeImage, ThemeText } from '#base/theme';
+import { Box, LayoutWindow, TemplateBinding, TemplateBindings, TemplateWindow, TemplateWindows } from '#base/theme';
 
-import { ROOM_TOOLS_BOTTOM, ROOM_TOOLS_SIDE_BAR_WIDTH, ROOM_TOOLS_WIDTH, ROOM_TOOLS_X } from './roomToolsGeometry';
-import { RoomToolsMinimizeButton } from './RoomToolsMinimizeButton';
+import { ROOM_TOOLS_BOTTOM, ROOM_TOOLS_SIDE_BAR_WIDTH, ROOM_TOOLS_X } from './roomToolsGeometry';
 
-/** One entry in the tool column, in the order `room_tools_toolbar` stacks them. */
+/** One row of the tool column, by its layout name. */
 export interface RoomToolsButton {
+    /** The row's name in `room_tools_toolbar` (`button_settings`, `button_like`, `button_share`...). */
     key: string;
-    icon: string;
-    /**
-     * The icon's box in its 130x25 row - `x` and `width` of the row's `static_bitmap`, the art
-     * centred in it and etched: 3/25 for the gear, 2/27 for the like and share icons.
-     */
-    iconLeft: number;
-    iconWidth: number;
-    /** The label's `y` in the row - 4 beside the gear, 3 beside the like and share icons. */
-    labelTop: number;
-    /** The label beside the icon; the whole row is 130 wide whatever it says. */
-    labelKey: string;
-    tooltipKey?: string;
     disabled?: boolean;
     onPress: () => void;
 }
@@ -47,236 +60,107 @@ export interface RoomToolsViewProps {
     history?: ReactNode;
 }
 
-const BUTTON_HEIGHT = 25;
-const ZOOM_ROW_HEIGHT = 30;
-const HISTORY_ROW_HEIGHT = 43;
-/**
- * The rows whose label is `u_regular` in `0xcccccc` (`button_settings`, and `button_achievements`,
- * which shares its `text_settings`); every other row's is `u_button_tab` in `0xbbbbbb`.
- */
-const PLAIN_LABEL_KEYS = [ 'button_settings', 'button_achievements' ];
-/** `roomtools_minimizebutton`'s height, which `arrow_collapse` / `arrow_expand` fit to. */
-const ARROW_HEIGHT = 8;
+const TOOLBAR_TEMPLATE = 'habbo-room-ui-com/room_tools_toolbar_xml';
+
+/** The rows `setElementVisible` shows or hides; the widget's are shown. */
+const ROW_NAMES = [ 'button_achievements', 'button_settings', 'button_chat_history', 'button_like', 'button_camera', 'button_share' ];
+
 /** `window_bg`'s width in the layout. */
 const WINDOW_BG_WIDTH = 164;
-/**
- * `getCollapsedExpandedOffsetX`: `side_bar_expand.width - window_bg.width - 1`, which parks the
- * column's right edge on the strip's.
- */
+/** `getCollapsedExpandedOffsetX`: `side_bar_expand.width - window_bg.width - 1`. */
 const COLLAPSED_OFFSET_X = ROOM_TOOLS_SIDE_BAR_WIDTH - WINDOW_BG_WIDTH - 1;
+/** `TOOLBAR_EXPAND_TARGET_X`: `window_bg`'s x, open. */
+const EXPAND_TARGET_X = 1;
+/**
+ * The history buttons' backgrounds' layout `color` (`0x44A88D`): grey art meant to be tinted. The
+ * template draws a bitmap's own layout colour as no tint, so it is set as code would set it (found by
+ * the `#bg` / `#icon` tag, `findChildByTag`).
+ */
+const HISTORY_TINT = { color: 0x44a88d };
 /** `RoomToolsToolbarCtrl.ANIMATION_DURATION_MS`. */
 const ANIMATION_DURATION_MS = 140;
 
-/**
- * The room tools, on the `room_tools_toolbar` layout (165 wide): the column of room actions in
- * the bottom-left corner, with the zoom readout under them and the visit-history arrows at the
- * bottom. The strip down its left side collapses the column away.
- *
- * Flash sized the window by summing whichever rows were visible, so the same is done here rather
- * than leaving the layout's nominal 229 height standing when half the rows are hidden.
- *
- * Opening and shutting slides the column rather than switching it: `RoomToolsToolbarCtrl.setCollapsed`
- * -> `beginAnimation` moves `window_bg` between x 1 and its collapsed offset over 140 ms, eased
- * `1 - (1 - t)^3` (`update`), under the strip, which is drawn over it.
- */
+/** `IItemListWindow.getListItemAt`'s items: a list's items are its `container`'s children. */
+const listItems = (list: LayoutWindow) => (('container' in list) ? (list.container as LayoutWindow).children : list.children);
+
 export const RoomToolsView = ({
     buttons, zoomLevel, canZoomIn, canZoomOut, onZoomIn, onZoomOut,
     canGoBack, canGoForward, canOpenHistory, onGoBack, onGoForward, onToggleHistory,
     collapsed, onToggleCollapsed, history,
 }: RoomToolsViewProps) => {
-    const t = useTranslation();
-    const height = (buttons.length * BUTTON_HEIGHT) + ZOOM_ROW_HEIGHT + HISTORY_ROW_HEIGHT;
     // `applyExpandedBranchOffset`: `window_bg` sits at 1 + the offset, which slides between 0 and the collapsed one.
     const offsetX = useTween(collapsed ? COLLAPSED_OFFSET_X : 0, ANIMATION_DURATION_MS, easeOutCubic);
     // `updateVisuals`: `window_bg` stays drawn while the column is still sliding shut.
     const sliding = offsetX !== (collapsed ? COLLAPSED_OFFSET_X : 0);
 
+    const rows: TemplateBindings = {};
+
+    for (const name of ROW_NAMES) {
+        const button = buttons.find(each => each.key === name);
+        const binding: TemplateBinding = button ? { visible: true, disabled: button.disabled, onPointerTap: button.onPress } : { visible: false };
+
+        rows[name] = binding;
+    }
+
+    const arrange = ({ root, find }: TemplateWindows) => {
+        const window = root();
+        const list = find('itemlist_buttons');
+        const background = find('window_bg');
+        const collapseBar = find('side_bar_collapse');
+        const expandBar = find('side_bar_expand');
+
+        if (!window || !list || !background || !collapseBar || !expandBar) return;
+
+        background.setX(EXPAND_TARGET_X + offsetX);
+
+        // `updatePosition`.
+        const height = listItems(list).reduce((total, item) => (item.visible ? (total + item.height) : total), 0);
+
+        collapseBar.setHeight(height);
+        collapseBar.setX(0);
+        expandBar.setHeight(height);
+        expandBar.setX(0);
+        expandBar.setY(0);
+        background.setHeight(height);
+        list.setHeight(height);
+        window.setHeight(height);
+        find('button_collapse')?.setHeight(height);
+        find('button_expand')?.setHeight(height);
+
+        for (const name of [ 'arrow_collapse', 'arrow_expand' ]) {
+            const arrow = find(name);
+
+            if (arrow) arrow.setY((height * 0.5) - (arrow.height * 0.5));
+        }
+    };
+
     return (
-        <Box layout={{ position: 'absolute', left: ROOM_TOOLS_X, bottom: ROOM_TOOLS_BOTTOM, width: ROOM_TOOLS_WIDTH, height }}>
-            {/* `RoomToolsToolbarCtrl.updatePosition` parks the list against the column's right edge, above it. */}
-            {history && (
-                <Box layout={{ position: 'absolute', right: 0, bottom: height }}>
-                    {history}
-                </Box>
-            )}
-            {(!collapsed || sliding) && (
-                <Border
-                    variant="2"
-                    name="window_bg"
-                    tintColor="#24231e"
-                    blend={0.8}
-                    ownGraphicContext
-                    layout={{ position: 'absolute', left: 1 + Math.round(offsetX), width: WINDOW_BG_WIDTH, top: 0, bottom: 0 }}
-                >
-                    <Region
-                        name="itemlist_buttons"
-                        layout={{ position: 'absolute', left: 24, top: 6, minWidth: 140, flexDirection: 'column' }}
-                    >
-                        <Region layout={{ width: 130, height: ZOOM_ROW_HEIGHT, flexShrink: 0 }}>
-                            <ThemeText
-                                text={t('room.zoom.text', 'Zoom %zoom_level%', { zoom_level: String(zoomLevel) })}
-                                textStyle="u_regular"
-                                textOptions={{ fill: '#cccccc', fontSize: 11 }}
-                                clip
-                                name="zoom_text"
-                                verticalAlign="top"
-                                layout={{ position: 'absolute', left: 6, width: 90, top: 4, height: 14, maxWidth: 90 }}
-                            />
-                            <Region
-                                backgroundColor="#707070"
-                                alpha={0.5}
-                                layout={{ position: 'absolute', left: 3, width: 125, top: 26, height: 1 }}
-                            />
-                            <Region
-                                name="zoom_in_btn"
-                                dynamicStyle="button"
-                                tooltip={t('room.zoom.zoom_in.tooltip')}
-                                disabled={!canZoomIn}
-                                onPointerTap={onZoomIn}
-                                cursor="pointer"
-                                layout={{ position: 'absolute', left: 87, width: 18, top: 3, height: 19 }}
-                            >
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/roomtools_zoom_in.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000 }}
-                                    dynamicRole="icon"
-                                    layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 18 }}
-                                />
-                            </Region>
-                            <Region
-                                name="zoom_out_btn"
-                                dynamicStyle="button"
-                                tooltip={t('room.zoom.zoom_out.tooltip')}
-                                disabled={!canZoomOut}
-                                onPointerTap={onZoomOut}
-                                cursor="pointer"
-                                layout={{ position: 'absolute', left: 107, width: 18, top: 3, height: 19 }}
-                            >
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/roomtools_zoom_out.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000 }}
-                                    dynamicRole="icon"
-                                    layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 18 }}
-                                />
-                            </Region>
-                        </Region>
-                        {buttons.map(button => (
-                            <Region
-                                key={button.key}
-                                name={button.key}
-                                tooltip={button.tooltipKey ? t(button.tooltipKey) : undefined}
-                                dynamicStyle="brightness_and_shadow_under"
-                                disabled={button.disabled}
-                                onPointerTap={button.onPress}
-                                cursor="pointer"
-                                layout={{ width: 130, height: BUTTON_HEIGHT, flexShrink: 0 }}
-                            >
-                                <ThemeImage
-                                    src={button.icon}
-                                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
-                                    dynamicRole="icon"
-                                    layout={{ position: 'absolute', left: button.iconLeft, width: button.iconWidth, top: 0, height: BUTTON_HEIGHT }}
-                                />
-                                <ThemeText
-                                    text={t(button.labelKey)}
-                                    textStyle={PLAIN_LABEL_KEYS.includes(button.key) ? 'u_regular' : 'u_button_tab'}
-                                    textOptions={{ fill: PLAIN_LABEL_KEYS.includes(button.key) ? '#cccccc' : '#bbbbbb', fontSize: 11 }}
-                                    flashFormat={{ underline: true }}
-                                    clip
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 36, width: 90, top: button.labelTop, height: 14, maxWidth: 90 }}
-                                />
-                            </Region>
-                        ))}
-                        <Region
-                            name="cnt_history"
-                            layout={{ width: 115, height: HISTORY_ROW_HEIGHT, marginLeft: 3, flexShrink: 0 }}
-                        >
-                            <Region
-                                name="button_history_back"
-                                tooltip={t('room.history.button.back.tooltip')}
-                                dynamicStyle="brightness_and_shadow_under"
-                                disabled={!canGoBack}
-                                onPointerTap={onGoBack}
-                                cursor="pointer"
-                                layout={{ position: 'absolute', left: 0, width: 37, top: 3, height: 34 }}
-                            >
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_forward_bg.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, zoomX: -1, etchingColor: 0x48000000, fitSizeToContents: true }}
-                                    tint="#44a88d"
-                                    dynamicRole="bg"
-                                    layout={{ position: 'absolute', left: 3, width: 34, top: 2, height: 31 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_back_icon.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
-                                    dynamicRole="icon"
-                                    layout={{ position: 'absolute', left: 4, width: 30, top: 3, height: 30 }}
-                                />
-                            </Region>
-                            <Region
-                                name="button_history"
-                                tooltip={t('room.history.button.tooltip')}
-                                dynamicStyle="brightness_and_shadow_under"
-                                disabled={!canOpenHistory}
-                                onPointerTap={onToggleHistory}
-                                cursor="pointer"
-                                layout={{ position: 'absolute', left: 38, width: 35, top: 0, height: 38 }}
-                            >
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_open_bg.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
-                                    tint="#44a88d"
-                                    dynamicRole="icon"
-                                    layout={{ position: 'absolute', left: 1, width: 33, top: 1, height: 35 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_open_icon.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', etchingColor: 0x48000000 }}
-                                    dynamicRole="icon"
-                                    layout={{ position: 'absolute', left: 2, width: 32, top: 3, height: 35 }}
-                                />
-                            </Region>
-                            <Region
-                                name="button_history_forward"
-                                tooltip={t('room.history.button.forward.tooltip')}
-                                dynamicStyle="brightness_and_shadow_under"
-                                disabled={!canGoForward}
-                                onPointerTap={onGoForward}
-                                cursor="pointer"
-                                layout={{ position: 'absolute', left: 74, width: 34, top: 5, height: 32 }}
-                            >
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_forward_bg.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
-                                    tint="#44a88d"
-                                    dynamicRole="bg"
-                                    layout={{ position: 'absolute', left: 0, width: 34, top: 0, height: 31 }}
-                                />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/roomtools_history_back_icon.png')}
-                                    bitmap={{ stretchedX: false, stretchedY: false, zoomX: -1, pivot: 'center', etchingColor: 0x48000000 }}
-                                    dynamicRole="icon"
-                                    layout={{ position: 'absolute', left: 3, width: 30, top: 1, height: 30 }}
-                                />
-                            </Region>
-                        </Region>
-                    </Region>
-                </Border>
-            )}
-            {/*
-              * `side_bar_collapse` while the column is open, `side_bar_expand` once it is shut, swapped as
-              * the slide starts (`beginAnimation` -> `updateVisuals`): `arrow_collapse` at x 9, or
-              * `arrow_expand` at x 11 and mirrored, each centred on the column's height by
-              * `updatePosition`, `int(height * 0.5 - arrow.height * 0.5)`.
-              */}
-            <RoomToolsMinimizeButton
-                layout={{ position: 'absolute', left: 0, top: 0, width: ROOM_TOOLS_SIDE_BAR_WIDTH, height }}
-                border={[ 0, 0, ROOM_TOOLS_SIDE_BAR_WIDTH, height ]}
-                arrow={[ collapsed ? 11 : 9, Math.trunc((height * 0.5) - (ARROW_HEIGHT * 0.5)), 6, ARROW_HEIGHT ]}
-                mirrored={collapsed}
-                onPress={onToggleCollapsed}
+        <Box
+            pointerTransparent
+            layout={{ position: 'absolute', left: ROOM_TOOLS_X, bottom: ROOM_TOOLS_BOTTOM, flexDirection: 'column', alignItems: 'flex-end' }}
+        >
+            {/* `updatePosition`: the history list's right edge on the column's, above it. */}
+            {history}
+            <TemplateWindow
+                id={TOOLBAR_TEMPLATE}
+                parameters={{ 'room.zoom.text': { zoom_level: String(zoomLevel) } }}
+                bindings={{
+                    window_bg: { visible: !collapsed || sliding },
+                    side_bar_collapse: { visible: !collapsed },
+                    side_bar_expand: { visible: collapsed },
+                    button_collapse: { onPointerTap: onToggleCollapsed },
+                    button_expand: { onPointerTap: onToggleCollapsed },
+                    zoom_in_btn: { disabled: !canZoomIn, onPointerTap: onZoomIn },
+                    zoom_out_btn: { disabled: !canZoomOut, onPointerTap: onZoomOut },
+                    ...rows,
+                    button_history_back: { disabled: !canGoBack, onPointerTap: onGoBack },
+                    button_history: { disabled: !canOpenHistory, onPointerTap: onToggleHistory },
+                    button_history_forward: { disabled: !canGoForward, onPointerTap: onGoForward },
+                    'button_history_back/##bg': HISTORY_TINT,
+                    'button_history/##icon': HISTORY_TINT,
+                    'button_history_forward/##bg': HISTORY_TINT,
+                }}
+                arrange={arrange}
             />
         </Box>
     );

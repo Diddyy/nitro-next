@@ -45,7 +45,7 @@
     "asset.urls.generic": "https://images.nitrodev.co/bundled/generic/%libname%.nitro",
     "asset.urls.catalog": "https://images.nitrodev.co/images/catalog/%name%.gif",
     "catalog.icons.url": "https://images.nitrodev.co/images/catalog-icons/icon_%name%.png",
-    "catalog.asset.url": "https://images.nitrodev.co/images/catalog-assets",
+    "catalog.asset.url": "https://images.nitrodev.co/images/catalog",
     "badge.asset.url": "https://images.nitrodev.co/images/badges/%badgename%.gif",
     "asset.urls.icons.furni": "https://images.nitrodev.co/bundled/furniture/icons/%libname%%param%_icon.png",
     "flash.dynamic.download.url": "https://images.nitrodev.co/",

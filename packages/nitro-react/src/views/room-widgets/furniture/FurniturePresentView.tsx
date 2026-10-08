@@ -1,7 +1,9 @@
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 
 import { useTranslation } from '#base/context/system';
-import { Border, Button, ButtonThick, Frame, LayoutImage, Region, ThemeImage, ThemeText, useAvatarImageTexture } from '#base/theme';
+import { LayoutImage, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture } from '#base/theme';
+
+import { resizeFrameToFitContent } from './resizeFrameToFitContent';
 
 export interface FurniturePresentViewProps {
     message: string;
@@ -19,188 +21,103 @@ export interface FurniturePresentViewProps {
     onClose: () => void;
 }
 
-/** `packagecard_new`'s `element_list`: its items, 10px apart, from 10px into the content. */
+/** `element_list`'s `spacing`, which `showInterface` also moves it in by. */
 const LIST_SPACING = 10;
-const WARNING_HEIGHT = 56;
-const GIFT_CARD_HEIGHT = 149;
-const BUTTON_HEIGHT = 28;
-const SEPARATOR_HEIGHT = 1;
-/** `avatar_image_container`, 60x140 at (6, 2) on the card. */
-const AVATAR_CONTAINER_WIDTH = 60;
-const AVATAR_CONTAINER_HEIGHT = 140;
-/** `staff_image` is 54 high; `updateAvatarImageContainer` centres it when there is no sender to draw. */
-const STAFF_IMAGE_HEIGHT = 54;
-/** `gift_incognito`, 37x48. */
-const INCOGNITO_WIDTH = 37;
-const INCOGNITO_HEIGHT = 48;
+/** `showInterface`: the banner's colour and icon for a sender who is not trusted. */
+const UNTRUSTED_BANNER_COLOR = 0xb1004c;
+const UNTRUSTED_ICON = { x: 22, y: 12, width: 26, height: 26 };
+/** `gift_incognito`'s size: `updateUnknownSenderAvatarImage` puts it where the head goes. */
+const INCOGNITO_SIZE = { width: 37, height: 48 };
 
 /**
- * A wrapped gift, on the `packagecard_new` layout that `PresentFurniWidget.showInterface` builds
- * and centres: the `warning` banner, the gift card with the sender's head and note, and the open
- * button, stacked by `element_list` 10px apart from (10, 10), with the 1px `separator` last. The
- * window then `resizeToFitContent`s: the content is `10 + list` high and the 326px `width_min` of
- * its container wide, so the frame (margins 3, 36, 3, 3) is 332 wide and `list + 49` high.
+ * A wrapped gift - `PresentFurniWidget.showInterface`, which builds `packagecard_new` and centres it:
  *
- * `showInterface` recolours the banner (0xB1004C) and swaps its checkmark for the alert icon for an
- * untrusted sender, and gives a trusted one the staff card. `updateAvatarImageContainer` puts the
- * sender's head centred across the 60x140 container and at a half (untrusted) or two thirds
- * (trusted) of its height, and drops `staff_image` for an untrusted sender. The title is
- * `widget.furni.present.window.title_from` for a known sender.
+ * - the frame's caption `widget.furni.present.window.title_from` for a known sender;
+ * - an untrusted sender's `warning`: `warning_foreground_border` coloured 0xB1004C, `warning_icon`
+ *   the alert icon at (22, 12) 26x26, and `warning_text` `gift.untrusted.banner.text`;
+ * - `gift_card` the staff card for a trusted sender;
+ * - the head in `avatar_image` (`updateAvatarImageContainer`): the sender's, or `gift_incognito` for
+ *   an unknown one, centred across `avatar_image_container` and at a half (untrusted) or two thirds
+ *   (trusted) of its height. A trusted gift from no one shows no head, and `staff_image` centred
+ *   instead; an untrusted one drops `staff_image`;
+ * - `message_text` the note and `message_from` the sender, hidden for an unknown one;
+ * - in `button_list`, `open_gift_button` and `give_gift_button` (`widget.furni.present.give_gift`),
+ *   each only when the widget offers it.
  *
- * `button_list` stacks, 10 apart and centred, `open_gift_button` and `give_gift_button` (a plain
- * style 3 button, `widget.furni.present.give_gift` with the sender's name), each only when the
- * widget offers it. An unknown sender's head is `gift_incognito` (`updateUnknownSenderAvatarImage`).
- * The opened gift is its own card, `FurniturePresentOpenedView`.
+ * Then `element_list` goes `spacing` in, the frame fits its content (`resizeToFitContent`) and the
+ * list's container is made as high as the list's bottom. The opened gift is its own card,
+ * `FurniturePresentOpenedView`.
  *
  * Left out: the sender's name and head opening their profile (`onSenderNameClick` /
- * `onSenderImageClick`) - the port has no extended profile to show.
+ * `onSenderImageClick`) - the port has no extended profile to show - and the hotel's own gift card
+ * art (`catalog.gift_wrapping_new.gift_card`).
  */
 export const FurniturePresentView = ({ message, purchaserName, purchaserFigure, trustedSender, canOpen, canGiveGift, onOpen, onGiveGift, onClose }: FurniturePresentViewProps) => {
     const t = useTranslation();
     const knownSender = !!purchaserName.length;
     const head = useAvatarImageTexture((knownSender && purchaserFigure) ? purchaserFigure : undefined, AvatarGenderType.Male, { headOnly: true, direction: 2 });
 
-    const caption = knownSender ? t('widget.furni.present.window.title_from', purchaserName, { name: purchaserName }) : t('widget.furni.present.window.title');
+    // `updateAvatarImageContainer`: what `avatar_image` shows and its size.
+    const showsHead = !(trustedSender && !knownSender);
+    const image = !showsHead
+        ? undefined
+        : knownSender
+            ? (head.texture ? { width: head.width, height: head.height } : undefined)
+            : INCOGNITO_SIZE;
 
-    const buttonCount = (canOpen ? 1 : 0) + (canGiveGift ? 1 : 0);
-    const buttonListHeight = buttonCount ? ((buttonCount * BUTTON_HEIGHT) + ((buttonCount - 1) * LIST_SPACING)) : 0;
-    const listHeight = WARNING_HEIGHT + LIST_SPACING + GIFT_CARD_HEIGHT + LIST_SPACING + buttonListHeight + LIST_SPACING + SEPARATOR_HEIGHT;
-    const showStaffImage = trustedSender;
-    const showHead = !(trustedSender && !knownSender) && !!head.texture;
-    // `updateUnknownSenderAvatarImage`: an unknown sender gets `gift_incognito` where the head goes,
-    // except on a trusted gift, whose staff card shows alone.
-    const showIncognito = !knownSender && !trustedSender;
+    const arrange = ({ find, root }: TemplateWindows) => {
+        const avatar = find('avatar_image');
+        const container = find('avatar_image_container');
+
+        if (avatar && container) {
+            if (!showsHead) find('staff_image')?.setY(Math.trunc((container.height / 2) - (avatar.height / 2)));
+            else if (image) avatar.setRectangle(Math.trunc((container.width / 2) - (image.width / 2)), Math.trunc((container.height / (trustedSender ? 1.5 : 2)) - (image.height / 2)), image.width, image.height);
+        }
+
+        if (!trustedSender) {
+            const icon = find('warning_icon');
+
+            icon?.setRectangle(UNTRUSTED_ICON.x, UNTRUSTED_ICON.y, UNTRUSTED_ICON.width, UNTRUSTED_ICON.height);
+        }
+
+        const list = find('element_list');
+
+        if (!list) return;
+
+        list.setX(LIST_SPACING);
+        resizeFrameToFitContent(root());
+        list.parent?.setHeight(list.x + list.height);
+    };
 
     return (
-        <Frame
-            variant="3"
-            id="furniture-present"
-            caption={caption}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={onClose}
-            centered
-            rememberPosition={false}
-            resizeDirection="none"
-            margins={[ 3, 36, 3, 3 ]}
-            layout={{ width: 332, height: LIST_SPACING + listHeight + 39 }}
-        >
-            <Region layout={{ position: 'absolute', left: LIST_SPACING, top: LIST_SPACING, width: 306, height: listHeight, flexDirection: 'column', gap: LIST_SPACING }}>
-                <Border
-                    variant="3"
-                    tintColor="#000000"
-                    layout={{ width: 306, height: WARNING_HEIGHT, flexShrink: 0 }}
-                >
-                    <Border
-                        variant="3"
-                        tintColor={trustedSender ? '#186e09' : '#b1004c'}
-                        layout={{ position: 'absolute', left: 3, top: 3, width: 300, height: 50 }}
-                    >
-                        <ThemeText
-                            text={trustedSender ? t('gift.trusted.banner.text') : t('gift.untrusted.banner.text', purchaserName, { name: 'not trusted gift sender' })}
-                            textStyle="id_regular"
-                            textOptions={{ wordWrap: true, wordWrapWidth: 231 }}
-                            flashFormat={{ bold: true, etchingPosition: 'left' }}
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', left: 65, top: 10, width: 235, minHeight: 30, maxHeight: 80 }}
-                        />
-                        <ThemeImage
-                            src={LayoutImage(trustedSender ? 'habbo-window-manager-com/catalogue_ui2_checkmark_m.png' : 'habbo-window-manager-com/catalogue_icon_alert_s.png')}
-                            layout={trustedSender
-                                ? { position: 'absolute', left: 20, top: 13, width: 30, height: 24 }
-                                : { position: 'absolute', left: 22, top: 12, width: 26, height: 26 }}
-                        />
-                    </Border>
-                </Border>
-                <Region layout={{ width: 306, height: GIFT_CARD_HEIGHT, flexShrink: 0 }}>
-                    <ThemeImage
-                        src={LayoutImage(trustedSender ? 'habbo-window-manager-com/catalogue_giftcard_staff.png' : 'habbo-window-manager-com/catalogue_giftcard_blank.png')}
-                        layout={{ position: 'absolute', left: 0, top: 0, width: 306, height: GIFT_CARD_HEIGHT }}
-                    />
-                    <Region
-                        tooltip={t('widget.furni.present.sender.profile_tooltip')}
-                        tooltipDelay={100}
-                        layout={{ position: 'absolute', left: 6, top: 2, width: AVATAR_CONTAINER_WIDTH, height: AVATAR_CONTAINER_HEIGHT }}
-                    >
-                        {showStaffImage && (
-                            <Region layout={{ position: 'absolute', left: 3, top: knownSender ? 20 : ((AVATAR_CONTAINER_HEIGHT / 2) - (STAFF_IMAGE_HEIGHT / 2)), width: 54, height: STAFF_IMAGE_HEIGHT }}>
+        <TemplateWindow
+            id="habbo-room-ui-com/packagecard_new"
+            frame={{ id: 'furniture-present', centered: true, rememberPosition: false, onClose }}
+            arrange={arrange}
+            bindings={{
+                '': knownSender ? { caption: t('widget.furni.present.window.title_from', purchaserName, { name: purchaserName }) } : {},
+                warning_foreground_border: trustedSender ? {} : { color: UNTRUSTED_BANNER_COLOR },
+                warning_icon: trustedSender ? {} : { asset: LayoutImage('habbo-window-manager-com/catalogue_icon_alert_s.png') },
+                warning_text: trustedSender ? {} : { caption: t('gift.untrusted.banner.text', purchaserName, { name: 'not trusted gift sender' }) },
+                gift_card: trustedSender ? { asset: LayoutImage('habbo-window-manager-com/catalogue_giftcard_staff.png') } : {},
+                staff_image: { visible: trustedSender },
+                avatar_image: knownSender
+                    ? {
+                            children: showsHead && head.texture && (
                                 <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/catalogue_giftcard_icon_bgstar.png')}
-                                    bitmap={{ fitSizeToContents: true }}
+                                    texture={head.texture}
+                                    width={head.width}
+                                    height={head.height}
                                     layout={{ position: 'absolute', left: 0, top: 0 }}
                                 />
-                                <ThemeImage
-                                    src={LayoutImage('habbo-window-manager-com/catalogue_giftcard_staff_icon.png')}
-                                    layout={{ position: 'absolute', left: 10, top: 10, width: 34, height: 34 }}
-                                />
-                            </Region>
-                        )}
-                        {showIncognito && (
-                            <ThemeImage
-                                src={LayoutImage('habbo-room-ui-com/gift_incognito.png')}
-                                bitmap={{ fitSizeToContents: true }}
-                                layout={{
-                                    position: 'absolute',
-                                    left: Math.trunc((AVATAR_CONTAINER_WIDTH / 2) - (INCOGNITO_WIDTH / 2)),
-                                    top: Math.trunc((AVATAR_CONTAINER_HEIGHT / 2) - (INCOGNITO_HEIGHT / 2)),
-                                }}
-                            />
-                        )}
-                        {showHead && head.texture && (
-                            <ThemeImage
-                                texture={head.texture}
-                                width={head.width}
-                                height={head.height}
-                                layout={{
-                                    position: 'absolute',
-                                    left: Math.trunc((AVATAR_CONTAINER_WIDTH / 2) - (head.width / 2)),
-                                    top: Math.trunc((AVATAR_CONTAINER_HEIGHT / (trustedSender ? 1.5 : 2)) - (head.height / 2)),
-                                }}
-                            />
-                        )}
-                    </Region>
-                    <ThemeText
-                        text={message}
-                        textStyle="u_regular"
-                        textOptions={{ wordWrap: true, wordWrapWidth: 186 }}
-                        flashFormat={{ leading: 4 }}
-                        clip
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 95, top: 31, width: 190, height: 100 }}
-                    />
-                    {knownSender && (
-                        <ThemeText
-                            text={t('widget.furni.present.message_from', purchaserName, { name: purchaserName })}
-                            textStyle="u_italic"
-                            tooltip={t('widget.furni.present.sender.profile_tooltip')}
-                            verticalAlign="top"
-                            layout={{ position: 'absolute', right: 21, top: 120 }}
-                        />
-                    )}
-                </Region>
-                <Region layout={{ width: 306, height: buttonListHeight, flexShrink: 0, flexDirection: 'column', alignItems: 'center', gap: LIST_SPACING }}>
-                    {canOpen && (
-                        <ButtonThick
-                            variant="5"
-                            tintColor="#00aa00"
-                            onPointerTap={onOpen}
-                            layout={{ height: BUTTON_HEIGHT, minWidth: 206, maxWidth: 328, flexShrink: 0 }}
-                        >
-                            {t('widget.furni.present.open_gift')}
-                        </ButtonThick>
-                    )}
-                    {canGiveGift && (
-                        <Button
-                            variant="3"
-                            onPointerTap={onGiveGift}
-                            layout={{ height: BUTTON_HEIGHT, minWidth: 206, maxWidth: 330, flexShrink: 0 }}
-                        >
-                            {t('widget.furni.present.give_gift', purchaserName, { name: purchaserName })}
-                        </Button>
-                    )}
-                </Region>
-                <Region layout={{ width: 306, height: SEPARATOR_HEIGHT, flexShrink: 0 }} />
-            </Region>
-        </Frame>
+                            ),
+                        }
+                    : (showsHead ? { asset: LayoutImage('habbo-room-ui-com/gift_incognito.png') } : { visible: false }),
+                message_text: { caption: message },
+                message_from: knownSender ? { caption: t('widget.furni.present.message_from', purchaserName, { name: purchaserName }) } : { visible: false },
+                open_gift_button: canOpen ? { onPointerTap: onOpen } : { visible: false },
+                give_gift_button: canGiveGift ? { caption: t('widget.furni.present.give_gift', purchaserName, { name: purchaserName }), onPointerTap: onGiveGift } : { visible: false },
+            }}
+        />
     );
 };
