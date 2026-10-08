@@ -37,13 +37,12 @@
  * captions; this shows no paging text, a "1" in the field and all four buttons enabled, which
  * is the state the layout starts in.
  */
-import { useState } from 'react';
 
-import { useTranslation } from '#base/context/system';
 import { Box, BoxLayout, ContainerButton, Icon, TextInput, ThemeText } from '#base/theme';
 
-import { useWiredPageRequests, WiredPageRequests } from './useWiredPageRequests';
-import { calculateLastPage, clampInputPage, NO_PAGE, parseInputPage, restrictPageInput, splitPagingText } from './wiredPaging';
+import { usePagedTableState } from './useWiredPagedTableState';
+import { WiredPageRequests } from './useWiredPageRequests';
+import { restrictPageInput } from './wiredPaging';
 import { WiredTableView, WiredTableViewProps } from './WiredTableView';
 
 /** `footer` and the `pagination` row in it. */
@@ -131,39 +130,9 @@ export interface WiredPagedTableProps<T extends object> extends Omit<WiredTableV
     layout?: BoxLayout;
 }
 
-export const WiredPagedTable = <T extends object>({ currentPage, totalEntries, pageSize, lastPage: givenLastPage, pagingTextKey, entriesToken, pageKey, requestPageRatelimit, samePageTimeout, pageLoadedOnRequest, requests: givenRequests, onRequestPage, tableSideInset = TABLE_SIDE_INSET, layout, scrollResetKey, ...tableProps }: WiredPagedTableProps<T>) => {
-    const t = useTranslation();
-    const lastPage = givenLastPage ?? ((pageSize === undefined) ? NO_PAGE : calculateLastPage(totalEntries, pageSize));
-    const ownRequests = useWiredPageRequests({ currentPage, lastPage, pageKey, ratelimit: requestPageRatelimit, samePageTimeout, pageLoadedOnRequest, onRequestPage: page => onRequestPage?.(page) });
-    const requests = givenRequests ?? ownRequests;
-    const hasPage = (currentPage !== NO_PAGE);
-    // PagedTableView.loc(pagingTextKey()): a missing key reads as the key itself.
-    const pagingText = hasPage ? splitPagingText(t(pagingTextKey, pagingTextKey), totalEntries, lastPage, entriesToken) : null;
-    const [ inputText, setInputText ] = useState(hasPage ? String(currentPage) : '1');
-    const [ shown, setShown ] = useState({ currentPage, pageKey });
-
-    // PagedTableView.onPageLoaded: a displayed page puts its number into the field - inside the same `if` as the two texts.
-    if ((shown.currentPage !== currentPage) || (shown.pageKey !== pageKey)) {
-        setShown({ currentPage, pageKey });
-
-        if (pagingText) setInputText(String(currentPage));
-    }
-
-    // PagedTableView.navigateToInputPage
-    const navigateToInputPage = () => {
-        const typed = parseInputPage(inputText);
-        const page = clampInputPage(typed, lastPage);
-
-        if (page !== typed) setInputText(String(page));
-
-        if (!hasPage || (page === currentPage)) return;
-
-        // Both subclasses run onPageLoaded() as soon as the request is out, which puts the page still on screen back into the field.
-        if (requests.requestPage(page) && requests.pageLoadedOnRequest && pagingText) setInputText(String(currentPage));
-    };
-
-    const atFirstPage = hasPage && (currentPage <= 1);
-    const atLastPage = hasPage && (currentPage >= lastPage);
+export const WiredPagedTable = <T extends object>(props: WiredPagedTableProps<T>) => {
+    const { currentPage, tableSideInset = TABLE_SIDE_INSET, layout, scrollResetKey, totalEntries: _totalEntries, pageSize: _pageSize, lastPage: _lastPage, pagingTextKey: _pagingTextKey, entriesToken: _entriesToken, pageKey: _pageKey, requestPageRatelimit: _ratelimit, samePageTimeout: _samePageTimeout, pageLoadedOnRequest: _pageLoadedOnRequest, requests: _requests, onRequestPage: _onRequestPage, ...tableProps } = props;
+    const { requests, pagingText, inputText, setInputText, navigateToInputPage, atFirstPage, atLastPage } = usePagedTableState(props);
 
     return (
         <Box layout={{ flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'column', ...layout }}>
