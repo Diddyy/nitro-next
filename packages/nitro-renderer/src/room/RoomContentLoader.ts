@@ -16,6 +16,7 @@ import { Texture, TextureSource } from 'pixi.js';
 
 import { GetAssetManager } from '../assets';
 import { GetTickerTime, LoadMetrics, TextureUtils } from '../utils';
+import { chooseFurnitureDownloadConcurrency, readDeviceHints } from './furnitureDownloadConcurrency';
 import { GetRoomEngine } from './GetRoomEngine';
 import { PetColorResult } from './PetColorResult';
 
@@ -39,11 +40,12 @@ export class RoomContentLoader implements IRoomContentLoader {
     /** Flash `purge`: how long a collection nothing references is kept before it is released. */
     public static PURGE_IDLE_MS: number = 20000;
     /**
-     * How many furniture downloads run at once; the rest wait their turn. A large room asks for
-     * hundreds of types together, and decoding them all at once - each sheet's bitmap and GPU
-     * upload at the same moment - is what runs a phone's tab out of memory.
+     * How many furniture downloads run at once is `maxConcurrentDownloads`; the rest wait their
+     * turn. A large room asks for hundreds of types together, and decoding them all at once - each
+     * sheet's bitmap and GPU upload at the same moment - is what runs a phone's tab out of memory.
+     * A slot is held until the sheet is decoded and built, so the number is also how many sheets
+     * are in memory at once.
      */
-    public static MAX_CONCURRENT_FURNITURE_DOWNLOADS: number = 4;
     /**
      * Furniture that changes how the room itself looks - the dimmers and the background toners -
      * skips the queue: its logic, and so the room's colour, only applies once its asset is in.
@@ -57,6 +59,7 @@ export class RoomContentLoader implements IRoomContentLoader {
     /** Furniture downloads waiting for a slot, oldest first. */
     private _downloadQueue: { type: string; start: () => void; cancel: () => void }[] = [];
     private _activeQueuedDownloads: number = 0;
+    private _maxConcurrentDownloads: number | undefined = undefined;
     /** The types a `downloadAssetAsync` caller waits on: never dropped from the queue. */
     private _awaitedTypes: Set<string> = new Set();
     /** The types this loader downloaded - the collections `purge` may release (Flash's own collection map). */
@@ -427,9 +430,24 @@ export class RoomContentLoader implements IRoomContentLoader {
         return !RoomContentLoader.PRIORITY_FURNITURE_PATTERN.test(type);
     }
 
+    /**
+     * How many furniture downloads run at once: the hotel's `furniture.download.concurrency` if it
+     * sets one, else 8 on a desktop and 4 where memory is short (`furnitureDownloadConcurrency`).
+     * Chosen once, when the first download is queued, since a device does not change under a page.
+     */
+    public get maxConcurrentDownloads(): number {
+        if (this._maxConcurrentDownloads === undefined) {
+            this._maxConcurrentDownloads = chooseFurnitureDownloadConcurrency(GetConfigValue<number>('furniture.download.concurrency'), readDeviceHints());
+
+            LoadMetrics.event('download-concurrency', { slots: this._maxConcurrentDownloads, ...readDeviceHints() });
+        }
+
+        return this._maxConcurrentDownloads;
+    }
+
     /** Starts queued downloads while a slot is free. */
     private pumpDownloadQueue(): void {
-        while ((this._activeQueuedDownloads < RoomContentLoader.MAX_CONCURRENT_FURNITURE_DOWNLOADS) && this._downloadQueue.length) {
+        while ((this._activeQueuedDownloads < this.maxConcurrentDownloads) && this._downloadQueue.length) {
             this._downloadQueue.shift()?.start();
         }
     }
