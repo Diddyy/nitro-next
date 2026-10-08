@@ -1,12 +1,16 @@
 /**
- * The wired menu window ("wired creator tools") - `WiredMenuView` on `wired_menu_view_xml`: the
- * tab row, the header with the tab's title over the wired box pattern and the Discord link, and
- * the body the active tab fills, with the translucent `loading_view` over it (and "loading" in the
- * caption) while the tab waits for its data (`WiredMenuDefaultTab.updateLoadingState`).
+ * The wired menu window ("wired creator tools") - `WiredMenuView`, drawn from its template
+ * `wired_menu_view_xml`: the frame, the tab row, the header with the tab's title over the wired box
+ * pattern and the Discord link, and the body the active tab fills, with the translucent
+ * `loading_view` over it (and "loading" in the caption) while the tab waits for its data
+ * (`WiredMenuDefaultTab.updateLoadingState`).
  *
- * Only enabled tabs get a button, and the buttons share the strip equally (`alignTabs`, which sets
- * each to `tabItem.parent.width / enabled`): the info tab is disabled, so five tabs across the
- * `_SELECTOR` - the context's 500 less the 8 it is inset by at either end, not the 500 itself.
+ * `alignTabs`: a disabled tab's button is hidden and 0 wide, the others share the strip equally
+ * (`tabItem.parent.width / enabled`, the selector's width - the context's 500 less the 8 it is
+ * inset by at either end), and the selector packs them. `initializeTabs` / `setActiveTab`: every
+ * tab's `<id>_container` is hidden but the active one's. The tab bodies are this client's ports of
+ * those containers (`WiredMenu*Tab`), so the template's own are all hidden and the active tab is
+ * drawn in `body_container`.
  *
  * Being up is being viewed: mounting marks the menu as viewed and starts the active tab
  * (`show` -> `startViewing`), a tab switch stops one tab and starts the next (`setActiveTab`), and
@@ -20,7 +24,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { useWiredStore, WIRED_INSPECTION_STATE_AWAITING_VARIABLES, WIRED_INSPECTION_STATE_FETCHING, WIRED_MENU_TAB_CHESTS, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW, WIRED_MENU_TAB_SETTINGS, WIRED_MENU_TABS } from '#base/context/wired';
 import { useWiredMenuLinkRequest } from '#base/hooks';
-import { Box, Frame, LayoutImage, Region, TabButton, TabContext, ThemeImage, ThemeText } from '#base/theme';
+import { Region, TemplateWindow, TemplateWindows } from '#base/theme';
 
 import { WiredMenuChestsTab } from './WiredMenuChestsTab';
 import { WiredMenuInspectionTab } from './WiredMenuInspectionTab';
@@ -29,21 +33,23 @@ import { WiredMenuOverviewTab } from './WiredMenuOverviewTab';
 import { WiredMenuSettingsTab } from './WiredMenuSettingsTab';
 
 const FRAME_WIDTH = 500;
-const FRAME_HEIGHT = 500;
 /** How often the active tab's `update` runs. */
 const TAB_TICK_MS = 100;
-/** `header_detail`: the wired box pattern, alternately 20 below and 20 above the header's top. */
-const HEADER_PATTERN = [ 8, 78, 148, 218, 288, 358, 428 ];
-
-const ENABLED_TABS = WIRED_MENU_TABS.filter(tab => tab.enabled);
-/** `_SELECTOR`: the tab context's width less the 8 it is inset by at either end. */
-const SELECTOR_WIDTH = FRAME_WIDTH - 16;
 /**
- * `alignTabs`: `parent.width / enabled`, stored in a window's `int` width - so each tab is the
- * truncated share (96 of 484 for five), and the strip is whole pixels. A fractional share put
- * the tabs' skin pieces a pixel apart where the rounding of their edges disagreed.
+ * `alignTabs`: the disabled tabs' buttons take no room; the enabled ones get an equal share of the
+ * selector, truncated as Flash's `int` width truncates it.
  */
-const TAB_WIDTH = Math.trunc(SELECTOR_WIDTH / ENABLED_TABS.length);
+const alignTabs = ({ find }: TemplateWindows) => {
+    const enabled = WIRED_MENU_TABS.filter(tab => tab.enabled).length;
+
+    for (const tab of WIRED_MENU_TABS) {
+        const button = find(`top_view_${tab.id}_button`);
+
+        if (!button) continue;
+
+        button.setWidth(tab.enabled ? Math.trunc((button.parent?.width ?? FRAME_WIDTH) / enabled) : 0);
+    }
+};
 
 /** `isLoading` of the active tab: its `isDataReady` is false. */
 const useWiredMenuTabLoading = (tabId: string): boolean => {
@@ -93,96 +99,45 @@ export const WiredMenuView = () => {
     useWiredMenuLinkRequest();
 
     return (
-        <Frame
-            variant="3"
-            id="wiredmenu_frame"
-            caption={t(loading ? 'wiredmenu.title.loading' : 'wiredmenu.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            resizeDirection="none"
-            defaultPosition={{ x: 36, y: 35 }}
-            onClose={() => hideWindow('wired_menu')}
-            layout={{ position: 'absolute', width: FRAME_WIDTH, height: FRAME_HEIGHT }}
-            margins={[ 0, 36, 0, 0 ]}
-        >
-            <TabContext
-                variant="3"
-                layout={{ position: 'absolute', left: 0, top: 2, width: FRAME_WIDTH, height: 30, overflow: 'hidden' }}
-            >
-                {ENABLED_TABS.map(tab => (
-                    <TabButton
-                        key={tab.id}
-                        variant="3"
-                        selected={tab.id === activeTab}
-                        onPointerTap={() => selectWiredMenuTab(tab.id)}
-                        layout={{ width: TAB_WIDTH, flexShrink: 0, height: 32 }}
-                    >
-                        {t(`wiredmenu.${tab.id}.tab`, `wiredmenu.${tab.id}.tab`)}
-                    </TabButton>
-                ))}
-            </TabContext>
-            <Box layout={{ position: 'absolute', left: 1, top: 32, width: 498, height: 50, overflow: 'hidden' }}>
-                <Region
-                    backgroundColor="#486f81"
-                    layout={{ position: 'absolute', left: 0, top: 0, width: 498, height: 50 }}
-                >
-                    <Region
-                        backgroundColor="#235061"
-                        layout={{ position: 'absolute', left: 2, top: 2, width: 494, height: 46 }}
-                    />
-                </Region>
-                <Box layout={{ position: 'absolute', left: 0, top: 0, width: 500, height: 50, overflow: 'hidden' }}>
-                    {HEADER_PATTERN.map((left, index) => (
-                        <ThemeImage
-                            key={left}
-                            src={LayoutImage('habbo-window-manager-com/wired_box_lines.png')}
-                            bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                            alpha={0.3}
-                            layout={{ position: 'absolute', left, top: (index % 2) ? -20 : 20, width: 64, height: 51 }}
-                        />
-                    ))}
-                </Box>
-                <ThemeText
-                    text={t(`wiredmenu.${activeTab}.title`, activeTab)}
-                    textStyle="u_regular"
-                    textOptions={{ fill: '#ffffff', fontSize: 16, align: 'center' }}
-                    flashFormat={{ bold: true }}
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 0, top: 14, width: FRAME_WIDTH, height: 21 }}
-                />
-                <Region
-                    dynamicStyle="button"
-                    tooltip={t('wiredmenu.discord_region.tooltip', 'wiredmenu.discord_region.tooltip')}
-                    cursor="pointer"
-                    onPointerTap={() => {
+        <TemplateWindow
+            id="habbo-user-defined-room-events-com/wired_menu_view_xml"
+            frame={{ id: 'wiredmenu_frame', defaultPosition: { x: 36, y: 35 }, onClose: () => hideWindow('wired_menu') }}
+            arrange={alignTabs}
+            bindings={{
+                '': { caption: t(loading ? 'wiredmenu.title.loading' : 'wiredmenu.title') },
+                ...Object.fromEntries(WIRED_MENU_TABS.map(tab => [
+                    `top_view_${tab.id}_button`,
+                    { visible: tab.enabled, selected: tab.id === activeTab, onPointerTap: () => selectWiredMenuTab(tab.id) },
+                ])),
+                ...Object.fromEntries(WIRED_MENU_TABS.map(tab => [ `${tab.id}_container`, { visible: false } ])),
+                header_title: { caption: t(`wiredmenu.${activeTab}.title`, activeTab) },
+                discord_region: {
+                    onPointerTap: () => {
                         if (discordLink.length) window.open(discordLink, '_blank', 'noopener');
-                    }}
-                    layout={{ position: 'absolute', left: 473, top: 3, width: 22, height: 25 }}
-                >
-                    <ThemeImage
-                        dynamicRole="icon"
-                        src={LayoutImage('habbo-window-manager-com/icon_discord.png')}
-                        bitmap={{ stretchedX: false, stretchedY: false, etchingColor: 0x48000000, fitSizeToContents: true }}
-                        layout={{ position: 'absolute', left: 0, top: 1, width: 22, height: 23 }}
-                    />
-                </Region>
-            </Box>
-            <Box layout={{ position: 'absolute', left: 0, top: 82, width: FRAME_WIDTH, height: 382 }}>
-                {(activeTab === WIRED_MENU_TAB_MONITOR) && <WiredMenuMonitorTab />}
-                {(activeTab === WIRED_MENU_TAB_OVERVIEW) && <WiredMenuOverviewTab />}
-                {(activeTab === WIRED_MENU_TAB_INSPECTION) && <WiredMenuInspectionTab />}
-                {(activeTab === WIRED_MENU_TAB_CHESTS) && <WiredMenuChestsTab />}
-                {(activeTab === WIRED_MENU_TAB_SETTINGS) && <WiredMenuSettingsTab />}
-                {loading && (
-                    // `loading_view`: it covers the body and swallows its clicks.
-                    <Region
-                        backgroundColor="#e9e9e1"
-                        backgroundAlpha={0.6}
-                        onPointerDown={event => event.stopPropagation()}
-                        layout={{ position: 'absolute', left: 0, top: 0, width: FRAME_WIDTH, height: 382 }}
-                    />
-                )}
-            </Box>
-        </Frame>
+                    },
+                },
+                loading_view: { visible: false },
+                body_container: {
+                    children: (
+                        <>
+                            {(activeTab === WIRED_MENU_TAB_MONITOR) && <WiredMenuMonitorTab />}
+                            {(activeTab === WIRED_MENU_TAB_OVERVIEW) && <WiredMenuOverviewTab />}
+                            {(activeTab === WIRED_MENU_TAB_INSPECTION) && <WiredMenuInspectionTab />}
+                            {(activeTab === WIRED_MENU_TAB_CHESTS) && <WiredMenuChestsTab />}
+                            {(activeTab === WIRED_MENU_TAB_SETTINGS) && <WiredMenuSettingsTab />}
+                            {loading && (
+                                // `loading_view`: it covers the body and swallows its clicks.
+                                <Region
+                                    backgroundColor="#e9e9e1"
+                                    backgroundAlpha={0.6}
+                                    onPointerDown={event => event.stopPropagation()}
+                                    layout={{ position: 'absolute', left: 0, top: 0, width: FRAME_WIDTH, height: 382 }}
+                                />
+                            )}
+                        </>
+                    ),
+                },
+            }}
+        />
     );
 };
