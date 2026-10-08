@@ -87,6 +87,10 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
         readyRef.current = true;
 
         app.canvas.style = canvasStyle;
+        // Replacing the style dropped the `touch-action: none` Pixi's EventSystem set on the canvas:
+        // without it a finger dragged across the canvas is the browser's pan or zoom, which cancels
+        // the pointer a few pixels in and leaves the room (or any drag) stuck.
+        app.canvas.style.touchAction = 'none';
 
         SetRenderer(app.renderer);
         setAdvancedBlendModes(app.renderer);

@@ -254,12 +254,11 @@ export const RoomCanvas = () => {
          * a window - most of a phone's screen - would stall there, and a finger lifted over one would
          * never end it. While a press that began on the room is held, moves and the release anywhere
          * else still drag the room; they are not room mouse events otherwise (no tile hover under a
-         * window).
+         * window). Pixi hands `globalpointermove` listeners an event whose type is still
+         * `pointermove`, so each listener says which it is rather than the event.
          */
-        const handleDragElsewhere = (event: FederatedPointerEvent) => {
-            if (!isMouseDown || !event.isPrimary || (event.type === 'globalpointermove' && event.target === container)) return;
-
-            const type = (event.type === 'globalpointermove') ? MouseEventType.MOUSE_MOVE : MouseEventType.MOUSE_UP;
+        const dragElsewhere = (event: FederatedPointerEvent, type: string) => {
+            if (!isMouseDown || !event.isPrimary) return;
 
             if (type === MouseEventType.MOUSE_MOVE) didMouseMove = true;
             else isMouseDown = false;
@@ -268,6 +267,13 @@ export const RoomCanvas = () => {
 
             mouseDataRef.current.mouseXY = { x: event.clientX, y: event.clientY };
         };
+
+        // Over the room, its own `pointermove` already moved it.
+        const handleGlobalPointerMove = (event: FederatedPointerEvent) => {
+            if (event.target !== container) dragElsewhere(event, MouseEventType.MOUSE_MOVE);
+        };
+
+        const handlePointerUpOutside = (event: FederatedPointerEvent) => dragElsewhere(event, MouseEventType.MOUSE_UP);
 
         // Pixi does not pass the browser's `pointercancel` on: a touch the browser takes over ends the drag here.
         const handlePointerCancel = (event: PointerEvent) => {
@@ -345,13 +351,13 @@ export const RoomCanvas = () => {
         container.on('pointerdown', handlePointerEvent);
         container.on('pointerup', handlePointerEvent);
         container.on('rightclick', handlePointerEvent);
-        container.on('globalpointermove', handleDragElsewhere);
-        container.on('pointerupoutside', handleDragElsewhere);
+        container.on('globalpointermove', handleGlobalPointerMove);
+        container.on('pointerupoutside', handlePointerUpOutside);
         window.addEventListener('pointercancel', handlePointerCancel);
 
         return () => {
-            container.off('globalpointermove', handleDragElsewhere);
-            container.off('pointerupoutside', handleDragElsewhere);
+            container.off('globalpointermove', handleGlobalPointerMove);
+            container.off('pointerupoutside', handlePointerUpOutside);
             window.removeEventListener('pointercancel', handlePointerCancel);
             GetRenderer().off('resize', resizeCanvas);
             GetTicker().remove(tick);
