@@ -1,171 +1,70 @@
 /**
- * One transaction in detail - Flash `transactions/details/WiredTransactionDetailsView` on
- * `transaction_details_xml` (a style 3 frame, 400x394, `#418db0`, content margins 0,33,0,0):
- * `key_value_pairs` (380 wide at 10,13, spacing 2) lists type, time, room, chests and user as
- * bold key / value pairs, a `separator` widget, the withdrawn and deposited items side by side
- * (`TransactionOverviewView`), a 5px spacing, a second separator and the definition's extra info
- * with its "i" bubble.
+ * One transaction in detail - Flash `transactions/details/WiredTransactionDetailsView`, drawn from
+ * its template `transaction_details_xml` (400x394).
  *
- * `TransactionOverviewView.itemsInitialize`: a coins cell first when coins moved, then one cell
- * per furni type with its amount, then - when the server said the data is incomplete and the
- * listed furni fall short of the transaction's count - a "+N" cell for the rest. An empty side
- * says so (`empty_text`). Each cell's tooltip names what it is (`TransactionItemView.initialize`).
+ * - `updateUI` fills the value of each `<property>_pair` - the pair's second item
+ *   (`getValueWindow`: `getListItemAt(1)`): the transaction type, its readable time, the room id,
+ *   the chest ids joined by ", ", the user and the definition's extra info ("-" when empty).
+ * - `TransactionOverviewView.itemsInitialize`, once per side (`withdrawals_container`,
+ *   `deposits_container`): `item_grid` gets a clone of `furni_template` per cell - a coins cell
+ *   first when coins moved, then one per furni type with its amount, then, when the server says
+ *   the data is incomplete and the listed furni fall short of the transaction's count, a "+N" cell
+ *   for the rest; `empty_text` shows on an empty side.
+ * - `TransactionItemView`: the cell's tooltip names it (the furni, `wiredcontracts.element.type.0`
+ *   for coins, `wiredchests.log_details.incomplete_data`), the border follows the pointer, the
+ *   count shows from two up; the coins icon and the "+N" text show on their own cells.
+ * - `extra_info_button` opens the "i" bubble. Flash moves the template's `extra_info_bubble` onto
+ *   the desktop beside the button (`relocateBubbleFocus`); here the wired trading bubble does that,
+ *   so the template's own bubble stays hidden.
  *
- * `extra_info_bubble`'s text list reflects its height to the bubble (the list plus 32, 179 as
- * laid out); it is measured here and the bubble follows it.
+ * Not drawn: the `limited_item_overlay_grid` / `rarity_item_overlay_grid` widgets (not ported in
+ * this client), and the "+N" text's 12px size from 1000 up (the template binding has no font size).
  */
-import type { IChestItemType } from '@nitrodevco/nitro-api';
 import type { IWiredTransactionDetails, IWiredTransactionFurniAmount } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer } from 'pixi.js';
 import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { useWiredChestItemName } from '#base/hooks';
-import { Border, Box, Frame, LayoutImage, Region, ScrollArea, ThemeImage, ThemeText, useLayoutSize } from '#base/theme';
-import { WiredChestItemCell } from '#base/views/wired-trading/common/WiredChestItemCell';
+import { useWiredChestItemNameResolver } from '#base/hooks';
+import { Box, TemplateBindings, TemplateItem, TemplateWindow, ThemeText, useLayoutSize } from '#base/theme';
+import { ChestItemIcon } from '#base/views/wired-trading/chests/WiredChestFurniContentsView';
 import { getWiredTradingBubbleAnchor, WiredTradingBubbleAnchor } from '#base/views/wired-trading/common/wiredTradingBubbleAnchor';
 import { WiredTradingInfoBubble } from '#base/views/wired-trading/common/WiredTradingInfoBubble';
 
-/** `TransactionChestItemWrapper.specialType`: every listed item is drawn as a plain furni. */
+/** `TransactionChestItemWrapper.specialType`: every listed item is named as a plain furni. */
 const TRANSACTION_ITEM_SPECIAL_TYPE = 1;
+/** `FurniChestItemView.NOT_HOVERED_COLOR` / `§_-KJ§`. */
+const NOT_HOVERED_COLOR = 13355979;
+const HOVERED_COLOR = 14079702;
 const EXTRA_DESCRIPTIONS = [ 1, 2, 3 ];
-const PAIRS_WIDTH = 380;
 /** `extra_info_bubble`: 325x179 around a 147 high text list at 8,8 of its content area. */
 const EXTRA_BUBBLE_WIDTH = 325;
 const EXTRA_BUBBLE_HEIGHT = 179;
 const EXTRA_BUBBLE_TEXTS_HEIGHT = 147;
 const EXTRA_TEXTS_WIDTH = 293;
 
-interface PairProps {
-    name: string;
-    value: string;
-}
+/** `TransactionItemView`'s three kinds. */
+type TransactionCell
+    = | { kind: 'coins'; count: number }
+        | { kind: 'furni'; count: number; furni: IWiredTransactionFurniAmount }
+        | { kind: 'incomplete'; count: number };
 
-/** A `<name>_pair` item list: bold key, value, 2 apart, 20 high; both auto-sized from the left. */
-const Pair = ({ name, value }: PairProps) => (
-    <Region layout={{ flexDirection: 'row', gap: 2, height: 20, flexShrink: 0 }}>
-        <ThemeText
-            text={name}
-            textStyle="u_regular"
-            flashFormat={{ bold: true }}
-            verticalAlign="top"
-            layout={{ flexShrink: 0 }}
-        />
-        <ThemeText
-            text={value}
-            textStyle="u_regular"
-            verticalAlign="top"
-            layout={{ flexShrink: 0 }}
-        />
-    </Region>
-);
+/** `TransactionOverviewView.itemsInitialize`. */
+const cellsOf = (coins: number, furnis: IWiredTransactionFurniAmount[], furniCount: number, isIncompleteData: boolean): TransactionCell[] => {
+    const cells: TransactionCell[] = [];
 
-/**
- * The horizontal `separator` widget (`SeparatorWidget.refresh`): `illumina_light_separator_horizontal`
- * tiled along its width at `height / 2 - 1` - 1 for its 5px.
- */
-const Separator = () => (
-    <Region layout={{ height: 5, width: PAIRS_WIDTH, flexShrink: 0 }}>
-        <ThemeImage
-            src={LayoutImage('habbo-window-manager-com/illumina_light_separator_horizontal.png')}
-            bitmap={{ stretchedX: false, stretchedY: false, wrapX: true }}
-            layout={{ position: 'absolute', left: 0, top: 1, width: PAIRS_WIDTH, height: 2 }}
-        />
-    </Region>
-);
+    if (coins !== 0) cells.push({ kind: 'coins', count: coins });
 
-/** A furni cell, its tooltip the item's name. */
-const FurniCell = ({ itemType, count }: { itemType: IChestItemType; count: number }) => {
-    const name = useWiredChestItemName(itemType, TRANSACTION_ITEM_SPECIAL_TYPE);
+    let listed = 0;
 
-    return (
-        <WiredChestItemCell
-            itemType={itemType}
-            count={count}
-            tooltip={name}
-        />
-    );
-};
+    for (const furni of furnis) {
+        listed += furni.amount;
+        cells.push({ kind: 'furni', count: furni.amount, furni });
+    }
 
-interface ItemsOverviewProps {
-    title: string;
-    coins: number;
-    furnis: IWiredTransactionFurniAmount[];
-    furniCount: number;
-    isIncompleteData: boolean;
-    /** `item_grid`'s height: 131 under withdrawals, 132 under deposits. */
-    gridHeight: number;
-}
+    if (isIncompleteData && (listed < furniCount)) cells.push({ kind: 'incomplete', count: furniCount - listed });
 
-/**
- * `withdrawals_container` / `deposits_container` (`TransactionOverviewView`): a 165x161 column,
- * its underlined title centred over a style 4 `#e2e2e2` border with the scrolling grid at 5,5
- * and `empty_text` at y 61.
- */
-const ItemsOverview = ({ title, coins, furnis, furniCount, isIncompleteData, gridHeight }: ItemsOverviewProps) => {
-    const t = useTranslation();
-    const listed = furnis.reduce((sum, furni) => sum + furni.amount, 0);
-    const missing = (isIncompleteData && (listed < furniCount)) ? (furniCount - listed) : 0;
-    const isEmpty = (coins === 0) && !furnis.length && !missing;
-
-    return (
-        <Region layout={{ width: 165, height: 161, flexShrink: 0 }}>
-            <Region layout={{ position: 'absolute', left: 0, width: 165, top: 0, height: 17, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' }}>
-                <ThemeText
-                    text={title}
-                    textStyle="u_regular"
-                    textOptions={{ align: 'center' }}
-                    flashFormat={{ underline: true }}
-                    verticalAlign="top"
-                />
-            </Region>
-            <Border
-                variant="4"
-                tintColor="#e2e2e2"
-                layout={{ position: 'absolute', left: 0, top: 20, width: 165, height: 141 }}
-            >
-                <ScrollArea
-                    variant="3"
-                    layout={{ position: 'absolute', left: 5, top: 5, width: 155, height: gridHeight }}
-                    contentLayout={{ position: 'relative', width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 3 }}
-                >
-                    {(coins !== 0) && (
-                        <WiredChestItemCell
-                            coins
-                            count={coins}
-                            tooltip={t('wiredcontracts.element.type.0')}
-                        />
-                    )}
-                    {furnis.map((furni, index) => (
-                        <FurniCell
-                            key={index}
-                            itemType={furni.itemType}
-                            count={furni.amount}
-                        />
-                    ))}
-                    {(missing > 0) && (
-                        <WiredChestItemCell
-                            incomplete
-                            count={missing}
-                            tooltip={t('wiredchests.log_details.incomplete_data')}
-                        />
-                    )}
-                </ScrollArea>
-                {isEmpty && (
-                    <Region
-                        alpha={0.5}
-                        layout={{ position: 'absolute', left: 0, width: 165, top: 61, height: 17, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' }}
-                    >
-                        <ThemeText
-                            text={t('wiredchests.log_details.transactions.none_placeholder')}
-                            textStyle="u_regular"
-                            textOptions={{ align: 'center' }}
-                        />
-                    </Region>
-                )}
-            </Border>
-        </Region>
-    );
+    return cells;
 };
 
 export interface WiredTransactionDetailsViewProps {
@@ -175,7 +74,9 @@ export interface WiredTransactionDetailsViewProps {
 
 export const WiredTransactionDetailsView = ({ details, onClose }: WiredTransactionDetailsViewProps) => {
     const t = useTranslation();
-    const [ extraAnchor, setExtraAnchor ] = useState<WiredTransactionDetailsBubbleState>(undefined);
+    const nameOf = useWiredChestItemNameResolver();
+    const [ hovered, setHovered ] = useState<string | undefined>(undefined);
+    const [ extraAnchor, setExtraAnchor ] = useState<WiredTradingBubbleAnchor | undefined>(undefined);
     const [ bubbleFor, setBubbleFor ] = useState(details);
     const [ extraTextsNode, setExtraTextsNode ] = useState<PixiContainer | null>(null);
     const extraTextsHeight = useLayoutSize(extraTextsNode).height;
@@ -189,92 +90,58 @@ export const WiredTransactionDetailsView = ({ details, onClose }: WiredTransacti
 
     const loc = (key: string) => t(key, key);
 
+    /** `TransactionItemView.initialize` / `updateUI` / `updateColoring`, on a clone of `furni_template`. */
+    const cellItem = (side: string, cell: TransactionCell, index: number): TemplateItem => {
+        const key = `${side}-${index}`;
+        let tooltip: string;
+
+        if (cell.kind === 'coins') tooltip = loc('wiredcontracts.element.type.0');
+        else if (cell.kind === 'incomplete') tooltip = loc('wiredchests.log_details.incomplete_data');
+        else tooltip = nameOf(cell.furni.itemType, TRANSACTION_ITEM_SPECIAL_TYPE);
+
+        return {
+            key,
+            from: 'furni_template',
+            bindings: {
+                '': {
+                    tooltip,
+                    onPointerOver: () => setHovered(key),
+                    onPointerOut: () => setHovered(current => ((current === key) ? undefined : current)),
+                },
+                border: { color: (hovered === key) ? HOVERED_COLOR : NOT_HOVERED_COLOR },
+                coins_icon: { visible: cell.kind === 'coins' },
+                furni_icon: { children: (cell.kind === 'furni') && <ChestItemIcon itemType={cell.furni.itemType} /> },
+                number_container: { visible: (cell.kind !== 'incomplete') && (cell.count > 1) },
+                furni_quantity: { caption: String(cell.count), setCaptionAfterBuild: true },
+                incomplete_text: { visible: cell.kind === 'incomplete', caption: `+${cell.count}` },
+                outline_focus: { visible: false },
+            },
+        };
+    };
+
+    const sideBindings = (side: 'withdrawals_container' | 'deposits_container', cells: TransactionCell[]): TemplateBindings => ({
+        [`${side}/item_grid`]: { items: cells.map((cell, index) => cellItem(side, cell, index)) },
+        [`${side}/empty_text`]: { visible: !cells.length },
+    });
+
     return (
         <>
-            <Frame
-                variant="3"
-                id="wired-transaction-details"
-                caption={t('wiredchests.log_details.title')}
-                tintColor="#418db0"
-                dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-                resizeDirection="none"
-                rememberPosition={false}
-                centered
-                onClose={onClose}
-                margins={[ 0, 33, 0, 0 ]}
-                layout={{ position: 'absolute', width: 400, height: 394 }}
-            >
-                <Region layout={{ position: 'absolute', left: 10, top: 13, width: PAIRS_WIDTH, flexDirection: 'column', gap: 2 }}>
-                    <Pair
-                        name={loc('wiredchests.log_details.type')}
-                        value={loc(`wired_transactions.type.${info.transactionType}`)}
-                    />
-                    <Pair
-                        name={loc('wiredchests.log_details.timestamp')}
-                        value={info.readableTimestamp}
-                    />
-                    <Pair
-                        name={loc('wiredchests.log_details.room_id')}
-                        value={String(info.flatId)}
-                    />
-                    <Pair
-                        name={loc('wiredchests.log_details.chest_ids')}
-                        value={details.chestIds.join(', ')}
-                    />
-                    <Pair
-                        name={loc('wiredchests.log_details.username')}
-                        value={info.userName}
-                    />
-                    <Separator />
-                    {/* `furni_transactions_pair`: its value text is blended to 0. */}
-                    <Pair
-                        name={loc('wiredchests.log_details.transactions')}
-                        value=""
-                    />
-                    {/* `furni_details`: the two columns 15 apart in an item list at x 18. */}
-                    <Region layout={{ width: PAIRS_WIDTH, height: 161, flexShrink: 0 }}>
-                        <Region layout={{ position: 'absolute', left: 18, top: 0, height: 161, flexDirection: 'row', gap: 15 }}>
-                            <ItemsOverview
-                                title={loc('wiredchests.log_details.transactions.withdrawn')}
-                                coins={info.withdrawCoinsCount}
-                                furnis={details.withdrawnFurnis}
-                                furniCount={info.withdrawFurniCount}
-                                isIncompleteData={details.isIncompleteData}
-                                gridHeight={131}
-                            />
-                            <ItemsOverview
-                                title={loc('wiredchests.log_details.transactions.deposit')}
-                                coins={info.depositCoinsCount}
-                                furnis={details.depositedFurnis}
-                                furniCount={info.depositFurniCount}
-                                isIncompleteData={details.isIncompleteData}
-                                gridHeight={132}
-                            />
-                        </Region>
-                    </Region>
-                    <Region layout={{ width: PAIRS_WIDTH, height: 5, flexShrink: 0 }} />
-                    <Separator />
-                    <Region layout={{ width: PAIRS_WIDTH, height: 20, flexShrink: 0 }}>
-                        <Region layout={{ position: 'absolute', left: 0, top: 0 }}>
-                            <Pair
-                                name={loc('wiredchests.log_details.extra')}
-                                value={(info.transactionDefinitionInfo === '') ? '-' : info.transactionDefinitionInfo}
-                            />
-                        </Region>
-                        <Region
-                            cursor="pointer"
-                            onPointerTap={event => setExtraAnchor(getWiredTradingBubbleAnchor(event))}
-                            layout={{ position: 'absolute', left: 357, top: 0, width: 20, height: 20 }}
-                        >
-                            <ThemeImage
-                                src={LayoutImage('habbo-window-manager-com/icons_info_grey.png')}
-                                bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                                layout={{ position: 'absolute', left: 1, top: 1 }}
-                            />
-                        </Region>
-                    </Region>
-                </Region>
-            </Frame>
+            <TemplateWindow
+                id="habbo-user-defined-room-events-com/transaction_details_xml"
+                frame={{ id: 'wired-transaction-details', centered: true, rememberPosition: false, onClose }}
+                bindings={{
+                    'transaction_type_pair/@1': { caption: loc(`wired_transactions.type.${info.transactionType}`) },
+                    'timestamp_pair/@1': { caption: info.readableTimestamp },
+                    'room_id_pair/@1': { caption: String(info.flatId) },
+                    'chest_ids_pair/@1': { caption: details.chestIds.join(', ') },
+                    'username_pair/@1': { caption: info.userName },
+                    'extra_pair/@1': { caption: (info.transactionDefinitionInfo === '') ? '-' : info.transactionDefinitionInfo },
+                    ...sideBindings('withdrawals_container', cellsOf(info.withdrawCoinsCount, details.withdrawnFurnis, info.withdrawFurniCount, details.isIncompleteData)),
+                    ...sideBindings('deposits_container', cellsOf(info.depositCoinsCount, details.depositedFurnis, info.depositFurniCount, details.isIncompleteData)),
+                    extra_info_button: { onPointerTap: event => setExtraAnchor(getWiredTradingBubbleAnchor(event)) },
+                    extra_info_bubble: { visible: false },
+                }}
+            />
             {extraAnchor && (
                 <WiredTradingInfoBubble
                     anchor={extraAnchor}
@@ -312,5 +179,3 @@ export const WiredTransactionDetailsView = ({ details, onClose }: WiredTransacti
         </>
     );
 };
-
-type WiredTransactionDetailsBubbleState = WiredTradingBubbleAnchor | undefined;
