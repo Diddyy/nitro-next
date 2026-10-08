@@ -69,7 +69,9 @@ export const RoomCanvas = () => {
             if (!altKey && !ctrlKey && !shiftKey && !isDecoratingRef.current) {
                 mouseData.isDragged = true;
                 mouseData.wasDragged = false;
-                mouseData.dragStartXY = { ...mouseData.mouseXY };
+                // The press's own position: a finger has no hover, so the last one seen is where the
+                // previous touch ended, and the threshold would count from there.
+                mouseData.dragStartXY = { x, y };
             }
         } else if (type === MouseEventType.MOUSE_UP) {
             if (mouseData.isDragged) {
@@ -247,8 +249,39 @@ export const RoomCanvas = () => {
         let lastClick = 0;
         let clickCount = 0;
 
+        /*
+         * The room only hears moves over itself, so a drag that crosses the toolbar, the chat bar or
+         * a window - most of a phone's screen - would stall there, and a finger lifted over one would
+         * never end it. While a press that began on the room is held, moves and the release anywhere
+         * else still drag the room; they are not room mouse events otherwise (no tile hover under a
+         * window).
+         */
+        const handleDragElsewhere = (event: FederatedPointerEvent) => {
+            if (!isMouseDown || !event.isPrimary || (event.type === 'globalpointermove' && event.target === container)) return;
+
+            const type = (event.type === 'globalpointermove') ? MouseEventType.MOUSE_MOVE : MouseEventType.MOUSE_UP;
+
+            if (type === MouseEventType.MOUSE_MOVE) didMouseMove = true;
+            else isMouseDown = false;
+
+            handleRoomDragging(event.clientX, event.clientY, type, event.altKey, event.ctrlKey || event.metaKey, event.shiftKey);
+
+            mouseDataRef.current.mouseXY = { x: event.clientX, y: event.clientY };
+        };
+
+        // Pixi does not pass the browser's `pointercancel` on: a touch the browser takes over ends the drag here.
+        const handlePointerCancel = (event: PointerEvent) => {
+            if (!isMouseDown || !event.isPrimary) return;
+
+            isMouseDown = false;
+
+            handleRoomDragging(event.clientX, event.clientY, MouseEventType.MOUSE_UP, false, false, false);
+        };
+
         const handlePointerEvent = (event: FederatedPointerEvent) => {
-            if (!room) return;
+            // A second finger is not a second mouse: its moves, measured from the first finger's
+            // position, threw the room about, and its release ended the first finger's drag.
+            if (!room || !event.isPrimary) return;
 
             let eventType = event.type === 'tap' ? 'click' : event.type;
 
@@ -312,8 +345,14 @@ export const RoomCanvas = () => {
         container.on('pointerdown', handlePointerEvent);
         container.on('pointerup', handlePointerEvent);
         container.on('rightclick', handlePointerEvent);
+        container.on('globalpointermove', handleDragElsewhere);
+        container.on('pointerupoutside', handleDragElsewhere);
+        window.addEventListener('pointercancel', handlePointerCancel);
 
         return () => {
+            container.off('globalpointermove', handleDragElsewhere);
+            container.off('pointerupoutside', handleDragElsewhere);
+            window.removeEventListener('pointercancel', handlePointerCancel);
             GetRenderer().off('resize', resizeCanvas);
             GetTicker().remove(tick);
 
