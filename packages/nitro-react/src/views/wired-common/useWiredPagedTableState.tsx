@@ -62,10 +62,10 @@ export const useWiredPagedTableTemplate = <T extends object>(props: WiredPagedTa
     return {
         requests,
         bindings: {
-            first_page_btn: { disabled: atFirstPage, onPointerTap: requests.requestFirstPage },
-            prev_page_btn: { disabled: atFirstPage, onPointerTap: requests.requestPreviousPage },
-            next_page_btn: { disabled: atLastPage, onPointerTap: requests.requestNextPage },
-            last_page_btn: { disabled: atLastPage, onPointerTap: requests.requestLastPage },
+            first_page_btn: { disableSection: atFirstPage, onPointerTap: requests.requestFirstPage },
+            prev_page_btn: { disableSection: atFirstPage, onPointerTap: requests.requestPreviousPage },
+            next_page_btn: { disableSection: atLastPage, onPointerTap: requests.requestNextPage },
+            last_page_btn: { disableSection: atLastPage, onPointerTap: requests.requestLastPage },
             pagina_text_start: { caption: pagingText?.start ?? '' },
             pagina_text_end: { caption: pagingText?.end ?? '' },
             pagina_number_input: {

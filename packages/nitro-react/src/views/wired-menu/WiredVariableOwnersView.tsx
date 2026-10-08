@@ -6,12 +6,11 @@
  * window. The user type and sort menus ask for page 1 again (280 ms request limit); every page
  * that arrives puts its own filters back into the menus.
  *
- * The info text is a literal in the layout (it has no localization key), and so it is here. The
- * layout's `searching_icon` is left out: `onPageRequested`, the only thing that shows it, is never
+ * The window is the Flash template itself (its info text is a literal of the layout): the code
+ * fills `variable_name_value`, the two menus and the refresh button, puts the table into
+ * `table_view` and pages through the layout's own `footer` (`useWiredPagedTableTemplate`). The
+ * layout's `searching_icon` stays hidden: `onPageRequested`, the only thing that shows it, is never
  * called by this window. The reference server (turbo-cloud) does not implement these packets.
- *
- * Every text is style 3 without a `text_style` var (`u_regular`); the keys add `bold`, and
- * `info_text` is an `html` window (markup, `leading` 1).
  */
 import type { IWiredUserVariablesElement, IWiredUserVariablesPage, IWiredVariable } from '@nitrodevco/nitro-packets';
 import { useRef, useState } from 'react';
@@ -20,23 +19,16 @@ import { closeWiredVariableOwners, openWiredUserProfile, openWiredVariableHolder
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
 import { WIRED_VARIABLE_MANAGEMENT_PAGE_SIZE } from '#base/context/wired';
-import { Border, Box, Button, Frame, ThemeText } from '#base/theme';
+import { TemplateWindow } from '#base/theme';
 
+import { useWiredPagedTableTemplate } from '../wired-common/useWiredPagedTableState';
 import { useWiredPageRequests } from '../wired-common/useWiredPageRequests';
-import { WiredPagedTable } from '../wired-common/WiredPagedTable';
 import { calculateLastPage } from '../wired-common/wiredPaging';
 import { WiredTableCell, WiredTableColumn } from '../wired-common/WiredTableView';
-import { WiredMenuDropmenu } from './WiredMenuDropmenu';
 import { wiredVariableValueCell } from './wiredVariableValueCell';
 
 /** `VariableManagementOverviewView.REQUEST_PAGE_RATELIMIT`. */
 const REQUEST_PAGE_RATELIMIT = 280;
-/** The header above `middle`. */
-const HEADER_HEIGHT = 117;
-/** The frame's `margin_*` vars: the content box starts under the 33px title bar. */
-const FRAME_MARGINS = [ 0, 33, 0, 0 ] as const;
-/** `info_text`'s caption, as the layout spells it. */
-const INFO_TEXT = 'This is a tool to manage all users that hold a permanent variable.\rFor variables that are shared with other rooms, there is a possible 20 second synchronization delay.';
 
 /** `userTypeOption` (the setter): the page's user type filter as the menu's selection. */
 const userTypeSelection = (userTypeFilter: number): number => {
@@ -124,109 +116,51 @@ export const WiredVariableOwnersView = ({ page, variable }: WiredVariableOwnersV
     const userTypeItems = [ 'all', '1', '2', '4' ].map(item => loc(`wiredmenu.variable_management.usertype.${item}`));
     const sortItems = [ 0, 1, 2, 3, 4, 5 ].map(item => loc(`wiredmenu.variable_management.sort_by.${item}`));
 
-    const boldText = (key: string, left: number, top: number) => (
-        <ThemeText
-            text={loc(key)}
-            textStyle="u_regular"
-            flashFormat={{ bold: true }}
-            verticalAlign="top"
-            layout={{ position: 'absolute', left, top, height: 17 }}
-        />
-    );
+    const paged = useWiredPagedTableTemplate({
+        columns,
+        rows: page.elements,
+        getRowId: element => `${element.entityType}-${element.entityId}`,
+        getCell,
+        currentPage: page.currentPage,
+        totalEntries: page.totalEntries,
+        pageSize: WIRED_VARIABLE_MANAGEMENT_PAGE_SIZE,
+        pagingTextKey: 'wiredmenu.variable_management.bottom_text',
+        pageKey: page,
+        requests,
+        scrollResetKey: page,
+    });
 
     return (
-        <Frame
-            variant="3"
-            id="wired_variable_owners"
-            caption={loc('wiredmenu.variable_management.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            resizeDirection="y"
-            centered
-            rememberPosition={false}
-            onClose={closeWiredVariableOwners}
-            layout={{ position: 'absolute', width: 700, height: 508, minWidth: 700, maxWidth: 700, minHeight: 380, maxHeight: 700 }}
-            margins={FRAME_MARGINS}
-            contentLayout={{ flexDirection: 'column' }}
-        >
-            <Box layout={{ width: 700, height: HEADER_HEIGHT, flexShrink: 0 }}>
-                <Border
-                    variant="4"
-                    layout={{ position: 'absolute', left: 8, top: 7, width: 603, height: 38 }}
-                >
-                    <ThemeText
-                        text={INFO_TEXT.replace(/\r/g, '\n')}
-                        textStyle="u_regular"
-                        textOptions={{ align: 'center', wordWrap: true, wordWrapWidth: 596 }}
-                        flashFormat={{ leading: 1 }}
-                        markup
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 1, top: 3, width: 600, height: 32 }}
-                    />
-                </Border>
-                <Box layout={{ position: 'absolute', left: 15, top: 55, height: 20, flexDirection: 'row', gap: 2 }}>
-                    <ThemeText
-                        text={loc('wiredmenu.variable_management.variable_name')}
-                        textStyle="u_regular"
-                        flashFormat={{ bold: true }}
-                        verticalAlign="top"
-                        layout={{ height: 17 }}
-                    />
-                    <ThemeText
-                        text={variable.variableName}
-                        textStyle="u_regular"
-                        verticalAlign="top"
-                        layout={{ height: 17 }}
-                    />
-                </Box>
-                <Box layout={{ position: 'absolute', left: 15, top: 80, width: 217, height: 25 }}>
-                    {boldText('wiredmenu.variable_management.usertype', 0, 3)}
-                    <WiredMenuDropmenu
-                        items={userTypeItems}
-                        selected={userType}
-                        canSelect={() => requests.canRequestNewPage(false)}
-                        onSelect={(index) => {
-                            setUserType(index);
-                            changeFilters(sortType, index);
-                        }}
-                        layout={{ position: 'absolute', left: 68, top: 0, width: 131, height: 25 }}
-                    />
-                </Box>
-                <Box layout={{ position: 'absolute', left: 247, top: 80, width: 217, height: 25 }}>
-                    {boldText('wiredmenu.variable_management.sort_by', 0, 3)}
-                    <WiredMenuDropmenu
-                        items={sortItems}
-                        selected={sortType}
-                        canSelect={() => requests.canRequestNewPage(false)}
-                        onSelect={(index) => {
-                            setSortType(index);
-                            changeFilters(index, userType);
-                        }}
-                        layout={{ position: 'absolute', left: 53, top: 0, width: 135, height: 25 }}
-                    />
-                </Box>
-                <Button
-                    variant="3"
-                    onPointerTap={requests.refresh}
-                    layout={{ position: 'absolute', left: 621, top: 12, width: 62, height: 30 }}
-                >
-                    {loc('wiredmenu.list_view.refresh')}
-                </Button>
-            </Box>
-            <WiredPagedTable
-                columns={columns}
-                rows={page.elements}
-                getRowId={element => `${element.entityType}-${element.entityId}`}
-                getCell={getCell}
-                currentPage={page.currentPage}
-                totalEntries={page.totalEntries}
-                pageSize={WIRED_VARIABLE_MANAGEMENT_PAGE_SIZE}
-                pagingTextKey="wiredmenu.variable_management.bottom_text"
-                pageKey={page}
-                requests={requests}
-                scrollResetKey={page}
-                layout={{ flex: 1 }}
-            />
-        </Frame>
+        <TemplateWindow
+            id="habbo-user-defined-room-events-com/variables_management_overview_xml"
+            frame={{ id: 'wired_variable_owners', centered: true, rememberPosition: false, resizeDirection: 'y', onClose: closeWiredVariableOwners }}
+            bindings={{
+                variable_name_value: { caption: variable.variableName },
+                user_type_menu: {
+                    options: userTypeItems,
+                    selection: userType,
+                    // `WE_SELECT` is prevented while the limiter refuses a new page: the menu keeps its choice.
+                    onSelect: (index) => {
+                        if (!requests.canRequestNewPage(false)) return;
+
+                        setUserType(index);
+                        changeFilters(sortType, index);
+                    },
+                },
+                sort_type_menu: {
+                    options: sortItems,
+                    selection: sortType,
+                    onSelect: (index) => {
+                        if (!requests.canRequestNewPage(false)) return;
+
+                        setSortType(index);
+                        changeFilters(index, userType);
+                    },
+                },
+                refresh_btn: { onPointerTap: requests.refresh },
+                table_view: { children: paged.table },
+                ...paged.bindings,
+            }}
+        />
     );
 };
