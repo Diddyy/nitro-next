@@ -7,16 +7,18 @@
  * but never more than 5% of the object's height above its top. A holder that leaves the room
  * loses its bubble with it (`onRoomObjectRemoved`): no location, nothing drawn.
  *
+ * The bubble is the Flash template itself, its `value` text set to the holder's value.
+ *
  * Flash puts the bubbles on the desktop, under the windows; they are drawn over the room here.
  */
 import { RoomObjectCategoryEnum, RoomRenderedEvent } from '@nitrodevco/nitro-api';
 import { Container as PixiContainer } from 'pixi.js';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 import { useRoom } from '#base/context/room';
 import { useWiredStore } from '#base/context/wired';
 import { useRoomEventDispatcher } from '#base/hooks';
-import { Box, Bubble, ThemeText, useLayoutSize } from '#base/theme';
+import { Box, TemplateWindow } from '#base/theme';
 import { FixedSizeStack } from '#base/utils';
 
 /** `VariableInfoBubbleView._-zV` / `_-Qf`. */
@@ -24,16 +26,6 @@ const LOCATION_STACK_SIZE = 18;
 const BUBBLE_DROP_SPEED = 3;
 /** `getMaximumVerticalLead`. */
 const MAX_VERTICAL_LEAD_RATIO = 0.05;
-/**
- * The layout's `border` bubble and its `value` text. The text grows with `auto_size` left and
- * carries `reflect_horizontal_resize_to_parent`, so the bubble grows by as much as the text does.
- * Style 5 is not a bubble style of the skin, which falls back to style 0; the layout's empty
- * style 100 `static_bitmap` draws nothing and is left out.
- */
-const BUBBLE_WIDTH = 60;
-const BUBBLE_HEIGHT = 39;
-const VALUE_WIDTH = 22;
-
 interface ValueBubbleProps {
     objectId: number;
     category: RoomObjectCategoryEnum;
@@ -47,8 +39,6 @@ const ValueBubble = ({ objectId, category, value, isAvatar }: ValueBubbleProps) 
     const bubbleRef = useRef<PixiContainer>(null);
     const stack = useRef(new FixedSizeStack(LOCATION_STACK_SIZE));
     const lastMax = useRef(0);
-    const [ textNode, setTextNode ] = useState<PixiContainer | null>(null);
-    const textSize = useLayoutSize(textNode);
 
     // `setActive` after `setInactive`: a bubble given to another object starts over, out of sight until placed.
     useLayoutEffect(() => {
@@ -99,24 +89,11 @@ const ValueBubble = ({ objectId, category, value, isAvatar }: ValueBubbleProps) 
             eventMode="none"
             layout={{ position: 'absolute', left: 0, top: 0 }}
         >
-            <Bubble
-                variant="5"
-                tintColor="#ade6ff"
-                margins={[ 8, 8, 8, 8 ]}
-                layout={{ width: BUBBLE_WIDTH + (textSize.width || VALUE_WIDTH) - VALUE_WIDTH, height: BUBBLE_HEIGHT }}
-            >
-                <Box
-                    ref={setTextNode}
-                    layout={{ position: 'absolute', left: 11, top: 3, height: 16 }}
-                >
-                    <ThemeText
-                        text={value}
-                        textStyle="u_regular"
-                        textOptions={{ fill: '#ffffff', fontSize: 11 }}
-                        verticalAlign="top"
-                    />
-                </Box>
-            </Bubble>
+            {/* `updateValue`: the layout's `value` text; it grows with the value and the bubble with it. */}
+            <TemplateWindow
+                id="habbo-user-defined-room-events-com/variable_value_info_bubble_xml"
+                bindings={{ value: { caption: value } }}
+            />
         </Box>
     );
 };

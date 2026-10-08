@@ -8,6 +8,17 @@ import { NativeRenderResult } from './air32/types';
 import { FlashTextFormat, normalizeFlashTextFormat } from './flashTextFormat';
 import { FlashTextRenderer } from './FlashTextRenderer';
 
+/** The index of the next line break (`\n` or `\r`) from `from`, or -1. */
+const nextLineBreak = (text: string, from: number): number => {
+    const lineFeed = text.indexOf('\n', from);
+    const carriageReturn = text.indexOf('\r', from);
+
+    if (lineFeed < 0) return carriageReturn;
+    if (carriageReturn < 0) return lineFeed;
+
+    return Math.min(lineFeed, carriageReturn);
+};
+
 /** A stretch of text in one format; a block of rich text is several of them. */
 export interface FlashTextRun {
     text: string;
@@ -150,7 +161,8 @@ export const layoutFlashTextLines = (runs: readonly FlashTextRun[], options: Fla
     let paragraphStart = 0;
 
     while (paragraphStart <= text.length && !failed) {
-        const newline = text.indexOf('\n', paragraphStart);
+        // A `TextField` breaks the line at a carriage return as at a line feed; `\r\n` is one break.
+        const newline = nextLineBreak(text, paragraphStart);
         const paragraphEnd = (newline < 0) ? text.length : newline;
 
         if (wrapWidth == null) {
@@ -202,7 +214,7 @@ export const layoutFlashTextLines = (runs: readonly FlashTextRun[], options: Fla
 
         if (newline < 0) break;
 
-        paragraphStart = newline + 1;
+        paragraphStart = newline + (((text[newline] === '\r') && (text[newline + 1] === '\n')) ? 2 : 1);
     }
 
     return failed ? null : lines;

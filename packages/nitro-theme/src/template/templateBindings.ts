@@ -63,6 +63,11 @@ export interface TemplateBinding {
     /** `IWindow.blend`, over the layout's - fading the window's children too, where the layout's own blend may not. */
     alpha?: number;
     disabled?: boolean;
+    /**
+     * `Util.disableSection(window, true)`: disabled, and what it holds drawn at half its blend - a
+     * container button's arrows fade with it (`PagedTableView`'s page buttons). Implies `disabled`.
+     */
+    disableSection?: boolean;
     /** A tab button's or a checkbox's `ISelectableWindow.select()` / `unselect()`. */
     selected?: boolean;
     /** `WME_CLICK`; the event's `currentTarget` is the element's window (`getGlobalRectangle`). */
@@ -210,7 +215,9 @@ const findTemplateChildWhere = (children: readonly TemplateElement[], test: (chi
 
 /**
  * A binding key's element: each `/`-separated name looked up inside the last one's children - a
- * `#TAG` part by its tag (`findChildByTag`); `''` the first root.
+ * `#TAG` part by its tag (`findChildByTag`), an `@N` part as the N-th child of the last one
+ * (`IItemListWindow.getListItemAt(N)`, for the unnamed items a controller reaches by position);
+ * `''` the first root.
  */
 const findByKey = (elements: readonly TemplateElement[], key: string): TemplateElement | undefined => {
     if (key === '') return elements[0];
@@ -219,7 +226,9 @@ const findByKey = (elements: readonly TemplateElement[], key: string): TemplateE
     let found: TemplateElement | undefined;
 
     for (const name of key.split('/')) {
-        found = name.startsWith('#') ? (findTemplateChildByTag(scope, name.slice(1)) ?? findTemplateChildByTag(scope, name)) : findTemplateChild(scope, name);
+        if (name.startsWith('#')) found = findTemplateChildByTag(scope, name.slice(1)) ?? findTemplateChildByTag(scope, name);
+        else if (name.startsWith('@') && (found !== undefined)) found = scope[Number(name.slice(1))];
+        else found = findTemplateChild(scope, name);
 
         if (!found) return undefined;
 
@@ -406,6 +415,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.alpha === b.alpha
         && a.color === b.color
         && a.disabled === b.disabled
+        && a.disableSection === b.disableSection
         && a.selected === b.selected
         && a.autoHideScrollBar === b.autoHideScrollBar
         && a.spacing === b.spacing

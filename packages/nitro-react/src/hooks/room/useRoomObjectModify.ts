@@ -90,7 +90,7 @@ export const useRoomObjectModify = () => {
             }
             case RoomObjectOperationType.OBJECT_EJECT:
             case RoomObjectOperationType.OBJECT_PICKUP:
-                send(new PickupObjectComposer({ categoryId: category, objectId, confirm: true }));
+                send(new PickupObjectComposer({ objectId, objectCategory: category }));
                 break;
             /*
              * A pet and a bot are picked up by their own id rather than the room object's, which

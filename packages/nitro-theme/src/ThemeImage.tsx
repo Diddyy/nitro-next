@@ -95,10 +95,12 @@ export interface ImageProps extends ThemeLayoutMeta {
     onPointerTap?: (event: FederatedPointerEvent) => void;
     /**
      * Falls back to `loading.icon.url` while `src` is resolving/erroring, instead of rendering
-     * nothing. Only meaningful for whole-image (no `frame`) use - for a cropped chrome sprite a
-     * generic loading icon squeezed into that frame's size would look broken.
+     * nothing - or, given as a string, to that texture (an asset key or a url): a furniture icon
+     * waits on the room content loader's `place_holder` icon, as Flash's `getFurnitureIcon` does.
+     * Only meaningful for whole-image (no `frame`) use - for a cropped chrome sprite a generic
+     * loading icon squeezed into that frame's size would look broken.
      */
-    showLoadingPlaceholder?: boolean;
+    showLoadingPlaceholder?: boolean | string;
     /**
      * Sizes/positions the sprite's own box. A box larger than the image does not stretch it
      * (unless `width`/`height` ask for that): the image sits centred at its own size inside,
@@ -140,7 +142,8 @@ export const ThemeImage = forwardRef<PixiContainer, ImageProps>(({
     const baseTexture = ownTexture ?? themeTexture ?? urlTexture;
 
     const loadingIconUrl = useThemeConfigValue<string>('loading.icon.url') ?? '';
-    const loadingTexture = useTextureFromUrl(showLoadingPlaceholder && !frame && !baseTexture ? (loadingIconUrl || undefined) : undefined);
+    const placeholderUrl = (typeof showLoadingPlaceholder === 'string') ? showLoadingPlaceholder : loadingIconUrl;
+    const loadingTexture = useTextureFromUrl(showLoadingPlaceholder && !frame && !baseTexture ? (placeholderUrl || undefined) : undefined);
     const effect = useDynamicStyleEffect(dynamicRole);
 
     const resolvedBaseTexture = baseTexture ?? loadingTexture;

@@ -17,6 +17,7 @@ import { HabbiconsComponent } from './components/habbicons';
 import { HotelViewComponent } from './components/hotel-view';
 import { MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
+import { RoomEffectsWidget } from './components/room/widgets/effects/RoomEffectsWidget';
 import { RoomSettingsWidget } from './components/room/widgets/room-settings';
 import { SpecialItemsComponent } from './components/special-items';
 import { UserProfileComponent } from './components/user-profile';
@@ -136,6 +137,8 @@ export const MainView = () => {
                 <ToolbarWordFilterComponent />
                 {/* Drawn after the toolbar because it sits inside it when it fits; it renders nothing outside a room. */}
                 <RoomChatInputView />
+                {/* `EffectsWidget` is a window on this desktop, activated when it opens: over the toolbar and the chat input, which it sits beside. */}
+                <RoomEffectsWidget />
                 <NotificationsView />
                 <MotdNotificationComponent />
                 <NotificationPopupsView />

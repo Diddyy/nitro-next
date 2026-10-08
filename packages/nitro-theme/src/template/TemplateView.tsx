@@ -93,12 +93,13 @@ export interface TemplateViewProps {
      * How the window manager opens the root frame, when the template is a window of its own
      * (`buildFromXML(xml, 1)`): its id on the desktop, where it opens, and what its close button
      * does (`findChildByTag("close").procedure`). It is dragged like any window. Without it, a root
-     * frame is drawn where the template is, fixed.
+     * frame is drawn where the template is, fixed. Its `onHelp` is the window manager's
+     * `helpButtonAction` (`openHelpPage`), which `buildFromXML` gives the root frame.
      */
     frame?: TemplateFrameOptions;
 }
 
-export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection' | 'rememberPosition'> & {
+export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection' | 'rememberPosition' | 'onHelp'> & {
     /**
      * The frame is a modal dialog's (`buildModalDialogFromXML`), drawn inside a `ModalDialog`: it stays
      * in the modal's layer, which centres it, rather than going onto the window desktop under the
@@ -537,7 +538,8 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         );
     }
 
-    // `SeparatorWidget.refresh`: `illumina_light_separator_horizontal` tiled along the widget at
+    // `SeparatorWidget.refresh`: `illumina_light_separator_horizontal` (a habbo-window-manager-com
+    // bitmap, named with its library as every template bitmap is) tiled along the widget at
     // `height / 2 - 1` - or `_vertical` down it at `width / 2 - 1` (`separator:vertical`).
     if (element.tag === 'widget' && element.vars.widget_type === 'separator') {
         if (!context.imageUrl) return null;
@@ -548,7 +550,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         return (
             <ThemeImage
                 eventMode="none"
-                src={context.imageUrl(vertical ? 'illumina_light_separator_vertical' : 'illumina_light_separator_horizontal')}
+                src={context.imageUrl(vertical ? 'habbo-window-manager-com-illumina_light_separator_vertical' : 'habbo-window-manager-com-illumina_light_separator_horizontal')}
                 bitmap={{ stretchedX: false, stretchedY: false, ...(vertical ? { wrapY: true } : { wrapX: true }) }}
                 layout={vertical
                     ? { position: 'absolute', left: offset, top: 0, width: rect.width - offset, height: rect.height }
@@ -640,11 +642,21 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 tintColor={tintColor}
                 tooltip={tooltipOf(element, context, binding)}
                 tooltipDelay={binding?.tooltipDelay}
-                disabled={binding?.disabled}
+                disabled={binding?.disabled || binding?.disableSection}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
-                {content}
+                {binding?.disableSection
+                    ? (
+                            <Box
+                                pointerTransparent
+                                alpha={0.5}
+                                layout={FILL}
+                            >
+                                {content}
+                            </Box>
+                        )
+                    : content}
             </ContainerButton>
         );
         case 'iconbutton': return (
@@ -1169,6 +1181,9 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 rememberPosition={!!window && (window.rememberPosition ?? true)}
                 draggable={!!window && (window.draggable ?? true)}
                 onClose={window?.onClose}
+                // `FrameController`'s `help_page` property: a page shows the header's help button.
+                helpPage={flashString(element.vars.help_page)}
+                onHelp={window?.onHelp}
                 resizeDirection={resizeDirection}
                 onResize={resizeDirection !== 'none' ? context.onFrameResize : undefined}
                 layout={{ width: rect.width, height: rect.height, minWidth: horizontal.min, maxWidth: horizontal.max, minHeight: vertical.min, maxHeight: vertical.max }}

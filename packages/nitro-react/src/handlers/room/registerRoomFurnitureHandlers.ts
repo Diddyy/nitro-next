@@ -1,10 +1,11 @@
 import { AvatarActionStateType, IRoom, IVector3D, LegacyDataType, RoomObjectCategoryEnum, RoomObjectVariableEnum, SlideAvatarMoveType, Vector3d } from '@nitrodevco/nitro-api';
-import { DiceValueMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
+import { DiceValueMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveConfirmMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, PickupObjectComposer, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
 import { GetRoomContentLoader, LegacyWallGeometry, ObjectMoveUpdateMessage } from '@nitrodevco/nitro-renderer';
 
 import { createPickupTransition } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
+import { systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -17,7 +18,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * The furni aliases (`onFurnitureAliases`) are the content loader's, not a room's: a type drawn
  * from another type's asset (`RoomEngine.setRoomObjectAlias`).
  */
-export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection) => {
+export const registerRoomFurnitureHandlers = ({ subscribe, send }: WebSocketConnection) => {
     const addRoomObjectFloor = (item: IRoomFloorItem) => {
         const room = getRoom();
 
@@ -109,6 +110,16 @@ export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection
 
         on(FurnitureAliasesMessage, (data) => {
             for (const { name, alias } of data.aliases) GetRoomContentLoader().setAssetAliasName(name, alias);
+        }),
+
+        /*
+         * `RoomMessageHandler.onObjectRemoveConfirm`: the server asks before a pickup - its title and
+         * text are localization keys - and OK sends the pickup again, confirmed.
+         */
+        on(ObjectRemoveConfirmMessage, ({ id, category, confirmTitle, confirmBody }) => {
+            const { interpolate, showConfirm } = systemStore.getState();
+
+            showConfirm(interpolate(`\${${confirmTitle}}`), interpolate(`\${${confirmBody}}`), () => send(new PickupObjectComposer({ objectId: id, objectCategory: category, confirm: true })));
         }),
 
         on(ObjectRemoveMessage, (data) => {

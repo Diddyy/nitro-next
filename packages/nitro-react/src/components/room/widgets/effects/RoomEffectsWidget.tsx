@@ -1,6 +1,7 @@
 import { AvatarEffectActivatedComposer, AvatarEffectSelectedComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
+import { useRoom } from '#base/context/room';
 import { useIsWindowVisible, useToolbarAreaWidth, useWindowActions } from '#base/context/system';
 import { useAvatarEffects, userStore } from '#base/context/user';
 import { RoomEffectsView } from '#base/views/room-widgets/effects/RoomEffectsView';
@@ -14,12 +15,14 @@ const NO_EFFECT = -1;
  */
 export const RoomEffectsWidget = () => {
     const effects = useAvatarEffects();
+    const room = useRoom();
     const isVisible = useIsWindowVisible('avatar_effects');
     const { hideWindow } = useWindowActions();
     const toolbarAreaWidth = useToolbarAreaWidth();
     const { send } = useWebSocketContext();
 
-    if (!isVisible) return null;
+    // Mounted on the window desktop, outside the room's widgets, so it keeps to rooms itself.
+    if (!room || !isVisible) return null;
 
     const remember = (type: number) => userStore.getState().setLastWornEffect(type);
 

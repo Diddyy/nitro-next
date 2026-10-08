@@ -4,7 +4,7 @@
  * (`CatalogOfferImageView`).
  */
 import { FurnitureTypeEnum, IProduct } from '@nitrodevco/nitro-api';
-import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
+import { GetRoomEngine, RoomContentLoader } from '@nitrodevco/nitro-renderer';
 
 import { LayoutImage } from '#base/theme';
 
@@ -23,6 +23,25 @@ const wallProductPictureName = (className: string, extraParam: string) => {
             return [ 'th', 'wall', extraParam ].join('_');
         case 'landscape':
             return [ 'th', className, (extraParam || '').replace('.', '_'), '001' ].join('_');
+    }
+
+    return undefined;
+};
+
+/**
+ * What a floor or wall product's engine icon shows until it has loaded: `getFurnitureIcon` /
+ * `getWallItemIcon` hand back the room content loader's placeholder object (`place_holder`,
+ * `wall_place_holder`) drawn at icon size, and the real icon replaces it once its furni is in.
+ * `undefined` for a product whose picture is not an engine icon.
+ */
+export const getFurniProductIconPlaceholder = (product: IProduct): string | undefined => {
+    switch (product.productType) {
+        case FurnitureTypeEnum.Floor:
+            return `${RoomContentLoader.PLACE_HOLDER}_icon_a`;
+        case FurnitureTypeEnum.Wall:
+            if (product.furnitureData && wallProductPictureName(product.furnitureData.className, product.extraParam)) return undefined;
+
+            return `${RoomContentLoader.PLACE_HOLDER_WALL}_icon_a`;
     }
 
     return undefined;

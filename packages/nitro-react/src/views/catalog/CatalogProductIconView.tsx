@@ -3,7 +3,8 @@
  * `image` bitmap (`pivot_point` centre, not stretched). By product type:
  *
  * - `s`: the room engine's furniture icon (`getFurnitureIcon`), rendered with the guild's stuff
- *   data when the page sells guild furni (`ItemGridCatalogWidget.loadGraphics`).
+ *   data when the page sells guild furni (`ItemGridCatalogWidget.loadGraphics`). Until it has
+ *   loaded the slot shows the engine's `place_holder` icon, as Flash's does - not an empty cell.
  * - `i`: for the `floor`, `wallpaper` and `landscape` products the catalogue's `th_*` picture
  *   (`setImageFromAsset` with `th_<class>_<extra>`, `th_wall_<extra>`, `th_landscape_<extra>_001`),
  *   any other wall item its engine icon (`getWallItemIcon`).
@@ -26,7 +27,7 @@ import { useHabbiconsStore } from '#base/context/habbicons';
 import { useConfigValue } from '#base/context/system';
 import { Region, ThemeImage, useAvatarImageTexture } from '#base/theme';
 
-import { getFurniProductIconUrl, pixelEffectIcon, SUBSCRIPTION_PRODUCT_ICON } from './catalogProductIcons';
+import { getFurniProductIconPlaceholder, getFurniProductIconUrl, pixelEffectIcon, SUBSCRIPTION_PRODUCT_ICON } from './catalogProductIcons';
 import { useFurnitureImageTexture } from './useFurnitureImageTexture';
 
 export interface CatalogProductIconViewProps {
@@ -163,7 +164,7 @@ export const CatalogProductIconView = ({ product, width = 36, height = 36, guild
                             name="image"
                             src={content}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            showLoadingPlaceholder
+                            showLoadingPlaceholder={getFurniProductIconPlaceholder(product) ?? true}
                             layout={box}
                         />
                     )

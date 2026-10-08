@@ -1204,6 +1204,21 @@ class FrameWindow extends LayoutWindow {
 }
 
 /**
+ * The properties `ScrollableItemListWindow` / `ScrollableItemGridWindow.set properties` hand to the
+ * inner list or grid they wrap (`_itemGrid.spacing = value` ...).
+ */
+const FORWARDED_LIST_VARS = [ 'spacing', 'scale_to_fit_items', 'resize_on_item_update', 'inverse_resize_on_item_update', 'auto_arrange_items' ] as const;
+
+/** The skin's inner list with the scrollable list's own forwarded properties over its vars. */
+const withForwardedListVars = (part: TemplateElement, owner: TemplateElement): TemplateElement => {
+    const forwarded = FORWARDED_LIST_VARS.filter(key => owner.vars[key] !== undefined);
+
+    if (!forwarded.length) return part;
+
+    return { ...part, vars: { ...part.vars, ...Object.fromEntries(forwarded.map(key => [ key, owner.vars[key] ])) } };
+};
+
+/**
  * `ScrollableItemListWindow` / `ScrollableItemGridWindow`: built from its window layout (`skin`) - an
  * inner list (`_ITEMLIST` / `_ITEMGRID`) and a scrollbar (`_SCROLLBAR`) made at the layout's size,
  * then resized to its own rect, which moves and stretches them by their params. Its XML children go
@@ -1218,7 +1233,10 @@ class ScrollableWindow extends LayoutWindow {
         // The `WindowController` constructor: at the window layout's size, its parts built in it...
         super(element, { x: 0, y: 0, width: skin.width, height: skin.height }, param);
 
-        for (const part of skin.elements) {
+        for (const skinPart of skin.elements) {
+            const isList = !!(skinPart.tags?.includes('_ITEMLIST') || skinPart.tags?.includes('_ITEMGRID'));
+            // `set properties`: the list's own properties go on to the inner list or grid.
+            const part = isList ? withForwardedListVars(skinPart, element) : skinPart;
             const window = createWindow(part, { x: part.x, y: part.y, width: part.width, height: part.height }, templateParamBits(part), undefined, input);
 
             window.skinPart = true;

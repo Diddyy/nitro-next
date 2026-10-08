@@ -36,6 +36,7 @@ import { PerkCodes, useOwnPerkAllowed } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
 import { getGlobalRect, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
 
+import { isRepeatedEnter } from './navigatorEnterGuard';
 import { ALTERNATING_COLOR_MOD, ALTERNATING_COLOR_NONE, getModulatedBackgroundColor, getUserCountColor, ROW_BASE_COLOR } from './NavigatorRoomEntryUtils';
 import { NavigatorRoomInfoPopup } from './NavigatorRoomInfoPopup';
 
@@ -193,6 +194,8 @@ export const NavigatorView = () => {
      * connection, or shows the doorbell / password popup first for a locked room.
      */
     const enterRoom = (room: IRoomInfo) => {
+        if (isRepeatedEnter(room.roomId)) return;
+
         send(new GetGuestRoomComposer({ roomId: room.roomId, enterRoom: false, roomForward: true }));
         hide();
     };

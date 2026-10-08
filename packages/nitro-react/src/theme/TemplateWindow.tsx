@@ -6,6 +6,8 @@
 import { findTemplateChild, Template, TemplateBindings, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
 import { useCallback, useMemo } from 'react';
 
+import { openClientLink } from '#base/commands';
+import { useWebSocketContext } from '#base/context/communication';
 import { useSystemStore, useTranslation } from '#base/context/system';
 
 import { useTemplate } from './useTemplate';
@@ -45,6 +47,10 @@ export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, heig
     const loaded = useTemplate(id);
     const template = useMemo(() => (loaded && part !== undefined ? templatePart(loaded, part) : loaded), [ loaded, part ]);
     const t = useTranslation();
+    const { send } = useWebSocketContext();
+    // `buildFromXML` points a frame's help button at `openHelpPage`, the habbo pages viewer - the
+    // receiver of the `habbopages/<page>` link.
+    const windowFrame = useMemo(() => (frame && { onHelp: (page: string) => openClientLink(send, `habbopages/${page}`), ...frame }), [ frame, send ]);
     // The texts' identity: a new table (texts loaded, or another language) or new parameters is a new
     // `resolveText`, which redraws every text of the template. Between those it stays the same function.
     const localizations = useSystemStore(x => x.localizations);
@@ -67,7 +73,7 @@ export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, heig
             template={template}
             bindings={bindings}
             arrange={arrange}
-            frame={frame}
+            frame={windowFrame}
             width={width}
             height={height}
             resolveText={resolveText}
