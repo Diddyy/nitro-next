@@ -800,11 +800,19 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
  * (`dynamic_style`), a tooltip, or a click its window's code handles.
  */
 /**
- * `WindowMouseDragger`'s params: a `mouse_dragging_target` moves when a `mouse_dragging_trigger` in it
- * (or itself) is pressed. A frame is not one of these here - it drags by its header (`useFrameDrag`).
+ * The windows drawn by a view of their own rather than as a plain region: a frame (which drags by its
+ * header, `useFrameDrag`) and a bubble, which is one; a tab context, a container button, an item list.
+ * Their drag params do not make them a `Region` - that would draw them without their skin.
  */
-const dragTargetOf = (element: TemplateElement) => (element.tag !== 'frame') && !!element.params?.events?.includes('dragTarget');
-const dragTriggerOf = (element: TemplateElement) => (element.tag !== 'frame') && !!element.params?.events?.includes('dragTrigger');
+const OWN_VIEW_TAGS = new Set([ 'frame', 'bubble', 'tab_context', 'container_button' ]);
+const draggableAsRegion = (element: TemplateElement) => !OWN_VIEW_TAGS.has(element.tag) && !TEMPLATE_LISTS[element.tag];
+
+/**
+ * `WindowMouseDragger`'s params: a `mouse_dragging_target` moves when a `mouse_dragging_trigger` in it
+ * (or itself) is pressed - a card, a note, a plaque.
+ */
+const dragTargetOf = (element: TemplateElement) => draggableAsRegion(element) && !!element.params?.events?.includes('dragTarget');
+const dragTriggerOf = (element: TemplateElement) => draggableAsRegion(element) && !!element.params?.events?.includes('dragTrigger');
 
 const isRegion = (element: TemplateElement, binding: TemplateBinding | undefined) => element.tag === 'region'
     || dragTargetOf(element)
