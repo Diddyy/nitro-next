@@ -54,6 +54,11 @@ export interface TemplateBinding {
     /** `IWindow.blend`, over the layout's. */
     alpha?: number;
     disabled?: boolean;
+    /**
+     * `Util.disableSection(window, true)`: disabled, and what it holds drawn at half its blend - a
+     * container button's arrows fade with it (`PagedTableView`'s page buttons). Implies `disabled`.
+     */
+    disableSection?: boolean;
     /** A tab button's or a checkbox's `ISelectableWindow.select()` / `unselect()`. */
     selected?: boolean;
     /** `WME_CLICK`; the event's `currentTarget` is the element's window (`getGlobalRectangle`). */
@@ -375,6 +380,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.alpha === b.alpha
         && a.color === b.color
         && a.disabled === b.disabled
+        && a.disableSection === b.disableSection
         && a.selected === b.selected
         && a.autoHideScrollBar === b.autoHideScrollBar
         && a.spacing === b.spacing

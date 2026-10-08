@@ -603,11 +603,21 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 variant={variant}
                 tintColor={tintColor}
                 tooltip={tooltipOf(element, context, binding)}
-                disabled={binding?.disabled}
+                disabled={binding?.disabled || binding?.disableSection}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
-                {content}
+                {binding?.disableSection
+                    ? (
+                            <Box
+                                pointerTransparent
+                                alpha={0.5}
+                                layout={FILL}
+                            >
+                                {content}
+                            </Box>
+                        )
+                    : content}
             </ContainerButton>
         );
         case 'iconbutton': return (
