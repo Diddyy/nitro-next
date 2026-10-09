@@ -1,5 +1,6 @@
 import type { IMyCfhReportStatus, ISanctionStatusEntry } from '@nitrodevco/nitro-packets';
 
+import type { HelpReportEntry } from '#base/commands/helpCommands';
 import type { WiredMenuWindowParams } from '#base/context/wired';
 import type { AvatarEditorViewWindowParams } from '#base/views/avatar-editor/AvatarEditor';
 import type { CatalogViewWindowParams } from '#base/views/catalog/CatalogView';
@@ -63,7 +64,7 @@ export type WindowRegistry = {
     toolbar_word_filter: NoWindowParams;
 
     /** The help window (`HelpView`), from the purse's help button - `HabboHelp.toggleNewHelpWindow`. */
-    help: NoWindowParams;
+    help: { entry?: HelpReportEntry; openedAt?: number };
     /** `SanctionInfo`, opened by the `SanctionStatusEvent` that answers the help window's sanction status link. */
     help_sanction_info: { sanctions?: ISanctionStatusEntry[]; openedAt?: number };
     /** `MyReportStatus`, opened by the answer to the help window's reports status link. */

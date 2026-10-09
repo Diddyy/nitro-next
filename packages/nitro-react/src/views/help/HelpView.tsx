@@ -35,7 +35,7 @@ import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import type { ICallForHelpTopic } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { collectSelectedChatEntries, requestCfhReportsStatus, requestSanctionStatus, submitCallForHelp } from '#base/commands/helpCommands';
+import { collectSelectedChatEntries, collectSelectedImEntries, HelpReportEntry, requestCfhReportsStatus, requestSanctionStatus, submitCallForHelp } from '#base/commands/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { helpStore, HelpUserItem, useHelpStore } from '#base/context/help';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
@@ -92,11 +92,30 @@ const fitListText = (textName: string, extra: number) => ({ find, root }: Templa
     if (item.height < (text.height + (text.y * 2) + extra)) item.setHeight(text.height + (text.y * 2) + extra);
 };
 
+/** `populateRoomReportButton`'s topic: the room report's one button (`help.cfh.topic.34`). */
+const ROOM_REPORT_TOPIC_ID = 34;
+const ROOM_REPORT_TOPIC_NAME = 'inappropiate_room_group_event';
+
 export interface HelpViewProps {
+    /** The report that opened the window; the start page when there is none (`toggleWindow`). */
+    entry?: HelpReportEntry;
     onClose: () => void;
 }
 
-export const HelpView = ({ onClose }: HelpViewProps) => {
+/** Where each entry opens: `openReportingChatLineSelection`, `showReasons(4)`, `openReportingIMSelection`. */
+const firstContainer = (entry: HelpReportEntry | undefined): Container => {
+    switch (entry) {
+        case 'user':
+        case 'im':
+            return 'chat_container';
+        case 'room':
+            return 'reason_container';
+        default:
+            return 'start_container';
+    }
+};
+
+export const HelpView = ({ entry, onClose }: HelpViewProps) => {
     const t = useTranslation();
     const { send } = useWebSocketContext();
     const { showAlert } = useWindowActions();
@@ -110,16 +129,17 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
     const chatItems = useHelpStore(x => x.chatItems);
     const categories = useHelpStore(x => x.callForHelpCategories);
     const reportedUserId = useHelpStore(x => x.reportedUserId);
+    const reportedRoomName = useHelpStore(x => x.reportedRoomName);
+    const imItems = useHelpStore(x => x.imItems);
     /** `_-UZ`. */
-    const [ container, setContainer ] = useState<Container>('start_container');
-    /** `name`: the category picked. */
-    const [ categoryName, setCategoryName ] = useState('');
+    const [ container, setContainer ] = useState<Container>(() => firstContainer(entry));
+    /** `name`: the category picked; `room_report` once `populateRoomReportButton` has run. */
+    const [ categoryName, setCategoryName ] = useState(() => ((entry === 'room') ? 'room_report' : ''));
+    /** What the reason list holds: the room report's one button until `populateReasons` lists the categories. */
+    const [ roomReportButton, setRoomReportButton ] = useState(entry === 'room');
     /** `_-325`: the topic picked. */
     const [ topic, setTopic ] = useState<ICallForHelpTopic | undefined>(undefined);
     const [ message, setMessage ] = useState('');
-
-    // `openWindow`: `deselectChatEntries`.
-    useEffect(() => helpStore.getState().deselectChatItems(), []);
 
     const alert = (key: string) => showAlert(t('generic.alert.title'), t(key), { modal: true });
 
@@ -143,6 +163,34 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
         return listedUsers.length > 0;
     };
 
+    // `openWindow` (`deselectChatEntries`), then the entry's own start.
+    useEffect(() => {
+        helpStore.getState().deselectChatItems();
+
+        if (entry === 'user') {
+            // `userChatLinesAvailable`: `populateUsers`, which forgets a reported user with no lines.
+            if (!listUsers() || (helpStore.getState().reportedUserId <= 0)) {
+                alert('help.cfh.error.no_user_data');
+                onClose();
+
+                return;
+            }
+
+            helpStore.getState().setHoldPurges(true);
+        }
+
+        if (entry === 'im') {
+            // `populateInstantMessages`, and with nothing to list `help.cfh.error.no_user_data`.
+            helpStore.getState().setImHoldPurges(true);
+
+            if (!(helpStore.getState().imItems.find(([ chatId ]) => chatId === helpStore.getState().reportedUserId)?.[1].length)) {
+                alert('help.cfh.error.no_user_data');
+                onClose();
+            }
+        }
+        // Once, as the window opens.
+    }, []);
+
     /** `button_user_report` / `change_user`. */
     const showUsers = () => {
         if (listUsers()) setContainer('users_container');
@@ -157,6 +205,21 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
 
     /** `populateChatMessage`: the reported user's lines (every line with nobody reported), never the user's own. */
     const chatLines = chatItems.filter(item => ((reportedUserId > 0) ? (item.userId === reportedUserId) : true) && (item.userId !== ownUserId));
+    /** `populateInstantMessages`: the reported conversation's messages. */
+    const imLines = imItems.find(([ chatId ]) => chatId === reportedUserId)?.[1] ?? [];
+
+    /** `onInstantMessageEntryEvent`. */
+    const toggleImLine = (index: number) => {
+        const item = imLines.find(line => line.index === index);
+
+        if (item) helpStore.getState().setImItemSelected(reportedUserId, index, !item.selected);
+    };
+
+    /** `populateReasons`. */
+    const showReasons = () => {
+        setRoomReportButton(false);
+        setContainer('reason_container');
+    };
 
     /** `onChatEntryEvent`. */
     const toggleChatLine = (index: number) => {
@@ -214,7 +277,7 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
                 break;
             case 'topic_container':
             case 'message_container':
-                setContainer('reason_container');
+                showReasons();
                 break;
             case 'chat_container':
                 if (listUsers()) setContainer('users_container');
@@ -245,13 +308,13 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
                 if (verifyMessage()) setContainer('summary_container');
                 break;
             case 'chat_container':
-                // `verifySelectedChatLines`.
-                if (!collectSelectedChatEntries().length) {
+                // `verifySelectedChatLines`: the lines `collectSelectedEntries` would send for this mode.
+                if (!((entry === 'im') ? collectSelectedImEntries(helpStore.getState().reportedUserId) : collectSelectedChatEntries()).length) {
                     alert('help.cfh.error.chatmissing');
                     break;
                 }
 
-                setContainer('reason_container');
+                showReasons();
                 break;
             default:
                 setContainer('start_container');
@@ -265,7 +328,7 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
             return;
         }
 
-        submitCallForHelp(send, message, topic, true);
+        submitCallForHelp(send, message, topic, true, entry);
         onClose();
     };
 
@@ -289,42 +352,70 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
         },
     }));
 
-    const chatLineItems: TemplateItem[] = chatLines.map(item => ({
-        key: String(item.index),
-        from: 'chat_prototype',
-        bindings: {
-            chat_text: { caption: item.text, onPointerTap: () => toggleChatLine(item.index) },
-            chat_check: { selected: item.selected, onPointerTap: () => toggleChatLine(item.index) },
-        },
-        arrange: fitListText('chat_text', 0),
-    }));
+    const chatLineItems: TemplateItem[] = (entry === 'im')
+        ? imLines.map(item => ({
+                key: `im_${item.index}`,
+                from: 'chat_prototype',
+                bindings: {
+                    chat_text: { caption: item.text, onPointerTap: () => toggleImLine(item.index) },
+                    chat_check: { selected: item.selected, onPointerTap: () => toggleImLine(item.index) },
+                },
+            }))
+        : chatLines.map(item => ({
+                key: String(item.index),
+                from: 'chat_prototype',
+                bindings: {
+                    chat_text: { caption: item.text, onPointerTap: () => toggleChatLine(item.index) },
+                    chat_check: { selected: item.selected, onPointerTap: () => toggleChatLine(item.index) },
+                },
+                arrange: fitListText('chat_text', 0),
+            }));
 
     const topics = (container === 'topic_container') ? (categories.find(category => category.name === categoryName)?.topics ?? []) : [];
-    const reasonItems: TemplateItem[] = (container === 'topic_container')
-        ? topics.map(entry => ({
-                key: `topic_${entry.id}`,
-                from: 'reason_prototype',
-                bindings: {
-                    '': { onPointerTap: () => pickTopic(entry) },
-                    name: { caption: t(`help.cfh.topic.${entry.id}`, '', { name: reportedUserName }) },
+    /** `populateRoomReportButton`: one button, `help.cfh.topic.34` with the user's name, opening the room topic. */
+    const roomReportItems: TemplateItem[] = [ {
+        key: ROOM_REPORT_TOPIC_NAME,
+        from: 'reason_prototype',
+        bindings: {
+            '': {
+                onPointerTap: () => {
+                    // `onReportTopic` -> `getTopic`: the topic of that name the server listed, if any.
+                    setTopic(categories.flatMap(category => category.topics).find(topicData => topicData.name === ROOM_REPORT_TOPIC_NAME));
+                    setContainer('message_container');
                 },
-                arrange: fitListText('name', 5),
-            }))
-        : categories.map(category => ({
-                key: `reason_${category.name}`,
-                from: 'reason_prototype',
-                bindings: {
-                    '': { onPointerTap: () => showTopics(category.name) },
-                    name: { caption: `\${help.cfh.reason.${category.name}}` },
-                },
-            }));
+            },
+            name: { caption: t(`help.cfh.topic.${ROOM_REPORT_TOPIC_ID}`, '', { name: reportedUserName }) },
+        },
+        arrange: fitListText('name', 5),
+    } ];
+    const reasonItems: TemplateItem[] = roomReportButton
+        ? roomReportItems
+        : (container === 'topic_container')
+                ? topics.map(entry => ({
+                        key: `topic_${entry.id}`,
+                        from: 'reason_prototype',
+                        bindings: {
+                            '': { onPointerTap: () => pickTopic(entry) },
+                            name: { caption: t(`help.cfh.topic.${entry.id}`, '', { name: reportedUserName }) },
+                        },
+                        arrange: fitListText('name', 5),
+                    }))
+                : categories.map(category => ({
+                        key: `reason_${category.name}`,
+                        from: 'reason_prototype',
+                        bindings: {
+                            '': { onPointerTap: () => showTopics(category.name) },
+                            name: { caption: `\${help.cfh.reason.${category.name}}` },
+                        },
+                    }));
 
     const bindings: TemplateBindings = {
         ...Object.fromEntries(CONTAINERS.map(name => [ name, { visible: false } ])),
         [shown]: { visible: true },
         continue_button: { visible: REQUIRES_CONTINUE_BUTTON.includes(shown), onPointerTap: onContinue },
         user: { visible: REQUIRES_USER_DATA.includes(shown) },
-        back_button: { visible: shown !== 'start_container', onPointerTap: onBack },
+        // `updateBackButtonVisibility`, by the reporting mode.
+        back_button: { visible: (container !== 'start_container') && ((entry === 'im') ? (container !== 'chat_container') : (entry === 'room') ? (container !== 'reason_container') : true), onPointerTap: onBack },
 
         // `start_container`.
         reports_status_bitmap: { visible: reportsStatusEnabled },
@@ -353,15 +444,17 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
         // `users_container`.
         user_list: { items: userItems },
 
-        // `user` (`updateUserData`).
-        reported_user_avatar: { visible: !!reportedUser, children: reportedUser && (
+        // `user` (`updateUserData`): a room report shows the room's name alone.
+        user_info_title: { visible: entry !== 'room' },
+        reported_user_avatar: { visible: (entry !== 'room') && !!reportedUser, children: reportedUser && (
             <AvatarHead
                 figure={reportedUser.figure}
                 cropped
             />
         ) },
-        reported_user_name: { caption: reportedUserName },
-        change_user: { onPointerTap: showUsers },
+        reported_user_name: { caption: (entry === 'room') ? reportedRoomName : reportedUserName },
+        // `showReportingDialog`'s second argument: only the avatar menu's report offers another user.
+        change_user: { visible: (entry === undefined) || (entry === 'user'), onPointerTap: showUsers },
 
         // `chat_container`.
         chat_list: { items: chatLineItems },

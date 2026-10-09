@@ -2,18 +2,24 @@
  * What the help window sends - `HabboHelp`:
  * - `requestSanctionInfo` (`GetMySanctionStatusComposer`) and `requestReportsStatus`
  *   (`GetCfhMyReportStatusComposer`), both without a body; the answers open their own windows.
- * - `TopicsFlowHelpController.submitCallForHelp` for a report started from the help window: first
+ * - The report entry points: `reportUser` (the avatar menu's report), `reportRoom` (the room info's
+ *   report) and `reportUserFromIM` (the messenger's report) set who or what is reported and open the
+ *   help window on their step (`HelpReportEntry`).
+ * - `TopicsFlowHelpController.submitCallForHelp`: first
  *   `ignoreAndUnfriendReportedUser` (ignore the reported user and, if they are a friend, remove
  *   them - except for topic 21, `TOPICS_WITHOUT_IGNORE_AND_UNFRIEND`), then a bullying report goes
  *   to the guardians (`ChatReviewSessionCreateComposer`) when `guides.enabled` and
  *   `guardians.enabled` are on, and anything else is a `CallForHelpComposer` with the chat lines
- *   ticked (`ChatReportController.collectSelectedEntries(1, -1)`: user id and text per line).
+ *   ticked (`ChatReportController.collectSelectedEntries(1, -1)`: user id and text per line). A room
+ *   report sends `CallForHelpComposer` with no user and no lines; a messenger report sends
+ *   `CallForHelpFromIMComposer` with the conversation's ticked messages.
  */
 import { GetConfigValue } from '@nitrodevco/nitro-api';
-import { CallForHelpComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
+import { CallForHelpComposer, CallForHelpFromIMComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { helpStore } from '#base/context/help';
+import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
 type Send = WebSocketConnection['send'];
@@ -24,6 +30,33 @@ const TOPICS_WITHOUT_IGNORE_AND_UNFRIEND = [ 21 ];
 /** The topic `submitCallForHelp` hands to the guardians. */
 const BULLYING_TOPIC_NAME = 'bullying';
 
+/**
+ * Where a report opens the help window (`_-nL`, the reporting mode): `user` is
+ * `openReportingChatLineSelection` (mode -1), `room` is `openReportingContentReasonCategory(4)` and
+ * `im` is `openReportingIMSelection` (mode 3).
+ */
+export type HelpReportEntry = 'user' | 'room' | 'im';
+
+/** `HabboHelp.reportUser`: the avatar menu's report (`RWUAM_REPORT_CFH_OTHER`). */
+export const reportUser = (userId: number) => {
+    helpStore.getState().setReportedUserId(userId);
+    systemStore.getState().showWindow('help', { entry: 'user', openedAt: performance.now() });
+};
+
+/** `HabboHelp.reportRoom`: a room's report - no user. */
+export const reportRoom = (roomId: number, roomName: string) => {
+    helpStore.getState().setReportedRoomId(roomId);
+    helpStore.getState().setReportedRoomName(roomName);
+    helpStore.getState().setReportedUserId(-1);
+    systemStore.getState().showWindow('help', { entry: 'room', openedAt: performance.now() });
+};
+
+/** `HabboHelp.reportUserFromIM`: the messenger's report of a conversation. */
+export const reportUserFromIM = (userId: number) => {
+    helpStore.getState().setReportedUserId(userId);
+    systemStore.getState().showWindow('help', { entry: 'im', openedAt: performance.now() });
+};
+
 export const requestSanctionStatus = (send: Send) => send(new GetMySanctionStatusComposer({}));
 
 export const requestCfhReportsStatus = (send: Send) => send(new GetCfhMyReportStatusComposer({}));
@@ -32,6 +65,11 @@ export const requestCfhReportsStatus = (send: Send) => send(new GetCfhMyReportSt
 export const collectSelectedChatEntries = (): (number | string)[] => helpStore.getState().chatItems
     .filter(item => item.selected)
     .flatMap(item => [ item.userId, item.text ]);
+
+/** `ChatReportController.collectSelectedEntries(3, user)`: the conversation's ticked messages; a group chat's sender id is the start of its name. */
+export const collectSelectedImEntries = (userId: number): (number | string)[] => (helpStore.getState().imItems.find(([ chatId ]) => chatId === userId)?.[1] ?? [])
+    .filter(item => item.selected)
+    .flatMap(item => [ (item.userId < 0) ? Number(item.userName.split(':')[0]) : item.userId, item.text ]);
 
 /** `HabboHelp.ignoreAndUnfriendReportedUser`. */
 const ignoreAndUnfriendReportedUser = (send: Send, topicId: number) => {
@@ -44,11 +82,23 @@ const ignoreAndUnfriendReportedUser = (send: Send, topicId: number) => {
     if (userStore.getState().friends[reportedUserId]) send(new RemoveFriendComposer({ playerIds: [ reportedUserId ] }));
 };
 
-/** `TopicsFlowHelpController.submitCallForHelp` for a report started from the help window. */
-export const submitCallForHelp = (send: Send, message: string, topic: ICallForHelpTopic, toGuardians: boolean) => {
+/** `TopicsFlowHelpController.submitCallForHelp`, by the reporting mode the window was opened in. */
+export const submitCallForHelp = (send: Send, message: string, topic: ICallForHelpTopic, toGuardians: boolean, entry?: HelpReportEntry) => {
     const { reportedUserId, reportedRoomId } = helpStore.getState();
 
     ignoreAndUnfriendReportedUser(send, topic.id);
+
+    if (entry === 'im') {
+        send(new CallForHelpFromIMComposer({ message, topicId: topic.id, reportedUserId, chatEntries: collectSelectedImEntries(reportedUserId), name: '', email: '' }));
+
+        return;
+    }
+
+    if (entry === 'room') {
+        send(new CallForHelpComposer({ message, topicId: topic.id, reportedUserId: -1, roomId: reportedRoomId, chatEntries: [], name: '', email: '' }));
+
+        return;
+    }
 
     if (toGuardians && (topic.name === BULLYING_TOPIC_NAME) && (GetConfigValue<boolean>('guides.enabled') === true) && (GetConfigValue<boolean>('guardians.enabled') === true)) {
         send(new ChatReviewSessionCreateComposer({ reportedUserId, roomId: reportedRoomId }));

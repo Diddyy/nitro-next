@@ -8,8 +8,13 @@
  * - `users` (`UserRegistry`): the users seen in rooms (`HabboHelp.onUsers`), newest last, at most
  *   80 (`purgeUserIndex` drops the oldest); each with the room it was seen in. A user seen before
  *   the room's name is known gets it when `registerRoom` brings one (`addRoomNameForMissing`).
+ * - `imItems` (`InstantMessageRegistry`): each conversation's messages from the other side
+ *   (`InstantMessageEventHandler`: new messages, the history's, room invites), by conversation, the
+ *   conversation last written to last. Every third message purges (`purgeRegistry`, unless held):
+ *   the same 16 x 65.5 s age, and past 20 messages a conversation keeps its last 15.
  * - `callForHelpCategories` (`onCfhTopics`): the report reasons and their topics.
- * - `reportedUserId` / `reportedRoomId` (`CallForHelpManager`'s): who and where is being reported.
+ * - `reportedUserId` / `reportedRoomId` / `reportedRoomName` (`CallForHelpManager`'s): who and where
+ *   is being reported.
  */
 import type { ICallForHelpCategory } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
@@ -22,12 +27,26 @@ const CHAT_AGE_UNIT_MS = 65500;
 const CHAT_MAX_AGE_UNITS = 15;
 /** `UserRegistry.MAX_USERS_TO_STORE`. */
 const MAX_USERS = 80;
+/** `InstantMessageRegistry.MAX_MESSAGES_TO_STORE` / `ITEMS_TO_PURGE`, and the adds between two purges. */
+const MAX_IM_ITEMS = 20;
+const IM_ITEMS_TO_PURGE = 5;
+const IM_PURGE_EVERY = 3;
 
 /** `ChatRegistryItem`. */
 export interface HelpChatItem {
     index: number;
     roomId: number;
     roomName: string;
+    userId: number;
+    userName: string;
+    text: string;
+    selected: boolean;
+    chatTime: number;
+}
+
+/** `InstantMessageRegistryItem`: `userId` is the conversation's id (negative for a group chat). */
+export interface HelpImItem {
+    index: number;
     userId: number;
     userName: string;
     text: string;
@@ -55,9 +74,17 @@ type State = {
     userRoomName: string;
     /** `_-22V`: users registered while the room had no name yet. */
     usersMissingRoomName: number[];
+    /** Conversation id against its messages; the conversation last written to is last. */
+    imItems: [ number, HelpImItem[] ][];
+    /** `MAX_MESSAGES_TO_STORE` (an instance counter in the AS3): the next message's index. */
+    nextImIndex: number;
+    /** `_-M2k`: messages added, for the purge every third. */
+    imAddCount: number;
+    imHoldPurges: boolean;
     callForHelpCategories: ICallForHelpCategory[];
     reportedUserId: number;
     reportedRoomId: number;
+    reportedRoomName: string;
 };
 
 type Actions = {
@@ -65,8 +92,12 @@ type Actions = {
     addChatItem: (roomId: number, roomName: string, userId: number, userName: string, text: string) => void;
     setChatItemSelected: (index: number, selected: boolean) => void;
     setHoldPurges: (holdPurges: boolean) => void;
-    /** `TopicsFlowHelpController.deselectChatEntries`. */
+    /** `TopicsFlowHelpController.deselectChatEntries`: both registries' ticks. */
     deselectChatItems: () => void;
+    /** `InstantMessageRegistry.addItem`. */
+    addImItem: (chatId: number, userName: string, text: string) => void;
+    setImItemSelected: (chatId: number, index: number, selected: boolean) => void;
+    setImHoldPurges: (imHoldPurges: boolean) => void;
     /** `UserRegistry.registerRoom`. */
     registerRoom: (roomId: number, roomName: string) => void;
     /** `UserRegistry.registerUser`. */
@@ -74,6 +105,7 @@ type Actions = {
     setCallForHelpCategories: (categories: ICallForHelpCategory[]) => void;
     setReportedUserId: (reportedUserId: number) => void;
     setReportedRoomId: (reportedRoomId: number) => void;
+    setReportedRoomName: (reportedRoomName: string) => void;
 };
 
 export type HelpStore = State & Actions;
@@ -86,9 +118,14 @@ const INITIAL: State = {
     userRoomId: 0,
     userRoomName: '',
     usersMissingRoomName: [],
+    imItems: [],
+    nextImIndex: 0,
+    imAddCount: 0,
+    imHoldPurges: false,
     callForHelpCategories: [],
     reportedUserId: -1,
     reportedRoomId: -1,
+    reportedRoomName: '',
 };
 
 /** `ChatRegistry.purgeRegistry`. */
@@ -97,6 +134,13 @@ const purgeChatItems = (items: HelpChatItem[], now: number): HelpChatItem[] => {
 
     return (kept.length > MAX_CHAT_ITEMS) ? kept.slice(kept.length - (MAX_CHAT_ITEMS - CHAT_ITEMS_TO_PURGE)) : kept;
 };
+
+/** `InstantMessageRegistry.purgeRegistry`: each conversation keeps its recent messages, at most the last 15 past 20. */
+const purgeImItems = (conversations: [ number, HelpImItem[] ][], now: number): [ number, HelpImItem[] ][] => conversations.map(([ chatId, items ]) => {
+    const kept = items.filter(item => Math.trunc((now - item.chatTime) / CHAT_AGE_UNIT_MS) <= CHAT_MAX_AGE_UNITS);
+
+    return [ chatId, (kept.length > MAX_IM_ITEMS) ? kept.slice(kept.length - (MAX_IM_ITEMS - IM_ITEMS_TO_PURGE)) : kept ];
+});
 
 export const createHelpStore = () => createStore<HelpStore>()(set => ({
     ...INITIAL,
@@ -108,7 +152,26 @@ export const createHelpStore = () => createStore<HelpStore>()(set => ({
     }),
     setChatItemSelected: (index, selected) => set(x => ({ chatItems: x.chatItems.map(item => ((item.index === index) ? { ...item, selected } : item)) })),
     setHoldPurges: holdPurges => set({ holdPurges }),
-    deselectChatItems: () => set(x => ({ chatItems: x.chatItems.map(item => (item.selected ? { ...item, selected: false } : item)) })),
+    deselectChatItems: () => set(x => ({
+        chatItems: x.chatItems.map(item => (item.selected ? { ...item, selected: false } : item)),
+        imItems: x.imItems.map(([ chatId, items ]) => [ chatId, items.map(item => (item.selected ? { ...item, selected: false } : item)) ]),
+    })),
+    addImItem: (chatId, userName, text) => set((x) => {
+        const now = Date.now();
+        const item: HelpImItem = { index: x.nextImIndex, userId: chatId, userName, text, selected: false, chatTime: now };
+        const existing = x.imItems.find(([ id ]) => id === chatId)?.[1] ?? [];
+        // The conversation written to moves to the end (`remove` then `add`).
+        const imItems: [ number, HelpImItem[] ][] = [ ...x.imItems.filter(([ id ]) => id !== chatId), [ chatId, [ ...existing, item ] ] ];
+        const imAddCount = x.imAddCount + 1;
+
+        return {
+            imItems: ((imAddCount % IM_PURGE_EVERY) === 0 && !x.imHoldPurges) ? purgeImItems(imItems, now) : imItems,
+            nextImIndex: x.nextImIndex + 1,
+            imAddCount,
+        };
+    }),
+    setImItemSelected: (chatId, index, selected) => set(x => ({ imItems: x.imItems.map(([ id, items ]) => [ id, (id === chatId) ? items.map(item => ((item.index === index) ? { ...item, selected } : item)) : items ]) })),
+    setImHoldPurges: imHoldPurges => set({ imHoldPurges }),
     registerRoom: (roomId, roomName) => set((x) => {
         if (roomName === '') return { userRoomId: roomId, userRoomName: roomName };
 
@@ -128,6 +191,7 @@ export const createHelpStore = () => createStore<HelpStore>()(set => ({
     setCallForHelpCategories: callForHelpCategories => set({ callForHelpCategories }),
     setReportedUserId: reportedUserId => set({ reportedUserId }),
     setReportedRoomId: reportedRoomId => set({ reportedRoomId }),
+    setReportedRoomName: reportedRoomName => set({ reportedRoomName }),
 }));
 
 export const helpStore = createHelpStore();

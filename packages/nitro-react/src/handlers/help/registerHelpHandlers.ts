@@ -8,10 +8,12 @@
  *   room `onRoomReady` (its id, no name yet) and `onGuestRoomResult` (its id and name) registered;
  * - the chat registry: `ChatEventHandler.onRoomChat` keeps each line a user says, shouts or
  *   whispers in a room the navigator has entered, unless the speaker is blocked or the line's style
- *   is a notification's.
+ *   is a notification's;
+ * - the instant message registry (`InstantMessageEventHandler`): each new message by its
+ *   conversation, a history's messages from the other side, and room invites by their sender.
  */
 import { RoomObjectUserType } from '@nitrodevco/nitro-api';
-import { CfhTopicsInitMessage, ChatMessage, GetGuestRoomResultMessage, MyCfhReportStatusMessage, RoomReadyMessage, SanctionStatusEventMessage, ShoutMessage, UsersMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
+import { CfhTopicsInitMessage, ChatMessage, ConsoleMessageHistoryMessage, GetGuestRoomResultMessage, MyCfhReportStatusMessage, NewConsoleMessageMessage, RoomInviteMessage, RoomReadyMessage, SanctionStatusEventMessage, ShoutMessage, UsersMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
 
 import { GetChatStyleLibrary } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
@@ -54,4 +56,12 @@ export const registerHelpHandlers = ({ subscribe }: WebSocketConnection) => subs
     on(ChatMessage, data => onRoomChat(data.objectId, data.text, data.styleId)),
     on(ShoutMessage, data => onRoomChat(data.objectId, data.text, data.styleId)),
     on(WhisperMessage, data => onRoomChat(data.objectId, data.text, data.styleId)),
+    // `onConsoleHistory`: only the other side's messages.
+    on(ConsoleMessageHistoryMessage, (data) => {
+        for (const message of data.messages) {
+            if (message.senderId === data.chatId) helpStore.getState().addImItem(data.chatId, message.senderName, message.message);
+        }
+    }),
+    on(NewConsoleMessageMessage, data => helpStore.getState().addImItem(data.chatId, data.senderName, data.message)),
+    on(RoomInviteMessage, data => helpStore.getState().addImItem(data.senderId, '', data.message)),
 ]);
