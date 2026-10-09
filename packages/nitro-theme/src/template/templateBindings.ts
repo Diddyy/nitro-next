@@ -76,6 +76,11 @@ export interface TemplateBinding {
     /** `WME_CLICK`; the event's `currentTarget` is the element's window (`getGlobalRectangle`). */
     onPointerTap?: (event: FederatedPointerEvent) => void;
     /**
+     * A markup text's click on an `<a href>`'s glyphs, and only there, with the link (`HTMLTextController.immediateClickHandler`'s
+     * `WindowLinkEvent.link`: an `event:` link without its prefix).
+     */
+    onLink?: (link: string) => void;
+    /**
      * `WME_DOUBLE_CLICK`: a second click on the element within `DOUBLE_CLICK_MS` of the first. Both
      * clicks are still `onPointerTap`s, as Flash sends `WME_CLICK` for each before the double click.
      */
@@ -400,7 +405,7 @@ export const bindElements = (targets: ReadonlyMap<string, TemplateElement>, bind
 };
 
 /** The handlers a binding carries: each is handed to the element as one stable function that calls the latest. */
-const HANDLERS = [ 'onPointerTap', 'onDoubleClick', 'onPointerOver', 'onPointerOut', 'onPointerDown', 'onPointerUp', 'onChange', 'onEnter', 'onKeyDown', 'onBlur', 'onFocus', 'onSelect' ] as const;
+const HANDLERS = [ 'onPointerTap', 'onDoubleClick', 'onPointerOver', 'onPointerOut', 'onPointerDown', 'onPointerUp', 'onChange', 'onEnter', 'onKeyDown', 'onBlur', 'onFocus', 'onSelect', 'onLink' ] as const;
 
 type TemplateHandler = typeof HANDLERS[number];
 

@@ -623,6 +623,7 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
             textOptions={{ fill: color, fontFamily, fontSize: templateFontSize(element), wordWrap: wordWrap || undefined, wordWrapWidth: wordWrap ? templateWrapWidth(rect.width) : undefined, align }}
             flashFormat={flash.etchingColor ? { ...flash, etchingPosition: flash.etchingPosition ?? 'bottom' } : flash}
             markup={(binding?.htmlText !== undefined) || isMarkupTemplateText(element) || undefined}
+            onLink={binding?.onLink}
             clip={!label && autoSize === 'none' ? true : undefined}
             crop={binding?.crop ? rect.width : undefined}
             dynamicRole={dynamicRoleOf(element)}
