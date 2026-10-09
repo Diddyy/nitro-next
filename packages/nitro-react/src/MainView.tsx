@@ -46,6 +46,7 @@ import { CameraView } from './views/room-widgets/camera/CameraView';
 import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInputView';
 import { SystemDialogsView } from './views/system/SystemDialogsView';
 import { TemplatePreviewView } from './views/system/TemplatePreviewView';
+import { ViewErrorBoundaries } from './views/system/ViewErrorBoundary';
 import { ToolbarTransitionsView } from './views/toolbar/ToolbarTransitionsView';
 import { ToolbarView } from './views/toolbar/ToolbarView';
 
@@ -75,106 +76,110 @@ export const MainView = () => {
 
     return (
         <>
-            <RoomWrapper />
-            <HotelViewComponent />
+            <ViewErrorBoundaries>
+                <RoomWrapper />
+                <HotelViewComponent />
+            </ViewErrorBoundaries>
             {/* Window context 1's desktop: every window is drawn and ordered in here. */}
             <WindowLayer>
-                <Box layout={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    // The purse's right edge at `desktop.width - 3` (the extension grid's own inset).
-                    marginRight: 3,
-                    width: 230,
-                    flex: 1,
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                }}
-                >
-                    <PurseTemplateView />
+                <ViewErrorBoundaries>
                     <Box layout={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        // The purse's right edge at `desktop.width - 3` (the extension grid's own inset).
+                        marginRight: 3,
+                        width: 230,
                         flex: 1,
                         flexDirection: 'column',
                         alignItems: 'flex-end',
-                        width: 192,
                     }}
                     >
-                        <ActivityPointsView />
-                        <TargetedOfferMinimizedView />
-                        {/* `SingularNotificationController`'s extensions, docked at the end of the column. */}
-                        <SafetyLockedNotificationView />
-                        <ClubGiftNotificationView />
-                        <NewFeatureNotificationsView />
+                        <PurseTemplateView />
+                        <Box layout={{
+                            flex: 1,
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            width: 192,
+                        }}
+                        >
+                            <ActivityPointsView />
+                            <TargetedOfferMinimizedView />
+                            {/* `SingularNotificationController`'s extensions, docked at the end of the column. */}
+                            <SafetyLockedNotificationView />
+                            <ClubGiftNotificationView />
+                            <NewFeatureNotificationsView />
+                        </Box>
+                        {/* `GroupRoomInfoCtrl` docks the banner in this column, before the quest tracker and the event card. */}
+                        <GroupRoomInfoComponent />
+                        {/* `RoomEventInfoCtrl` docks the room's event card here, under the group banner. */}
+                        <NavigatorRoomEventInfoComponent />
+                        <NotificationsExtensionAnchor />
                     </Box>
-                    {/* `GroupRoomInfoCtrl` docks the banner in this column, before the quest tracker and the event card. */}
-                    <GroupRoomInfoComponent />
-                    {/* `RoomEventInfoCtrl` docks the room's event card here, under the group banner. */}
-                    <NavigatorRoomEventInfoComponent />
-                    <NotificationsExtensionAnchor />
-                </Box>
-                <AvatarEditorComponent />
-                <TemplatePreviewView />
-                <CatalogWrapper catalogType={CatalogTypeEnum.Normal} />
-                <CatalogWrapper catalogType={CatalogTypeEnum.BuildersClub} />
-                <InventoryComponent />
-                <FriendListWrapper />
-                <NavigatorComponent />
-                {isMessengerVisible && <MessengerView />}
-                {/* `RoomSettingsCtrl` is the navigator's, not the room's: it also edits a room you are not in. */}
-                <RoomSettingsWidget />
-                <WalletComponent />
-                <WiredSetupComponent />
-                <WiredMenuComponent />
-                <WiredChestComponent />
-                <WiredContractComponent />
-                <WiredTransactionsComponent />
-                <WiredSelfDonationComponent />
-                <WiredRewardNotificationsComponent />
-                <EarningsComponent />
-                <AchievementsComponent />
-                <QuestsComponent />
-                <SpecialItemsComponent />
-                <HelpComponent />
-                <GroupInfoComponent />
-                <GroupMembersComponent />
-                <GroupManagementComponent />
-                <GroupCreatedComponent />
-                <GroupHcRequiredComponent />
-                {/* `GroupForumController`'s window: drawn only while open. */}
-                <GroupForumView />
-                <GroupForumDialogs />
-                {/* `CameraWidget`'s viewfinder: drawn only while shown, its photos kept. */}
-                <CameraView />
-                {/* `DailyTasksController`'s two windows: drawn only while shown. */}
-                <DailyTasksView />
-                {/* `BadgeLeaderboardController`: drawn only while shown. */}
-                <BadgeLeaderboardView />
-                {/* `RewardTrackController`'s track window and its premium confirmation: drawn only while shown. */}
-                <RewardTrackView />
-                <RewardTrackPremiumConfirmationView />
-                <UserProfileComponent />
-                <CollectiblesComponent />
-                <HabbiconsComponent />
-                <OfferCenterComponent />
-                <TargetedOfferComponent />
-                <ToolbarView />
-                <ToolbarOtherSettingsComponent />
-                <ToolbarSoundSettingsComponent />
-                <ToolbarChatSettingsComponent />
-                <ToolbarWordFilterComponent />
-                {/* Drawn after the toolbar because it sits inside it when it fits; it renders nothing outside a room. */}
-                <RoomChatInputView />
-                {/* `EffectsWidget` is a window on this desktop, activated when it opens: over the toolbar and the chat input, which it sits beside. */}
-                <RoomEffectsWidget />
-                <NotificationsView />
-                <MotdNotificationComponent />
-                <NotificationPopupsView />
-                <SystemDialogsView />
-                {/* Context 3: every `ModalDialog` is moved in here, over the windows and their popups. */}
-                <ModalLayer />
-                {/* Desktop 2: the pictures `animateToIcon` flies into the toolbar, over every window. */}
-                <ToolbarTransitionsView />
-                <TooltipLayer />
+                    <AvatarEditorComponent />
+                    <TemplatePreviewView />
+                    <CatalogWrapper catalogType={CatalogTypeEnum.Normal} />
+                    <CatalogWrapper catalogType={CatalogTypeEnum.BuildersClub} />
+                    <InventoryComponent />
+                    <FriendListWrapper />
+                    <NavigatorComponent />
+                    {isMessengerVisible && <MessengerView />}
+                    {/* `RoomSettingsCtrl` is the navigator's, not the room's: it also edits a room you are not in. */}
+                    <RoomSettingsWidget />
+                    <WalletComponent />
+                    <WiredSetupComponent />
+                    <WiredMenuComponent />
+                    <WiredChestComponent />
+                    <WiredContractComponent />
+                    <WiredTransactionsComponent />
+                    <WiredSelfDonationComponent />
+                    <WiredRewardNotificationsComponent />
+                    <EarningsComponent />
+                    <AchievementsComponent />
+                    <QuestsComponent />
+                    <SpecialItemsComponent />
+                    <HelpComponent />
+                    <GroupInfoComponent />
+                    <GroupMembersComponent />
+                    <GroupManagementComponent />
+                    <GroupCreatedComponent />
+                    <GroupHcRequiredComponent />
+                    {/* `GroupForumController`'s window: drawn only while open. */}
+                    <GroupForumView />
+                    <GroupForumDialogs />
+                    {/* `CameraWidget`'s viewfinder: drawn only while shown, its photos kept. */}
+                    <CameraView />
+                    {/* `DailyTasksController`'s two windows: drawn only while shown. */}
+                    <DailyTasksView />
+                    {/* `BadgeLeaderboardController`: drawn only while shown. */}
+                    <BadgeLeaderboardView />
+                    {/* `RewardTrackController`'s track window and its premium confirmation: drawn only while shown. */}
+                    <RewardTrackView />
+                    <RewardTrackPremiumConfirmationView />
+                    <UserProfileComponent />
+                    <CollectiblesComponent />
+                    <HabbiconsComponent />
+                    <OfferCenterComponent />
+                    <TargetedOfferComponent />
+                    <ToolbarView />
+                    <ToolbarOtherSettingsComponent />
+                    <ToolbarSoundSettingsComponent />
+                    <ToolbarChatSettingsComponent />
+                    <ToolbarWordFilterComponent />
+                    {/* Drawn after the toolbar because it sits inside it when it fits; it renders nothing outside a room. */}
+                    <RoomChatInputView />
+                    {/* `EffectsWidget` is a window on this desktop, activated when it opens: over the toolbar and the chat input, which it sits beside. */}
+                    <RoomEffectsWidget />
+                    <NotificationsView />
+                    <MotdNotificationComponent />
+                    <NotificationPopupsView />
+                    <SystemDialogsView />
+                    {/* Context 3: every `ModalDialog` is moved in here, over the windows and their popups. */}
+                    <ModalLayer />
+                    {/* Desktop 2: the pictures `animateToIcon` flies into the toolbar, over every window. */}
+                    <ToolbarTransitionsView />
+                    <TooltipLayer />
+                </ViewErrorBoundaries>
             </WindowLayer>
         </>
     );
