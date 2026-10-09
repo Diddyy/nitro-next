@@ -346,14 +346,32 @@ const overlaps = (element: TemplateElement, rects: DisplayRect[]) => rects.some(
  * what it draws into the context moves, while those windows - child contexts nested in its own
  * (`WindowController.addChild`) - stay over the earlier sibling's. The reward track's `rewards`
  * panel lies under `cutout`'s profile and curve, its prizes and bar over them.
+ *
+ * Only a sibling with a context of its own is a display object to go under. One drawn into the
+ * context itself stays under the later child, as the one bitmap draws them in tree order, and its
+ * own-context windows are `lifted` over it instead: drawn after the last such child they meet.
  */
-const childDrawOrder = (element: TemplateElement): { order: number[]; moved: Set<number>; split: Set<number> } => {
+const childDrawOrder = (element: TemplateElement): { order: number[]; moved: Set<number>; split: Set<number>; lifted: Map<number, number> } => {
     const order: number[] = [];
     const moved = new Set<number>();
     const split = new Set<number>();
+    const lifted = new Map<number, number>();
 
     element.children.forEach((child, index) => {
-        const under = templateUsesParentGraphics(child) ? order.findIndex(earlier => !drawsIntoParentOnly(element.children[earlier]) && overlaps(child, displayRectsOf(element.children[earlier]))) : -1;
+        if (!templateUsesParentGraphics(child)) {
+            order.push(index);
+
+            return;
+        }
+
+        // An earlier sibling drawn into the context itself, with windows of their own under it: its
+        // face stays under this child, in tree order in the one bitmap, and only those windows rise
+        // over it - `club_center_xml`'s post-it over the blue box, under its link.
+        element.children.forEach((earlier, earlierIndex) => {
+            if ((earlierIndex < index) && templateUsesParentGraphics(earlier) && !drawsIntoParentOnly(earlier) && overlaps(child, displayRectsOf(earlier))) lifted.set(earlierIndex, index);
+        });
+
+        const under = order.findIndex(earlier => !templateUsesParentGraphics(element.children[earlier]) && overlaps(child, displayRectsOf(element.children[earlier])));
 
         if (under < 0) {
             order.push(index);
@@ -365,7 +383,7 @@ const childDrawOrder = (element: TemplateElement): { order: number[]; moved: Set
         }
     });
 
-    return { order, moved, split };
+    return { order, moved, split, lifted };
 };
 
 /**
@@ -383,7 +401,7 @@ const childDrawOrder = (element: TemplateElement): { order: number[]; moved: Set
  * windows with a context of their own draw at its place in the tree, through a layer of their own
  * (`ClipEscapeContext`) - or through `escape`, the one a clipping ancestor's mask gives, past it.
  */
-const treeOrderedChildren = (drawOrder: number[], moved: Set<number>, views: Map<number, ReactNode>, layers: (slot: number) => RenderLayer, split: Set<number>, escape: RenderLayer | undefined): ReactNode[] => {
+const treeOrderedChildren = (drawOrder: number[], moved: Set<number>, views: Map<number, ReactNode>, layers: (slot: number) => RenderLayer, split: Set<number>, escape: RenderLayer | undefined, lifted: ReadonlyMap<number, number> = NO_LIFTS): ReactNode[] => {
     const slots = new Map<number, number[]>();
     const relayered = new Map<number, number>();
 
@@ -398,9 +416,38 @@ const treeOrderedChildren = (drawOrder: number[], moved: Set<number>, views: Map
         relayered.set(index, next);
     });
 
-    if (!relayered.size) return drawOrder.map(index => views.get(index));
+    const liftedHere = [ ...lifted ].filter(([ index, after ]) => drawOrder.includes(index) && drawOrder.includes(after));
 
+    if (!relayered.size && !liftedHere.length) return drawOrder.map(index => views.get(index));
+
+    // A lifted child's windows with a context of their own draw through a layer placed after the
+    // last sibling drawn into the context over it (or through `escape`, past a clipping mask).
+    const liftLayers = new Map(liftedHere.map(([ index ]) => [ index, escape ?? layers(liftSlot(index)) ]));
+    const liftSlots = new Map<number, number[]>();
+
+    if (!escape) liftedHere.forEach(([ index, after ]) => liftSlots.set(after, [ ...(liftSlots.get(after) ?? []), index ]));
+
+    const viewOf = (index: number) => {
+        const layer = liftLayers.get(index);
+
+        return layer
+            ? (
+                    <ClipEscapeContext.Provider
+                        key={`lifted:${index}`}
+                        value={layer}
+                    >
+                        {views.get(index)}
+                    </ClipEscapeContext.Provider>
+                )
+            : views.get(index);
+    };
     const out: ReactNode[] = [];
+    const pushLiftSlots = (after: number) => liftSlots.get(after)?.forEach(index => out.push(
+        <DrawSlot
+            key={`lift-slot:${index}`}
+            layer={layers(liftSlot(index))}
+        />,
+    ));
 
     for (const index of [ ...drawOrder ].sort((a, b) => a - b)) {
         if (slots.has(index)) {
@@ -415,18 +462,20 @@ const treeOrderedChildren = (drawOrder: number[], moved: Set<number>, views: Map
         const slot = relayered.get(index);
 
         if (slot === undefined) {
-            out.push(views.get(index));
+            out.push(viewOf(index));
+            pushLiftSlots(index);
             continue;
         }
 
-        const ownContexts = split.has(index) ? (escape ?? layers(splitSlot(index))) : undefined;
+        // A lifted child's own-context windows go through its lift layer, after this split one's place.
+        const ownContexts = (split.has(index) && !liftLayers.has(index)) ? (escape ?? layers(splitSlot(index))) : undefined;
 
         out.push(
             <DrawnIn
                 key={`drawn-in:${index}`}
                 layer={layers(slot)}
             >
-                {ownContexts ? <ClipEscapeContext.Provider value={ownContexts}>{views.get(index)}</ClipEscapeContext.Provider> : views.get(index)}
+                {ownContexts ? <ClipEscapeContext.Provider value={ownContexts}>{views.get(index)}</ClipEscapeContext.Provider> : viewOf(index)}
             </DrawnIn>,
         );
 
@@ -438,6 +487,8 @@ const treeOrderedChildren = (drawOrder: number[], moved: Set<number>, views: Map
                 />,
             );
         }
+
+        pushLiftSlots(index);
     }
 
     return out;
@@ -511,6 +562,11 @@ const ESCAPE_SLOT = -1;
 
 /** The key of a `split` child's own-context layer among its parent's draw layers. */
 const splitSlot = (index: number) => -2 - index;
+
+/** The key of a lifted child's own-context layer, apart from the split ones. */
+const liftSlot = (index: number) => -1000000 - index;
+
+const NO_LIFTS: ReadonlyMap<number, number> = new Map();
 
 /** The render layers of one window's children, by the sibling they draw before; made once each. */
 const useDrawLayers = () => {
@@ -1260,7 +1316,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     const childFlow = FLOWS[element.tag];
     const show = list ? binding?.show : undefined;
     // The order the children draw in (`childDrawOrder`). A flow lays its children out in their order, so its children keep it.
-    const { order: drawOrder, moved, split } = (!childFlow && (element.tag !== 'selector')) ? childDrawOrder(element) : { order: element.children.map((_, index) => index), moved: new Set<number>(), split: new Set<number>() };
+    const { order: drawOrder, moved, split, lifted } = (!childFlow && (element.tag !== 'selector')) ? childDrawOrder(element) : { order: element.children.map((_, index) => index), moved: new Set<number>(), split: new Set<number>(), lifted: new Map<number, number>() };
 
     const childViews = drawOrder.map((index) => {
         const child = element.children[index];
@@ -1296,7 +1352,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                             ))}
                         </Box>
                     )
-                : treeOrderedChildren(drawOrder, moved, new Map(drawOrder.map((index, position) => [ index, childViews[position] ])), drawLayers, split, clipEscape)}
+                : treeOrderedChildren(drawOrder, moved, new Map(drawOrder.map((index, position) => [ index, childViews[position] ])), drawLayers, split, clipEscape, lifted)}
             {binding?.children}
         </>
     );
@@ -1331,7 +1387,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 >
                     <ClipEscapeContext.Provider value={escapeLayer}>
                         {face}
-                        {treeOrderedChildren(drawOrder, moved, views, drawLayers, split, escapeLayer)}
+                        {treeOrderedChildren(drawOrder, moved, views, drawLayers, split, escapeLayer, lifted)}
                         {binding?.children}
                     </ClipEscapeContext.Provider>
                 </Box>
