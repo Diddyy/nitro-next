@@ -1,5 +1,5 @@
 import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
-import { CreateFlatComposer, CreateFlatComposerType, EditEventComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, SetNewNavigatorWindowPreferencesComposer, UpdateRoomCategoryAndTradeSettingsComposer } from '@nitrodevco/nitro-packets';
+import { CreateFlatComposer, CreateFlatComposerType, EditEventComposer, GetCustomRoomFilterComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, SetNewNavigatorWindowPreferencesComposer, UpdateRoomCategoryAndTradeSettingsComposer, UpdateRoomFilterComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { groupStore } from '#base/context/groups';
@@ -134,6 +134,46 @@ export const enforceRoomCategory = (send: Send, roomId: number, categoryId: numb
     send(new UpdateRoomCategoryAndTradeSettingsComposer({ roomId, categoryId, tradeType }));
 
     navigatorStore.getState().setEnforceCategorySelectionType(undefined);
+};
+
+/** `RoomFilterCtrl.startRoomFilterEdit`: the room's words are asked for and the window shown. */
+export const openRoomFilter = (send: Send, flatId: number) => {
+    navigatorStore.getState().setRoomFilterFlatId(flatId);
+
+    send(new GetCustomRoomFilterComposer({ roomId: flatId }));
+
+    systemStore.getState().showWindow('room_filter');
+};
+
+/**
+ * `RoomFilterCtrl.addBadWord`: any word that is not empty is sent, and the list asked for again -
+ * the server answers with the words it kept.
+ */
+export const addRoomFilterWord = (send: Send, word: string) => {
+    const { roomFilterFlatId } = navigatorStore.getState();
+
+    if (!word.length) return;
+
+    send(new UpdateRoomFilterComposer({ roomId: roomFilterFlatId, isAddingWord: true, word }));
+    send(new GetCustomRoomFilterComposer({ roomId: roomFilterFlatId }));
+};
+
+/** `RoomFilterCtrl.onRemoveWordClick`: the selected word leaves the list here and is sent; the list is not asked for again. */
+export const removeRoomFilterWord = (send: Send) => {
+    const { roomFilterFlatId, roomFilterWords, roomFilterSelectedIndex, removeRoomFilterWord: removeWord } = navigatorStore.getState();
+    const word = roomFilterWords[roomFilterSelectedIndex];
+
+    if (word === undefined) return;
+
+    removeWord(word);
+
+    send(new UpdateRoomFilterComposer({ roomId: roomFilterFlatId, isAddingWord: false, word }));
+};
+
+/** `RoomFilterCtrl.disposeWindow` - its close button: the window and its words go. */
+export const closeRoomFilter = () => {
+    navigatorStore.getState().clearRoomFilter();
+    systemStore.getState().hideWindow('room_filter');
 };
 
 /** `HabboNewNavigator.performLastSearch` - the refresh button: the last search sent, past the cache. */

@@ -85,7 +85,8 @@ For each changed exchange, record the header, ordered field types, array counts,
 units, trigger and expected state transition. AS3 decides the behavior; compare both sides before
 changing a parser to tolerate unexpected server data. A registered packet with no consumer is still
 an incomplete feature. Check permissions, configuration gates and failure responses as well as the
-successful path. See [packet conventions](packets.md).
+successful path. See [packet conventions](packets.md). [Server gaps](server-gaps.md) lists the
+exchanges the client implements that Turbo does not answer yet (`node tools/server-gaps.mjs`).
 
 Keep Turbo handlers focused on orchestration. Domain/grain code owns runtime state and persistence;
 do not update database rows directly to bypass grain-owned state. Keep client-specific display logic

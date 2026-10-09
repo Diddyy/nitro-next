@@ -10,7 +10,7 @@ import { registerBadgeLeaderboardHandlers, registerGroupForumHandlers, registerG
 import { registerHabbiconHandlers } from './habbicons';
 import { registerHelpHandlers } from './help';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
-import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomFilterHandlers, registerRoomQueueHandlers } from './navigator';
+import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomQueueHandlers } from './navigator';
 import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
 import { registerRewardTrackHandlers } from './reward-track';
@@ -18,8 +18,8 @@ import {
     registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
     registerRoomDirectoryHandlers, registerRoomDoorbellHandlers, registerRoomFloorPlanHandlers, registerRoomFriendFurniHandlers, registerRoomFriendRequestHandlers,
     registerRoomFurnitureHandlers, registerRoomGenericErrorHandlers, registerRoomGuildFurniHandlers, registerRoomInfostandHandlers, registerRoomJukeboxHandlers, registerRoomLinkHandlers, registerRoomMappingHandlers,
-    registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers,
-    registerRoomPresentHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
+    registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers, registerRoomPresentHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
+    registerRoomSpamWallHandlers,
     registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomYoutubeHandlers,
 } from './room';
 import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
@@ -55,6 +55,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomPermissionsHandlers(socket),
         registerRoomPetHandlers(socket),
         registerRoomPetPackageHandlers(socket),
+        registerRoomSpamWallHandlers(socket),
         registerRoomPollHandlers(socket),
         registerRoomQuizHandlers(socket),
         registerRoomSettingsHandlers(socket),
@@ -83,8 +84,6 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRaidProtectionHandlers(socket),
         registerRoomQueueHandlers(socket),
         // The server's own bubbles and alerts, after the room and navigator listeners that may raise one.
-        // `RoomFilterCtrl`: the room's words, and its window hidden on a room entry.
-        registerRoomFilterHandlers(socket),
         registerNotificationHandlers(socket),
         // `HabboAlertDialogManager`'s moderation and opening-hours alerts, and the MOTD, club gift and safety lock windows.
         registerAlertDialogHandlers(socket),

@@ -39,6 +39,7 @@ const actions = {
     setRoomEventInfoExpanded: state.setRoomEventInfoExpanded,
     setRoomEventSettingsVisible: state.setRoomEventSettingsVisible,
     setEnforceCategorySelectionType: state.setEnforceCategorySelectionType,
+    setRoomFilterSelectedIndex: state.setRoomFilterSelectedIndex,
 };
 
 export const useNavigatorActions = () => actions;

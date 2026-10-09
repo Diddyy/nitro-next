@@ -53,6 +53,7 @@ export * from './Catalog/RoomAdPurchaseInitiatedComposer';
 export * from './Catalog/SelectClubGiftComposer';
 export * from './Catalog/SetTargetedOfferStateComposer';
 export * from './Catalog/ShopTargetedOfferViewedComposer';
+export * from './Catalog/TriggerHabbiconComposer';
 export * from './Catalog/UnfavoriteHabbiconComposer';
 export * from './Collectibles/ClaimNftClaimsComposer';
 export * from './Collectibles/GetCollectibleMintableItemTypesComposer';

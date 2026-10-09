@@ -1,21 +1,22 @@
 import { RoomQueueWidget } from '#base/components';
 import { useNavigatorStore } from '#base/context/navigator';
-import { useRoomFilterStore } from '#base/context/room-filter';
 import { useNavigatorSearchCodeRequest, useNavigatorWindowPreferencesSync, useWindowVisibility } from '#base/hooks';
 import { NavigatorEnforceCategoryView } from '#base/views/navigator/NavigatorEnforceCategoryView';
 import { NavigatorRoomCreateView } from '#base/views/navigator/NavigatorRoomCreateView';
 import { NavigatorRoomEntryDialogs } from '#base/views/navigator/NavigatorRoomEntryDialogs';
 import { NavigatorRoomEventSettingsView } from '#base/views/navigator/NavigatorRoomEventSettingsView';
+import { NavigatorRoomFilterView } from '#base/views/navigator/NavigatorRoomFilterView';
 import { NavigatorView } from '#base/views/navigator/NavigatorView';
 import { RaidProtectionSettingsView } from '#base/views/navigator/RaidProtectionSettingsView';
-import { RoomFilterView } from '#base/views/navigator/RoomFilterView';
 
 export const NavigatorComponent = () => {
     const { isWindowVisible } = useWindowVisibility('navigator');
     const { isWindowVisible: isRoomCreateVisible } = useWindowVisibility('navigator_room_create');
     const roomEventSettingsVisible = useNavigatorStore(x => x.roomEventSettingsVisible);
     const enforcingCategory = useNavigatorStore(x => x.enforceCategorySelectionType !== undefined);
-    const roomFilterOpen = useRoomFilterStore(x => x.open);
+    const { isWindowVisible: isRoomFilterVisible } = useWindowVisibility('room_filter');
+    // `RoomFilterCtrl.refreshWindow` shows nothing outside a room.
+    const inRoom = useNavigatorStore(x => !!x.enteredRoom);
 
     // A `navigator/tab/<name>` link travels as this window's parameter; act on it here.
     useNavigatorSearchCodeRequest();
@@ -29,13 +30,12 @@ export const NavigatorComponent = () => {
             {isRoomCreateVisible && <NavigatorRoomCreateView />}
             {/* doorbell / password / cant-connect popups outlive the navigator window */}
             <NavigatorRoomEntryDialogs />
-            {/* `RoomEventViewCtrl` and `EnforceCategoryCtrl` are windows of their own too. */}
+            {/* `RoomEventViewCtrl`, `EnforceCategoryCtrl` and `RoomFilterCtrl` are windows of their own too. */}
             {roomEventSettingsVisible && <NavigatorRoomEventSettingsView />}
             {enforcingCategory && <NavigatorEnforceCategoryView />}
             {/* `RaidProtectionSettingsView`: built once, so it keeps its place between shows; it draws only while shown. */}
             <RaidProtectionSettingsView />
-            {/* `RoomFilterCtrl`'s window. */}
-            {roomFilterOpen && <RoomFilterView />}
+            {isRoomFilterVisible && inRoom && <NavigatorRoomFilterView />}
             {/* The queue into a full room is up before the room exists, so it lives out here too. */}
             <RoomQueueWidget />
         </>

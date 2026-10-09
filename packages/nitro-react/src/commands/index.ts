@@ -53,7 +53,6 @@ export * from './roomChooserCommands';
 export * from './roomPetCommands';
 export * from './roomUserCommands';
 export * from './singularNotificationCommands';
-export * from './roomFilterCommands';
 export * from './soundCommands';
 export * from './soundSettingsCommands';
 export * from './specialItemsCommands';

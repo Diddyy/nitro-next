@@ -1,6 +1,7 @@
 /**
  * The inventory's furni list - the furni half of Flash `inventory/IncomingMessages`
- * (`onFurniList`, `onFurnitureAddOrUpdate`, `onFurniListRemove`, `onFurniListInvalidate`) and
+ * (`onFurniList`, `onFurnitureAddOrUpdate`, `onFurniListRemove`, `onFurniListInvalidate`,
+ * `onPostItPlaced`) and
  * what `FurniModel` does with each, plus the trade locks `WiredTradingModel` asks it for.
  *
  * - `onFurniList`: the list comes in fragments; they are collected (`addMessageFragment`, the
@@ -18,7 +19,7 @@
  *
  * Not handled: `FurniListRemoveMultipleMessage`, which this client has no packet class for.
  */
-import { FurniListAddOrUpdateEventMessage, FurniListEventMessage, FurniListInvalidateEventMessage, FurniListRemoveEventMessage, IFurniListAddOrUpdateFurni, WiredTradeCancelledMessage, WiredTradeCompletedMessage, WiredTradeItemsUpdateMessage } from '@nitrodevco/nitro-packets';
+import { FurniListAddOrUpdateEventMessage, FurniListEventMessage, FurniListInvalidateEventMessage, FurniListRemoveEventMessage, IFurniListAddOrUpdateFurni, PostItPlacedEventMessage, WiredTradeCancelledMessage, WiredTradeCompletedMessage, WiredTradeItemsUpdateMessage } from '@nitrodevco/nitro-packets';
 
 import { removeAllInventoryFurniLocks, requestFurniInventory, resetInventoryFurniUnseenItems, updateInventoryFurniLocks } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -30,7 +31,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
 type Fragment = Map<number, IFurniListAddOrUpdateFurni>;
 
 export const registerInventoryFurniHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { insertFurniture, addOrUpdateFurni, removeFurni, invalidateFurni } = inventoryStore.getState();
+    const { insertFurniture, addOrUpdateFurni, removeFurni, invalidateFurni, updatePostItCount } = inventoryStore.getState();
     // `IncomingMessages.§_-M1Y§`: the fragments of the list on its way in.
     let fragments: (Fragment | undefined)[] | undefined;
 
@@ -59,6 +60,9 @@ export const registerInventoryFurniHandlers = ({ send, subscribe }: WebSocketCon
         }),
 
         on(FurniListAddOrUpdateEventMessage, data => addOrUpdateFurni(data.furni)),
+
+        // `IncomingMessages.onPostItPlaced` -> `FurniModel.updatePostItCount`.
+        on(PostItPlacedEventMessage, data => updatePostItCount(data.id, data.itemsLeft)),
 
         on(FurniListRemoveEventMessage, (data) => {
             if (removeFurni(data.stripId)) resetInventoryFurniUnseenItems(send);

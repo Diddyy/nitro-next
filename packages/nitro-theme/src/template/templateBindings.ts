@@ -6,6 +6,7 @@
 import type { FederatedPointerEvent } from 'pixi.js';
 import type { ReactNode } from 'react';
 
+import type { EtchingPosition } from '../font/flash-text';
 import type { PivotPoint } from '../utils/flashBitmap';
 import type { Template, TemplateElement } from './templateData';
 import type { LayoutWindow, TemplateRect } from './templateLayout';
@@ -118,6 +119,8 @@ export interface TemplateBinding {
     onFocus?: () => void;
     /** A text's etching colour (`ITextWindow.etchingColor`), `0xAARRGGBB`; 0 for none. */
     etchingColor?: number;
+    /** A text's `ITextWindow.etchingPosition`, the side its etching falls on, over its layout's. */
+    etchingPosition?: EtchingPosition;
     /** An input's `ITextFieldWindow.italic`. */
     italic?: boolean;
     /** A text's `ITextWindow.underline`, over its layout's. */
@@ -435,6 +438,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.backgroundColor === b.backgroundColor
         && a.focused === b.focused
         && a.etchingColor === b.etchingColor
+        && a.etchingPosition === b.etchingPosition
         && a.selection === b.selection
         && a.openRequest === b.openRequest
         && (a.options === b.options || (!!a.options && !!b.options && a.options.length === b.options.length && a.options.every((option, index) => option === b.options?.[index])))

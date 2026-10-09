@@ -1,14 +1,16 @@
 import { RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
-import { YouAreControllerMessage, YouAreNotControllerMessage, YouAreNotSpectatorMessage, YouAreOwnerMessage, YouArePlayingGameMessage } from '@nitrodevco/nitro-packets';
+import { YouAreControllerMessage, YouAreNotControllerMessage, YouAreNotSpectatorMessage, YouAreOwnerMessage, YouArePlayingGameMessage, YouAreSpectatorMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { navigatorStore } from '#base/context/navigator';
+import { getRoom, roomStore } from '#base/context/room';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
 /**
  * Your own standing in the room - Flash's `RoomPermissionsHandler`: controller level, owner,
- * whether you are playing a game or only spectating. Everything that gates a menu button or a
+ * whether you are playing a game or only spectating (`RoomSessionHandler.onYouAreSpectator`,
+ * `RoomMessageHandler.onYouAreNotSpectator`). Everything that gates a menu button or a
  * furniture move reads these.
  */
 export const registerRoomPermissionsHandlers = ({ subscribe }: WebSocketConnection) => {
@@ -31,8 +33,24 @@ export const registerRoomPermissionsHandlers = ({ subscribe }: WebSocketConnecti
             setIsPlayingGame(data.isPlaying);
         }),
 
+        // `RoomSessionHandler.onYouAreSpectator`: the session of that room spectates.
+        on(YouAreSpectatorMessage, (data) => {
+            if (getRoom()?.roomId !== data.roomId) return;
+
+            setIsSpectator(true);
+        }),
+
+        /*
+         * `RoomMessageHandler.onYouAreNotSpectator`: only for the room the user is spectating, and
+         * only while they are. `RoomEngine.leaveSpectate` -> `RoomDesktop.enterAfterSpectate` takes
+         * the frame away and the room queue widget down; the widgets a spectator went without
+         * follow the flag.
+         */
         on(YouAreNotSpectatorMessage, (data) => {
+            if ((getRoom()?.roomId !== data.roomId) || !roomStore.getState().isSpectator) return;
+
             setIsSpectator(false);
+            navigatorStore.getState().setRoomQueue(undefined);
         }),
     ]);
 };

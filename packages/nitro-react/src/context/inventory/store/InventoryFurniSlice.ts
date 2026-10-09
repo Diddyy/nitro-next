@@ -31,6 +31,7 @@
  * The recycler (`RecyclerModel`) and the marketplace (`MarketplaceModel`) lock items by strip id
  * through `setFurniItemLocks`, and `updateFurniLocks` counts their items with the trade's.
  */
+import { LegacyDataType } from '@nitrodevco/nitro-api';
 import { IFurniListAddOrUpdateFurni } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
@@ -61,6 +62,11 @@ type Actions = {
      * `onFurniListRemove` goes on to `resetUnseenItems` (`resetInventoryFurniUnseenItems`).
      */
     removeFurni: (stripId: number) => boolean;
+    /**
+     * `FurniModel.updatePostItCount`: a post-it stack's sheets left after one was stuck to a wall -
+     * the item's legacy stuff data holds the count.
+     */
+    updatePostItCount: (stripId: number, count: number) => void;
     /** `IncomingMessages.onFurniListInvalidate`. */
     invalidateFurni: () => void;
     /** `GroupItem.itemEventProc` on `WME_DOWN`: `removeSelections` and select this one. */
@@ -365,6 +371,21 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         return true;
     },
+    updatePostItCount: (stripId, count) => set((x) => {
+        const draft = new FurniGroupsDraft(x.furniGroups);
+        const index = draft.indexOfItem(stripId);
+
+        if (index === -1) return x;
+
+        const group = draft.edit(index);
+        const itemIndex = group.items.findIndex(item => item.id === stripId);
+        const stuffData = new LegacyDataType();
+
+        stuffData.setString(String(count));
+        group.items[itemIndex] = { ...group.items[itemIndex], stuffData };
+
+        return { furniGroups: draft.groups };
+    }),
     invalidateFurni: () => set({ furniCategoryInitialized: false }),
     selectFurniGroup: furniSelectedGroupId => set({ furniSelectedGroupId }),
     updateFurniLocks: lockedRefs => set((x) => {

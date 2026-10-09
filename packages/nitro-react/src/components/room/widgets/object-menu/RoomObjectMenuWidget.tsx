@@ -1,7 +1,7 @@
 import { ISimpleRoomObjectData, RoomObjectCategoryEnum, RoomObjectUserType, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
 import { ReactNode, useState } from 'react';
 
-import { useOwnRoomObjectId, useRoom, useRoomBotsActions, useRoomFurnitureContextMenu, useRoomIsPlayingGame, useRoomObjectIdByWebId, useRoomStore } from '#base/context/room';
+import { useOwnRoomObjectId, useRoom, useRoomBotsActions, useRoomFurnitureContextMenu, useRoomIsPlayingGame, useRoomIsSpectating, useRoomObjectIdByWebId, useRoomStore } from '#base/context/room';
 import { useWiredStore } from '#base/context/wired';
 import { useRoomEventDispatcher } from '#base/hooks';
 import { FurnitureContextMenuView } from '#base/views/room-widgets/furniture/FurnitureContextMenuView';
@@ -24,6 +24,8 @@ import { RoomObjectMenuPet } from './RoomObjectMenuPet';
  * While the room's wired listens for clicks on users (`hasClickUserWired`), a unit's menu is held
  * back (`maybeSetupMenuView`) until the server answers the reported click
  * (`WIRED_USER_CLICK_HANDLED`) with `openMenu` for that same unit (`onUserClickHandledEvent`).
+ * A spectator (`isSpectatorMode`) gets none of the unit parts: Flash does not create the avatar
+ * info widget for them, only the furniture context menu.
  * While the room is playing a game - a game arena, or wired click settings that make it one
  * (`isGameMode`: `RoomEngine.getActiveRoomIsPlayingGame`) - users, pets and rentable bots open no
  * menu at all.
@@ -36,6 +38,8 @@ export const RoomObjectMenuWidget = () => {
     const contextMenu = useRoomFurnitureContextMenu();
     const isDecorating = useRoomStore(x => x.isDecorating);
     const isPlayingGame = useRoomIsPlayingGame();
+    // `RoomUI` creates `RWE_AVATAR_INFO` - every unit's menu and name, and the decorate bubble - only for a session that is not spectating.
+    const isSpectating = useRoomIsSpectating();
     const forcedBotMenuId = useRoomStore(x => x.forcedBotMenuId);
     // The room object's type is a pet's breed name, not its kind; the user list knows the kind.
     const selectedUserType = useRoomStore(x => (selectedData ? x.usersByRoomObjectId[selectedData.objectId]?.userType : undefined));
@@ -116,7 +120,7 @@ export const RoomObjectMenuWidget = () => {
             case RoomObjectCategoryEnum.Unit: {
                 const userType = selectedUserType;
 
-                if (userType === undefined) return null;
+                if ((userType === undefined) || isSpectating) return null;
 
                 // `isGameMode()` - `updateUserView` / `updatePetView` / `updateRentableBotView` set no menu up.
                 if (isPlayingGame && (userType !== RoomObjectUserType.Bot)) return null;
@@ -181,7 +185,7 @@ export const RoomObjectMenuWidget = () => {
 
     return (
         <>
-            {isDecorating && (ownRoomObjectId >= 0) && (
+            {isDecorating && !isSpectating && (ownRoomObjectId >= 0) && (
                 <RoomObjectMenuBubble
                     objectData={{ objectId: ownRoomObjectId, category: RoomObjectCategoryEnum.Unit }}
                     userType={RoomObjectUserType.User}
@@ -189,7 +193,7 @@ export const RoomObjectMenuWidget = () => {
                     <DecorateModeBubbleView />
                 </RoomObjectMenuBubble>
             )}
-            {(hoverData && !isDecorating) ? <RoomObjectMenuNameBubble objectData={hoverData} /> : renderSelected()}
+            {(hoverData && !isDecorating) ? (!isSpectating && <RoomObjectMenuNameBubble objectData={hoverData} />) : renderSelected()}
         </>
     );
 };

@@ -17,16 +17,14 @@
  *   messenger's picker (`MessengerHabbiconPicker`, `MainView`): `openHabbiconHub`,
  *   `noteHabbiconUsed`, `isUnseenHabbicon`, `removeUnseenHabbicon`, `resetUnseenHabbicons`,
  *   `getUnseenHabbiconCount`, and the store's `ownedHabbicons` / `recentHabbiconIds` /
- *   `shopItems`. Neither the selector nor the picker is ported: the chat input's
- *   `chat_extra_button` opens the hub (`onHabbiconButtonMouseEvent` with no selector) under the
- *   unseen count, and the rest have no caller here yet.
+ *   `shopItems`; the selector's pick is `triggerHabbicon`. The messenger's picker is not ported.
  *
- * The server this client talks to (turbo-cloud) has every habbicon packet as an empty stub, so
- * nothing answers the requests below yet; this follows Flash.
+ * The server this client talks to (turbo-cloud) has the habbicon headers but no handler or
+ * sender for any of them, so nothing answers the requests below yet; this follows Flash.
  */
 import { FurnitureTypeEnum, IPurchasableOffer, NitroLogger } from '@nitrodevco/nitro-api';
-import { BuyHabbiconCollectionComposer, BuyHabbiconComposer, ClaimHabbiconComposer, FavoriteHabbiconComposer, GetHabbiconInfoComposer, GetHabbiconShopDataComposer, IHabbiconShopItem, UnfavoriteHabbiconComposer } from '@nitrodevco/nitro-packets';
-import { AvatarLogic, GetAssetManager } from '@nitrodevco/nitro-renderer';
+import { BuyHabbiconCollectionComposer, BuyHabbiconComposer, ClaimHabbiconComposer, FavoriteHabbiconComposer, GetHabbiconInfoComposer, GetHabbiconShopDataComposer, IHabbiconShopItem, TriggerHabbiconComposer, UnfavoriteHabbiconComposer } from '@nitrodevco/nitro-packets';
+import { AvatarLogic, GetAssetManager, HabbiconAssetManager } from '@nitrodevco/nitro-renderer';
 import type { Texture } from 'pixi.js';
 
 import { WebSocketConnection } from '#base/context/communication';
@@ -34,7 +32,7 @@ import { HabbiconEntryModel, HabbiconSetModel, habbiconsStore } from '#base/cont
 import { getUnseenItemCount, inventoryStore, isUnseenItem, UnseenItemCategory } from '#base/context/inventory';
 import { systemStore } from '#base/context/system';
 import { textureFromCanvas } from '#base/theme';
-import { cutHabbiconFrame, dimHabbiconPreview, getOfferProduct, HABBICONS_COLLECTION_ICONS_SPRITESHEET_FILE, HABBICONS_METADATA_FILE, HABBICONS_SPRITESHEET_FILE, parseHabbiconMetadata, resolveHabbiconAssetRoot } from '#base/utils';
+import { cutHabbiconFrame, dimHabbiconPreview, getOfferProduct, HABBICON_COLLECTION_ICON_OUTLINE, HABBICONS_COLLECTION_ICONS_SPRITESHEET_FILE, HABBICONS_METADATA_FILE, HABBICONS_SPRITESHEET_FILE, outlineHabbiconBitmap, parseHabbiconMetadata, resolveHabbiconAssetRoot } from '#base/utils';
 
 import { resetPlacedOfferData } from './catalogPlacementCommands';
 import { removeInventoryUnseenItem, resetInventoryUnseenCategory, resetInventoryUnseenCategoryIfEmpty } from './inventoryUnseenCommands';
@@ -106,6 +104,18 @@ export const removeUnseenHabbicon = (send: Send, habbiconId: number) => {
 export const resetUnseenHabbicons = (send: Send) => resetInventoryUnseenCategory(send, UnseenItemCategory.HABBICONS);
 
 /** `buyHabbicon`: the purchase result that follows is the controller's (`_pendingPurchaseRefresh`). */
+/**
+ * `HabbiconSelector.onHabbiconClicked`: the habbicon is seen and used (`removeUnseenHabbicon`,
+ * `noteHabbiconUsed`), and shown over the user in the room (`TriggerHabbiconMessageComposer`) - the
+ * server answers the room with `RoomUseHabbicon`.
+ */
+export const triggerHabbicon = (send: Send, habbiconId: number) => {
+    removeUnseenHabbicon(send, habbiconId);
+    noteHabbiconUsed(habbiconId);
+
+    send(new TriggerHabbiconComposer({ habbiconId }));
+};
+
 export const buyHabbicon = (send: Send, habbiconId: number) => {
     if (!habbiconsEnabled()) return;
 
@@ -258,8 +268,11 @@ export const loadHabbiconAssets = async () => {
     if (!collectionSheet) NitroLogger.log('[HabbiconAssetManager] Failed to load habbicon collection icon asset.');
 
     const previews: Record<number, Texture> = {};
+    // The room's bubble draws on canvases, so the cut previews are kept for it as they are.
+    const previewCanvases = new Map<number, HTMLCanvasElement>();
     const lockedPreviews: Record<number, Texture> = {};
     const collectionIcons: Record<number, Texture> = {};
+    const outlinedCollectionIcons: Record<number, Texture> = {};
 
     for (const [ id, rect ] of Object.entries(metadata.frames)) {
         const habbiconId = Number(id);
@@ -267,6 +280,7 @@ export const loadHabbiconAssets = async () => {
 
         if (!canvas) continue;
 
+        previewCanvases.set(habbiconId, canvas);
         previews[habbiconId] = keepTexture(habbiconPreviewAssetName(habbiconId), textureFromCanvas(canvas, habbiconPreviewAssetName(habbiconId)));
         lockedPreviews[habbiconId] = keepTexture(`habbicon_preview_locked_${habbiconId}`, textureFromCanvas(dimHabbiconPreview(canvas), `habbicon_preview_locked_${habbiconId}`));
     }
@@ -275,13 +289,18 @@ export const loadHabbiconAssets = async () => {
         for (const [ id, rect ] of Object.entries(metadata.collectionIcons)) {
             const canvas = cutHabbiconFrame(collectionSheet, rect);
 
-            if (canvas) collectionIcons[Number(id)] = keepTexture(`habbicon_collection_icon_${id}`, textureFromCanvas(canvas, `habbicon_collection_icon_${id}`));
+            if (!canvas) continue;
+
+            collectionIcons[Number(id)] = keepTexture(`habbicon_collection_icon_${id}`, textureFromCanvas(canvas, `habbicon_collection_icon_${id}`));
+            // `getOutlinedCollectionIconBitmap`: the chat bar's set icon, in a 2 px white outline.
+            outlinedCollectionIcons[Number(id)] = keepTexture(`habbicon_collection_icon_outlined_${id}`, textureFromCanvas(outlineHabbiconBitmap(canvas, HABBICON_COLLECTION_ICON_OUTLINE), `habbicon_collection_icon_outlined_${id}`));
         }
     }
 
-    setHabbiconAssets(root, { nameKeys: metadata.nameKeys, previews, lockedPreviews, collectionIcons });
+    setHabbiconAssets(root, { nameKeys: metadata.nameKeys, previews, lockedPreviews, collectionIcons, outlinedCollectionIcons });
 
     AvatarLogic.habbiconNameResolver = habbiconId => habbiconsStore.getState().nameKeys[habbiconId];
+    HabbiconAssetManager.configure(root, previewCanvases, new Map(Object.entries(metadata.definitions).map(([ id, definition ]) => [ Number(id), definition ])));
 
     notifyHabbiconChange('owned');
     notifyHabbiconChange('shop');

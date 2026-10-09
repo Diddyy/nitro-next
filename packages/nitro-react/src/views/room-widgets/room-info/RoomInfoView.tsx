@@ -95,6 +95,8 @@ export interface RoomInfoViewProps {
     canRate: boolean;
     /** Owner or room controller: the settings and floor-plan entries only appear for them. */
     canEditRoomSettings: boolean;
+    /** `canEditRoomSettings && room.custom.filter.enabled`. */
+    canEditRoomFilter: boolean;
     /** Staff only. */
     canStaffPick: boolean;
     isStaffPicked: boolean;
@@ -104,8 +106,6 @@ export interface RoomInfoViewProps {
     canEditFloorPlan: boolean;
     /** `refreshRaidProtectionButton`: the feature is on and the server let the user manage the room. */
     canManageRaidProtection: boolean;
-    /** `canEditRoomSettings && room.custom.filter.enabled`. */
-    canEditRoomFilter: boolean;
     /** `room.report.enabled`. */
     canReport: boolean;
     /** Only offered where rights were given rather than owned. */

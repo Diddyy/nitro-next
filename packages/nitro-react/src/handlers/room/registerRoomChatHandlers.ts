@@ -1,5 +1,5 @@
 import { RoomChatTypeEnum, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
-import { ChatMessage, FloodControlMessage, HandItemReceivedMessage, IChatLink, PetRespectNotificationEventMessage, PetSupplementedNotificationEventMessage, RemainingMutePeriodMessage, RespectNotificationMessage, RoomChatSettingsMessage, ShoutMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
+import { ChatMessage, FloodControlMessage, HandItemReceivedMessage, IChatLink, PetRespectNotificationEventMessage, PetSupplementedNotificationEventMessage, RemainingMutePeriodMessage, RespectNotificationMessage, RoomChatSettingsMessage, ShoutMessage, SpecialSystemChatMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
 
 import { createChatBubbleId } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
@@ -84,6 +84,16 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
 
         on(HandItemReceivedMessage, (data) => {
             addChat(data.giverUserId, '', RoomChatTypeEnum.HandItem, GENERIC_CHAT_STYLE, [], data.handItemType);
+        }),
+
+        /*
+         * `RoomChatHandler.onSpecialSystemChat`: a notice from the user at that room index, with no
+         * text of its own - `ChatBubbleFactory.applySpecialChatContent` decides what it says.
+         */
+        on(SpecialSystemChatMessage, (data) => {
+            if (!roomStore.getState().usersByRoomObjectId[data.userIndex]) return;
+
+            addChat(data.userIndex, '', RoomChatTypeEnum.SpecialSystem, GENERIC_CHAT_STYLE, [], data.specialSystemType);
         }),
 
         on(RespectNotificationMessage, (data) => {

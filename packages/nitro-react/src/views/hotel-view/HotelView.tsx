@@ -6,17 +6,24 @@
  * the horizon and under the hotel top and the left backdrop.
  *
  * The layout's `widget_placeholder_bottom_slot` takes `landing.view.dynamic.slot.6.widget`
- * (`setupBottomSlotWidgetName`) when that names a fixed widget; none of the fixed widgets that
- * can go there (the catalogue promos, daily quest, competition and moderation promos, the
- * community goal as a fixed widget) are ported, so it stays empty, as it does for this hotel.
+ * (`setupBottomSlotWidgetName`) when that names a fixed widget the port draws
+ * (`BOTTOM_SLOT_LANDING_VIEW_WIDGETS`); otherwise it stays empty, as it does for this hotel. Like
+ * the avatar's placeholder it keeps its distance from the bottom of the window. The moving
+ * background objects (`HotelViewMovingObjects`) go in `moving_objects_container`, under the slots.
  */
 import { AvatarImage } from '#base/components/AvatarImage';
-import { hotelViewProperty, useConfigData, useSystemStore } from '#base/context/system';
+import { BOTTOM_SLOT_LANDING_VIEW_WIDGETS, HOTEL_VIEW_BOTTOM_SLOT, hotelViewCommonSettings, hotelViewProperty, hotelViewSlotWidget, useConfigData, useSystemStore } from '#base/context/system';
 import { useOwnUserFigure, useOwnUserGender } from '#base/context/user';
 import { useViewportSize } from '#base/hooks';
-import { BoxLayout, ImageProps, Region, ThemeImage } from '#base/theme';
+import { Box, BoxLayout, ImageProps, Region, ThemeImage } from '#base/theme';
 
+import { HotelViewMovingObjects } from './HotelViewMovingObjects';
+import { HotelViewSlotWidget } from './HotelViewSlotWidget';
 import { HotelViewWidgetGrid } from './HotelViewWidgetGrid';
+
+/** `widget_placeholder_bottom_slot`'s place in the 1172x822 layout: 120 in, 252 up from the bottom. */
+const BOTTOM_SLOT_X = 120;
+const BOTTOM_SLOT_FROM_BOTTOM = 252;
 
 export const HotelView = () => {
     const { width, height } = useViewportSize();
@@ -25,6 +32,7 @@ export const HotelView = () => {
     const imageLibrary = hotelViewProperty(config, 'image.library.url');
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();
+    const bottomWidget = hotelViewSlotWidget(config, HOTEL_VIEW_BOTTOM_SLOT);
     const layer = (name: string, layout: BoxLayout, bitmap: ImageProps['bitmap']) => {
         const background = backgrounds[name];
 
@@ -50,7 +58,10 @@ export const HotelView = () => {
             {layer('background_gradient', { left: 0, bottom: 38, width, height: 1150 }, { pivot: 'bottom left', stretchedY: false })}
             {layer('background_right', { right: 1, bottom: 38 }, { pivot: 'bottom right', stretchedX: false, stretchedY: false, fitSizeToContents: true })}
             {layer('background_horizon', { left: 0, bottom: 38 }, { pivot: 'bottom left', stretchedX: false, stretchedY: false, fitSizeToContents: true })}
-            {/* `moving_objects_container` (MovingBackgroundObjects) is not ported; it sits here, under the slots. */}
+            <HotelViewMovingObjects
+                width={width}
+                height={height}
+            />
             <HotelViewWidgetGrid />
             {layer('background_hotel_top', { left: 0, top: 0, width: 123, height: Math.max(0, height - 821) }, { pivot: 'bottom left', stretchedX: false })}
             {layer('background_left', { left: 0, bottom: 38 }, { pivot: 'bottom left', stretchedX: false, stretchedY: false, fitSizeToContents: true })}
@@ -62,6 +73,16 @@ export const HotelView = () => {
                     scale={1}
                     layout={{ position: 'absolute', left: 109, top: Math.max(0, height - 202) }}
                 />
+            )}
+            {BOTTOM_SLOT_LANDING_VIEW_WIDGETS.has(bottomWidget) && (
+                <Box layout={{ position: 'absolute', left: BOTTOM_SLOT_X, top: Math.max(0, height - BOTTOM_SLOT_FROM_BOTTOM) }}>
+                    <HotelViewSlotWidget
+                        type={bottomWidget}
+                        slot={HOTEL_VIEW_BOTTOM_SLOT}
+                        code={null}
+                        settings={hotelViewCommonSettings(config)}
+                    />
+                </Box>
             )}
             <Region
                 backgroundColor="#333333"

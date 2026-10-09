@@ -3,10 +3,11 @@ import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer,
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
-import { openHabbiconHub, requestChatCommandSuggestions, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle } from '#base/commands';
+import { openHabbiconHub, requestChatCommandSuggestions, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle, triggerHabbicon } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { UnseenItemCategory, useInventoryUnseenItemCount } from '#base/context/inventory';
-import { roomStore, useRoom, useRoomChatActions, useRoomStore } from '#base/context/room';
+import { HabbiconsStore, useHabbiconsStore } from '#base/context/habbicons';
+import { getUnseenItemCount, UnseenItemCategory, useInventoryStore } from '#base/context/inventory';
+import { roomStore, useRoom, useRoomChatActions, useRoomIsSpectating, useRoomStore } from '#base/context/room';
 import { useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnClubLevel, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
 import { useChatStyles, useViewportSize } from '#base/hooks';
@@ -18,6 +19,7 @@ import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView'
 import { ChatCommandSuggestionsView } from './ChatCommandSuggestionsView';
 import { chatInputClientCommands } from './chatInputClientCommands';
 import { ChatStyleSelectorView } from './ChatStyleSelectorView';
+import { HabbiconSelectorView } from './HabbiconSelectorView';
 
 /** `createWindow`'s `chatinput_window_new`; `bubblecont` is the bar it places. */
 const CHAT_INPUT_TEMPLATE = 'habbo-room-ui-com/chatinput_window_new';
@@ -46,7 +48,7 @@ type Rect = { x: number; y: number; width: number; height: number };
 /**
  * What the bar is placed by, read off its layout: `bubblecont`'s width, `chat_input_container`'s y in
  * it, `input_border` in that row (the command list stands on it, as wide), `chat_input` in the
- * border, and the `styles` button in the row.
+ * border, and the `styles` and `chat_extra_button` buttons in the row.
  */
 const readLayout = (template: Template) => {
     const rectOf = (name: string): Rect | undefined => {
@@ -59,8 +61,31 @@ const readLayout = (template: Template) => {
     const border = rectOf('input_border');
     const input = rectOf('chat_input');
     const styles = rectOf('styles');
+    const extra = rectOf('chat_extra_button');
 
-    return (bubble && row && border && input && styles) ? { width: bubble.width, row, border, input, styles } : undefined;
+    return (bubble && row && border && input && styles && extra) ? { width: bubble.width, row, border, input, styles, extra } : undefined;
+};
+
+/**
+ * `resolveHabbiconButtonSetIconCollectionId`: with the shop data in, the set of the last habbicon
+ * used - its shop item's, or the set it is the reward of - else the shop's first set; 0 for none.
+ */
+const resolveHabbiconButtonSetIconCollectionId = (state: HabbiconsStore): number => {
+    if (!state.hasLoadedShopData) return 0;
+
+    const recent = state.recentHabbiconIds[0] ?? 0;
+
+    if (recent > 0) {
+        const itemCollection = state.shopItems[recent]?.collectionId ?? 0;
+
+        if (itemCollection > 0) return itemCollection;
+
+        const rewarding = state.shopCollections.find(collection => collection.rewardHabbiconId === recent);
+
+        if (rewarding) return rewarding.collectionId;
+    }
+
+    return state.shopCollections[0]?.collectionId ?? 0;
 };
 
 /**
@@ -80,6 +105,8 @@ const readLayout = (template: Template) => {
 export const RoomChatInputView = () => {
     const t = useTranslation();
     const room = useRoom();
+    // `RoomUI` creates `RWE_CHAT_INPUT_WIDGET` only for a session that is not spectating.
+    const isSpectating = useRoomIsSpectating();
     const { send } = useWebSocketContext();
     const floodBlockSeconds = useRoomStore(x => x.floodBlockSeconds);
     const floodBlockStamp = useRoomStore(x => x.floodBlockStamp);
@@ -97,7 +124,10 @@ export const RoomChatInputView = () => {
     const selectedAvatarName = useRoomStore(x => x.usersByRoomObjectId[selectedAvatarId]?.name ?? '');
     const customStylesEnabled = useConfigValue<boolean>('custom.chat.styles.enabled') === true;
     const habbiconsEnabled = useConfigValue<boolean>('habbicons.enabled') === true;
-    const unseenHabbiconCount = useInventoryUnseenItemCount(UnseenItemCategory.HABBICONS);
+    const unseenHabbicons = useInventoryStore(x => getUnseenItemCount(x.unseenItems, UnseenItemCategory.HABBICONS));
+    const setIconCollectionId = useHabbiconsStore(resolveHabbiconButtonSetIconCollectionId);
+    const hasSetIcon = useHabbiconsStore(x => !!x.outlinedCollectionIcons[setIconCollectionId]);
+    const setIconAsset = hasSetIcon ? `habbicon_collection_icon_outlined_${setIconCollectionId}` : undefined;
     const disabledStyles = useConfigValue<string>('disabled.custom.chat.styles') ?? '';
     const chatCommands = useUserStore(x => x.chatCommands);
     const chatCommandSuggestions = useUserStore(x => x.chatCommandSuggestions);
@@ -136,6 +166,8 @@ export const RoomChatInputView = () => {
     const onChangeRef = useRef<(next: string) => void>(() => undefined);
     /** The style menu closes on any outside pointerdown - including the one that starts a tap on its own button, which must not reopen it. */
     const stylesClosedAtRef = useRef(0);
+    const [ habbiconsAnchor, setHabbiconsAnchor ] = useState<GlobalRect | null>(null);
+    const habbiconsClosedAtRef = useRef(0);
 
     useEffect(() => {
         valueRef.current = value;
@@ -316,6 +348,32 @@ export const RoomChatInputView = () => {
     const closeStyles = () => {
         stylesClosedAtRef.current = Date.now();
         setStylesAnchor(null);
+    };
+
+    /** `HabbiconSelector.hide(resetUnseen)`: every hide but a pick marks the habbicons seen. */
+    const closeHabbicons = (resetUnseen: boolean) => {
+        habbiconsClosedAtRef.current = Date.now();
+        setHabbiconsAnchor(null);
+
+        if (resetUnseen) resetUnseenHabbicons(send);
+    };
+
+    /**
+     * `onHabbiconButtonMouseEvent`: the chat style menu goes and the habbicon menu opens or shuts.
+     * A press that just closed the menu from outside does not open it again.
+     */
+    const toggleHabbicons = (button: GlobalRect) => {
+        if ((Date.now() - habbiconsClosedAtRef.current) < 250) return;
+
+        setStylesAnchor(null);
+
+        if (habbiconsAnchor) {
+            closeHabbicons(true);
+
+            return;
+        }
+
+        setHabbiconsAnchor(button);
     };
 
     /** `_Str_21815` - Enter. */
@@ -546,7 +604,7 @@ export const RoomChatInputView = () => {
         return () => clearTimeout(timer);
     }, [ send, requestCommand, requestParameter, requestPrefix, requestSyntax, requestArgumentText ]);
 
-    if (!room || !template || !layout) return null;
+    if (!room || isSpectating || !template || !layout) return null;
 
     /*
      * `RoomChatInputView.updatePosition`: `bubblecont` sits centred in the toolbar when the
@@ -562,6 +620,7 @@ export const RoomChatInputView = () => {
     const top = viewportHeight - (fitsInToolbar ? BUBBLECONT_FROM_BOTTOM_IN_TOOLBAR : BUBBLECONT_FROM_BOTTOM_ABOVE_TOOLBAR);
     // The `styles` button on screen, which its menu is aligned to (`alignToSelector`).
     const stylesRect: GlobalRect = { x: left + layout.styles.x, y: top + layout.row.y + layout.styles.y, width: layout.styles.width, height: layout.styles.height };
+    const extraRect: GlobalRect = { x: left + layout.extra.x, y: top + layout.row.y + layout.extra.y, width: layout.extra.width, height: layout.extra.height };
 
     /*
      * The field, in `chat_input`'s place in `input_border`: the client's own text input rather than
@@ -612,21 +671,19 @@ export const RoomChatInputView = () => {
                     chat_input: { visible: false },
                     input_border: { children: isFloodBlocked ? undefined : field },
                     styles: { onPointerTap: () => toggleStyles(stylesRect) },
-                    // `chat_extra_button`, shown only under `habbicons.enabled` (`habbiconsEnabled`), and its set
-                    // icon starts hidden. `onHabbiconButtonMouseEvent` toggles the habbicon selector, which is
-                    // not ported, so it takes Flash's other branch: `openHabbiconHub`. The unseen habbicons'
-                    // counter sits 2 in from the button's right edge, 2 down (`updateHabbiconUnseenCounter`).
+                    // `chat_extra_button` under `habbicons.enabled`, with the unseen count while the menu is
+                    // shut (`updateHabbiconUnseenCounter`), 2 in from its top right.
                     chat_extra_button: {
                         visible: habbiconsEnabled,
-                        onPointerTap: () => openHabbiconHub(send),
-                        children: (
-                            <UnseenItemCounterView
-                                count={habbiconsEnabled ? unseenHabbiconCount : 0}
-                                layout={{ position: 'absolute', right: 2, top: 2 }}
-                            />
+                        onPointerTap: () => toggleHabbicons(extraRect),
+                        children: !habbiconsAnchor && (
+                            <Box layout={{ position: 'absolute', right: 2, top: 2 }}>
+                                <UnseenItemCounterView count={unseenHabbicons} />
+                            </Box>
                         ),
                     },
-                    chat_extra_set_icon: { visible: false },
+                    // `updateHabbiconButtonSetIcon`: the set of the last habbicon used, else the shop's first set, outlined.
+                    chat_extra_set_icon: { visible: habbiconsEnabled && !!setIconAsset, asset: setIconAsset },
                     // `createWindow`: the chat commands help button starts hidden; what shows it is not ported.
                     helpbutton: { visible: false },
                 }}
@@ -642,6 +699,22 @@ export const RoomChatInputView = () => {
                     fontSizeMode={chatSizePreference}
                     onSelectFontSize={mode => setChatFontSizeMode(send, mode)}
                     onClose={closeStyles}
+                />
+            )}
+            {habbiconsEnabled && habbiconsAnchor && (
+                <HabbiconSelectorView
+                    anchor={habbiconsAnchor}
+                    onPick={(habbiconId, keepOpen) => {
+                        triggerHabbicon(send, habbiconId);
+
+                        if (!keepOpen) closeHabbicons(false);
+                    }}
+                    // `onOpenHubClicked`: `openHabbiconHub`, then `hide()`.
+                    onOpenHub={() => {
+                        openHabbiconHub(send);
+                        closeHabbicons(true);
+                    }}
+                    onClose={() => closeHabbicons(true)}
                 />
             )}
             {showSuggestions && !isFloodBlocked && (

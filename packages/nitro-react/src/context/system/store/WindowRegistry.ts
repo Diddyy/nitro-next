@@ -34,6 +34,8 @@ export type WindowRegistry = {
     /** The room info panel and the room settings behind it, both opened from the room tools. */
     room_info: NoWindowParams;
     room_settings: RoomSettingsViewWindowParams;
+    /** `RoomFilterCtrl`: the word filter of the room in `roomFilterFlatId`. */
+    room_filter: NoWindowParams;
 
     /** The floor plan editor (`BCFloorPlanEditor`), opened from the room info panel. */
     floor_plan_editor: NoWindowParams;

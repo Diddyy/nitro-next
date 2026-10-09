@@ -107,6 +107,7 @@
     "avatar.ignored.bubble.enabled": true,
     "avatar.signs.enabled": true,
     "avatar.widget.enabled": true,
+    "room.custom.filter.enabled": true,
     "avatar.sitting.enabled": true,
     "avatareditor.show.clubitems.dimmed": true,
     "avatareditor.show.clubitems.first": true,

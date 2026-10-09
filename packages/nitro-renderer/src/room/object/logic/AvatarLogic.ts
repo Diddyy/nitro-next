@@ -62,10 +62,9 @@ import { MovingObjectLogic } from './MovingObjectLogic';
  *   on that number.
  *
  * The habbicon half writes what Flash writes - `figure_habbicon`,
- * `figure_habbicon_trigger_sequence`, `figure_habbicon_spin_offset` - but nothing shows it yet:
- * `HabbiconBubble` is not ported (`AvatarVisualization.ADDITION_ID_HABBICON_BUBBLE` holds its
- * addition id), and neither is `HabbiconAssetManager`, whose id -> name table decides whether a
- * habbicon is the spinning duck. `habbiconNameResolver` below is where that table plugs in.
+ * `figure_habbicon_trigger_sequence`, `figure_habbicon_spin_offset` - which `AvatarVisualization`
+ * draws as a `HabbiconBubble`. Whether a habbicon is the spinning duck is the client's name table,
+ * which plugs in at `habbiconNameResolver` below.
  */
 export class AvatarLogic extends MovingObjectLogic {
     private static EFFECT_TYPE_SPLASH: number = 28;

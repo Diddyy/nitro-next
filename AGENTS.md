@@ -41,6 +41,7 @@ Use the relevant references below; a small edit does not require reading every g
 | Wired definitions, setup views or stores | [Wired](docs/wired.md) |
 | Revision updates or copied reference tables | [Staying in step](docs/staying-in-step.md) |
 | Unported or partly ported features, and picking work | [Feature gaps](docs/feature-gaps.md) |
+| What the client does that Turbo does not answer yet | [Server gaps](docs/server-gaps.md) |
 | Room rendering, water, zoom or GPU behavior | [Renderer verification](docs/renderer-parity.md) |
 | Shared test and diagnostic commands | [Developer tools directory](tools/) |
 

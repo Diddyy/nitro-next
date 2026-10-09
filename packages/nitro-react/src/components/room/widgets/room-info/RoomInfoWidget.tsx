@@ -1,7 +1,7 @@
 import { RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, GetExtendedProfileComposer, MuteAllInRoomComposer, RateFlatComposer, RemoveOwnRoomRightsRoomComposer, ToggleStaffPickComposer, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
 
-import { canManageRaidProtection, openClientLink, openGroupInfo, searchRoomTag, startRoomFilterEdit } from '#base/commands';
+import { canManageRaidProtection, openClientLink, openGroupInfo, openRoomFilter, searchRoomTag } from '#base/commands';
 import { reportRoom } from '#base/commands/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
@@ -39,13 +39,14 @@ export const RoomInfoWidget = () => {
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     // `RoomInfoViewCtrl.layoutButtons`: the mute-all button needs the hotel's flag as well as the right.
     const muteAllEnabled = useConfigValue<boolean>('room_moderation.mute_all.enabled') === true;
+    // `RoomInfoViewCtrl.refreshButtons`: the word filter button needs the hotel's flag as well.
+    const roomFilterEnabled = useConfigValue<boolean>('room.custom.filter.enabled') === true;
     const { send } = useWebSocketContext();
     const { setRoomRating, setRoomFavourite, updateEnteredRoom } = useNavigatorActions();
     // `onRaidProtectionStateChanged`: the button follows the capabilities as they come and go.
     const raidCapabilities = useRaidProtectionStore(x => x.capabilities);
     const raidProtectionEnabled = useConfigValue<boolean>('raid.protection.enabled') === true;
     const showEmbed = useConfigValue<boolean>('embed.showInRoomInfo') === true;
-    const roomFilterEnabled = useConfigValue<boolean>('room.custom.filter.enabled') === true;
     const roomReportEnabled = useConfigValue<boolean>('room.report.enabled') === true;
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const userHash = useConfigValue<string>('user.hash') ?? '';
@@ -89,6 +90,7 @@ export const RoomInfoWidget = () => {
             canFavourite={!isOwner}
             canRate={canRateCurrentRoom}
             canEditRoomSettings={canEditRoomSettings}
+            canEditRoomFilter={canEditRoomSettings && roomFilterEnabled}
             canStaffPick={canStaffPick}
             isStaffPicked={isStaffPicked}
             canMuteAll={canMute && muteAllEnabled}
@@ -97,7 +99,6 @@ export const RoomInfoWidget = () => {
             canEditFloorPlan={Number(controllerLevel) >= Number(RoomControllerLevelEnum.Guest)}
             // `HabboNavigator.hasRoomRightsButIsNotOwner`: exactly the rights you were given.
             canManageRaidProtection={raidProtectionEnabled && raidCapabilities.includes(roomId) && canManageRaidProtection(roomId)}
-            canEditRoomFilter={canEditRoomSettings && roomFilterEnabled}
             canReport={roomReportEnabled}
             canRemoveRights={!isOwner && (Number(controllerLevel) === Number(RoomControllerLevelEnum.Guest))}
             onOpenOwnerProfile={() => send(new GetExtendedProfileComposer({ userId: currentRoomInfo.ownerId }))}
@@ -124,9 +125,9 @@ export const RoomInfoWidget = () => {
                 openClientLink(send, `navigator/raidprotection/${roomId}`);
                 hideWindow('room_info');
             }}
-            // `onRoomFilterButtonClick`: the entered room's filter, then `close()`.
+            // `onRoomFilterButtonClick`: `startRoomFilterEdit(enteredGuestRoom.flatId)`, then `close()`.
             onRoomFilter={() => {
-                startRoomFilterEdit(send, roomId);
+                openRoomFilter(send, roomId);
                 hideWindow('room_info');
             }}
             // `onRoomReport`: `habboHelp.reportRoom`, then `close()`.
