@@ -3,6 +3,7 @@ import { WebSocketConnection } from '#base/context/communication';
 import { registerAchievementHandlers } from './achievements';
 import { bridgeRecyclerRoomSession, registerCatalogPlacementHandlers, registerCatalogRecyclerHandlers, registerCatalogRentHandlers, registerCatalogVoucherHandlers, registerTargetedOfferHandlers } from './catalog';
 import { bridgeCollectiblesInventoryAndPurse, registerCollectiblesHandlers } from './collectibles';
+import { registerDailyTasksHandlers } from './daily-tasks';
 import { registerEarningsHandlers } from './earnings';
 import { registerGameTokensHandlers } from './game-tokens';
 import { registerBadgeLeaderboardHandlers, registerGroupForumHandlers, registerGroupHandlers } from './groups';
@@ -93,6 +94,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerGroupHandlers(socket),
         // The group forums' unread count, polled for the me menu.
         registerGroupForumHandlers(socket),
+        // `DailyTasksController`, a component of the quest engine.
+        registerDailyTasksHandlers(socket),
         // `BadgeLeaderboardController`, a component of the groups manager.
         registerBadgeLeaderboardHandlers(socket),
         registerAvatarEffectsHandlers(socket),

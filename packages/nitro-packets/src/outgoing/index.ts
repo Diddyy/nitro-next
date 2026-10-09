@@ -327,6 +327,8 @@ export * from './Quest/GetCommunityGoalProgressComposer';
 export * from './Quest/GetConcurrentUsersGoalProgressComposer';
 export * from './Quest/GetConcurrentUsersRewardComposer';
 export * from './Quest/GetDailyQuestComposer';
+export * from './Quest/ClaimDailyTaskComposer';
+export * from './Quest/GetDailyTasksComposer';
 export * from './Quest/GetQuestsComposer';
 export * from './Quest/GetSeasonalQuestsOnlyComposer';
 export * from './Quest/OpenQuestTrackerComposer';

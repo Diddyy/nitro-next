@@ -27,6 +27,7 @@ import { useRegisterHandlers } from './hooks';
 import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
 import { BadgeLeaderboardView } from './views/badge-leaderboard/BadgeLeaderboardView';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
+import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
 import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
 import { NotificationPopupsView } from './views/notifications/NotificationPopupsView';
@@ -130,6 +131,8 @@ export const MainView = () => {
                 <GroupManagementComponent />
                 <GroupCreatedComponent />
                 <GroupHcRequiredComponent />
+                {/* `DailyTasksController`'s two windows: drawn only while shown. */}
+                <DailyTasksView />
                 {/* `BadgeLeaderboardController`: drawn only while shown. */}
                 <BadgeLeaderboardView />
                 <UserProfileComponent />

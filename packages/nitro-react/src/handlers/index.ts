@@ -2,6 +2,7 @@
 export * from './achievements';
 export * from './catalog';
 export * from './collectibles';
+export * from './daily-tasks';
 export * from './earnings';
 export * from './game-tokens';
 export * from './groups';

@@ -8,6 +8,7 @@ import { getWiredHasReadPermission, getWiredMenuEnabled } from '#base/context/wi
 
 import { openAchievements } from './achievementCommands';
 import { openBadgeLeaderboardLink } from './badgeLeaderboardCommands';
+import { openDailyTasksLink } from './dailyTasksCommands';
 import { showEarnings } from './earningsCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
@@ -250,6 +251,12 @@ export const openClientLink = (send: Send, link: string) => {
             const groupId = parseInt(parts[1] ?? '', 10);
 
             if (groupId > 0) send(new GetHabboGroupDetailsComposer({ groupId, openDetails: true }));
+
+            return;
+        }
+        // `DailyTasksController.linkReceived`: dailytasks/open, with `dailytasks.enabled` on.
+        case 'dailytasks': {
+            openDailyTasksLink(parts);
 
             return;
         }

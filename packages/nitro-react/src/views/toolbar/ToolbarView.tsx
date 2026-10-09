@@ -39,6 +39,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog } from '#base/commands';
 import { unseenSkipped, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
+import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
 import { useGroupStore } from '#base/context/groups';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
@@ -210,6 +211,8 @@ export const ToolbarView = () => {
     const unreadForumsCount = useGroupStore(x => x.unreadForumsCount);
     const skippedBadges = useConfigValue<string>('toolbar.unseen_notification.skipped_badge_ids');
     // `broadcastUnseenAchievementsCount`: unseen entries whose badge is not skipped.
+    // `UnseenDailyTasksCountUpdateEvent`: the tasks done and not claimed.
+    const unseenDailyTasks = useDailyTasksStore(x => getUnseenDailyTasksCount(x.tasks));
     const unseenAchievements = useAchievementsStore(x => x.unseen.filter(entry => !unseenSkipped(entry.badgeId, skippedBadges === undefined ? [] : skippedBadges.split(','))).length);
     const { attachTarget: attachInventoryTarget, lift: inventoryLift } = useToolbarTransitionTarget('HTIE_ICON_INVENTORY');
     const { attachTarget: attachMeMenuTarget, lift: meMenuLift } = useToolbarTransitionTarget('HTIE_ICON_MEMENU');
@@ -304,7 +307,8 @@ export const ToolbarView = () => {
             onPointerTap: iconClick(undefined, 'progression'),
             children: (
                 <UnseenItemCounterView
-                    count={unseenAchievements}
+                    // `unseenProgMenuCount`: the achievements' and the daily tasks' (`BottomBarLeft`).
+                    count={unseenAchievements + unseenDailyTasks}
                     layout={{ position: 'absolute', right: 0, top: 0 }}
                 />
             ),
@@ -446,7 +450,7 @@ export const ToolbarView = () => {
                 <ToolbarExtendedMenu
                     templateId="habbo-toolbar-com/prog_menu_view_xml"
                     items={[
-                        { name: 'dailytasks', visible: dailyTasksEnabled, action: () => openClientLink(send, 'dailytasks/open') },
+                        { name: 'dailytasks', visible: dailyTasksEnabled, action: () => openClientLink(send, 'dailytasks/open'), unseenCount: unseenDailyTasks },
                         { name: 'quests', visible: !hideQuests },
                         { name: 'achievements', visible: true, action: () => openClientLink(send, 'questengine/achievements'), unseenCount: unseenAchievements },
                         // `onSubMenuItemClick('leaderboards')`: the badge leaderboard's link (`groups/_-ge.getLink(0, -1, 0)`).
