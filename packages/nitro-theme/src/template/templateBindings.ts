@@ -108,6 +108,8 @@ export interface TemplateBinding {
     backgroundColor?: number;
     /** An item list's `spacing` between its items, over the layout's (`IItemListWindow.spacing`). */
     spacing?: number;
+    /** An item grid's `verticalSpacing` between its rows, over its `spacing` (`IItemGridWindow.verticalSpacing`). */
+    verticalSpacing?: number;
     /** A scrollable list's `autoHideScrollBar`: `false` keeps its scrollbar, disabled, while its items fit. */
     autoHideScrollBar?: boolean;
     /** An input taking the focus (`WE_FOCUSED`). */
@@ -421,6 +423,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.selected === b.selected
         && a.autoHideScrollBar === b.autoHideScrollBar
         && a.spacing === b.spacing
+        && a.verticalSpacing === b.verticalSpacing
         && a.italic === b.italic
         && a.underline === b.underline
         && a.crop === b.crop

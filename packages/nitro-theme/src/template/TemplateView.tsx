@@ -1519,6 +1519,7 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
         scrollTargets: scrollLinks.scrollTargets,
         autoHideScrollBarOf: element => byElement.get(element)?.autoHideScrollBar ?? true,
         spacingOf: element => byElement.get(element)?.spacing,
+        verticalSpacingOf: element => byElement.get(element)?.verticalSpacing,
         setupOf: element => setups.get(element),
         buttonLabelOf,
         bitmapSizeOf,
