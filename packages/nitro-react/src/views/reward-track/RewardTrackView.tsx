@@ -20,7 +20,10 @@
  *   level (a clone of `level_template`) with its bar, count, check and points, the active level's
  *   border in the theme's active colour, and the hint with its button when the hotel gives it a link.
  *
- * The bars are drawn at their value; Flash eases them there and turns a task bar green once full.
+ * The bars (`useRewardTrackBars`) ease to a new value when the track's progress changes while the
+ * window is open (`RewardTrackView.shouldAnimate`), a task or level bar fading to green once full and a
+ * task row that moved on a level filling to the end first; opening, paging, filtering and picking a
+ * task put them straight at their value.
  */
 import { useState } from 'react';
 
@@ -37,6 +40,7 @@ import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTem
 
 import { buildRewardTrackPrizeLayout } from './rewardTrackPrizeLayout';
 import { RewardTrackProductIcon } from './RewardTrackProductIcon';
+import { RewardTrackBarTarget, useRewardTrackBars } from './rewardTrackProgressBar';
 
 const TEMPLATE = 'habbo-quest-engine-com/reward_track_main_xml';
 
@@ -54,9 +58,6 @@ const MAIN_BAR_SHAPE_OVERHANG = 4;
 /** The task rows' and the levels' bars. */
 const TASK_BAR_WIDTH = 200;
 const LEVEL_BAR_WIDTH = 260;
-/** `RewardTrackProgressBarViewBase`: the fill's colour below and at full. */
-const INCOMPLETE_COLOR = 15443468;
-const COMPLETE_COLOR = 7450404;
 /** `RewardTrackPrizeView.refresh`: the product rises this much when its amount shows. */
 const QUANTITY_ICON_RISE = 3;
 /** `refreshState`'s `disableSection(window, !hasEnoughPoints, 0.75)`. */
@@ -91,8 +92,23 @@ const matchesFilter = (task: RewardTrackTask, filter: number) => {
     return true;
 };
 
-/** `RewardTrackProgressBarViewBase.render`: the fill as wide as the ratio of its container. */
-const fillWidth = (maxWidth: number, ratio: number) => Math.max(0, Math.min(maxWidth, Math.round(maxWidth * Math.max(0, Math.min(1, ratio)))));
+/** `RewardTrackTaskRowView`'s bar: its active level's progress, the level being what `refreshTask` compares. */
+const taskBar = (task: RewardTrackTask): RewardTrackBarTarget => ({
+    key: `task:${task.id}`,
+    width: TASK_BAR_WIDTH,
+    colored: true,
+    ratio: getRewardTrackTaskProgressRatio(task, getRewardTrackTaskActiveLevel(task)),
+    levelIndex: getRewardTrackTaskActiveLevelIndex(task),
+});
+
+/** `RewardTrackTaskLevelView`'s bar. */
+const levelBar = (task: RewardTrackTask, index: number): RewardTrackBarTarget => ({
+    key: `level:${task.id}:${index}`,
+    width: LEVEL_BAR_WIDTH,
+    colored: true,
+    ratio: getRewardTrackTaskProgressRatio(task, task.levels[index]),
+    levelIndex: -1,
+});
 
 export const RewardTrackView = () => {
     const shownTrackId = useRewardTrackStore(x => x.shownTrackId);
@@ -192,12 +208,20 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
     // `RewardTrackTaskListView`.
     const tasks = track.tasks.filter(task => matchesFilter(task, filter));
     const selectedTask = tasks.find(task => task.id === selectedTaskId);
+
+    // `RewardTrackPrizeTrackView.refreshByX` (the main bar, on this page), the task rows' and the selected task's levels.
+    const mainBar: RewardTrackBarTarget = { key: 'main', width: MAIN_BAR_WIDTH, colored: false, ratio: layout.xForPoints(track.points, pageIndex) / MAIN_BAR_WIDTH, levelIndex: -1 };
+    const drawBar = useRewardTrackBars([
+        mainBar,
+        ...tasks.map(taskBar),
+        ...(selectedTask ? selectedTask.levels.map((_, index) => levelBar(selectedTask, index)) : []),
+    ], track);
     const showsPremiumUpgrade = track.hasPremiumConfig && !track.premium;
 
     /** `RewardTrackTaskRowView`. */
     const taskItem = (task: RewardTrackTask): TemplateItem => {
         const level = getRewardTrackTaskActiveLevel(task);
-        const ratio = getRewardTrackTaskProgressRatio(task, level);
+        const progress = drawBar(taskBar(task));
         const selected = task.id === selectedTask?.id;
         const hovered = task.id === hoveredTaskId;
         const name = `reward_track.${track.id}.task.${task.id}`;
@@ -218,9 +242,9 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
                 task_image: { asset: asset(`reward_track_tasks_${task.actionType.toLowerCase()}`) },
                 task_progress_txt: { caption: `${task.progressCount} / ${level?.requiredCount ?? 0}`, setCaptionAfterBuild: true },
                 track_reward_txt: { caption: String(level?.pointsReward ?? 0), setCaptionAfterBuild: true },
-                'loading_bar/progress/loading_bar': { color: (ratio >= 1) ? COMPLETE_COLOR : INCOMPLETE_COLOR },
+                'loading_bar/progress/loading_bar': { color: progress.color },
             },
-            arrange: ({ find }) => find('loading_bar/progress')?.setWidth(fillWidth(TASK_BAR_WIDTH, ratio)),
+            arrange: ({ find }) => find('loading_bar/progress')?.setWidth(progress.fillWidth),
         };
     };
 
@@ -230,6 +254,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
 
         return task.levels.map((level, index): TemplateItem => {
             const ratio = getRewardTrackTaskProgressRatio(task, level);
+            const progress = drawBar(levelBar(task, index));
 
             return {
                 key: String(index),
@@ -241,9 +266,9 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
                     completed_icon: { visible: ratio >= 1 },
                     locked_icon: { visible: false },
                     level_border: { color: (index === activeIndex) ? theme.active : TASK_BORDER_COLOR },
-                    'loading_bar/progress/loading_bar': { color: (ratio >= 1) ? COMPLETE_COLOR : INCOMPLETE_COLOR },
+                    'loading_bar/progress/loading_bar': { color: progress.color },
                 },
-                arrange: ({ find }) => find('loading_bar/progress')?.setWidth(fillWidth(LEVEL_BAR_WIDTH, ratio)),
+                arrange: ({ find }) => find('loading_bar/progress')?.setWidth(progress.fillWidth),
             };
         });
     };
@@ -270,8 +295,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
         };
     };
 
-    const ratio = layout.xForPoints(track.points, pageIndex) / MAIN_BAR_WIDTH;
-    const mainFill = fillWidth(MAIN_BAR_WIDTH, ratio);
+    const mainFill = drawBar(mainBar).fillWidth;
 
     const bindings: TemplateBindings = {
         // `RewardTrackHeaderView`.
