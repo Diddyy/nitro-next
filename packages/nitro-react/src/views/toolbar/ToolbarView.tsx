@@ -39,6 +39,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog } from '#base/commands';
 import { unseenSkipped, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
+import { useGroupStore } from '#base/context/groups';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
 import { useOwnRoomObjectId } from '#base/context/room';
@@ -206,6 +207,7 @@ export const ToolbarView = () => {
     const dailyTasksEnabled = useConfigValue<boolean>('dailytasks.enabled') === true;
     const unseenInventoryCount = useInventoryUnseenTotalCount();
     const unseenMiniMailCount = useMessengerStore(x => x.miniMailUnreadCount);
+    const unreadForumsCount = useGroupStore(x => x.unreadForumsCount);
     const skippedBadges = useConfigValue<string>('toolbar.unseen_notification.skipped_badge_ids');
     // `broadcastUnseenAchievementsCount`: unseen entries whose badge is not skipped.
     const unseenAchievements = useAchievementsStore(x => x.unseen.filter(entry => !unseenSkipped(entry.badgeId, skippedBadges === undefined ? [] : skippedBadges.split(','))).length);
@@ -337,9 +339,9 @@ export const ToolbarView = () => {
                         pointerTransparent
                         layout={{ position: 'absolute', left: 0, top: 0, width: 45, height: 45 }}
                     />
-                    {/* `setUnseenItemCount('HTIE_ICON_MEMENU', unseenMeMenuCount)`: unread mini mail (the forums' count is not ported). */}
+                    {/* `setUnseenItemCount('HTIE_ICON_MEMENU', unseenMeMenuCount)`: unread mini mail and unread forums. */}
                     <UnseenItemCounterView
-                        count={unseenMiniMailCount}
+                        count={unseenMiniMailCount + unreadForumsCount}
                         layout={{ position: 'absolute', right: 0, top: 0 }}
                     />
                 </>
@@ -434,7 +436,7 @@ export const ToolbarView = () => {
                         // `onSubMenuItemClick('rooms')`: `navigator.showOwnRooms()`.
                         { name: 'rooms', visible: true, action: () => showOwnRooms(send) },
                         { name: 'clothes', visible: true, action: () => openClientLink(send, 'avatareditor/open') },
-                        { name: 'forums', visible: true, action: () => openClientLink(send, 'groupforum/list/my') },
+                        { name: 'forums', visible: true, action: () => openClientLink(send, 'groupforum/list/my'), unseenCount: unreadForumsCount },
                         { name: 'collectibles', visible: classicCollectiblesHubEnabled && collectiblesHubEnabled, action: () => openClientLink(send, 'collectibles/open') },
                     ]}
                     onClose={() => setOpenMenu(undefined)}

@@ -396,6 +396,7 @@ import {
     TurboPermissionNodesMessage,
     TurboServerCapabilitiesMessage,
     UniqueMachineIdMessage,
+    UnreadForumsCountMessage,
     UnseenItemsMessage,
     UpdateMessage,
     UpgradeChestResultMessage,
@@ -899,6 +900,8 @@ export const GetIncomingPackets = () => {
         [IncomingHeader.GuildMembershipRejectedMessage]: GuildMembershipRejectedMessage,
         [IncomingHeader.GuildMemberMgmtFailedMessage]: GuildMemberMgmtFailedMessage,
         [IncomingHeader.GuildMemberFurniCountInHQMessage]: GuildMemberFurniCountInHQMessage,
+        // `GroupForumController`'s unread count, which the me menu shows on its forums item.
+        [IncomingHeader.UnreadForumsCountMessage]: UnreadForumsCountMessage,
         [IncomingHeader.BlockListMessage]: BlockListMessage,
         [IncomingHeader.BlockUserUpdateMessage]: BlockUserUpdateMessage,
 

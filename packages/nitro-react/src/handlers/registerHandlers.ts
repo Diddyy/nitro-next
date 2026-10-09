@@ -5,7 +5,7 @@ import { bridgeRecyclerRoomSession, registerCatalogPlacementHandlers, registerCa
 import { bridgeCollectiblesInventoryAndPurse, registerCollectiblesHandlers } from './collectibles';
 import { registerEarningsHandlers } from './earnings';
 import { registerGameTokensHandlers } from './game-tokens';
-import { registerGroupHandlers } from './groups';
+import { registerGroupForumHandlers, registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
 import { registerNavigatorHandlers, registerRoomQueueHandlers } from './navigator';
@@ -88,6 +88,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerProfileHandlers(socket),
         // Groups: the details cache the infostand also reads, and every group window's own answers.
         registerGroupHandlers(socket),
+        // The group forums' unread count, polled for the me menu.
+        registerGroupForumHandlers(socket),
         registerAvatarEffectsHandlers(socket),
         registerAvatarEditorHandlers(socket),
         registerMessengerHandlers(socket),
