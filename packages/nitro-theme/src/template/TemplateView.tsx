@@ -1526,6 +1526,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                     orientation="vertical"
                     variant={scrollbar?.style}
                     hideDisabledScrollbar={binding?.autoHideScrollBar ?? true}
+                    scrollV={binding?.scrollV}
                     layout={{ position: 'absolute', left: 0, top: 0, width: rect.width, height: rect.height, gap: 0 }}
                     viewportLayout={{ position: 'absolute', left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}
                     scrollbarLayout={scrollbar

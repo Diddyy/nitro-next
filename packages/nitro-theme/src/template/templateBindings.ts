@@ -120,6 +120,12 @@ export interface TemplateBinding {
     verticalSpacing?: number;
     /** A scrollable list's `autoHideScrollBar`: `false` keeps its scrollbar, disabled, while its items fit. */
     autoHideScrollBar?: boolean;
+    /**
+     * A scrollable list's `IScrollableWindow.scrollV`: where its vertical scroll is, 0 at the top to
+     * 1 at the bottom (`RewardTrackTaskDetailsView.scrollActiveLevelIntoView`). Applied each time it
+     * changes, once the list has laid out the items bound with it.
+     */
+    scrollV?: number;
     /** An input taking the focus (`WE_FOCUSED`). */
     onFocus?: () => void;
     /** A text's etching colour (`ITextWindow.etchingColor`), `0xAARRGGBB`; 0 for none. */
@@ -433,6 +439,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.selected === b.selected
         && a.helpPage === b.helpPage
         && a.autoHideScrollBar === b.autoHideScrollBar
+        && a.scrollV === b.scrollV
         && a.spacing === b.spacing
         && a.verticalSpacing === b.verticalSpacing
         && a.italic === b.italic
