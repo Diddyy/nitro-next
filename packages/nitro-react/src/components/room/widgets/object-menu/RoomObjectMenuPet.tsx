@@ -1,14 +1,14 @@
 import { ISimpleRoomObjectData, PetType, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectUserType } from '@nitrodevco/nitro-api';
-import { ChatComposer, GetPetCommandsComposer, HarvestPetComposer, MountPetComposer, RemoveSaddleFromPetComposer, RespectPetComposer, TogglePetBreedingPermissionComposer, TogglePetRidingPermissionComposer } from '@nitrodevco/nitro-packets';
+import { ChatComposer, CompostPlantComposer, GetPetCommandsComposer, HarvestPetComposer, MountPetComposer, PassCarryItemToPetComposer, RemoveSaddleFromPetComposer, RespectPetComposer, TogglePetBreedingPermissionComposer, TogglePetRidingPermissionComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
 
 import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoomPetCommands, useRoomPetInfo, useRoomPetsActions, useRoomStore } from '#base/context/room';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useOwnRoomObjectId, useRoomPetCommands, useRoomPetInfo, useRoomPetsActions, useRoomStore } from '#base/context/room';
+import { useConfigValue, useSystemActions, useTranslation } from '#base/context/system';
 import { useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
-import { useRoomObjectModify } from '#base/hooks';
+import { useRoomObjectModify, useRoomUserData } from '#base/hooks';
 import { petTypeFromFigure } from '#base/utils';
 import { InfoBubblePetView, PetMenuAction } from '#base/views/room-widgets/object-menu/InfoBubblePetView';
 
@@ -27,10 +27,23 @@ const NEST_BREEDING_TYPES: Record<number, string> = {
 /** `pet.command.46`: what a nest-bred pet is told to start breeding. */
 const BREED_COMMAND = 46;
 
+/** A carried item id at or above this is not something that can be handed on. */
+const MAX_CARRY_ITEM = 999999;
+
+/** `updateButtons`: `treat` is enabled while the plant's energy is under this share of its maximum. */
+const TREAT_ENERGY_RATIO = 0.98;
+
 /**
  * The menu behind a pet - `OwnPetMenuView` and `PetMenuView`. What it offers is decided by the
  * pet info, which is asked for as soon as the pet is selected, so a pet clicked for the first
  * time fills its menu in a moment later.
+ *
+ * Both menus hand the user's carried item to the pet under `handitem.give.pet.enabled`
+ * (`RWUAM_GIVE_CARRY_ITEM_TO_PET`) and treat a living monsterplant (`RWUAM_TREAT_PET`, a respect).
+ * Its owner composts a dead one in a room they own under `monsterplants.composting.enabled`, after
+ * `AvatarInfoWidgetHandler`'s `monsterplant.confirm.*.compost` confirmation (`RWUAM_COMPOST_PLANT`).
+ * The layouts' `give_water` and `give_light` rows (`GiveSupplementToPetMessageComposer`) are
+ * never shown by either menu in this revision, so they stay hidden.
  */
 export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimpleRoomObjectData; onClose: () => void }) => {
     const { objectId } = objectData;
@@ -45,6 +58,11 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
     const { setBreedMenu } = useRoomPetsActions();
     const { modifyRoomObject } = useRoomObjectModify();
     const ownUserId = useOwnUserId();
+    const ownCarryItem = useRoomUserData(useOwnRoomObjectId())?.carryItem ?? 0;
+    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
+    const handItemGivePetEnabled = useConfigValue<boolean>('handitem.give.pet.enabled') === true;
+    const compostingEnabled = useConfigValue<boolean>('monsterplants.composting.enabled') === true;
+    const { showConfirm } = useSystemActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const petType = petTypeFromFigure(userData?.figure);
@@ -95,6 +113,12 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
             case 'toggle_riding_permission': send(new TogglePetRidingPermissionComposer({ petId })); break;
             case 'toggle_breeding_permission': send(new TogglePetBreedingPermissionComposer({ petId })); break;
             case 'harvest': send(new HarvestPetComposer({ petId })); break;
+            // `RWUAM_TREAT_PET`: a respect, which spends none of the viewer's.
+            case 'treat': send(new RespectPetComposer({ petId })); break;
+            case 'pass_handitem': send(new PassCarryItemToPetComposer({ petId })); break;
+            case 'compost':
+                showConfirm(t('monsterplant.confirm.title.compost'), t('monsterplant.confirm.desc.compost'), () => send(new CompostPlantComposer({ petId })));
+                break;
             case 'breed':
                 if (isMonsterplant) openBreedMenu();
                 else send(new ChatComposer({ text: `${info?.name ?? userData.name} ${t(`pet.command.${BREED_COMMAND}`)}`, styleId: 0 }));
@@ -111,7 +135,8 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
         <InfoBubblePetView
             name={info?.name.length ? info.name : userData.name}
             isOwner={isOwner}
-            canRespect={petRespectLeft > 0}
+            // `updateButtons`' monsterplant mode shows no respect, living or dead.
+            canRespect={!isMonsterplant && (petRespectLeft > 0)}
             respectsLeft={petRespectLeft}
             // `OwnPetMenuView`: only a horse (`petType == 15`) is saddled and ridden.
             isMountable={petType === PetType.HORSE}
@@ -122,6 +147,10 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
             hasBreedingPermission={!!info?.hasBreedingPermission}
             canHarvest={!!info?.canHarvest}
             canRevive={!!info?.canRevive}
+            canTreat={isMonsterplant && !!info && !info.canRevive}
+            treatEnabled={!!info && ((info.energy / info.maxEnergy) < TREAT_ENERGY_RATIO)}
+            canCompost={isMonsterplant && !!info?.canRevive && compostingEnabled && isRoomOwner}
+            canPassHandItem={handItemGivePetEnabled && (ownCarryItem > 0) && (ownCarryItem < MAX_CARRY_ITEM)}
             canStartBreeding={canStartBreeding}
             showWiredInspect={showWiredInspect}
             commands={commands.map(id => ({ id, label: t(`pet.command.${id}`, String(id)) }))}

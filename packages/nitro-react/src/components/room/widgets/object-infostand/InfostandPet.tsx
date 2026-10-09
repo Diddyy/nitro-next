@@ -1,10 +1,10 @@
 import { ISimpleRoomObjectData, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType } from '@nitrodevco/nitro-api';
-import { GetPetInfoComposer, RemovePetFromFlatComposer, RespectPetComposer } from '@nitrodevco/nitro-packets';
+import { GetPetInfoComposer, PetSelectedComposer, RemovePetFromFlatComposer, RespectPetComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomPetInfo, useRoomStore } from '#base/context/room';
-import { useSystemActions } from '#base/context/system';
+import { useConfigValue, useSystemActions } from '#base/context/system';
 import { useOwnIsAnyRoomController, useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useRoomObjectModify } from '#base/hooks';
 import { InfostandPetView } from '#base/views/room-widgets/object-infostand/InfostandPetView';
@@ -12,7 +12,8 @@ import { InfostandPetView } from '#base/views/room-widgets/object-infostand/Info
 /**
  * The pet panel. The room knows a pet's name and figure from the moment it walks in, but nothing
  * else - the rest is asked for when the pet is clicked, which is what `InfoStandWidgetHandler`
- * did with `GetPetInfoComposer`.
+ * did with `GetPetInfoComposer`. Under `petSelect.enabled`, `handleGetPetInfoMessage` first tells
+ * the server which pet was selected (`PetSelectedMessageComposer`).
  *
  * `InfoStandWidgetHandler.onPetInfo` decides who the pet is to the viewer: their own when its
  * owner is them, and removable by its owner, the room owner, any room controller or anyone with
@@ -36,13 +37,16 @@ export const InfostandPet = ({ objectData, onClose }: { objectData: ISimpleRoomO
     const { decreasePetRespects } = useUserActions();
     const { showWindow } = useSystemActions();
     const { modifyRoomObject } = useRoomObjectModify();
+    const petSelectEnabled = useConfigValue<boolean>('petSelect.enabled') === true;
     const { send } = useWebSocketContext();
 
     useEffect(() => {
         if (!petId) return;
 
+        if (petSelectEnabled) send(new PetSelectedComposer({ petId }));
+
         send(new GetPetInfoComposer({ petId }));
-    }, [ petId, send ]);
+    }, [ petId, petSelectEnabled, send ]);
 
     if (!userData) return null;
 

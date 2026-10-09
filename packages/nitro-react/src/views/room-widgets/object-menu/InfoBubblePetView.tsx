@@ -16,6 +16,9 @@ export type PetMenuAction
         | 'toggle_breeding_permission'
         | 'harvest'
         | 'revive'
+        | 'treat'
+        | 'compost'
+        | 'pass_handitem'
         | 'train'
         | 'breed'
         | 'wired_inspect';
@@ -37,6 +40,13 @@ export interface InfoBubblePetViewProps {
     hasBreedingPermission: boolean;
     canHarvest: boolean;
     canRevive: boolean;
+    /** A living monsterplant: `treat` shows, enabled by `treatEnabled`. */
+    canTreat: boolean;
+    treatEnabled: boolean;
+    /** A dead monsterplant its owner may compost - the own menu's `compost`. */
+    canCompost: boolean;
+    /** The user carries an item the pet can be handed - `pass_handitem`, in both menus. */
+    canPassHandItem: boolean;
     /** Its owner may start breeding it: a plant with a partner in the room, or a pet the nests are on for. */
     canStartBreeding: boolean;
     /** `showInspectButton` - the wired menu's inspection of this pet, last in both pet menus. */
@@ -64,7 +74,7 @@ const COMMAND_ROW = 'pick_up';
  */
 export const InfoBubblePetView = ({
     name, isOwner, canRespect, respectsLeft, isMountable, isRiding, hasSaddle, ridingPermissionOpen,
-    canBreed, hasBreedingPermission, canHarvest, canRevive, canStartBreeding, showWiredInspect, commands, onAction, onCommand, onClose,
+    canBreed, hasBreedingPermission, canHarvest, canRevive, canTreat, treatEnabled, canCompost, canPassHandItem, canStartBreeding, showWiredInspect, commands, onAction, onCommand, onClose,
 }: InfoBubblePetViewProps) => {
     const t = useTranslation();
     const [ showCommands, setShowCommands ] = useState(false);
@@ -73,18 +83,21 @@ export const InfoBubblePetView = ({
 
     if (minimizedView) return minimizedView;
 
-    const entries: { key: PetMenuAction; visible: boolean; caption?: string }[] = [
+    const entries: { key: PetMenuAction; visible: boolean; caption?: string; enabled?: boolean }[] = [
         { key: 'mount', visible: isOwner && isMountable && !isRiding },
         { key: 'toggle_riding_permission', visible: isOwner && isMountable },
         { key: 'dismount', visible: isRiding },
         { key: 'respect', visible: canRespect, caption: t('infostand.button.petrespect', '', { count: String(respectsLeft) }) },
+        { key: 'treat', visible: canTreat, enabled: treatEnabled },
         { key: 'train', visible: isOwner && !!commands.length },
         { key: 'pick_up', visible: isOwner && !isRiding },
         { key: 'saddle_off', visible: isOwner && isMountable && hasSaddle && !isRiding },
         { key: 'breed', visible: isOwner && canStartBreeding },
         { key: 'harvest', visible: isOwner && canHarvest },
         { key: 'revive', visible: isOwner && canRevive },
+        { key: 'compost', visible: isOwner && canCompost },
         { key: 'toggle_breeding_permission', visible: isOwner && canBreed },
+        { key: 'pass_handitem', visible: canPassHandItem },
         { key: 'wired_inspect', visible: showWiredInspect },
     ];
 
@@ -128,7 +141,7 @@ export const InfoBubblePetView = ({
     } else {
         bindings.buttons = { show: visibleEntries.map(entry => entry.key) };
 
-        for (const entry of visibleEntries) showButton(bindings, entry.key, () => act(entry.key), { caption: entry.caption });
+        for (const entry of visibleEntries) showButton(bindings, entry.key, () => act(entry.key), { caption: entry.caption, enabled: entry.enabled });
 
         if (isOwner) {
             bindings['toggle_riding_permission_checkbox'] = { selected: ridingPermissionOpen };

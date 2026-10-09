@@ -47,17 +47,14 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 
 | Area | Gap | Where |
 |---|---|---|
-| Server-sent links | `InClientLinkMessage` has no listener, so a link the server asks the client to open does nothing. | `handlers/` |
 | Room | The room word filter window (`GetCustomRoomFilter`, `UpdateRoomFilter`) - `RoomInfoView` notes it. | `views/room-widgets/room-info` |
 | Room | YouTube playback control from the server (`YoutubeControlVideoMessage`). | `FurnitureYoutubeView` |
 | Room | Spectator mode (`YouAreSpectatorMessage`), special system chat, the object remove confirmation. | |
 | Room | Post-its: placing one (`PlacePostItComposer`, `PostItPlacedEventMessage`) and the spam wall. | |
 | Room | Habbicon bubbles over avatars and the habbicon selector in the chat input. | `AvatarLogic`, `AvatarVisualization`, `RoomChatInputView` |
-| Pets | Infostand actions: supplements, composting a plant, passing a carried item, selecting a pet. | |
 | Pets | The breeding dialogs, and placing a pet opened from a present (it stays in the inventory). | `useInventoryPetsPage`, `FurniturePresentOpenedWidget` |
-| Navigator | No error for a room that does not exist (`NoSuchFlatMessage`); room event info; report room; the promoted-rooms strip; a block's back button (`goBack` over the search history); syncing the window preferences to the server. | `NavigatorView`, `NavigatorRoomInfoPopup` |
+| Navigator | Room event info; report room; the promoted-rooms strip; a block's back button (`goBack` over the search history); syncing the window preferences to the server. | `NavigatorView`, `NavigatorRoomInfoPopup` |
 | Navigator | The room category enforcement dialog (`ShowEnforceRoomCategoryDialogMessage`). | |
-| Marketplace | Redeeming the credits of sold offers (`RedeemMarketplaceOfferCreditsComposer`). | |
 | Catalogue | The next-limited-rare countdown, the page with the earliest expiry, the gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
@@ -103,15 +100,6 @@ loading screen. In the room UI, also the pet picker (`FurniturePetPickerView`: F
 with `createWindow`), the chat command suggestions (the port's own) and `PetPortraitView` (a
 picture the breeding windows draw into their bitmaps).
 
-## Quick wins
-
-Each of these is one handler or one button on a window that already exists:
-
-- `InClientLinkMessage`: pass the link to the client's link handling.
-- `NoSuchFlatMessage`: show the navigator's error for a room that does not exist.
-- `RedeemMarketplaceOfferCreditsComposer`: the marketplace's own-items page already lists sold offers.
-- The pet infostand actions.
-
 ## Not gaps
 
 About 40 unused packets are protocol the port does not need:
@@ -123,3 +111,9 @@ About 40 unused packets are protocol the port does not need:
   `UniqueId`, `IdentityAccounts`, `RestoreClientMessage`: the port's socket speaks plaintext and
   the client is a page, not an AIR shell.
 - **Tracking.** Latency pings, lag warnings and performance logs.
+- **Packets this revision's Flash client registers or defines but never acts on.**
+  `NoSuchFlatMessage`: both navigators' `onNoSuchFlat` are empty, so there is no error to show.
+  `RedeemMarketplaceOfferCreditsComposer`: `HabboCatalog.redeemSoldMarketPlaceOffers` has no
+  caller, so the own-items page has no redeem button. `GiveSupplementToPetComposer`: the pet menus'
+  `give_water` and `give_light` rows are never shown, so nothing raises `RWUAM_GIVE_WATER_TO_PET` or
+  `RWUAM_GIVE_LIGHT_TO_PET`.

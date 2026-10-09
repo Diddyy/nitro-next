@@ -1,7 +1,8 @@
 import { ChangeUserNameResultMessageCode } from '@nitrodevco/nitro-api';
-import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetSoundSettingsComposer, GetUserNftChatStylesComposer, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
+import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
+import { openClientLink } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
 import { SOUND_VOLUME_SCALE, TURBO_CHAT_COMMANDS_CAPABILITY, TURBO_PERMISSION_NODES_CAPABILITY, userStore } from '#base/context/user';
@@ -12,7 +13,8 @@ import { on, subscribeAll } from '../packetSubscriptions';
 /**
  * Who you are - Flash's `SessionDataManager`: the user object at login, figure and name changes,
  * rights, noobness level, email status, the account preferences and the chat styles the account
- * owns (NFT and bought ones, which the chat input's style picker offers). Also gives a pet respect
+ * owns (NFT and bought ones, which the chat input's style picker offers), and the links the server
+ * asks the client to open (`onInClientLink`: `createLinkEvent`, here `openClientLink`). Also gives a pet respect
  * back when the server refuses one (`onPetRespectFailed`): the respect was spent when it was sent,
  * and follows the account's safety lock (`onAccountSafetyLockStatusChanged`: locked while the status is 0)
  * and the hotel's availability (`onAvailabilityStatus`), which trading checks for a shutdown.
@@ -82,6 +84,8 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
 
         // `SessionDataManager.onPetRespectFailed`: the respect `givePetRespect` took is returned.
         on(PetRespectFailedMessage, () => increasePetRespects()),
+
+        on(InClientLinkMessage, data => openClientLink(send, data.link)),
 
         on(ChangeUserNameResultMessage, (data) => {
             if (data.resultCode !== ChangeUserNameResultMessageCode.NameOk) return;
