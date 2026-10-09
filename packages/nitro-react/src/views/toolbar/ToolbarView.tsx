@@ -41,7 +41,7 @@ import { unseenSkipped, useAchievementsStore } from '#base/context/achievements'
 import { useWebSocketContext } from '#base/context/communication';
 import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
 import { useGroupStore } from '#base/context/groups';
-import { useInventoryUnseenTotalCount } from '#base/context/inventory';
+import { inventoryStore, useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
 import { getRewardTrackClaimableCount, useRewardTrackStore } from '#base/context/reward-track';
 import { useOwnRoomObjectId } from '#base/context/room';
@@ -321,7 +321,8 @@ export const ToolbarView = () => {
         CATALOGUE: { onPointerTap: iconClick(() => toggleCatalog(CatalogTypeEnum.Normal)) },
         BUILDER: { onPointerTap: iconClick(() => toggleCatalog(CatalogTypeEnum.BuildersClub)) },
         INVENTORY: {
-            onPointerTap: iconClick(() => toggleWindow('inventory')),
+            // `InventoryMainView.onHabboToolbarEvent`: the page it last showed.
+            onPointerTap: iconClick(() => toggleWindow('inventory', { tab: inventoryStore.getState().lastPage })),
             children: (
                 <>
                     {/* `icons_toolbar_inventory`'s box: what transitions land on. */}
