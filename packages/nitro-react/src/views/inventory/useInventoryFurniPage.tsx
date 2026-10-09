@@ -33,8 +33,9 @@
  *   lock, no trade, not an external image). `furni_preview_region` places the furni too.
  *
  * Not ported: `use_btn`, `nextItemButton` / `viewItemButton` (`showUseProductSelection`, which the
- * room engine does not offer), dropping a rented item whose time has run out
- * (`onImageUpdateTimerEvent`), an external image's own description, and the page numbers' underline.
+ * room engine does not offer), an external image's own description, and the page numbers' underline.
+ * A rented item whose time has run out leaves the list (`onImageUpdateTimerEvent`) in
+ * `registerInventoryFurniHandlers`.
  */
 import { IFurnitureData, MapDataType } from '@nitrodevco/nitro-api';
 import { useEffect, useRef, useState } from 'react';
