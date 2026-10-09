@@ -222,6 +222,12 @@ const SIDE_CONTAINER_X = 487;
 const WARDROBE_WIDTH = 182;
 const EMPTY_SIDE_WIDTH = 1;
 
+/** `AvatarEditorGridView.GET_MORE`, its icon (`camera_zoom_in`) and a hover id no part has. */
+const GET_MORE = 'GET_MORE';
+const GET_MORE_ICON = 'habbo-window-manager-com-camera_zoom_in';
+const GET_MORE_ID = -2;
+const OFFICIAL_SELLABLE_SUPPORT = true;
+
 const DEFAULT_FIGURES: Partial<Record<AvatarGenderType, string>> = {
     [AvatarGenderType.Male]: 'hr-100.hd-180-7.ch-215-66.lg-270-79.sh-305-62.ha-1002-70.wa-2007',
     [AvatarGenderType.Female]: 'hr-515-33.hd-600-1.ch-635-70.lg-716-66-62.sh-735-68',
@@ -261,6 +267,9 @@ export const AvatarEditor = () => {
     const maxWardrobeSlots = useConfigValue<number>(WARDROBE_SLOTS_KEY) ?? DEFAULT_WARDROBE_SLOTS;
     // `startSellablePurchase`: the catalogue page `catalog.clothes.page` names.
     const clothesPage = useConfigValue<string>('catalog.clothes.page');
+    // `generateDataContent`: the `GET_MORE` thumb with `avatareditor.support.sellablefurni`. This hotel
+    // leaves it unset; the official one shows the thumb (editor-plus.png, avatareditor.png), so unset is on.
+    const sellableSupport = useConfigValue<boolean>('avatareditor.support.sellablefurni') ?? OFFICIAL_SELLABLE_SUPPORT;
     const { showWindow } = useSystemActions();
     const t = useTranslation();
     // The sub tab, part and colour under the pointer (`WME_OVER` / `WME_OUT`).
@@ -338,11 +347,14 @@ export const AvatarEditor = () => {
      * `saveCurrentSelection()` then `manager.close()`. While the editor dresses a booth the look
      * belongs to that furni: it keeps one outfit per gender, and the gender travels with the look.
      */
+    /** `catalog.openCatalogPage(catalog.clothes.page)`: without the page, the catalogue as it opens (its front page). */
+    const openClothesPage = () => showWindow('catalog', { pageName: clothesPage ?? '' });
+
     const saveFigure = () => {
         setSaveLocked(true);
 
         if (hasAvatarEditorInvalidSellableItems()) {
-            if (clothesPage) showWindow('catalog', { pageName: clothesPage });
+            openClothesPage();
 
             return;
         }
@@ -636,9 +648,28 @@ export const AvatarEditor = () => {
         };
     });
 
-    const hasParts = parts.length > 0;
+    // `GET_MORE`: the last thumb, `camera_zoom_in` centred in it; a click opens the clothes page (`onGridItemClicked`).
+    if (sellableSupport) {
+        thumbs.push({
+            key: GET_MORE,
+            from: 'thumb_template',
+            bindings: {
+                '': {
+                    onPointerTap: openClothesPage,
+                    onPointerOver: () => setHoveredPart(GET_MORE_ID),
+                    onPointerOut: () => setHoveredPart(current => ((current === GET_MORE_ID) ? null : current)),
+                },
+                '#BG_COLOR': { visible: hoveredPart === GET_MORE_ID, alpha: HOVER_ALPHA },
+                bitmap: { asset: GET_MORE_ICON, pivot: 'center' },
+                '#CLUB_ICON': { visible: false },
+                '#SELLABLE_ICON': { visible: false },
+            },
+        });
+    }
+
+    const hasParts = thumbs.length > 0;
     // `showPalettes(colorLayerCount)`: none without parts.
-    const layers = hasParts ? palettes.length : 0;
+    const layers = parts.length ? palettes.length : 0;
 
     const bindings: TemplateBindings = {
         ...viewBindings,
