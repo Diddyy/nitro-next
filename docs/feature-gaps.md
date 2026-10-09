@@ -98,10 +98,8 @@ the layouts are the library's in `scripts/flash-js-resources`.
 | Hotel view | `views/hotel-view`, except the expiring page, next limited rare and community goal widgets | `habbo-friend-bar-com`: `landing_view_*`, `dynamic_widget_grid`, `generic_widget`, `element_*`, `bonus_rare_promo`, `promo_article` |
 | Friend list and messenger | `views/friendlist`, `views/messenger` | `habbo-friend-list-com`, `habbo-messenger-com` |
 | Groups and profile | `views/groups`, `UserProfileView` | `habbo-groups-com`: `group_info_window`, `group_management_window`, `badge_editor`, `guild_members_window`, `group_created_window`, `club_required`, `new_extended_profile` |
-| Notifications | `views/notifications` | `habbo-notifications-com`: `layout_notification_popup`, `motd_notification`, ... |
 | Collectibles, habbicons, offer centre, special items | `views/collectibles`, `views/habbicons`, `OfferCenterView`, `SpecialItemsView` | `habbo-catalog-com`: `collectible_view`, `collectible_reward`, `habbicon_view`, `habbicon_purchase_confirmation`, `offer_center`, `special_items_display` |
 | Wired menu, chests and transactions | `views/wired-menu`, `views/wired-trading/chests`, `views/wired-trading/transactions` | `habbo-user-defined-room-events-com`: `wired_menu_view`, `logs_overview`, `error_info_view`, `variables_management_*`, `chest_*`, `transaction_*` |
-| Alerts and dialogs | `SimpleAlertView`, `SystemDialogsView` | the window manager's alert layouts |
 | Inventory leftovers | `InventoryMarketplaceView`, `InventoryTradingDock` | `habbo-inventory-com` |
 | Room UI: product layouts | `FurnitureMonsterplantSeedWidget`, `FurniturePurchasableClothingWidget`, `FurniturePetProductWidget` draw through `FurnitureUseProductView`'s shampoo controller | `use_product_*` (plant seed, clothing with its `avatar_preview`, custom part, saddle, monsterplant) |
 
