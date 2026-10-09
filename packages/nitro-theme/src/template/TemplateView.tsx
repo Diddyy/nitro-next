@@ -608,8 +608,12 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
 
     if (!text) return null;
 
-    // `TextLabelController`: a label draws its text inside its margins.
-    const margins = label ? templateTextMargins(element) : undefined;
+    // `TextLabelController`: a label draws its text inside its margins. A text's field goes at its
+    // margins too (`TextSkinRenderer.draw`: `tx = margins.left`, `ty = margins.top`), the field as
+    // wide as the window less them - but a centred one is centred on the whole window.
+    const ownMargins = templateTextMargins(element);
+    const margins = (!label && autoSize === 'center') ? { ...ownMargins, left: 0, right: 0 } : ownMargins;
+    const fieldWidth = Math.max(0, rect.width - margins.left - margins.right);
     // `TextController.background`: the `TextField` fills its rect in its `backgroundColor` - the
     // window's colour (`set color`), white when it has none. A label has no field background.
     // A binding's `color` is the text's colour (`textColor` above), so it fills the field only when
@@ -626,17 +630,15 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
         <ThemeText
             text={text}
             textStyle={style}
-            textOptions={{ fill: color, fontFamily, fontSize: templateFontSize(element), wordWrap: wordWrap || undefined, wordWrapWidth: wordWrap ? templateWrapWidth(rect.width) : undefined, align }}
+            textOptions={{ fill: color, fontFamily, fontSize: templateFontSize(element), wordWrap: wordWrap || undefined, wordWrapWidth: wordWrap ? templateWrapWidth(fieldWidth) : undefined, align }}
             flashFormat={flash.etchingColor ? { ...flash, etchingPosition: flash.etchingPosition ?? 'bottom' } : flash}
             markup={(binding?.htmlText !== undefined) || isMarkupTemplateText(element) || undefined}
             onLink={binding?.onLink}
             clip={!label && autoSize === 'none' ? true : undefined}
-            crop={binding?.crop ? rect.width : undefined}
+            crop={binding?.crop ? fieldWidth : undefined}
             dynamicRole={dynamicRoleOf(element)}
             verticalAlign="top"
-            layout={margins
-                ? { position: 'absolute', left: margins.left, top: margins.top, width: Math.max(0, rect.width - margins.left - margins.right), height: Math.max(0, rect.height - margins.top - margins.bottom) }
-                : { position: 'absolute', left: 0, top: 0, width: rect.width, height: rect.height }}
+            layout={{ position: 'absolute', left: margins.left, top: margins.top, width: fieldWidth, height: Math.max(0, rect.height - margins.top - margins.bottom) }}
         />
     );
 
