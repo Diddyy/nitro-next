@@ -449,7 +449,8 @@ export const ToolbarView = () => {
                         { name: 'dailytasks', visible: dailyTasksEnabled, action: () => openClientLink(send, 'dailytasks/open') },
                         { name: 'quests', visible: !hideQuests },
                         { name: 'achievements', visible: true, action: () => openClientLink(send, 'questengine/achievements'), unseenCount: unseenAchievements },
-                        { name: 'leaderboards', visible: true },
+                        // `onSubMenuItemClick('leaderboards')`: the badge leaderboard's link (`groups/_-ge.getLink(0, -1, 0)`).
+                        { name: 'leaderboards', visible: true, action: () => openClientLink(send, 'badge_leaderboard/0/-1/0') },
                         { name: 'introduction', visible: true, action: () => openClientLink(send, 'reward_track/open/introduction') },
                     ]}
                     onClose={() => setOpenMenu(undefined)}
