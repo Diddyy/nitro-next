@@ -10,7 +10,7 @@ This is the opposite of [Feature gaps](feature-gaps.md), which lists what the cl
 ported. A feature can be in both lists: the server's half here, the client's there.
 
 As of client revision `WIN63-202609091217-117204808` and Turbo revision `Revision20260909`:
-37 packets sent and 110 listened to. Update the list when a gap is closed on either side.
+37 packets sent and 109 listened to. Update the list when a gap is closed on either side.
 
 ## How the list is made
 
@@ -73,7 +73,7 @@ nothing sends it.
 | Inventory | `FurniListAddOrUpdate`, `PostItPlaced` | never sent |
 | Marketplace | `MarketplaceConfiguration`, `MarketPlaceOffers`, `MarketPlaceOwnOffers`, `MarketplaceItemStats`, `MarketplaceCanMakeOfferResult`, `MarketplaceMakeOfferResult`, `MarketplaceBuyOfferResult`, `MarketplaceCancelOfferResult` | never sent |
 | Marketplace | `MarketplaceCancelAllOffersResult`, `MarketplaceClearOwnHistoryResult` | no serializer |
-| Catalogue | `BundleDiscountRuleset`, `CatalogPageWithEarliestExpiry`, `LimitedEditionSoldOut`, `FurniRentOrBuyoutOffer`, `TargetedOffer`, `TargetedOfferNotFound`, `VoucherRedeemOk`, `VoucherRedeemError`, `ScrSendKickbackInfo` | never sent |
+| Catalogue | `BundleDiscountRuleset`, `LimitedEditionSoldOut`, `FurniRentOrBuyoutOffer`, `TargetedOffer`, `TargetedOfferNotFound`, `VoucherRedeemOk`, `VoucherRedeemError`, `ScrSendKickbackInfo` | never sent |
 | Recycler | `RecyclerStatus`, `RecyclerPrizes`, `RecyclerFinished` | no serializer |
 | Special items | `ClaimProductResult`, `HasClaimedProductResponse` | no serializer |
 | Offer centre | `OfferRewardDelivered` | never sent |
