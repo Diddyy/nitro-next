@@ -310,7 +310,7 @@ export const ToolbarView = () => {
             onPointerTap: iconClick(undefined, 'progression'),
             children: (
                 <UnseenItemCounterView
-                    // `unseenProgMenuCount`: the achievements' and the daily tasks' (`BottomBarLeft`).
+                    // `unseenProgMenuCount`: the achievements', the daily tasks' and the reward tracks' claimable prizes (`BottomBarLeft`).
                     count={unseenAchievements + unseenDailyTasks + claimableRewardTrackPrizes}
                     layout={{ position: 'absolute', right: 0, top: 0 }}
                 />
