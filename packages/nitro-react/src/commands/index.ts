@@ -46,6 +46,7 @@ export * from './navigatorCommands';
 export * from './newFeatureNotificationCommands';
 export * from './notificationCommands';
 export * from './offerCenterCommands';
+export * from './purchasableClothingCommands';
 export * from './questCommands';
 export * from './raidProtectionCommands';
 export * from './rewardTrackCommands';

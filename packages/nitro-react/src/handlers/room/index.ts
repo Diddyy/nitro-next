@@ -25,6 +25,7 @@ export * from './registerRoomPetHandlers';
 export * from './registerRoomPetPackageHandlers';
 export * from './registerRoomPollHandlers';
 export * from './registerRoomPresentHandlers';
+export * from './registerRoomPurchasableClothingHandlers';
 export * from './registerRoomQuizHandlers';
 export * from './registerRoomRentableSpaceHandlers';
 export * from './registerRoomSettingsHandlers';
