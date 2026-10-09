@@ -16,7 +16,7 @@
  *   `CallForHelpFromPhotoComposer`.
  */
 import { GetConfigValue } from '@nitrodevco/nitro-api';
-import { CallForHelpComposer, CallForHelpFromIMComposer, CallForHelpFromPhotoComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
+import { CallForHelpComposer, CallForHelpFromForumMessageComposer, CallForHelpFromForumThreadComposer, CallForHelpFromIMComposer, CallForHelpFromPhotoComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { helpStore } from '#base/context/help';
@@ -35,9 +35,10 @@ const BULLYING_TOPIC_NAME = 'bullying';
 /**
  * Where a report opens the help window (`_-nL`, the reporting mode): `user` is
  * `openReportingChatLineSelection` (mode -1), `room` is `openReportingContentReasonCategory(4)`, `im`
- * is `openReportingIMSelection` (mode 3) and `photo` is `openReportingContentReasonCategory(9)`.
+ * is `openReportingIMSelection` (mode 3), `thread` and `message` are `openReportingContentReasonCategory(7)` and
+ * `(8)` (a group forum's thread or message) and `photo` is `openReportingContentReasonCategory(9)`.
  */
-export type HelpReportEntry = 'user' | 'room' | 'im' | 'photo';
+export type HelpReportEntry = 'user' | 'room' | 'im' | 'photo' | 'thread' | 'message';
 
 /** `HabboHelp.reportUser`: the avatar menu's report (`RWUAM_REPORT_CFH_OTHER`). */
 export const reportUser = (userId: number) => {
@@ -79,6 +80,18 @@ export const reportPhoto = (senderId: number, senderName: string, extraDataId: s
     systemStore.getState().showWindow('help', { entry: 'photo', openedAt: performance.now() });
 };
 
+/** `HabboHelp.reportThread`: a group forum's thread - which forum and which thread, no user. */
+export const reportGroupForumThread = (groupId: number, threadId: number) => {
+    helpStore.getState().setReportedForumPost(groupId, threadId, -1);
+    systemStore.getState().showWindow('help', { entry: 'thread', openedAt: performance.now() });
+};
+
+/** `HabboHelp.reportMessage`: a group forum's message. */
+export const reportGroupForumMessage = (groupId: number, threadId: number, messageId: number) => {
+    helpStore.getState().setReportedForumPost(groupId, threadId, messageId);
+    systemStore.getState().showWindow('help', { entry: 'message', openedAt: performance.now() });
+};
+
 /** `ChatReportController.collectSelectedEntries(3, user)`: the conversation's ticked messages; a group chat's sender id is the start of its name. */
 export const collectSelectedImEntries = (userId: number): (number | string)[] => (helpStore.getState().imItems.find(([ chatId ]) => chatId === userId)?.[1] ?? [])
     .filter(item => item.selected)
@@ -111,6 +124,22 @@ export const submitCallForHelp = (send: Send, message: string, topic: ICallForHe
         const { reportedExtraDataId, reportedRoomObjectId } = helpStore.getState();
 
         send(new CallForHelpFromPhotoComposer({ extraDataId: reportedExtraDataId, roomId: reportedRoomId, reportedUserId, topicId: topic.id, roomObjectId: reportedRoomObjectId, name: '', email: '' }));
+
+        return;
+    }
+
+    if (entry === 'thread') {
+        const { reportedGroupId, reportedThreadId } = helpStore.getState();
+
+        send(new CallForHelpFromForumThreadComposer({ groupId: reportedGroupId, threadId: reportedThreadId, topicId: topic.id, message, name: '', email: '' }));
+
+        return;
+    }
+
+    if (entry === 'message') {
+        const { reportedGroupId, reportedThreadId, reportedMessageId } = helpStore.getState();
+
+        send(new CallForHelpFromForumMessageComposer({ groupId: reportedGroupId, threadId: reportedThreadId, messageId: reportedMessageId, topicId: topic.id, message, name: '', email: '' }));
 
         return;
     }

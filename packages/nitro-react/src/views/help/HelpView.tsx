@@ -110,6 +110,8 @@ const firstContainer = (entry: HelpReportEntry | undefined): Container => {
             return 'chat_container';
         case 'room':
         case 'photo':
+        case 'thread':
+        case 'message':
             return 'reason_container';
         default:
             return 'start_container';
@@ -420,13 +422,16 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
                         },
                     }));
 
+    /** `updateUserData`: a forum thread's or message's report shows no user at all. */
+    const forumReport = (entry === 'thread') || (entry === 'message');
+
     const bindings: TemplateBindings = {
         ...Object.fromEntries(CONTAINERS.map(name => [ name, { visible: false } ])),
         [shown]: { visible: true },
         continue_button: { visible: REQUIRES_CONTINUE_BUTTON.includes(shown), onPointerTap: onContinue },
         user: { visible: REQUIRES_USER_DATA.includes(shown) },
         // `updateBackButtonVisibility`, by the reporting mode.
-        back_button: { visible: (container !== 'start_container') && ((entry === 'im') ? (container !== 'chat_container') : ((entry === 'room') || (entry === 'photo')) ? (container !== 'reason_container') : true), onPointerTap: onBack },
+        back_button: { visible: (container !== 'start_container') && ((entry === 'im') ? (container !== 'chat_container') : ((entry === 'room') || (entry === 'photo') || (entry === 'thread') || (entry === 'message')) ? (container !== 'reason_container') : true), onPointerTap: onBack },
 
         // `start_container`.
         reports_status_bitmap: { visible: reportsStatusEnabled },
@@ -456,14 +461,14 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
         user_list: { items: userItems },
 
         // `user` (`updateUserData`): a room report shows the room's name alone.
-        user_info_title: { visible: entry !== 'room' },
-        reported_user_avatar: { visible: (entry !== 'room') && !!reportedUser, children: reportedUser && (
+        user_info_title: { visible: (entry !== 'room') && !forumReport },
+        reported_user_avatar: { visible: (entry !== 'room') && !forumReport && !!reportedUser, children: reportedUser && (
             <AvatarHead
                 figure={reportedUser.figure}
                 cropped
             />
         ) },
-        reported_user_name: { caption: (entry === 'room') ? reportedRoomName : reportedUserName },
+        reported_user_name: { visible: !forumReport, caption: (entry === 'room') ? reportedRoomName : reportedUserName },
         // `showReportingDialog`'s second argument: only the avatar menu's report offers another user.
         change_user: { visible: (entry === undefined) || (entry === 'user'), onPointerTap: showUsers },
 

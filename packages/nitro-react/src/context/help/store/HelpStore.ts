@@ -89,6 +89,10 @@ type State = {
     reportedUserName: string;
     reportedRoomObjectId: number;
     reportedExtraDataId: string;
+    /** `CallForHelpManager.reportedGroupId` / `reportedThreadId` / `reportedMessageId`: the forum post being reported. */
+    reportedGroupId: number;
+    reportedThreadId: number;
+    reportedMessageId: number;
 };
 
 type Actions = {
@@ -112,6 +116,8 @@ type Actions = {
     setReportedRoomName: (reportedRoomName: string) => void;
     /** `HabboHelp.startPhotoReportingInNewCfhFlow`'s fields. */
     setReportedPhoto: (reportedUserName: string, reportedRoomObjectId: number, reportedExtraDataId: string) => void;
+    /** `HabboHelp.reportThread` / `reportMessage`'s fields. */
+    setReportedForumPost: (reportedGroupId: number, reportedThreadId: number, reportedMessageId: number) => void;
 };
 
 export type HelpStore = State & Actions;
@@ -135,6 +141,9 @@ const INITIAL: State = {
     reportedUserName: '',
     reportedRoomObjectId: -1,
     reportedExtraDataId: '',
+    reportedGroupId: -1,
+    reportedThreadId: -1,
+    reportedMessageId: -1,
 };
 
 /** `ChatRegistry.purgeRegistry`. */
@@ -202,6 +211,7 @@ export const createHelpStore = () => createStore<HelpStore>()(set => ({
     setReportedRoomId: reportedRoomId => set({ reportedRoomId }),
     setReportedRoomName: reportedRoomName => set({ reportedRoomName }),
     setReportedPhoto: (reportedUserName, reportedRoomObjectId, reportedExtraDataId) => set({ reportedUserName, reportedRoomObjectId, reportedExtraDataId }),
+    setReportedForumPost: (reportedGroupId, reportedThreadId, reportedMessageId) => set({ reportedGroupId, reportedThreadId, reportedMessageId }),
 }));
 
 export const helpStore = createHelpStore();
