@@ -1038,6 +1038,8 @@ export * from './outgoing/Help/ChatReviewSessionCreateComposer';
 export * from './outgoing/Help/DeletePendingCallsForHelpComposer';
 export * from './outgoing/Help/GetGuideReportingStatusComposer';
 export * from './outgoing/Help/GetPendingCallsForHelpComposer';
+export * from './outgoing/Help/GetCfhMyReportStatusComposer';
+export * from './outgoing/Help/GetMySanctionStatusComposer';
 export * from './outgoing/Help/GetQuizQuestionsComposer';
 export * from './outgoing/Help/GuideSessionCreateComposer';
 export * from './outgoing/Help/GuideSessionFeedbackComposer';

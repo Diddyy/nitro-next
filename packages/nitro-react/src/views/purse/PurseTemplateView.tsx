@@ -16,7 +16,7 @@ import { usePurseClubText } from './usePurseClubText';
  * (`PurseClubArea`, see `usePurseClubText`) whose join button opens the club centre, the earnings
  * button opening the vault with its unseen dot, and the settings button dropping the settings list.
  * The counts open the web shop and the duckets' and diamonds' catalogue pages, and the logout button
- * starts the client again. The help button toggles Flash's help window, which the port does not have.
+ * starts the client again. The help button toggles the help window (`toggleWindowVisibility("HELP")`).
  *
  * Every other element - borders, icons, tooltips, the hover style - comes from the template.
  */
@@ -25,7 +25,7 @@ export const PurseTemplateView = () => {
     const credits = useUserStore(x => x.credits);
     const activityPoints = useUserStore(x => x.activityPoints);
     const showingIndicator = useEarningsStore(x => x.showingIndicator);
-    const { showWindow } = useSystemActions();
+    const { showWindow, toggleWindow } = useSystemActions();
     const { send } = useWebSocketContext();
     const [ settingsVisible, setSettingsVisible ] = useState(false);
 
@@ -48,6 +48,8 @@ export const PurseTemplateView = () => {
                         credit_count_button: { onPointerTap: () => openCreditsHabblet() },
                         ducket_count_button: { onPointerTap: () => showWindow('catalog', { pageName: 'ducket_info' }) },
                         diamond_count_button: { onPointerTap: () => showWindow('catalog', { pageName: 'loyalty_info' }) },
+                        // `toolbar.toggleWindowVisibility("HELP")`: `HabboHelp.toggleNewHelpWindow`.
+                        help_button: { onPointerTap: () => toggleWindow('help') },
                         // `toolbar.reboot()`.
                         logout_button: { onPointerTap: () => rebootClient() },
                     }}

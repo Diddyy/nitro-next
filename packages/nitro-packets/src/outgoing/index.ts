@@ -165,6 +165,8 @@ export * from './Help/ChatReviewGuideVoteComposer';
 export * from './Help/ChatReviewSessionCreateComposer';
 export * from './Help/DeletePendingCallsForHelpComposer';
 export * from './Help/GetGuideReportingStatusComposer';
+export * from './Help/GetCfhMyReportStatusComposer';
+export * from './Help/GetMySanctionStatusComposer';
 export * from './Help/GetPendingCallsForHelpComposer';
 export * from './Help/GetQuizQuestionsComposer';
 export * from './Help/GuideSessionCreateComposer';

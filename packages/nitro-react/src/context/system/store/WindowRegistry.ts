@@ -62,6 +62,9 @@ export type WindowRegistry = {
 
     /** The vault (`EarningsView`), from `habboUI/open/vault` - the purse's earnings button or the new earnings bubble. */
     earnings: NoWindowParams;
+    /** The help window (`HelpView`), from the purse's help button - `HabboHelp.toggleNewHelpWindow`. */
+    help: NoWindowParams;
+
 
     /** The club centre (`HabboClubCenter`'s `ClubCenterView`), from `habboUI/open/hccenter` - `openClubCenter`, `verifyClubLevel`. */
     club_center: NoWindowParams;

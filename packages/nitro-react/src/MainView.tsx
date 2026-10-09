@@ -14,6 +14,7 @@ import { CollectiblesComponent } from './components/collectibles';
 import { EarningsComponent } from './components/earnings';
 import { GroupCreatedComponent, GroupHcRequiredComponent, GroupInfoComponent, GroupManagementComponent, GroupMembersComponent, GroupRoomInfoComponent } from './components/groups';
 import { HabbiconsComponent } from './components/habbicons';
+import { HelpComponent } from './components/help';
 import { HotelViewComponent } from './components/hotel-view';
 import { MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
@@ -122,6 +123,7 @@ export const MainView = () => {
                 <EarningsComponent />
                 <AchievementsComponent />
                 <SpecialItemsComponent />
+                <HelpComponent />
                 <GroupInfoComponent />
                 <GroupMembersComponent />
                 <GroupManagementComponent />
