@@ -35,6 +35,30 @@ export type GroupForumView
         | { kind: 'messages'; forums: GroupForumsList | undefined; forum: IExtendedForumData; threads: GroupForumThreadsList; messages: GroupForumMessagesList };
 
 /**
+ * `ComposeMessageView`: a new thread (no `thread`) or a reply to one, the message it quotes when it
+ * came from a message's reply button. `key` is bumped each time the window is opened or focused on
+ * another post (`focus` -> `initControls`), so its fields start again; `x` / `y` where it opens.
+ */
+export interface GroupForumCompose {
+    key: number;
+    forum: IExtendedForumData;
+    thread: IThreadData | undefined;
+    quote: IPostMessage | undefined;
+    /** `_-pZ`: the post is sent and the window waits for its answer, its fields disabled. */
+    posting: boolean;
+    x: number;
+    y: number;
+}
+
+/** `ForumSettingsView`: the forum whose permissions it changes, and where it opens. */
+export interface GroupForumSettings {
+    key: number;
+    forum: IExtendedForumData;
+    x: number;
+    y: number;
+}
+
+/**
  * Flash's `GroupForumController`: the unread count the toolbar shows on the me menu's forums item and
  * adds to the me menu icon's count (`HabboToolbar.onUnseenForumsCountUpdate`), and what its window
  * (`GroupForumView`, `content`) shows while it is open.
@@ -44,17 +68,24 @@ type State = {
     unreadForumsCount: number;
     /** `content`: undefined while the window is closed. */
     forumView: GroupForumView | undefined;
+    /** `composeMessageView` / `forumSettingsView`: undefined while closed; they outlive the main window. */
+    forumCompose: GroupForumCompose | undefined;
+    forumSettings: GroupForumSettings | undefined;
 };
 
 type Actions = {
     /** `updateUnreadForumsCount`. */
     setUnreadForumsCount: (count: number) => void;
     setForumView: (forumView: GroupForumView | undefined) => void;
+    setForumCompose: (forumCompose: GroupForumCompose | undefined) => void;
+    setForumSettings: (forumSettings: GroupForumSettings | undefined) => void;
 };
 
 export const GroupForumSliceInitialState: State = {
     unreadForumsCount: 0,
     forumView: undefined,
+    forumCompose: undefined,
+    forumSettings: undefined,
 };
 
 export type GroupForumSlice = State & Actions;
@@ -63,4 +94,6 @@ export const createGroupForumSlice: StateCreator<GroupForumSlice, [], [], GroupF
     ...GroupForumSliceInitialState,
     setUnreadForumsCount: unreadForumsCount => set({ unreadForumsCount }),
     setForumView: forumView => set({ forumView }),
+    setForumCompose: forumCompose => set({ forumCompose }),
+    setForumSettings: forumSettings => set({ forumSettings }),
 });

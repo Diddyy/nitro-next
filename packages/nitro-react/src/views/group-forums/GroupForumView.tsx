@@ -19,17 +19,23 @@
  *   number, the text with `*bold*`, `_italic_`, `@name` and `>` quote blocks (`initMessageText`),
  *   and hide / show, report and reply buttons by permission; each row as tall as its text.
  *
- * Not ported: composing a thread or a reply (`ComposeMessageView`), the forum settings window
- * (`ForumSettingsView`), reporting (`IHabboHelp.reportThread` / `reportMessage`), the author links
- * in a row's details, and scrolling to the message a link names.
+ * - The post button and a message's reply button open the compose window (`GroupForumComposeView`, a
+ *   reply to a message quoting it), `settings_button` the forum settings window
+ *   (`GroupForumSettingsView`), both beside this one; a thread's or message's report button the help
+ *   window on that post (`IHabboHelp.reportThread` / `reportMessage`); the author names in a row's
+ *   details are `friendbar/user/<name>` links to the user's profile.
+ *
+ * Not ported: scrolling to the message a link names.
  */
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import type { IExtendedForumData, IForumData, IPostMessage, IThreadData } from '@nitrodevco/nitro-packets';
 
 import {
     closeGroupForum, deleteGroupForumMessage, deleteGroupForumThread, getGroupForumThreadLastReadIndex, goToGroupForumMessage, GROUP_FORUM_PAGE_SIZE, GROUP_FORUM_STATE_HIDDEN_BY_ADMIN, GROUP_FORUM_STATE_HIDDEN_BY_STAFF, markGroupForumAsRead,
-    markGroupForumsListAsRead, openClientLink, openGroupForumsList, openGroupForumWindow, openProfile, requestGroupForumMessages, requestGroupForumThreads, undeleteGroupForumMessage, undeleteGroupForumThread, updateGroupForumThread,
+    markGroupForumsListAsRead, openClientLink, openGroupForumCompose, openGroupForumSettings, openGroupForumsList, openGroupForumWindow, openProfile, requestGroupForumMessages, requestGroupForumThreads,
+    setGroupForumWindowRect, undeleteGroupForumMessage, undeleteGroupForumThread, updateGroupForumThread,
 } from '#base/commands';
+import { reportGroupForumMessage, reportGroupForumThread } from '#base/commands/helpCommands';
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { GroupForumView as GroupForumViewState, useGroupStore } from '#base/context/groups';
@@ -179,7 +185,7 @@ export const GroupForumView = () => {
     const forumItem = useTemplate(FORUM_ITEM);
     const threadItem = useTemplate(THREAD_ITEM);
     const messageItem = useTemplate(MESSAGE_ITEM);
-    const frame = useTemplateFrame({ id: 'group_forum', centered: true, rememberPosition: false, resizeDirection: 'all', onClose: () => closeGroupForum(send) });
+    const frame = useTemplateFrame({ id: 'group_forum', centered: true, rememberPosition: false, resizeDirection: 'all', onClose: () => closeGroupForum(send), onPositionChange: position => setGroupForumWindowRect(position) });
 
     if (!view || !forumItem || !threadItem || !messageItem) return null;
 
@@ -217,6 +223,16 @@ export const GroupForumView = () => {
         }
     };
 
+    /** `onClickButton('post_button')`: the thread being read is replied to, none starts a new one. */
+    const onPost = () => {
+        if (view.kind === 'forums') return;
+
+        openGroupForumCompose(view.forum, (view.kind === 'messages') ? view.threads.threads.find(entry => entry.threadId === view.messages.threadId) : undefined);
+    };
+
+    /** A row's `event:` link: the author's `friendbar/user/<name>`. */
+    const onLink = (link: string) => openClientLink(send, link);
+
     const forumRow = (entry: IForumData, index: number): TemplateItem => {
         const unread = entry.unreadMessages;
         const open = () => openGroupForumWindow(send, entry.groupId);
@@ -228,7 +244,7 @@ export const GroupForumView = () => {
                 '': { color: ROW_COLORS[(index + 1) % 2] },
                 header: (unread > 0) ? { htmlText: `<b>${escapeHtml(entry.name)}</b>` } : { caption: entry.name },
                 header_region: { onPointerTap: open },
-                details: { htmlText: t('groupforum.view.forum_details', '', { rating: String(entry.leaderboardScore), last_author_id: String(entry.lastMessageAuthorId), last_author_name: entry.lastMessageAuthorName, update_time: ago(entry.lastMessageTimeAsSecondsAgo) }) },
+                details: { htmlText: t('groupforum.view.forum_details', '', { rating: String(entry.leaderboardScore), last_author_id: String(entry.lastMessageAuthorId), last_author_name: entry.lastMessageAuthorName, update_time: ago(entry.lastMessageTimeAsSecondsAgo) }), onLink: onLink },
                 unread_region: { onPointerTap: open },
                 messages1: boldCaption(t('groupforum.view.thread_details1', '', { total_messages: String(entry.totalMessages), new_messages: String(unread) }), unread > 0),
                 messages2: boldCaption(t('groupforum.view.thread_details2', '', { total_messages: String(entry.totalMessages), new_messages: String(unread) }), unread > 0),
@@ -263,7 +279,7 @@ export const GroupForumView = () => {
                 left_button_container: { color },
                 header: (unread > 0) ? { htmlText: `<b>${escapeHtml(header)}</b>` } : { caption: header },
                 header_region: { onPointerTap: open },
-                details: { htmlText: t('groupforum.view.thread_details', '', { thread_author_id: String(thread.threadAuthorId), thread_author_name: thread.threadAuthorName, last_author_id: String(thread.lastMessageAuthorId), last_author_name: thread.lastMessageAuthorName, creation_time: ago(thread.creationTimeAsSecondsAgo), update_time: ago(thread.lastMessageTimeAsSecondsAgo) }) },
+                details: { htmlText: t('groupforum.view.thread_details', '', { thread_author_id: String(thread.threadAuthorId), thread_author_name: thread.threadAuthorName, last_author_id: String(thread.lastMessageAuthorId), last_author_name: thread.lastMessageAuthorName, creation_time: ago(thread.creationTimeAsSecondsAgo), update_time: ago(thread.lastMessageTimeAsSecondsAgo) }), onLink: onLink },
                 unread_region: { onPointerTap: open },
                 messages1: boldCaption(t('groupforum.view.thread_details1', '', { total_messages: String(thread.nMessages), new_messages: String(unread) }), unread > 0),
                 messages2: boldCaption(t('groupforum.view.thread_details2', '', { total_messages: String(thread.nMessages), new_messages: String(unread) }), unread > 0),
@@ -281,12 +297,12 @@ export const GroupForumView = () => {
                     : { onPointerTap: () => ((hideState === 'hide') ? deleteGroupForumThread(send, data, thread.threadId) : undeleteGroupForumThread(send, data, thread.threadId)) },
                 'delete_thread/icon': { asset: asset((hideState === 'unhide') ? 'forum_forum_unhide' : 'forum_forum_hide') },
                 // `canReport` is always true.
-                report_thread: {},
+                report_thread: { onPointerTap: () => reportGroupForumThread(data.groupId, thread.threadId) },
             },
         };
     };
 
-    const messageRow = (data: IExtendedForumData, threadId: number, message: IPostMessage, textTemplate: Template['elements'][number] | undefined): TemplateItem => {
+    const messageRow = (data: IExtendedForumData, threads: IThreadData[], threadId: number, message: IPostMessage, textTemplate: Template['elements'][number] | undefined): TemplateItem => {
         const moderator = data.moderatePermissionError.length === 0;
         const staff = data.isStaff;
         const state = message.state;
@@ -342,8 +358,11 @@ export const GroupForumView = () => {
                     ? { visible: false }
                     : { onPointerTap: () => ((hideState === 'hide') ? deleteGroupForumMessage(send, data, threadId, message.messageId) : undeleteGroupForumMessage(send, data, threadId, message.messageId)) },
                 'delete_message/icon': { asset: asset((hideState === 'unhide') ? 'forum_forum_unhide' : 'forum_forum_hide') },
-                report_message: {},
-                reply_message: { visible: data.postMessagePermissionError.length === 0 },
+                report_message: { onPointerTap: () => reportGroupForumMessage(data.groupId, threadId, message.messageId) },
+                reply_message: {
+                    visible: data.postMessagePermissionError.length === 0,
+                    onPointerTap: () => openGroupForumCompose(data, threads.find(entry => entry.threadId === threadId), message),
+                },
             },
         };
     };
@@ -354,7 +373,7 @@ export const GroupForumView = () => {
         ? view.forums.forums.map(forumRow)
         : (view.kind === 'threads')
                 ? view.threads.threads.map((thread, index) => threadRow(view.forum, thread, index))
-                : view.messages.messages.map(message => messageRow(view.forum, view.messages.threadId, message, messageTextTemplate));
+                : view.messages.messages.map(message => messageRow(view.forum, view.threads.threads, view.messages.threadId, message, messageTextTemplate));
 
     // `setStatusTextError` / the forums list's own status.
     let status = '';
@@ -393,7 +412,7 @@ export const GroupForumView = () => {
         top_header_text: { caption: forum ? forum.name : t(`groupforum.view.forums_header.${(view as Extract<GroupForumViewState, { kind: 'forums' }>).forums.listCode}`) },
         top_text: { caption: forum ? forum.description : t(`groupforum.view.forums_description.${(view as Extract<GroupForumViewState, { kind: 'forums' }>).forums.listCode}`) },
         top_click_area: forum ? { onPointerTap: () => openClientLink(send, `group/${forum.groupId}`) } : { disabled: true },
-        settings_button: { visible: !!forum?.canChangeSettings },
+        settings_button: { visible: !!forum?.canChangeSettings, onPointerTap: () => forum && openGroupForumSettings(forum) },
         my: shortcut((unreadForumsCount > 0) ? t('groupforum.view.shortcuts.my.unread', '', { unread_count: String(unreadForumsCount) }) : t('groupforum.view.shortcuts.my')),
         active: shortcut(t('groupforum.view.shortcuts.active')),
         popular: shortcut(t('groupforum.view.shortcuts.popular')),
@@ -401,7 +420,7 @@ export const GroupForumView = () => {
         scrollable_message_list: { items: rows },
         back_button_label: { caption: t((view.kind === 'messages') ? 'groupforum.view.back' : 'groupforum.view.mark_read') },
         back_button: { onPointerTap: onBack },
-        post_button: { visible: view.kind !== 'forums', disabled: postDisabled },
+        post_button: { visible: view.kind !== 'forums', disabled: postDisabled, onPointerTap: () => onPost() },
         post_button_label: { caption: t((view.kind === 'messages') ? 'groupforum.view.reply' : 'groupforum.view.start_thread') },
         page_info: { caption: `${page + 1} / ${pages}` },
         show_first: { disabled: page <= 0, onPointerTap: () => (page > 0) && requestPage(0) },
@@ -416,7 +435,11 @@ export const GroupForumView = () => {
     };
 
     // `updateItemWidths` / `updateItemSizes`: each row as wide as the list, a message row as tall as its text.
-    const arrange = ({ find }: TemplateWindows) => {
+    const arrange = ({ find, root }: TemplateWindows) => {
+        const width = root()?.width;
+
+        if (width) setGroupForumWindowRect({ width });
+
         const list = find('scrollable_message_list');
         const inner = innerList(list);
 

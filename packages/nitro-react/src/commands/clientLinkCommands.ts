@@ -1,5 +1,5 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { ForwardToSomeRoomComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
+import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore, WindowParams } from '#base/context/system';
@@ -313,6 +313,12 @@ export const openClientLink = (send: Send, link: string) => {
             }
 
             break;
+        }
+        // `HabboFriendBarView.linkReceived`: `friendbar/user/<name>` shows that user's profile (`showProfileByName`).
+        case 'friendbar': {
+            if ((parts[1] === 'user') && (parts.length > 2)) send(new GetExtendedProfileByNameComposer({ userName: parts[2] }));
+
+            return;
         }
         // `HabboMessenger.linkReceived`: `messenger/<id>` opens a conversation.
         case 'messenger': {

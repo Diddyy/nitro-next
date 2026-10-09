@@ -29,6 +29,7 @@ import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
 import { BadgeLeaderboardView } from './views/badge-leaderboard/BadgeLeaderboardView';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
 import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
+import { GroupForumDialogs } from './views/group-forums/GroupForumDialogs';
 import { GroupForumView } from './views/group-forums/GroupForumView';
 import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
@@ -140,6 +141,7 @@ export const MainView = () => {
                 <GroupHcRequiredComponent />
                 {/* `GroupForumController`'s window: drawn only while open. */}
                 <GroupForumView />
+                <GroupForumDialogs />
                 {/* `DailyTasksController`'s two windows: drawn only while shown. */}
                 <DailyTasksView />
                 {/* `BadgeLeaderboardController`: drawn only while shown. */}
