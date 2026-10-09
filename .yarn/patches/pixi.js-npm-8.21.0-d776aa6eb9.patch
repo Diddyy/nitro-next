@@ -495,3 +495,55 @@ index 6c0d131c4eca916aaed87f4cb5098c00a426f579..ba00630e6499c824791ab580551e41f3
    destroy() {
      const resources = this.resources;
      for (const i in resources) {
+diff --git a/lib/scene/graphics/gpu/GpuGraphicsAdaptor.js b/lib/scene/graphics/gpu/GpuGraphicsAdaptor.js
+index 87eb96c74b6b9d5530070a048270620433a757c0..3e8a5af0a8d5ac87feadd166086bba2360eebae5 100644
+--- a/lib/scene/graphics/gpu/GpuGraphicsAdaptor.js
++++ b/lib/scene/graphics/gpu/GpuGraphicsAdaptor.js
+@@ -69,8 +69,7 @@ class GpuGraphicsAdaptor {
+           shader._overrides
+         );
+       }
+-      shader.groups[1] = batch.bindGroup;
+-      if (!batch.gpuBindGroup) {
++      if (!batch.gpuBindGroup || !batch.bindGroup || !getTextureBatchBindGroup.isTextureBatchBindGroupAlive(batch.bindGroup)) {
+         const textureBatch = batch.textures;
+         batch.bindGroup = getTextureBatchBindGroup.getTextureBatchBindGroup(
+           textureBatch.textures,
+@@ -83,6 +82,7 @@ class GpuGraphicsAdaptor {
+           1
+         );
+       }
++      shader.groups[1] = batch.bindGroup;
+       encoder.setBindGroup(1, batch.bindGroup, shader.gpuProgram);
+       encoder.renderPassEncoder.drawIndexed(batch.size, 1, batch.start);
+     }
+diff --git a/lib/scene/graphics/gpu/GpuGraphicsAdaptor.mjs b/lib/scene/graphics/gpu/GpuGraphicsAdaptor.mjs
+index e10754a4837a013112854e3b73d0064672d4b7ff..9e9732246093e58d288d1f053eae568347ecbdf6 100644
+--- a/lib/scene/graphics/gpu/GpuGraphicsAdaptor.mjs
++++ b/lib/scene/graphics/gpu/GpuGraphicsAdaptor.mjs
+@@ -1,6 +1,6 @@
+ import { ExtensionType } from '../../../extensions/Extensions.mjs';
+ import { Matrix } from '../../../maths/matrix/Matrix.mjs';
+-import { getTextureBatchBindGroup } from '../../../rendering/batcher/gpu/getTextureBatchBindGroup.mjs';
++import { getTextureBatchBindGroup, isTextureBatchBindGroupAlive } from '../../../rendering/batcher/gpu/getTextureBatchBindGroup.mjs';
+ import { compileHighShaderGpuProgram } from '../../../rendering/high-shader/compileHighShaderToProgram.mjs';
+ import { colorBit } from '../../../rendering/high-shader/shader-bits/colorBit.mjs';
+ import { generateTextureBatchBit } from '../../../rendering/high-shader/shader-bits/generateTextureBatchBit.mjs';
+@@ -67,8 +67,7 @@ class GpuGraphicsAdaptor {
+           shader._overrides
+         );
+       }
+-      shader.groups[1] = batch.bindGroup;
+-      if (!batch.gpuBindGroup) {
++      if (!batch.gpuBindGroup || !batch.bindGroup || !isTextureBatchBindGroupAlive(batch.bindGroup)) {
+         const textureBatch = batch.textures;
+         batch.bindGroup = getTextureBatchBindGroup(
+           textureBatch.textures,
+@@ -81,6 +80,7 @@ class GpuGraphicsAdaptor {
+           1
+         );
+       }
++      shader.groups[1] = batch.bindGroup;
+       encoder.setBindGroup(1, batch.bindGroup, shader.gpuProgram);
+       encoder.renderPassEncoder.drawIndexed(batch.size, 1, batch.start);
+     }
