@@ -10,6 +10,11 @@ type State = {
     tasks: IDailyTaskInfo[];
     shown: boolean;
     unclaimedShown: boolean;
+    /**
+     * `DailyTaskView.§_-a1p§`: tasks completed while their progress bar showed, still drawn active
+     * while the bar fills to the end (`updateStatusAndRepeatsUI` then `update`).
+     */
+    completingTaskIds: number[];
 };
 
 type Actions = {
@@ -21,6 +26,7 @@ type Actions = {
     updateTask: (taskId: number, repeats: number, status: number) => void;
     setShown: (shown: boolean) => void;
     setUnclaimedShown: (unclaimedShown: boolean) => void;
+    setTaskCompleting: (taskId: number, completing: boolean) => void;
 };
 
 export type DailyTasksStore = State & Actions;
@@ -29,10 +35,13 @@ export const createDailyTasksStore = () => createStore<DailyTasksStore>()(set =>
     tasks: [],
     shown: false,
     unclaimedShown: false,
+    completingTaskIds: [],
     setTasks: tasks => set({ tasks: [ ...tasks.filter(task => !task.isBonus), ...tasks.filter(task => task.isBonus) ].filter((task, index, all) => all.findIndex(other => other.taskId === task.taskId) === index) }),
     addTasks: tasks => set(x => ({ tasks: [ ...x.tasks, ...tasks.filter((task, index) => !x.tasks.some(held => held.taskId === task.taskId) && (tasks.findIndex(other => other.taskId === task.taskId) === index)) ] })),
     updateTask: (taskId, repeats, status) => set(x => ({ tasks: x.tasks.map(task => ((task.taskId === taskId) ? { ...task, repeats, status } : task)) })),
-    setShown: shown => set({ shown }),
+    // A hidden window has no bars to wait for.
+    setShown: shown => set(shown ? { shown } : { shown, completingTaskIds: [] }),
+    setTaskCompleting: (taskId, completing) => set(x => ({ completingTaskIds: completing ? [ ...x.completingTaskIds.filter(id => id !== taskId), taskId ] : x.completingTaskIds.filter(id => id !== taskId) })),
     setUnclaimedShown: unclaimedShown => set({ unclaimedShown }),
 }));
 

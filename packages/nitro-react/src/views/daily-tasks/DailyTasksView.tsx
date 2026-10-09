@@ -18,14 +18,15 @@
  * - A reward: the `product_icon` of its product (`RewardDisplayWrapper`) and "x<amount>" from 2 up;
  *   without the amount the icon is centred in its box.
  *
- * Not ported: the progress bar filling to the end before a task turns complete (`§_-a1p§`).
+ * A task completed while its bar shows stays drawn active while the bar fills to the end, then
+ * turns complete (`§_-a1p§`).
  */
 import type { IDailyTaskInfo, IDailyTaskReward } from '@nitrodevco/nitro-packets';
 import { DAILY_TASK_STATUS_ACTIVE, DAILY_TASK_STATUS_CLAIMED } from '@nitrodevco/nitro-packets';
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 import { useEffect, useState } from 'react';
 
-import { claimDailyTask, getDailyTaskSecondsLeft, hideDailyTasks, isDailyTaskExpired, openClubCatalogPage, requestDailyTasks, showUnclaimedDailyTasks } from '#base/commands';
+import { claimDailyTask, finishDailyTaskCompletion, getDailyTaskSecondsLeft, hideDailyTasks, isDailyTaskExpired, openClubCatalogPage, requestDailyTasks, showUnclaimedDailyTasks } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useDailyTasksStore } from '#base/context/daily-tasks';
 import { useConfigData, useInterpolate, useTranslation } from '#base/context/system';
@@ -104,6 +105,7 @@ export const DailyTasksView = () => {
     const shown = useDailyTasksStore(x => x.shown);
     const unclaimedShown = useDailyTasksStore(x => x.unclaimedShown);
     const tasks = useDailyTasksStore(x => x.tasks);
+    const completingTaskIds = useDailyTasksStore(x => x.completingTaskIds);
     const hasClub = useOwnHasClub();
     const t = useTranslation();
     const interpolate = useInterpolate();
@@ -156,7 +158,9 @@ export const DailyTasksView = () => {
 
     /** `DailyTaskView`: one task's clone of `task_template`. */
     const taskItem = (task: IDailyTaskInfo): TemplateItem => {
-        const active = task.status === DAILY_TASK_STATUS_ACTIVE;
+        // Completed while its bar showed: drawn active, the bar filling to the end, until it has (`§_-a1p§`).
+        const completing = completingTaskIds.includes(task.taskId);
+        const active = completing || (task.status === DAILY_TASK_STATUS_ACTIVE);
         const [ ground, title, reward ] = task.isBonus ? BONUS_COLORS : (active ? ACTIVE_COLORS : COMPLETED_COLORS);
         const claimed = task.status === DAILY_TASK_STATUS_CLAIMED;
 
@@ -183,11 +187,12 @@ export const DailyTasksView = () => {
                             x={0}
                             y={0}
                             width={PROGRESS_BAR_WIDTH}
-                            current={task.repeats}
+                            current={completing ? task.requiredRepeats : task.repeats}
                             max={task.requiredRepeats}
                             levelKey={task.taskId}
                             scoreAtStartOfLevel={0}
                             caption={progress => t('quests.tracker.progress', '', { progress: String(Math.floor((progress / Math.max(1, task.requiredRepeats)) * 100)) })}
+                            onSettled={completing ? () => finishDailyTaskCompletion(task.taskId) : undefined}
                         />
                     ),
                 },

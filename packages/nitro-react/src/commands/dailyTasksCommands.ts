@@ -67,6 +67,9 @@ export const openDailyTasksLink = (parts: string[]) => {
     if (parts[1] === 'open') tasks().setShown(true);
 };
 
+/** `DailyTaskView.update`: the bar has filled, the task is drawn complete. */
+export const finishDailyTaskCompletion = (taskId: number) => tasks().setTaskCompleting(taskId, false);
+
 /** `hideView`. */
 export const hideDailyTasks = () => tasks().setShown(false);
 
@@ -93,6 +96,9 @@ export const onDailyTaskUpdated = (send: Send, taskId: number, repeats: number, 
 
         return;
     }
+
+    // `updateStatusAndRepeatsUI`: a task completed while its bar shows fills the bar first.
+    if ((task.status === DAILY_TASK_STATUS_ACTIVE) && (status === DAILY_TASK_STATUS_COMPLETED) && tasks().shown) tasks().setTaskCompleting(taskId, true);
 
     tasks().updateTask(taskId, repeats, status);
 
