@@ -13,6 +13,7 @@ import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registe
 import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomQueueHandlers } from './navigator';
 import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
+import { registerQuestHandlers } from './quests';
 import { registerRewardTrackHandlers } from './reward-track';
 import {
     registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
@@ -148,6 +149,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerAchievementHandlers(socket),
         // `RewardTrackController`, a component of the quest engine: the tracks the server sends unasked.
         registerRewardTrackHandlers(socket),
+        registerQuestHandlers(socket),
         registerInventoryPetsHandlers(socket),
         registerInventoryBotsHandlers(socket),
         registerInventoryUnseenHandlers(socket),

@@ -15,6 +15,8 @@ import type { RoomSettingsViewWindowParams } from '#base/views/room-widgets/room
  */
 export type WindowRegistry = {
     achievements: NoWindowParams;
+    /** The quest list (`QuestsList`), from the progression menu or a `questengine/quests` link. */
+    quests: NoWindowParams;
     avatar_editor: AvatarEditorViewWindowParams;
     catalog: CatalogViewWindowParams;
     /** The Builders Club catalogue (`toggleCatalog("BUILDERS_CLUB")`) - see `getCatalogWindowName`. */

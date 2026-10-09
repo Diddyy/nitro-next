@@ -18,6 +18,7 @@ import { HelpComponent } from './components/help';
 import { HotelViewComponent } from './components/hotel-view';
 import { MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
+import { QuestsComponent } from './components/quests';
 import { RoomEffectsWidget } from './components/room/widgets/effects/RoomEffectsWidget';
 import { RoomSettingsWidget } from './components/room/widgets/room-settings';
 import { SpecialItemsComponent } from './components/special-items';
@@ -129,6 +130,7 @@ export const MainView = () => {
                 <WiredRewardNotificationsComponent />
                 <EarningsComponent />
                 <AchievementsComponent />
+                <QuestsComponent />
                 <SpecialItemsComponent />
                 <HelpComponent />
                 <GroupInfoComponent />

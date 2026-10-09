@@ -36,7 +36,7 @@ import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Ticker } from 'pixi.js';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
-import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, toggleCatalog } from '#base/commands';
+import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, showQuests, toggleCatalog } from '#base/commands';
 import { unseenSkipped, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
 import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
@@ -454,7 +454,8 @@ export const ToolbarView = () => {
                     templateId="habbo-toolbar-com/prog_menu_view_xml"
                     items={[
                         { name: 'dailytasks', visible: dailyTasksEnabled, action: () => openClientLink(send, 'dailytasks/open'), unseenCount: unseenDailyTasks },
-                        { name: 'quests', visible: !hideQuests },
+                        // `onSubMenuItemClick('quests')`: `questEngine.showQuests()`.
+                        { name: 'quests', visible: !hideQuests, action: () => showQuests(send) },
                         { name: 'achievements', visible: true, action: () => openClientLink(send, 'questengine/achievements'), unseenCount: unseenAchievements },
                         // `onSubMenuItemClick('leaderboards')`: the badge leaderboard's link (`groups/_-ge.getLink(0, -1, 0)`).
                         { name: 'leaderboards', visible: true, action: () => openClientLink(send, 'badge_leaderboard/0/-1/0') },

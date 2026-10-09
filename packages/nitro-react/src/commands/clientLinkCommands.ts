@@ -14,6 +14,7 @@ import { openGroupForumLink } from './groupForumCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
 import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './navigatorCommands';
+import { toggleQuests } from './questCommands';
 import { openRaidProtectionFromLink } from './raidProtectionCommands';
 import { openRewardTrackLink } from './rewardTrackCommands';
 import { openSpecialItemsDisplay } from './specialItemsCommands';
@@ -167,6 +168,8 @@ export const openClientLink = (send: Send, link: string) => {
         // `HabboInventory.linkReceived`: `open` alone means the furni tab.
         case 'questengine': {
             if (parts[1] === 'achievements') openAchievements(send, parts[2]);
+            // `questController.onToolbarClick()`.
+            else if (parts[1] === 'quests') toggleQuests(send);
 
             return;
         }
