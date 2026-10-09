@@ -161,11 +161,11 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         bridgeRecyclerRoomSession(),
         // The habbicon controller (`HabbiconController`, a component `HabboCatalog` attaches for the session).
         registerHabbiconHandlers(socket),
+        registerHelpHandlers(socket),
         // The collectibles hub (`CollectiblesController`, attached for the session), after the inventory and wallet it reads.
         registerCollectiblesHandlers(socket),
         bridgeCollectiblesInventoryAndPurse(socket),
     ];
-        registerHelpHandlers(socket),
 
     return () => {
         for (const unsubscribe of unsubscribes) unsubscribe();
