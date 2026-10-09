@@ -95,10 +95,10 @@ export const MainView = () => {
                         <SafetyLockedNotificationView />
                         <ClubGiftNotificationView />
                     </Box>
-                    {/* `RoomEventInfoCtrl` docks the room's event card here, above the group banner. */}
-                    <NavigatorRoomEventInfoComponent />
-                    {/* `GroupRoomInfoCtrl` docks the banner in this column, under the quest tracker and event card. */}
+                    {/* `GroupRoomInfoCtrl` docks the banner in this column, before the quest tracker and the event card. */}
                     <GroupRoomInfoComponent />
+                    {/* `RoomEventInfoCtrl` docks the room's event card here, under the group banner. */}
+                    <NavigatorRoomEventInfoComponent />
                     <NotificationsExtensionAnchor />
                 </Box>
                 <AvatarEditorComponent />
