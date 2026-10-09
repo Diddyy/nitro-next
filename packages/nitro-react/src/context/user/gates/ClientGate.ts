@@ -48,6 +48,8 @@ export const ClientGates = {
     GuildAnyGroup: { node: 'catalog.guild.any_group', level: SecurityLevelEnum.Employee },
     /** `IncomingMessages.onUserRights` `roomPicker` - mark staff picks (security 7). */
     StaffPick: { node: 'navigator.staff_pick', level: SecurityLevelEnum.Community },
+    /** `IncomingMessages.onUserRights` `eventMod` - edit any room's event from its event card (security 5). No server node. */
+    RoomEventModerator: { node: null, level: SecurityLevelEnum.Moderator },
     /** `RoomCreateViewCtrl` / `EnforceCategoryCtrl` - staff-only flat categories (security 7). */
     StaffCategories: { node: 'navigator.category.staff', level: SecurityLevelEnum.Community },
     /** `WiredMenuController` - the wired menu, as the room's owner (security 4). */

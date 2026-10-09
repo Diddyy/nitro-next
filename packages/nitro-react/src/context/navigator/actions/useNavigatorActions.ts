@@ -35,6 +35,10 @@ const actions = {
     recordRoomVisit: state.recordRoomVisit,
     renameRoomVisit: state.renameRoomVisit,
     stepRoomVisitHistory: state.stepRoomVisitHistory,
+    setWindowGeometry: state.setWindowGeometry,
+    setRoomEventInfoExpanded: state.setRoomEventInfoExpanded,
+    setRoomEventSettingsVisible: state.setRoomEventSettingsVisible,
+    setEnforceCategorySelectionType: state.setEnforceCategorySelectionType,
 };
 
 export const useNavigatorActions = () => actions;

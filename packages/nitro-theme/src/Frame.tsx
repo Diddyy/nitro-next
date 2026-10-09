@@ -44,6 +44,12 @@ export interface FrameProps extends Omit<ThemeProps<FrameVariant>, 'dropShadow'>
      */
     rememberPosition?: boolean;
     /**
+     * Whether this window reopens at the size its scaler was last left at. On by default; pass
+     * `false` for a window whose size is kept elsewhere - the navigator's comes from the server's
+     * preferences, and a stored one would win over them.
+     */
+    rememberSize?: boolean;
+    /**
      * Whether the header drags the window. Flash drags a window only when its params carry
      * `mouse_dragging_target` (`WINDOW_PARAM_MOUSE_DRAGGING_TARGET`, 32768) and the
      * frame skin's header is the `mouse_dragging_trigger` - a layout frame without that flag
@@ -138,7 +144,7 @@ const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefi
 
 export const Frame = ({
     variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, dropShadow, id, caption, resizeDirection = 'all', contentLayout, margins,
-    defaultPosition, rememberPosition = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, children,
+    defaultPosition, rememberPosition = true, rememberSize = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
     const { frameRef, attachFrame, offset, zIndex, revealed, onPointerDown, onHeaderPointerDown } = useFrameDrag(id, { defaultPosition, remember: rememberPosition, centered, onPositionChange });
@@ -163,7 +169,7 @@ export const Frame = ({
     const maxWidth = layout?.maxWidth ?? config.layout?.maxWidth;
     const maxHeight = layout?.maxHeight ?? config.layout?.maxHeight;
     const { size, onScalerPointerDown } = useFrameResize(
-        id,
+        rememberSize ? id : undefined,
         frameRef,
         resizeDirection,
         { width: minWidth as number, height: minHeight as number },

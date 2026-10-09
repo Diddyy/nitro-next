@@ -1,4 +1,4 @@
-import { IEventCategory, IFlatCategory, IRoomInfo, ISavedSearch, ISearchResultList, ISearchResultSet, ITopLevelContext } from '@nitrodevco/nitro-packets';
+import { IEventCategory, IFlatCategory, IRoomEventData, IRoomInfo, ISavedSearch, ISearchResultList, ISearchResultSet, ITopLevelContext } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 /**
@@ -66,6 +66,52 @@ export interface EnteredRoom {
 /** `RoomVisitHistory.MAX_HISTORY_LENGTH` - the oldest entries fall off the front past this. */
 const MAX_ROOM_VISIT_HISTORY = 20;
 
+/** A search as `SearchContextHistoryManager` keeps it - Flash's `SearchContext`. */
+export interface NavigatorSearchContext {
+    searchCode: string;
+    filteringData: string;
+}
+
+/** `NavigatorCache.EXPIRATION_TIME`: a search's results answer the same search again for this long. */
+const SEARCH_CACHE_EXPIRATION_MS = 4000;
+
+/** `NavigatorCache`'s key: `<searchCode>/<filteringData>`. */
+const searchCacheKey = (searchCode: string, filteringData: string) => `${searchCode}/${filteringData}`;
+
+/** A `NavigatorCacheEntry`: the results and when they stop answering. */
+interface NavigatorSearchCacheEntry {
+    result: ISearchResultSet;
+    expiresAt: number;
+}
+
+/** The window's place and size, as `NavigatorView` reads them off `_window`. */
+export interface NavigatorWindowGeometry {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+/**
+ * `NavigatorView`'s `_lastWindowX` ... `_lastLeftPaneHidden` and the time they were last sent
+ * (`sendWindowPreferences`). Flash names the flag `_lastLeftPaneHidden` but fills it with
+ * `left_pane.visible`, and that is what goes to the server.
+ */
+export interface NavigatorSentWindowPreferences extends NavigatorWindowGeometry {
+    leftPaneVisible: boolean;
+    sentAt: number;
+}
+
+/**
+ * The answer `RoomEventViewCtrl.onRoomAdError` takes: the field it names gets the filtered text
+ * and the error. `serial` tells one answer from the next.
+ */
+export interface NavigatorRoomAdError {
+    errorCode: number;
+    filteredText: string;
+    serial: number;
+}
+
 /** filter_type_drop_menu options from navigator_frame_2 */
 export type NavigatorFilterType = 'anything' | 'room.name' | 'owner' | 'tag' | 'group';
 
@@ -127,6 +173,37 @@ type State = {
     roomEntryDialog: NavigatorRoomEntryDialog | undefined;
     alert: NavigatorAlert | undefined;
     roomQueue: NavigatorRoomQueue | undefined;
+    /** `SearchContextHistoryManager`: every search answered, and where the back button stands in them. */
+    searchHistory: NavigatorSearchContext[];
+    searchHistoryIndex: number;
+    /** `_noPushToHistoryDueToNavigation`: the next answer comes from walking the history, so it is not added to it. */
+    skipNextSearchHistoryPush: boolean;
+    /** `_lastSearchCode` / `_lastSearchFilter`: the last search sent to the server, which the refresh button repeats. */
+    lastSearch: NavigatorSearchContext | undefined;
+    /** `NavigatorCache`, by `<searchCode>/<filteringData>`. */
+    searchCache: Record<string, NavigatorSearchCacheEntry>;
+    /** Where the window is now - written by the window while it is up, read by the preference sync. */
+    windowGeometry: NavigatorWindowGeometry | undefined;
+    /** What was last sent; `undefined` until the window has been created (`createMainWindow`). */
+    sentWindowPreferences: NavigatorSentWindowPreferences | undefined;
+    /** `NavigatorData.roomEventData`: the event running in the room the user is in, if any. */
+    roomEventData: IRoomEventData | undefined;
+    /**
+     * `RoomEventInfoCtrl.canExtend`. Flash works it out on each `refresh`; here when the event
+     * arrives, which is the refresh it changes on - the time passing between refreshes moves it by
+     * minutes at most.
+     */
+    roomEventExtendable: boolean;
+    /** `RoomEventInfoCtrl._expanded`. */
+    roomEventInfoExpanded: boolean;
+    /** `NavigatorData.currentRoomId` / `currentRoomOwner`: `RoomEntryInfoMessage`'s room and owner flag. */
+    currentRoomId: number;
+    currentRoomOwner: boolean;
+    /** `RoomEventViewCtrl`'s window is up. */
+    roomEventSettingsVisible: boolean;
+    roomAdError: NavigatorRoomAdError | undefined;
+    /** `EnforceCategoryCtrl.show(selectionType)`: the dialog is up. */
+    enforceCategorySelectionType: number | undefined;
 };
 
 type Actions = {
@@ -162,6 +239,26 @@ type Actions = {
     setRoomEntryDialogMode: (mode: NavigatorRoomEntryDialogMode) => void;
     setAlert: (alert: NavigatorAlert | undefined) => void;
     setRoomQueue: (roomQueue: NavigatorRoomQueue | undefined) => void;
+    /**
+     * `HabboNewNavigator.onSearchResult`: the results are added to the history (unless walking it),
+     * cached, and shown.
+     */
+    receiveSearchResult: (searchResult: ISearchResultSet) => void;
+    /** `NavigatorCache.getEntry`: an unexpired entry, dropping it once it has expired. */
+    getCachedSearchResult: (searchCode: string, filteringData: string) => ISearchResultSet | undefined;
+    removeCachedSearchResult: (searchCode: string, filteringData: string) => void;
+    setLastSearch: (lastSearch: NavigatorSearchContext) => void;
+    /** `goBack`: steps back and hands back the search to make, or nothing when there is none before it. */
+    stepBackSearchHistory: () => NavigatorSearchContext | undefined;
+    setWindowGeometry: (geometry: Partial<NavigatorWindowGeometry>) => void;
+    setSentWindowPreferences: (preferences: NavigatorSentWindowPreferences) => void;
+    /** The event and whether it may be extended (`RoomEventInfoCtrl.canExtend`, worked out as it arrives). */
+    setRoomEventData: (roomEventData: IRoomEventData | undefined, roomEventExtendable?: boolean) => void;
+    setRoomEventInfoExpanded: (expanded: boolean) => void;
+    setCurrentRoom: (roomId: number, owner: boolean) => void;
+    setRoomEventSettingsVisible: (visible: boolean) => void;
+    setRoomAdError: (errorCode: number, filteredText: string) => void;
+    setEnforceCategorySelectionType: (selectionType: number | undefined) => void;
     resetNavigator: () => void;
 };
 
@@ -178,7 +275,8 @@ const initialState: State = {
     viewModes: {},
     searchFilter: '',
     filterType: 'anything',
-    leftPaneHidden: false,
+    // `createMainWindow` hides the left pane; the preferences show it again.
+    leftPaneHidden: true,
     isSearching: false,
     enteredRoom: undefined,
     roomVisitHistory: [],
@@ -190,6 +288,21 @@ const initialState: State = {
     roomEntryDialog: undefined,
     alert: undefined,
     roomQueue: undefined,
+    searchHistory: [],
+    searchHistoryIndex: -1,
+    skipNextSearchHistoryPush: false,
+    lastSearch: undefined,
+    searchCache: {},
+    windowGeometry: undefined,
+    sentWindowPreferences: undefined,
+    roomEventData: undefined,
+    roomEventExtendable: false,
+    roomEventInfoExpanded: true,
+    currentRoomId: 0,
+    currentRoomOwner: false,
+    roomEventSettingsVisible: false,
+    roomAdError: undefined,
+    enforceCategorySelectionType: undefined,
 };
 
 export type NavigatorStore = State & Actions;
@@ -299,6 +412,74 @@ export const createNavigatorStore = () => createStore<NavigatorStore>()((set, ge
     setRoomEntryDialogMode: mode => set(x => (x.roomEntryDialog ? { roomEntryDialog: { ...x.roomEntryDialog, mode } } : {})),
     setAlert: alert => set({ alert }),
     setRoomQueue: roomQueue => set({ roomQueue }),
+    receiveSearchResult: (searchResult) => {
+        const now = Date.now();
+
+        set((x) => {
+            // `addSearchContextAtCurrentOffset`: anything ahead of the current entry goes.
+            const history = x.skipNextSearchHistoryPush
+                ? x.searchHistory
+                : [ ...x.searchHistory.slice(0, x.searchHistoryIndex + 1), { searchCode: searchResult.searchCodeOriginal, filteringData: searchResult.filteringData } ];
+            // `NavigatorCache.put` drops the expired entries first.
+            const searchCache = Object.fromEntries(Object.entries(x.searchCache).filter(([ , entry ]) => entry.expiresAt > now));
+
+            searchCache[searchCacheKey(searchResult.searchCodeOriginal, searchResult.filteringData)] = { result: searchResult, expiresAt: now + SEARCH_CACHE_EXPIRATION_MS };
+
+            return {
+                searchHistory: history,
+                searchHistoryIndex: x.skipNextSearchHistoryPush ? x.searchHistoryIndex : history.length - 1,
+                skipNextSearchHistoryPush: false,
+                searchCache,
+            };
+        });
+
+        get().setSearchResult(searchResult);
+    },
+    getCachedSearchResult: (searchCode, filteringData) => {
+        const entry = get().searchCache[searchCacheKey(searchCode, filteringData)];
+
+        if (!entry) return undefined;
+
+        if (entry.expiresAt <= Date.now()) {
+            get().removeCachedSearchResult(searchCode, filteringData);
+
+            return undefined;
+        }
+
+        return entry.result;
+    },
+    removeCachedSearchResult: (searchCode, filteringData) => set((x) => {
+        const key = searchCacheKey(searchCode, filteringData);
+
+        return { searchCache: Object.fromEntries(Object.entries(x.searchCache).filter(([ entryKey ]) => entryKey !== key)) };
+    }),
+    setLastSearch: lastSearch => set({ lastSearch }),
+    stepBackSearchHistory: () => {
+        const { searchHistory, searchHistoryIndex } = get();
+
+        // `hasPrevious`.
+        if ((searchHistoryIndex <= 0) || !searchHistory.length) return undefined;
+
+        set({ searchHistoryIndex: searchHistoryIndex - 1, skipNextSearchHistoryPush: true });
+
+        return searchHistory[searchHistoryIndex - 1];
+    },
+    setWindowGeometry: geometry => set((x) => {
+        const current = x.windowGeometry ?? { x: 0, y: 0, width: 0, height: 0 };
+        const next = { ...current, ...geometry };
+
+        // The window reports its size on every layout pass; an unchanged one writes nothing.
+        if (x.windowGeometry && (next.x === current.x) && (next.y === current.y) && (next.width === current.width) && (next.height === current.height)) return x;
+
+        return { windowGeometry: next };
+    }),
+    setSentWindowPreferences: sentWindowPreferences => set({ sentWindowPreferences }),
+    setRoomEventData: (roomEventData, roomEventExtendable = false) => set({ roomEventData, roomEventExtendable }),
+    setRoomEventInfoExpanded: roomEventInfoExpanded => set({ roomEventInfoExpanded }),
+    setCurrentRoom: (currentRoomId, currentRoomOwner) => set({ currentRoomId, currentRoomOwner }),
+    setRoomEventSettingsVisible: roomEventSettingsVisible => set({ roomEventSettingsVisible }),
+    setRoomAdError: (errorCode, filteredText) => set(x => ({ roomAdError: { errorCode, filteredText, serial: (x.roomAdError?.serial ?? 0) + 1 } })),
+    setEnforceCategorySelectionType: enforceCategorySelectionType => set({ enforceCategorySelectionType }),
     resetNavigator: () => set({ ...initialState }),
 }));
 

@@ -1,4 +1,5 @@
-import { CreateFlatComposer, CreateFlatComposerType, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer } from '@nitrodevco/nitro-packets';
+import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
+import { CreateFlatComposer, CreateFlatComposerType, EditEventComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, SetNewNavigatorWindowPreferencesComposer, UpdateRoomCategoryAndTradeSettingsComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { groupStore } from '#base/context/groups';
@@ -56,17 +57,103 @@ export const goToHomeRoom = (send: Send) => {
 };
 
 /**
- * `HabboNewNavigator.performSearch`: sends the search and opens the navigator. The window is not
- * touched until the results land - `setSearchResult` then selects the tab they answer and puts
- * their filter back in the drop menu and the field, as `NavigatorView.onSearchResults` does, so
- * a search made from anywhere reads as though it was typed there.
+ * `HabboNewNavigator.performSearch`: the same search answered in the last 4 s (`NavigatorCache`)
+ * is shown again without asking; anything else is sent, and kept as the search the refresh button
+ * repeats. Either way the navigator opens. The window is not touched until the results land -
+ * `setSearchResult` then selects the tab they answer and puts their filter back in the drop menu
+ * and the field, as `NavigatorView.onSearchResults` does, so a search made from anywhere reads as
+ * though it was typed there.
  */
 export const performNavigatorSearch = (send: Send, searchCode: string, filteringData: string = '') => {
-    navigatorStore.getState().setIsSearching(true);
+    const { setIsSearching, getCachedSearchResult, receiveSearchResult, setLastSearch } = navigatorStore.getState();
 
-    send(new NewNavigatorSearchComposer({ searchCodeOriginal: searchCode, filteringData }));
+    setIsSearching(true);
+
+    const cached = getCachedSearchResult(searchCode, filteringData);
+
+    if (cached) {
+        receiveSearchResult(cached);
+    } else {
+        setLastSearch({ searchCode, filteringData });
+        send(new NewNavigatorSearchComposer({ searchCodeOriginal: searchCode, filteringData }));
+    }
 
     systemStore.getState().showWindow('navigator');
+};
+
+/** `NavigatorView.update`: the preferences go to the server at most this often. */
+const WINDOW_PREFERENCES_INTERVAL_MS = 5000;
+
+/**
+ * `NavigatorView.update`'s first step, run every second once the window has been created: when the
+ * window has moved, changed height or shown or hidden its left pane, and the last send is more than
+ * 5 s old, `sendWindowPreferences` (`SetNewNavigatorWindowPreferencesMessageComposer`, results mode
+ * always 0). The width goes with them but is not compared.
+ *
+ * The first run takes the window as it was created (`createMainWindow`): the preferences the server
+ * sent, or the window's own place and size when there were none - with the left pane counted as
+ * hidden, which is `_lastLeftPaneHidden`'s default.
+ */
+export const syncNavigatorWindowPreferences = (send: Send) => {
+    const { windowGeometry, sentWindowPreferences, leftPaneHidden, preferences, setSentWindowPreferences } = navigatorStore.getState();
+
+    if (!windowGeometry) return;
+
+    const now = Date.now();
+    const leftPaneVisible = !leftPaneHidden;
+
+    if (!sentWindowPreferences) {
+        setSentWindowPreferences(preferences
+            ? { x: preferences.windowX, y: preferences.windowY, width: preferences.windowWidth, height: preferences.windowHeight, leftPaneVisible, sentAt: now }
+            : { ...windowGeometry, leftPaneVisible: false, sentAt: now });
+
+        return;
+    }
+
+    // `windowPreferencesChanged`.
+    const changed = (sentWindowPreferences.leftPaneVisible !== leftPaneVisible)
+        || (sentWindowPreferences.x !== windowGeometry.x)
+        || (sentWindowPreferences.y !== windowGeometry.y)
+        || (sentWindowPreferences.height !== windowGeometry.height);
+
+    if (!changed || ((now - sentWindowPreferences.sentAt) <= WINDOW_PREFERENCES_INTERVAL_MS)) return;
+
+    setSentWindowPreferences({ ...windowGeometry, leftPaneVisible, sentAt: now });
+
+    send(new SetNewNavigatorWindowPreferencesComposer({ ...windowGeometry, openSavedSearches: leftPaneVisible, resultsMode: 0 }));
+};
+
+/** `RoomEventViewCtrl.save`: the running event's new name and description. */
+export const editRoomEvent = (send: Send, adId: number, name: string, description: string) => send(new EditEventComposer({ id: adId, name, description }));
+
+/**
+ * `EnforceCategoryCtrl`'s OK: the room the user is in gets the category and trade mode picked
+ * (`UpdateRoomCategoryAndTradeSettingsComposer`), and the dialog closes.
+ */
+export const enforceRoomCategory = (send: Send, roomId: number, categoryId: number, tradeType: RoomTradeModeEnum) => {
+    send(new UpdateRoomCategoryAndTradeSettingsComposer({ roomId, categoryId, tradeType }));
+
+    navigatorStore.getState().setEnforceCategorySelectionType(undefined);
+};
+
+/** `HabboNewNavigator.performLastSearch` - the refresh button: the last search sent, past the cache. */
+export const refreshNavigatorSearch = (send: Send) => {
+    const { lastSearch, removeCachedSearchResult } = navigatorStore.getState();
+
+    if (!lastSearch) return;
+
+    removeCachedSearchResult(lastSearch.searchCode, lastSearch.filteringData);
+    performNavigatorSearch(send, lastSearch.searchCode, lastSearch.filteringData);
+};
+
+/**
+ * `HabboNewNavigator.goBack` - a block's `category_back`: the search before this one, which is not
+ * added to the history again when it answers.
+ */
+export const goBackNavigatorSearch = (send: Send) => {
+    const previous = navigatorStore.getState().stepBackSearchHistory();
+
+    if (previous) performNavigatorSearch(send, previous.searchCode, previous.filteringData);
 };
 
 /**

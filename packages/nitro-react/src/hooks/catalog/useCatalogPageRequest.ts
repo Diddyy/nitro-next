@@ -1,7 +1,9 @@
 import { CatalogPageRequestType, CatalogRequestedPageUtilities, ICatalogRequestedPage } from '@nitrodevco/nitro-api';
 import { useEffect } from 'react';
 
-import { getCatalogWindowName, useCatalogActions, useCatalogStore } from '#base/context/catalog';
+import { applyRoomAdExtension } from '#base/commands';
+import { getCatalogWindowName, useCatalogActions, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { useWebSocketContext } from '#base/context/communication';
 import { useWindowParams } from '#base/context/system';
 
 import { useWindowVisibility } from '../system';
@@ -16,6 +18,8 @@ export const useCatalogPageRequest = () => {
     const requestedPage = useCatalogStore(x => x.requestedPage);
     const { activateNode, openPageById, openPageByName, openPageByOfferId } = useCatalogNavigation();
     const { setRequestedPage } = useCatalogActions();
+    const store = useCatalogStoreApi();
+    const { send } = useWebSocketContext();
 
     const params = useWindowParams(windowName);
 
@@ -33,6 +37,9 @@ export const useCatalogPageRequest = () => {
         if (params.offerId !== undefined) {
             requestedPage = CatalogRequestedPageUtilities.getForOfferId(params.offerId);
         }
+
+        // `openRoomAdCatalogPageInExtendedMode`: the purchase data is written before the page opens.
+        if (params.roomAdExtension) applyRoomAdExtension(send, store, params.roomAdExtension);
 
         if (!requestedPage) return;
 

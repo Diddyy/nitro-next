@@ -8,5 +8,5 @@ export interface IRoomEventData {
     eventName: string;
     eventDescription: string;
     creationTime: string;
-    expirationDate: unknown;
+    expirationDate: Date;
 }

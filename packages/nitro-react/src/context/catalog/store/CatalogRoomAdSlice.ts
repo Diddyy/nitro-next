@@ -18,10 +18,9 @@
  * Neither is touched by `resetCatalog`: `HabboCatalog.reset` leaves them alone.
  *
  * The extension fields (`extended`, `extendedFlatId`, `roomName`, `expirationTime`) are filled only
- * by `HabboCatalog.openRoomAdCatalogPageInExtendedMode`, which the navigator's room event info
- * (`RoomEventInfoCtrl`'s extend button) calls. That window is not ported, so nothing opens the page
- * in extended mode yet; the widget and `purchaseProduct` read the fields exactly as Flash does,
- * so an ad extended from there will buy correctly once it is.
+ * by `HabboCatalog.openRoomAdCatalogPageInExtendedMode`, which the room event card's extend link
+ * calls (`RoomEventInfoCtrl.onExtend`): the catalogue opens with a `roomAdExtension` window param,
+ * and `applyRoomAdExtension` writes a new purchase data from it.
  */
 import type { IRoomEntryData } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
@@ -51,6 +50,19 @@ export const CATALOG_ROOM_AD_PURCHASE_DATA_DEFAULTS: CatalogRoomAdPurchaseData =
     expirationTime: undefined,
     categoryId: -1,
 };
+
+/**
+ * What `openRoomAdCatalogPageInExtendedMode(page, name, description, roomName, expirationTime,
+ * categoryId)` is handed, and the room it is in (`_roomEngine.activeRoomId`).
+ */
+export interface CatalogRoomAdExtension {
+    readonly name: string;
+    readonly description: string;
+    readonly roomName: string;
+    readonly expirationTime: Date;
+    readonly categoryId: number;
+    readonly flatId: number;
+}
 
 /** `RoomAdPurchaseInfoEventParser`: whether the user is VIP, and the rooms they may advertise. */
 export interface CatalogRoomAdPurchaseInfo {

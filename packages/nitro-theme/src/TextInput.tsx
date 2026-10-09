@@ -282,6 +282,10 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const setFocused = useCallback((next: boolean) => {
             if (focusedRef.current === next) return;
 
+            // The outside click and the field's own `blur` can both end the focus in one tick, before
+            // a render: the ref answers the second at once, so the change is reported once.
+            focusedRef.current = next;
+
             if (!isControlled) setInternalFocused(next);
 
             onFocusChangeRef.current?.(next);

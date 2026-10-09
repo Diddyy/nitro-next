@@ -99,7 +99,7 @@ export interface TemplateViewProps {
     frame?: TemplateFrameOptions;
 }
 
-export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onClose' | 'resizeDirection' | 'rememberPosition' | 'onHelp'> & {
+export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onPositionChange' | 'onClose' | 'resizeDirection' | 'rememberPosition' | 'rememberSize' | 'closeButtonVisible' | 'onHelp'> & {
     /**
      * The frame is a modal dialog's (`buildModalDialogFromXML`), drawn inside a `ModalDialog`: it stays
      * in the modal's layer, which centres it, rather than going onto the window desktop under the
@@ -1180,9 +1180,12 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 }}
                 defaultPosition={window ? window.defaultPosition : { x: 0, y: 0 }}
                 centered={window?.centered}
+                onPositionChange={window?.onPositionChange}
                 rememberPosition={!!window && (window.rememberPosition ?? true)}
+                rememberSize={window?.rememberSize ?? true}
                 draggable={!!window && (window.draggable ?? true)}
                 onClose={window?.onClose}
+                closeButtonVisible={window?.closeButtonVisible}
                 // `FrameController`'s `help_page` property: a page shows the header's help button.
                 helpPage={flashString(element.vars.help_page)}
                 onHelp={window?.onHelp}

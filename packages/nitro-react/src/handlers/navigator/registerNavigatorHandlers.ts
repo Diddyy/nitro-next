@@ -1,12 +1,12 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
-import { CantConnectMessage, CantConnectReason, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomEntryInfoMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomAdErrorEventMessage, RoomEntryInfoMessage, RoomEventCancelMessage, RoomEventMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, ShowEnforceRoomCategoryDialogMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { forwardToRoom, goToHomeRoom, goToRoom } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { GetLaunchParameter } from '#base/utils';
+import { configReader, GetLaunchParameter, isRoomEventExtendable, ROOM_AD_DURATION_MINUTES_DEFAULT, ROOM_AD_MAXIMUM_TOTAL_MINUTES_DEFAULT } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -19,7 +19,9 @@ const FORWARD_TYPE_FRIEND = 0;
 const FORWARD_TYPE_GUEST_ROOM = 2;
 
 /**
- * The navigator's packets - Flash's `IncomingMessages`/`NavigatorMessageHandler`. Registered once
+ * The navigator's packets - Flash's `IncomingMessages`/`NavigatorMessageHandler`, the legacy
+ * navigator's room event and category enforcement included (Flash installs both navigators, and
+ * only the legacy one listens for `ShowEnforceRoomCategoryDialogMessage`). Registered once
  * for the life of the connection, so every listener reads the stores through `getState()` at the
  * moment the packet arrives: a batch of packets is dispatched without React rendering in between,
  * and anything captured at render time would be a packet behind.
@@ -50,14 +52,14 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
         on(NavigatorSavedSearchesMessage, data => navigator().setSavedSearches(data.savedSearches)),
 
         /*
-         * HabboNewNavigator.onPreferences -> NavigatorView.setInitialWindowDimensions(
-         *   windowX, windowY, windowHeight, leftPaneHidden, resultsMode):
-         *     setLeftPaneVisibility(!leftPaneHidden)
-         *     window.x = windowX; window.y = windowY; window.height = windowHeight
-         * resultsMode is passed but unused there.
+         * HabboNewNavigator.onPreferences -> NavigatorView.setInitialWindowDimensions(windowX,
+         * windowY, windowHeight, leftPaneHidden, resultsMode). The preferences come at login,
+         * before the window exists, so they are kept for `createMainWindow` - which opens with the
+         * left pane hidden and shows it when the flag is set. The flag is named `leftPaneHidden`
+         * but carries what `sendWindowPreferences` sent, `left_pane.visible`. resultsMode is unused.
          */
         on(NewNavigatorPreferencesMessage, (data) => {
-            navigator().setLeftPaneHidden(data.leftPaneHidden);
+            navigator().setLeftPaneHidden(!data.leftPaneHidden);
 
             navigator().setPreferences({
                 windowX: data.windowX,
@@ -72,7 +74,7 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
 
         on(UserEventCatsMessage, data => navigator().setEventCategories(data.eventCategories)),
 
-        on(NavigatorSearchResultBlocksMessage, data => navigator().setSearchResult(data.searchResult)),
+        on(NavigatorSearchResultBlocksMessage, data => navigator().receiveSearchResult(data.searchResult)),
 
         // IncomingMessages.onRoomInfoUpdated: a room's settings changed - ask for its info again, which the GetGuestRoomResult listener below takes in.
         on(RoomInfoUpdatedMessage, data => send(new GetGuestRoomComposer({ roomId: data.roomId, enterRoom: false, roomForward: false }))),
@@ -161,6 +163,9 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
         on(RoomEntryInfoMessage, (data) => {
             navigator().setRoomEntryDialog(undefined);
             navigator().setAlert(undefined);
+            // `NavigatorData.onRoomEnter`'s room and owner flag, and `roomEventViewCtrl.close`.
+            navigator().setCurrentRoom(data.roomId, data.isOwner);
+            navigator().setRoomEventSettingsVisible(false);
 
             send(new GetGuestRoomComposer({
                 roomId: data.roomId,
@@ -195,6 +200,9 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
                     allInRoomMuted: data.allInRoomMuted,
                 });
                 navigator().recordRoomVisit(room.roomId, room.name);
+
+                // A group's room starts with the event card folded, so it does not crowd the group's banner.
+                if (room.groupId > 0) navigator().setRoomEventInfoExpanded(false);
 
                 return;
             }
@@ -308,6 +316,44 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
             navigator().setRoomEntryDialog(undefined);
 
             send(new QuitComposer({}));
+        }),
+
+        // `onRoomEventEvent`: an event whose owner is nobody is no event.
+        on(RoomEventMessage, (data) => {
+            if (data.data.ownerAvatarId <= 0) {
+                navigator().setRoomEventData(undefined);
+
+                return;
+            }
+
+            const { config } = systemStore.getState();
+            const { configBoolean } = configReader(config);
+            const extendable = isRoomEventExtendable(
+                data.data,
+                Date.now(),
+                configBoolean('roomad.limit_total_time'),
+                Number(config['room_ad.duration.minutes'] ?? ROOM_AD_DURATION_MINUTES_DEFAULT),
+                Number(config['room_ad.maximum_total_time.minutes'] ?? ROOM_AD_MAXIMUM_TOTAL_MINUTES_DEFAULT),
+            );
+
+            navigator().setRoomEventData(data.data, extendable);
+        }),
+
+        on(RoomEventCancelMessage, () => navigator().setRoomEventData(undefined)),
+
+        // `RoomEventViewCtrl.onRoomAdError`.
+        on(RoomAdErrorEventMessage, data => navigator().setRoomAdError(data.errorCode, data.filteredText)),
+
+        // The legacy navigator's `onEnforceRoomCategorySelection` -> `EnforceCategoryCtrl.show`.
+        on(ShowEnforceRoomCategoryDialogMessage, data => navigator().setEnforceCategorySelectionType(data.selectionType)),
+
+        /*
+         * `onRoomExit` -> `NavigatorData.onRoomExit`: the room's event goes, and the event card
+         * (`roomEventInfoCtrl.close`) and its settings (`roomEventViewCtrl.close`) with it.
+         */
+        on(CloseConnectionMessage, () => {
+            navigator().setRoomEventData(undefined);
+            navigator().setRoomEventSettingsVisible(false);
         }),
     ]);
 };

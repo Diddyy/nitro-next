@@ -19,18 +19,24 @@
  * - `isBusy`: `${navigator.title.is.busy}` and the `search_waiting_for_results_mask` while a search is out.
  * - A room's info button opens the room info bubble (`showRoomInfoBubbleAt`), or closes an open one;
  *   hovering a room moves an open one to it.
+ * - A block's `category_back` (`actionAllowed == 2`) is `goBack`: the search before this one
+ *   (`goBackNavigatorSearch`). The refresh button is `performLastSearch` (`refreshNavigatorSearch`).
+ * - Saving a search shows the left pane its quick link goes into (`addSavedSearch`).
+ * - The window opens where it was last (`_lastWindowX` / `_lastWindowY` / `_lastWindowHeight`), or
+ *   where the server's preferences put it, and reports its place and size for
+ *   `useNavigatorWindowPreferencesSync` to send. Its place and size are the server's, so the frame
+ *   keeps neither of its own.
  *
- * Not ported: the window-preference sync (`sendWindowPreferences`), `keepWindowInsideScreenRegion`,
- * `category_back` (`goBack` walks the search history, which the port does not keep) and the hotel
- * view's collapse defaults written back into the collapsed list (they are applied as the results draw).
+ * Not ported: `keepWindowInsideScreenRegion`, and the hotel view's collapse defaults written back
+ * into the collapsed list (they are applied as the results draw).
  */
-import { ForwardToARandomPromotedRoomComposer, GetGuestRoomComposer, IRoomInfo, ISearchResultList, NavigatorAddCollapsedCategoryComposer, NavigatorAddSavedSearchComposer, NavigatorDeleteSavedSearchComposer, NavigatorRemoveCollapsedCategoryComposer, NavigatorSetSearchCodeViewModeComposer, NewNavigatorSearchComposer } from '@nitrodevco/nitro-packets';
+import { ForwardToARandomPromotedRoomComposer, GetGuestRoomComposer, IRoomInfo, ISearchResultList, NavigatorAddCollapsedCategoryComposer, NavigatorAddSavedSearchComposer, NavigatorDeleteSavedSearchComposer, NavigatorRemoveCollapsedCategoryComposer, NavigatorSetSearchCodeViewModeComposer } from '@nitrodevco/nitro-packets';
 import { FederatedPointerEvent } from 'pixi.js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { openClientLink, requestRoomGroupDetails } from '#base/commands';
+import { goBackNavigatorSearch, openClientLink, performNavigatorSearch, refreshNavigatorSearch, requestRoomGroupDetails } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { NAVIGATOR_FILTER_TYPES, splitNavigatorFilter, useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
+import { NAVIGATOR_FILTER_TYPES, splitNavigatorFilter, useNavigatorActions, useNavigatorOpeningGeometry, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useSystemActions, useTranslation } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
@@ -129,7 +135,7 @@ export const NavigatorView = () => {
     const collapsedCategories = useNavigatorStore(x => x.collapsedCategories);
     const viewModes = useNavigatorStore(x => x.viewModes);
     const preferences = useNavigatorStore(x => x.preferences);
-    const { setTopLevelContext, setIsSearching, setLeftPaneHidden, toggleCollapsedCategory, setViewMode, setSearchFilter, setFilterType } = useNavigatorActions();
+    const { setTopLevelContext, setLeftPaneHidden, toggleCollapsedCategory, setViewMode, setSearchFilter, setFilterType, setWindowGeometry } = useNavigatorActions();
     const canToggleView = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
@@ -146,8 +152,24 @@ export const NavigatorView = () => {
     // once results come without a filter (`setTextAndSearchModeFromFilter`).
     const [ placeholderShown, setPlaceholderShown ] = useState(true);
     const [ placeholderResults, setPlaceholderResults ] = useState(searchResult);
+    // `createMainWindow`: where the window was last, else where the preferences put it.
+    const openingGeometry = useNavigatorOpeningGeometry();
+    const openingHeight = openingGeometry?.height || preferences?.windowHeight;
     // The frame's own close and position, made once (`createMainWindow`).
-    const [ frame ] = useState(() => ({ id: 'navigator', defaultPosition: { x: preferences?.windowX ?? 20, y: preferences?.windowY ?? 20 }, resizeDirection: 'y' as const, onClose: hide }));
+    const [ frame ] = useState(() => ({
+        id: 'navigator',
+        defaultPosition: { x: openingGeometry?.x ?? preferences?.windowX ?? 20, y: openingGeometry?.y ?? preferences?.windowY ?? 20 },
+        rememberPosition: false,
+        rememberSize: false,
+        onPositionChange: (position: { x: number; y: number }) => setWindowGeometry(position),
+        resizeDirection: 'y' as const,
+        onClose: hide,
+    }));
+
+    // The window's place until it is first dragged; its size comes from `arrange`.
+    useEffect(() => {
+        setWindowGeometry(frame.defaultPosition);
+    }, [ frame, setWindowGeometry ]);
 
     // `onSearchResults` ends with `_roomInfoPopup.show(false)`, and puts the results' filter in the field.
     if (roomInfoBubbleResults !== searchResult) {
@@ -160,10 +182,7 @@ export const NavigatorView = () => {
         setPlaceholderShown(splitNavigatorFilter(searchResult?.filteringData ?? '').searchFilter === '');
     }
 
-    const search = (searchCode: string, filteringData: string) => {
-        setIsSearching(true);
-        send(new NewNavigatorSearchComposer({ searchCodeOriginal: searchCode, filteringData }));
-    };
+    const search = (searchCode: string, filteringData: string) => performNavigatorSearch(send, searchCode, filteringData);
 
     /** `NavigatorView.showRoomInfoBubbleAt`: a click on an open bubble closes it, a hover only moves one that is up. */
     const showRoomInfo: NavigatorShowRoomInfo = (room, x, y, hover) => {
@@ -263,7 +282,12 @@ export const NavigatorView = () => {
         toggleCollapsedCategory(searchCode);
     };
 
-    const addQuickLink = (searchCode: string) => send(new NavigatorAddSavedSearchComposer({ searchCode, filter: searchResult?.filteringData ?? '' }));
+    /** `HabboNewNavigator.addSavedSearch`: sent while there are results, and the left pane shown either way. */
+    const addQuickLink = (searchCode: string) => {
+        if (searchResult) send(new NavigatorAddSavedSearchComposer({ searchCode, filter: searchResult.filteringData }));
+
+        setLeftPaneHidden(false);
+    };
 
     const showMore = (searchCode: string) => search(searchCode, searchResult?.filteringData ?? '');
 
@@ -331,7 +355,7 @@ export const NavigatorView = () => {
             },
             bindings: {
                 category_name: { caption: title },
-                category_back: { visible: block.actionAllowed === 2 },
+                category_back: { visible: block.actionAllowed === 2, onPointerTap: () => goBackNavigatorSearch(send) },
                 category_collapse: { visible: block.actionAllowed !== 2, onPointerTap: () => collapse(block.searchCode) },
                 category_name_region: { onPointerTap: () => collapse(block.searchCode) },
                 category_show_more: { visible: block.actionAllowed === 1, onPointerTap: () => showMore(block.searchCode) },
@@ -451,7 +475,7 @@ export const NavigatorView = () => {
         },
         'search.clear.icon': { asset: (showRefresh && searchFilter !== '') ? 'habbo-window-manager-com-icons_close' : 'habbo-window-manager-com-common_small_pen' },
         refreshButtonContainer: { visible: showRefresh },
-        refreshButton: { onPointerTap: () => searchResult && search(searchResult.searchCodeOriginal, searchResult.filteringData) },
+        refreshButton: { onPointerTap: () => refreshNavigatorSearch(send) },
 
         block_results: {
             // `createMainWindow`: `block_results.autoHideScrollBar = false`.
@@ -462,27 +486,33 @@ export const NavigatorView = () => {
         },
     };
 
-    /** `setLeftPaneVisibility(false)`: the window loses the left pane and the right pane moves in. */
+    /**
+     * `setLeftPaneVisibility(false)`: the window loses the left pane and the right pane moves in.
+     * Then the window's size, which the preference sync reads (`_window.width` / `_window.height`).
+     */
     const arrange = ({ find, root }: TemplateWindows) => {
-        if (!leftPaneHidden) return;
-
         const window = root();
+
+        if (!window) return;
+
         const leftPane = find('left_pane');
         const rightPane = find('right_pane');
-        const tabs = find('top_view_select_tab_context');
 
-        if (!window || !leftPane || !rightPane) return;
+        if (leftPaneHidden && leftPane && rightPane) {
+            const tabs = find('top_view_select_tab_context');
+            const shift = rightPane.x - leftPane.x + PANE_GAP;
+            const width = window.width - shift + RIGHT_PANE_X_HIDDEN;
 
-        const shift = rightPane.x - leftPane.x + PANE_GAP;
-        const width = window.width - shift + RIGHT_PANE_X_HIDDEN;
+            rightPane.setParamFlag(H_STRETCH, false);
+            rightPane.setX(RIGHT_PANE_X_HIDDEN);
+            window.minWidth = width;
+            window.maxWidth = width;
+            window.setWidth(width);
+            rightPane.setParamFlag(H_STRETCH, true);
+            tabs?.setX(Math.trunc(STARTING_TAB_POSITION - (shift / 2)));
+        }
 
-        rightPane.setParamFlag(H_STRETCH, false);
-        rightPane.setX(RIGHT_PANE_X_HIDDEN);
-        window.minWidth = width;
-        window.maxWidth = width;
-        window.setWidth(width);
-        rightPane.setParamFlag(H_STRETCH, true);
-        tabs?.setX(Math.trunc(STARTING_TAB_POSITION - (shift / 2)));
+        setWindowGeometry({ width: window.width, height: window.height });
     };
 
     return (
@@ -490,7 +520,7 @@ export const NavigatorView = () => {
             <TemplateWindow
                 id={TEMPLATE}
                 frame={frame}
-                height={preferences?.windowHeight}
+                height={openingHeight}
                 bindings={bindings}
                 arrange={arrange}
             />

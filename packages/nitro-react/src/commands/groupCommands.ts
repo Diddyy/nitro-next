@@ -20,7 +20,7 @@ import {
     AddAdminRightsToMemberComposer, ApproveMembershipRequestComposer, CreateGuildComposer, DeactivateGuildComposer,
     EventLogComposer, GetGuildCreationInfoComposer, GetGuildEditInfoComposer, GetGuildEditorDataComposer, GetGuildMembersComposer, GetHabboGroupDetailsComposer,
     GetMemberGuildItemCountComposer, GUILD_MEMBER_SEARCH_MEMBERS, IMemberData, isGuildMemberAdmin, isGuildMemberBlocked, isGuildMemberMember, isGuildMemberOwner,
-    JoinHabboGroupComposer, KickMemberComposer, NewNavigatorSearchComposer, RejectMembershipRequestComposer, RemoveAdminRightsFromMemberComposer,
+    JoinHabboGroupComposer, KickMemberComposer, RejectMembershipRequestComposer, RemoveAdminRightsFromMemberComposer,
     UnblockGroupMemberComposer, UpdateGuildBadgeComposer, UpdateGuildColorsComposer, UpdateGuildIdentityComposer, UpdateGuildSettingsComposer,
 } from '@nitrodevco/nitro-packets';
 
@@ -36,7 +36,7 @@ import { ClientGates, hasClientGate, userStore } from '#base/context/user';
 
 import { openClubCenter } from './catalogClubCommands';
 import { openClientLink } from './clientLinkCommands';
-import { goToRoom } from './navigatorCommands';
+import { goToRoom, performNavigatorSearch } from './navigatorCommands';
 import { openProfile } from './roomUserCommands';
 
 type Send = WebSocketConnection['send'];
@@ -88,15 +88,12 @@ export const goToGroupBaseRoom = (send: Send, groupId: number, roomId: number) =
  * turns into the new navigator's `performSearch("groups")`.
  */
 export const showGroupBases = (send: Send) => {
-    const { setFilterType, setSearchFilter, setIsSearching } = navigatorStore.getState();
+    const { setFilterType, setSearchFilter } = navigatorStore.getState();
 
     setFilterType('group');
     setSearchFilter('');
-    setIsSearching(true);
 
-    send(new NewNavigatorSearchComposer({ searchCodeOriginal: 'groups', filteringData: '' }));
-
-    systemStore.getState().showWindow('navigator');
+    performNavigatorSearch(send, 'groups');
 };
 
 /** `GroupDetailsCtrl.onBuyFurni` -> `openCatalog(CATALOG_PAGE_GROUP_FURNITURE)`. */

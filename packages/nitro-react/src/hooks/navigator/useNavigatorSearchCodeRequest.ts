@@ -1,6 +1,6 @@
-import { NewNavigatorSearchComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
 
+import { performNavigatorSearch } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { navigatorStore, useNavigatorStore } from '#base/context/navigator';
 import { useSystemActions, useWindowParams } from '#base/context/system';
@@ -25,14 +25,13 @@ export const useNavigatorSearchCodeRequest = () => {
 
         if (!context) return;
 
-        const { setTopLevelContext, setFilterType, setSearchFilter, setIsSearching } = navigatorStore.getState();
+        const { setTopLevelContext, setFilterType, setSearchFilter } = navigatorStore.getState();
 
         setTopLevelContext(context);
         setFilterType('anything');
         setSearchFilter('');
-        setIsSearching(true);
 
-        send(new NewNavigatorSearchComposer({ searchCodeOriginal: searchCode, filteringData: '' }));
+        performNavigatorSearch(send, searchCode);
 
         updateWindowParams('navigator', { searchCode: undefined });
     }, [ searchCode, topLevelContexts, send, updateWindowParams ]);

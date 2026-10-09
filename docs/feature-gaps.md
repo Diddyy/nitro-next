@@ -30,7 +30,7 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 |---|---|---|
 | Messenger and friend bar | Conversations and their history, instant-message errors, mini mail, friend notifications, room invites. The friend list is ported; its "start conversation" buttons do nothing (`FriendListSearch`, `FriendListSearchItem`). The friend bar is ported (`views/friend-bar`); Turbo only sends its room event notifications, as it has no achievements, quests or games to send the others for. | `FriendList` |
 | Moderation tool | Issues, chat logs, room and user info, room visits, sanctions. No window, no store, and nothing sends its requests. | `Moderation`, `Moderator` |
-| Help, call for help and guides | Reporting a user or room, pending calls, guide sessions, chat review, the safety quiz. | `Help`, `Callforhelp` |
+| Help, call for help and guides | Reporting a user or room (the navigator's room info bubble keeps its report entry hidden until this exists), pending calls, guide sessions, chat review, the safety quiz. | `Help`, `Callforhelp` |
 | Quests and talent track | Daily and seasonal quests, community goals and talent track levels. The achievement browser, score and standard award packets are implemented; see [achievement client](achievements.md). | `Quest`, `Talent` |
 | Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. `commands/gameTokensCommands.ts` has nothing that calls it. | `Game` |
 | Group forums | Forum list, threads, posts, moderation, unread counts. Group info, management and profiles are ported (`GroupInfoView`'s `show_forum_link`). | `Groupforums` |
@@ -38,7 +38,6 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Campaign calendar | The advent calendar and its doors, and the seasonal daily offer that shares it. | `Campaign`, `Catalog` |
 | New user experience | The gift offer, the initial room choice, the tutorial script. | `Nux` |
 | Room competitions | Submitting, voting, forwarding to competition rooms. | `Competition`, `Navigator` |
-| Room events | Creating, editing and cancelling events, and the in-room event promotion. `CatalogRoomAdSlice` notes that nothing opens the room ad page from here. | `Navigator` |
 | NFT wardrobe | Saved NFT outfits and their selection, silver. | `Nft` |
 | Name change | `AvatarEditorNameChangeView` and the in-room name change (`AvatarEditor`). | `Avatar` |
 | Avatar editor | The hot looks and effects lists (`HotLooksView`, `AvatarEditorGridViewEffects`, `effectParamsContainer`) and the `nfts` tab - nothing feeds them. | `AvatarEditor` |
@@ -53,8 +52,7 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Room | Post-its: placing one (`PlacePostItComposer`, `PostItPlacedEventMessage`) and the spam wall. | |
 | Room | Habbicon bubbles over avatars and the habbicon selector in the chat input. | `AvatarLogic`, `AvatarVisualization`, `RoomChatInputView` |
 | Pets | The breeding dialogs, and placing a pet opened from a present (it stays in the inventory). | `useInventoryPetsPage`, `FurniturePresentOpenedWidget` |
-| Navigator | Room event info; report room; the promoted-rooms strip; a block's back button (`goBack` over the search history); syncing the window preferences to the server. | `NavigatorView`, `NavigatorRoomInfoPopup` |
-| Navigator | The room category enforcement dialog (`ShowEnforceRoomCategoryDialogMessage`). | |
+| Navigator | Reporting a room from the room info bubble, which waits on the call-for-help reporting flow (see Help above). | `NavigatorRoomInfoPopup` |
 | Catalogue | The next-limited-rare countdown, the page with the earliest expiry, the gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
@@ -116,4 +114,8 @@ About 40 unused packets are protocol the port does not need:
   `RedeemMarketplaceOfferCreditsComposer`: `HabboCatalog.redeemSoldMarketPlaceOffers` has no
   caller, so the own-items page has no redeem button. `GiveSupplementToPetComposer`: the pet menus'
   `give_water` and `give_light` rows are never shown, so nothing raises `RWUAM_GIVE_WATER_TO_PET` or
-  `RWUAM_GIVE_LIGHT_TO_PET`.
+  `RWUAM_GIVE_LIGHT_TO_PET`. `NavigatorLiftedRoomsMessage`: `NavigatorView.createSubViews` never
+  creates its `LiftView`, so the promoted-rooms strip has nowhere to draw. `CanCreateRoomEventMessage`:
+  nothing sends `CanCreateRoomEventMessageComposer`, so an event is only made by buying a room ad.
+  `CancelEventComposer`: the event settings window's end and cancel handlers are never wired to a
+  button.

@@ -7,7 +7,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue } from '#base/context/system';
 import { useWindowVisibility } from '#base/hooks';
 
-import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, NavigatorComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTransactionsComponent } from './components';
+import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, NavigatorComponent, NavigatorRoomEventInfoComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTransactionsComponent } from './components';
 import { AchievementsComponent } from './components/achievements';
 import { TargetedOfferComponent } from './components/catalog/TargetedOfferComponent';
 import { CollectiblesComponent } from './components/collectibles';
@@ -95,6 +95,8 @@ export const MainView = () => {
                         <SafetyLockedNotificationView />
                         <ClubGiftNotificationView />
                     </Box>
+                    {/* `RoomEventInfoCtrl` docks the room's event card here, above the group banner. */}
+                    <NavigatorRoomEventInfoComponent />
                     {/* `GroupRoomInfoCtrl` docks the banner in this column, under the quest tracker and event card. */}
                     <GroupRoomInfoComponent />
                     <NotificationsExtensionAnchor />

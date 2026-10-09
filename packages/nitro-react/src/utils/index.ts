@@ -31,6 +31,7 @@ export * from './localizationParameters';
 export * from './marketplace';
 export * from './petTypeFromFigure';
 export * from './RetainedCache';
+export * from './roomEventExtension';
 export * from './targetedOfferTimeLeft';
 export * from './tradingNameScam';
 export * from './wiredChestItems';
