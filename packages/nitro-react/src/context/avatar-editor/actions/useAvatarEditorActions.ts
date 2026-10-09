@@ -22,6 +22,8 @@ const actions = {
     setWardrobeSlot: state.setWardrobeSlot,
     setNftOutfits: state.setNftOutfits,
     setSelectedNftOutfitId: state.setSelectedNftOutfitId,
+    setNftOutfit: state.setNftOutfit,
+    setNftSelection: state.setNftSelection,
 };
 
 export const useAvatarEditorActions = () => actions;

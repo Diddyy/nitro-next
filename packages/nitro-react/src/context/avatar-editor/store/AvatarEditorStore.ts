@@ -36,6 +36,16 @@ type State = {
     nftOutfits: INftWardrobeItem[];
     /** `HabboAvatarEditor._setNftOutfit`: the NFT outfit picked in the editor, which a save wears. */
     selectedNftOutfitId: string | null;
+    /** `HabboAvatarEditor.setNftOutfit`: the look before the NFT outfit was picked, put back away from the NFT tab (`loadRollbackFigure`). */
+    nftRollbackFigure: string;
+    nftRollbackGender: string;
+    /**
+     * `UserNftWardrobeSelectionMessage`: the worn NFT outfit's token id (`null` until the server says,
+     * and again after a save - `hasNftOutfit`), and the look to show away from the NFT tab.
+     */
+    nftCurrentTokenId: string | null;
+    nftFallbackFigure: string;
+    nftFallbackGender: string;
 };
 
 type Actions = {
@@ -56,6 +66,9 @@ type Actions = {
     setWardrobeSlot: (index: number, outfit: AvatarEditorWardrobeOutfit) => void;
     setNftOutfits: (nftOutfits: INftWardrobeItem[]) => void;
     setSelectedNftOutfitId: (selectedNftOutfitId: string | null) => void;
+    /** `HabboAvatarEditor.setNftOutfit`: picks the outfit and keeps the current look to roll back to. */
+    setNftOutfit: (id: string) => void;
+    setNftSelection: (currentTokenId: string | null, fallbackFigure?: string, fallbackGender?: string) => void;
 };
 
 const initialState: State = {
@@ -81,6 +94,11 @@ const initialState: State = {
     wardrobeVisible: true,
     nftOutfits: [],
     selectedNftOutfitId: null,
+    nftRollbackFigure: '',
+    nftRollbackGender: '',
+    nftCurrentTokenId: null,
+    nftFallbackFigure: '',
+    nftFallbackGender: '',
 };
 
 export type AvatarEditorStore = State & Actions & {
@@ -148,6 +166,12 @@ export const createAvatarEditorStore = () => createStore<AvatarEditorStore>()((s
     setWardrobe: wardrobe => set({ wardrobe }),
     setNftOutfits: nftOutfits => set({ nftOutfits }),
     setSelectedNftOutfitId: selectedNftOutfitId => set({ selectedNftOutfitId }),
+    setNftOutfit: id => set(state => ({ selectedNftOutfitId: id, nftRollbackFigure: state.figure, nftRollbackGender: state.gender })),
+    setNftSelection: (nftCurrentTokenId, nftFallbackFigure, nftFallbackGender) => set(state => ({
+        nftCurrentTokenId,
+        nftFallbackFigure: nftFallbackFigure ?? state.nftFallbackFigure,
+        nftFallbackGender: nftFallbackGender ?? state.nftFallbackGender,
+    })),
     setWardrobeSlot: (index, outfit) => set((state) => {
         const wardrobe = [ ...state.wardrobe ];
 
