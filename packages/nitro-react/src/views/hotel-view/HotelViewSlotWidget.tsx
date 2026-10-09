@@ -10,8 +10,11 @@ import {
 import { Box } from '#base/theme';
 
 import { HotelViewBonusRareWidget } from './HotelViewBonusRareWidget';
-import { HotelViewCommunityGoalWidget, HotelViewPromoArticleWidget } from './HotelViewCampaigns';
+import { HotelViewCommunityGoalWidget } from './HotelViewCommunityGoalWidget';
+import { HotelViewExpiringCatalogPageWidget } from './HotelViewExpiringCatalogPageWidget';
 import { HotelViewGenericWidget } from './HotelViewGenericWidget';
+import { HotelViewNextLimitedRareWidget } from './HotelViewNextLimitedRareWidget';
+import { HotelViewPromoArticleWidget } from './HotelViewPromoArticleWidget';
 
 interface HotelViewSlotWidgetProps {
     type: string;
@@ -65,7 +68,22 @@ export const HotelViewSlotWidget = ({ type, slot, code, settings }: HotelViewSlo
         case LandingViewWidgetType.COMMUNITYGOAL:
         case LandingViewWidgetType.COMMUNITYGOALVS:
         case LandingViewWidgetType.COMMUNITYGOALVSVOTE:
-            return <HotelViewCommunityGoalWidget width={width} />;
+            return (
+                <HotelViewCommunityGoalWidget
+                    type={type}
+                    settings={settings}
+                />
+            );
+        case LandingViewWidgetType.EXPIRINGCATALOGPAGE:
+        case LandingViewWidgetType.EXPIRINGCATALOGPAGESMALL:
+            return (
+                <HotelViewExpiringCatalogPageWidget
+                    small={type === LandingViewWidgetType.EXPIRINGCATALOGPAGESMALL}
+                    settings={settings}
+                />
+            );
+        case LandingViewWidgetType.NEXTLIMITEDRARECOUNTDOWN:
+            return <HotelViewNextLimitedRareWidget settings={settings} />;
         default:
             return null;
     }

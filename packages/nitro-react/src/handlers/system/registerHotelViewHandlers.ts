@@ -12,29 +12,64 @@
  *   on the first activation as in Flash.
  * - `PromoArticleWidget.refresh`: the articles, at most once in ten minutes.
  * - `CommunityGoalWidget.requestCommunityGoalProgress`: the progress, unless a request is pending.
+ * - `ExpiringCatalogPageWidget` (and its small one): the page that expires first, at most once in
+ *   thirty seconds.
+ * - `NextLimitedRareCountdownWidget`: the next limited rare, from `initialize` and from `refresh`
+ *   (at most once in thirty seconds), unless `next.limited.rare.countdown.widget.disabled`; and again
+ *   a second after the countdown it was told runs out (`setModeSwitchTimer`).
+ *
+ * The background schedule's answer also gives `MovingBackgroundObjects` its timing code.
  *
  * Every answer is filtered on what was asked (the scheduling or time string), as each listener
  * does. The listeners survive entering a room, as do the Flash layout and its current art.
  */
 import {
-    BonusRareInfoMessage, CommunityGoalProgressMessage, CurrentTimingCodeMessage, GetBonusRareInfoComposer, GetCommunityGoalProgressComposer, GetCurrentTimingCodeComposer, GetPromoArticlesComposer,
-    GetSecondsUntilComposer, PromoArticlesMessage, SecondsUntilMessage,
+    BonusRareInfoMessage, CatalogPageWithEarliestExpiryMessage, CommunityGoalProgressMessage, CommunityVoteReceivedMessage, CurrentTimingCodeMessage, GetBonusRareInfoComposer, GetCatalogPageWithEarliestExpiryComposer,
+    GetCommunityGoalProgressComposer, GetCurrentTimingCodeComposer, GetLimitedOfferAppearingNextComposer, GetPromoArticlesComposer, GetSecondsUntilComposer, LimitedOfferAppearingNextMessage, PromoArticlesMessage,
+    SecondsUntilMessage,
 } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import {
-    applyHotelViewTiming, hotelViewCodeWidget, hotelViewGenericConf, hotelViewProperty, hotelViewSlotSchedule, hotelViewSlotWidget, hotelViewTimerTimeStr, initialHotelViewBackgrounds, LANDING_VIEW_DYNAMIC_SLOTS,
+    applyHotelViewTiming, BOTTOM_SLOT_LANDING_VIEW_WIDGETS, HOTEL_VIEW_BOTTOM_SLOT, hotelViewCodeWidget, hotelViewGenericConf, hotelViewProperty, hotelViewSlotSchedule, hotelViewSlotWidget, hotelViewTimerTimeStr, initialHotelViewBackgrounds, LANDING_VIEW_DYNAMIC_SLOTS,
     LANDING_VIEW_ELEMENT_CUSTOMTIMER, LandingViewWidgetType, parseHotelViewGenericConf, systemStore,
 } from '#base/context/system';
 
 /** `PromoArticleWidget.refresh`: a new request only once the last is ten minutes old. */
 const PROMO_ARTICLES_REQUEST_INTERVAL_MS = 600000;
 
+/** `ExpiringCatalogPageWidget.refresh` and `NextLimitedRareCountdownWidget.refresh`: a new request only once the last is thirty seconds old. */
+const COUNTDOWN_REQUEST_INTERVAL_MS = 30000;
+
 export const registerHotelViewHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { setHotelViewBackgrounds, setHotelViewBonusRare, setHotelViewCommunityGoal, setHotelViewPromoArticles, setHotelViewSecondsUntil, setHotelViewTimingCode } = systemStore.getState();
+    const {
+        setHotelViewBackgroundCode, setHotelViewBackgrounds, setHotelViewBonusRare, setHotelViewCommunityGoal, setHotelViewCommunityVoted, setHotelViewExpiringPage, setHotelViewNextLimited, setHotelViewPromoArticles,
+        setHotelViewSecondsUntil, setHotelViewTimingCode,
+    } = systemStore.getState();
     let schedulingStr: string | undefined;
     let communityGoalPending = false;
+    let nextLimitedTimer: ReturnType<typeof setTimeout> | undefined;
     const promoArticlesRequestedAt = new Map<string, number>();
+    const countdownRequestedAt = new Map<string, number>();
+
+    /** A widget's `refresh` throttle: whether the last request under the key is old enough, marking it if so. */
+    const countdownDue = (key: string) => {
+        const now = Date.now();
+        const last = countdownRequestedAt.get(key);
+
+        if ((last !== undefined) && ((now - last) <= COUNTDOWN_REQUEST_INTERVAL_MS)) return false;
+
+        countdownRequestedAt.set(key, now);
+
+        return true;
+    };
+
+    /** `NextLimitedRareCountdownWidget.requestNextLimitedRare`. */
+    const requestNextLimited = () => {
+        if (hotelViewProperty(systemStore.getState().config, 'next.limited.rare.countdown.widget.disabled') === 'true') return;
+
+        send(new GetLimitedOfferAppearingNextComposer({}));
+    };
     const initializedWidgets = new Set<string>();
 
     /** `WidgetContainer.refresh`: the widget's `initialize` the first time, then its `refresh`. */
@@ -68,6 +103,15 @@ export const registerHotelViewHandlers = ({ send, subscribe }: WebSocketConnecti
                 }
                 return;
             }
+            case LandingViewWidgetType.EXPIRINGCATALOGPAGE:
+            case LandingViewWidgetType.EXPIRINGCATALOGPAGESMALL:
+                if (countdownDue(key)) send(new GetCatalogPageWithEarliestExpiryComposer({}));
+                return;
+            case LandingViewWidgetType.NEXTLIMITEDRARECOUNTDOWN:
+                // `initialize` asks without marking the time, so the first `refresh` asks again.
+                if (firstTime) requestNextLimited();
+                if (countdownDue(key)) requestNextLimited();
+                return;
             case LandingViewWidgetType.COMMUNITYGOAL:
             case LandingViewWidgetType.COMMUNITYGOALVS:
             case LandingViewWidgetType.COMMUNITYGOALVSVOTE:
@@ -89,13 +133,21 @@ export const registerHotelViewHandlers = ({ send, subscribe }: WebSocketConnecti
 
         for (const slot of LANDING_VIEW_DYNAMIC_SLOTS) refreshWidget(hotelViewSlotWidget(config, slot), slot, null);
 
+        // `setupBottomSlotWidgetName`: a fixed widget named for the bottom slot is refreshed with the rest.
+        const bottom = hotelViewSlotWidget(config, HOTEL_VIEW_BOTTOM_SLOT);
+
+        if (BOTTOM_SLOT_LANDING_VIEW_WIDGETS.has(bottom)) refreshWidget(bottom, HOTEL_VIEW_BOTTOM_SLOT, null);
+
         send(new GetCurrentTimingCodeComposer({ slotConfig: schedulingStr }));
     };
 
     const unsubscribeTiming = subscribe(CurrentTimingCodeMessage, (data) => {
         const { config, hotelViewBackgrounds } = systemStore.getState();
 
-        if ((schedulingStr !== undefined) && (data.schedulingStr === schedulingStr)) setHotelViewBackgrounds(applyHotelViewTiming(hotelViewBackgrounds, config, data.code));
+        if ((schedulingStr !== undefined) && (data.schedulingStr === schedulingStr)) {
+            setHotelViewBackgrounds(applyHotelViewTiming(hotelViewBackgrounds, config, data.code));
+            setHotelViewBackgroundCode(data.code);
+        }
 
         for (const slot of LANDING_VIEW_DYNAMIC_SLOTS) {
             if (hotelViewSlotWidget(config, slot) !== LandingViewWidgetType.WIDGETCONTAINER) continue;
@@ -116,6 +168,18 @@ export const registerHotelViewHandlers = ({ send, subscribe }: WebSocketConnecti
         communityGoalPending = false;
         setHotelViewCommunityGoal(data);
     });
+    const unsubscribeVote = subscribe(CommunityVoteReceivedMessage, (data) => {
+        if (data.acknowledged) setHotelViewCommunityVoted(true);
+    });
+    const unsubscribeExpiring = subscribe(CatalogPageWithEarliestExpiryMessage, data => setHotelViewExpiringPage({ ...data, receivedAt: performance.now() }));
+    const unsubscribeNextLimited = subscribe(LimitedOfferAppearingNextMessage, (data) => {
+        setHotelViewNextLimited({ ...data, receivedAt: performance.now() });
+
+        // `setModeSwitchTimer`: asked again a second after the countdown runs out.
+        if (nextLimitedTimer !== undefined) clearTimeout(nextLimitedTimer);
+
+        nextLimitedTimer = (data.appearsInSeconds > 0) ? setTimeout(requestNextLimited, (data.appearsInSeconds + 1) * 1000) : undefined;
+    });
 
     if (systemStore.getState().landingViewVisible) activate();
 
@@ -126,6 +190,10 @@ export const registerHotelViewHandlers = ({ send, subscribe }: WebSocketConnecti
         unsubscribeBonusRare();
         unsubscribeArticles();
         unsubscribeGoal();
+        unsubscribeVote();
+        unsubscribeExpiring();
+        unsubscribeNextLimited();
+        if (nextLimitedTimer !== undefined) clearTimeout(nextLimitedTimer);
         setHotelViewBackgrounds({});
     };
 };

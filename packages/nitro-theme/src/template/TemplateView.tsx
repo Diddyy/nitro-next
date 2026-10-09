@@ -375,7 +375,8 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     const align = autoSize === 'center' || autoSize === 'right' ? autoSize : undefined;
     const { fontFamily, flash: layoutFlash } = templateTextFormat(element);
     const etched = binding?.etchingColor === undefined ? layoutFlash : { ...layoutFlash, etchingColor: binding.etchingColor || undefined };
-    const flash = binding?.underline === undefined ? etched : { ...etched, underline: binding.underline };
+    const positioned = binding?.etchingPosition === undefined ? etched : { ...etched, etchingPosition: binding.etchingPosition };
+    const flash = binding?.underline === undefined ? positioned : { ...positioned, underline: binding.underline };
     const text = captionOf(element, context, binding);
 
     if (!text) return null;

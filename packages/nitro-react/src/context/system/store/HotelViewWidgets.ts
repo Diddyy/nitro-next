@@ -5,7 +5,7 @@
  * config, shared by the reception's packet handler (what each widget asks the server for) and its
  * views (what each widget draws).
  */
-import type { ColorableTextFormat } from '#base/theme';
+import type { ColorableTextFormat, TemplateBindings } from '#base/theme';
 
 import { hotelViewProperty } from './HotelViewSlice';
 
@@ -36,9 +36,10 @@ export const LandingViewWidgetType = {
 
 /**
  * The widget types this port draws in a slot. `LandingViewWidgetType.getWidgetForType` builds
- * every name above; the ones missing here are widgets whose windows are not ported yet
- * (the catalogue promos, daily quest, the competition and moderation promos), and a slot naming
- * one stays empty - which `DynamicLayoutManager` treats exactly like an unconfigured slot.
+ * every name above; the ones missing here are widgets whose windows are not ported yet (the avatar
+ * image, the catalogue promos, daily quest, the competition prizes and hall of fame, the moderation,
+ * talents, Habbo Way and safety quiz promos and the room hopper), and a slot naming one stays
+ * empty - which `DynamicLayoutManager` treats exactly like an unconfigured slot.
  */
 export const PORTED_LANDING_VIEW_WIDGETS: ReadonlySet<string> = new Set([
     LandingViewWidgetType.GENERIC,
@@ -48,6 +49,9 @@ export const PORTED_LANDING_VIEW_WIDGETS: ReadonlySet<string> = new Set([
     LandingViewWidgetType.COMMUNITYGOAL,
     LandingViewWidgetType.COMMUNITYGOALVS,
     LandingViewWidgetType.COMMUNITYGOALVSVOTE,
+    LandingViewWidgetType.EXPIRINGCATALOGPAGE,
+    LandingViewWidgetType.EXPIRINGCATALOGPAGESMALL,
+    LandingViewWidgetType.NEXTLIMITEDRARECOUNTDOWN,
 ]);
 
 /**
@@ -57,6 +61,21 @@ export const PORTED_LANDING_VIEW_WIDGETS: ReadonlySet<string> = new Set([
  * instead the default layout's `widget_placeholder_bottom_slot` (`setupBottomSlotWidgetName`).
  */
 export const LANDING_VIEW_DYNAMIC_SLOTS = [ 1, 2, 3, 4, 5 ] as const;
+
+/** `setupBottomSlotWidgetName`: the slot whose widget goes in the default layout's `widget_placeholder_bottom_slot`. */
+export const HOTEL_VIEW_BOTTOM_SLOT = 6;
+
+/**
+ * The widgets the port draws in the bottom slot. Only `WidgetContainerLayout`'s fixed widgets can go
+ * there (the placeholder is renamed after the type, and only a fixed widget looks for one by name);
+ * of those, these are ported. A bottom slot naming any other type stays empty.
+ */
+export const BOTTOM_SLOT_LANDING_VIEW_WIDGETS: ReadonlySet<string> = new Set([
+    LandingViewWidgetType.EXPIRINGCATALOGPAGE,
+    LandingViewWidgetType.EXPIRINGCATALOGPAGESMALL,
+    LandingViewWidgetType.COMMUNITYGOAL,
+    LandingViewWidgetType.NEXTLIMITEDRARECOUNTDOWN,
+]);
 
 /** `landing.view.dynamic.slot.<slot>.widget`. */
 export const hotelViewSlotWidget = (config: Record<string, unknown>, slot: number): string => hotelViewProperty(config, `landing.view.dynamic.slot.${slot}.widget`);
@@ -184,3 +203,64 @@ export const hotelViewColorableFormat = (settings: HotelViewCommonSettings): Col
         ...((settings.etchingPosition !== null) ? { etchingPosition: settings.etchingPosition as NonNullable<NonNullable<ColorableTextFormat['flashFormat']>['etchingPosition']> } : {}),
     },
 });
+
+/**
+ * `WidgetContainerLayout.applyCommonWidgetSettings` over a widget drawn from its template: the
+ * hotel's colours on each of the named `COLORABLE`-tagged texts, merged into what else they bind.
+ */
+export const hotelViewColorableBindings = (settings: HotelViewCommonSettings, names: readonly string[], bindings: TemplateBindings = {}): TemplateBindings => {
+    const colorable = {
+        ...((settings.textColor !== null) ? { color: settings.textColor & 0xFFFFFF } : {}),
+        ...((settings.etchingColor !== null) ? { etchingColor: settings.etchingColor } : {}),
+        ...((settings.etchingPosition !== null) ? { etchingPosition: settings.etchingPosition as NonNullable<TemplateBindings[string]['etchingPosition']> } : {}),
+    };
+
+    for (const name of names) bindings[name] = { ...colorable, ...bindings[name] };
+
+    return bindings;
+};
+
+/** The community goal's data its meter reads - `CommunityGoalData`. */
+export interface HotelViewCommunityGoalMeterData {
+    communityHighestAchievedLevel: number;
+    percentCompletionTowardsNextLevel: number;
+    scoreRemainingUntilNextLevel: number;
+}
+
+/** `CommunityGoalWidget.CHALLENGE_LEVEL_NEEDLE_BASE_FRAMES`: the needle frame each level starts at. */
+export const COMMUNITY_GOAL_NEEDLE_BASE_FRAMES = [ 0, 8, 16, 23 ] as const;
+
+/** `CommunityGoalWidget.getCurrentNeedleFrame`: the level's base frame, plus its share of the way to the next. */
+export const communityGoalNeedleFrame = (goal: HotelViewCommunityGoalMeterData): number => {
+    const frames = COMMUNITY_GOAL_NEEDLE_BASE_FRAMES;
+    const level = goal.communityHighestAchievedLevel;
+
+    if (level >= frames.length - 1) return frames[frames.length - 1];
+
+    const base = frames[level];
+    const span = frames[level + 1] - base;
+
+    return base + Math.floor((goal.percentCompletionTowardsNextLevel * (span + 0.001)) / 100);
+};
+
+/** `CommunityGoalVsModeWidget`'s `NEEDLE_LEVELS` and `NEEDLE_FRAMES`: a needle that swings either way from the middle. */
+const VS_NEEDLE_LEVELS = [ -3, -2, -1, 0, 1, 2, 3 ];
+const VS_NEEDLE_FRAMES = [ 0, 0, 4.75, 11.5, 16.25, 23, 23 ];
+
+/** `CommunityGoalVsModeWidget.getCurrentNeedleFrame`: towards the side the score is moving to. */
+export const communityGoalVsNeedleFrame = (goal: HotelViewCommunityGoalMeterData): number => {
+    const level = goal.communityHighestAchievedLevel;
+
+    if (level <= VS_NEEDLE_LEVELS[0]) return Math.round(VS_NEEDLE_FRAMES[0]);
+    if (level >= VS_NEEDLE_LEVELS[VS_NEEDLE_LEVELS.length - 1]) return Math.round(VS_NEEDLE_FRAMES[VS_NEEDLE_FRAMES.length - 1]);
+
+    const direction = (goal.scoreRemainingUntilNextLevel < 0) ? -1 : 1;
+    const base = VS_NEEDLE_FRAMES[VS_NEEDLE_LEVELS.indexOf(level)];
+    const span = Math.abs(VS_NEEDLE_FRAMES[VS_NEEDLE_LEVELS.indexOf(level + direction)] - base);
+
+    return Math.round(base + ((goal.percentCompletionTowardsNextLevel / 100) * span * direction));
+};
+
+/** `CommunityGoalWidget.update`: the meter waits this long after the progress arrives, then builds up over a second. */
+export const COMMUNITY_GOAL_METER_DELAY_MS = 1500;
+export const COMMUNITY_GOAL_METER_BUILDUP_MS = 1000;

@@ -53,17 +53,37 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 | Room | Habbicon bubbles over avatars and the habbicon selector in the chat input. | `AvatarLogic`, `AvatarVisualization`, `RoomChatInputView` |
 | Pets | The breeding dialogs, and placing a pet opened from a present (it stays in the inventory). | `useInventoryPetsPage`, `FurniturePresentOpenedWidget` |
 | Navigator | Reporting a room from the room info bubble, which waits on the call-for-help reporting flow (see Help above). | `NavigatorRoomInfoPopup` |
-| Catalogue | The next-limited-rare countdown, the page with the earliest expiry, the gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
+| Catalogue | The gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
 | Inventory | Merged rentable furni (the `rentables` tab) and a rented item's rent state and expiry, the `use_btn` and paging through an external image wall item (`showUseProductSelection`), the achievement score under the badges. | `useInventoryFurniPage`, `useInventoryBadgesPage`, `InventoryView` |
 | Wired | The hover popup in the wired trade view, and the limited-edition plaque on chest item icons. | `WiredTradeView`, `WiredChestItemCell` |
 | Notifications | The new-feature window, the moderation disclaimer, the notification feed. `ClubGiftSelectedEventMessage` and `PetReceivedMessage` have empty stub parsers. | `NotificationStore`, `registerAlertDialogHandlers` |
 | Purse | What clicking the currency icons opens. | `PurseView` |
-| Hotel view | Moving background objects, and the landing view widgets for expiring catalogue pages, the community goal vote and the next limited rare countdown. | `HotelView`, `HotelViewWidgets` |
+| Hotel view | The widget types `PORTED_LANDING_VIEW_WIDGETS` leaves out: the avatar image, the catalogue promos, daily quest, the competition prizes and hall of fame, the moderation, talents, Habbo Way and safety quiz promos, and the room hopper. The promo article draws only its first article's text, not its `promo_article` window. The generic widget leaves out its title, image, room, badge, habblet, VIP, community goal, daily quest and concurrent-user elements. The expiring page widget is not asked again when an invisible catalogue page is visited (`CATALOG_INVISIBLE_PAGE_VISITED`), the next limited rare's buttons open its page without picking the offer, and the community goal keeps `goal_info` at its layout height. What the ported widgets wait on from the server is under [Hotel view: Turbo and the admin panel](#hotel-view-turbo-and-the-admin-panel). | `HotelViewWidgets`, `HotelViewGenericWidget`, `HotelViewPromoArticleWidget` |
 | Chat | Flash's chat commands other than the wired ones; the chat input sends them as chat. The chat bar's help button (`helpbutton`, shown while the pointer is over the field, opening `habbopages/chat/commands`) stays hidden. | `wiredChatCommands`, `RoomChatInputView` |
 | Account | Email change and status. | `Users` |
 | Hot looks, mystery box keys, user classification, element pointer | No listener or request. | |
+
+## Hotel view: Turbo and the admin panel
+
+The reception's widgets are configured by `landing.view.*` external variables, which Turbo's
+admin panel edits on its Hotel view page (`turbo-admin/src/pages/hotel-view`). That page can put
+any widget type in slots 1-5 and has forms for `generic` promos, container schedules, the
+backgrounds and the shared look. Everything else is reachable only through its All tab, as raw
+JSON. What each widget still needs from Turbo or from that page:
+
+| Widget | Turbo | Admin panel |
+|---|---|---|
+| `expiringcatalogpage`, `expiringcatalogpagesmall` | `GetCatalogPageWithEarliestExpiry` has an empty handler, and catalogue pages have no expiry to send. | An expiry time on a catalogue page. The widget shows the page's `landing.view.pageexpiry.page.<page>.header` / `.desc` texts and the image library's `reception/catalog_teaser_<page>.png`, so a page with an expiry needs those too. |
+| `nextlimitedrarecountdown` | Works: the next active LTD series whose "On sale from" is still to come, from the published catalogue. | Nothing more. The catalogue's limited section already schedules it. `next.limited.rare.countdown.widget.disabled` turns the widget's requests off and has no form. |
+| `communitygoal`, `communitygoalvsmode`, `communitygoalvsmodevote` | `GetCommunityGoalProgress` and `GetCommunityGoalHallOfFame` have empty handlers. `CommunityGoalVoteMessage` reads no vote option and its handler is empty, so a vote (an int, 1 or 2) is never counted and `CommunityVoteReceived` never sent. | A community goal editor: the goal code, its levels and their scores, its end time, the reward tiers (`rewardUserLimits`), and for the VS modes the two sides. The plain widget's `landing.view.community.interactive` and `landing.view.community.catalog.target` need fields. The goal's texts (`landing.view.community.headline/caption/info/meter.<goal>`, `landing.view.community_catalog_button.text.<goal>`, `landing.view.vote_one_button.text.<goal>`, `landing.view.vote_two_button.text.<goal>`) and meter art (`reception/meter_level_<0-3>_<goal>.png`) need a place to go. |
+| `promoarticle` | `GetPromoArticles` has an empty handler. | A promo article editor (title, body, button text, link type and target, image). |
+| `bonusrare` | Nothing writes a player's progress (`PlayerBonusRareProgress`), so it always shows the full amount still to spend. | The image is on the Look tab and the rare itself under `Turbo:Catalog:BonusRare` on the Settings page; neither needs more. |
+| Moving background objects | Nothing; they are client-side. | A form for `landing.view.bgobject.<1-20>` and `landing.view.<code>.bgobject.<1-20>`, per background set: the image, the type (`line`, `randomwalk`, `spiral`, `animated`) and its fields, as `movingBackgroundObjects.ts` reads them. |
+| The bottom slot | Nothing. | Slot 6 (`landing.view.dynamic.slot.6.widget`, the default layout's bottom placeholder). The page offers slots 1-5 only. Only the fixed widgets can go there; the port draws the expiring pages, the community goal and the next limited rare in it. |
+| `catalogpromo`, `catalogpromosmall`, `avatarimage`, `habbomoderationpromo`, `habbowaypromo`, `roomhoppernetwork` | Nothing beyond the catalogue, navigator and help features they open. | Once the client draws them: `landing.view.catalog.promo.target` / `.image.uri` for the catalogue promos, `landing.view.roomhopper.network.id` / `.image.uri` for the room hopper. |
+| `dailyquest`, `habbotalentspromo`, `safetyquizpromo`, `achievementcompetition_hall_of_fame`, `achievementcompetition_prizes` | The quest, talent track, quiz and competition handlers are empty, and there are no community goal prize packets. | Editors for quests, talent tracks, the safety quiz and goal prizes, once those systems exist. |
 
 ## Views not yet drawn from their Flash template
 
@@ -75,7 +95,7 @@ the layouts are the library's in `scripts/flash-js-resources`.
 
 | Area | Views | Layouts |
 |---|---|---|
-| Hotel view | `views/hotel-view` | `habbo-friend-bar-com`: `landing_view_*`, `dynamic_widget_grid`, `element_*` |
+| Hotel view | `views/hotel-view`, except the expiring page, next limited rare and community goal widgets | `habbo-friend-bar-com`: `landing_view_*`, `dynamic_widget_grid`, `generic_widget`, `element_*`, `bonus_rare_promo`, `promo_article` |
 | Friend list and messenger | `views/friendlist`, `views/messenger` | `habbo-friend-list-com`, `habbo-messenger-com` |
 | Navigator leftovers | `NavigatorRoomCreateView`, `NavigatorRoomEntryDialogs`, `NavigatorErrorPopup` | `roc_create_room`, `password_input`, `doorbell`, `nav_error_popup` |
 | Groups and profile | `views/groups`, `UserProfileView` | `habbo-groups-com`: `group_info_window`, `group_management_window`, `badge_editor`, `guild_members_window`, `group_created_window`, `club_required`, `new_extended_profile` |
