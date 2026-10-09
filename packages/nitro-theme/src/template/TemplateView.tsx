@@ -48,7 +48,7 @@ import { RadioButton } from '../RadioButton';
 import { Region, RegionProps } from '../Region';
 import { Scaler } from '../Scaler';
 import { ScrollArea } from '../ScrollArea';
-import { Shape } from '../Shape';
+import { Shape, ShapeKind } from '../Shape';
 import { TabButton } from '../TabButton';
 import { TabContent } from '../TabContent';
 import { TabContext } from '../TabContext';
@@ -134,6 +134,9 @@ const flashColor = (value: TemplateValue | undefined): { hex: string; alpha: num
 
     return { hex: `#${padded.slice(-6).toLowerCase()}`, alpha };
 };
+
+/** `ShapeController.normalizeShape`'s kinds; any other is a rectangle. */
+const SHAPE_KINDS = new Set([ 'rectangle', 'round_rectangle', 'ellipse', 'rhombus' ]);
 
 /** A colour as the `0xAARRGGBB` number Flash's `uint(...)` makes of it. */
 const flashUint = (value: TemplateValue | undefined): number | undefined => {
@@ -960,13 +963,21 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 />
             );
         }
+        // `ShapeController`, drawn by `ShapeSkinRenderer`: its `shape`, `radius` and stroke vars in its
+        // colour - the code's over the layout's - where a colour with no alpha byte draws opaque.
         case 'shape': {
-            const color = flashColor(element.color);
+            const color = flashUint(binding?.color ?? element.color);
+            const strokeColor = flashUint(element.vars.stroke_color);
+            const kind = flashString(element.vars.shape);
 
             return (
                 <Shape
-                    color={color?.hex}
-                    alpha={color?.alpha}
+                    shape={(kind && SHAPE_KINDS.has(kind)) ? kind as ShapeKind : undefined}
+                    color={(color === undefined) ? undefined : `#${color.toString(16).padStart(8, '0')}`}
+                    strokeColor={(strokeColor === undefined) ? undefined : `#${strokeColor.toString(16).padStart(8, '0')}`}
+                    strokeThickness={Number(element.vars.stroke_thickness ?? 0) || 0}
+                    strokeHsvShade={Number(element.vars.stroke_hsv_shade ?? 0) || 0}
+                    radius={Number(element.vars.radius ?? 0) || 0}
                     layout={FILL}
                 />
             );
