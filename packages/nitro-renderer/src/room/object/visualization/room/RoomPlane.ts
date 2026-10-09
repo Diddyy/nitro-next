@@ -79,6 +79,8 @@ export class RoomPlane implements IRoomPlane {
     private _drawnGeometryUpdateId = -1;
     private _offset: Point = new Point();
     private _relativeDepth = 0;
+    /** The plane this one is a piece of, whose depth it takes (`setDepthGeometry`). */
+    private _depthCorners: IVector3D[] | undefined = undefined;
     private _color = 0;
     private _coloredTexture: RenderTexture | undefined;
     private _textureColor: number = -1;
@@ -565,8 +567,10 @@ export class RoomPlane implements IRoomPlane {
         this.updateCorners(geometry);
 
         let relativeDepth
-            = Math.max(this._cornerA.z, this._cornerB.z, this._cornerC.z, this._cornerD.z)
-                - geometry.getScreenPosition(this._origin).z;
+            = (this._depthCorners
+                ? Math.max(...this._depthCorners.map(corner => geometry.getScreenPosition(corner)?.z ?? 0))
+                : Math.max(this._cornerA.z, this._cornerB.z, this._cornerC.z, this._cornerD.z))
+            - geometry.getScreenPosition(this._origin).z;
 
         switch (this._type) {
             case RoomPlane.TYPE_FLOOR:
@@ -991,6 +995,19 @@ export class RoomPlane implements IRoomPlane {
         if (value !== this._rasterizer) this._sharedTextureKey = undefined;
 
         this._rasterizer = value;
+    }
+
+    /**
+     * A piece of a longer plane (`RoomVisualization.splitFloorPlane`) sorts as the whole plane
+     * did: its depth comes from the whole plane's corners, not its own.
+     */
+    public setDepthGeometry(location: IVector3D, leftSide: IVector3D, rightSide: IVector3D): void {
+        this._depthCorners = [
+            location,
+            Vector3d.sum(location, leftSide),
+            Vector3d.sum(location, rightSide),
+            Vector3d.sum(Vector3d.sum(location, leftSide), rightSide),
+        ];
     }
 
     public set sharedTextureCache(value: PlaneTextureCache | undefined) {
