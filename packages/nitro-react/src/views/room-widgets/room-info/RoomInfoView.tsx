@@ -39,9 +39,9 @@
  * `txt` `textWidth + 5` wide and the tag 3 wider; `refreshTags` packs them 14 high across the
  * content's width from the container's x (`layoutChildrenInArea(tags, width - tags.x, 14)`) and
  * `tagProcedure` swaps `bg_l` / `bg_m` / `bg_r` for `tag_<piece>_reactive` under the pointer.
- * `prepareWindow` shows `thumbnail_container` only with the `NAVIGATOR_ROOM_THUMBNAIL_CAMERA` perk.
- * Its `add_thumbnail_region` (the camera, `roomThumbnailCamera/open`) is not drawn: nothing is
- * behind it in the port.
+ * `prepareWindow` shows `thumbnail_container` only with the `NAVIGATOR_ROOM_THUMBNAIL_CAMERA` perk,
+ * and its `add_thumbnail_region` to whoever may edit the room's settings: a click opens the room
+ * thumbnail camera (`onAddRoomThumbnail`: `roomThumbnailCamera/open`) and closes this window.
  *
  * `GuildInfoCtrl.refresh` adds a `guild_info_xml` clone named `guild_info` to the content: in a
  * group's room it shows the group's badge and `navigator.guildbase` with the group's name, and a
@@ -78,6 +78,9 @@ export interface RoomInfoViewProps {
     thumbnailUrl: string;
     /** `NAVIGATOR_ROOM_THUMBNAIL_CAMERA`: without the perk `prepareWindow` hides the thumbnail. */
     showThumbnail: boolean;
+    /** The perk and `canEditRoomSettings`: `add_thumbnail_region` shows. */
+    canAddThumbnail: boolean;
+    onAddThumbnail: () => void;
     /** `embed.showInRoomInfo`. */
     showEmbed: boolean;
     /** `getEmbedData`: the room's link. */
@@ -228,7 +231,7 @@ const setupLabelAndValue = (find: TemplateWindows['find'], container: string, ca
 const tagPiece = (piece: 'l' | 'm' | 'r', hovered: boolean) => LayoutImage(`${LIBRARY}/tag_${piece}${hovered ? '_reactive' : ''}.png`);
 
 export const RoomInfoView = ({
-    roomName, description, ownerName, showOwner, tags, rating, ranking, thumbnailUrl, showThumbnail, showEmbed, embedSrc, groupId, groupName, groupBadgeUrl, onGroupInfo,
+    roomName, description, ownerName, showOwner, tags, rating, ranking, thumbnailUrl, showThumbnail, canAddThumbnail, onAddThumbnail, showEmbed, embedSrc, groupId, groupName, groupBadgeUrl, onGroupInfo,
     isHome, isFavourite, canFavourite, canRate, canEditRoomSettings, canStaffPick, isStaffPicked,
     canMuteAll, allInRoomMuted, canEditFloorPlan, canManageRaidProtection, canEditRoomFilter, canReport, canRemoveRights,
     onOpenOwnerProfile, onSelectTag, onRate, onToggleFavourite, onMakeHome, onRemoveRights,
@@ -319,7 +322,7 @@ export const RoomInfoView = ({
         ranking_txt: { caption: String(ranking) },
         thumbnail_container: { visible: showThumbnail },
         thumbnail_image: thumbnailUrl.length ? { asset: thumbnailUrl } : {},
-        add_thumbnail_region: { visible: false },
+        add_thumbnail_region: { visible: canAddThumbnail, onPointerTap: onAddThumbnail },
 
         // `prepareWindow`'s and `refreshRoomDetails`' `refreshButton`s.
         remove_rights_region: { visible: canRemoveRights, onPointerTap: onRemoveRights },

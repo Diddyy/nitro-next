@@ -895,6 +895,7 @@ export * from './outgoing/Camera/PhotoCompetitionComposer';
 export * from './outgoing/Camera/PublishPhotoComposer';
 export * from './outgoing/Camera/PurchasePhotoComposer';
 export * from './outgoing/Camera/RenderRoomComposer';
+export * from './outgoing/Camera/RenderRoomThumbnailComposer';
 export * from './outgoing/Camera/RequestCameraConfigurationComposer';
 export * from './outgoing/Campaign/OpenCampaignCalendarDoorAsStaffComposer';
 export * from './outgoing/Campaign/OpenCampaignCalendarDoorComposer';

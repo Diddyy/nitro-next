@@ -39,6 +39,9 @@ export type WindowRegistry = {
     /** `RoomFilterCtrl`: the word filter of the room in `roomFilterFlatId`. */
     room_filter: NoWindowParams;
 
+    /** The room thumbnail camera (`RoomThumbnailCameraWidget`), from the room info panel's `roomThumbnailCamera/open`. */
+    room_thumbnail_camera: NoWindowParams;
+
     /** The floor plan editor (`BCFloorPlanEditor`), opened from the room info panel. */
     floor_plan_editor: NoWindowParams;
 

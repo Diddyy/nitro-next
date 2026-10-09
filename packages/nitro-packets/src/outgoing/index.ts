@@ -9,6 +9,7 @@ export * from './Camera/PhotoCompetitionComposer';
 export * from './Camera/PublishPhotoComposer';
 export * from './Camera/PurchasePhotoComposer';
 export * from './Camera/RenderRoomComposer';
+export * from './Camera/RenderRoomThumbnailComposer';
 export * from './Camera/RequestCameraConfigurationComposer';
 export * from './Campaign/OpenCampaignCalendarDoorAsStaffComposer';
 export * from './Campaign/OpenCampaignCalendarDoorComposer';

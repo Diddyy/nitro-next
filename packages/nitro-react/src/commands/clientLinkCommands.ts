@@ -17,6 +17,7 @@ import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './n
 import { toggleQuests } from './questCommands';
 import { openRaidProtectionFromLink } from './raidProtectionCommands';
 import { openRewardTrackLink } from './rewardTrackCommands';
+import { openRoomThumbnailCameraLink } from './roomThumbnailCameraCommands';
 import { openSpecialItemsDisplay } from './specialItemsCommands';
 import { openWiredRewardView, openWiredSelfDonation } from './wiredTradingCommands';
 
@@ -274,6 +275,12 @@ export const openClientLink = (send: Send, link: string) => {
         // `RewardTrackController.linkReceived`: reward_track/open/<track id>.
         case 'reward_track': {
             openRewardTrackLink(parts);
+
+            return;
+        }
+        // `RoomThumbnailCameraWidget.linkReceived`: roomThumbnailCamera/open.
+        case 'roomThumbnailCamera': {
+            openRoomThumbnailCameraLink(parts);
 
             return;
         }

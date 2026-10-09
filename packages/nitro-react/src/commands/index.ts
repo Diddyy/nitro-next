@@ -52,6 +52,7 @@ export * from './rewardTrackCommands';
 export * from './roomChatCommands';
 export * from './roomChooserCommands';
 export * from './roomPetCommands';
+export * from './roomThumbnailCameraCommands';
 export * from './roomUserCommands';
 export * from './singularNotificationCommands';
 export * from './soundCommands';

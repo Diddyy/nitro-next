@@ -76,6 +76,12 @@ export const RoomInfoWidget = () => {
             ranking={currentRoomInfo.ranking}
             thumbnailUrl={thumbnailUrl}
             showThumbnail={thumbnailCameraAllowed}
+            canAddThumbnail={thumbnailCameraAllowed && canEditRoomSettings}
+            // `onAddRoomThumbnail`: the camera's link, then `close()`.
+            onAddThumbnail={() => {
+                openClientLink(send, 'roomThumbnailCamera/open');
+                hideWindow('room_info');
+            }}
             showEmbed={showEmbed}
             groupId={currentRoomInfo.groupId}
             groupName={currentRoomInfo.groupName}

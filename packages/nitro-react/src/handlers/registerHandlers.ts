@@ -21,6 +21,7 @@ import {
     registerRoomFurnitureHandlers, registerRoomGenericErrorHandlers, registerRoomGuildFurniHandlers, registerRoomInfostandHandlers, registerRoomJukeboxHandlers, registerRoomLinkHandlers, registerRoomMappingHandlers,
     registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers, registerRoomPresentHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
     registerRoomSpamWallHandlers,
+    registerRoomThumbnailCameraHandlers,
     registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomYoutubeHandlers,
 } from './room';
 import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
@@ -57,6 +58,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomPetHandlers(socket),
         registerRoomPetPackageHandlers(socket),
         registerRoomSpamWallHandlers(socket),
+        registerRoomThumbnailCameraHandlers(socket),
         registerRoomPollHandlers(socket),
         registerRoomQuizHandlers(socket),
         registerRoomSettingsHandlers(socket),

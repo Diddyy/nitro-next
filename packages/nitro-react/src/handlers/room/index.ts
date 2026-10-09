@@ -29,6 +29,7 @@ export * from './registerRoomQuizHandlers';
 export * from './registerRoomRentableSpaceHandlers';
 export * from './registerRoomSettingsHandlers';
 export * from './registerRoomSpamWallHandlers';
+export * from './registerRoomThumbnailCameraHandlers';
 export * from './registerRoomUserHandlers';
 export * from './registerRoomVariableFxHandlers';
 export * from './registerRoomYoutubeHandlers';
