@@ -42,6 +42,7 @@ export * from './inventoryTradingCommands';
 export * from './inventoryUnseenCommands';
 export * from './messengerCommands';
 export * from './navigatorCommands';
+export * from './newFeatureNotificationCommands';
 export * from './notificationCommands';
 export * from './offerCenterCommands';
 export * from './raidProtectionCommands';

@@ -30,6 +30,7 @@ import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/Targ
 import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
 import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
+import { NewFeatureNotificationsView } from './views/notifications/NewFeatureNotificationView';
 import { NotificationPopupsView } from './views/notifications/NotificationPopupsView';
 import { NotificationsExtensionAnchor } from './views/notifications/NotificationsExtensionAnchor';
 import { NotificationsView } from './views/notifications/NotificationsView';
@@ -99,6 +100,7 @@ export const MainView = () => {
                         {/* `SingularNotificationController`'s extensions, docked at the end of the column. */}
                         <SafetyLockedNotificationView />
                         <ClubGiftNotificationView />
+                        <NewFeatureNotificationsView />
                     </Box>
                     {/* `GroupRoomInfoCtrl` docks the banner in this column, before the quest tracker and the event card. */}
                     <GroupRoomInfoComponent />
