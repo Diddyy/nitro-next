@@ -17,8 +17,9 @@
  *   messenger's picker (`MessengerHabbiconPicker`, `MainView`): `openHabbiconHub`,
  *   `noteHabbiconUsed`, `isUnseenHabbicon`, `removeUnseenHabbicon`, `resetUnseenHabbicons`,
  *   `getUnseenHabbiconCount`, and the store's `ownedHabbicons` / `recentHabbiconIds` /
- *   `shopItems`. Neither the selector nor the picker is ported (the chat input draws its
- *   `chat_extra_button` art only), so those have no caller here yet.
+ *   `shopItems`. Neither the selector nor the picker is ported: the chat input's
+ *   `chat_extra_button` opens the hub (`onHabbiconButtonMouseEvent` with no selector) under the
+ *   unseen count, and the rest have no caller here yet.
  *
  * The server this client talks to (turbo-cloud) has every habbicon packet as an empty stub, so
  * nothing answers the requests below yet; this follows Flash.

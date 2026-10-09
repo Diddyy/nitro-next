@@ -3,8 +3,9 @@ import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer,
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
-import { requestChatCommandSuggestions, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle } from '#base/commands';
+import { openHabbiconHub, requestChatCommandSuggestions, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
+import { UnseenItemCategory, useInventoryUnseenItemCount } from '#base/context/inventory';
 import { roomStore, useRoom, useRoomChatActions, useRoomStore } from '#base/context/room';
 import { useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnClubLevel, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
@@ -12,6 +13,7 @@ import { useChatStyles, useViewportSize } from '#base/hooks';
 import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useTemplate } from '#base/theme';
 import { completeChatCommand, findInvalidArguments, IChatCommandCompletion, mergeChatCommands } from '#base/utils';
 import { roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
+import { UnseenItemCounterView } from '#base/views/system/UnseenItemCounterView';
 
 import { ChatCommandSuggestionsView } from './ChatCommandSuggestionsView';
 import { chatInputClientCommands } from './chatInputClientCommands';
@@ -95,6 +97,7 @@ export const RoomChatInputView = () => {
     const selectedAvatarName = useRoomStore(x => x.usersByRoomObjectId[selectedAvatarId]?.name ?? '');
     const customStylesEnabled = useConfigValue<boolean>('custom.chat.styles.enabled') === true;
     const habbiconsEnabled = useConfigValue<boolean>('habbicons.enabled') === true;
+    const unseenHabbiconCount = useInventoryUnseenItemCount(UnseenItemCategory.HABBICONS);
     const disabledStyles = useConfigValue<string>('disabled.custom.chat.styles') ?? '';
     const chatCommands = useUserStore(x => x.chatCommands);
     const chatCommandSuggestions = useUserStore(x => x.chatCommandSuggestions);
@@ -609,9 +612,20 @@ export const RoomChatInputView = () => {
                     chat_input: { visible: false },
                     input_border: { children: isFloodBlocked ? undefined : field },
                     styles: { onPointerTap: () => toggleStyles(stylesRect) },
-                    // `chat_extra_button` opens the habbicon selector, which is not ported; Flash shows it
-                    // only under `habbicons.enabled` (`habbiconsEnabled`), and its set icon starts hidden.
-                    chat_extra_button: { visible: habbiconsEnabled },
+                    // `chat_extra_button`, shown only under `habbicons.enabled` (`habbiconsEnabled`), and its set
+                    // icon starts hidden. `onHabbiconButtonMouseEvent` toggles the habbicon selector, which is
+                    // not ported, so it takes Flash's other branch: `openHabbiconHub`. The unseen habbicons'
+                    // counter sits 2 in from the button's right edge, 2 down (`updateHabbiconUnseenCounter`).
+                    chat_extra_button: {
+                        visible: habbiconsEnabled,
+                        onPointerTap: () => openHabbiconHub(send),
+                        children: (
+                            <UnseenItemCounterView
+                                count={habbiconsEnabled ? unseenHabbiconCount : 0}
+                                layout={{ position: 'absolute', right: 2, top: 2 }}
+                            />
+                        ),
+                    },
                     chat_extra_set_icon: { visible: false },
                     // `createWindow`: the chat commands help button starts hidden; what shows it is not ported.
                     helpbutton: { visible: false },
