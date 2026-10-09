@@ -39,6 +39,11 @@ export interface ScrollAreaProps {
      * set with it has been laid out.
      */
     scrollV?: number;
+    /**
+     * The vertical scroll offset, whenever it changes - for a list that mounts only the rows in
+     * view (`WiredTableView`, Flash `TableView.manageRowViews`).
+     */
+    onScrollChange?: (offset: number) => void;
     layout?: BoxLayout;
     viewportLayout?: BoxLayout;
     /**
@@ -61,7 +66,7 @@ export interface ScrollAreaProps {
  */
 export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
     (
-        { orientation = 'vertical', variant, defaultVariant, tintColor, step, minThumbSize, reachThreshold, onReachStart, onReachEnd, scrollResetKey, scrollEndKey, scrollV, hideDisabledScrollbar = true, layout, viewportLayout, scrollbarLayout, contentLayout, children },
+        { orientation = 'vertical', variant, defaultVariant, tintColor, step, minThumbSize, reachThreshold, onReachStart, onReachEnd, scrollResetKey, scrollEndKey, scrollV, onScrollChange, hideDisabledScrollbar = true, layout, viewportLayout, scrollbarLayout, contentLayout, children },
         ref,
     ) => {
         const showVertical = orientation === 'vertical' || orientation === 'both';
@@ -96,6 +101,12 @@ export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
             verticalScrollTo(0);
             horizontalScrollTo(0);
         }, [ scrollResetKey, verticalScrollTo, horizontalScrollTo ]);
+
+        const verticalOffset = vertical.scrollOffset;
+
+        useEffect(() => {
+            onScrollChange?.(verticalOffset);
+        }, [ verticalOffset, onScrollChange ]);
 
         useEffect(() => {
             if (scrollEndKey === undefined) return;
