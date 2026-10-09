@@ -1,4 +1,5 @@
 import { AvatarEditorCategory, AvatarEditorSetType, AvatarFigurePartType, AvatarGenderType } from '@nitrodevco/nitro-api';
+import type { INftWardrobeItem } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 import { buildFigureString, faceOnlyFigureString, FigureParts, normalizeGender, parseFigureString } from './figureString';
@@ -31,6 +32,10 @@ type State = {
     /** Wardrobe slots, 1-based server slots stored 0-based; `null` = empty slot. */
     wardrobe: AvatarEditorWardrobeOutfit[];
     wardrobeVisible: boolean;
+    /** `NftAvatarsModel.nftAvatars`: the user's NFT outfits (`UserNftWardrobeMessage`). */
+    nftOutfits: INftWardrobeItem[];
+    /** `HabboAvatarEditor._setNftOutfit`: the NFT outfit picked in the editor, which a save wears. */
+    selectedNftOutfitId: string | null;
 };
 
 type Actions = {
@@ -49,6 +54,8 @@ type Actions = {
     setFigureSetIds: (figureSetIds: number[], boundFurnitureNames: string[]) => void;
     setWardrobe: (wardrobe: AvatarEditorWardrobeOutfit[]) => void;
     setWardrobeSlot: (index: number, outfit: AvatarEditorWardrobeOutfit) => void;
+    setNftOutfits: (nftOutfits: INftWardrobeItem[]) => void;
+    setSelectedNftOutfitId: (selectedNftOutfitId: string | null) => void;
 };
 
 const initialState: State = {
@@ -72,6 +79,8 @@ const initialState: State = {
     boundFurnitureNames: [],
     wardrobe: [],
     wardrobeVisible: true,
+    nftOutfits: [],
+    selectedNftOutfitId: null,
 };
 
 export type AvatarEditorStore = State & Actions & {
@@ -137,6 +146,8 @@ export const createAvatarEditorStore = () => createStore<AvatarEditorStore>()((s
     setGender: gender => set({ gender }),
     setFigureSetIds: (figureSetIds, boundFurnitureNames) => set({ figureSetIds, boundFurnitureNames }),
     setWardrobe: wardrobe => set({ wardrobe }),
+    setNftOutfits: nftOutfits => set({ nftOutfits }),
+    setSelectedNftOutfitId: selectedNftOutfitId => set({ selectedNftOutfitId }),
     setWardrobeSlot: (index, outfit) => set((state) => {
         const wardrobe = [ ...state.wardrobe ];
 

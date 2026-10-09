@@ -20,6 +20,8 @@ const actions = {
     setFigureSetIds: state.setFigureSetIds,
     setWardrobe: state.setWardrobe,
     setWardrobeSlot: state.setWardrobeSlot,
+    setNftOutfits: state.setNftOutfits,
+    setSelectedNftOutfitId: state.setSelectedNftOutfitId,
 };
 
 export const useAvatarEditorActions = () => actions;
