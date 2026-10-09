@@ -13,8 +13,9 @@
  *   conversation last written to last. Every third message purges (`purgeRegistry`, unless held):
  *   the same 16 x 65.5 s age, and past 20 messages a conversation keeps its last 15.
  * - `callForHelpCategories` (`onCfhTopics`): the report reasons and their topics.
- * - `reportedUserId` / `reportedRoomId` / `reportedRoomName` (`CallForHelpManager`'s): who and where
- *   is being reported.
+ * - `reportedUserId` / `reportedRoomId` / `reportedRoomName` / `reportedUserName` and, for a photo,
+ *   `reportedRoomObjectId` / `reportedExtraDataId` (`CallForHelpManager`'s): who, where and what is
+ *   being reported.
  */
 import type { ICallForHelpCategory } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
@@ -85,6 +86,9 @@ type State = {
     reportedUserId: number;
     reportedRoomId: number;
     reportedRoomName: string;
+    reportedUserName: string;
+    reportedRoomObjectId: number;
+    reportedExtraDataId: string;
 };
 
 type Actions = {
@@ -106,6 +110,8 @@ type Actions = {
     setReportedUserId: (reportedUserId: number) => void;
     setReportedRoomId: (reportedRoomId: number) => void;
     setReportedRoomName: (reportedRoomName: string) => void;
+    /** `HabboHelp.startPhotoReportingInNewCfhFlow`'s fields. */
+    setReportedPhoto: (reportedUserName: string, reportedRoomObjectId: number, reportedExtraDataId: string) => void;
 };
 
 export type HelpStore = State & Actions;
@@ -126,6 +132,9 @@ const INITIAL: State = {
     reportedUserId: -1,
     reportedRoomId: -1,
     reportedRoomName: '',
+    reportedUserName: '',
+    reportedRoomObjectId: -1,
+    reportedExtraDataId: '',
 };
 
 /** `ChatRegistry.purgeRegistry`. */
@@ -192,6 +201,7 @@ export const createHelpStore = () => createStore<HelpStore>()(set => ({
     setReportedUserId: reportedUserId => set({ reportedUserId }),
     setReportedRoomId: reportedRoomId => set({ reportedRoomId }),
     setReportedRoomName: reportedRoomName => set({ reportedRoomName }),
+    setReportedPhoto: (reportedUserName, reportedRoomObjectId, reportedExtraDataId) => set({ reportedUserName, reportedRoomObjectId, reportedExtraDataId }),
 }));
 
 export const helpStore = createHelpStore();

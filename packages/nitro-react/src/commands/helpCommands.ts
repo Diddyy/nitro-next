@@ -3,8 +3,8 @@
  * - `requestSanctionInfo` (`GetMySanctionStatusComposer`) and `requestReportsStatus`
  *   (`GetCfhMyReportStatusComposer`), both without a body; the answers open their own windows.
  * - The report entry points: `reportUser` (the avatar menu's report), `reportRoom` (the room info's
- *   report) and `reportUserFromIM` (the messenger's report) set who or what is reported and open the
- *   help window on their step (`HelpReportEntry`).
+ *   report), `reportUserFromIM` (the messenger's report) and `reportPhoto` (a wall photo's report)
+ *   set who or what is reported and open the help window on their step (`HelpReportEntry`).
  * - `TopicsFlowHelpController.submitCallForHelp`: first
  *   `ignoreAndUnfriendReportedUser` (ignore the reported user and, if they are a friend, remove
  *   them - except for topic 21, `TOPICS_WITHOUT_IGNORE_AND_UNFRIEND`), then a bullying report goes
@@ -12,13 +12,15 @@
  *   `guardians.enabled` are on, and anything else is a `CallForHelpComposer` with the chat lines
  *   ticked (`ChatReportController.collectSelectedEntries(1, -1)`: user id and text per line). A room
  *   report sends `CallForHelpComposer` with no user and no lines; a messenger report sends
- *   `CallForHelpFromIMComposer` with the conversation's ticked messages.
+ *   `CallForHelpFromIMComposer` with the conversation's ticked messages; a photo report sends
+ *   `CallForHelpFromPhotoComposer`.
  */
 import { GetConfigValue } from '@nitrodevco/nitro-api';
-import { CallForHelpComposer, CallForHelpFromIMComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
+import { CallForHelpComposer, CallForHelpFromIMComposer, CallForHelpFromPhotoComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { helpStore } from '#base/context/help';
+import { roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
@@ -32,10 +34,10 @@ const BULLYING_TOPIC_NAME = 'bullying';
 
 /**
  * Where a report opens the help window (`_-nL`, the reporting mode): `user` is
- * `openReportingChatLineSelection` (mode -1), `room` is `openReportingContentReasonCategory(4)` and
- * `im` is `openReportingIMSelection` (mode 3).
+ * `openReportingChatLineSelection` (mode -1), `room` is `openReportingContentReasonCategory(4)`, `im`
+ * is `openReportingIMSelection` (mode 3) and `photo` is `openReportingContentReasonCategory(9)`.
  */
-export type HelpReportEntry = 'user' | 'room' | 'im';
+export type HelpReportEntry = 'user' | 'room' | 'im' | 'photo';
 
 /** `HabboHelp.reportUser`: the avatar menu's report (`RWUAM_REPORT_CFH_OTHER`). */
 export const reportUser = (userId: number) => {
@@ -66,6 +68,17 @@ export const collectSelectedChatEntries = (): (number | string)[] => helpStore.g
     .filter(item => item.selected)
     .flatMap(item => [ item.userId, item.text ]);
 
+/**
+ * `HabboHelp.startPhotoReportingInNewCfhFlow`: `ExternalImageWidget.openReportImage` - the photo's
+ * sender, their name, the photo's extra data id and its wall item, in the room the user is in.
+ */
+export const reportPhoto = (senderId: number, senderName: string, extraDataId: string, roomObjectId: number) => {
+    helpStore.getState().setReportedRoomId(roomStore.getState().room?.roomId ?? -1);
+    helpStore.getState().setReportedUserId(senderId);
+    helpStore.getState().setReportedPhoto(senderName, roomObjectId, extraDataId);
+    systemStore.getState().showWindow('help', { entry: 'photo', openedAt: performance.now() });
+};
+
 /** `ChatReportController.collectSelectedEntries(3, user)`: the conversation's ticked messages; a group chat's sender id is the start of its name. */
 export const collectSelectedImEntries = (userId: number): (number | string)[] => (helpStore.getState().imItems.find(([ chatId ]) => chatId === userId)?.[1] ?? [])
     .filter(item => item.selected)
@@ -90,6 +103,14 @@ export const submitCallForHelp = (send: Send, message: string, topic: ICallForHe
 
     if (entry === 'im') {
         send(new CallForHelpFromIMComposer({ message, topicId: topic.id, reportedUserId, chatEntries: collectSelectedImEntries(reportedUserId), name: '', email: '' }));
+
+        return;
+    }
+
+    if (entry === 'photo') {
+        const { reportedExtraDataId, reportedRoomObjectId } = helpStore.getState();
+
+        send(new CallForHelpFromPhotoComposer({ extraDataId: reportedExtraDataId, roomId: reportedRoomId, reportedUserId, topicId: topic.id, roomObjectId: reportedRoomObjectId, name: '', email: '' }));
 
         return;
     }

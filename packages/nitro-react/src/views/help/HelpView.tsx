@@ -109,6 +109,7 @@ const firstContainer = (entry: HelpReportEntry | undefined): Container => {
         case 'im':
             return 'chat_container';
         case 'room':
+        case 'photo':
             return 'reason_container';
         default:
             return 'start_container';
@@ -130,6 +131,7 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
     const categories = useHelpStore(x => x.callForHelpCategories);
     const reportedUserId = useHelpStore(x => x.reportedUserId);
     const reportedRoomName = useHelpStore(x => x.reportedRoomName);
+    const storedReportedUserName = useHelpStore(x => x.reportedUserName);
     const imItems = useHelpStore(x => x.imItems);
     /** `_-UZ`. */
     const [ container, setContainer ] = useState<Container>(() => firstContainer(entry));
@@ -151,7 +153,8 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
     const withLines = users.filter(user => chatItems.some(item => item.userId === user.userId)).reverse();
     const listedUsers = [ ...withLines.filter(user => user.userId === reportedUserId), ...withLines.filter(user => user.userId !== reportedUserId) ];
     const reportedUser = users.find(user => user.userId === reportedUserId);
-    const reportedUserName = reportedUser?.userName ?? '';
+    /** `updateUserData`: the registry's name, or the one the report came with. */
+    const reportedUserName = reportedUser?.userName ?? storedReportedUserName;
 
     /** `populateUsers`' side effect: a reported user who is not listed is forgotten. */
     const listUsers = (): boolean => {
@@ -177,6 +180,14 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
             }
 
             helpStore.getState().setHoldPurges(true);
+        }
+
+        if ((entry === 'photo') && (helpStore.getState().reportedUserId === -1)) {
+            // `showReasons(9)`: `verifyUserSelected`.
+            alert('guide.bully.request.usermissing');
+            onClose();
+
+            return;
         }
 
         if (entry === 'im') {
@@ -415,7 +426,7 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
         continue_button: { visible: REQUIRES_CONTINUE_BUTTON.includes(shown), onPointerTap: onContinue },
         user: { visible: REQUIRES_USER_DATA.includes(shown) },
         // `updateBackButtonVisibility`, by the reporting mode.
-        back_button: { visible: (container !== 'start_container') && ((entry === 'im') ? (container !== 'chat_container') : (entry === 'room') ? (container !== 'reason_container') : true), onPointerTap: onBack },
+        back_button: { visible: (container !== 'start_container') && ((entry === 'im') ? (container !== 'chat_container') : ((entry === 'room') || (entry === 'photo')) ? (container !== 'reason_container') : true), onPointerTap: onBack },
 
         // `start_container`.
         reports_status_bitmap: { visible: reportsStatusEnabled },
