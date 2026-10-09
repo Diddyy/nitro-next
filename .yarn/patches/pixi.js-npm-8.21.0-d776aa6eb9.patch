@@ -1,3 +1,33 @@
+diff --git a/lib/events/EventBoundary.js b/lib/events/EventBoundary.js
+index 79c512c8d572ca9f5e495b562bc87f011715d734..53356604facfc4295da624d215e1e588f679a62f 100644
+--- a/lib/events/EventBoundary.js
++++ b/lib/events/EventBoundary.js
+@@ -374,7 +374,9 @@ class EventBoundary {
+     }
+     type ?? (type = e.type);
+     const handlerKey = `on${type}`;
+-    e.currentTarget[handlerKey]?.(e);
++    if (e.eventPhase !== e.CAPTURING_PHASE) {
++      e.currentTarget[handlerKey]?.(e);
++    }
+     const key = e.eventPhase === e.CAPTURING_PHASE || e.eventPhase === e.AT_TARGET ? `${type}capture` : type;
+     this._notifyListeners(e, key);
+     if (e.eventPhase === e.AT_TARGET) {
+diff --git a/lib/events/EventBoundary.mjs b/lib/events/EventBoundary.mjs
+index 7630d15d9493e2fdc04d5753bacba00bbe248080..5b389d2ec4f448edd76b3d6a0ae8a1c990ae9d6b 100644
+--- a/lib/events/EventBoundary.mjs
++++ b/lib/events/EventBoundary.mjs
+@@ -372,7 +372,9 @@ class EventBoundary {
+     }
+     type ?? (type = e.type);
+     const handlerKey = `on${type}`;
+-    e.currentTarget[handlerKey]?.(e);
++    if (e.eventPhase !== e.CAPTURING_PHASE) {
++      e.currentTarget[handlerKey]?.(e);
++    }
+     const key = e.eventPhase === e.CAPTURING_PHASE || e.eventPhase === e.AT_TARGET ? `${type}capture` : type;
+     this._notifyListeners(e, key);
+     if (e.eventPhase === e.AT_TARGET) {
 diff --git a/lib/index.js b/lib/index.js
 index d05452eef05d5dd4fb6b0fabea40165e2270d3b7..49f95e837cc0619013769632da64c7d168980df1 100644
 --- a/lib/index.js

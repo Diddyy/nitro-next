@@ -8,7 +8,7 @@ import { Header } from './Header';
 import { ChildBounds, ReflectResizeContext, useChildBounds, useFrameDrag, useFrameResize, useReflectResizeHost, useThemeVariant } from './hooks';
 import { BackgroundLayer, ShadowLayer } from './layer';
 import { Scaler, ScalerDirection } from './Scaler';
-import { compose, DropShadowConfig, expandSides, getWindowLayer, subscribeWindowLayer, ThemeProps, ThemeVariant, WindowPlacedContext } from './utils';
+import { DropShadowConfig, expandSides, getWindowLayer, subscribeWindowLayer, ThemeProps, ThemeVariant, WindowPlacedContext } from './utils';
 
 export type FrameVariant = ThemeVariant;
 
@@ -147,7 +147,7 @@ export const Frame = ({
     defaultPosition, rememberPosition = true, rememberSize = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
-    const { frameRef, attachFrame, offset, zIndex, revealed, onPointerDown, onHeaderPointerDown } = useFrameDrag(id, { defaultPosition, remember: rememberPosition, centered, onPositionChange });
+    const { frameRef, attachFrame, offset, zIndex, revealed, onHeaderPointerDown } = useFrameDrag(id, { defaultPosition, remember: rememberPosition, centered, onPositionChange });
     /*
      * A window belongs on the window desktop, whoever built it - `buildFromXML(xml, 1)`. A frame
      * mounted outside the layer (every room widget's dialog is mounted over the room canvas) has
@@ -162,7 +162,7 @@ export const Frame = ({
     const windowLayer = useSyncExternalStore(subscribeWindowLayer, getWindowLayer);
     const hostRef = useRef<PixiContainer>(null);
     const { ownCascade, config, handlers, resolvedLayer, resolvedPlain, resolvedOverlay, resolvedShadow, resolvedTint } = useThemeVariant<FrameVariant>({
-        cascadeKey: 'frame', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, dropShadow, onPointerOver, onPointerOut, onPointerDown: compose(onPointerDown, onPointerDownProp), onPointerUp, onPointerUpOutside, onPointerTap,
+        cascadeKey: 'frame', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, dropShadow, interactive: true, onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
     });
     const minWidth = layout?.minWidth ?? config.layout?.minWidth ?? 20;
     const minHeight = layout?.minHeight ?? config.layout?.minHeight ?? 20;

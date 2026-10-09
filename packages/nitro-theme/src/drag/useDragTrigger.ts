@@ -7,9 +7,9 @@ import { DragTargetContext, DragTargetController } from './DragTargetContext';
  * Whether a press on `event.target` reached `event.currentTarget` unclaimed. In the client a
  * `WME_DOWN` goes to the window under the pointer and climbs to its parent only while no window
  * handles it (`MouseEventProcessor.passMouseEvent`), so a button inside a drag bar is pressed, not
- * dragged. Pixi fires a JSX `onPointerDown` on every ancestor whatever the child does (see
- * `useFrameDrag`), so the claim is read off the path instead: a node between the two with a
- * press or click handler of its own takes the press.
+ * dragged. A Pixi press bubbles past a button that handles it unless the button stops it, so
+ * the claim is read off the path instead: a node between the two with a press or click handler
+ * of its own takes the press.
  */
 const reachedUnclaimed = (event: FederatedPointerEvent): boolean => {
     let node = event.target as PixiContainer | null;

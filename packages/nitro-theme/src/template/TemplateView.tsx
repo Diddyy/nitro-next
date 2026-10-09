@@ -1135,8 +1135,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 dragTrigger={dragTriggerOf(element) || undefined}
                 boundToParentRect={element.params?.boundToParent || undefined}
                 disabled={binding?.disabled}
-                // A clickable face takes the tap itself. Pixi calls an ancestor's `onpointertap` in the
-                // capture phase as well as the bubble, so the region holding it too would tap three times.
+                // A clickable face takes the tap itself; the region around it holding the same
+                // handler would run it again as the tap bubbles.
                 onPointerTap={CLICKABLE_FACES.has(element.tag) ? undefined : binding?.onPointerTap}
                 onPointerOver={binding?.onPointerOver}
                 onPointerOut={binding?.onPointerOut}
