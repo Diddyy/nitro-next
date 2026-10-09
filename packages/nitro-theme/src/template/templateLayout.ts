@@ -751,7 +751,7 @@ class LabelWindow extends LayoutWindow {
 
 /**
  * `TextController`: with an `auto_size` other than `none` the field follows the text - `left` takes
- * its width and height, `center` and `right` its height - and a resize from outside is followed by
+ * its width (unless it wraps) and height, `center` and `right` its height - and a resize from outside is followed by
  * one (`setRectangle` sets `autoSize` to `none` and back, which refreshes).
  */
 class TextWindow extends LayoutWindow {
@@ -805,10 +805,11 @@ class TextWindow extends LayoutWindow {
 
         this._refreshing = true;
 
-        const fieldWidth = Math.floor(field.width);
-        const fieldHeight = Math.floor(field.height);
         const innerWidth = this.width - margins.horizontal;
         const innerHeight = this.height - margins.vertical;
+        // A word-wrapped `TextField` keeps its width under `autoSize`, only its height follows the text.
+        const fieldWidth = wraps ? innerWidth : Math.floor(field.width);
+        const fieldHeight = Math.floor(field.height);
 
         if (fieldWidth !== innerWidth && autoSize === 'left') this.setRectangle(this.x, this.y, fieldWidth + margins.horizontal, fieldHeight + margins.vertical);
         if (fieldHeight !== innerHeight) this.setHeight(fieldHeight + margins.vertical);
