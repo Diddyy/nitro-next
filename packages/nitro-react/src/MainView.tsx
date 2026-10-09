@@ -25,6 +25,7 @@ import { UserProfileComponent } from './components/user-profile';
 import { registerHandlers } from './handlers';
 import { useRegisterHandlers } from './hooks';
 import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
+import { BadgeLeaderboardView } from './views/badge-leaderboard/BadgeLeaderboardView';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
 import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
@@ -129,6 +130,8 @@ export const MainView = () => {
                 <GroupManagementComponent />
                 <GroupCreatedComponent />
                 <GroupHcRequiredComponent />
+                {/* `BadgeLeaderboardController`: drawn only while shown. */}
+                <BadgeLeaderboardView />
                 <UserProfileComponent />
                 <CollectiblesComponent />
                 <HabbiconsComponent />

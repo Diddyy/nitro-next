@@ -841,6 +841,7 @@ export * from './Users/HabboGroupDeactivatedMessage';
 export * from './Users/HabboGroupDetailsMessage';
 export * from './Users/HabboGroupJoinFailedMessage';
 export * from './Users/HabboUserBadgesMessage';
+export * from './Users/BadgeLeaderboardResultMessage';
 export * from './Users/HandItemReceivedMessage';
 export * from './Users/IgnoredUsersMessage';
 export * from './Users/IgnoreResultMessage';

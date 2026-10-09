@@ -535,6 +535,7 @@ export * from './Users/GetMemberGuildItemCountComposer';
 export * from './Users/GetMOTDComposer';
 export * from './Users/GetRelationshipStatusInfoComposer';
 export * from './Users/GetSelectedBadgesComposer';
+export * from './Users/GetBadgeLeaderboardComposer';
 export * from './Users/GetUserNftChatStylesComposer';
 export * from './Users/IgnoreUserComposer';
 export * from './Users/JoinHabboGroupComposer';

@@ -791,6 +791,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                                 selected: index === selection,
                                 onSelect: () => binding?.onSelect?.(index),
                             }))}
+                            openRequest={binding?.openRequest}
                             layout={FILL}
                         />
                     )
@@ -1210,7 +1211,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
         const frame = (
             <Frame
                 id={window?.id ?? `${context.idPrefix}${id}`}
-                variant={element.style}
+                // `IFrameWindow.style`, as its code sets it (`BadgeLeaderboardView.setFrameStyle`).
+                variant={binding?.style ?? element.style}
                 caption={captionOf(element, context, binding)}
                 tintColor={tintOf(element, binding)}
                 margins={element.margins ?? [ 0, 0, 0, 0 ]}

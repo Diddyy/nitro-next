@@ -5,7 +5,7 @@ import { bridgeRecyclerRoomSession, registerCatalogPlacementHandlers, registerCa
 import { bridgeCollectiblesInventoryAndPurse, registerCollectiblesHandlers } from './collectibles';
 import { registerEarningsHandlers } from './earnings';
 import { registerGameTokensHandlers } from './game-tokens';
-import { registerGroupForumHandlers, registerGroupHandlers } from './groups';
+import { registerBadgeLeaderboardHandlers, registerGroupForumHandlers, registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
 import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomQueueHandlers } from './navigator';
@@ -92,6 +92,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerGroupHandlers(socket),
         // The group forums' unread count, polled for the me menu.
         registerGroupForumHandlers(socket),
+        // `BadgeLeaderboardController`, a component of the groups manager.
+        registerBadgeLeaderboardHandlers(socket),
         registerAvatarEffectsHandlers(socket),
         registerAvatarEditorHandlers(socket),
         registerMessengerHandlers(socket),

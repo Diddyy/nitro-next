@@ -7,6 +7,7 @@ import { userStore } from '#base/context/user';
 import { getWiredHasReadPermission, getWiredMenuEnabled } from '#base/context/wired';
 
 import { openAchievements } from './achievementCommands';
+import { openBadgeLeaderboardLink } from './badgeLeaderboardCommands';
 import { showEarnings } from './earningsCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
@@ -249,6 +250,12 @@ export const openClientLink = (send: Send, link: string) => {
             const groupId = parseInt(parts[1] ?? '', 10);
 
             if (groupId > 0) send(new GetHabboGroupDetailsComposer({ groupId, openDetails: true }));
+
+            return;
+        }
+        // `BadgeLeaderboardController.linkReceived`: badge_leaderboard/<type>/<rarity>/<page>.
+        case 'badge_leaderboard': {
+            openBadgeLeaderboardLink(send, parts);
 
             return;
         }

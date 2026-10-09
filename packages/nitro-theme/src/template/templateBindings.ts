@@ -129,6 +129,8 @@ export interface TemplateBinding {
     selection?: number;
     /** A drop menu's entry picked (`WE_SELECTED`). */
     onSelect?: (index: number) => void;
+    /** A drop menu's `openMenu()`: a new value opens its list, as its code opens it. */
+    openRequest?: number;
     /**
      * A list's items that show, by name; every other item of the list is hidden. The AS3 pattern of
      * hiding every list item and showing some (`AvatarMenuView.updateButtons`).
@@ -428,6 +430,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.focused === b.focused
         && a.etchingColor === b.etchingColor
         && a.selection === b.selection
+        && a.openRequest === b.openRequest
         && (a.options === b.options || (!!a.options && !!b.options && a.options.length === b.options.length && a.options.every((option, index) => option === b.options?.[index])))
         && a.children === b.children
         && a.keepMounted === b.keepMounted
