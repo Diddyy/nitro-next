@@ -8,8 +8,9 @@
  *   (`HabboInventory.getAllMyBadgeIds`).
  * - `updateAll` -> `forceSelection`: with nothing selected the first badge not worn is, else the
  *   first worn one.
- * - A thumb: the `badge` widget showing the badge, `BG_COLOR` green while `Badge.isUnseen`, the
- *   `outline` while selected; a click selects it (`setBadgeSelected`).
+ * - A thumb: the `badge` widget showing the badge, and the look `set isSelected` last put on it -
+ *   `BG_COLOR` green while `Badge.isUnseen`, the `outline` while selected - or, before any, the
+ *   layout's own, outlined (see `InventoryBadgesSlice`); a click selects it (`setBadgeSelected`).
  * - `updateActionView`: `wearBadge_button` wears or clears the selection (`toggleBadgeWearing` ->
  *   `saveBadgeSelection`), disabled with none selected or with five worn and the selection not one
  *   of them; `badge_image`, `badgeName`, `badgeDescription` (only when there is one), the rarity
@@ -56,7 +57,8 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
     const badges = useInventoryStore(x => x.badges);
     const wornBadgeCodes = useInventoryStore(x => x.wornBadgeCodes);
     const selectedBadgeCode = useInventoryStore(x => x.selectedBadgeCode);
-    const { selectBadge } = useInventoryBadgesActions();
+    const thumbLooks = useInventoryStore(x => x.badgeThumbLooks);
+    const { selectBadge, markBadgeThumbWindows } = useInventoryBadgesActions();
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
     // `BadgesModel.isUncommonBadgeRarityEnabled`: without it the uncommon tier is shown as common.
     const uncommonRarityEnabled = useConfigValue<boolean>('badge_rarity.uncommon') === true;
@@ -81,8 +83,6 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
     useEffect(() => {
         if (active && !selectedBadge && firstBadgeCode) selectBadge(firstBadgeCode);
     }, [ active, selectedBadge, firstBadgeCode, selectBadge ]);
-
-    if (!active) return NO_INVENTORY_PAGE;
 
     const { rarityIds, hasCommonGroup } = getInventoryBadgeRarityIds(badges, uncommonRarityEnabled);
     const rarityEntries = [ INVENTORY_BADGE_RARITY_ALL, ...(hasCommonGroup ? [ INVENTORY_BADGE_RARITY_COMMON ] : []), ...rarityIds ];
@@ -125,6 +125,16 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
     const shownPage = Math.max(0, Math.min(currentPage, pageCount - 1));
     const pageBadges = passedBadges.slice(shownPage * INVENTORY_GRID_PAGE_SIZE, (shownPage + 1) * INVENTORY_GRID_PAGE_SIZE);
 
+    // `Badge.window`: the thumbs the grids show have been made - after `forceSelection` above, as
+    // `updateAll` selects before `updateListViews` builds them.
+    const shownCodes = active ? [ ...pageBadges, ...activeBadges ].map(badge => badge.code).join(' ') : '';
+
+    useEffect(() => {
+        if (shownCodes) markBadgeThumbWindows(shownCodes.split(' '));
+    }, [ shownCodes, markBadgeThumbWindows ]);
+
+    if (!active) return NO_INVENTORY_PAGE;
+
     /** `updateAll(null)`: the box's caption is the search term. */
     const update = (caption: string = filterCaption) => setSearchTerm(caption);
 
@@ -141,7 +151,8 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
         from: thumbTemplate,
         bindings: {
             '': { onPointerTap: () => selectBadge(badge.code) },
-            ...inventoryThumbLook(badge.code === selectedBadgeCode, badge.isUnseen),
+            // `set isSelected`'s look once it has reached this thumb; the layout's own until then.
+            ...(thumbLooks[badge.code] ? inventoryThumbLook(thumbLooks[badge.code].selected, thumbLooks[badge.code].unseen) : {}),
             badge: { visible: true, asset: badgeUrl.replace('%badgename%', badge.code) },
         },
     };
