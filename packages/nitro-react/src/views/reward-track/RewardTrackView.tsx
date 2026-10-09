@@ -58,6 +58,10 @@ const MAIN_BAR_SHAPE_OVERHANG = 4;
 /** The task rows' and the levels' bars. */
 const TASK_BAR_WIDTH = 200;
 const LEVEL_BAR_WIDTH = 260;
+/** `levels` (150 high, `spacing` 9) and its `level_template` (44 high): what `scrollActiveLevelIntoView` measures. */
+const LEVELS_HEIGHT = 150;
+const LEVELS_SPACING = 9;
+const LEVEL_HEIGHT = 44;
 /** `RewardTrackPrizeView.refresh`: the product rises this much when its amount shows. */
 const QUANTITY_ICON_RISE = 3;
 /** `refreshState`'s `disableSection(window, !hasEnoughPoints, 0.75)`. */
@@ -140,6 +144,8 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
     const [ filter, setFilter ] = useState(FILTER_ALL);
     const [ hoveredFilter, setHoveredFilter ] = useState(-1);
     const [ selectedTaskId, setSelectedTaskId ] = useState<string | undefined>(undefined);
+    // `levels`' scroll: its top's place in the list, and the share of its range (`scrollV`).
+    const [ levelsScroll, setLevelsScroll ] = useState({ y: 0, ratio: 0 });
     const [ hoveredTaskId, setHoveredTaskId ] = useState<string | undefined>(undefined);
     const pageIndex = Math.max(0, Math.min(layout.pageCount - 1, page));
 
@@ -218,6 +224,34 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
     ], track);
     const showsPremiumUpgrade = track.hasPremiumConfig && !track.premium;
 
+    /**
+     * `RewardTrackTaskListView.selectTask` -> `RewardTrackTaskDetailsView.selectTask`, ending in
+     * `scrollActiveLevelIntoView`: with more levels than fit, the list scrolls just far enough for the
+     * active level to show, from where it was (the place this window last scrolled it to).
+     */
+    const selectTask = (task: RewardTrackTask) => {
+        setSelectedTaskId(task.id);
+
+        const count = task.levels.length;
+        const maxScroll = (count * LEVEL_HEIGHT) + (Math.max(0, count - 1) * LEVELS_SPACING) - LEVELS_HEIGHT;
+
+        if (maxScroll <= 0) {
+            setLevelsScroll({ y: 0, ratio: 0 });
+
+            return;
+        }
+
+        const top = getRewardTrackTaskActiveLevelIndex(task) * (LEVEL_HEIGHT + LEVELS_SPACING);
+        const bottom = top + LEVEL_HEIGHT;
+        const visibleY = Math.min(levelsScroll.y, maxScroll);
+        let y = visibleY;
+
+        if (top < visibleY) y = top;
+        else if (bottom > (visibleY + LEVELS_HEIGHT)) y = bottom - LEVELS_HEIGHT;
+
+        if (y !== levelsScroll.y) setLevelsScroll({ y, ratio: y / maxScroll });
+    };
+
     /** `RewardTrackTaskRowView`. */
     const taskItem = (task: RewardTrackTask): TemplateItem => {
         const level = getRewardTrackTaskActiveLevel(task);
@@ -231,7 +265,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
             from: 'task_template',
             bindings: {
                 '': {
-                    onPointerTap: () => setSelectedTaskId(task.id),
+                    onPointerTap: () => selectTask(task),
                     onPointerOver: () => setHoveredTaskId(task.id),
                     onPointerOut: () => setHoveredTaskId(current => ((current === task.id) ? undefined : current)),
                 },
@@ -342,7 +376,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
             task_info_description: { caption: t(`reward_track.${track.id}.task.${selectedTask.id}.desc`, `reward_track.${track.id}.task.${selectedTask.id}.desc`), setCaptionAfterBuild: true },
             task_hint_text: { caption: t(`${hintKey}.desc`, `${hintKey}.desc`), setCaptionAfterBuild: true },
             hint_redirect_btn: { visible: hintLink !== '', caption: t(`${hintKey}.button_text`, `${hintKey}.button_text`), onPointerTap: () => openClientLink(send, hintLink) },
-            levels: { items: levelItems(selectedTask) },
+            levels: { items: levelItems(selectedTask), scrollV: levelsScroll.ratio },
         }),
     };
 
