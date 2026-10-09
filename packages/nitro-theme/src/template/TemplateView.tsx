@@ -22,7 +22,7 @@
  * same way.
  */
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
-import { Graphics as PixiGraphics } from 'pixi.js';
+import { Container as PixiContainer, Graphics as PixiGraphics, RenderLayer } from 'pixi.js';
 import { createContext, memo, ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { Border } from '../Border';
@@ -339,17 +339,146 @@ const overlaps = (element: TemplateElement, rects: DisplayRect[]) => rects.some(
  * regions). Elsewhere it keeps its place, over the earlier sibling's face drawn into the same
  * context (the badges page's `filter.rarity` over `options_container`).
  */
-const childDrawOrder = (element: TemplateElement): number[] => {
+const childDrawOrder = (element: TemplateElement): { order: number[]; moved: Set<number> } => {
     const order: number[] = [];
+    const moved = new Set<number>();
 
     element.children.forEach((child, index) => {
         const under = drawsIntoParentOnly(child) ? order.findIndex(earlier => !drawsIntoParentOnly(element.children[earlier]) && overlaps(child, displayRectsOf(element.children[earlier]))) : -1;
 
-        if (under < 0) order.push(index);
-        else order.splice(under, 0, index);
+        if (under < 0) {
+            order.push(index);
+        } else {
+            order.splice(under, 0, index);
+            moved.add(index);
+        }
     });
 
-    return order;
+    return { order, moved };
+};
+
+/**
+ * Where a press lands is the window tree's business, not the drawing's: `MouseEventProcessor` takes
+ * the windows under the point that process input (`groupParameterFilteredChildrenUnderPoint(point,
+ * list, 1)`, in tree order) and tries the last first, so a later sibling takes the press over an
+ * earlier one wherever they meet - whichever of them draws on top. Pixi hits in the order it draws,
+ * so the children stay in tree order and a child `childDrawOrder` moves under an earlier sibling is
+ * only drawn there, through a `RenderLayer` placed before that sibling (which hit testing ignores):
+ * `sanction_info_xml`'s `ok_button` draws under `faq_link`'s display object and still takes the
+ * press where the link's box covers it.
+ *
+ * `drawOrder` is the order of `indices` (a subset of the children) as they draw. A moved child that
+ * still draws after every child before it in the tree is in place and needs no layer.
+ */
+const treeOrderedChildren = (drawOrder: number[], moved: Set<number>, views: Map<number, ReactNode>, layers: (slot: number) => RenderLayer): ReactNode[] => {
+    const slots = new Map<number, number[]>();
+    const relayered = new Map<number, number>();
+
+    drawOrder.forEach((index, position) => {
+        if (!moved.has(index)) return;
+
+        const next = drawOrder.slice(position + 1).find(later => !moved.has(later));
+
+        if ((next === undefined) || (next > index)) return;
+
+        slots.set(next, [ ...(slots.get(next) ?? []), index ]);
+        relayered.set(index, next);
+    });
+
+    if (!relayered.size) return drawOrder.map(index => views.get(index));
+
+    const out: ReactNode[] = [];
+
+    for (const index of [ ...drawOrder ].sort((a, b) => a - b)) {
+        if (slots.has(index)) {
+            out.push(
+                <DrawSlot
+                    key={`draw-slot:${index}`}
+                    layer={layers(index)}
+                />,
+            );
+        }
+
+        const slot = relayered.get(index);
+
+        out.push(slot === undefined
+            ? views.get(index)
+            : (
+                    <DrawnIn
+                        key={`drawn-in:${index}`}
+                        layer={layers(slot)}
+                    >
+                        {views.get(index)}
+                    </DrawnIn>
+                ));
+    }
+
+    return out;
+};
+
+/** A `RenderLayer` at its place among its siblings: what is attached to it draws here. */
+const DrawSlot = ({ layer }: { layer: RenderLayer }) => {
+    const [ node, setNode ] = useState<PixiContainer | null>(null);
+
+    useEffect(() => {
+        if (!node) return;
+
+        node.addChild(layer);
+
+        return () => {
+            node.removeChild(layer);
+        };
+    }, [ node, layer ]);
+
+    return (
+        <Box
+            ref={setNode}
+            pointerTransparent
+            eventMode="none"
+            layout={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0 }}
+        />
+    );
+};
+
+/** A child at its place in the tree, for hit testing, drawn through `layer`. */
+const DrawnIn = ({ layer, children }: { layer: RenderLayer; children: ReactNode }) => {
+    const [ node, setNode ] = useState<PixiContainer | null>(null);
+
+    useEffect(() => {
+        if (!node) return;
+
+        layer.attach(node);
+
+        return () => {
+            layer.detach(node);
+        };
+    }, [ node, layer ]);
+
+    return (
+        <Box
+            ref={setNode}
+            pointerTransparent
+            layout={FILL}
+        >
+            {children}
+        </Box>
+    );
+};
+
+/** The render layers of one window's children, by the sibling they draw before; made once each. */
+const useDrawLayers = () => {
+    const [ layers ] = useState(() => new Map<number, RenderLayer>());
+
+    return (slot: number) => {
+        let layer = layers.get(slot);
+
+        if (!layer) {
+            layer = new RenderLayer();
+            layers.set(slot, layer);
+        }
+
+        return layer;
+    };
 };
 
 /**
@@ -999,6 +1128,7 @@ interface ElementViewProps {
 const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementViewProps) => {
     const state = useSyncExternalStore(context.store.subscribe, () => context.store.get(element));
     const scrollLinks = useContext(ScrollLinksContext);
+    const drawLayers = useDrawLayers();
     const binding = state?.binding;
     const rect: TemplateRect = state?.rect ?? element;
     // A list's `show` decides for its items; otherwise the binding, over the layout.
@@ -1058,7 +1188,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     const childFlow = FLOWS[element.tag];
     const show = list ? binding?.show : undefined;
     // The order the children draw in (`childDrawOrder`). A flow lays its children out in their order, so its children keep it.
-    const drawOrder = (!childFlow && (element.tag !== 'selector')) ? childDrawOrder(element) : element.children.map((_, index) => index);
+    const { order: drawOrder, moved } = (!childFlow && (element.tag !== 'selector')) ? childDrawOrder(element) : { order: element.children.map((_, index) => index), moved: new Set<number>() };
 
     const childViews = drawOrder.map((index) => {
         const child = element.children[index];
@@ -1094,7 +1224,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                             ))}
                         </Box>
                     )
-                : childViews}
+                : treeOrderedChildren(drawOrder, moved, new Map(drawOrder.map((index, position) => [ index, childViews[position] ])), drawLayers)}
             {binding?.children}
         </>
     );
@@ -1115,7 +1245,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             );
         }
 
-        const ownContext = (index: number) => !templateUsesParentGraphics(element.children[drawOrder[index]]);
+        const ownContext = (index: number) => !templateUsesParentGraphics(element.children[index]);
+        const views = new Map(drawOrder.map((index, position) => [ index, childViews[position] ]));
 
         return (
             <>
@@ -1124,10 +1255,10 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                     layout={{ ...FILL, overflow: 'hidden' }}
                 >
                     {face}
-                    {childViews.filter((_, index) => !ownContext(index))}
+                    {treeOrderedChildren(drawOrder.filter(index => !ownContext(index)), moved, views, drawLayers)}
                     {binding?.children}
                 </Box>
-                {childViews.filter((_, index) => ownContext(index))}
+                {drawOrder.filter(index => ownContext(index)).map(index => views.get(index))}
             </>
         );
     };
