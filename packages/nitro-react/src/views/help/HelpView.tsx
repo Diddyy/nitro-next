@@ -2,34 +2,94 @@
  * The help window - `TopicsFlowHelpController` over `habbo-help-com/topics_flow_help_xml`, built as a
  * modal dialog (`HabboHelp.getModalXmlWindow("topics_flow_help")`, centred over the darkened client).
  *
- * `toggleWindow` opens it on `start_container`: `showContainer` hides every other container of the
- * flow (`help_container`, `users_container`, `user`, `reason_container`, `message_container`,
- * `chat_container`, `summary_container`) and the back and continue buttons, and `openWindow` hides the
- * reports status link and its icon unless `my.reports.status.enabled`. The layout itself hides
- * `button_habbo_help`, so the start page offers "Someone is misbehaving" and the support centre.
+ * `toggleWindow` opens it on `start_container`. `showContainer` shows one container at a time: it
+ * hides every container of `_containers` (`start_container`, `help_container`, `users_container`,
+ * `user`, `reason_container`, `message_container`, `chat_container`, `back_button`,
+ * `summary_container`), shows the continue button for `REQUIRES_CONTINUE_BUTTON`, the reported
+ * user's strip (`user`) for `REQUIRES_USER_DATA`, and the back button everywhere but the start page
+ * (`updateBackButtonVisibility` for a report started here). `openWindow` hides the reports status
+ * link and its icon unless `my.reports.status.enabled`. The layout itself hides `button_habbo_help`.
  *
- * `windowEventProcedure` on the start page:
+ * The start page (`windowEventProcedure`):
  * - `button_account` opens `zendesk.url` in the hotel's main browser window and closes the window.
  * - `faq_link` opens `cfh.faq.url` (`openCfhFaq`, nothing when it is empty); the window stays.
- * - `sanction_info_link` asks for the sanction status (`requestSanctionInfo`) and closes the window.
- * - `reports_status` asks for the reports status (`requestReportsStatus`) and closes the window.
- * - `button_user_report` starts the report flow (the users seen chatting, then their chat lines,
- *   a topic and a summary), which needs the client's chat and user registries; the port has not got
- *   them yet, so the button does nothing.
+ * - `sanction_info_link` / `reports_status` ask for the sanction / reports status and close it.
+ * - `button_user_report` ("Someone is misbehaving") starts a report:
+ *   1. `users_container` (`populateUsers`): one `user_prototype` per user of the user registry who
+ *      said something the chat registry kept - their head, name and the room they were seen in, the
+ *      user being reported highlighted (`user_bg` at full blend). A click picks the user and their
+ *      room (`selectUserToReport`). With nobody to list, `help.cfh.error.nochathistory` instead.
+ *   2. Continue (`verifyUserSelected`) -> `chat_container` (`populateChatMessage`): the reported
+ *      user's lines with a checkbox each; a line ticked from another room makes that room the
+ *      reported one (`onChatEntryEvent`).
+ *   3. Continue (`verifySelectedChatLines`) -> `reason_container` (`populateReasons`): one button per
+ *      category (`help.cfh.reason.<name>`); a category's button lists its topics in the same list
+ *      (`populateTopics`, `help.cfh.topic.<id>` with the user's name), and a topic opens
+ *      `message_container` (`onReportTopic`).
+ *   4. Continue (`verifyMessage`) -> `summary_container`; `submit_button` sends the report
+ *      (`submitCallForHelp`) and closes the window.
+ *   Back walks the steps back as `windowEventProcedure`'s `back_button` does; `change_user` goes to
+ *   the user list again.
  */
-import { requestCfhReportsStatus, requestSanctionStatus } from '#base/commands/helpCommands';
+import { AvatarGenderType } from '@nitrodevco/nitro-api';
+import type { ICallForHelpTopic } from '@nitrodevco/nitro-packets';
+import { useEffect, useState } from 'react';
+
+import { collectSelectedChatEntries, requestCfhReportsStatus, requestSanctionStatus, submitCallForHelp } from '#base/commands/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue } from '#base/context/system';
-import { ModalDialog, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { helpStore, HelpUserItem, useHelpStore } from '#base/context/help';
+import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useUserStore } from '#base/context/user';
+import { ModalDialog, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useAvatarImageTexture, useTemplateFrame } from '#base/theme';
+
+import { HelpMessageInput } from './HelpMessageInput';
 
 const TEMPLATE = 'habbo-help-com/topics_flow_help_xml';
 
-/** `_containers` and the continue button: everything `showContainer("start_container")` leaves hidden. */
-const HIDDEN_ON_START = [ 'help_container', 'users_container', 'user', 'reason_container', 'message_container', 'chat_container', 'back_button', 'summary_container', 'continue_button' ];
+/** `_containers`: what `showContainer` hides before it shows one. */
+const CONTAINERS = [ 'start_container', 'help_container', 'users_container', 'user', 'reason_container', 'message_container', 'chat_container', 'back_button', 'summary_container' ];
+const REQUIRES_CONTINUE_BUTTON = [ 'users_container', 'message_container', 'chat_container' ];
+const REQUIRES_USER_DATA = [ 'reason_container', 'message_container', 'chat_container', 'summary_container' ];
 
-/** `HabboWebTools.openWebPage(url, "habboMain")`. */
-const openWebPage = (url: string | undefined) => {
-    if (url?.length) window.open(url, 'habboMain');
+/** `_unlawfulCategories`. */
+const UNLAWFUL_CATEGORIES = [ 'unlawful_activity' ];
+
+/** `FIELD_MAX_CHARS`: `help_message`'s `maxChars`. */
+const FIELD_MAX_CHARS = 253;
+/** `showContainer("message_container")` makes `help_message` this high. */
+const HELP_MESSAGE_HEIGHT = 220;
+/** `help.cfh.length.minimum`'s default. */
+const MESSAGE_MINIMUM_LENGTH_DEFAULT = 15;
+/** `AvatarImageWidget`'s default direction, `southeast`. */
+const AVATAR_DIRECTION = 2;
+
+type Container = 'start_container' | 'help_container' | 'users_container' | 'reason_container' | 'topic_container' | 'message_container' | 'chat_container' | 'summary_container';
+
+/** A head drawn into an `avatar_image` widget (`only_head`, optionally `cropped`). */
+const AvatarHead = ({ figure, cropped }: { figure: string; cropped: boolean }) => {
+    const head = useAvatarImageTexture(figure, AvatarGenderType.Male, { headOnly: true, cropped, direction: AVATAR_DIRECTION });
+
+    if (!head.texture) return null;
+
+    return (
+        <pixiSprite
+            texture={head.texture}
+            eventMode="none"
+            layout={{ position: 'absolute', left: 0, top: 0, width: head.width, height: head.height }}
+        />
+    );
+};
+
+/** A list item's text grown to its lines plus 5 and the item to hold it (`populateTopics`, `populateChatMessage`). */
+const fitListText = (textName: string, extra: number) => ({ find, root }: TemplateWindows) => {
+    const text = find(textName);
+    const item = root();
+
+    if (!text || !item) return;
+
+    if (text.height < text.textHeight) text.setHeight(text.textHeight + 5);
+
+    if (item.height < (text.height + (text.y * 2) + extra)) item.setHeight(text.height + (text.y * 2) + extra);
 };
 
 export interface HelpViewProps {
@@ -37,16 +97,236 @@ export interface HelpViewProps {
 }
 
 export const HelpView = ({ onClose }: HelpViewProps) => {
+    const t = useTranslation();
     const { send } = useWebSocketContext();
+    const { showAlert } = useWindowActions();
     const zendeskUrl = useConfigValue<string>('zendesk.url');
     const faqUrl = useConfigValue<string>('cfh.faq.url');
     const reportsStatusEnabled = useConfigValue<boolean>('my.reports.status.enabled') === true;
+    const minimumLength = useConfigValue<number>('help.cfh.length.minimum') ?? MESSAGE_MINIMUM_LENGTH_DEFAULT;
     const frame = useTemplateFrame({ id: 'help_topics_flow', modal: true, rememberPosition: false, resizeDirection: 'none', onClose });
+    const ownUserId = useUserStore(x => x.userId);
+    const users = useHelpStore(x => x.users);
+    const chatItems = useHelpStore(x => x.chatItems);
+    const categories = useHelpStore(x => x.callForHelpCategories);
+    const reportedUserId = useHelpStore(x => x.reportedUserId);
+    /** `_-UZ`. */
+    const [ container, setContainer ] = useState<Container>('start_container');
+    /** `name`: the category picked. */
+    const [ categoryName, setCategoryName ] = useState('');
+    /** `_-325`: the topic picked. */
+    const [ topic, setTopic ] = useState<ICallForHelpTopic | undefined>(undefined);
+    const [ message, setMessage ] = useState('');
+
+    // `openWindow`: `deselectChatEntries`.
+    useEffect(() => helpStore.getState().deselectChatItems(), []);
+
+    const alert = (key: string) => showAlert(t('generic.alert.title'), t(key), { modal: true });
+
+    /**
+     * `populateUsers`: the registry's users who said something the chat registry kept. Each is added
+     * at the top of the list, and after the reported user at the second place - so the reported
+     * user first, then the others newest first.
+     */
+    const withLines = users.filter(user => chatItems.some(item => item.userId === user.userId)).reverse();
+    const listedUsers = [ ...withLines.filter(user => user.userId === reportedUserId), ...withLines.filter(user => user.userId !== reportedUserId) ];
+    const reportedUser = users.find(user => user.userId === reportedUserId);
+    const reportedUserName = reportedUser?.userName ?? '';
+
+    /** `populateUsers`' side effect: a reported user who is not listed is forgotten. */
+    const listUsers = (): boolean => {
+        if (!listedUsers.some(user => user.userId === helpStore.getState().reportedUserId)) {
+            helpStore.getState().setReportedUserId(-1);
+            helpStore.getState().setReportedRoomId(-1);
+        }
+
+        return listedUsers.length > 0;
+    };
+
+    /** `button_user_report` / `change_user`. */
+    const showUsers = () => {
+        if (listUsers()) setContainer('users_container');
+        else alert('help.cfh.error.nochathistory');
+    };
+
+    /** `selectUserToReport`. */
+    const selectUser = (user: HelpUserItem) => {
+        helpStore.getState().setReportedUserId(user.userId);
+        helpStore.getState().setReportedRoomId(user.roomId);
+    };
+
+    /** `populateChatMessage`: the reported user's lines (every line with nobody reported), never the user's own. */
+    const chatLines = chatItems.filter(item => ((reportedUserId > 0) ? (item.userId === reportedUserId) : true) && (item.userId !== ownUserId));
+
+    /** `onChatEntryEvent`. */
+    const toggleChatLine = (index: number) => {
+        const item = helpStore.getState().chatItems.find(entry => entry.index === index);
+
+        if (!item) return;
+
+        if (!item.selected && (item.roomId !== helpStore.getState().reportedRoomId)) helpStore.getState().setReportedRoomId(item.roomId);
+
+        helpStore.getState().setChatItemSelected(index, !item.selected);
+    };
+
+    /** `populateTopics`: the category's topics in the reason list, or false when it has none. */
+    const showTopics = (name: string) => {
+        setCategoryName(name);
+
+        const topics = categories.find(category => category.name === name)?.topics;
+
+        if (topics?.length) setContainer('topic_container');
+    };
+
+    /** `onReportTopic`. */
+    const pickTopic = (picked: ICallForHelpTopic) => {
+        setTopic(picked);
+        setContainer('message_container');
+    };
+
+    /** `verifyMessage`. Flash hides the unlawful fields on every `showContainer`, so they are always empty here. */
+    const verifyMessage = (): boolean => {
+        if (UNLAWFUL_CATEGORIES.includes(categoryName)) {
+            alert('help.emergency.main.step.one.description');
+
+            return false;
+        }
+
+        if (!message) {
+            alert('help.cfh.error.nomsg');
+
+            return false;
+        }
+
+        if (message.length < minimumLength) {
+            alert('help.cfh.error.msgtooshort');
+
+            return false;
+        }
+
+        return true;
+    };
+
+    const onBack = () => {
+        switch (container) {
+            case 'reason_container':
+                setContainer('chat_container');
+                break;
+            case 'topic_container':
+            case 'message_container':
+                setContainer('reason_container');
+                break;
+            case 'chat_container':
+                if (listUsers()) setContainer('users_container');
+                else setContainer('start_container');
+                break;
+            case 'summary_container':
+                setContainer('message_container');
+                break;
+            default:
+                setContainer('start_container');
+        }
+    };
+
+    const onContinue = () => {
+        switch (container) {
+            case 'users_container':
+                // `verifyUserSelected`.
+                if (helpStore.getState().reportedUserId === -1) {
+                    alert('guide.bully.request.usermissing');
+                    break;
+                }
+
+                // `populateChatMessage` holds the purges, and nothing lets them go again.
+                helpStore.getState().setHoldPurges(true);
+                setContainer('chat_container');
+                break;
+            case 'message_container':
+                if (verifyMessage()) setContainer('summary_container');
+                break;
+            case 'chat_container':
+                // `verifySelectedChatLines`.
+                if (!collectSelectedChatEntries().length) {
+                    alert('help.cfh.error.chatmissing');
+                    break;
+                }
+
+                setContainer('reason_container');
+                break;
+            default:
+                setContainer('start_container');
+        }
+    };
+
+    const onSubmit = () => {
+        if (!topic) {
+            alert('help.cfh.error.notopic');
+
+            return;
+        }
+
+        submitCallForHelp(send, message, topic, true);
+        onClose();
+    };
+
+    /** The container `showContainer` showed; `topic_container` is the reason list showing topics. */
+    const shown = (container === 'topic_container') ? 'reason_container' : container;
+
+    const userItems: TemplateItem[] = listedUsers.map(user => ({
+        key: String(user.userId),
+        from: 'user_prototype',
+        bindings: {
+            '': { onPointerTap: () => selectUser(user) },
+            user_bg: { alpha: (user.userId === reportedUserId) ? 1 : 0 },
+            user_name: { caption: user.userName },
+            room_name: { caption: user.roomName ? t('help.emergency.main.step.two.room.name', '', { room_name: user.roomName }) : '' },
+            user_avatar: { children: (
+                <AvatarHead
+                    figure={user.figure}
+                    cropped={false}
+                />
+            ) },
+        },
+    }));
+
+    const chatLineItems: TemplateItem[] = chatLines.map(item => ({
+        key: String(item.index),
+        from: 'chat_prototype',
+        bindings: {
+            chat_text: { caption: item.text, onPointerTap: () => toggleChatLine(item.index) },
+            chat_check: { selected: item.selected, onPointerTap: () => toggleChatLine(item.index) },
+        },
+        arrange: fitListText('chat_text', 0),
+    }));
+
+    const topics = (container === 'topic_container') ? (categories.find(category => category.name === categoryName)?.topics ?? []) : [];
+    const reasonItems: TemplateItem[] = (container === 'topic_container')
+        ? topics.map(entry => ({
+                key: `topic_${entry.id}`,
+                from: 'reason_prototype',
+                bindings: {
+                    '': { onPointerTap: () => pickTopic(entry) },
+                    name: { caption: t(`help.cfh.topic.${entry.id}`, '', { name: reportedUserName }) },
+                },
+                arrange: fitListText('name', 5),
+            }))
+        : categories.map(category => ({
+                key: `reason_${category.name}`,
+                from: 'reason_prototype',
+                bindings: {
+                    '': { onPointerTap: () => showTopics(category.name) },
+                    name: { caption: `\${help.cfh.reason.${category.name}}` },
+                },
+            }));
 
     const bindings: TemplateBindings = {
-        // The layout builds `start_container` hidden too; `showContainer` shows it.
-        start_container: { visible: true },
-        ...Object.fromEntries(HIDDEN_ON_START.map(name => [ name, { visible: false } ])),
+        ...Object.fromEntries(CONTAINERS.map(name => [ name, { visible: false } ])),
+        [shown]: { visible: true },
+        continue_button: { visible: REQUIRES_CONTINUE_BUTTON.includes(shown), onPointerTap: onContinue },
+        user: { visible: REQUIRES_USER_DATA.includes(shown) },
+        back_button: { visible: shown !== 'start_container', onPointerTap: onBack },
+
+        // `start_container`.
         reports_status_bitmap: { visible: reportsStatusEnabled },
         reports_status: {
             visible: reportsStatusEnabled,
@@ -57,17 +337,60 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
         },
         button_account: {
             onPointerTap: () => {
-                openWebPage(zendeskUrl);
+                if (zendeskUrl?.length) window.open(zendeskUrl, 'habboMain');
                 onClose();
             },
         },
-        faq_link: { onPointerTap: () => openWebPage(faqUrl) },
+        faq_link: { onPointerTap: () => { if (faqUrl?.length) window.open(faqUrl, 'habboMain'); } },
         sanction_info_link: {
             onPointerTap: () => {
                 requestSanctionStatus(send);
                 onClose();
             },
         },
+        button_user_report: { onPointerTap: showUsers },
+
+        // `users_container`.
+        user_list: { items: userItems },
+
+        // `user` (`updateUserData`).
+        reported_user_avatar: { visible: !!reportedUser, children: reportedUser && (
+            <AvatarHead
+                figure={reportedUser.figure}
+                cropped
+            />
+        ) },
+        reported_user_name: { caption: reportedUserName },
+        change_user: { onPointerTap: showUsers },
+
+        // `chat_container`.
+        chat_list: { items: chatLineItems },
+
+        // `reason_container`.
+        reason_list: { items: reasonItems },
+
+        // `message_container`: the unlawful fields stay hidden, and the description is the default one.
+        unlawful_message_content: { visible: false },
+        message_container_description: { caption: '${help.emergency.main.step.one.description}' },
+        help_message: {
+            children: (
+                <HelpMessageInput
+                    value={message}
+                    onChange={setMessage}
+                    maxChars={FIELD_MAX_CHARS}
+                    emptyMessage={t('help.emergency.main.step.one.entry.instruction')}
+                    width={390}
+                    height={HELP_MESSAGE_HEIGHT}
+                />
+            ),
+        },
+
+        // `summary_container`.
+        submit_button: { onPointerTap: onSubmit },
+    };
+
+    const arrange = ({ find }: TemplateWindows) => {
+        find('help_message')?.setHeight(HELP_MESSAGE_HEIGHT);
     };
 
     return (
@@ -76,6 +399,7 @@ export const HelpView = ({ onClose }: HelpViewProps) => {
                 id={TEMPLATE}
                 frame={frame}
                 bindings={bindings}
+                arrange={arrange}
             />
         </ModalDialog>
     );
