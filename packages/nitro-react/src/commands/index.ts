@@ -2,6 +2,7 @@
 export * from './achievementCommands';
 export * from './avatarEditorCommands';
 export * from './badgeLeaderboardCommands';
+export * from './cameraCommands';
 export * from './catalogBuildersClubCommands';
 export * from './catalogClubCommands';
 export * from './catalogCommands';

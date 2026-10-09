@@ -61,6 +61,9 @@ export type WindowRegistry = {
     /** The toolbar's "other settings" (`OtherSettingsView`), from the settings list under the purse. */
     toolbar_other_settings: NoWindowParams;
 
+    /** The room camera's viewfinder (`CameraViewFinder`), from the toolbar's camera icon. */
+    camera: NoWindowParams;
+
     /** The toolbar's sound settings (`SoundSettingsView`), from the settings list under the purse. */
     toolbar_sound_settings: NoWindowParams;
 

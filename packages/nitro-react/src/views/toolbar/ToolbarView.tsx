@@ -36,7 +36,7 @@ import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Ticker } from 'pixi.js';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
-import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, showQuests, toggleCatalog } from '#base/commands';
+import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, showQuests, startTakingPhoto, toggleCatalog } from '#base/commands';
 import { unseenSkipped, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
 import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
@@ -357,7 +357,7 @@ export const ToolbarView = () => {
         },
         icon_me_menu: meMenuIcon ? { asset: meMenuIcon } : { visible: false },
         WIRED_MENU: { onPointerTap: iconClick(() => toggleWindow('wired_menu')) },
-        CAMERA: { onPointerTap: iconClick() },
+        CAMERA: { onPointerTap: iconClick(startTakingPhoto) },
     };
 
     for (const toggle of toggles) {
