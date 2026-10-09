@@ -498,8 +498,8 @@ const DrawnIn = ({ layer, children }: { layer: RenderLayer; children: ReactNode 
  * puts the clip on `getDisplayObject()` (its drawn bitmap), while each child context is added beside
  * it (`addChildContext`), unmasked, and `WindowRenderer.childRectToClippedDrawRegion` clips a window's
  * drawing by its ancestors only while each draws into its parent's (`use_parent_graphic_context`). So a
- * window with a context of its own anywhere under a clipping window - not only its direct children,
- * which `drawn` already leaves out of the mask - draws uncut: the HC tab's `chat_flood_sensitivity`
+ * window with a context of its own anywhere under a clipping window - its direct children and those
+ * deeper down - draws uncut: the HC tab's `chat_flood_sensitivity`
  * drop menu, inside `tab_container_4` (which draws into `content_container`'s context and reaches
  * 26 px past it). Such a window stays in the tree, where hit testing finds it, and draws through this
  * layer, which sits after the mask; below it the context is cleared, as its subtree is in its own.
@@ -1299,7 +1299,9 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
      * The face and the children, as a window that clips draws them: its mask cuts only what is drawn
      * into its own graphic context - its face, the children with `use_parent_graphic_context`, and
      * what its code adds - while a child with a context of its own lies over all of that, uncut
-     * (`templateUsesParentGraphics`).
+     * (`templateUsesParentGraphics`), drawn through the escape layer (`ClipEscapeContext`). Every
+     * child stays under the mask in the tree, which cuts presses as Flash's clipping window does:
+     * `groupParameterFilteredChildrenUnderPoint` looks at no child of a clipping window outside it.
      */
     const drawn = (face: ReactNode) => {
         if (!rect.clip || element.tag === 'selector') {
@@ -1311,7 +1313,6 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             );
         }
 
-        const ownContext = (index: number) => !templateUsesParentGraphics(element.children[index]);
         const views = new Map(drawOrder.map((index, position) => [ index, childViews[position] ]));
         // Under an outer mask already, its escaping windows draw through the outer one's layer, past both.
         const escapeLayer = clipEscape ?? drawLayers(ESCAPE_SLOT);
@@ -1324,11 +1325,10 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 >
                     <ClipEscapeContext.Provider value={escapeLayer}>
                         {face}
-                        {treeOrderedChildren(drawOrder.filter(index => !ownContext(index)), moved, views, drawLayers, split, escapeLayer)}
+                        {treeOrderedChildren(drawOrder, moved, views, drawLayers, split, escapeLayer)}
                         {binding?.children}
                     </ClipEscapeContext.Provider>
                 </Box>
-                {drawOrder.filter(index => ownContext(index)).map(index => views.get(index))}
                 {!clipEscape && <DrawSlot layer={escapeLayer} />}
             </>
         );
