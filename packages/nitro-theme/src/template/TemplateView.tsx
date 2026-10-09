@@ -301,6 +301,57 @@ const ScrollLinksContext = createContext<ScrollLinks>({ scrollbars: new Map(), s
 /** Whether nothing in a window's subtree is a display object of its own: all of it draws into its parent's graphic context. */
 const drawsIntoParentOnly = (element: TemplateElement): boolean => templateUsesParentGraphics(element) && element.children.every(drawsIntoParentOnly);
 
+type DisplayRect = { x: number; y: number; width: number; height: number };
+
+const displayRects = new WeakMap<TemplateElement, DisplayRect[]>();
+
+/**
+ * Where a window has display objects of its own, in its parent's space: all of it when it has its
+ * own graphic context, else its descendants that do - its face goes into the parent's context.
+ */
+const displayRectsOf = (element: TemplateElement): DisplayRect[] => {
+    let rects = displayRects.get(element);
+
+    if (rects) return rects;
+
+    const collect = (window: TemplateElement, x: number, y: number, out: DisplayRect[]) => {
+        for (const child of window.children) {
+            if (templateUsesParentGraphics(child)) collect(child, x + child.x, y + child.y, out);
+            else out.push({ x: x + child.x, y: y + child.y, width: child.width, height: child.height });
+        }
+
+        return out;
+    };
+
+    rects = templateUsesParentGraphics(element) ? collect(element, element.x, element.y, []) : [ { x: element.x, y: element.y, width: element.width, height: element.height } ];
+    displayRects.set(element, rects);
+
+    return rects;
+};
+
+const overlaps = (element: TemplateElement, rects: DisplayRect[]) => rects.some(rect => (element.x < (rect.x + rect.width)) && (rect.x < (element.x + element.width)) && (element.y < (rect.y + rect.height)) && (rect.y < (element.y + element.height)));
+
+/**
+ * The order a window's children draw in. What draws into the window's own graphic context lies
+ * under every display object over it, so a child whose whole subtree draws into the context goes
+ * under an earlier sibling's display objects where it meets them - a later sibling's border
+ * cannot cover a region inside an earlier container (`bottom_bar_left`'s border over its arrows'
+ * regions). Elsewhere it keeps its place, over the earlier sibling's face drawn into the same
+ * context (the badges page's `filter.rarity` over `options_container`).
+ */
+const childDrawOrder = (element: TemplateElement): number[] => {
+    const order: number[] = [];
+
+    element.children.forEach((child, index) => {
+        const under = drawsIntoParentOnly(child) ? order.findIndex(earlier => !drawsIntoParentOnly(element.children[earlier]) && overlaps(child, displayRectsOf(element.children[earlier]))) : -1;
+
+        if (under < 0) order.push(index);
+        else order.splice(under, 0, index);
+    });
+
+    return order;
+};
+
 /**
  * The checkbox and radio button styles whose `habbo_element_description` entry has a `window_layout`
  * with a `_CAPTION_TEXT` field (`CheckBoxController.set caption` writes the caption there): the
@@ -1005,16 +1056,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     const list = TEMPLATE_LISTS[element.tag];
     const childFlow = FLOWS[element.tag];
     const show = list ? binding?.show : undefined;
-    /*
-     * The order the children draw in: what is drawn into this window's own graphic context lies
-     * under every display object over it, so a child whose whole subtree draws into the context
-     * goes first - a later sibling's border cannot cover a region inside an earlier container
-     * (`bottom_bar_left`'s border over its arrows' regions). A flow lays its children out in their
-     * order, so its children keep it.
-     */
-    const drawOrder = element.children.map((_, index) => index);
-
-    if (!childFlow && (element.tag !== 'selector')) drawOrder.sort((a, b) => Number(!drawsIntoParentOnly(element.children[a])) - Number(!drawsIntoParentOnly(element.children[b])));
+    // The order the children draw in (`childDrawOrder`). A flow lays its children out in their order, so its children keep it.
+    const drawOrder = (!childFlow && (element.tag !== 'selector')) ? childDrawOrder(element) : element.children.map((_, index) => index);
 
     const childViews = drawOrder.map((index) => {
         const child = element.children[index];
