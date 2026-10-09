@@ -679,9 +679,10 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     // `TextController.background`: the `TextField` fills its rect in its `backgroundColor` - the
     // window's colour (`set color`), white when it has none. A label has no field background.
     // A binding's `color` is the text's colour (`textColor` above), so it fills the field only when
-    // the binding itself asks for a background: the infostand's white name over its dark `color`.
-    // A binding's `backgroundColor` fills it as an input's: a forum quote's grey field
-    // (`MessageListView.addTextBlock`: `color = 0xFFCCCCCC`, `background = true`).
+    // the binding itself asks for a background: the infostand's white name over its dark `color`. A
+    // binding's `backgroundColor` is the window's colour apart from the text's (`roc_room_thumbnail`'s
+    // `tile_size_txt`, whose code sets both), and fills the field whatever the layout says: also a
+    // forum quote's grey field (`MessageListView.addTextBlock`: `color = 0xFFCCCCCC`, `background = true`).
     const background = label
         ? undefined
         : (binding?.backgroundColor !== undefined)

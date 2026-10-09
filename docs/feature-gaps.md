@@ -67,21 +67,22 @@ answer yet.
 ## Hotel view: Turbo and the admin panel
 
 The reception's widgets are configured by `landing.view.*` external variables, which Turbo's
-admin panel edits on its Hotel view page (`turbo-admin/src/pages/hotel-view`). That page can put
-any widget type in slots 1-5 and has forms for `generic` promos, container schedules, the
-backgrounds and the shared look. Everything else is reachable only through its All tab, as raw
-JSON. What each widget still needs from Turbo or from that page:
+admin panel edits on its Hotel view page (`turbo-admin/src/pages/hotel-view`). That page puts any
+widget type in slots 1-5 and the fixed widgets in the bottom slot 6, and has forms for `generic`
+promos, container schedules, the backgrounds and their moving objects, the shared look, and what
+each fixed widget reads (its Look and widgets tab). Anything else is reachable through its All
+tab, as raw JSON. Where each widget stands:
 
 | Widget | Turbo | Admin panel |
 |---|---|---|
-| `expiringcatalogpage`, `expiringcatalogpagesmall` | `GetCatalogPageWithEarliestExpiry` has an empty handler, and catalogue pages have no expiry to send. | An expiry time on a catalogue page. The widget shows the page's `landing.view.pageexpiry.page.<page>.header` / `.desc` texts and the image library's `reception/catalog_teaser_<page>.png`, so a page with an expiry needs those too. |
-| `nextlimitedrarecountdown` | Works: the next active LTD series whose "On sale from" is still to come, from the published catalogue. | Nothing more. The catalogue's limited section already schedules it. `next.limited.rare.countdown.widget.disabled` turns the widget's requests off and has no form. |
-| `communitygoal`, `communitygoalvsmode`, `communitygoalvsmodevote` | `GetCommunityGoalProgress` and `GetCommunityGoalHallOfFame` have empty handlers. `CommunityGoalVoteMessage` reads no vote option and its handler is empty, so a vote (an int, 1 or 2) is never counted and `CommunityVoteReceived` never sent. | A community goal editor: the goal code, its levels and their scores, its end time, the reward tiers (`rewardUserLimits`), and for the VS modes the two sides. The plain widget's `landing.view.community.interactive` and `landing.view.community.catalog.target` need fields. The goal's texts (`landing.view.community.headline/caption/info/meter.<goal>`, `landing.view.community_catalog_button.text.<goal>`, `landing.view.vote_one_button.text.<goal>`, `landing.view.vote_two_button.text.<goal>`) and meter art (`reception/meter_level_<0-3>_<goal>.png`) need a place to go. |
-| `promoarticle` | `GetPromoArticles` has an empty handler. | A promo article editor (title, body, button text, link type and target, image). |
-| `bonusrare` | Nothing writes a player's progress (`PlayerBonusRareProgress`), so it always shows the full amount still to spend. | The image is on the Look tab and the rare itself under `Turbo:Catalog:BonusRare` on the Settings page; neither needs more. |
-| Moving background objects | Nothing; they are client-side. | A form for `landing.view.bgobject.<1-20>` and `landing.view.<code>.bgobject.<1-20>`, per background set: the image, the type (`line`, `randomwalk`, `spiral`, `animated`) and its fields, as `movingBackgroundObjects.ts` reads them. |
-| The bottom slot | Nothing. | Slot 6 (`landing.view.dynamic.slot.6.widget`, the default layout's bottom placeholder). The page offers slots 1-5 only. Only the fixed widgets can go there; the port draws the expiring pages, the community goal and the next limited rare in it. |
-| `catalogpromo`, `catalogpromosmall`, `avatarimage`, `habbomoderationpromo`, `habbowaypromo`, `roomhoppernetwork` | Nothing beyond the catalogue, navigator and help features they open. | Once the client draws them: `landing.view.catalog.promo.target` / `.image.uri` for the catalogue promos, `landing.view.roomhopper.network.id` / `.image.uri` for the room hopper. |
+| `expiringcatalogpage`, `expiringcatalogpagesmall` | Answers `GetCatalogPageWithEarliestExpiry` with the page that runs out first among those still to come (`catalog_page_expiries`), or an empty name. The page stays in the catalogue: an expiry only promotes it. | The Expiring pages tab: the pages and when they run out, each page's `landing.view.pageexpiry.page.<page>.header` / `.desc` texts and a preview of its `reception/catalog_teaser_<page>.png`. |
+| `nextlimitedrarecountdown` | Works: the next active LTD series whose "On sale from" is still to come, from the published catalogue. | `next.limited.rare.countdown.widget.disabled` is a switch on the Look and widgets tab; the catalogue's limited section schedules the rare. |
+| `communitygoal`, `communitygoalvsmode`, `communitygoalvsmodevote` | Plays the last goal started: progress (levels, the score to the next, the player's score and rank, time left, the prize bands), the hall of fame, and votes, counted once per player in a voting goal and answered with `CommunityVoteReceived`. Items bought from a goal's catalogue page (or each side's) are its points. | The Community goals tab: each goal's code, mode, dates, levels, prize bands and pages, its texts, its meter art previewed, and its standing. `landing.view.community.interactive` and `.catalog.target` are on the Look and widgets tab. |
+| `promoarticle` | Answers `GetPromoArticles` with the visible articles within their dates, in order, ten at most. | The Articles tab: title, text, picture, button to a web page or client link, dates and order. |
+| `bonusrare` | Runs the latest campaign started and not ended: credits bought (recorded under a receipt) or spent in the catalogue, as the campaign says, count towards it, and each target reached gives the furniture once. The widget is sent the player's progress after every count. | The Bonus rare tab: campaigns, what counts, and recording bought credits; the picture is on the Look and widgets tab. |
+| Moving background objects | Nothing; they are client-side. | The Backgrounds tab, per background set: up to 20 objects, each its picture, type and that type's numbers. |
+| The bottom slot | Nothing. | Slot 6 on the Slots tab, offering the fixed widgets the port draws there. |
+| `catalogpromo`, `catalogpromosmall`, `avatarimage`, `habbomoderationpromo`, `habbowaypromo`, `roomhoppernetwork` | Nothing beyond the catalogue, navigator and help features they open. | Ready for when the client draws them: `landing.view.catalog.promo.target` / `.image.uri` and the promo's texts, and `landing.view.roomhopper.network.id` / `landing.view.roomhopper.image.uri`, on the Look and widgets tab. |
 | `dailyquest`, `habbotalentspromo`, `safetyquizpromo`, `achievementcompetition_hall_of_fame`, `achievementcompetition_prizes` | The quest, talent track, quiz and competition handlers are empty, and there are no community goal prize packets. | Editors for quests, talent tracks, the safety quiz and goal prizes, once those systems exist. |
 
 ## Views not yet drawn from their Flash template
@@ -96,12 +97,9 @@ the layouts are the library's in `scripts/flash-js-resources`.
 |---|---|---|
 | Hotel view | `views/hotel-view`, except the expiring page, next limited rare and community goal widgets | `habbo-friend-bar-com`: `landing_view_*`, `dynamic_widget_grid`, `generic_widget`, `element_*`, `bonus_rare_promo`, `promo_article` |
 | Friend list and messenger | `views/friendlist`, `views/messenger` | `habbo-friend-list-com`, `habbo-messenger-com` |
-| Navigator leftovers | `NavigatorRoomCreateView`, `NavigatorRoomEntryDialogs`, `NavigatorErrorPopup` | `roc_create_room`, `password_input`, `doorbell`, `nav_error_popup` |
 | Groups and profile | `views/groups`, `UserProfileView` | `habbo-groups-com`: `group_info_window`, `group_management_window`, `badge_editor`, `guild_members_window`, `group_created_window`, `club_required`, `new_extended_profile` |
-| Notifications | `views/notifications` | `habbo-notifications-com`: `layout_notification_popup`, `motd_notification`, ... |
 | Collectibles, habbicons, offer centre, special items | `views/collectibles`, `views/habbicons`, `OfferCenterView`, `SpecialItemsView` | `habbo-catalog-com`: `collectible_view`, `collectible_reward`, `habbicon_view`, `habbicon_purchase_confirmation`, `offer_center`, `special_items_display` |
 | Wired menu, chests and transactions | `views/wired-menu`, `views/wired-trading/chests`, `views/wired-trading/transactions` | `habbo-user-defined-room-events-com`: `wired_menu_view`, `logs_overview`, `error_info_view`, `variables_management_*`, `chest_*`, `transaction_*` |
-| Alerts and dialogs | `SimpleAlertView`, `SystemDialogsView` | the window manager's alert layouts |
 | Inventory leftovers | `InventoryMarketplaceView`, `InventoryTradingDock` | `habbo-inventory-com` |
 | Room UI: product layouts | `FurnitureMonsterplantSeedWidget`, `FurniturePurchasableClothingWidget`, `FurniturePetProductWidget` draw through `FurnitureUseProductView`'s shampoo controller | `use_product_*` (plant seed, clothing with its `avatar_preview`, custom part, saddle, monsterplant) |
 
