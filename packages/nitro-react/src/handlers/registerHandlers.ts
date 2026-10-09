@@ -7,6 +7,7 @@ import { registerEarningsHandlers } from './earnings';
 import { registerGameTokensHandlers } from './game-tokens';
 import { registerBadgeLeaderboardHandlers, registerGroupForumHandlers, registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
+import { registerHelpHandlers } from './help';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
 import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomQueueHandlers } from './navigator';
 import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
@@ -156,6 +157,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerCollectiblesHandlers(socket),
         bridgeCollectiblesInventoryAndPurse(socket),
     ];
+        registerHelpHandlers(socket),
 
     return () => {
         for (const unsubscribe of unsubscribes) unsubscribe();

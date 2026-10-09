@@ -1,16 +1,41 @@
 /**
- * Mounts the help window (`HelpView`) while it is up - `TopicsFlowHelpController.toggleWindow`,
- * which the purse's help button reaches through `HabboToolbar.toggleWindowVisibility("HELP")` and
- * `GuideHelpManager.onHabboToolbarEvent` (`HTIE_ICON_HELP` -> `toggleNewHelpWindow`).
+ * Mounts the help windows while they are up:
+ * - `HelpView`, `TopicsFlowHelpController.toggleWindow`, which the purse's help button reaches
+ *   through `HabboToolbar.toggleWindowVisibility("HELP")` and `GuideHelpManager.onHabboToolbarEvent`
+ *   (`HTIE_ICON_HELP` -> `toggleNewHelpWindow`);
+ * - `SanctionInfoView` and `MyReportsView`, opened by the answers to its sanction and reports
+ *   status links (`registerHelpHandlers`).
  */
-import { useIsWindowVisible, useWindowActions } from '#base/context/system';
+import { useIsWindowVisible, useWindowActions, useWindowParams } from '#base/context/system';
 import { HelpView } from '#base/views/help/HelpView';
+import { MyReportsView } from '#base/views/help/MyReportsView';
+import { SanctionInfoView } from '#base/views/help/SanctionInfoView';
 
 export const HelpComponent = () => {
-    const isVisible = useIsWindowVisible('help');
+    const helpVisible = useIsWindowVisible('help');
+    const sanctionInfoVisible = useIsWindowVisible('help_sanction_info');
+    const myReportsVisible = useIsWindowVisible('help_my_reports');
+    const sanctionInfo = useWindowParams('help_sanction_info');
+    const myReports = useWindowParams('help_my_reports');
     const { hideWindow } = useWindowActions();
 
-    if (!isVisible) return null;
-
-    return <HelpView onClose={() => hideWindow('help')} />;
+    return (
+        <>
+            {helpVisible && <HelpView onClose={() => hideWindow('help')} />}
+            {sanctionInfoVisible && (
+                <SanctionInfoView
+                    key={sanctionInfo.openedAt}
+                    sanctions={sanctionInfo.sanctions ?? []}
+                    onClose={() => hideWindow('help_sanction_info')}
+                />
+            )}
+            {myReportsVisible && (
+                <MyReportsView
+                    key={myReports.openedAt}
+                    reports={myReports.reports ?? []}
+                    onClose={() => hideWindow('help_my_reports')}
+                />
+            )}
+        </>
+    );
 };

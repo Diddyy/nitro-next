@@ -12,6 +12,7 @@ export * from './Avatar/FigureUpdateEventMessage';
 export * from './Avatar/WardrobeMessage';
 export * from './Callforhelp/CfhSanctionMessage';
 export * from './Callforhelp/CfhTopicsInitMessage';
+export * from './Callforhelp/MyCfhReportStatusMessage';
 export * from './Callforhelp/SanctionStatusEventMessage';
 export * from './Camera/CameraPublishStatusMessage';
 export * from './Camera/CameraPurchaseOKMessage';

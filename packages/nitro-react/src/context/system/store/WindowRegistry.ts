@@ -1,3 +1,5 @@
+import type { IMyCfhReportStatus, ISanctionStatusEntry } from '@nitrodevco/nitro-packets';
+
 import type { WiredMenuWindowParams } from '#base/context/wired';
 import type { AvatarEditorViewWindowParams } from '#base/views/avatar-editor/AvatarEditor';
 import type { CatalogViewWindowParams } from '#base/views/catalog/CatalogView';
@@ -60,11 +62,15 @@ export type WindowRegistry = {
     /** The toolbar's word filter (`WordFilterSettingsView`), from the settings list under the purse. */
     toolbar_word_filter: NoWindowParams;
 
-    /** The vault (`EarningsView`), from `habboUI/open/vault` - the purse's earnings button or the new earnings bubble. */
-    earnings: NoWindowParams;
     /** The help window (`HelpView`), from the purse's help button - `HabboHelp.toggleNewHelpWindow`. */
     help: NoWindowParams;
+    /** `SanctionInfo`, opened by the `SanctionStatusEvent` that answers the help window's sanction status link. */
+    help_sanction_info: { sanctions?: ISanctionStatusEntry[]; openedAt?: number };
+    /** `MyReportStatus`, opened by the answer to the help window's reports status link. */
+    help_my_reports: { reports?: IMyCfhReportStatus[]; openedAt?: number };
 
+    /** The vault (`EarningsView`), from `habboUI/open/vault` - the purse's earnings button or the new earnings bubble. */
+    earnings: NoWindowParams;
 
     /** The club centre (`HabboClubCenter`'s `ClubCenterView`), from `habboUI/open/hccenter` - `openClubCenter`, `verifyClubLevel`. */
     club_center: NoWindowParams;

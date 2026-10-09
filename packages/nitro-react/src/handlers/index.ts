@@ -6,6 +6,7 @@ export * from './earnings';
 export * from './game-tokens';
 export * from './groups';
 export * from './habbicons';
+export * from './help';
 export * from './inventory';
 export * from './navigator';
 export * from './notifications';
