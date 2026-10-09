@@ -31,6 +31,7 @@ export * from './friendListCommands';
 export * from './furnitureDataCommands';
 export * from './gameTokensCommands';
 export * from './groupCommands';
+export * from './groupForumCommands';
 export * from './habbiconCommands';
 export * from './infostandPlacementCommands';
 export * from './inventoryBadgeCommands';

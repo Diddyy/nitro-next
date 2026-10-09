@@ -10,6 +10,7 @@ import { openAchievements } from './achievementCommands';
 import { openBadgeLeaderboardLink } from './badgeLeaderboardCommands';
 import { openDailyTasksLink } from './dailyTasksCommands';
 import { showEarnings } from './earningsCommands';
+import { openGroupForumLink } from './groupForumCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
 import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './navigatorCommands';
@@ -252,6 +253,12 @@ export const openClientLink = (send: Send, link: string) => {
             const groupId = parseInt(parts[1] ?? '', 10);
 
             if (groupId > 0) send(new GetHabboGroupDetailsComposer({ groupId, openDetails: true }));
+
+            return;
+        }
+        // `GroupForumController.linkReceived`: groupforum/list/<active|popular|my>, groupforum/<group>[/<thread>[/<index>]].
+        case 'groupforum': {
+            openGroupForumLink(send, parts);
 
             return;
         }
