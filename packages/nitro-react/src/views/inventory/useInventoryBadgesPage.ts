@@ -198,10 +198,12 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
             [page('badge_image')]: { visible: !!selectedBadge, asset: selectedBadge ? badgeUrl.replace('%badgename%', selectedBadge.code) : '' },
             [page('badgeName')]: { caption: selectedBadge ? getBadgeName(t, selectedBadge.code) : '' },
             [page('badgeDescription')]: { visible: description !== '', caption: description },
-            // `setBadgeRarityDetail`: the tag on the rarity's colour, its text twice for the two blends.
+            // `setBadgeRarityDetail`: the tag on the rarity's colour, its text twice for the two blends -
+            // set on the built window, so `badgeRarityBorder` widens the tag to the text
+            // (`reflect_horizontal_resize_to_parent`).
             [page('badgeRarityTag')]: { visible: !!selectedBadge, color: selectedBadge ? getBadgeRarityWhiteBackgroundTagColor(selectedBadge.rarityId, uncommonRarityEnabled) : undefined },
-            [page('badgeRarityBorder')]: { visible: !!selectedBadge, caption: rarityTag },
-            [page('badgeRarity')]: { visible: !!selectedBadge, caption: rarityTag, color: 0xffffff },
+            [page('badgeRarityBorder')]: { visible: !!selectedBadge, caption: rarityTag, setCaptionAfterBuild: true },
+            [page('badgeRarity')]: { visible: !!selectedBadge, caption: rarityTag, color: 0xffffff, setCaptionAfterBuild: true },
             [page('badgeOwnerCount')]: { visible: (ownerCount > 0) && (ownerCount < MAX_SHOWN_OWNER_COUNT), caption: t('badge.owner_count', '', { count: String(ownerCount) }) },
             [page('wearBadge_button')]: {
                 caption: t(isWorn ? 'inventory.badges.clearbadge' : 'inventory.badges.wearbadge'),
