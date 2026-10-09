@@ -468,6 +468,23 @@ const DrawnIn = ({ layer, children }: { layer: RenderLayer; children: ReactNode 
     );
 };
 
+/**
+ * The layer a clipping window draws its escaping descendants through, for the windows under its mask.
+ * Flash masks only what is drawn into a window's own graphic context: `GraphicContext.setDrawRegion`
+ * puts the clip on `getDisplayObject()` (its drawn bitmap), while each child context is added beside
+ * it (`addChildContext`), unmasked, and `WindowRenderer.childRectToClippedDrawRegion` clips a window's
+ * drawing by its ancestors only while each draws into its parent's (`use_parent_graphic_context`). So a
+ * window with a context of its own anywhere under a clipping window - not only its direct children,
+ * which `drawn` already leaves out of the mask - draws uncut: the HC tab's `chat_flood_sensitivity`
+ * drop menu, inside `tab_container_4` (which draws into `content_container`'s context and reaches
+ * 26 px past it). Such a window stays in the tree, where hit testing finds it, and draws through this
+ * layer, which sits after the mask; below it the context is cleared, as its subtree is in its own.
+ */
+const ClipEscapeContext = createContext<RenderLayer | undefined>(undefined);
+
+/** The key of a clipping window's escape layer among its draw layers, apart from every child slot. */
+const ESCAPE_SLOT = -1;
+
 /** The render layers of one window's children, by the sibling they draw before; made once each. */
 const useDrawLayers = () => {
     const [ layers ] = useState(() => new Map<number, RenderLayer>());
@@ -1141,6 +1158,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     const state = useSyncExternalStore(context.store.subscribe, () => context.store.get(element));
     const scrollLinks = useContext(ScrollLinksContext);
     const drawLayers = useDrawLayers();
+    const clipEscape = useContext(ClipEscapeContext);
     const binding = state?.binding;
     const rect: TemplateRect = state?.rect ?? element;
     // A list's `show` decides for its items; otherwise the binding, over the layout.
@@ -1259,6 +1277,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
 
         const ownContext = (index: number) => !templateUsesParentGraphics(element.children[index]);
         const views = new Map(drawOrder.map((index, position) => [ index, childViews[position] ]));
+        // Under an outer mask already, its escaping windows draw through the outer one's layer, past both.
+        const escapeLayer = clipEscape ?? drawLayers(ESCAPE_SLOT);
 
         return (
             <>
@@ -1266,11 +1286,14 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                     pointerTransparent
                     layout={{ ...FILL, overflow: 'hidden' }}
                 >
-                    {face}
-                    {treeOrderedChildren(drawOrder.filter(index => !ownContext(index)), moved, views, drawLayers)}
-                    {binding?.children}
+                    <ClipEscapeContext.Provider value={escapeLayer}>
+                        {face}
+                        {treeOrderedChildren(drawOrder.filter(index => !ownContext(index)), moved, views, drawLayers)}
+                        {binding?.children}
+                    </ClipEscapeContext.Provider>
                 </Box>
                 {drawOrder.filter(index => ownContext(index)).map(index => views.get(index))}
+                {!clipEscape && <DrawSlot layer={escapeLayer} />}
             </>
         );
     };
@@ -1523,7 +1546,26 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     );
 };
 
-const ElementView = memo(ElementContent);
+/**
+ * An element as its parent holds it: drawn through the clip escape layer when it has a graphic
+ * context of its own under a clipping window's mask (`ClipEscapeContext`). An item of a list's flow
+ * keeps its place in the flow.
+ */
+const ElementEscape = (props: ElementViewProps) => {
+    const clipEscape = useContext(ClipEscapeContext);
+
+    if (!clipEscape || props.flow || templateUsesParentGraphics(props.element)) return <ElementContent {...props} />;
+
+    return (
+        <DrawnIn layer={clipEscape}>
+            <ClipEscapeContext.Provider value={undefined}>
+                <ElementContent {...props} />
+            </ClipEscapeContext.Provider>
+        </DrawnIn>
+    );
+};
+
+const ElementView = memo(ElementEscape);
 
 /**
  * A `selector`'s child: `SelectorController.select` moves the window it selects to the top of its
