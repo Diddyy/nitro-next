@@ -75,11 +75,11 @@ const threadColor = (state: number, index: number) => {
 };
 
 /** `getMessageColor`: the message's ground and the author column's. */
-const messageColors = (state: number): [ number, number ] => {
+const messageColors = (state: number, unread: boolean): [ number, number ] => {
     if (state === GROUP_FORUM_STATE_HIDDEN_BY_ADMIN) return [ 4293519840, 4292335567 ];
     if (state === GROUP_FORUM_STATE_HIDDEN_BY_STAFF) return [ 4294952634, 4294959058 ];
 
-    return [ 4294967295, 4291227641 ];
+    return [ unread ? 4294964441 : 4294967295, 4291227641 ];
 };
 
 /** `parseMessageChunk`: `*bold*`, `_italic_` and `@name` as markup, the rest escaped. */
@@ -302,11 +302,11 @@ export const GroupForumView = () => {
         };
     };
 
-    const messageRow = (data: IExtendedForumData, threads: IThreadData[], threadId: number, message: IPostMessage, textTemplate: Template['elements'][number] | undefined): TemplateItem => {
+    const messageRow = (data: IExtendedForumData, threads: IThreadData[], threadId: number, lastReadIndex: number, message: IPostMessage, textTemplate: Template['elements'][number] | undefined): TemplateItem => {
         const moderator = data.moderatePermissionError.length === 0;
         const staff = data.isStaff;
         const state = message.state;
-        const [ ground, column ] = messageColors(state);
+        const [ ground, column ] = messageColors(state, message.messageIndex > lastReadIndex);
         const hidden = ((state === GROUP_FORUM_STATE_HIDDEN_BY_STAFF) && !staff) || ((state > 1) && !moderator);
         const moderation = (state === GROUP_FORUM_STATE_HIDDEN_BY_ADMIN)
             ? t('groupforum.view.message_hidden_by_admin', '', { admin_name: message.adminName })
@@ -373,7 +373,7 @@ export const GroupForumView = () => {
         ? view.forums.forums.map(forumRow)
         : (view.kind === 'threads')
                 ? view.threads.threads.map((thread, index) => threadRow(view.forum, thread, index))
-                : view.messages.messages.map(message => messageRow(view.forum, view.threads.threads, view.messages.threadId, message, messageTextTemplate));
+                : view.messages.messages.map(message => messageRow(view.forum, view.threads.threads, view.messages.threadId, view.messages.lastReadIndex, message, messageTextTemplate));
 
     // `setStatusTextError` / the forums list's own status.
     let status = '';

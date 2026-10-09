@@ -22,6 +22,8 @@ export interface GroupForumMessagesList {
     totalMessages: number;
     startIndex: number;
     messages: IPostMessage[];
+    /** `getThreadLastReadMessageIndex` as the page was built: the messages after it are drawn as unread. */
+    lastReadIndex: number;
 }
 
 /**

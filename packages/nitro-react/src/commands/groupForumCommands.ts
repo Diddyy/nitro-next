@@ -271,7 +271,7 @@ export const onGroupForumMessages = (groupId: number, thread: number, startIndex
 
     if (!threadData) return;
 
-    showView({ kind: 'messages', forums: forumsList, forum: forumData, threads: threadsList, messages: { threadId: thread, totalMessages: threadData.nMessages, startIndex, messages } });
+    showView({ kind: 'messages', forums: forumsList, forum: forumData, threads: threadsList, messages: { threadId: thread, totalMessages: threadData.nMessages, startIndex, messages, lastReadIndex: getGroupForumThreadLastReadIndex(thread) } });
 
     const last = messages[messages.length - 1];
 
