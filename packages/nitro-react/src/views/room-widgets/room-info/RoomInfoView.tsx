@@ -38,23 +38,13 @@
  *
  * `layoutButtons` stacks seven buttons: `room_settings_button`, `raid_protection_settings_button`,
  * `room_filter_button`, `floor_plan_editor_button`, `staff_pick_button`, `room_report_button`,
- * `room_muteall_button`. The port shows the four whose windows it has - settings, the floor plan
- * editor, staff pick and mute all. The three it hides, and what each still needs:
+ * `room_muteall_button`. The port shows the five whose windows it has - settings, raid protection,
+ * the floor plan editor, staff pick and mute all. `raid_protection_settings_button`
+ * (`refreshRaidProtectionButton`) shows while the hotel has `raid.protection.enabled` and the server
+ * said the user may manage the room (`RaidProtectionSettingsController.canManage`); a click opens
+ * `navigator/raidprotection/<roomId>` and closes this window. The two it hides, and what each
+ * still needs:
  *
- * - `raid_protection_settings_button` (`${raid.protection.settings.button}`, new in
- *   WIN63-202609091217-117204808) opens `navigator/raidprotection/<roomId>`, and
- *   `RoomInfoViewCtrl.refreshRaidProtectionButton` shows it only while
- *   `RaidProtectionSettingsController.isFeatureEnabled` (config `raid.protection.enabled`) and
- *   `canManage(flatId)` - the latter true only after a `RaidProtectionCapabilityMessage` for the
- *   live current room said so. The window behind it is the `raid_protection_settings` layout
- *   (430 x 488: a warning card, an enable checkbox with detection-sensitivity/action/ban-duration
- *   dropmenus, a guard card with duration and sensitivity, the incident status line, cancel and
- *   save), driven by `RaidProtectionSettingsController` and `RaidProtectionSettingsData`.
- *   `nitro-packets` has the five headers (`IncomingHeader.RaidProtectionCapabilityMessage` 734,
- *   `RaidProtectionSettingsMessage` 3553, `RaidProtectionSettingsResultMessage` 3620,
- *   `OutgoingHeader.GetRaidProtectionSettingsComposer` 206,
- *   `SaveRaidProtectionSettingsComposer` 2687) but none of the five classes, so nothing can set
- *   the capability and the button could only ever be hidden. It is ported when those exist.
  * - `room_filter_button` (`canEditRoomSettings && room.custom.filter.enabled`) needs the room
  *   word-filter window, which is not ported.
  * - `room_report_button` (hidden unless `room.report.enabled`) needs report/help, which is not
@@ -90,6 +80,8 @@ export interface RoomInfoViewProps {
     allInRoomMuted: boolean;
     /** `roomSession.roomControllerLevel >= 1` - anyone with rights in the room may edit its floor plan. */
     canEditFloorPlan: boolean;
+    /** `refreshRaidProtectionButton`: the feature is on and the server let the user manage the room. */
+    canManageRaidProtection: boolean;
     /** Only offered where rights were given rather than owned. */
     canRemoveRights: boolean;
     onOpenOwnerProfile: () => void;
@@ -99,6 +91,7 @@ export interface RoomInfoViewProps {
     onMakeHome: () => void;
     onRemoveRights: () => void;
     onRoomSettings: () => void;
+    onRaidProtection: () => void;
     onFloorPlanEditor: () => void;
     onToggleStaffPick: () => void;
     onMuteAll: () => void;
@@ -206,9 +199,9 @@ const tagPiece = (piece: 'l' | 'm' | 'r', hovered: boolean) => LayoutImage(`${LI
 export const RoomInfoView = ({
     roomName, description, ownerName, showOwner, tags, rating, ranking, thumbnailUrl,
     isHome, isFavourite, canFavourite, canRate, canEditRoomSettings, canStaffPick, isStaffPicked,
-    canMuteAll, allInRoomMuted, canEditFloorPlan, canRemoveRights,
+    canMuteAll, allInRoomMuted, canEditFloorPlan, canManageRaidProtection, canRemoveRights,
     onOpenOwnerProfile, onSelectTag, onRate, onToggleFavourite, onMakeHome, onRemoveRights,
-    onRoomSettings, onFloorPlanEditor, onToggleStaffPick, onMuteAll, onClose,
+    onRoomSettings, onRaidProtection, onFloorPlanEditor, onToggleStaffPick, onMuteAll, onClose,
 }: RoomInfoViewProps) => {
     const t = useTranslation();
     const tagTemplate = useTemplate(`${LIBRARY}/iro_tag_xml`);
@@ -286,9 +279,9 @@ export const RoomInfoView = ({
         make_favourite: { asset: LayoutImage(`${LIBRARY}/make_favourite.png`) },
 
         // `refreshButtons`; `layoutButtons` hides the container when none of them shows.
-        buttons_cont: { visible: canEditRoomSettings || canEditFloorPlan || canStaffPick || canMuteAll },
+        buttons_cont: { visible: canEditRoomSettings || canManageRaidProtection || canEditFloorPlan || canStaffPick || canMuteAll },
         room_settings_button: { visible: canEditRoomSettings, onPointerTap: onRoomSettings },
-        raid_protection_settings_button: { visible: false },
+        raid_protection_settings_button: { visible: canManageRaidProtection, onPointerTap: onRaidProtection },
         room_filter_button: { visible: false },
         floor_plan_editor_button: { visible: canEditFloorPlan, onPointerTap: onFloorPlanEditor },
         staff_pick_button: {

@@ -42,6 +42,7 @@ export * from './messengerCommands';
 export * from './navigatorCommands';
 export * from './notificationCommands';
 export * from './offerCenterCommands';
+export * from './raidProtectionCommands';
 export * from './roomChatCommands';
 export * from './roomChooserCommands';
 export * from './roomPetCommands';

@@ -11,6 +11,7 @@ import { showEarnings } from './earningsCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
 import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './navigatorCommands';
+import { openRaidProtectionFromLink } from './raidProtectionCommands';
 import { openSpecialItemsDisplay } from './specialItemsCommands';
 import { openWiredRewardView, openWiredSelfDonation } from './wiredTradingCommands';
 
@@ -108,6 +109,12 @@ export const openClientLink = (send: Send, link: string) => {
                 }
                 case 'tab': {
                     if (parts.length > 2) showWindow('navigator', { searchCode: TAB_LINK_SEARCH_CODES[parts[2]] ?? parts[2] });
+
+                    return;
+                }
+                // `HabboNewNavigator.linkReceived` -> `RaidProtectionSettingsController.openFromLink`.
+                case 'raidprotection': {
+                    openRaidProtectionFromLink(send, (parts.length === 3) ? parts[2] : undefined);
 
                     return;
                 }

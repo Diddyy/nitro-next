@@ -8,7 +8,7 @@ import { registerGameTokensHandlers } from './game-tokens';
 import { registerGroupForumHandlers, registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
-import { registerNavigatorHandlers, registerRoomQueueHandlers } from './navigator';
+import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomQueueHandlers } from './navigator';
 import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
 import {
@@ -76,6 +76,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomRentableSpaceHandlers(socket),
         registerRoomYoutubeHandlers(socket),
         registerNavigatorHandlers(socket),
+        // `RaidProtectionSettingsController`, after the navigator handlers whose current room it checks.
+        registerRaidProtectionHandlers(socket),
         registerRoomQueueHandlers(socket),
         // The server's own bubbles and alerts, after the room and navigator listeners that may raise one.
         registerNotificationHandlers(socket),

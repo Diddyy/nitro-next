@@ -6,6 +6,7 @@ import { NavigatorRoomCreateView } from '#base/views/navigator/NavigatorRoomCrea
 import { NavigatorRoomEntryDialogs } from '#base/views/navigator/NavigatorRoomEntryDialogs';
 import { NavigatorRoomEventSettingsView } from '#base/views/navigator/NavigatorRoomEventSettingsView';
 import { NavigatorView } from '#base/views/navigator/NavigatorView';
+import { RaidProtectionSettingsView } from '#base/views/navigator/RaidProtectionSettingsView';
 
 export const NavigatorComponent = () => {
     const { isWindowVisible } = useWindowVisibility('navigator');
@@ -28,6 +29,8 @@ export const NavigatorComponent = () => {
             {/* `RoomEventViewCtrl` and `EnforceCategoryCtrl` are windows of their own too. */}
             {roomEventSettingsVisible && <NavigatorRoomEventSettingsView />}
             {enforcingCategory && <NavigatorEnforceCategoryView />}
+            {/* `RaidProtectionSettingsView`: built once, so it keeps its place between shows; it draws only while shown. */}
+            <RaidProtectionSettingsView />
             {/* The queue into a full room is up before the room exists, so it lives out here too. */}
             <RoomQueueWidget />
         </>

@@ -1,9 +1,10 @@
 import { RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, GetExtendedProfileComposer, MuteAllInRoomComposer, RateFlatComposer, RemoveOwnRoomRightsRoomComposer, ToggleStaffPickComposer, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
 
-import { searchRoomTag } from '#base/commands';
+import { canManageRaidProtection, openClientLink, searchRoomTag } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
+import { useRaidProtectionStore } from '#base/context/raid-protection';
 import { useOwnControllerLevel } from '#base/context/room';
 import { useConfigValue, useHomeRoomId, useIsWindowVisible, useWindowActions } from '#base/context/system';
 import { ClientGates, useClientGate } from '#base/context/user';
@@ -39,6 +40,9 @@ export const RoomInfoWidget = () => {
     const muteAllEnabled = useConfigValue<boolean>('room_moderation.mute_all.enabled') === true;
     const { send } = useWebSocketContext();
     const { setRoomRating, setRoomFavourite, updateEnteredRoom } = useNavigatorActions();
+    // `onRaidProtectionStateChanged`: the button follows the capabilities as they come and go.
+    const raidCapabilities = useRaidProtectionStore(x => x.capabilities);
+    const raidProtectionEnabled = useConfigValue<boolean>('raid.protection.enabled') === true;
 
     if (!isVisible || !enteredRoom) return null;
 
@@ -75,6 +79,7 @@ export const RoomInfoWidget = () => {
             // `RoomInfoViewCtrl.refreshButtons`: the floor plan editor needs rights in the room, not ownership.
             canEditFloorPlan={Number(controllerLevel) >= Number(RoomControllerLevelEnum.Guest)}
             // `HabboNavigator.hasRoomRightsButIsNotOwner`: exactly the rights you were given.
+            canManageRaidProtection={raidProtectionEnabled && raidCapabilities.includes(roomId) && canManageRaidProtection(roomId)}
             canRemoveRights={!isOwner && (Number(controllerLevel) === Number(RoomControllerLevelEnum.Guest))}
             onOpenOwnerProfile={() => send(new GetExtendedProfileComposer({ userId: currentRoomInfo.ownerId }))}
             onSelectTag={tag => searchRoomTag(send, tag)}
@@ -95,6 +100,11 @@ export const RoomInfoWidget = () => {
             onRemoveRights={() => send(new RemoveOwnRoomRightsRoomComposer({ roomId }))}
             // `startRoomSettingsEdit`: always the room you are in, even over a navigator-opened one.
             onRoomSettings={() => showWindow('room_settings', {})}
+            // `onRaidProtectionSettingsClick`: the link, then `close()`.
+            onRaidProtection={() => {
+                openClientLink(send, `navigator/raidprotection/${roomId}`);
+                hideWindow('room_info');
+            }}
             onFloorPlanEditor={() => showWindow('floor_plan_editor')}
             onToggleStaffPick={() => {
                 send(new ToggleStaffPickComposer({ roomId, isStaffPicked: !isStaffPicked }));
