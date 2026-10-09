@@ -43,6 +43,7 @@ import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/dail
 import { useGroupStore } from '#base/context/groups';
 import { useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
+import { getRewardTrackClaimableCount, useRewardTrackStore } from '#base/context/reward-track';
 import { useOwnRoomObjectId } from '#base/context/room';
 import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
@@ -214,6 +215,8 @@ export const ToolbarView = () => {
     // `UnseenDailyTasksCountUpdateEvent`: the tasks done and not claimed.
     const unseenDailyTasks = useDailyTasksStore(x => getUnseenDailyTasksCount(x.tasks));
     const unseenAchievements = useAchievementsStore(x => x.unseen.filter(entry => !unseenSkipped(entry.badgeId, skippedBadges === undefined ? [] : skippedBadges.split(','))).length);
+    // `UnseenRewardTrackRewardsCountUpdateEvent`: the reward tracks' prizes that can be claimed.
+    const claimableRewardTrackPrizes = useRewardTrackStore(x => getRewardTrackClaimableCount(x.tracks));
     const { attachTarget: attachInventoryTarget, lift: inventoryLift } = useToolbarTransitionTarget('HTIE_ICON_INVENTORY');
     const { attachTarget: attachMeMenuTarget, lift: meMenuLift } = useToolbarTransitionTarget('HTIE_ICON_MEMENU');
 
@@ -308,7 +311,7 @@ export const ToolbarView = () => {
             children: (
                 <UnseenItemCounterView
                     // `unseenProgMenuCount`: the achievements' and the daily tasks' (`BottomBarLeft`).
-                    count={unseenAchievements + unseenDailyTasks}
+                    count={unseenAchievements + unseenDailyTasks + claimableRewardTrackPrizes}
                     layout={{ position: 'absolute', right: 0, top: 0 }}
                 />
             ),
@@ -455,7 +458,7 @@ export const ToolbarView = () => {
                         { name: 'achievements', visible: true, action: () => openClientLink(send, 'questengine/achievements'), unseenCount: unseenAchievements },
                         // `onSubMenuItemClick('leaderboards')`: the badge leaderboard's link (`groups/_-ge.getLink(0, -1, 0)`).
                         { name: 'leaderboards', visible: true, action: () => openClientLink(send, 'badge_leaderboard/0/-1/0') },
-                        { name: 'introduction', visible: true, action: () => openClientLink(send, 'reward_track/open/introduction') },
+                        { name: 'introduction', visible: true, action: () => openClientLink(send, 'reward_track/open/introduction'), unseenCount: claimableRewardTrackPrizes },
                     ]}
                     onClose={() => setOpenMenu(undefined)}
                 />

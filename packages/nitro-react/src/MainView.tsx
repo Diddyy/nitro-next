@@ -36,6 +36,8 @@ import { NotificationsView } from './views/notifications/NotificationsView';
 import { SafetyLockedNotificationView } from './views/notifications/SafetyLockedNotificationView';
 import { ActivityPointsView } from './views/purse/ActivityPointsView';
 import { PurseTemplateView } from './views/purse/PurseTemplateView';
+import { RewardTrackPremiumConfirmationView } from './views/reward-track/RewardTrackPremiumConfirmationView';
+import { RewardTrackView } from './views/reward-track/RewardTrackView';
 import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInputView';
 import { SystemDialogsView } from './views/system/SystemDialogsView';
 import { TemplatePreviewView } from './views/system/TemplatePreviewView';
@@ -135,6 +137,9 @@ export const MainView = () => {
                 <DailyTasksView />
                 {/* `BadgeLeaderboardController`: drawn only while shown. */}
                 <BadgeLeaderboardView />
+                {/* `RewardTrackController`'s track window and its premium confirmation: drawn only while shown. */}
+                <RewardTrackView />
+                <RewardTrackPremiumConfirmationView />
                 <UserProfileComponent />
                 <CollectiblesComponent />
                 <HabbiconsComponent />

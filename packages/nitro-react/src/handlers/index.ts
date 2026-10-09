@@ -14,6 +14,7 @@ export * from './notifications';
 export * from './offer-center';
 export * from './packetSubscriptions';
 export * from './registerHandlers';
+export * from './reward-track';
 export * from './room';
 export * from './sound';
 export * from './special-items';

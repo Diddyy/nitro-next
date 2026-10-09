@@ -14,6 +14,7 @@ import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
 import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './navigatorCommands';
 import { openRaidProtectionFromLink } from './raidProtectionCommands';
+import { openRewardTrackLink } from './rewardTrackCommands';
 import { openSpecialItemsDisplay } from './specialItemsCommands';
 import { openWiredRewardView, openWiredSelfDonation } from './wiredTradingCommands';
 
@@ -257,6 +258,12 @@ export const openClientLink = (send: Send, link: string) => {
         // `DailyTasksController.linkReceived`: dailytasks/open, with `dailytasks.enabled` on.
         case 'dailytasks': {
             openDailyTasksLink(parts);
+
+            return;
+        }
+        // `RewardTrackController.linkReceived`: reward_track/open/<track id>.
+        case 'reward_track': {
+            openRewardTrackLink(parts);
 
             return;
         }
