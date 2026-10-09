@@ -15,6 +15,7 @@ import { RoomPlaneBitmapMaskData } from '../../RoomPlaneBitmapMaskData';
 import { RoomPlaneData } from '../../RoomPlaneData';
 import { RoomPlaneParser } from '../../RoomPlaneParser';
 import { RoomObjectSpriteVisualization } from '../RoomObjectSpriteVisualization';
+import { PlaneTextureCache } from './PlaneTextureCache';
 import { RoomPlane } from './RoomPlane';
 import { RoomVisualizationData } from './RoomVisualizationData';
 
@@ -44,6 +45,8 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
     private _wallThickness: number = NaN;
     private _holeUpdateTime: number = NaN;
     private _planes: RoomPlane[] = [];
+    /** Finished textures the room's small floor planes share (`PlaneTextureCache`). */
+    private _planeTextureCache: PlaneTextureCache = new PlaneTextureCache();
     private _visiblePlanes: RoomPlane[] = [];
     private _visiblePlaneSpriteNumbers: number[] = [];
     private _roomScale: RoomGeometryScaleType = RoomGeometryScaleType.None;
@@ -299,6 +302,8 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
             this._highlightPlaneOffsets = [];
         }
 
+        this._planeTextureCache.dispose();
+
         this._isPlaneSet = false;
         this._assetUpdateCounter = this._assetUpdateCounter + 1;
 
@@ -378,6 +383,8 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                                 : RoomVisualization.FLOOR_COLOR_LEFT;
 
                     if (this._data) plane.rasterizer = this._data.floorRasterizer;
+
+                    plane.sharedTextureCache = this._planeTextureCache;
                 } else if (planeType === RoomPlaneData.PLANE_WALL || planeType === RoomPlaneData.PLANE_BILLBOARD) {
                     plane = new RoomPlane(
                         this.object.getLocation(),
