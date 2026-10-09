@@ -1,5 +1,6 @@
 import { RoomQueueWidget } from '#base/components';
 import { useNavigatorStore } from '#base/context/navigator';
+import { useRoomFilterStore } from '#base/context/room-filter';
 import { useNavigatorSearchCodeRequest, useNavigatorWindowPreferencesSync, useWindowVisibility } from '#base/hooks';
 import { NavigatorEnforceCategoryView } from '#base/views/navigator/NavigatorEnforceCategoryView';
 import { NavigatorRoomCreateView } from '#base/views/navigator/NavigatorRoomCreateView';
@@ -7,12 +8,14 @@ import { NavigatorRoomEntryDialogs } from '#base/views/navigator/NavigatorRoomEn
 import { NavigatorRoomEventSettingsView } from '#base/views/navigator/NavigatorRoomEventSettingsView';
 import { NavigatorView } from '#base/views/navigator/NavigatorView';
 import { RaidProtectionSettingsView } from '#base/views/navigator/RaidProtectionSettingsView';
+import { RoomFilterView } from '#base/views/navigator/RoomFilterView';
 
 export const NavigatorComponent = () => {
     const { isWindowVisible } = useWindowVisibility('navigator');
     const { isWindowVisible: isRoomCreateVisible } = useWindowVisibility('navigator_room_create');
     const roomEventSettingsVisible = useNavigatorStore(x => x.roomEventSettingsVisible);
     const enforcingCategory = useNavigatorStore(x => x.enforceCategorySelectionType !== undefined);
+    const roomFilterOpen = useRoomFilterStore(x => x.open);
 
     // A `navigator/tab/<name>` link travels as this window's parameter; act on it here.
     useNavigatorSearchCodeRequest();
@@ -31,6 +34,8 @@ export const NavigatorComponent = () => {
             {enforcingCategory && <NavigatorEnforceCategoryView />}
             {/* `RaidProtectionSettingsView`: built once, so it keeps its place between shows; it draws only while shown. */}
             <RaidProtectionSettingsView />
+            {/* `RoomFilterCtrl`'s window. */}
+            {roomFilterOpen && <RoomFilterView />}
             {/* The queue into a full room is up before the room exists, so it lives out here too. */}
             <RoomQueueWidget />
         </>

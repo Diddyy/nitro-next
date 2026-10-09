@@ -10,7 +10,7 @@ import { registerBadgeLeaderboardHandlers, registerGroupForumHandlers, registerG
 import { registerHabbiconHandlers } from './habbicons';
 import { registerHelpHandlers } from './help';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
-import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomQueueHandlers } from './navigator';
+import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomFilterHandlers, registerRoomQueueHandlers } from './navigator';
 import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
 import {
@@ -82,6 +82,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRaidProtectionHandlers(socket),
         registerRoomQueueHandlers(socket),
         // The server's own bubbles and alerts, after the room and navigator listeners that may raise one.
+        // `RoomFilterCtrl`: the room's words, and its window hidden on a room entry.
+        registerRoomFilterHandlers(socket),
         registerNotificationHandlers(socket),
         // `HabboAlertDialogManager`'s moderation and opening-hours alerts, and the MOTD, club gift and safety lock windows.
         registerAlertDialogHandlers(socket),
