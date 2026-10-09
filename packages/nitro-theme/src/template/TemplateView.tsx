@@ -1362,8 +1362,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 draggable={!!window && (window.draggable ?? true)}
                 onClose={window?.onClose}
                 closeButtonVisible={window?.closeButtonVisible}
-                // `FrameController`'s `help_page` property: a page shows the header's help button.
-                helpPage={flashString(element.vars.help_page)}
+                // `FrameController`'s `help_page` property, or the `helpPage` its code sets: a page shows the header's help button.
+                helpPage={binding?.helpPage ?? flashString(element.vars.help_page)}
                 onHelp={window?.onHelp}
                 resizeDirection={resizeDirection}
                 onResize={resizeDirection !== 'none' ? context.onFrameResize : undefined}

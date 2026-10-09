@@ -70,6 +70,8 @@ export interface TemplateBinding {
     disableSection?: boolean;
     /** A tab button's or a checkbox's `ISelectableWindow.select()` / `unselect()`. */
     selected?: boolean;
+    /** A frame's `helpPage` as its code sets it, over the layout's `help_page` var: a page shows the help button. */
+    helpPage?: string;
     /** `WME_CLICK`; the event's `currentTarget` is the element's window (`getGlobalRectangle`). */
     onPointerTap?: (event: FederatedPointerEvent) => void;
     /**
@@ -421,6 +423,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && a.disabled === b.disabled
         && a.disableSection === b.disableSection
         && a.selected === b.selected
+        && a.helpPage === b.helpPage
         && a.autoHideScrollBar === b.autoHideScrollBar
         && a.spacing === b.spacing
         && a.verticalSpacing === b.verticalSpacing
