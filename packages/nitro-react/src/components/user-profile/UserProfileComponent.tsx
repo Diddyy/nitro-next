@@ -1,11 +1,11 @@
 /** Mounts the extended user profile - Flash's `ExtendedProfileWindowCtrl`. */
 import { BlockUserComposer, DeselectFavouriteHabboGroupComposer, SelectFavouriteHabboGroupComposer, UnblockUserComposer } from '@nitrodevco/nitro-packets';
 
-import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, requestGroupDetails, searchRoomsByOwner, showFriendLimitReachedAlert, showGroupBases } from '#base/commands';
+import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, requestGroupDetails, searchRoomsByOwner, showGroupBases } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useIsWindowVisible, useSystemActions, useWindowParams } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
-import { useProfileStore } from '#base/context/user-profile';
+import { useProfileActions, useProfileStore } from '#base/context/user-profile';
 import { UserProfileView } from '#base/views/user-profile/UserProfileView';
 
 export const UserProfileComponent = () => {
@@ -18,6 +18,9 @@ export const UserProfileComponent = () => {
     const { send } = useWebSocketContext();
     const ownUserId = useUserStore(state => state.userId);
     const isBlocked = useUserStore(state => state.blockedUserIds.includes(profile?.userId ?? -1));
+    // `refreshHeader`: the add friend button follows the friend list, so one made a friend elsewhere loses it.
+    const canAskForFriend = useUserStore(state => !!profile && canBeAskedForAFriend(profile.userId, state));
+    const { markFriendRequestSent } = useProfileActions();
     const activityDisplayEnabled = useConfigValue<boolean>('activity.point.display.enabled') === true;
 
     if (!visible || !profile || !userId || (profile.userId !== userId)) return null;
@@ -30,11 +33,12 @@ export const UserProfileComponent = () => {
             relationships={relationships}
             ownUserId={ownUserId}
             activityDisplayEnabled={activityDisplayEnabled}
-            canAskForFriend={canBeAskedForAFriend(profile.userId)}
+            canAskForFriend={canAskForFriend}
             isBlocked={isBlocked}
             onClose={() => hideWindow('user_profile')}
+            // `ExtendedProfileWindowCtrl.onAddAsFriend`: a refused request says nothing here; one that went out shows as sent.
             onAddFriend={() => {
-                if (!askForAFriend(send, profile.userId, profile.userName)) showFriendLimitReachedAlert();
+                if (askForAFriend(send, profile.userId, profile.userName)) markFriendRequestSent(profile.userId);
             }}
             onRooms={() => searchRoomsByOwner(send, profile.userName)}
             onChangeLooks={() => showWindow('avatar_editor')}

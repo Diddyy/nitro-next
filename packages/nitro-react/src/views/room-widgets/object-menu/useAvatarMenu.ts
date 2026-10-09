@@ -1,7 +1,7 @@
 import { ISimpleRoomObjectData, RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { useState } from 'react';
 
-import { ambassadorAlert, banUser, giveRights, ignoreUser, kickUser, muteUser, openClientLink, openProfile, passCarryItem, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_NONE, RELATIONSHIP_SMILE, replenishRespect, respectUser, sendFriendRequest, setRelationship, startTrading, takeRights, unignoreUser, unmuteUser, whisperUser } from '#base/commands';
+import { ambassadorAlert, askForAFriend, banUser, giveRights, ignoreUser, kickUser, muteUser, openClientLink, openProfile, passCarryItem, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_NONE, RELATIONSHIP_SMILE, replenishRespect, respectUser, setRelationship, startTrading, takeRights, unignoreUser, unmuteUser, whisperUser } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useOwnRoomObjectId, useRoomIsPlayingGame, useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation } from '#base/context/system';
@@ -78,7 +78,7 @@ export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => 
     const buttons: Record<number, MenuButton[]> = {
         [MODE_ACTIONS]: [
             action('open_profile', t('infostand.button.open_profile'), isBlocked, () => openProfile(send, webId)),
-            action('friend', t('infostand.button.friend'), info.canBeAskedAsFriend && !isBlocked, () => sendFriendRequest(send, webId, info.name)),
+            action('friend', t('infostand.button.friend'), info.canBeAskedAsFriend && !isBlocked, () => askForAFriend(send, webId, info.name)),
             action('trade', t('infostand.button.trade'), citizenshipTrack || (!accountSafetyLocked && info.canTrade && !isBlocked), () => startTrading(send, objectId)),
             action('whisper', t('infostand.button.whisper'), !isBlocked, () => whisperUser(info.name)),
             // Each respect keeps the menu up while there is another to give.

@@ -3,7 +3,7 @@ import { AcceptFriendComposer, DeclineFriendComposer, EventLogComposer, FollowFr
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { systemStore } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { UserStore, userStore } from '#base/context/user';
 
 import { sendFriendRequest } from './roomUserCommands';
 
@@ -32,10 +32,10 @@ export const searchAvatar = (send: Send, searchQuery: string) => {
 /**
  * `HabboFriendList.canBeAskedForAFriend`: not a friend already, not asked already, and fewer
  * friends than the list's limit (`friendRequests.limit`, which `MessengerInit` sets from
- * `userFriendLimit`).
+ * `userFriendLimit`). A selector passes the state it was given, so a view follows the friend list.
  */
-export const canBeAskedForAFriend = (userId: number): boolean => {
-    const { friends, sentFriendRequestIds, userFriendLimit } = userStore.getState();
+export const canBeAskedForAFriend = (userId: number, state: UserStore = userStore.getState()): boolean => {
+    const { friends, sentFriendRequestIds, userFriendLimit } = state;
 
     return !friends[userId] && !sentFriendRequestIds.includes(userId) && (countFriends(friends) < userFriendLimit);
 };
