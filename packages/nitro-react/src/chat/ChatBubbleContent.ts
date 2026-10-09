@@ -32,6 +32,10 @@ export const scaleChatFontSize = (fontSize: number | undefined, fontSizeScale: n
 export const CHAT_BUBBLE_POINTER_DEFAULT_MARGIN_LEFT = 28;
 export const CHAT_BUBBLE_POINTER_DEFAULT_MARGIN_RIGHT = 15;
 
+/** `ChatBubbleFactory.applySpecialChatContent`: the one special system chat type with content, and what it says. */
+const SPECIAL_SYSTEM_CHAT_67 = 67;
+const SPECIAL_SYSTEM_CHAT_67_TEXT = '<b>6666666...  77777777777777...</b>';
+
 /** The Flash factory's text rewrites: the special chat types become a localised sentence about the speaker. */
 export const resolveChatBubbleText = (data: ChatBubbleData, userName: string, localize: ChatLocalizer): string => {
     switch (data.chatType) {
@@ -46,6 +50,9 @@ export const resolveChatBubbleText = (data: ChatBubbleData, userName: string, lo
 
             return localize('widget.chatbubble.handitem', '', { username: userName, handitem: handItem });
         }
+        // `applySpecialChatContent`: only special system type 67 says anything, and in plain text; any other is empty.
+        case RoomChatTypeEnum.SpecialSystem:
+            return (data.extraParam === SPECIAL_SYSTEM_CHAT_67) ? SPECIAL_SYSTEM_CHAT_67_TEXT : '';
         case RoomChatTypeEnum.MuteRemaining: {
             const total = data.extraParam;
             const seconds = String(total % 60);

@@ -5,6 +5,7 @@ import { NavigatorEnforceCategoryView } from '#base/views/navigator/NavigatorEnf
 import { NavigatorRoomCreateView } from '#base/views/navigator/NavigatorRoomCreateView';
 import { NavigatorRoomEntryDialogs } from '#base/views/navigator/NavigatorRoomEntryDialogs';
 import { NavigatorRoomEventSettingsView } from '#base/views/navigator/NavigatorRoomEventSettingsView';
+import { NavigatorRoomFilterView } from '#base/views/navigator/NavigatorRoomFilterView';
 import { NavigatorView } from '#base/views/navigator/NavigatorView';
 
 export const NavigatorComponent = () => {
@@ -12,6 +13,9 @@ export const NavigatorComponent = () => {
     const { isWindowVisible: isRoomCreateVisible } = useWindowVisibility('navigator_room_create');
     const roomEventSettingsVisible = useNavigatorStore(x => x.roomEventSettingsVisible);
     const enforcingCategory = useNavigatorStore(x => x.enforceCategorySelectionType !== undefined);
+    const { isWindowVisible: isRoomFilterVisible } = useWindowVisibility('room_filter');
+    // `RoomFilterCtrl.refreshWindow` shows nothing outside a room.
+    const inRoom = useNavigatorStore(x => !!x.enteredRoom);
 
     // A `navigator/tab/<name>` link travels as this window's parameter; act on it here.
     useNavigatorSearchCodeRequest();
@@ -25,9 +29,10 @@ export const NavigatorComponent = () => {
             {isRoomCreateVisible && <NavigatorRoomCreateView />}
             {/* doorbell / password / cant-connect popups outlive the navigator window */}
             <NavigatorRoomEntryDialogs />
-            {/* `RoomEventViewCtrl` and `EnforceCategoryCtrl` are windows of their own too. */}
+            {/* `RoomEventViewCtrl`, `EnforceCategoryCtrl` and `RoomFilterCtrl` are windows of their own too. */}
             {roomEventSettingsVisible && <NavigatorRoomEventSettingsView />}
             {enforcingCategory && <NavigatorEnforceCategoryView />}
+            {isRoomFilterVisible && inRoom && <NavigatorRoomFilterView />}
             {/* The queue into a full room is up before the room exists, so it lives out here too. */}
             <RoomQueueWidget />
         </>

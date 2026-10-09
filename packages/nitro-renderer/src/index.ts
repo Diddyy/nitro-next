@@ -214,6 +214,8 @@ export * from './room/object/visualization/avatar/additions/FloatingHeartAdditio
 export * from './room/object/visualization/avatar/additions/FloatingIdleZAddition';
 export * from './room/object/visualization/avatar/additions/GameClickTargetAddition';
 export * from './room/object/visualization/avatar/additions/GuideStatusBubbleAddition';
+export * from './room/object/visualization/avatar/additions/HabbiconAssetManager';
+export * from './room/object/visualization/avatar/additions/HabbiconBubble';
 export * from './room/object/visualization/avatar/additions/IAvatarAddition';
 export * from './room/object/visualization/avatar/additions/IExpressionAddition';
 export * from './room/object/visualization/avatar/additions/MutedBubbleAddition';

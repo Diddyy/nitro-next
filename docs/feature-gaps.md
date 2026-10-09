@@ -24,11 +24,14 @@ Three sources, each worth re-running after a revision bump or a feature port:
 
 Not every unused packet is a gap: see [Not gaps](#not-gaps).
 
+The server's side is [Server gaps](server-gaps.md): what the client does that Turbo does not
+answer yet.
+
 ## Whole features with no window
 
 | Feature | What is missing | Packet areas |
 |---|---|---|
-| Messenger and friend bar | Conversations and their history, instant-message errors, mini mail, friend notifications, room invites. The friend list is ported; its "start conversation" buttons do nothing (`FriendListSearch`, `FriendListSearchItem`). The friend bar is ported (`views/friend-bar`); Turbo only sends its room event notifications, as it has no achievements, quests or games to send the others for. | `FriendList` |
+| Messenger and friend bar | Conversations and their history, instant-message errors, mini mail, friend notifications, room invites, the conversation's habbicon picker (`MessengerHabbiconPicker`). The friend list is ported; its "start conversation" buttons do nothing (`FriendListSearch`, `FriendListSearchItem`). The friend bar is ported (`views/friend-bar`); Turbo only sends its room event notifications, as it has no achievements, quests or games to send the others for. | `FriendList` |
 | Moderation tool | Issues, chat logs, room and user info, room visits, sanctions. No window, no store, and nothing sends its requests. | `Moderation`, `Moderator` |
 | Help, call for help and guides | Reporting a user or room (the navigator's room info bubble keeps its report entry hidden until this exists), pending calls, guide sessions, chat review, the safety quiz. | `Help`, `Callforhelp` |
 | Quests and talent track | Daily and seasonal quests, community goals and talent track levels. The achievement browser, score and standard award packets are implemented; see [achievement client](achievements.md). | `Quest`, `Talent` |
@@ -46,11 +49,7 @@ Not every unused packet is a gap: see [Not gaps](#not-gaps).
 
 | Area | Gap | Where |
 |---|---|---|
-| Room | The room word filter window (`GetCustomRoomFilter`, `UpdateRoomFilter`) - `RoomInfoView` notes it. | `views/room-widgets/room-info` |
 | Room | YouTube playback control from the server (`YoutubeControlVideoMessage`). | `FurnitureYoutubeView` |
-| Room | Spectator mode (`YouAreSpectatorMessage`), special system chat, the object remove confirmation. | |
-| Room | Post-its: placing one (`PlacePostItComposer`, `PostItPlacedEventMessage`) and the spam wall. | |
-| Room | Habbicon bubbles over avatars and the habbicon selector in the chat input. | `AvatarLogic`, `AvatarVisualization`, `RoomChatInputView` |
 | Pets | The breeding dialogs, and placing a pet opened from a present (it stays in the inventory). | `useInventoryPetsPage`, `FurniturePresentOpenedWidget` |
 | Navigator | Reporting a room from the room info bubble, which waits on the call-for-help reporting flow (see Help above). | `NavigatorRoomInfoPopup` |
 | Catalogue | The gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |

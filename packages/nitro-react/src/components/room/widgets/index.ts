@@ -18,3 +18,4 @@ export * from './room-queue';
 export * from './room-settings';
 export * from './room-tools';
 export * from './RoomWidgets';
+export * from './spectator';

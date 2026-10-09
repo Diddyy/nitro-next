@@ -20,6 +20,7 @@ import { RoomQuizWidget } from './quiz/RoomQuizWidget';
 import { RoomAdWidget } from './room-ad/RoomAdWidget';
 import { RoomInfoWidget } from './room-info/RoomInfoWidget';
 import { RoomToolsWidget } from './room-tools/RoomToolsWidget';
+import { RoomSpectatorModeWidget } from './spectator/RoomSpectatorModeWidget';
 
 /**
  * Every widget mounted over the room canvas while a room is open. Each returns null until it
@@ -28,6 +29,8 @@ import { RoomToolsWidget } from './room-tools/RoomToolsWidget';
 export const RoomWidgets = () => {
     return (
         <>
+            {/* Under everything else: the frame `createRoomView` adds to the room view itself. */}
+            <RoomSpectatorModeWidget />
             <RoomChatWidget />
             <RoomObjectMenuWidget />
             <RoomFurnitureWidgets />

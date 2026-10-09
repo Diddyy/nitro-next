@@ -1,7 +1,7 @@
 import { RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, GetExtendedProfileComposer, MuteAllInRoomComposer, RateFlatComposer, RemoveOwnRoomRightsRoomComposer, ToggleStaffPickComposer, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
 
-import { searchRoomTag } from '#base/commands';
+import { openRoomFilter, searchRoomTag } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useOwnControllerLevel } from '#base/context/room';
@@ -37,6 +37,8 @@ export const RoomInfoWidget = () => {
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     // `RoomInfoViewCtrl.layoutButtons`: the mute-all button needs the hotel's flag as well as the right.
     const muteAllEnabled = useConfigValue<boolean>('room_moderation.mute_all.enabled') === true;
+    // `RoomInfoViewCtrl.refreshButtons`: the word filter button needs the hotel's flag as well.
+    const roomFilterEnabled = useConfigValue<boolean>('room.custom.filter.enabled') === true;
     const { send } = useWebSocketContext();
     const { setRoomRating, setRoomFavourite, updateEnteredRoom } = useNavigatorActions();
 
@@ -68,6 +70,7 @@ export const RoomInfoWidget = () => {
             canFavourite={!isOwner}
             canRate={canRateCurrentRoom}
             canEditRoomSettings={canEditRoomSettings}
+            canEditRoomFilter={canEditRoomSettings && roomFilterEnabled}
             canStaffPick={canStaffPick}
             isStaffPicked={isStaffPicked}
             canMuteAll={canMute && muteAllEnabled}
@@ -95,6 +98,11 @@ export const RoomInfoWidget = () => {
             onRemoveRights={() => send(new RemoveOwnRoomRightsRoomComposer({ roomId }))}
             // `startRoomSettingsEdit`: always the room you are in, even over a navigator-opened one.
             onRoomSettings={() => showWindow('room_settings', {})}
+            // `onRoomFilterButtonClick`: `startRoomFilterEdit(enteredGuestRoom.flatId)`, then `close()`.
+            onRoomFilter={() => {
+                openRoomFilter(send, roomId);
+                hideWindow('room_info');
+            }}
             onFloorPlanEditor={() => showWindow('floor_plan_editor')}
             onToggleStaffPick={() => {
                 send(new ToggleStaffPickComposer({ roomId, isStaffPicked: !isStaffPicked }));

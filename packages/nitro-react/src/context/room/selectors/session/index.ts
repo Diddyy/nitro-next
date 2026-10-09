@@ -5,3 +5,4 @@ export * from './useOwnRoomObject';
 export * from './useOwnRoomObjectId';
 export * from './useRoomCanDecorate';
 export * from './useRoomIsPlayingGame';
+export * from './useRoomIsSpectating';

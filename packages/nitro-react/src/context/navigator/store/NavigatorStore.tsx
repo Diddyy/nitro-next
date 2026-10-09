@@ -204,6 +204,12 @@ type State = {
     roomAdError: NavigatorRoomAdError | undefined;
     /** `EnforceCategoryCtrl.show(selectionType)`: the dialog is up. */
     enforceCategorySelectionType: number | undefined;
+    /** `RoomFilterCtrl._flatId`: the room whose word filter is being edited, 0 for none. */
+    roomFilterFlatId: number;
+    /** `RoomFilterCtrl`'s words, as the server has sent them and the window has removed them. */
+    roomFilterWords: string[];
+    /** `RoomFilterCtrl._selectedRow`. */
+    roomFilterSelectedIndex: number;
 };
 
 type Actions = {
@@ -259,6 +265,14 @@ type Actions = {
     setRoomEventSettingsVisible: (visible: boolean) => void;
     setRoomAdError: (errorCode: number, filteredText: string) => void;
     setEnforceCategorySelectionType: (selectionType: number | undefined) => void;
+    setRoomFilterFlatId: (flatId: number) => void;
+    /** `onRoomFilterSettings`: only the words not already held are added - none are dropped. */
+    mergeRoomFilterWords: (words: string[]) => void;
+    /** `onRemoveWordClick`'s local half: the word leaves the list at once. */
+    removeRoomFilterWord: (word: string) => void;
+    setRoomFilterSelectedIndex: (index: number) => void;
+    /** `disposeWindow`: the window's words and selection go with it. */
+    clearRoomFilter: () => void;
     resetNavigator: () => void;
 };
 
@@ -303,6 +317,9 @@ const initialState: State = {
     roomEventSettingsVisible: false,
     roomAdError: undefined,
     enforceCategorySelectionType: undefined,
+    roomFilterFlatId: 0,
+    roomFilterWords: [],
+    roomFilterSelectedIndex: -1,
 };
 
 export type NavigatorStore = State & Actions;
@@ -480,6 +497,11 @@ export const createNavigatorStore = () => createStore<NavigatorStore>()((set, ge
     setRoomEventSettingsVisible: roomEventSettingsVisible => set({ roomEventSettingsVisible }),
     setRoomAdError: (errorCode, filteredText) => set(x => ({ roomAdError: { errorCode, filteredText, serial: (x.roomAdError?.serial ?? 0) + 1 } })),
     setEnforceCategorySelectionType: enforceCategorySelectionType => set({ enforceCategorySelectionType }),
+    setRoomFilterFlatId: roomFilterFlatId => set({ roomFilterFlatId }),
+    mergeRoomFilterWords: words => set(x => ({ roomFilterWords: [ ...x.roomFilterWords, ...words.filter((word, index) => !x.roomFilterWords.includes(word) && (words.indexOf(word) === index)) ] })),
+    removeRoomFilterWord: word => set(x => ({ roomFilterWords: x.roomFilterWords.filter(held => held !== word), roomFilterSelectedIndex: -1 })),
+    setRoomFilterSelectedIndex: roomFilterSelectedIndex => set({ roomFilterSelectedIndex }),
+    clearRoomFilter: () => set({ roomFilterWords: [], roomFilterSelectedIndex: -1 }),
     resetNavigator: () => set({ ...initialState }),
 }));
 

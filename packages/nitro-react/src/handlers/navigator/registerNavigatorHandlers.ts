@@ -1,5 +1,5 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
-import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomAdErrorEventMessage, RoomEntryInfoMessage, RoomEventCancelMessage, RoomEventMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, ShowEnforceRoomCategoryDialogMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomAdErrorEventMessage, RoomEntryInfoMessage, RoomEventCancelMessage, RoomEventMessage, RoomFilterSettingsMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, ShowEnforceRoomCategoryDialogMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { forwardToRoom, goToHomeRoom, goToRoom } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -30,6 +30,11 @@ const FORWARD_TYPE_GUEST_ROOM = 2;
  */
 export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnection) => {
     const navigator = () => navigatorStore.getState();
+    /** `RoomFilterCtrl.close` on a room enter or exit: the window hides, keeping its words, and edits no room. */
+    const closeRoomFilterForRoomChange = () => {
+        navigator().setRoomFilterFlatId(0);
+        systemStore.getState().hideWindow('room_filter');
+    };
     // HabboNavigator.data.settingsReceived: only the first NavigatorSettings decides where to start.
     let settingsReceived = false;
 
@@ -166,6 +171,7 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
             // `NavigatorData.onRoomEnter`'s room and owner flag, and `roomEventViewCtrl.close`.
             navigator().setCurrentRoom(data.roomId, data.isOwner);
             navigator().setRoomEventSettingsVisible(false);
+            closeRoomFilterForRoomChange();
 
             send(new GetGuestRoomComposer({
                 roomId: data.roomId,
@@ -354,6 +360,10 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
         on(CloseConnectionMessage, () => {
             navigator().setRoomEventData(undefined);
             navigator().setRoomEventSettingsVisible(false);
+            closeRoomFilterForRoomChange();
         }),
+
+        // `IncomingMessages.onRoomFilterSettings` -> `RoomFilterCtrl.onRoomFilterSettings`.
+        on(RoomFilterSettingsMessage, data => navigator().mergeRoomFilterWords(data.badWords)),
     ]);
 };

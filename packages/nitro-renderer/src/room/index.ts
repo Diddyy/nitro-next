@@ -151,6 +151,8 @@ export * from './object/visualization/avatar/additions/FloatingHeartAddition';
 export * from './object/visualization/avatar/additions/FloatingIdleZAddition';
 export * from './object/visualization/avatar/additions/GameClickTargetAddition';
 export * from './object/visualization/avatar/additions/GuideStatusBubbleAddition';
+export * from './object/visualization/avatar/additions/HabbiconAssetManager';
+export * from './object/visualization/avatar/additions/HabbiconBubble';
 export * from './object/visualization/avatar/additions/IAvatarAddition';
 export * from './object/visualization/avatar/additions/IExpressionAddition';
 export * from './object/visualization/avatar/additions/MutedBubbleAddition';

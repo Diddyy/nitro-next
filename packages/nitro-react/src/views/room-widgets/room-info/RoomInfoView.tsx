@@ -55,8 +55,6 @@
  *   `OutgoingHeader.GetRaidProtectionSettingsComposer` 206,
  *   `SaveRaidProtectionSettingsComposer` 2687) but none of the five classes, so nothing can set
  *   the capability and the button could only ever be hidden. It is ported when those exist.
- * - `room_filter_button` (`canEditRoomSettings && room.custom.filter.enabled`) needs the room
- *   word-filter window, which is not ported.
  * - `room_report_button` (hidden unless `room.report.enabled`) needs report/help, which is not
  *   ported.
  */
@@ -83,6 +81,8 @@ export interface RoomInfoViewProps {
     canRate: boolean;
     /** Owner or room controller: the settings and floor-plan entries only appear for them. */
     canEditRoomSettings: boolean;
+    /** `canEditRoomSettings && room.custom.filter.enabled`. */
+    canEditRoomFilter: boolean;
     /** Staff only. */
     canStaffPick: boolean;
     isStaffPicked: boolean;
@@ -99,6 +99,8 @@ export interface RoomInfoViewProps {
     onMakeHome: () => void;
     onRemoveRights: () => void;
     onRoomSettings: () => void;
+    /** `onRoomFilterButtonClick`: the room's word filter, and this panel closes. */
+    onRoomFilter: () => void;
     onFloorPlanEditor: () => void;
     onToggleStaffPick: () => void;
     onMuteAll: () => void;
@@ -205,10 +207,10 @@ const tagPiece = (piece: 'l' | 'm' | 'r', hovered: boolean) => LayoutImage(`${LI
 
 export const RoomInfoView = ({
     roomName, description, ownerName, showOwner, tags, rating, ranking, thumbnailUrl,
-    isHome, isFavourite, canFavourite, canRate, canEditRoomSettings, canStaffPick, isStaffPicked,
+    isHome, isFavourite, canFavourite, canRate, canEditRoomSettings, canEditRoomFilter, canStaffPick, isStaffPicked,
     canMuteAll, allInRoomMuted, canEditFloorPlan, canRemoveRights,
     onOpenOwnerProfile, onSelectTag, onRate, onToggleFavourite, onMakeHome, onRemoveRights,
-    onRoomSettings, onFloorPlanEditor, onToggleStaffPick, onMuteAll, onClose,
+    onRoomSettings, onRoomFilter, onFloorPlanEditor, onToggleStaffPick, onMuteAll, onClose,
 }: RoomInfoViewProps) => {
     const t = useTranslation();
     const tagTemplate = useTemplate(`${LIBRARY}/iro_tag_xml`);
@@ -289,7 +291,7 @@ export const RoomInfoView = ({
         buttons_cont: { visible: canEditRoomSettings || canEditFloorPlan || canStaffPick || canMuteAll },
         room_settings_button: { visible: canEditRoomSettings, onPointerTap: onRoomSettings },
         raid_protection_settings_button: { visible: false },
-        room_filter_button: { visible: false },
+        room_filter_button: { visible: canEditRoomFilter, onPointerTap: onRoomFilter },
         floor_plan_editor_button: { visible: canEditFloorPlan, onPointerTap: onFloorPlanEditor },
         staff_pick_button: {
             visible: canStaffPick,

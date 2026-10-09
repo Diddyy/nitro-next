@@ -28,6 +28,7 @@ import { FurniturePresentWidget } from './FurniturePresentWidget';
 import { FurniturePurchasableClothingWidget } from './FurniturePurchasableClothingWidget';
 import { FurnitureRentableSpaceWidget } from './FurnitureRentableSpaceWidget';
 import { FurnitureRoomLinkWidget } from './FurnitureRoomLinkWidget';
+import { FurnitureSpamWallPostItWidget } from './FurnitureSpamWallPostItWidget';
 import { FurnitureStackHeightWidget } from './FurnitureStackHeightWidget';
 import { FurnitureStickieWidget } from './FurnitureStickieWidget';
 import { FurnitureTrophyWidget } from './FurnitureTrophyWidget';
@@ -39,9 +40,9 @@ import { FurnitureYoutubeWidget } from './FurnitureYoutubeWidget';
  * Which dialog answers which request. A widget reads its own request once mounted, so this only
  * decides what is worth mounting - and adding a dialog to the room means adding a line here.
  *
- * Most of these are the `RoomObjectWidgetRequestEvent` a furniture logic dispatches. Three arrive
+ * Most of these are the `RoomObjectWidgetRequestEvent` a furniture logic dispatches. Four arrive
  * by another road: `RoomWidgetEnum` values name the widget a logic asks for through OPEN_WIDGET,
- * the pet package is raised by the server rather than by any furni at all, and an opened gift's
+ * the pet package and the spam wall's note are raised by the server rather than by any furni, and an opened gift's
  * card is put up by the gift's own card, since the box is gone by the time it shows.
  */
 export const FURNITURE_WIDGETS: Record<string, ComponentType> = {
@@ -76,6 +77,7 @@ export const FURNITURE_WIDGETS: Record<string, ComponentType> = {
     [RoomWidgetEnum.CRAFTING]: FurnitureCraftingWidget,
     [RoomWidgetEnum.RENTABLESPACE]: FurnitureRentableSpaceWidget,
     [RoomWidgetEnum.VIMEO]: FurnitureVimeoWidget,
+    [RoomWidgetEnum.SPAMWALL_POSTIT_WIDGET]: FurnitureSpamWallPostItWidget,
     [PET_PACKAGE_WIDGET]: FurniturePetPackageWidget,
     [PRESENT_OPENED_WIDGET]: FurniturePresentOpenedWidget,
 };

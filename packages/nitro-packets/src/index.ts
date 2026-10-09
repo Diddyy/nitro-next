@@ -920,6 +920,7 @@ export * from './outgoing/Catalog/RoomAdPurchaseInitiatedComposer';
 export * from './outgoing/Catalog/SelectClubGiftComposer';
 export * from './outgoing/Catalog/SetTargetedOfferStateComposer';
 export * from './outgoing/Catalog/ShopTargetedOfferViewedComposer';
+export * from './outgoing/Catalog/TriggerHabbiconComposer';
 export * from './outgoing/Catalog/UnfavoriteHabbiconComposer';
 export * from './outgoing/Collectibles/ClaimNftClaimsComposer';
 export * from './outgoing/Collectibles/GetCollectibleMintableItemTypesComposer';

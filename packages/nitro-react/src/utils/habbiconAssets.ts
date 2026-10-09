@@ -1,3 +1,5 @@
+import type { HabbiconAnimationStep, HabbiconDefinition, HabbiconRuntimeFrameDefinition } from '@nitrodevco/nitro-renderer';
+
 /**
  * The pure half of `habbicons/assets/HabbiconAssetManager`: where the habbicon assets live
  * (`HabboConfigurationManager.updateHabbiconAssetProperties` + `refreshAssetRoot`), what
@@ -12,6 +14,8 @@ export const HABBICONS_SPRITESHEET_FILE = 'habbicons_spritesheet.png';
 export const HABBICONS_COLLECTION_ICONS_SPRITESHEET_FILE = 'collection_icons_spritesheet.png';
 /** `DEFAULT_FRAME_SIZE`. */
 export const HABBICON_DEFAULT_FRAME_SIZE = 40;
+/** `getOutlinedCollectionIconBitmap`: `createOutlinedBitmap(icon, 2, 0xFFFFFFFF)`. */
+export const HABBICON_COLLECTION_ICON_OUTLINE = 2;
 /** `DEFAULT_COLLECTION_ICON_SIZE`. */
 export const HABBICON_DEFAULT_COLLECTION_ICON_SIZE = 18;
 
@@ -29,6 +33,8 @@ export interface HabbiconMetadata {
     nameKeys: Record<number, string>;
     /** `§_-E3§`: each set's icon on `collection_icons_spritesheet.png`. */
     collectionIcons: Record<number, HabbiconSheetRect>;
+    /** `§_-GE§`: each habbicon's facing and animation (`buildDefinition`), for the room's bubble. */
+    definitions: Record<number, HabbiconDefinition>;
 }
 
 const configText = (value: unknown): string => (((typeof value === 'string') || (typeof value === 'number')) ? String(value) : '');
@@ -84,15 +90,59 @@ const rectOf = (entry: Record<string, unknown>, fallback: number): HabbiconSheet
 
 const entriesOf = (value: unknown): Record<string, unknown>[] => (Array.isArray(value) ? value.filter((entry): entry is Record<string, unknown> => !!entry && (typeof entry === 'object') && ((entry as Record<string, unknown>).id !== undefined) && ((entry as Record<string, unknown>).id !== null)) : []);
 
+/** `normalizeDirection`: -1, 0 or 1 by the sign. */
+const normalizeDirection = (value: unknown): number => {
+    const direction = Math.trunc(Number(value));
+
+    if (!Number.isFinite(direction)) return 0;
+
+    return Math.sign(direction);
+};
+
+const objectsOf = (value: unknown): Record<string, unknown>[] => (Array.isArray(value) ? value.filter((entry): entry is Record<string, unknown> => !!entry && (typeof entry === 'object')) : []);
+
+/**
+ * `buildDefinition`: the facing, and - with more than one frame, frame data and steps - the
+ * animation: its frames sorted by id, sized like the preview where they give no size
+ * (`buildRuntimeFrameDefinitions`), and its enabled steps, each at least 1 ms and divided by
+ * `playbackSpeed` (`buildRuntimeAnimationSteps`).
+ */
+const buildHabbiconDefinition = (entry: Record<string, unknown>, previewWidth: number, previewHeight: number): HabbiconDefinition => {
+    const frameData = objectsOf(entry.frameData);
+    const animation = (entry.animation && (typeof entry.animation === 'object')) ? entry.animation as Record<string, unknown> : undefined;
+    const rawSteps = objectsOf(animation?.steps);
+    let playbackSpeed = Number(animation?.playbackSpeed ?? 1);
+
+    if (!Number.isFinite(playbackSpeed) || (playbackSpeed <= 0)) playbackSpeed = 1;
+
+    const frames: HabbiconRuntimeFrameDefinition[] = frameData
+        .map(frame => ({ id: Math.trunc(Number(frame.id)) || 0, ...rectOf(frame, 0), width: normalizeDimension(frame.width, previewWidth), height: normalizeDimension(frame.height, previewHeight) }))
+        .sort((a, b) => a.id - b.id);
+    const steps: HabbiconAnimationStep[] = rawSteps
+        .filter(step => step.enabled !== false)
+        .map(step => ({ sourceFrame: Math.max(0, Math.trunc(Number(step.sourceFrame)) || 0), durationMs: Math.max(1, Math.trunc(Math.max(1, Math.trunc(Number(step.durationMs)) || 0) / playbackSpeed)) }));
+
+    return {
+        previewWidth,
+        previewHeight,
+        direction: normalizeDirection(entry.dir),
+        animated: ((Math.trunc(Number(entry.frameCount)) || 0) > 1) && (frames.length > 0) && (steps.length > 0),
+        loop: !!entry.loop,
+        frames,
+        steps,
+    };
+};
+
 /** `onMetadataLoaded`: throws on text that is not JSON, as `JSON.parse` did there. */
 export const parseHabbiconMetadata = (text: string): HabbiconMetadata => {
     const data = JSON.parse(text) as Record<string, unknown> | null;
-    const metadata: HabbiconMetadata = { frames: {}, nameKeys: {}, collectionIcons: {} };
+    const metadata: HabbiconMetadata = { frames: {}, nameKeys: {}, collectionIcons: {}, definitions: {} };
 
     for (const entry of entriesOf(data?.habbicons)) {
         const id = Math.trunc(Number(entry.id));
 
         metadata.frames[id] = rectOf(entry, HABBICON_DEFAULT_FRAME_SIZE);
+        metadata.definitions[id] = buildHabbiconDefinition(entry, metadata.frames[id].width, metadata.frames[id].height);
 
         if ((typeof entry.name === 'string') || (typeof entry.name === 'number')) metadata.nameKeys[id] = String(entry.name);
     }
@@ -114,6 +164,40 @@ export const resolveHabbiconSheetRect = (sheetWidth: number, sheetHeight: number
     if (fits(rect)) return rect;
 
     return undefined;
+};
+
+/**
+ * `createOutlinedBitmap(bitmap, size, white)`: the picture's white silhouette stamped at every offset
+ * within `size` pixels, and the picture over it.
+ */
+export const outlineHabbiconBitmap = (source: HTMLCanvasElement, size: number): HTMLCanvasElement => {
+    const silhouette = document.createElement('canvas');
+    const canvas = document.createElement('canvas');
+
+    silhouette.width = source.width;
+    silhouette.height = source.height;
+    canvas.width = source.width + (size * 2);
+    canvas.height = source.height + (size * 2);
+
+    const silhouetteContext = silhouette.getContext('2d');
+    const context = canvas.getContext('2d');
+
+    if (!silhouetteContext || !context) return canvas;
+
+    silhouetteContext.drawImage(source, 0, 0);
+    silhouetteContext.globalCompositeOperation = 'source-in';
+    silhouetteContext.fillStyle = '#ffffff';
+    silhouetteContext.fillRect(0, 0, silhouette.width, silhouette.height);
+
+    for (let x = -size; x <= size; x++) {
+        for (let y = -size; y <= size; y++) {
+            if ((x !== 0) || (y !== 0)) context.drawImage(silhouette, size + x, size + y);
+        }
+    }
+
+    context.drawImage(source, size, size);
+
+    return canvas;
 };
 
 /** `extractFrameBitmapFromSheet`: the frame copied onto a canvas of its own. */

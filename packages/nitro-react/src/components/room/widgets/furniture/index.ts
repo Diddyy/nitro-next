@@ -26,6 +26,7 @@ export * from './FurniturePresentWidget';
 export * from './FurniturePurchasableClothingWidget';
 export * from './FurnitureRentableSpaceWidget';
 export * from './FurnitureRoomLinkWidget';
+export * from './FurnitureSpamWallPostItWidget';
 export * from './FurnitureStackHeightWidget';
 export * from './FurnitureStickieWidget';
 export * from './FurnitureTrophyWidget';
