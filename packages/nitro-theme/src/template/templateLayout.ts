@@ -910,7 +910,7 @@ class ListWindow extends LayoutWindow {
     protected readonly _horizontal: boolean;
     protected _spacing: number;
     private readonly _autoArrange: boolean;
-    private readonly _scaleToFit: boolean;
+    private _scaleToFit: boolean;
     private _length = 0;
     private _breadth = 0;
     private _arranging = false;
@@ -949,6 +949,11 @@ class ListWindow extends LayoutWindow {
     /** `IItemListWindow.spacing`: the gap between items, for the items placed from now on. */
     public set spacing(spacing: number) {
         this._spacing = spacing;
+    }
+
+    /** `IItemListWindow.scaleToFitItems`: whether the list's breadth grows to its widest item. */
+    public set scaleToFitItems(scaleToFit: boolean) {
+        this._scaleToFit = scaleToFit;
     }
 
     /** `ItemListController.addListItemAt`. */
@@ -1205,21 +1210,6 @@ class FrameWindow extends LayoutWindow {
 }
 
 /**
- * The properties `ScrollableItemListWindow` / `ScrollableItemGridWindow.set properties` hand to the
- * inner list or grid they wrap (`_itemGrid.spacing = value` ...).
- */
-const FORWARDED_LIST_VARS = [ 'spacing', 'scale_to_fit_items', 'resize_on_item_update', 'inverse_resize_on_item_update', 'auto_arrange_items' ] as const;
-
-/** The skin's inner list with the scrollable list's own forwarded properties over its vars. */
-const withForwardedListVars = (part: TemplateElement, owner: TemplateElement): TemplateElement => {
-    const forwarded = FORWARDED_LIST_VARS.filter(key => owner.vars[key] !== undefined);
-
-    if (!forwarded.length) return part;
-
-    return { ...part, vars: { ...part.vars, ...Object.fromEntries(forwarded.map(key => [ key, owner.vars[key] ])) } };
-};
-
-/**
  * `ScrollableItemListWindow` / `ScrollableItemGridWindow`: built from its window layout (`skin`) - an
  * inner list (`_ITEMLIST` / `_ITEMGRID`) and a scrollbar (`_SCROLLBAR`) made at the layout's size,
  * then resized to its own rect, which moves and stretches them by their params. Its XML children go
@@ -1234,10 +1224,7 @@ class ScrollableWindow extends LayoutWindow {
         // The `WindowController` constructor: at the window layout's size, its parts built in it...
         super(element, { x: 0, y: 0, width: skin.width, height: skin.height }, param);
 
-        for (const skinPart of skin.elements) {
-            const isList = !!(skinPart.tags?.includes('_ITEMLIST') || skinPart.tags?.includes('_ITEMGRID'));
-            // `set properties`: the list's own properties go on to the inner list or grid.
-            const part = isList ? withForwardedListVars(skinPart, element) : skinPart;
+        for (const part of skin.elements) {
             const window = createWindow(part, { x: part.x, y: part.y, width: part.width, height: part.height }, templateParamBits(part), undefined, input);
 
             window.skinPart = true;
@@ -1252,6 +1239,11 @@ class ScrollableWindow extends LayoutWindow {
                 const spacing = input.spacingOf?.(element) ?? (typeof element.vars.spacing === 'number' ? int(element.vars.spacing) : undefined);
 
                 if (spacing !== undefined) window.spacing = spacing;
+
+                // `set properties` hands `scale_to_fit_items` on the same way (`_itemList.scaleToFitItems`).
+                // Its other forwarded keys - `resize_on_item_update`, `inverse_resize_on_item_update`,
+                // `auto_arrange_items` - are set on no scrollable list in the client's layouts.
+                if (element.vars.scale_to_fit_items !== undefined) window.scaleToFitItems = flashBool(element.vars.scale_to_fit_items);
             }
             if (part.tags?.includes('_SCROLLBAR')) this._scrollbar = window;
         }
