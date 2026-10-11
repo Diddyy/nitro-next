@@ -34,7 +34,6 @@ public/config/*.json
 **/scripts/binaryData
 **/scripts/images
 **/scripts/**/*
-!packages/nitro-react/scripts/generate-layout-views.ts
 
 # Nitro Studio is its own git repository, checked out here as a workspace package.
 packages/nitro-studio/

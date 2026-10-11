@@ -1,9 +1,9 @@
 # Room renderer verification
 
-Verify the behavior changed by a renderer PR against the AS3 revision in `production.version`.
+Verify the behavior changed by a renderer PR against the AS3 in `scripts/habbo-as3`.
 For floor/wall projection and water shore masks, start with `RoomPlane`, `FloorPlane`, `WallPlane`,
-`FurnitureWaterAreaVisualization` and `ShoreMaskCreatorUtility`. Use the official JavaScript client
-as implementation guidance. A passing unit test does not establish whole-client pixel parity.
+`FurnitureWaterAreaVisualization` and `ShoreMaskCreatorUtility`. Use Habbo's JavaScript port in
+`scripts/habbo-js` as implementation guidance. A passing unit test does not establish whole-client pixel parity.
 
 ## Deterministic checks
 

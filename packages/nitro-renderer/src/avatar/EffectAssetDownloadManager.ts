@@ -135,6 +135,13 @@ export class EffectAssetDownloadManager {
         return this._effectMap;
     }
 
+    /** `IAvatarRenderManager.isAvatarEffectLoaded`: in the effect map, and every library of it loaded. */
+    public isAvatarEffectLoaded(effect: string): boolean {
+        const libraries = this._effectMap.get(effect);
+
+        return !!libraries?.length && libraries.every(library => library.isLoaded);
+    }
+
     private getAvatarEffectPendingLibraries(id: number): EffectAssetDownloadLibrary[] {
         const pendingLibraries: EffectAssetDownloadLibrary[] = [];
 

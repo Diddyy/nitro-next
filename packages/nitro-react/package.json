@@ -9,7 +9,6 @@
         "build": "vite build",
         "eslint": "eslint",
         "build-asset-bundles": "node scripts/build-asset-bundles.ts",
-        "generate-layout-views": "node scripts/generate-layout-views.ts",
         "generate-barrels": "node scripts/generate-barrels.ts"
     },
     "dependencies": {

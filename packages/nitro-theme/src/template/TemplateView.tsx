@@ -16,10 +16,6 @@
  *
  * Takes a template converted by `layoutToTemplate` (variables typed, colours numbers) or Studio's
  * preview of one (everything the XML's text).
- *
- * Mirrors `scripts/generate-layout-views.ts`, which turns the same XML into TSX: the same element
- * types onto the same components, a text's style, colour, wrap and alignment read from its vars the
- * same way.
  */
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Graphics as PixiGraphics, RenderLayer } from 'pixi.js';

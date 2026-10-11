@@ -48,14 +48,8 @@ The bash equivalent is `DOTNET_ENVIRONMENT=Development dotnet run --project Turb
 Use the project-scoped command; the solution may include other projects that are not needed for
 core server work. Check startup logs for the loaded configuration and registered revision.
 
-In another terminal, from the Nitro root:
-
-```sh
-corepack yarn install
-corepack yarn workspace @nitrodevco/nitro-react dev
-```
-
-Open Vite's printed URL. Point the loaded Nitro `socket.url` at Turbo's WebSocket listener, not its
+In another terminal, start the client as in [Development setup](development.md) and open Vite's
+printed URL. Point the loaded Nitro `socket.url` at Turbo's WebSocket listener, not its
 TCP or Orleans gateway port. Use the browser-reachable hostname and port; a listener bind address
 such as `0.0.0.0` is not the URL to give the client. Match `ws`/`wss` to the configured endpoint.
 Keep developer-specific endpoint changes out of unrelated feature PRs.

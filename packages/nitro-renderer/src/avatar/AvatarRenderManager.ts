@@ -135,6 +135,14 @@ export class AvatarRenderManager implements IAvatarRenderManager {
         await this._effectAssetDownloadManager.downloadAvatarEffectAsync(effectId);
     }
 
+    public getUndrawableFigureParts(figure: string): string[] {
+        return this._avatarAssetDownloadManager.getUndrawableParts(new AvatarFigureContainer(figure));
+    }
+
+    public isAvatarEffectLoaded(effect: number | string): boolean {
+        return this._effectAssetDownloadManager.isAvatarEffectLoaded(effect.toString());
+    }
+
     public getFigureClubLevel(container: IAvatarFigureContainer, gender: AvatarGenderType, searchParts: string[] = []): number {
         const figureData = this._structure.figureData;
         const parts = container.getPartTypeIds();

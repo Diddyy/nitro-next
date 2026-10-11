@@ -1,8 +1,10 @@
 # Client code conventions
 
 Read the relevant sections when changing `packages/nitro-react` code. Paths below are relative
-to that package. These conventions also apply when reviewing the affected code. For Nitro Studio
-UI, follow that application's own conventions; the client's Pixi-only rule does not apply to it.
+to that package, except `scripts/drift/`, the local (git-ignored) drift checks at the repository
+root - see [Staying in step](staying-in-step.md). These conventions also apply when reviewing the
+affected code. For Nitro Studio UI, follow that application's own conventions; the client's
+Pixi-only rule does not apply to it.
 
 ```
 src/
@@ -12,17 +14,23 @@ src/
   hooks/        React hooks. `hooks/room` is the room engine's event side.
   components/   Wiring: mounts, permissions, callbacks; renders a view.
   views/        Presentation, one window or widget per directory.
-  theme/        The Pixi UI kit (Frame, Box, Button, ThemeText, ...). Do not add feature code here.
+  theme/        `#base/theme`: re-exports the Pixi UI kit from `packages/nitro-theme` (Frame, Box,
+                Button, ThemeText, ...), configures it for the client (`themeHost.ts`) and adds
+                what only the client has (`TemplateWindow`, `useTemplate`, the room stage under
+                the UI). Do not add feature code here or in `nitro-theme`.
                 Everything renders through Pixi - there is no DOM render target, and no component
                 has a DOM twin. React DOM mounts one thing: the canvas `PixiApplicationRoot` owns.
   chat/         Chat bubble models.
+  wired/        Wired element definitions - see [Wired](wired.md).
+  sound/        The sound manager.
   utils/        Pure helpers.
 ```
 
-Every `index.ts` under `context/<feature>`, `hooks`, `handlers`, `commands`, `components`, `utils`
-and `chat` is generated: run `node scripts/generate-barrels.ts` (`yarn generate-barrels`) from `packages/nitro-react` after adding,
-moving or deleting a file there, and never edit one by hand. `theme/index.ts` is curated by hand
-and `views/` has no barrels - views are imported by path.
+Every `index.ts` under `context/<feature>`, `hooks`, `handlers`, `commands`, `components`, `utils`,
+`chat`, `wired` and `sound` is generated: run `node scripts/generate-barrels.ts`
+(`yarn generate-barrels`) from `packages/nitro-react` after adding, moving or deleting a file
+there, and never edit one by hand. `theme/index.ts` is curated by hand and `views/` has no
+barrels - views are imported by path.
 
 ### Every file
 
@@ -30,8 +38,7 @@ and `views/` has no barrels - views are imported by path.
   hooks are `.ts`.
 - A docblock at the top saying what the module is and, for a port, which Flash class it
   ports. A reader should not need to open a second file to learn what the first one is for.
-- No `eslint-disable`. The two that exist each carry a reason; do not add a third
-  without one, and prefer restructuring.
+- No `eslint-disable`. `nitro-react` has none; restructure instead of adding one.
 - No `TODO`. Do the thing, or say in the docblock what is missing and why, so the gap is
   documented rather than deferred.
 - No copy-paste stubs and no dead code: a file nothing imports, or a slice that duplicates
@@ -200,7 +207,7 @@ like `BoxPixi` used to mean it had a DOM twin. `Pixi` in a name is the library
 - A drop menu is the theme's `Dropmenu`: `caption`, `options` (each with its own `onSelect`,
   `keepOpen` for an entry that lists more). It opens Flash's expanded view over itself, fits it on
   the screen and scrolls it (`placeExpandedDropmenu`), and closes on a pick or an outside press.
-  Wrap it for a feature (`WiredDropdown`, `WiredMenuDropmenu`); do not build another list popup.
+  Wrap it for a feature (`WiredDropdown`); do not build another list popup.
 - Every `Frame` stays unrendered until its size and position have settled
   (`useRevealWhenSettled`), so a window never flashes small in a corner first. Content that
   keeps changing for a while still shows after 12 frames.

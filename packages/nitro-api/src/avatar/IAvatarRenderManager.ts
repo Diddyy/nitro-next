@@ -21,6 +21,15 @@ export interface IAvatarRenderManager {
     downloadAvatarFigure(container: IAvatarFigureContainer, listener: IAvatarImageListener): void;
     downloadAvatarFigureAsync(container: IAvatarFigureContainer): Promise<void>;
     downloadAvatarEffectAsync(effectId: number): Promise<void>;
+    /**
+     * The sets of a figure string that do not draw, as `type-set`: a part type or set the figure
+     * data does not have, a set no library holds any part of, or one needing a library that is not
+     * loaded (a failed download included, which the renderer otherwise treats as done). Empty when
+     * all of it draws.
+     */
+    getUndrawableFigureParts(figure: string): string[];
+    /** Whether the effect (an id, or `dance.<n>`) is in the effect map and every library of it is loaded. */
+    isAvatarEffectLoaded(effect: number | string): boolean;
     getFigureClubLevel(container: IAvatarFigureContainer, gender: AvatarGenderType, searchParts?: string[]): number;
     isValidFigureSetForGender(setId: number, gender: AvatarGenderType): boolean;
     getFigureStringWithFigureIds(figure: string, gender: AvatarGenderType, setIds: number[]): string;

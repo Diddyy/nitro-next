@@ -1,0 +1,19 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "types": [
+            "node"
+        ],
+        "composite": false,
+        "paths": {
+            "#api/*": [
+                "../nitro-api/src/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*",
+        "test/**/*"
+    ]
+}

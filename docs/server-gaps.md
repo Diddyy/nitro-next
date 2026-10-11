@@ -10,7 +10,7 @@ This is the opposite of [Feature gaps](feature-gaps.md), which lists what the cl
 ported. A feature can be in both lists: the server's half here, the client's there.
 
 As of client revision `WIN63-202609091217-117204808` and Turbo revision `Revision20260909`:
-37 packets sent and 109 listened to. Update the list when a gap is closed on either side.
+36 packets sent and 104 listened to. Update the list when a gap is closed on either side.
 
 ## How the list is made
 
@@ -45,7 +45,7 @@ Every one of these has a header in Turbo but no parser registered for it.
 | Game tokens | `GetSnowWarGameTokensOffer`, `PurchaseSnowWarGameTokensOffer` | `commands/gameTokensCommands.ts` |
 | NFT collectibles | `GetNftClaims`, `ClaimNftClaims`, `GetNftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBox`, `ProgressTreasureHunt` | `commands/collectiblesCommands.ts`, `useRoomFurnitureActionHandler` |
 | NFT trading | `GetNftTradeInventory`, `AddNftToTrade`, `RemoveNftFromTrade` | `commands/inventoryTradingCommands.ts` |
-| Wired | `WiredClickUser`, `WiredGetRoomLogs`, `WiredUpdateRoom`, `WiredGetVariableOwnersPage`, `WiredGetUserPermanentVariables`, `WiredSetUserPermanentVariable`, `WiredGenerateWebApiKey` | `commands/wiredCommands.ts`, `wiredRoomLogsCommands.ts`, `wiredMenuCommands.ts`, `wiredVariableManagementCommands.ts`, `wiredWebApiKeyCommands.ts` |
+| Wired | `WiredGetRoomLogs`, `WiredUpdateRoom`, `WiredGetVariableOwnersPage`, `WiredGetUserPermanentVariables`, `WiredSetUserPermanentVariable`, `WiredGenerateWebApiKey` | `commands/wiredRoomLogsCommands.ts`, `wiredMenuCommands.ts`, `wiredVariableManagementCommands.ts`, `wiredWebApiKeyCommands.ts` |
 | Wired trading | `SelfDonateItem` | `commands/wiredTradingCommands.ts` |
 
 `RedeemNftLootBox` is `UnknownOutgoing_41H` in Turbo's headers: Turbo knows the id but not the
@@ -61,7 +61,6 @@ nothing sends it.
 | Room: spectators | `YouAreSpectator`, `YouAreNotSpectator` | never sent |
 | Room: chat | `SpecialSystemChat` | no serializer |
 | Room: furniture | `ObjectRemoveConfirm` (its primitive and serializer are empty), `UseObject`, `SpecialRoomEffect`, `GamePlayerValue` | never sent |
-| Room: configuration items | `ConfigurationItemStates` | no serializer |
 | Room: polls and quizzes | `PollOffer`, `PollContents`, `PollError`, `Question`, `QuestionAnswered`, `QuestionFinished` | never sent |
 | Room: mystery boxes | `ShowMysteryBoxWait`, `CancelMysteryBoxWait`, `GotMysteryBoxPrize` | never sent |
 | Room: crafting | `CraftableProducts`, `CraftingRecipe`, `CraftingRecipesAvailable`, `CraftingResult` | never sent |
@@ -73,7 +72,7 @@ nothing sends it.
 | Inventory | `FurniListAddOrUpdate`, `PostItPlaced` | never sent |
 | Marketplace | `MarketplaceConfiguration`, `MarketPlaceOffers`, `MarketPlaceOwnOffers`, `MarketplaceItemStats`, `MarketplaceCanMakeOfferResult`, `MarketplaceMakeOfferResult`, `MarketplaceBuyOfferResult`, `MarketplaceCancelOfferResult` | never sent |
 | Marketplace | `MarketplaceCancelAllOffersResult`, `MarketplaceClearOwnHistoryResult` | no serializer |
-| Catalogue | `BundleDiscountRuleset`, `LimitedEditionSoldOut`, `FurniRentOrBuyoutOffer`, `TargetedOffer`, `TargetedOfferNotFound`, `VoucherRedeemOk`, `VoucherRedeemError`, `ScrSendKickbackInfo` | never sent |
+| Catalogue | `BundleDiscountRuleset`, `LimitedEditionSoldOut`, `FurniRentOrBuyoutOffer`, `TargetedOffer`, `TargetedOfferNotFound`, `ScrSendKickbackInfo` | never sent |
 | Recycler | `RecyclerStatus`, `RecyclerPrizes`, `RecyclerFinished` | no serializer |
 | Special items | `ClaimProductResult`, `HasClaimedProductResponse` | no serializer |
 | Offer centre | `OfferRewardDelivered` | never sent |
@@ -88,7 +87,7 @@ nothing sends it.
 | NFT collectibles | `CollectibleMintingEnabled`, `CollectibleWalletAddresses`, `CollectableMintableItemTypes`, `CollectibleMintTokenCount`, `CollectibleMintTokenOffers`, `CollectibleMintableItemResult`, `NftCollections`, `NftCollectionsScore`, `NftBonusItemClaimResult`, `NftRewardItemClaimResult`, `NftTransferFee`, `NftTransferAssetsResult` | never sent |
 | NFT collectibles | `NftClaims`, `NftClaimResult`, `NftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBoxState`, `RedeemNftLootBoxResult` | no serializer |
 | Trading | `TradeSilverSet`, `TradeSilverFee` (never sent), `TradeNftAssets`, `TradeNftAssetInventory` (no serializer) | |
-| Wired | `WiredMenuError` (never sent); `WiredEnvironment`, `WiredClickUserResponse`, `WiredRoomLogs`, `WiredUserVariablesList`, `WiredUserPermanentVariables`, `WiredSetUserPermanentVariableResult`, `WiredWebApiKeyResult` (no serializer) | |
+| Wired | `WiredMenuError` (never sent); `WiredRoomLogs`, `WiredUserVariablesList`, `WiredUserPermanentVariables`, `WiredSetUserPermanentVariableResult`, `WiredWebApiKeyResult` (no serializer) | |
 | Wired trading | `SelfDonationResult` | no serializer |
 
 ## Known behaviour gaps

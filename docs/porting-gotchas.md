@@ -49,11 +49,8 @@ a new one costs you time. Rules with a longer story live in the other guides in 
 
 ## Servers
 
-- **Use Turbo for development.** Connect to its configured WebSocket endpoint with a Turbo-issued
-  SSO ticket. Validate packet fields against AS3 and Turbo code before changing a parser to fit
-  unexpected data. Fix missing server behavior in Turbo and verify the real receive path.
-- Synthetic packet replay can isolate a client parser or handler, but cannot establish that the
-  server emits the correct packet or that the full interaction works.
+- **Packet replay is not a server check.** Injecting a message isolates a client parser or
+  handler; it does not show that Turbo sends it. See [Nitro and Turbo development](turbo-development.md).
 
 ## Tooling
 
@@ -61,15 +58,15 @@ Local Jev and `live-check` helpers are optional; confirm availability before usi
 
 - **Asset changes need a bundle rebuild.** If the builder or source resources are unavailable,
   obtain the prerequisites before claiming the change works. Do not add a URL fallback for bundled
-  assets to work around a missing local tool. See [development setup](development.md).
+  assets to work around a missing local tool. See [Asset bundles](asset-bundles.md).
 - **Windows:** Python text mode writes CRLF (`newline=''`); global `yarn` may be v1 (`corepack
   yarn`, or `node scripts/...`); Git Bash heredocs break on backticks and `${}` - write a script
   file, or edit with the editor tools.
 - **`jev.mjs invented` on a shared file** (a `register*Handlers.ts`) reads the other listeners as
   invention: pass `file:from-to` for your part.
 - **`live-check inject <Packet> '[values]'`** delivers a server packet through the real parser and
-  listeners (`__nitroInject`, dev builds). Use it to isolate client handling; also verify the corresponding
-  real Turbo exchange.
+  listeners. The client has no injection hook of its own; without `live-check`, write the frame to
+  the socket as [Server gaps](server-gaps.md#checking-a-client-feature-without-the-server) describes.
 - **Tests that load modules in a `vm`**: arrays and objects from the sandbox are another realm, so
   `deepEqual` fails on identical values - spread them (`[ ...items ]`) before comparing.
 - **Find controls by name, not by screenshot**: `live-check find <name>`, `click --name`,

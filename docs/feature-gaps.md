@@ -14,7 +14,7 @@ Three sources, each worth re-running after a revision bump or a feature port:
 
 - **Packet coverage.** `node tools/packet-coverage.mjs` lists, by feature area, the incoming
   messages nothing in the client listens to and the outgoing composers nothing sends. At the time
-  of writing that is 176 of 556 incoming and 201 of 553 outgoing. A packet counts as used when its
+  of writing that is 127 of 572 incoming and 149 of 567 outgoing. A packet counts as used when its
   class name appears in the client's source, so a registered listener that does nothing still counts.
 - **The port's own notes.** Views, stores and handlers state what they leave out; search the
   client for `not ported` and `Not ported:`.
@@ -55,8 +55,7 @@ answer yet.
 | Inventory | Merged rentable furni (the `rentables` tab) and a rented item's rent state and expiry, the `use_btn` and paging through an external image wall item (`showUseProductSelection`), the achievement score under the badges. | `useInventoryFurniPage`, `useInventoryBadgesPage`, `InventoryView` |
 | Messenger | The conversation's habbicon picker (`MessengerHabbiconPicker`), and resizing the window. Turbo only sends the friend bar's room event notifications, as it has no achievements, quests or games to send the others for. | `MessengerView` |
 | Group forums | Scrolling to the message a link names. | `GroupForumView` |
-| Wired | The limited-edition plaque on chest item icons. | `WiredChestItemCell` |
-| Purse | What clicking the currency icons opens. | `PurseView` |
+| Wired | The limited-edition plaque and rarity flag on chest item icons. | `WiredChestFurniContentsView` |
 | Hotel view | The widget types `PORTED_LANDING_VIEW_WIDGETS` leaves out: the avatar image, the catalogue promos, daily quest, the competition prizes and hall of fame, the moderation, talents, Habbo Way and safety quiz promos, and the room hopper. The generic widget leaves out its title, image, room, badge, habblet, VIP, community goal, daily quest and concurrent-user elements. The expiring page widget is not asked again when an invisible catalogue page is visited (`CATALOG_INVISIBLE_PAGE_VISITED`), the next limited rare's buttons open its page without picking the offer, and the community goal keeps `goal_info` at its layout height. What the ported widgets wait on from the server is under [Hotel view: Turbo and the admin panel](#hotel-view-turbo-and-the-admin-panel). | `HotelViewWidgets`, `HotelViewGenericWidget`, `HotelViewPromoArticleWidget` |
 | Chat | Flash's chat commands other than the wired ones; the chat input sends them as chat. The chat bar's help button (`helpbutton`, shown while the pointer is over the field, opening `habbopages/chat/commands`) stays hidden. | `wiredChatCommands`, `RoomChatInputView` |
 | Account | Email change and status. | `Users` |
@@ -88,7 +87,7 @@ tab, as raw JSON. Where each widget stands:
 None: every window whose Flash layout is in the bundles draws from it through `TemplateWindow`,
 binding what its Flash code does to the layout's named windows. A view would count here when it
 draws theme components and loads no template although a layout for it exists; the layouts are the
-library's in `scripts/flash-js-resources`. What Flash builds in code (a table, a previewer, a
+library's in `scripts/habbo-js-resources`. What Flash builds in code (a table, a previewer, a
 rotating image) is drawn by the port's own components inside the layout's containers.
 
 The chat bar is drawn from `chatinput_window_new` but keeps the client's own text field in
@@ -98,9 +97,7 @@ No layout to convert to, so these stay hand-placed: the wired setup editor and t
 frame (`views/wired-setup`, `views/wired-common`, `WiredTradingFrame` and the chest settings and
 notification settings windows on it - Flash builds them in code from `UbuntuPresetManager`, and the
 `wired_style_*` templates are already read by the wired styles), the floor plan editor (its layout
-is not in the bundles) and the loading screen. In the room UI, also the pet picker
-(`FurniturePetPickerView`: Flash floats a `use_product_menu` bubble over each pet instead of opening
-a window), the room ad tooltip (built with `createWindow`), the chat command suggestions (the port's
+is not in the bundles) and the loading screen. In the room UI, also the room ad tooltip (built with `createWindow`), the chat command suggestions (the port's
 own) and `PetPortraitView` (a picture the breeding windows draw into their bitmaps).
 
 ## Not gaps

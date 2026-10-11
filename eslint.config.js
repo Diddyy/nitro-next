@@ -58,7 +58,6 @@ const config = [
             // which the app's tsc project disallows) - no tsconfig covers them for
             // typescript-eslint's type-aware rules to run against.
             '**/scripts/build-asset-bundles.ts',
-            '**/scripts/generate-layout-views.ts',
             '**/scripts/extract-skin-assets.ts',
             '**/scripts/sync-generated-packets.ts',
         ],

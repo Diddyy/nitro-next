@@ -18,9 +18,9 @@ The Habbo client never loaded behaviour at runtime. It loaded the *look*:
 
 - A `<layout>` XML is a tree of elements (`type`, `style`, rect, `name`, vars). `WindowParser`
   builds it into windows on demand.
-- Behaviour is compiled AS3 (or its JS conversion). The controller builds the layout, then finds
+- Behaviour is compiled AS3 (`scripts/habbo-as3`, or its JS conversion in `scripts/habbo-js`). The controller builds the layout, then finds
   elements by name and wires them up: `_window.findChildByName("buy_button").addEventListener(...)`.
-  `findChildByName` appears in 557 files under `scripts/flash-js`.
+  `findChildByName` appears in 557 files under `scripts/habbo-js`.
 - So a layout can move, restyle, resize or re-skin anything, but it cannot add a feature. An
   element the controller does not look up by name is decoration.
 

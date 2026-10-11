@@ -1,44 +1,51 @@
 # Nitro Studio workflow
 
-`nitro-studio` is a development web application for the assets the hotel serves: bundles,
-gamedata, texts and images. It imports official Habbo assets, converts SWFs and maintains
-versioned workspaces in a shared asset store. It is separate from the client runtime's
-`AssetManager`, which loads textures and bundles while the client runs.
+`nitro-studio` is a hosted, multi-user web application for the assets the hotel serves: bundles,
+gamedata, texts, images and the client's UI theme. It follows Habbo's hotel and client releases,
+converts SWF and `.hab` libraries, and keeps versioned workspaces that each publish to a hotel. It
+is separate from the client runtime's `AssetManager`, which loads textures and bundles while the
+client runs.
 
 The application is its own git repository, checked out at `packages/nitro-studio` (this repository
-ignores that folder). There it stays a Yarn workspace of this repository: `@nitrodevco/nitro-api` and
-`@nitrodevco/nitro-renderer` resolve as workspace packages, and its relative imports of `nitro-api`,
-`nitro-react` and `nitro-renderer` sources resolve against the sibling packages. Run `yarn install`
-from this repository's root after checking it out. Follow its README and configured workspace
-paths for installation, version history, swapping versions and merging workspaces. Preserve this
-workflow even when the application is not installed in the client developer's environment.
-Do not assume that a missing local installation means the tool is obsolete.
+ignores that folder). There it stays a Yarn workspace of this repository: `@nitrodevco/nitro-api`,
+`@nitrodevco/nitro-renderer` and `@nitrodevco/nitro-theme` resolve as workspace packages. Run
+`yarn install` from this repository's root after checking it out, then follow its README to run it.
+Preserve this workflow even when the application is not installed in the client developer's
+environment. Do not assume that a missing local installation means the tool is obsolete.
 
 ## Application structure
 
-The application uses Hono, React DOM and Tailwind. Its `converter/` originated from the nitro-tools
-converter; follow the application's README for converter-specific build and lint coverage. It imports
-official assets and gamedata, and tracks workspaces and versions in a shared asset store. These
-responsibilities belong to the development application, not the client runtime texture loader.
+The server is Hono; the client is React DOM, Vite and Tailwind. Accounts, workspaces, file
+metadata and versions live in Postgres, file contents in a content-addressed blob store. Its
+`converter/` originated from the nitro-tools converter. The README owns setup, scripts, roles and
+the page map.
+
+A workspace is laid out as the asset host serves it (`gamedata/`, `bundled/<kind>/`, `images/...`;
+the Studio's `shared/layout.ts` maps each folder to its `nitro-config.json` key). Members see it at
+`/cdn/<workspace>/...`; publishing sends it to the hotel.
 
 ## Gamedata and localization
 
-- Read the workspace selected in Nitro Studio's settings. Where the package is present,
-  `packages/nitro-studio/workspace/gamedata` is the documented default location.
-- After a client revision bump, scan Habbo assets and import Hotel data and Changed texts, and
-  check the HTML client release (Changes, Habbo client; production and sandbox) so the From Habbo
-  tab lists what it brings: the room content and placeholder libraries (`.hab`, converted like an
-  SWF), default localizations, avatar animations and tables, chat styles and the renderer's bitmaps. An import from the sandbox is recorded as the sandbox's. The
-  workspace provides external variables, external texts, default localizations and avatar data.
-  Correct imported/generated text at its source instead of patching the client to compensate.
+- The server scans the hotel and its client releases on its own. After a client revision bump,
+  open the workspace's Habbo page (Workspace > Habbo) and import what the latest scan and client
+  release bring: furniture and the rest, texts, the UI theme, images, chat styles, effect icons
+  and client data (the room content and placeholder libraries, default localizations, avatar
+  animations and tables, the renderer's bitmaps). Then publish.
+- The workspace provides external variables, external texts, default localizations and avatar
+  data. Correct imported/generated text at its source instead of patching the client to compensate.
 - The avatar data the renderer starts from - the client's avatar tables and the hotel's actions and
   animations - is the avatar render library's bundle, the workspace's
-  `bundled/templates/habbo-avatar-render-lib.nitro` (read from `asset.bundles.templates`, with the avatar
-  additions), built from its gamedata on import, edit and publish. The renderer compiles none of it in.
+  `bundled/templates/habbo-avatar-render-lib.nitro` (read from `asset.bundles.templates`, with the
+  avatar additions), built from its gamedata on import, edit and publish. The renderer compiles
+  none of it in.
 - Keep `nitro-config.json` aligned with the workspace's external variables and generated asset URLs.
   Check the actual files served to the client as well as the workspace's source files.
-- Preserve workspace-specific assets when updating or merging official assets. Follow the asset
-  manager's version and merge workflow; do not replace its workspace with an unreviewed folder copy.
+- Preserve workspace-specific assets when updating from Habbo. Use the workspace's history
+  (versions, compare, go back) rather than replacing its files wholesale.
+- The drift checks read a workspace's `gamedata/` from disk: point `STUDIO_GAMEDATA` at a local
+  copy (a published or zipped workspace). Without it they fall back to the older local-workspace
+  folder (`workspacePath` in `nitro-studio.settings.json`, else `packages/nitro-studio/workspace`),
+  which the hosted Studio keeps only caches in, so the gamedata checks report it missing.
 
 ## Integration contracts
 

@@ -150,6 +150,27 @@ export class AvatarAssetDownloadManager {
         }
     }
 
+    /**
+     * `IAvatarRenderManager.getUndrawableFigureParts`: the figure's sets, as `type-set`, that do not
+     * draw - unknown to the figure data, with no part any library holds, or needing a library that
+     * is not loaded. A set naming some parts no library holds still draws: Habbo's figure data lists
+     * layers that have no art (`rs`, `lc`, `hrb` ...), and the renderer skips them as Flash did.
+     */
+    public getUndrawableParts(container: IAvatarFigureContainer): string[] {
+        const undrawable: string[] = [];
+        const figureData = this._structure?.figureData;
+
+        for (const partType of container.getPartTypeIds()) {
+            const setId = container.getPartSetId(partType);
+            const partSet = figureData?.getSetType(partType)?.getPartSet(setId);
+            const libraries = partSet ? partSet.parts.flatMap(part => this._figureMap.get(`${part.type}:${part.id}`) ?? []) : [];
+
+            if (!libraries.length || !libraries.every(library => library.isLoaded)) undrawable.push(`${partType}-${setId}`);
+        }
+
+        return undrawable;
+    }
+
     private getAvatarFigurePendingLibraries(container: IAvatarFigureContainer): AvatarAssetDownloadLibrary[] {
         return this.getAvatarFigureLibraries(container).filter(library => !library.isReady);
     }

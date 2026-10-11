@@ -8,25 +8,22 @@ data for their reception views. Navigation remains available through the toolbar
 
 ## Reference findings
 
-- September AS3: `WIN63-202609091217-117204808/scripts-deob/com/sulake/habbo/friendbar/landingview/`.
+- AS3: `scripts/habbo-as3/com/sulake/habbo/friendbar/landingview/`.
   `layout/WidgetContainerLayout.as` decides background scheduling, visibility and
-  retention. Its layout was extracted directly from that revision's SWF DefineBinaryData.
-- HTML5 workbench: release `r_5fe2d203ec900f056bb65ecb`, original
-  `client/generated/habbo-friend-bar-com.hab` contains
-  `landing_view_default_dynamic_layout_xml`. It matches September's extracted XML
-  after newline normalization. `client/habbo-air/HabboAirLauncher.app.js` contains
-  the corresponding controller, identified by its background names, layout names,
-  scheduling key and method flow. Its extracted declaration is pinned separately;
-  this does not assert that the entire official release matches September AS3.
+  retention. The pinned layout was extracted from the September revision's SWF DefineBinaryData.
+- Habbo's JavaScript port: `scripts/habbo-js-resources/habbo-friend-bar-com/landing_view_default_dynamic_layout.xml`
+  is the layout the release bundles, and `scripts/habbo-js` holds the corresponding controller,
+  identified by its background names, layout names, scheduling key and method flow. The
+  `r_5fe2d203ec900f056bb65ecb` release this pass was checked against matched September's
+  extracted XML after newline normalization; the build 90 bundle's copy no longer matches the pin
+  (`tools/references/hotel-view.json`), so review it before repinning. This does not assert that an
+  entire release matches the AS3.
 
-Local reference inputs are retained in the ignored directory
-`packages/nitro-react/scripts/hotel-reference/`. No proprietary reference code is
-shipped. The manifest pins the layout, official evidence and AS3 controller/parser.
+No proprietary reference code is shipped. The manifest pins the layout, official evidence and AS3
+controller/parser; the test reads its pinned copy of the layout from a git-ignored local path
+(see `tools/hotel-view.test.mjs`).
 
 ```powershell
-$env:NITRO_HOTEL_REFERENCE_ROOT = (Resolve-Path packages/nitro-react/scripts/hotel-reference).Path
-$env:NITRO_AS3_ROOT = 'E:/Development/Habbo/SWF Sources/WIN63-202609091217-117204808/scripts-deob'
-node tools/layout-reference.mjs tools/references/hotel-view.json tmp/hotel-reference-report.json
 node --test tools/hotel-view.test.mjs
 ```
 
@@ -35,7 +32,7 @@ inputs are present; this check is explicitly skipped when they are absent. Other
 tests cover packet field order, composer payload, schedule filtering, room-hidden
 updates, activation requests, retained images and listener cleanup.
 
-The compact report's three review items are resolved as follows:
+Three review items from the layout are resolved as follows:
 
 - `left-right_divider` starts hidden and this controller never reveals it.
 - Hotel-top and logo images are remote `image.library.url` resources, not embedded
@@ -95,13 +92,13 @@ the previous URI for missing values and hidden layers; the feature branch's stat
 is retained. The base branch's newer campaign schedules replace the duplicated older keys.
 
 The base branch's bonus rare geometry and slot separators are retained, with the feature
-branch's timer and campaign dispatch. `GenericWidget.configureLayout` and the official
-JavaScript implementation place a bitmap beside the content column; the merged view measures
+branch's timer and campaign dispatch. `GenericWidget.configureLayout` and Habbo's
+JavaScript port place a bitmap beside the content column; the merged view measures
 both, plus floating timers, so their size contributes to the slot. Normal text preserves the
 base branch's `normalPenLayout`, while advanced text preserves caption letter spacing.
 
 Verification: React TypeScript check, changed-file ESLint, barrel check, and six reception
-regressions passed. Jev screens were reviewed against AS3 and the official JavaScript; its
+regressions passed. Jev screens were reviewed against AS3 and Habbo's JavaScript port; its
 per-file omission flags include behavior delegated to the handler and child components and
 are not treated as behavioral authority. The browser reached the loading screen; authenticated
 reception rendering remains unverified because this checkout lacks the local emulator bridge
