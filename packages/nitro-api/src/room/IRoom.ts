@@ -69,6 +69,11 @@ export interface IRoom {
         realRoomObject?: boolean,
         sizeZ?: number,
     ): boolean;
+    /**
+     * Builds furniture waiting in the room's queues until `startTime` is `budgetMs` old (checked
+     * every four pieces), floor items first; true when the budget ran out.
+     */
+    createPendingFurniture(startTime: number, budgetMs: number): boolean;
     addFurnitureFloorByTypeName(
         objectId: number,
         typeName: string,

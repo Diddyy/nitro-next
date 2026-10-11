@@ -1316,9 +1316,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         return this._screenOffsetX;
     }
 
+    /** Flash keeps the offset as it is given (a `Number`): sprites snap against it in `renderObject`. */
     public set screenOffsetX(x: number) {
-        x = Math.trunc(x);
-
         this._mouseLocation.x = this._mouseLocation.x - (x - this._screenOffsetX);
         this._screenOffsetX = x;
     }
@@ -1327,9 +1326,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         return this._screenOffsetY;
     }
 
+    /** Flash keeps the offset as it is given (a `Number`): sprites snap against it in `renderObject`. */
     public set screenOffsetY(y: number) {
-        y = Math.trunc(y);
-
         this._mouseLocation.y = this._mouseLocation.y - (y - this._screenOffsetY);
         this._screenOffsetY = y;
     }

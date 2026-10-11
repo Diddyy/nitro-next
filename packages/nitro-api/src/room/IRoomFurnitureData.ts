@@ -8,7 +8,7 @@ export interface IRoomFurnitureData {
     readonly location: IVector3D;
     readonly direction: IVector3D;
     readonly state: number;
-    readonly objectData: IObjectData;
+    readonly objectData?: IObjectData;
     readonly extra: number;
     readonly expires: number;
     readonly usagePolicy: number;

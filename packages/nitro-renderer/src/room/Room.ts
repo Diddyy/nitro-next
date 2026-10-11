@@ -166,6 +166,11 @@ export class Room implements IRoom {
      */
     private _ownUserRoomIndex: number = -1;
 
+    /**
+     * Flash `RoomInstanceData`'s furniture and wall item queues: furniture is added as data and built
+     * a few at a time by the engine's update (`createPendingFurniture`), or at once when something
+     * asks for it first (`getRoomObject`). In insertion order; adding an id again moves it to the end.
+     */
     private _floorStack: Map<number, IRoomFurnitureData> = new Map();
     private _wallStack: Map<number, IRoomFurnitureData> = new Map();
     private _variableFx: VariableFxRoomData = new VariableFxRoomData();
@@ -187,6 +192,9 @@ export class Room implements IRoom {
 
         // Its furniture still waiting for a download slot is no longer wanted.
         GetRoomContentLoader().cancelDownloads(this._eventDispatcher);
+
+        this._floorStack.clear();
+        this._wallStack.clear();
 
         this.removeAllRoomObjectManagers();
 
@@ -498,8 +506,9 @@ export class Room implements IRoom {
     public setRoomInstanceRenderingCanvasOffset(point: PointData): boolean {
         if (!this._canvas || !point) return false;
 
-        const x = ~~(point.x);
-        const y = ~~(point.y);
+        // Flash `setRoomCanvasScreenOffset` passes the point on unrounded; the camera's eased location is fractional.
+        const x = point.x;
+        const y = point.y;
 
         if ((this._canvas.screenOffsetX === x) && (this._canvas.screenOffsetY === y)) return false;
 
@@ -535,15 +544,24 @@ export class Room implements IRoom {
         if (roomObject) return roomObject;
 
         switch (category) {
+            // Flash `RoomEngine.getObject`: furniture still queued is built now.
             case RoomObjectCategoryEnum.Floor: {
-                if (!this.addFurnitureFloorFromData(this._floorStack[objectId])) return undefined;
+                const data = this._floorStack.get(objectId);
+
+                this._floorStack.delete(objectId);
+
+                if (!data || !this.addFurnitureFloorFromData(data)) return undefined;
 
                 roomObject = this.getRoomObjectManager(category).getObject(objectId);
 
                 break;
             }
             case RoomObjectCategoryEnum.Wall: {
-                if (!this.addFurnitureWallFromData(this._wallStack[objectId])) return undefined;
+                const data = this._wallStack.get(objectId);
+
+                this._wallStack.delete(objectId);
+
+                if (!data || !this.addFurnitureWallFromData(data)) return undefined;
 
                 roomObject = this.getRoomObjectManager(category).getObject(objectId);
 
@@ -604,7 +622,12 @@ export class Room implements IRoom {
     }
 
     public removeRoomObject(objectId: number, category: RoomObjectCategoryEnum): void {
-        const roomObject = this.getRoomObject(objectId, category);
+        // Flash `disposeObjectFurniture` / `disposeObjectWallItem`: queued data is dropped first, so
+        // furniture removed before it was built is never built.
+        if (category === RoomObjectCategoryEnum.Floor) this._floorStack.delete(objectId);
+        else if (category === RoomObjectCategoryEnum.Wall) this._wallStack.delete(objectId);
+
+        const roomObject = this.getRoomObjectManager(category)?.getObject(objectId);
 
         if (!roomObject) return;
 
@@ -956,7 +979,9 @@ export class Room implements IRoom {
         sizeZ: number = -1,
         typeId: number = -1,
     ): boolean {
-        this._floorStack[objectId] = {
+        // Flash `RoomEngine.addObjectFurniture`: queued (`RoomInstanceData.addFurnitureData`), not built.
+        this._floorStack.delete(objectId);
+        this._floorStack.set(objectId, {
             objectId,
             typeId,
             typeName,
@@ -971,11 +996,7 @@ export class Room implements IRoom {
             ownerName,
             realRoomObject,
             sizeZ,
-        };
-
-        this.addFurnitureFloorFromData(this._floorStack[objectId]);
-
-        delete this._floorStack[objectId];
+        });
 
         return true;
     }
@@ -1041,7 +1062,9 @@ export class Room implements IRoom {
 
         objectData.setString(data);
 
-        this._wallStack[objectId] = {
+        // Flash `RoomEngine.addObjectWallItem`: queued (`RoomInstanceData.addWallItemData`), not built.
+        this._wallStack.delete(objectId);
+        this._wallStack.set(objectId, {
             objectId,
             typeId,
             typeName: GetRoomContentLoader().getFurnitureWallNameForTypeId(typeId, objectData.getLegacyString()),
@@ -1049,19 +1072,45 @@ export class Room implements IRoom {
             direction,
             state,
             objectData,
+            // Flash's wall `FurnitureData` takes `NaN` for the extra.
+            extra: NaN,
             expires,
             usagePolicy,
             ownerId,
             ownerName,
             realRoomObject,
             sizeZ: -1,
-        };
-
-        this.addFurnitureWallFromData(this._wallStack[objectId]);
-
-        delete this._wallStack[objectId];
+        });
 
         return true;
+    }
+
+    /**
+     * This room's part of Flash `RoomEngine.createRoomFurniture`: its queued floor items, then its
+     * wall items, built one at a time; every fourth, the frame's budget (measured from `startTime`)
+     * is checked and the rest waits for the next frame. Flash skips the check in game mode, which
+     * only SnowWar sets and the port does not have.
+     */
+    public createPendingFurniture(startTime: number, budgetMs: number): boolean {
+        let built = 0;
+
+        const outOfTime = () => ((++built % 4) === 0) && ((performance.now() - startTime) >= budgetMs);
+
+        for (const [ objectId, data ] of this._floorStack) {
+            this._floorStack.delete(objectId);
+            this.addFurnitureFloorFromData(data);
+
+            if (outOfTime()) return true;
+        }
+
+        for (const [ objectId, data ] of this._wallStack) {
+            this._wallStack.delete(objectId);
+            this.addFurnitureWallFromData(data);
+
+            if (outOfTime()) return true;
+        }
+
+        return false;
     }
 
     public addFurnitureWallFromData(data: IRoomFurnitureData): boolean {
@@ -1087,7 +1136,7 @@ export class Room implements IRoom {
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureOwnerName, data.ownerName);
         roomObject.model.setValue(RoomObjectVariableEnum.FurnitureExtra, data.extra);
 
-        if (!this.updateRoomObjectWall(data.objectId, data.location, data.direction, data.state, data.objectData.getLegacyString())) return false;
+        if (!this.updateRoomObjectWall(data.objectId, data.location, data.direction, data.state, data.objectData?.getLegacyString() ?? '')) return false;
 
         this.dispatchEvent(
             new RoomEngineObjectEvent(RoomEngineObjectEvent.ADDED, this._roomId, data.objectId, RoomObjectCategoryEnum.Wall),

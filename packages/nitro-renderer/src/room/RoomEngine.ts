@@ -31,6 +31,8 @@ import { RoomGeometry } from './utils';
 /** Port of Flash `RoomEngine`. */
 export class RoomEngine implements IRoomEngine {
     public static TEMPORARY_ROOM_ID: number = -1;
+    /** `createRoomFurniture`'s `getTimer() - start >= 30`: how long a frame may spend building queued furniture. */
+    private static FURNITURE_CREATION_BUDGET_MS: number = 30;
 
     private _rooms: Map<number, IRoom> = new Map();
     private _imageObjectIdBank = new NumberBank(1000);
@@ -81,13 +83,30 @@ export class RoomEngine implements IRoomEngine {
         GetTicker().remove(this._tick);
     }
 
-    /** Advances every room that is being drawn (has a canvas): the main room and any previewers alike. */
+    /**
+     * Flash `RoomEngine.update`: the queued furniture of every room is built first, within one shared
+     * budget (`createRoomFurniture`), then every room that is being drawn (has a canvas) advances - the
+     * main room and any previewers alike.
+     */
     public update(time: number): void {
+        this.createRoomFurniture();
+
         for (const room of this._rooms.values()) {
             if (!room.canvas) continue;
 
             room.update(time);
         }
+    }
+
+    /**
+     * Flash `RoomEngine.createRoomFurniture`: each room builds its queued furniture until the frame has
+     * spent `FURNITURE_CREATION_BUDGET_MS` since this started, checked every four pieces - so a room
+     * that comes after the budget is spent still builds up to four.
+     */
+    private createRoomFurniture(): void {
+        const startTime = performance.now();
+
+        for (const room of this._rooms.values()) room.createPendingFurniture(startTime, RoomEngine.FURNITURE_CREATION_BUDGET_MS);
     }
 
     public createRoom(roomId: number): IRoom {
