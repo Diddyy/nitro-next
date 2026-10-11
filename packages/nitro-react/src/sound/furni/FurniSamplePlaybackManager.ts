@@ -9,7 +9,7 @@ import { getSoundSampleUrl } from '../soundSampleUrl';
  * moved up or down (`CHANGE_PITCH`) and lets it go when it leaves (`ROOM_OBJECT_DISPOSED`). Each
  * furni gets its own `HabboSoundWithPitch` at the furni volume.
  *
- * Written the way Sulake's JavaScript build of the class is (`flash-js`), which fixes two things the
+ * Written the way Sulake's JavaScript build of the class is (`habbo-js`), which fixes two things the
  * AS3 gets wrong: it keys the loading sounds by sample and the objects waiting on each, so ten
  * blocks of one sample share one download and one decode instead of the AS3's
  * `_loadingSamples.getValues().indexOf(sampleId)` (a lookup among object ids) deciding it; and a

@@ -31,8 +31,8 @@ import { FurnitureVisualization } from './FurnitureVisualization';
  * misses when `validateAvatarFigure` has added a mandatory part to the string the download manager
  * keys on; the listener here is this visualization's own, so any call is for its figure.
  *
- * Flash's `getSpriteList` (the camera's server render data) is not ported: the port's camera
- * renders on the client.
+ * Flash's `getSpriteList` (the mannequin's figure in the camera's server render data) is not
+ * ported, so the port's `SpriteDataCollector` drops a mannequin's figure from a photo.
  */
 export class FurnitureMannequinVisualization extends FurnitureVisualization implements IAvatarImageListener {
     private static AVATAR_IMAGE_SPRITE_TAG: string = 'avatar_image';

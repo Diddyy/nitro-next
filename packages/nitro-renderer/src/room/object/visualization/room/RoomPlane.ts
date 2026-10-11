@@ -32,8 +32,8 @@ type PlaneDataType = 'floorData' | 'wallData';
  * Walls and landscapes are copied onto the plane in pixel-stepped column strips (`drawStepped`),
  * as Flash's `draw` does; anything else is drawn through the plane's matrix. Not ported:
  * `getDrawingDatas` (and `resolveMasks` under it), the per-layer drawing data only the photo
- * camera reads - Flash's `SpriteDataCollector` sends it to the server in `RenderRoomMessageComposer`
- * - and the photo camera is not ported, so nothing would call it.
+ * camera reads - Flash's `SpriteDataCollector` sends it to the server in `RenderRoomMessageComposer`.
+ * The port's `SpriteDataCollector` sends each plane as its colour alone instead.
  */
 /** The default plane angles (the port's `PlaneRasterizer` carries the same pair) for the per-size plane geometries. */
 const HORIZONTAL_ANGLE_DEFAULT = 45;

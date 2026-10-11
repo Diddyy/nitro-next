@@ -24,7 +24,7 @@ interface ChannelSequence {
 
 /**
  * Plays one trax song - Flash's `TraxSequencer`, written the way Sulake's JavaScript build does
- * it (`flash-js`): `prepare` lays each channel's samples out along the song in frames, and `play`
+ * it (`habbo-js`): `prepare` lays each channel's samples out along the song in frames, and `play`
  * mixes everything from the play head to the end (or `length` seconds of it) into one buffer, with
  * the fade-in and fade-out applied, and plays that. The AS3 fed the same mix to a `SampleDataEvent`
  * 8192 frames at a time; the frames that come out are the same.

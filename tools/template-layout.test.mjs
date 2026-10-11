@@ -315,7 +315,7 @@ const { layoutToTemplate } = await import('../packages/nitro-theme/src/template/
 const { readFileSync } = await import('node:fs');
 
 /** The client's own window layout of a scrollable list, style 0: a 23 wide `_ITEMLIST` and a 17 wide `_SCROLLBAR` in 40 x 40. */
-const listSkin = layoutToTemplate(readFileSync(new URL('../packages/nitro-react/scripts/flash-js-resources/habbo-window-manager-com/habbo_window_layout_scrollable_itemlist_vertical.xml', import.meta.url), 'utf8'));
+const listSkin = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-window-manager-com/habbo_window_layout_scrollable_itemlist_vertical.xml', import.meta.url), 'utf8'));
 const skinned = { ...input(undefined), skinOf: e => (e.tag === 'scrollable_itemlist_vertical' ? listSkin : undefined) };
 
 await test('a scrollable list whose items fit hides its scrollbar and gives the list the whole width', () => {
@@ -394,7 +394,7 @@ await test('a scrollable list resized smaller than its items shows its scrollbar
 });
 
 /** The client's tab context layout, style 3: a `_SELECTOR` inset 8 at either end, a `_CONTENT` under it. */
-const tabSkin = layoutToTemplate(readFileSync(new URL('../packages/nitro-react/scripts/flash-js-resources/habbo-window-manager-com/habbo_window_layout_tab_context_3.xml', import.meta.url), 'utf8'));
+const tabSkin = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-window-manager-com/habbo_window_layout_tab_context_3.xml', import.meta.url), 'utf8'));
 
 await test('a tab context puts its buttons in its selector, packed from the selector\'s inset whatever the layout placed them at', () => {
     const tabs = [ [ 0, 70 ], [ 75, 74 ], [ 144, 82 ] ].map(([ x, width ], index) => element('tab_button', [ x, 0, width, 32 ], { name: `tab${index}` }));
@@ -637,7 +637,7 @@ await test('_Str_14067: only the children that show count when a window takes it
 });
 
 await test('WindowParser: a layout\'s outer DropShadowFilter, with its defaults for what it leaves out', () => {
-    const template = layoutToTemplate(readFileSync(new URL('../packages/nitro-react/scripts/flash-js-resources/habbo-room-ui-com/nestBreedingSuccess.xml', import.meta.url), 'utf8'));
+    const template = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-room-ui-com/nestBreedingSuccess.xml', import.meta.url), 'utf8'));
 
     assert.deepEqual(template.elements[0].dropShadow, { distance: 0, angle: 0, color: 0, alpha: 0.34901960784313724, blur: 20 });
 });

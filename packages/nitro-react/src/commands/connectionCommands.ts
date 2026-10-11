@@ -10,7 +10,7 @@ import { systemStore } from '#base/context/system';
 
 /**
  * `DisconnectReasonEvent`'s constants, by value. The AS3 names are obfuscated; these are the
- * names Sulake's JS conversion keeps (`flash-js/.../handshake/DisconnectReasonEvent.js`).
+ * names Sulake's JS conversion keeps (`habbo-js/.../handshake/DisconnectReasonEvent.js`).
  */
 const DISCONNECT_REASON_NAMES: Record<number, string> = {
     [-3]: 'DISCONNECTED',

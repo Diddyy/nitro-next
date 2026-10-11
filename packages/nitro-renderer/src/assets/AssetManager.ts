@@ -203,7 +203,7 @@ export class AssetManager implements IAssetManager {
      * A UI asset bundle: the same `.nitro` archive furniture comes in, kept by name after it is
      * read so its JSON entries and encoded bitmaps stay reachable (`getBundleFile`,
      * `getBundleBinary`). Every asset in it lands in `_textures` under its own name, so a
-     * bundled bitmap is `GetAssetManager().getTexture('room-ui-roomtools_gear')` from anywhere.
+     * bundled bitmap is `GetAssetManager().getTexture('habbo-room-ui-com-roomtools_gear')` from anywhere.
      *
      * Downloading the same bundle twice joins the first download rather than fetching again.
      */

@@ -3,7 +3,7 @@ import { InteractionState } from '../hooks/useInteractionState';
 /**
  * Port of the client's `com.sulake.core.window.dynamicstyle` - the hover/press effects a layout
  * names through `dynamic_style="..."`, all five of them, transcribed from
- * `DynamicStyleManager.fillStyleTable()` (and matching `flash-js`'s `DynamicStyleManager.js`):
+ * `DynamicStyleManager.fillStyleTable()` (and matching `habbo-js`'s `DynamicStyleManager.js`):
  * `lifted_hover` (toolbar icons, friend bar buttons), `brightness_and_shadow_under` (room tool
  * buttons), `brightness_and_shadow_under_gentle`, `reward_track_item` and `button`.
  *
@@ -48,7 +48,7 @@ interface DynamicStyleDefinition {
 }
 
 const EMPTY_RULE: DynamicStyleRule = {};
-/** `DynamicStyle`'s constructor default for `disabledStyles` - the same in the AS3 and `flash-js`. */
+/** `DynamicStyle`'s constructor default for `disabledStyles` - the same in the AS3 and `habbo-js`. */
 const DISABLED_RULE: DynamicStyleRule = { colorTransform: [ 1, 1, 1, 0.5, 0, 0, 0, 0 ] };
 
 const LIFTED_HOVER: DynamicStyleDefinition = {

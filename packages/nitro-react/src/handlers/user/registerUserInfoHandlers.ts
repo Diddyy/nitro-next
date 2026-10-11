@@ -20,8 +20,8 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * and the hotel's availability (`onAvailabilityStatus`), which trading checks for a shutdown.
  *
  * Not Flash's: after the user object it asks the server for Turbo's `permission.nodes` and
- * `chat.commands` extensions, unless `turbo.extensions.disabled` is set. A Turbo server answers and sends the nodes the user
- * holds, which every `ClientGate` then asks; any other server ignores the unknown packet and the
+ * `chat.commands.v2` extensions, unless `turbo.extensions.disabled` is set. A Turbo server answers and sends the nodes the user
+ * holds, which every `ClientGate` then asks, and the chat command tree; any other server ignores the unknown packet and the
  * gates keep to `securityLevel`. Nodes are taken only once the server has accepted the extension,
  * so a server that happens to use the same header for something else cannot feed the gates.
  */
@@ -49,7 +49,7 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             setTurboCapabilities(capabilities);
 
             if (!capabilities.has(TURBO_PERMISSION_NODES_CAPABILITY)) setPermissionNodes(null);
-            // One that declined `chat.commands` leaves the chat input completing nothing, as Flash's.
+            // One that declined `chat.commands.v2` leaves the chat input completing nothing, as Flash's.
             if (!capabilities.has(TURBO_CHAT_COMMANDS_CAPABILITY)) setChatCommands(null);
         }),
 

@@ -6,7 +6,7 @@ import { PlaneColorFilter } from './PlaneColorFilter';
 
 /**
  * The `BitmapData` operations the plane rasterizers draw with, done on Pixi render textures the way
- * Sulake's own JavaScript client does them (`rasterizer/basic/fn_f810c3.js` in `flash-js`): a canvas
+ * Sulake's own JavaScript client does them (`rasterizer/basic/fn_f810c3.js` in `habbo-js`): a canvas
  * is a pooled `RenderTexture`, `fillRect(rect, 0x00FFFFFF)` is a clearing render, and
  * `copyPixels(..., mergeAlpha = true)` is a sprite rendered over what the canvas already holds.
  */
