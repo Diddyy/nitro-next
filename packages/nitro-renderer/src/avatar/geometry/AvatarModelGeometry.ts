@@ -6,6 +6,7 @@ import { GeometryBodyPart } from './GeometryBodyPart';
 import { Matrix4x4 } from './Matrix4x4';
 import { Vector3D } from './Vector3D';
 
+/** Port of Flash `AvatarModelGeometry`. */
 export class AvatarModelGeometry {
     private _camera: Vector3D;
     private _avatarSet: AvatarSet;

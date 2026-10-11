@@ -15,8 +15,8 @@ const TICK_INTERVAL = 250;
  * is bound to the native canvas library's own class, so the renderer runs unchanged: a decoded
  * bitmap is an `Image`, every canvas a `Canvas`, and `ctx.drawImage` takes either.
  *
- * Only what the avatar path calls exists. `document` has nothing but `createElement`, and there
- * is no `window`: a module that looks for one finds it missing, as in any Node process.
+ * Only what the avatar path calls exists. `document` has nothing but `createElement` and a `body`
+ * holding no canvas, and `window` holds only the renderer's config (`setRendererConfig`).
  */
 export const installNodeEnvironment = (): void => {
     const globals = globalThis as Record<string, unknown>;
@@ -38,7 +38,7 @@ export const installNodeEnvironment = (): void => {
         body: { contains: () => false },
     };
 
-    // A bundle or table may be a file on the server rather than a url (`config.ts`).
+    // A bundle or table may be a file on the server rather than a url (`resolveAddress`).
     globalThis.fetch = fetchWithFiles(globalThis.fetch);
 
     // No pointer ever moves here, and the event system would listen on a window there isn't.

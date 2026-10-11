@@ -2,6 +2,10 @@ import { IAssetData, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash `FurnitureCreditLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_credit`.
+ */
 export class FurnitureCreditLogic extends FurnitureLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.CREDITFURNI ]);

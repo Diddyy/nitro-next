@@ -22,6 +22,7 @@ export interface TabButtonProps extends ThemeProps<TabButtonVariant> {
     children?: ReactNode;
 }
 
+/** Flash's `TabButtonController` (`tab_button`): the state's skin behind its caption, selected or not. */
 export const TabButton: ForwardRefExoticComponent<TabButtonProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TabButtonProps>(
     ({
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, selected, children,

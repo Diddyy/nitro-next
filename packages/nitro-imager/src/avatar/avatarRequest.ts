@@ -1,6 +1,9 @@
 import { AvatarActionStateType, AvatarExpressionStates, AvatarGenderType, AvatarGestureStates } from '@nitrodevco/nitro-api';
 
-/** `s` small (the `sh` assets), `n` normal (`h`), `l` the normal render at twice its size. */
+/**
+ * Each drawn from the large (`h`) assets at the room's full scale: `n` as drawn, `l` doubled,
+ * `s` halved afterwards as the zoomed-out room is - no `sh` art is used.
+ */
 export type AvatarImageSize = 's' | 'n' | 'l';
 
 export type ImageFormat = 'png' | 'gif';
@@ -81,13 +84,15 @@ export class AvatarRequestError extends Error {}
  *
  * - `figure` (required), `gender` `M` / `F`
  * - `size` `s` / `n` / `l`, `direction` and `head_direction` 0-7, `headonly=1`
- * - `action`: a comma list of one posture (`std`, `wlk`, `sit`, `lay`), expressions (`wav`,
- *   `blow`, `laugh` ...), `crr=<item>`, `drk=<item>` and `sig=<sign>`
+ * - `action`: a comma list of one posture (`std`, `wlk` / `mv`, `sit`, `lay`, `swim`, `float`),
+ *   expressions (`wav`, `blow`, `laugh` ...), `crr=<item>` / `cri=`, `drk=<item>` / `usei=` and
+ *   `sig=<sign>` / `sign=`
  * - `gesture`: `std`, `sml`, `sad`, `agr`, `srp`, `spk` or `eyb`
  * - `img_format` `png` / `gif`
  *
- * and what the room draws besides: `dance=1-4`, `effect=<id>`, `frame=<n>` and `animate=1`
- * (every frame as an animated gif). A value that is not one of these is an error, not a guess.
+ * and what the room draws besides: `dance=1-4`, `effect=<id>`, `frame=<n>` (or `frame_num`) and
+ * `animate=1` (every frame as an animated gif). A value that is not one of these is an error, not
+ * a guess.
  */
 export const parseAvatarRequest = (query: Record<string, string | undefined>): AvatarRenderRequest => {
     const figure = (query.figure ?? '').trim();

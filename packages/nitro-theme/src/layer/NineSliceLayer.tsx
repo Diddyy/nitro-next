@@ -101,6 +101,10 @@ const TiledNineSlice = ({ texture, leftWidth, topHeight, rightWidth, bottomHeigh
     );
 };
 
+/**
+ * A skin drawn as a nine-slice stretched over its parent's box - or, with `repeat`, its centre
+ * tiled along an axis, for a skin whose centre entities are `tiled`.
+ */
 export const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, bottomHeight, tintColor, layout, repeat, ref, alpha, visible }: NineSliceLayerProps) => {
     // A repeating middle piece goes through `TilingSprite`, which needs a texture that is its
     // own source (see `getStandaloneThemeTexture`); the plain `NineSliceSprite` is happy with

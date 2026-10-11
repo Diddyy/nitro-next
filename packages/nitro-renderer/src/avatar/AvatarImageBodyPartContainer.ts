@@ -1,5 +1,6 @@
 import { Container, Point } from 'pixi.js';
 
+/** Port of Flash `AvatarImageBodyPartContainer`. */
 export class AvatarImageBodyPartContainer {
     private _image: Container;
     private _regPoint: Point;

@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarMutedUpdateMessage`. */
 export class ObjectAvatarMutedUpdateMessage extends ObjectStateUpdateMessage {
     private _isMuted: boolean;
 

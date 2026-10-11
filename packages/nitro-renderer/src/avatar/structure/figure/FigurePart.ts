@@ -1,5 +1,6 @@
 import { AvatarFigurePartType, IFigureDataPart, IFigurePart } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `FigurePart`. */
 export class FigurePart implements IFigurePart {
     private _id: number;
     private _type: AvatarFigurePartType;

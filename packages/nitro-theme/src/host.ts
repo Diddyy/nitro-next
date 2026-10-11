@@ -10,8 +10,8 @@ import { useSyncExternalStore } from 'react';
 
 export interface ThemeHost {
     /**
-     * Fetches an asset bundle into the renderer's `AssetManager` by its name (`theme`, `fonts`,
-     * `font-faces`), or joins the fetch in flight; `false` when the app serves no such bundle.
+     * Fetches an asset bundle into the renderer's `AssetManager` by its name
+     * (`habbo-window-manager-com`, `fonts`, `font-faces`), or joins the fetch in flight; `false` when the app serves no such bundle.
      */
     loadAssetBundle: (name: string) => Promise<boolean>;
     /** The bundle, not loaded up front, an asset of that name belongs to - fetched the first time it is asked for. */

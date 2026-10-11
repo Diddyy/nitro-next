@@ -9,6 +9,7 @@ import {
     IRoomSpriteMouseEvent,
 } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `ObjectLogicBase`. */
 export class ObjectLogicBase implements IRoomObjectEventHandler {
     private _eventHandler: IRoomEventHandler;
     private _events: (() => void)[] = [];

@@ -3,6 +3,7 @@ import { IAssetVisualAnimation, RoomGeometryScaleType } from '@nitrodevco/nitro-
 import { AnimationFrame, AnimationSizeData, SizeData } from '../data';
 import { FurnitureVisualizationData } from './FurnitureVisualizationData';
 
+/** Port of Flash `AnimatedFurnitureVisualizationData`. */
 export class AnimatedFurnitureVisualizationData extends FurnitureVisualizationData {
     protected override getSizeData(size: number): AnimationSizeData | undefined {
         return super.getSizeData(size) as AnimationSizeData | undefined;

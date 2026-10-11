@@ -98,6 +98,11 @@ import { RoomEventHandler } from './RoomEventHandler';
 import { RoomSpriteCanvas } from './RoomSpriteCanvas';
 import { RoomAreaSelectionManager, RoomObjectHighLighter, TileObjectMap } from './utils';
 
+/**
+ * One room: Flash's `RoomInstance` (its object managers and model) with the per-room half of
+ * `RoomEngine` - the add, update and remove calls for the room's furniture, users and planes - and
+ * of `RoomInstanceData` (the tile object map and stacking heights).
+ */
 export class Room implements IRoom {
     public static ROOM_OBJECT_ID: number = -1;
     public static ROOM_OBJECT_TYPE: string = 'room' as const;

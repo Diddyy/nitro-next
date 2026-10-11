@@ -28,6 +28,7 @@ import { GetVariableFxAssetLibrary } from './object/visualization/variablefx/Var
 import { Room } from './Room';
 import { RoomGeometry } from './utils';
 
+/** Port of Flash `RoomEngine`. */
 export class RoomEngine implements IRoomEngine {
     public static TEMPORARY_ROOM_ID: number = -1;
 
@@ -103,16 +104,16 @@ export class RoomEngine implements IRoomEngine {
         return room;
     }
 
-    /*
-     * RoomEngine.disposeRoom in the SWF removes the instance from its map before
-     * disposing it (`roomInstanceData.remove(identifier)`), so a later createRoom for
-     * the same id builds a fresh room rather than handing back a disposed one.
-     */
     /** Flash `purgeRoomContent` (and the engine's `purge`): the loader releases what nothing draws. */
     public purgeRoomContent(): void {
         GetRoomContentLoader().purge();
     }
 
+    /**
+     * Flash `RoomEngine.disposeRoom` removes the room from its map (`§_-C2o§.remove(identifier)`)
+     * before disposing it, so a later `createRoom` for the same id builds a fresh room rather than
+     * handing back a disposed one.
+     */
     public disposeRoom(roomId: number): void {
         const room = this._rooms.get(roomId);
 

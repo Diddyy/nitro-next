@@ -12,7 +12,7 @@ export interface TooltipHandlers {
  * The hover handlers that show a component's `tooltip` (its `tool_tip_caption`): pointer-over
  * begins the client's tooltip agent at the pointer, pointer-out ends it, and a caption that
  * changes while hovered updates the shown text. Empty for a component with no tooltip, so it
- * stays non-interactive. Both render targets' pointer events carry `clientX`/`clientY`.
+ * stays non-interactive. Pixi's pointer events carry `clientX`/`clientY`, the stage's coordinates.
  * `delay` is the component's `tool_tip_delay` (`tooltipDelay`), `TOOLTIP_DELAY_MS` when absent.
  */
 export const useTooltipHandlers = (text: string | undefined, delay?: number): TooltipHandlers => {

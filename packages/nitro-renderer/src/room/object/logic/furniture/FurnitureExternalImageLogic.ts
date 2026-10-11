@@ -2,6 +2,10 @@ import { IAssetData, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from
 
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash `FurnitureExternalImageLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_external_image_wallitem`.
+ */
 export class FurnitureExternalImageLogic extends FurnitureMultiStateLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE ]);

@@ -1,8 +1,9 @@
-﻿import { IRoomMapMask, IVector3D, Vector3d } from '@nitrodevco/nitro-api';
+import { IRoomMapMask, IVector3D, Vector3d } from '@nitrodevco/nitro-api';
 
 import { RoomMapMaskData } from './RoomMapMaskData';
 import { RoomPlaneBitmapMaskData } from './RoomPlaneBitmapMaskData';
 
+/** Port of Flash `RoomPlaneBitmapMaskParser`. */
 export class RoomPlaneBitmapMaskParser {
     private _masks: Map<string, RoomPlaneBitmapMaskData> = new Map();
 

@@ -1,6 +1,7 @@
-﻿import { IPlaneDrawingData } from '@nitrodevco/nitro-api';
+import { IPlaneDrawingData } from '@nitrodevco/nitro-api';
 import { Point } from 'pixi.js';
 
+/** Port of Flash `PlaneDrawingData`. */
 export class PlaneDrawingData implements IPlaneDrawingData {
     private _z: number;
     private _points: Point[];

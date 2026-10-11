@@ -3,6 +3,7 @@ import { ReactNode, useContext, useMemo } from 'react';
 import { VariantCascadeContext } from './VariantCascadeContext';
 import { VariantCascadeMap } from './VariantCascadeMap';
 
+/** Hands a component's own cascade (`map`) down to its children, over what its ancestors cascaded. */
 export const VariantCascadeProvider = ({ map, children }: { map: VariantCascadeMap | undefined; children: ReactNode }) => {
     const inherited = useContext(VariantCascadeContext);
 

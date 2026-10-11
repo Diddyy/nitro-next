@@ -11,6 +11,7 @@ export type FramePointerDownVariant = ThemeVariant;
 
 export type FramePointerDownProps = ThemeProps<FramePointerDownVariant>;
 
+/** The `frame_pointer_down` skin (`habbo_skin_frame_pointer_down`): a frame's downward pointer, sized by its art. */
 export const FramePointerDown: ForwardRefExoticComponent<FramePointerDownProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, FramePointerDownProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
         const { config, handlers, resolvedLayer, resolvedOverlay, resolvedTint } = useThemeVariant<FramePointerDownVariant>({

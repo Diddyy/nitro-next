@@ -2,6 +2,10 @@ import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
+/**
+ * Port of Flash `FurnitureValRandomizerVisualization`, the visualization
+ * `RoomObjectVisualizationFactory` builds for `furniture_val_randomizer`.
+ */
 export class FurnitureValRandomizerVisualization extends AnimatedFurnitureVisualization {
     private static ANIMATION_ID_OFFSET_SLOW1: number = 20;
     private static ANIMATION_ID_OFFSET_SLOW2: number = 10;

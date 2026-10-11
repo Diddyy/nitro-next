@@ -3,17 +3,12 @@ import { Container as PixiContainer } from 'pixi.js';
 import { RefObject, useEffect, useRef } from 'react';
 
 /**
- * Pixi port of hooks/ui/useOutsideClick.ts. DOM's version hit-tests via `element.contains(
- * event.target)`, which has no Pixi equivalent (a Pixi container isn't a DOM node, and every
- * popup is drawn into the one shared `<canvas>` wherever it sits in the Pixi display tree).
- * This instead hit-tests geometrically: the same native `window`
- * `pointerdown` listener DOM's version uses (browser pointer events work the same regardless of
- * which element started them, the same reasoning useFrameDrag.ts/useScrollController.ts already
- * rely on for their own window-level listeners), converted from window/client space into the
- * canvas's own CSS-pixel space via `GetRenderer().canvas.getBoundingClientRect()` - the same
- * space `Container.getGlobalPosition()`/`getBounds()` report in, since the shared renderer runs
- * with `autoDensity` + `resolution: GetPixelRatio()` (see PixiApplicationRoot.tsx) - then
- * checked against the target container's own `getBounds()`.
+ * Calls `callback` on any press outside `ref`'s container - what Flash tells a window as `WME_CLICK_AWAY`. Every
+ * popup is drawn into the one shared canvas, so the test is geometric: a `window` `pointerdown`
+ * listener converts the client position into the canvas's CSS-pixel space
+ * (`GetRenderer().canvas.getBoundingClientRect()`) - the space `getBounds()` reports in, since the
+ * renderer runs with `autoDensity` (see `PixiApplicationRoot`) - and checks it against the
+ * container's `getBounds()`.
  */
 export const useOutsideClick = <T extends PixiContainer>(ref: RefObject<T | null>, callback: () => void, enabled: boolean = true) => {
     // `callback` is almost always an inline arrow at the call site, so a ref keeps the listener

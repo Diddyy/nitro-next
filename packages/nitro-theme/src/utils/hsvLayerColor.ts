@@ -6,6 +6,7 @@
  * multiply) only matches for a white tint, which is why tinted recolourable borders looked
  * lighter than the SWF.
  */
+import { parseCssHexColor, toCssHexColor } from './cssHexColor';
 
 const clamp01 = (value: number): number => (Number.isNaN(value) || value < 0) ? 0 : (value > 1 ? 1 : value);
 
@@ -59,11 +60,7 @@ const toByte = (value: number): number => Math.round(clamp01(value) * 255);
 
 /** Parses `#rgb` / `#rrggbb` (the theme's tint strings) into 0..1 channels. */
 const parseHexColor = (color: string): [ number, number, number ] => {
-    let hex = color.trim().replace(/^#/, '');
-
-    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-
-    const value = Number.parseInt(hex, 16);
+    const value = parseCssHexColor(color);
 
     if (Number.isNaN(value)) return [ 1, 1, 1 ];
 
@@ -86,5 +83,5 @@ export const deriveHsvLayerColor = (color: string | undefined, shade: number): s
 
     const [ outR, outG, outB ] = hsvToRgb(hsv.h, hsv.s, hsv.v);
 
-    return `#${((toByte(outR) << 16) | (toByte(outG) << 8) | toByte(outB)).toString(16).padStart(6, '0')}`;
+    return toCssHexColor((toByte(outR) << 16) | (toByte(outG) << 8) | toByte(outB));
 };

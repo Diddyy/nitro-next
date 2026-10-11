@@ -3,6 +3,7 @@ import { VariableFxConfigData } from './VariableFxConfigData';
 import { VariableFxRendererRegistry } from './VariableFxRendererRegistry';
 import { VariableFxStatusData } from './VariableFxStatusData';
 
+/** Port of Flash `VariableFxRendererContext`. */
 export class VariableFxRendererContext {
     constructor(
         public assetProvider: IVariableFxAssetProvider | undefined,

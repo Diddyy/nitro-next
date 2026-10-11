@@ -100,8 +100,8 @@ name, a tint colour, a text style. Move them to JSON (now `theme-variants.json`,
   element-description mapping the generator already knows.
 - **Binding:** a hook such as `useTemplate('catalog_ubuntu', slots)` passes named slots in:
   `{ header_title: { text }, buy_button: { onPointerTap, disabled }, item_grid: <CatalogGrid/> }`.
-  Slots can be props or whole React subtrees, so complex parts (grids, room previews,
-  InfiniteGrid) stay in real code, and the template only positions them.
+  Slots can be props or whole React subtrees, so complex parts (grids, room previews) stay in
+  real code, and the template only positions them.
 - **Controllers stay in TS.** A window that supports overrides becomes controller plus default
   template, instead of a hand-written view. This is opt-in, one window at a time. Start with the
   windows hotels actually want to restyle: catalog layouts (already a data-driven,

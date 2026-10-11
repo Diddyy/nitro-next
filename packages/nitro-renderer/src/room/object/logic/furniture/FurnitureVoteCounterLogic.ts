@@ -4,6 +4,10 @@ import { GetTickerTime } from '../../../../utils';
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-Fl§`, the logic `RoomObjectFactory` builds for
+ * `furniture_vote_counter`.
+ */
 export class FurnitureVoteCounterLogic extends FurnitureMultiStateLogic {
     private static UPDATE_INTERVAL: number = 33;
     private static MAX_UPDATE_TIME: number = 1000;

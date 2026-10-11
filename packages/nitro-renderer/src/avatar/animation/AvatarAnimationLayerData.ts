@@ -2,6 +2,7 @@ import { AvatarBodyPartType, AvatarFigurePartType, IActionDefinition, IActiveAct
 
 import { ActiveActionData } from '../actions';
 
+/** Port of Flash `AnimationLayerData` (the avatar's, not the room's). */
 export class AvatarAnimationLayerData implements IAnimationLayerData {
     public static BODYPART: string = 'bodypart';
     public static FX: string = 'fx';

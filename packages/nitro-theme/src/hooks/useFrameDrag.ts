@@ -2,8 +2,8 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { themeHost, useThemeWindowZIndex } from '../host';
-import { getGlobalRect } from '../utils';
-import { getStoredFramePosition, setStoredFramePosition } from '../utils/framePositionStorage';
+import { clamp, getGlobalRect } from '../utils';
+import { getStoredFramePosition, setStoredFramePosition } from '../utils/frameStorage';
 import { useLayoutEvent } from './useLayoutEvent';
 import { useRevealWhenSettled } from './useRevealWhenSettled';
 
@@ -25,18 +25,6 @@ type ActiveListeners = {
 
 const MIN_VISIBLE = 40;
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
-/**
- * Pixi port of hooks/ui/useFrameDrag.ts. The drag offset is applied as the container's own `.x`/`.y` -
- * @pixi/layout's ContainerMixin ADDS the yoga-computed position on top of the container's
- * existing `.position` (see updateLocalTransformWithLayout in node_modules/@pixi/layout), the
- * same layering CSS `transform: translate()` gives the DOM version (see Box.tsx's own `x`/`y`
- * handling). Global window pointermove/pointerup listeners (not element-scoped events) drive
- * the drag either way - browser pointer events work the same regardless of which element
- * started them, and Pixi's FederatedPointerEvent mirrors the native PointerEvent fields this
- * hook actually reads (`button`/`pointerId`/`clientX`/`clientY`), so one handler covers both.
- */
 export interface FrameDragOptions {
     /**
      * Where the frame opens, in screen pixels. This is the drag offset's starting value rather
@@ -65,6 +53,13 @@ export interface FrameDragOptions {
     onPositionChange?: (position: { x: number; y: number }) => void;
 }
 
+/**
+ * A frame's place on the desktop: its drag by the header (Flash's `WindowMouseDragger`), its stack
+ * order (raised on mount and on a press), `window.center()`, and the position it reopens at, kept
+ * per frame `id` (`frameStorage`). The offset is applied as the container's own `x`/`y`,
+ * which @pixi/layout adds on top of the position Yoga computes. The drag runs on window-level
+ * `pointermove` / `pointerup` listeners: Pixi's `FederatedPointerEvent` has no pointer capture.
+ */
 export const useFrameDrag = (id: string | undefined, { defaultPosition, remember = true, centered = false, onPositionChange }: FrameDragOptions = {}) => {
     const generatedId = useId();
     const stackId = id ?? generatedId;

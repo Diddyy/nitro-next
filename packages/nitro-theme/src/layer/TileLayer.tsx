@@ -11,6 +11,7 @@ export interface TileLayerProps extends LayerNodeProps {
     layout?: BoxLayout;
 }
 
+/** One theme sprite repeated over its parent's box - a `tiled` skin entity. */
 export const TileLayer = ({ textureKey, tintColor, layout, ref, alpha, visible }: TileLayerProps) => {
     // `TilingSprite` can't wrap a region of the atlas - it needs a texture that is its own
     // source (see `getStandaloneThemeTexture`), cut out of the atlas once per key.

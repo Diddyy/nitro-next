@@ -5,6 +5,10 @@ import { TextureUtils } from '#renderer/utils';
 
 import { IsometricImageFurniVisualization } from './IsometricImageFurniVisualization';
 
+/**
+ * Port of Flash's obfuscated `§_-m1j§`: an isometric image furni whose picture is downloaded from
+ * its thumbnail url.
+ */
 export class ExternalIsometricImageFurniVisualization extends IsometricImageFurniVisualization {
     private _cachedUrl: string | undefined = undefined;
     /** The downloaded picture, ours alone: the thumbnails are rendered from it on every direction change. */

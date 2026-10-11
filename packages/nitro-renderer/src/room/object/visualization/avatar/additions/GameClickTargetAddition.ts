@@ -5,6 +5,7 @@ import { TextureUtils } from '#renderer/utils';
 
 import { IAvatarAddition } from './IAvatarAddition';
 
+/** Port of Flash `GameClickTarget`. */
 export class GameClickTargetAddition implements IAvatarAddition {
     private static WIDTH: number = 46;
     private static HEIGHT: number = 60;

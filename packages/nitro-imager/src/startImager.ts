@@ -19,7 +19,7 @@ export const startImager = async (env: NodeJS.ProcessEnv): Promise<void> => {
     });
 
     const startedAt = performance.now();
-    const [ avatars, badges ] = await Promise.all([ AvatarImager.create(config.avatar, { maxLoadedLibraries: config.maxLoadedLibraries }), GroupBadgeImager.create(config.badge, DEFAULT_BADGE_PARTS) ]);
+    const [ avatars, badges ] = await Promise.all([ AvatarImager.create(config.avatar, config), GroupBadgeImager.create(config.badge, DEFAULT_BADGE_PARTS) ]);
 
     console.log(`Avatar data and ${badges.table.partCount} badge parts (${badges.table.colorCount} colours) loaded in ${Math.round(performance.now() - startedAt)} ms`);
 

@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarDanceUpdateMessage`. */
 export class ObjectAvatarDanceUpdateMessage extends ObjectStateUpdateMessage {
     private _danceStyle: number;
 

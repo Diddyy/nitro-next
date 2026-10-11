@@ -2,6 +2,7 @@ import { Container as PixiContainer, FederatedPointerEvent, FederatedWheelEvent 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ScrollControllerOptions } from '../scroll';
+import { clamp } from '../utils/clamp';
 import { useLayoutEvent } from './useLayoutEvent';
 
 export interface ScrollController {
@@ -28,8 +29,6 @@ export interface ScrollController {
 const DEFAULT_STEP = 24;
 const DEFAULT_MIN_THUMB_SIZE = 17;
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
 const computedSize = (node: PixiContainer | null, axis: 'width' | 'height'): number => {
     // A destroyed node can still be held in state until React clears its ref; its `scale` is
     // null by then, so the `width`/`height` getters would throw.
@@ -39,18 +38,14 @@ const computedSize = (node: PixiContainer | null, axis: 'width' | 'height'): num
 };
 
 /**
- * Pixi-native port of hooks/ui/useScrollbarController.ts. DOM's version leans on native
- * browser scroll (a hidden `overflow-y-auto` viewport with `scrollTop`/`scrollHeight`/
- * `ResizeObserver`/the native `scroll` event) driving a fully custom-skinned scrollbar UI -
- * Pixi has none of that, so this owns the scroll position itself (`scrollOffset`, applied by
- * the caller as the content container's own `y`/`x`, on top of its layout position - the same
- * composition technique useFrameDrag.ts's drag offset already relies on) and re-measures
- * viewport/content/track sizes from @pixi/layout's `layout` event (`useLayoutEvent`, the Pixi
- * stand-in for a ResizeObserver) plus offset changes, instead of a `scroll` event + observer,
- * reading `.layout.computedLayout` the same way useFrameDrag.ts/useFrameResize.ts do. Thumb
- * dragging uses window-level pointermove/pointerup (Pixi's FederatedPointerEvent has no
- * setPointerCapture, confirmed absent from pixi.js's event types), the same technique
- * useFrameDrag.ts uses for the identical reason.
+ * The scroll state of one axis of a scrollable area (Flash's `ScrollBarController` and the
+ * scrollable list it drives): the offset, the lift's size and place, and the wheel, track, lift and
+ * arrow input. Pixi has no native scrolling, so this owns the offset (`scrollOffset`, which the
+ * caller applies as the content container's own `x`/`y`, on top of its layout position) and
+ * re-measures the viewport, content and track from @pixi/layout's `layout` event
+ * (`useLayoutEvent`) and on every offset change. A lift drag runs on window-level `pointermove` /
+ * `pointerup` listeners, as `useFrameDrag`'s does: Pixi's `FederatedPointerEvent` has no pointer
+ * capture.
  *
  * IMPORTANT for call sites: assign `viewportRef`/`contentRef`/`trackRef` to a JSX `ref` prop
  * via an inline arrow (`ref={node => controller.trackRef(node)}`), never as a direct member

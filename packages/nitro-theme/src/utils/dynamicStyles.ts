@@ -1,6 +1,3 @@
-import { InteractionState } from '../hooks/useInteractionState';
-import { toCssHexColor } from './cssHexColor';
-
 /**
  * Port of the client's `com.sulake.core.window.dynamicstyle` - the hover/press effects a layout
  * names through `dynamic_style="..."`, all five of them, transcribed from
@@ -21,6 +18,9 @@ import { toCssHexColor } from './cssHexColor';
  * and an unknown style name, or a tagged child under a style that has no rule for its tag,
  * resolves to that bare default - so a disabled dynamic-style host always fades.
  */
+import { InteractionState } from '../hooks/useInteractionState';
+import { parseCssHexColor, toCssHexColor } from './cssHexColor';
+
 /**
  * The `dynamic_style="..."` names the client's `DynamicStyleManager` knows - `DynamicStyle`'s
  * `STYLE_LIFTED_HOVER`, `BRIGHTNESS_AND_SHADOW_UNDER`, `BRIGHTNESS_AND_SHADOW_UNDER_GENTLE`,
@@ -190,11 +190,7 @@ export const dynamicStyleEffect = (rule: DynamicStyleRule): DynamicStyleEffect =
 
 /** Parses `#rgb` / `#rrggbb` into 0..255 channels (white for anything unparsable). */
 const parseHex = (color: string): [ number, number, number ] => {
-    let hex = color.trim().replace(/^#/, '');
-
-    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-
-    const value = Number.parseInt(hex, 16);
+    const value = parseCssHexColor(color);
 
     if (Number.isNaN(value)) return [ 255, 255, 255 ];
 

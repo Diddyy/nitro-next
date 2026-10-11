@@ -2,6 +2,10 @@ import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro
 
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
+/**
+ * Port of Flash's obfuscated `§_-oi§`, the visualization `RoomObjectVisualizationFactory` builds
+ * for `furniture_vote_counter`.
+ */
 export class FurnitureVoteCounterVisualization extends AnimatedFurnitureVisualization {
     private static ONES_SPRITE: string = 'ones_sprite';
     private static TENS_SPRITE: string = 'tens_sprite';

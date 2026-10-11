@@ -1,9 +1,13 @@
+/**
+ * The theme every themed component reads its variant from - `theme-variants.json`, registered
+ * once by `preloadThemeAssets` (or by Nitro Studio's preview, with its edits over it).
+ */
 import type { VariantCascadeMap } from '../cascade/VariantCascadeMap';
 import type { SpriteFrame } from './spriteFrame';
 import type { AnyThemeVariant, ThemeVariants } from './ThemeVariant';
 
 /**
- * `theme-variants.json`, as the `theme` bundle carries it: every variant of every theme component,
+ * `theme-variants.json`, as the window manager library's bundle carries it: every variant of every theme component,
  * what each cascades to its children, and the icon set's rects. Nitro Studio builds it from the
  * client release's window manager library - each variant from its row in the element description,
  * the window layout that row names and its skin - with the port's rules over it, and packs it beside
@@ -33,7 +37,7 @@ export const registerThemeVariants = (data: ThemeVariantsData): void => {
 /** The whole theme as registered - for a tool drawing its own changes over it (Nitro Studio's preview). */
 export const themeVariantsData = (): ThemeVariantsData => theme;
 
-/** Every variant of one theme component, by variant id; empty until the `theme` bundle has loaded. */
+/** Every variant of one theme component, by variant id; empty until the theme has loaded (`preloadThemeAssets`). */
 export const themeVariantsOf = <T extends AnyThemeVariant>(cascadeKey: string): ThemeVariants<T> => (theme.variants[cascadeKey] ?? EMPTY) as ThemeVariants<T>;
 
 /** One variant of one theme component, or `undefined` when the theme has no such variant. */

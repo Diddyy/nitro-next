@@ -224,13 +224,6 @@ const measureExact: FlashTextMeasure = (text, format) => FlashTextRenderer.measu
 
 const toRuns = (content: string | readonly FlashTextRun[], format: FlashTextFormat): readonly FlashTextRun[] => ((typeof content === 'string') ? [ { text: content, format } ] : content);
 
-/** Greedy word wrap using the exact advance widths; `null` when a character has no captured glyph. */
-export const wrapLines = (text: string, format: FlashTextFormat, wrapWidth: number | null | undefined): string[] | null => {
-    const lines = layoutFlashTextLines([ { text, format } ], { wordWrap: true, wrapWidth: wrapWidth ?? undefined }, measureExact);
-
-    return lines ? lines.map(line => line.text) : null;
-};
-
 /** The exact layout of a block - what the caret and selection geometry of a text field read. */
 export const layoutFlashTextBlock = (content: string | readonly FlashTextRun[], format: Partial<FlashTextFormat> | null | undefined, options: FlashTextBlockOptions = {}): FlashTextLine[] | null => {
     return layoutFlashTextLines(toRuns(content, normalizeFlashTextFormat(format)), { ...options, wrapWidth: options.wrapWidth ?? options.width }, measureExact);

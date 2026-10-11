@@ -7,6 +7,7 @@ import { GetTickerTime } from '#renderer/utils';
 import { AvatarVisualization } from '../AvatarVisualization';
 import { IAvatarAddition } from './IAvatarAddition';
 
+/** Port of Flash `FloatingIdleZ`. */
 export class FloatingIdleZAddition implements IAvatarAddition {
     private static DELAY_BEFORE_ANIMATION: number = 2000;
     private static DELAY_PER_FRAME: number = 2000;

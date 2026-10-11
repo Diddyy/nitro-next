@@ -20,6 +20,7 @@ import { chooseFurnitureDownloadConcurrency, readDeviceHints } from './furniture
 import { GetRoomEngine } from './GetRoomEngine';
 import { PetColorResult } from './PetColorResult';
 
+/** Port of Flash `RoomContentLoader`. */
 export class RoomContentLoader implements IRoomContentLoader {
     public static ROOM_CONTENT: string = 'room' as const;
     public static TILE_CURSOR: string = 'tile_cursor' as const;
@@ -170,11 +171,7 @@ export class RoomContentLoader implements IRoomContentLoader {
 
         if (type === undefined) return undefined;
 
-        const index = type.indexOf('*');
-
-        if (index === -1) return { className: type, colorIndex: undefined };
-
-        return { className: type.substring(0, index), colorIndex: parseInt(type.substring(index + 1)) };
+        return { className: this.removeColorIndex(type), colorIndex: type.includes('*') ? this.getColorIndexFromName(type) : undefined };
     }
 
     public getFurnitureFloorColorIndex(typeId: number): number {
@@ -190,7 +187,7 @@ export class RoomContentLoader implements IRoomContentLoader {
 
         if (index === -1) return 0;
 
-        return parseInt(name.substr(index + 1));
+        return parseInt(name.substring(index + 1));
     }
 
     private removeColorIndex(name: string): string {
@@ -198,7 +195,7 @@ export class RoomContentLoader implements IRoomContentLoader {
 
         if (index === -1) return name;
 
-        return name.substr(0, index);
+        return name.substring(0, index);
     }
 
     public getRoomObjectAdUrl(type: string): string {

@@ -11,6 +11,7 @@ import { EffectAssetDownloadManager } from './EffectAssetDownloadManager';
 import { FigureDataContainer } from './FigureDataContainer';
 import { PlaceHolderAvatarImage } from './PlaceHolderAvatarImage';
 
+/** Port of Flash `AvatarRenderManager`. */
 export class AvatarRenderManager implements IAvatarRenderManager {
     private static DEFAULT_FIGURE: string = 'hd-99999-99999';
 

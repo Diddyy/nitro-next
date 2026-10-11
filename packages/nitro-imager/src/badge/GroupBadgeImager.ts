@@ -1,5 +1,6 @@
 import { Canvas, createCanvas, Image, loadImage } from '@napi-rs/canvas';
 
+import { ImagerConfig } from '../config';
 import { BadgePartTable, isUrl } from './BadgePartTable';
 import { BADGE_TOKEN_LENGTH, BadgeLayer, parseGroupBadgeCode } from './groupBadgeCode';
 
@@ -18,13 +19,6 @@ export interface GroupBadgeRender {
     missing: string[];
 }
 
-export interface GroupBadgeImagerOptions {
-    /** `image.library.badgepart.url`: `badgepart_<file>.png` is under it. */
-    partImageUrl: string;
-    partsSource: string;
-    partsRefreshSeconds: number;
-}
-
 /**
  * Draws group badges from their codes, the way the Habbo client's badge editor composes its
  * preview (`BadgeEditorPartItem.getComposite`, `BadgeEditorCtrl` stacking the layers): each
@@ -38,7 +32,7 @@ export class GroupBadgeImager {
     private readonly _failedAt = new Map<string, number>();
     private _refreshTimer: ReturnType<typeof setInterval> | undefined;
 
-    private constructor(private readonly _options: GroupBadgeImagerOptions, table: BadgePartTable) {
+    private constructor(private readonly _options: ImagerConfig['badge'], table: BadgePartTable) {
         this._table = table;
     }
 
@@ -46,7 +40,7 @@ export class GroupBadgeImager {
      * @param fallbackSource The table drawn with while one at a url cannot be read - the hotel's
      * server down or not serving it yet - until a refresh reads it.
      */
-    public static async create(options: GroupBadgeImagerOptions, fallbackSource?: string): Promise<GroupBadgeImager> {
+    public static async create(options: ImagerConfig['badge'], fallbackSource?: string): Promise<GroupBadgeImager> {
         let table: BadgePartTable;
 
         try {

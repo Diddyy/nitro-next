@@ -1,8 +1,9 @@
 import { IGraphicAssetPalette } from '@nitrodevco/nitro-api';
-import { Sprite, Texture } from 'pixi.js';
+import { Sprite, Texture, TextureSource } from 'pixi.js';
 
 import { TextureUtils } from '../utils';
 
+/** Port of Flash `GraphicAssetPalette`. */
 export class GraphicAssetPalette implements IGraphicAssetPalette {
     private _palette: [number, number, number][];
     private _primaryColor: number;
@@ -52,8 +53,8 @@ export class GraphicAssetPalette implements IGraphicAssetPalette {
 
         const newTexture = Texture.from(canvas);
 
-        // @ts-expect-error - Pixi doesn't officially support hitmaps on textures, but it works regardless
-        newTexture.source.hitMap = imageData.data;
+        // the RGBA `ExtendedSprite.readFrameAlpha` hit-tests against: this canvas has no alpha to read back
+        (newTexture.source as TextureSource & { hitMap?: Uint8ClampedArray }).hitMap = imageData.data;
 
         return newTexture;
     }

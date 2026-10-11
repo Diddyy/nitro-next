@@ -51,7 +51,7 @@ import { TabContext } from '../TabContext';
 import { TextInput } from '../TextInput';
 import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
-import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, ThemeVariant, themeVariantOf, toCssHexColor, WindowPlacedContext } from '../utils';
+import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, FrameSize, ThemeVariant, themeVariantOf, toCssHexColor, WindowPlacedContext } from '../utils';
 import { localizeCaption } from './localizeCaption';
 import { isMarkupTemplateText, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
@@ -116,8 +116,6 @@ export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<Frame
      */
     onResize?: (size: FrameSize | null) => void;
 };
-
-type FrameSize = { width: number; height: number };
 
 export type { TemplateItem, TemplateWindows } from './templateBindings';
 
@@ -1239,10 +1237,6 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
 };
 
 /**
- * A window drawn as a `Region` rather than a plain box: one with a look that follows the pointer
- * (`dynamic_style`), a tooltip, or a click its window's code handles.
- */
-/**
  * The windows drawn by a view of their own rather than as a plain region: a frame (which drags by its
  * header, `useFrameDrag`) and a bubble, which is one; a tab context, a container button, an item list.
  * Their drag params do not make them a `Region` - that would draw them without their skin.
@@ -1257,6 +1251,10 @@ const draggableAsRegion = (element: TemplateElement) => !OWN_VIEW_TAGS.has(eleme
 const dragTargetOf = (element: TemplateElement) => draggableAsRegion(element) && !!element.params?.events?.includes('dragTarget');
 const dragTriggerOf = (element: TemplateElement) => draggableAsRegion(element) && !!element.params?.events?.includes('dragTrigger');
 
+/**
+ * A window drawn as a `Region` rather than a plain box: one with a look that follows the pointer
+ * (`dynamic_style`), a tooltip, or a click its window's code handles.
+ */
 const isRegion = (element: TemplateElement, binding: TemplateBinding | undefined) => element.tag === 'region'
     || dragTargetOf(element)
     || dragTriggerOf(element)

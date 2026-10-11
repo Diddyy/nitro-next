@@ -13,6 +13,7 @@ import { TextureUtils } from '../../../../utils';
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 import { FurnitureParticleSystemEmitter } from './FurnitureParticleSystemEmitter';
 
+/** Port of Flash `FurnitureParticleSystem`. */
 export class FurnitureParticleSystem {
     private _emitters: IAdvancedMap<number, FurnitureParticleSystemEmitter> = new AdvancedMap();
     private _visualization: AnimatedFurnitureVisualization;

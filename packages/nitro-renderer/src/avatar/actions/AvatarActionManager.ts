@@ -2,6 +2,7 @@ import { AvatarActionStateType, AvatarGeometryType, AvatarScaleType, IActiveActi
 
 import { ActionDefinition } from './ActionDefinition';
 
+/** Port of Flash `AvatarActionManager`. */
 export class AvatarActionManager {
     private _actions: Map<string, ActionDefinition> = new Map();
     private _defaultAction: ActionDefinition | undefined = undefined;

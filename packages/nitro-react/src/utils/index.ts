@@ -19,8 +19,6 @@ export * from './FixedSizeStack';
 export * from './flatCategoryName';
 export * from './floorPlanModel';
 export * from './floorPlanTiles';
-export * from './framePositionStorage';
-export * from './frameSizeStorage';
 export * from './FriendlyTime';
 export * from './furnitureData';
 export * from './furnitureOwner';

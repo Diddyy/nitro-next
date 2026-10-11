@@ -3,6 +3,7 @@ import { IAssetGesture, IAssetPosture, IAssetVisualizationData, RoomGeometryScal
 import { AnimationSizeData, PetSizeData, SizeData } from '../data';
 import { AnimatedFurnitureVisualizationData } from '../furniture';
 
+/** Port of Flash `AnimatedPetVisualizationData`. */
 export class AnimatedPetVisualizationData extends AnimatedFurnitureVisualizationData {
     private _isAllowedToTurnHead: boolean = true;
 

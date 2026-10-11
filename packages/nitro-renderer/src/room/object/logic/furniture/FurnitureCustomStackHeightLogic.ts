@@ -2,6 +2,10 @@ import { IAssetData, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from
 
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-D1V§`, the logic `RoomObjectFactory` builds for
+ * `furniture_custom_stack_height`.
+ */
 export class FurnitureCustomStackHeightLogic extends FurnitureMultiStateLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.STACK_HEIGHT ]);

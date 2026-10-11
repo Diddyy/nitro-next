@@ -2,6 +2,7 @@ import { IVector3D } from '@nitrodevco/nitro-api';
 
 import { RoomObjectUpdateMessage } from './RoomObjectUpdateMessage';
 
+/** Port of Flash `RoomObjectHeightUpdateMessage`. */
 export class ObjectHeightUpdateMessage extends RoomObjectUpdateMessage {
     private _height: number;
 

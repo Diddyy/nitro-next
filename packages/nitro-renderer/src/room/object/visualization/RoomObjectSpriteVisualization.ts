@@ -13,9 +13,10 @@ import { Container, Filter, ImageLike, Point, Rectangle, Sprite, Texture } from 
 import { TextureUtils } from '../../../utils';
 import { RoomObjectSprite } from './RoomObjectSprite';
 
+/** Port of Flash `RoomObjectSpriteVisualization`. */
 export class RoomObjectSpriteVisualization implements IRoomObjectSpriteVisualization {
     private static VISUALIZATION_COUNTER: number = 0;
-    protected static UPDATE_TIME_INCREASER: number = 41;
+    public static readonly UPDATE_TIME_INCREASER: number = 41;
     /**
      * One empty filter list for every unfiltered sprite: a fresh `[]` each frame counted as a sprite
      * change, and comparing against this one tells a sprite that has no filters from one that does.

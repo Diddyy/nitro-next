@@ -3,9 +3,10 @@ import { IAvatarFigureContainer, IAvatarImageListener, IFigureMapLibrary } from 
 import { AvatarAssetDownloadLibrary } from './AvatarAssetDownloadLibrary';
 import { AvatarStructure } from './AvatarStructure';
 
+/** Port of Flash `AvatarAssetDownloadManager`. */
 export class AvatarAssetDownloadManager {
     /** The libraries every figure needs (Flash `LIB_BODY`, `LIB_ITEMS`); the manager is not ready until they are in. */
-    private static MANDATORY_LIBRARIES: string[] = [ 'hh_human_body', 'hh_human_item' ];
+    public static readonly MANDATORY_LIBRARIES: string[] = [ 'hh_human_body', 'hh_human_item' ];
     /**
      * Flash downloads 6 libraries at once, and 16 from a host that can take it (`//rumba.sulake.com`).
      * Every figure library is a request of its own - a clothing tab asks for one per part shown - so

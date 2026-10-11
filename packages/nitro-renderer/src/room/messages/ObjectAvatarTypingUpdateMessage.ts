@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarTypingUpdateMessage`. */
 export class ObjectAvatarTypingUpdateMessage extends ObjectStateUpdateMessage {
     private _isTyping: boolean;
 

@@ -2,6 +2,10 @@ import { IAssetData, RoomObjectVariableEnum, RoomToObjectOwnAvatarMoveEvent } fr
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-a13§`, the logic `RoomObjectFactory` builds for
+ * `furniture_change_state_when_step_on`.
+ */
 export class FurnitureChangeStateWhenStepOnLogic extends FurnitureLogic {
     public override initialize(asset: IAssetData | undefined): void {
         super.initialize(asset);

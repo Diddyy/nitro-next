@@ -6,6 +6,7 @@ import { GetAssetManager } from '#renderer/assets';
 import { AvatarVisualization } from '../AvatarVisualization';
 import { IAvatarAddition } from './IAvatarAddition';
 
+/** Port of Flash `TypingBubble`. */
 export class TypingBubbleAddition implements IAvatarAddition {
     private _asset: Texture | undefined = undefined;
     private _relativeDepth: number = 0;

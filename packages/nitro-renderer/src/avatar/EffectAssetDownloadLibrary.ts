@@ -2,6 +2,7 @@ import { AvatarAssetDownloadStatus, IAssetAnimation, IEffectAssetDownloadLibrary
 
 import { GetAssetManager } from '#renderer/assets';
 
+/** Port of Flash `EffectAssetDownloadLibrary`. */
 export class EffectAssetDownloadLibrary implements IEffectAssetDownloadLibrary {
     private _state: AvatarAssetDownloadStatus = AvatarAssetDownloadStatus.NotLoaded;
     private _libraryName: string;

@@ -2,6 +2,7 @@ import { IVector3D } from '@nitrodevco/nitro-api';
 
 import { RoomObjectUpdateMessage } from './RoomObjectUpdateMessage';
 
+/** Port of Flash `RoomObjectMoveUpdateMessage`. */
 export class ObjectMoveUpdateMessage extends RoomObjectUpdateMessage {
     private _targetLocation: IVector3D | undefined;
     private _isSlide: boolean;

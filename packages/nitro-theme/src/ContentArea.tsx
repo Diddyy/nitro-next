@@ -16,6 +16,11 @@ export interface ContentAreaProps extends ThemeProps<ContentAreaVariant> {
     children?: ReactNode;
 }
 
+/**
+ * A frame's `_CONTENT` container: its skin, if its variant has one, and the frame's children,
+ * cropped at the frame's rectangle rather than at its own (see `clipOutset`) and never a mouse
+ * target of its own.
+ */
 export const ContentArea: ForwardRefExoticComponent<ContentAreaProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, ContentAreaProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, clipOutset, children }, ref) => {
         const { ownCascade, config, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<ContentAreaVariant>({

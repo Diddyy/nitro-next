@@ -77,7 +77,9 @@ Local Jev and `live-check` helpers are optional; confirm availability before usi
 
 ## Room camera and display transforms
 
-Source revision: `WIN63-202609091217-117204808`. Recheck after a revision change.
+Source revision: `WIN63-202609091217-117204808`. Recheck after a revision change. The names below are
+Flash's; the port's camera is nitro-react's `useRoomCamera` over nitro-renderer's
+`RoomSpriteCanvas.setTransform`.
 
 - **Read branch getters.** `RoomEngine.useOffsetScrolling` returns literal `true`; the alternative
   geometry-scrolling branch is unreachable in this revision. By contrast, special room effect 2

@@ -1,7 +1,7 @@
 /**
  * RoomSpriteCanvas.snapSpriteCoordinate and Bitmap.pixelSnapping="always".
  * Flash leaves half-scale positions to Bitmap's native snapping, whose half-pixel ties
- * round to even (ZoomProbe phases 0/1 and 2/3). Other zoom levels use AS3 Math.round.
+ * round to even (as observed in the AIR client at phases 0/1 and 2/3). Other zoom levels use AS3 Math.round.
  * Resolve the screen pixel before converting back to room coordinates, so adjacent
  * plane bitmaps share one sampling grid during room zoom and camera movement.
  */

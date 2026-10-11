@@ -13,4 +13,5 @@ export interface DragTargetController {
     begin: (event: FederatedPointerEvent) => void;
 }
 
+/** The nearest `mouse_dragging_target` ancestor's controller, or `null` outside one. */
 export const DragTargetContext = createContext<DragTargetController | null>(null);

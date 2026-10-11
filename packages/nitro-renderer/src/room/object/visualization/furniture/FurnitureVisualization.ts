@@ -10,6 +10,10 @@ import { IVariableFxVisualizationHost, IVariableFxVisualizationRoomData } from '
 import { VariableFxStatusReconciler } from '../variablefx/VariableFxStatusReconciler';
 import { FurnitureVisualizationData } from './FurnitureVisualizationData';
 
+/**
+ * Port of Flash `FurnitureVisualization`, the visualization `RoomObjectVisualizationFactory`
+ * builds for `furniture_static`.
+ */
 export class FurnitureVisualization extends RoomObjectSpriteVisualization implements IVariableFxVisualizationHost {
     protected static DEPTH_MULTIPLIER: number = Math.sqrt(0.5);
 

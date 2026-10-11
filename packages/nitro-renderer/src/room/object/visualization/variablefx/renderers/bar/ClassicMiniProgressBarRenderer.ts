@@ -1,5 +1,6 @@
 import { ClassicBarAssetNames, ClassicProgressBarRenderer } from './ClassicProgressBarRenderer';
 
+/** Port of Flash `ClassicMiniProgressBarRenderer`. */
 export class ClassicMiniProgressBarRenderer extends ClassicProgressBarRenderer {
     private static CLASSIC_MINI_PROGRESS_BAR_ASSETS: ClassicBarAssetNames = {
         background: 'variablefx_classic_mini_bar_background',

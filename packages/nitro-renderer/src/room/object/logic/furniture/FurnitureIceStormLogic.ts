@@ -3,6 +3,7 @@ import { IRoomObjectUpdateMessage, LegacyDataType } from '@nitrodevco/nitro-api'
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/** Port of Flash's obfuscated `§_-x1w§`, the logic `RoomObjectFactory` builds for `furniture_es`. */
 export class FurnitureIceStormLogic extends FurnitureMultiStateLogic {
     private _nextState: number = 0;
     private _nextStateExtra: number = 0;

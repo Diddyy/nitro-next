@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarSignUpdateMessage`. */
 export class ObjectAvatarSignUpdateMessage extends ObjectStateUpdateMessage {
     private _signType: number;
 

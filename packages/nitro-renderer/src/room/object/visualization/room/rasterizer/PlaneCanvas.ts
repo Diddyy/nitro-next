@@ -81,7 +81,7 @@ export const releasePlaneCanvas = (canvas: RenderTexture | undefined): void => {
 };
 
 /**
- * AIR minifies room bitmaps even with Bitmap.smoothing=false (native ZoomProbe).
+ * The AIR client minifies room bitmaps even with Bitmap.smoothing=false.
  * Use linear minification on the standalone final plane image; magnification stays nearest.
  * Applying this to atlas source art would sample neighbouring frames, so it belongs here.
  */

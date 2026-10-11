@@ -4,7 +4,7 @@ import { Point, Rectangle } from 'pixi.js';
 import { PlaneDrawingData } from '../object/visualization/room/PlaneDrawingData';
 
 /**
- * Flash's `SpriteDataCollector`: what the server needs to draw a part of the room the way the
+ * Flash's obfuscated `§_-91p§` (Nitro's name `SpriteDataCollector`): what the server needs to draw a part of the room the way the
  * client shows it (`RoomEngine.getRenderRoomMessage`) - the sprites over the viewport as JSON
  * (`getFurniData`), the rendering modifiers (`getRoomRenderingModifiers`, always `{}`), and the
  * room's planes as drawing data (`getRoomPlanes`) with a background plane under them.

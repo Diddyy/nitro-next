@@ -9,4 +9,5 @@ export interface DynamicStyleContextValue {
     state: InteractionState;
 }
 
+/** The nearest `dynamicStyle` host, which its `#icon` / `#bg` tagged descendants take their rules from. */
 export const DynamicStyleContext = createContext<DynamicStyleContextValue | undefined>(undefined);

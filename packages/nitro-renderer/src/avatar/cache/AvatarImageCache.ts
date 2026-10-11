@@ -13,6 +13,7 @@ import { AvatarImageBodyPartCache } from './AvatarImageBodyPartCache';
 import { AvatarImageDirectionCache } from './AvatarImageDirectionCache';
 import { ImageData } from './ImageData';
 
+/** Port of Flash `AvatarImageCache`. */
 export class AvatarImageCache {
     private static DEFAULT_MAX_CACHE_STORAGE_TIME_MS: number = 60000;
     private static BASE_ACTION: string = 'std';

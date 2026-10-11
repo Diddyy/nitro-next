@@ -1,3 +1,8 @@
+/**
+ * The one Pixi application the UI and the app's own stage (the client's room) share: it owns the
+ * canvas React DOM mounts, starts the renderer (`SetRenderer`, Flash's blend modes, the configured
+ * colour space) and lays the UI's render group out over the whole screen.
+ */
 // The blend modes Pixi draws as filters - Flash's `subtract` and `invert` (`utils/flashBlendMode.ts`).
 import 'pixi.js/advanced-blend-modes';
 

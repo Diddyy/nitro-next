@@ -2,6 +2,10 @@ import { IAssetData, IParticleSystem, IRoomGeometry, IRoomSpriteMouseEvent, Mous
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash `FurnitureFireworksLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_fireworks`.
+ */
 export class FurnitureFireworksLogic extends FurnitureLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectStateChangedEvent.STATE_CHANGE ]);

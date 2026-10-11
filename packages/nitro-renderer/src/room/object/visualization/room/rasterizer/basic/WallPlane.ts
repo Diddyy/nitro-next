@@ -1,7 +1,8 @@
 /**
  * One wall type of the room's `wallData` (or `wallAdData`), drawn at the pixel size the room's wall
  * geometry gives it: the wall's run along the floor becomes its horizontal extent and its height
- * its vertical one. Ports Flash `WallPlane`.
+ * its vertical one. Ports Flash's obfuscated `§_-e1B§`, the
+ * `Plane` `WallRasterizer` builds.
  */
 import { IVector3D, Vector3d } from '@nitrodevco/nitro-api';
 import { RenderTexture } from 'pixi.js';

@@ -71,6 +71,10 @@ export interface HeaderProps extends ThemeProps<HeaderVariant> {
     helpButtonVisible?: boolean;
 }
 
+/**
+ * Flash's `HeaderController` (`header`): a frame's title bar - its skin, the caption where the
+ * window layout puts it, and the `_CONTROLS` buttons (close, help, menu) the frame style has.
+ */
 export const Header: ForwardRefExoticComponent<HeaderProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, HeaderProps>(
     ({
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, caption, onClose, closeButtonVisible = true, closeVariant, onMenu, helpPage, onHelp, helpButtonVisible,

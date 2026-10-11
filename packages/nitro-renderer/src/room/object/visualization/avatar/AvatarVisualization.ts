@@ -51,7 +51,7 @@ export class AvatarVisualization
     private static AVATAR_OWN_DEPTH_ADJUST: number = 0.001;
     private static AVATAR_SPRITE_LAYING_DEPTH: number = -0.409;
     private static BASE_Y_SCALE: number = 1000;
-    private static ANIMATION_FRAME_UPDATE_INTERVAL: number = 2;
+    public static readonly ANIMATION_FRAME_UPDATE_INTERVAL: number = 2;
     private static SNOWBOARDING_EFFECT: number = 97;
     private static FREEZE_EFFECT: number = 218;
     /** How many effect avatar images `getAvatarImage` keeps before disposing the oldest. */
@@ -66,14 +66,10 @@ export class AvatarVisualization
     private static ADDITION_ID_GAME_CLICK_TARGET: number = 5;
     private static ADDITION_ID_MUTED_BUBBLE: number = 6;
     private static ADDITION_ID_GUIDE_STATUS_BUBBLE: number = 7;
-    /**
-     * The habbicon bubble's addition id. Flash puts a `HabbiconBubble` into the stacked additions
-     * when `figure_habbicon` is set; the port has not ported `HabbiconBubble`, so nothing reads
-     * this yet (`StackedAdditions.LAYER_HABBICON` is its layer).
-     */
-    public static readonly ADDITION_ID_HABBICON_BUBBLE: number = 8;
+    /** The `HabbiconBubble` put into the stacked additions while `figure_habbicon` is set (`StackedAdditions.LAYER_HABBICON`). */
+    private static ADDITION_ID_HABBICON_BUBBLE: number = 8;
     private static ADDITION_ID_STACKED_ADDITIONS: number = 9;
-    private static DEFAULT_CANVAS_OFFSETS: number[] = [ 0, 0, 0 ];
+    public static readonly DEFAULT_CANVAS_OFFSETS: number[] = [ 0, 0, 0 ];
     /** Flash's literal `6710886`: the grey a blocked avatar's placeholder is tinted. */
     private static BLOCKED_AVATAR_COLOR: number = 0x666666;
 

@@ -1,3 +1,8 @@
+/**
+ * The shape of the theme: a theme component's variant (`ThemeVariant`, or `ThemeWithStatesVariant`
+ * for one whose skin follows its interaction state), the props every themed component takes
+ * (`ThemeProps`, `ThemeLayoutMeta`), and what `useThemeVariant` takes and resolves.
+ */
 import { BoxLayout } from '../Box';
 import { VariantCascadeMap } from '../cascade';
 import { InteractionHandlers, InteractionState, InteractionStates } from '../hooks';
@@ -9,10 +14,9 @@ import { TextStyleKey } from './textStyles';
 /**
  * Metadata every element in the original Flash layout XML carries alongside its `style`
  * (which maps to `variant`) - accepted on every themed component so a layout port can keep it
- * without inventing a place for it (the Flash `tags` are not carried: the ones with behaviour
- * become real props in the generator, the rest were lookup handles). `tooltip` is the
- * `tool_tip_caption` variable (the Flash `params` bit-field is applied by the generator - anchoring,
- * auto-sizing, clipping, click targets - and not carried), `dynamicStyle` the
+ * without inventing a place for it (the Flash `tags` and `params` are not carried: what they do -
+ * a role, anchoring, auto-sizing, clipping, click targets - becomes props, the way `TemplateView`
+ * applies them). `tooltip` is the `tool_tip_caption` variable, `dynamicStyle` the
  * hover/press effect (see utils/dynamicStyles.ts - `Region`, `Button`, `ButtonThick` and
  * `ContainerButton` host it). `tooltip` shows through `TooltipLayer` on hover (every `useThemeVariant` component and
  * `ThemeImage`); `visible` and `dynamicStyle` apply where a component forwards them to its `Box`.

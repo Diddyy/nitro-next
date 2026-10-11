@@ -13,6 +13,7 @@ export interface TabContentProps extends ThemeProps<TabContentVariant> {
     children?: ReactNode;
 }
 
+/** `tab_content` (a `ContainerController`): the panel under a tab strip, its skin behind the selected tab's content, which it crops. */
 export const TabContent: ForwardRefExoticComponent<TabContentProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TabContentProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, children, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
         const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<TabContentVariant>({

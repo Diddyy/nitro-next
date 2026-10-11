@@ -3,6 +3,10 @@ import { IRoomGeometry, IRoomObjectUpdateMessage, IRoomSpriteMouseEvent, MouseEv
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-s1t§`, the logic `RoomObjectFactory` builds for
+ * `furniture_background_color`.
+ */
 export class FurnitureRoomBackgroundColorLogic extends FurnitureMultiStateLogic {
     private _roomColorUpdated: boolean = false;
 

@@ -17,13 +17,14 @@ To run it on a server managed by Ploi, see [Running the imager on Ploi](imager-p
 | `GET /badge/<code>.gif` or `.png` | a group badge from its code |
 | `GET /health` | whether it is up, what it caches, and which badge table it draws with |
 
-Everything it loads from - the three bundle locations, the figure map, figure data, effect map,
-badge part images and badge table - is a url or a path on the server, mixed as suits the
-deployment (`resolveAddress`). A bundle path is a folder of `<library>.nitro` files, or a path with
+Everything it loads from - the three bundle locations, the figure map, figure data, effect map
+and badge part images - is a url or a path on the server, mixed as suits the deployment
+(`resolveAddress`). A bundle path is a folder of `<library>.nitro` files, or a path with
 `%libname%` in it; the rest are the file, or the badge parts' folder. A path becomes a `file:` url
 that the imager's `fetch` reads from disk (`fetchWithFiles`), so the renderer loads a bundle from a
 folder through the same code as from a CDN, and a missing library file is a failed library like a
-404. A path that is not there stops the imager at start-up, naming it.
+404. A path that is not there stops the imager at start-up, naming it. The badge table is read
+apart from these (`BadgePartTable.load`): an `http(s)` url, or else a file path.
 
 The images are at the root, for an imager on a subdomain of its own: the client's
 `badge.asset.group.url` is `https://habbo-imaging.example.com/badge/%badgedata%.gif`, and
@@ -56,8 +57,9 @@ The canvas renderer has no shader filters: an effect that recolours the avatar t
 Two things grow with the requests a long-running imager answers, and both are bounded:
 
 - **Encoded images** (`ImageCache`): at most `IMAGER_CACHE_MB`, the least recently used dropped first.
-- **Avatar asset libraries**: every figure loads its clothing's, and the renderer never unloads
-  them on its own. Once more than `IMAGER_MAX_LIBRARIES` are loaded - checked after every render
+- **Avatar asset libraries**: every figure loads its clothing's, and the avatar render manager
+  unloads them only when asked - the client's `RoomEngine` asks on its purge timer, and the imager
+  runs no room engine. Once more than `IMAGER_MAX_LIBRARIES` are loaded - checked after every render
   and every 30 s - the ones no render is using go (`purgeAssets`). New renders wait for the ones in
   progress first, so no library is unloaded from under a render that has fetched it but not drawn
   it yet. Mandatory libraries (`hh_human_body`, `hh_human_item`, the dances) stay. This is what
@@ -83,6 +85,7 @@ multiplied by the colour, its mask laid over untinted; the layers stack base fir
 
 The ids are the hotel's own, so the imager reads the hotel's table: Turbo's `badgeparts_json`
 gamedata file (`IMAGER_BADGE_PARTS`, e.g. `/gamedata/badgeparts_json/0`), read again every
-`IMAGER_BADGE_PARTS_REFRESH_SECONDS` so a recoloured palette reaches new badges; the table's hash is
-in every cached badge's key. Unset, or unreadable at start-up, it draws with
-`data/badge-parts.json` - a copy of Turbo's seeded parts and badge palette - until a refresh reads it.
+`IMAGER_BADGE_PARTS_REFRESH_SECONDS` so a recoloured palette reaches new badges (a table given as a
+file is read once); the table's hash is in every cached badge's key. Unset, it draws with
+`data/badge-parts.json` - a copy of Turbo's seeded parts and badge palette - and so does a url that
+cannot be read at start-up, until a refresh reads it.

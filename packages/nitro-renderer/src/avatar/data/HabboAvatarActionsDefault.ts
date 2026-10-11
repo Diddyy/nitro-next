@@ -1,6 +1,6 @@
 import { AvatarActionStateType, AvatarActionType, AvatarGeometryType, AvatarPartSetType, IAssetAvatarActionData } from '@nitrodevco/nitro-api';
 
-/*
+/**
  * The actions the Flash client bakes into `AvatarRenderManager` before the downloaded
  * HabboAvatarActions arrive: the default stand, and the snowwar postures the game modes
  * need. The snowwar prevents lists are copied verbatim - the `fx167`..`fx176` entries

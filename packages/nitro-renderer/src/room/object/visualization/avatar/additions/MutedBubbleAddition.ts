@@ -6,6 +6,7 @@ import { GetAssetManager } from '#renderer/assets';
 import { AvatarVisualization } from '../AvatarVisualization';
 import { IAvatarAddition } from './IAvatarAddition';
 
+/** Port of Flash `MutedBubble`. */
 export class MutedBubbleAddition implements IAvatarAddition {
     private _asset: Texture | undefined = undefined;
 

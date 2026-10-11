@@ -2,6 +2,7 @@ import { Container, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 
 import { TextureUtils } from '../../../../utils';
 
+/** Port of Flash `ExperienceData`. */
 export class ExperienceData {
     private _sprite: Sprite;
     private _texture: Texture | undefined = undefined;

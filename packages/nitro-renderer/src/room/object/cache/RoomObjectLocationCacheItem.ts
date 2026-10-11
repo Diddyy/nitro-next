@@ -1,4 +1,4 @@
-﻿import { IRoomGeometry, IRoomObject, IVector3D, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
+import { IRoomGeometry, IRoomObject, IVector3D, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 
 /**
  * `RoomObjectLocationCacheItem`: an object's screen location, worked out again only when the

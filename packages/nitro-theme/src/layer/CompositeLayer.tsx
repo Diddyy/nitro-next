@@ -31,6 +31,11 @@ const CompositeLayerPieceSprite = ({ piece, tintColor }: { piece: CompositeLayer
     );
 };
 
+/**
+ * A skin that is not one clean nine-slice grid, drawn as every one of its entities: each a sprite
+ * pinned, stretched or centred by the insets Nitro Studio derives from its `BitmapSkinRenderer`
+ * scale mode.
+ */
 export const CompositeLayer = ({ pieces, tintColor }: {
     pieces: CompositeLayerPieceProps[];
     tintColor?: string;

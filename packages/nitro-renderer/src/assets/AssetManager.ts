@@ -5,6 +5,10 @@ import { Spritesheet, SpritesheetData, Texture, TextureSource } from 'pixi.js';
 import { LoadMetrics, NitroBundle, TextureUtils } from '../utils';
 import { GraphicAssetCollection } from './GraphicAssetCollection';
 
+/**
+ * Nitro's asset store: every texture, graphic asset collection and `.nitro` bundle the room engine
+ * and the UI draw from, by name. Flash keeps an `AssetLibrary` per component; the port has one.
+ */
 export class AssetManager implements IAssetManager {
     private _textures: Map<string, Texture> = new Map();
     private _collections: Map<string, IGraphicAssetCollection> = new Map();

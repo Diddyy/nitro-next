@@ -2,6 +2,10 @@ import { IAssetData, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-M16§`, the logic `RoomObjectFactory` builds for
+ * `furniture_editable_room_link`.
+ */
 export class FurnitureEditableRoomLinkLogic extends FurnitureLogic {
     private _timer: ReturnType<typeof setTimeout> | undefined = undefined;
 

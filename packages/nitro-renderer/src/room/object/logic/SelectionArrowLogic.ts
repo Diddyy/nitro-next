@@ -3,6 +3,7 @@ import { IAssetData, IRoomObjectUpdateMessage, RoomObjectVariableEnum } from '@n
 import { ObjectVisibilityUpdateMessage } from '../../messages';
 import { ObjectLogicBase } from './ObjectLogicBase';
 
+/** Port of Flash `SelectionArrowLogic`, the logic `RoomObjectFactory` builds for `selection_arrow`. */
 export class SelectionArrowLogic extends ObjectLogicBase {
     public override initialize(data: IAssetData): void {
         this.object.model.setValue(RoomObjectVariableEnum.FurnitureAlphaMultiplier, 1);

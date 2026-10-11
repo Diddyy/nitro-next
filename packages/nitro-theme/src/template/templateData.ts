@@ -109,7 +109,7 @@ export interface Template {
     /** The `<window>`'s elements. */
     elements: TemplateElement[];
     /**
-     * The window layouts its composite windows are built from (`WindowFactory`'s element description:
+     * The window layouts its composite windows are built from (the element description `SkinParserUtil` parses:
      * a `scrollable_itemlist_vertical`'s `_ITEMLIST` and `_SCROLLBAR`), by `templateSkinKey` - only
      * those its elements use. The publisher, holding the window manager's library, adds them.
      */

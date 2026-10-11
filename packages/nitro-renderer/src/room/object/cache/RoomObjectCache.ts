@@ -1,4 +1,4 @@
-﻿import {
+import {
     type IRoomObjectSprite,
     type IRoomObjectSpriteData,
     RoomObjectSpriteData,
@@ -9,6 +9,7 @@
 import { SortableSprite } from '../../utils';
 import { RoomObjectCacheItem } from './RoomObjectCacheItem';
 
+/** Port of Flash `RoomObjectCache`. */
 export class RoomObjectCache {
     private static MAX_SIZE_FOR_AVG_COLOR: number = 200;
 
@@ -98,7 +99,7 @@ export class RoomObjectCache {
                         && data.width <= RoomObjectCache.MAX_SIZE_FOR_AVG_COLOR
                         && data.height <= RoomObjectCache.MAX_SIZE_FOR_AVG_COLOR
                     ) {
-                        // data.color = Canvas._Str_23439(sprite.sprite.texture).toString();
+                        // Flash sets `color` here from `Canvas.averageColor(sprite.asset)`; that is not ported.
 
                         if (data.type.indexOf('external_image_wallitem') === 0) {
                             data.frame = true;

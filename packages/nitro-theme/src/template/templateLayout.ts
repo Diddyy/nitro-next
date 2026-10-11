@@ -8,12 +8,12 @@
  * frame's content area - built the way `WindowParser.parseSingleWindowEntity` builds a layout.
  *
  * Only what moves or sizes a window is kept: no drawing, graphics contexts, mouse or dynamic
- * styles. The "pre" events (`WINDOW_EVENT_RESIZE`, `RELOCATE`) are left out, as nothing here
- * prevents them. Each window type's own skin layout (`WindowFactory` element descriptions) is left
+ * styles. The "pre" events (`WE_RESIZE`, `WE_RELOCATE`) are left out, as nothing here
+ * prevents them. Each window type's own skin layout (the element description `SkinParserUtil` parses) is left
  * to the theme's components, except a frame's content area, which children are placed in.
  *
- * Not yet: a selector list's items (the renderer flows them), a text's layout while its caption is
- * still empty, and a standalone scrollbar scrolling a text.
+ * Not yet: a text's layout while its caption is still empty, and a standalone scrollbar scrolling a
+ * text.
  *
  * Kept free of runtime imports so it runs under Node as it stands.
  */
@@ -131,7 +131,7 @@ const P = {
 export const templateUsesParentGraphics = (element: TemplateElement): boolean => !!element.params?.parentGraphics;
 
 /** An element's layout params as the `uint` `WindowParser` read, rebuilt from its decoded `params`. */
-export const templateParamBits = (element: TemplateElement): number => {
+const templateParamBits = (element: TemplateElement): number => {
     const params = element.params;
 
     if (!params) return 0;
@@ -167,7 +167,7 @@ export class LayoutWindow {
     public height: number;
     /** `_previousRect`: the rect before the last move or resize. */
     public previous: TemplateRect;
-    /** `_Str_5110`: the parent's rect a relative scale measures its change from. */
+    /** The parent's rect a relative scale measures its change from (`updateScaleRelativeToParent`'s, obfuscated in the AS3). */
     public parentRect: TemplateRect = { x: 0, y: 0, width: 0, height: 0 };
     public param: number;
     public parent: LayoutWindow | undefined;
@@ -187,8 +187,8 @@ export class LayoutWindow {
 
     /**
      * The constructor with a parent sets `_parent` first, so the `addChild` it makes finds the
-     * parent already set and no `WINDOW_EVENT_PARENT_ADDED` follows - only the parent's
-     * `WINDOW_EVENT_CHILD_ADDED`.
+     * parent already set and no `WE_PARENT_ADDED` follows - only the parent's
+     * `WE_CHILD_ADDED`.
      */
     constructor(element: TemplateElement | undefined, rect: TemplateRect, param: number, parent?: LayoutWindow) {
         this.element = element;
@@ -419,7 +419,7 @@ export class LayoutWindow {
     }
 
     /**
-     * `WindowController._Str_10618`: a window following its parent's change of size since
+     * `WindowController.updateScaleRelativeToParent`: a window following its parent's change of size since
      * `parentRect` - moved or stretched by it, or centred in the parent - with the centring and
      * reflect params cleared for the `setRectangle` it makes; or, with no relative scale, kept
      * inside a parent it is bound to.
@@ -478,7 +478,7 @@ export class LayoutWindow {
     }
 
     /**
-     * `WindowController._Str_14067` (`resize_to_accommodate_children`): the window takes its
+     * `WindowController.resizeToAccommodateChildren` (`resize_to_accommodate_children`): the window takes its
      * children's extent from its own origin - growing or shrinking - moved by any child left or above
      * it, the children offset back, their centring held off meanwhile. Only the children that show
      * count (`scaleToAccommodateChildren`'s `visible` checks): a hidden button takes no room.
@@ -582,7 +582,7 @@ export class LayoutWindow {
     }
 
     /**
-     * `WindowController._Str_9294` (`expand_to_accommodate_children`): the window grows - never
+     * `WindowController.expandToAccommodateChild` (`expand_to_accommodate_children`): the window grows - never
      * shrinks - to take in `child`, moved by any part of it left or above, the children offset back.
      */
     public expandToAccommodate(child: LayoutWindow): void {
@@ -838,7 +838,7 @@ const FIELD_TAGS = new Set([ 'html', 'input', 'password' ]);
  * `TextFieldController`: the window is its text field, with no margins. With an `auto_size` other than
  * `none` the field follows the text as a Flash `TextField` does - unwrapped, its width and height,
  * keeping its left edge, centre or right edge as `auto_size` names; wrapped, its height - and the
- * window takes the field's rect (`_Str_18556`, `refreshTextImage`). A resize from outside sets the
+ * window takes the field's rect (`refreshAutoSize`, `refreshTextImage`). A resize from outside sets the
  * field's size, which it then fits to its text again.
  */
 class TextFieldWindow extends LayoutWindow {
@@ -1032,12 +1032,12 @@ class ListWindow extends LayoutWindow {
         }
     }
 
-    /** The container's events, heard before its own handling (`_Str_6611`). */
+    /** The container's events, heard before its own handling (`containerEventHandler`). */
     public containerEvent(type: WindowEventType): void {
         if (type === 'CHILD_REMOVED' || type === 'CHILD_RELOCATED' || (type === 'CHILD_RESIZED' && !this._resizing)) this.arrange();
     }
 
-    /** `ItemListController._Str_4024`: the visible items placed along the list, the container sized to them. */
+    /** `ItemListController.updateScrollAreaRegion`: the visible items placed along the list, the container sized to them. */
     public arrange(): void {
         if (!this._autoArrange || this._arranging) return;
 
@@ -1155,7 +1155,7 @@ class GridWindow extends ListWindow {
     }
 
     /**
-     * `ItemGridIterator`: an XML child is added at the end - `addGridItemAt` (`_Str_22897`): placed as
+     * `ItemGridIterator`: an XML child is added at the end - `addGridItemAt` (`offsetGridItemsForwards`): placed as
      * `addGridItem` places it, then each column re-arranged and sized to its items, and the grid's
      * container to its tallest column.
      */
@@ -1177,7 +1177,7 @@ class GridWindow extends ListWindow {
         return this.container.children.filter((child): child is ListWindow => child instanceof ListWindow);
     }
 
-    /** `ItemGridController._Str_16044`. */
+    /** `ItemGridController.addGridItem` (`resolveColumnForNextItem`). */
     public addGridItem(item: LayoutWindow): void {
         const columns = this.columns;
 
@@ -1335,13 +1335,13 @@ class ScrollableWindow extends LayoutWindow {
         if (type === 'RESIZED' && source === this) this.updateScrollbar();
     }
 
-    /**
-     * `ScrollableItemListWindow._Str_6204` on the scrollbar's `ENABLED` / `DISABLED`: it is enabled
-     * while the list's content is taller than the list.
-     */
     /** `autoHideScrollBar`: off, the scrollbar keeps its width while the items fit, drawn disabled. */
     public autoHideScrollBar = true;
 
+    /**
+     * `ScrollableItemListWindow.scrollBarEventProc` on the scrollbar's `WE_ENABLED` / `WE_DISABLED`:
+     * it is enabled while the list's content is taller than the list.
+     */
     public updateScrollbar(): void {
         const list = this._list;
         const scrollbar = this._scrollbar;
@@ -1401,7 +1401,7 @@ class BoxSizerWindow extends LayoutWindow {
         if (on) this.arrange();
     }
 
-    /** `_Str_9056`: the n of a `relative(n)` tag - the last one, at least 0 - else 0. */
+    /** `getRelativeValue`: the n of a `relative(n)` tag - the last one, at least 0 - else 0. */
     private static share(child: LayoutWindow): number {
         let share = 0;
 
@@ -1412,14 +1412,14 @@ class BoxSizerWindow extends LayoutWindow {
         return share;
     }
 
-    /** `_Str_7516`. */
+    /** `BoxSizerController.arrangeChildren`. */
     public arrange(): void {
         // A field initialiser has not run while the constructor's `super` raises events.
         if (this._spacing === undefined) return;
 
         const visible = this.children.filter(child => child.visible);
         const shares = visible.reduce((sum, child) => sum + BoxSizerWindow.share(child), 0);
-        // `_Str_22835`: the length less the padding, the fixed children and the spacing between them all.
+        // `calculateSpaceForRelatives`: the length less the padding, the fixed children and the spacing between them all.
         const free = visible.reduce((length, child) => length - (BoxSizerWindow.share(child) === 0 ? ((this._vertical ? child.height : child.width) + this._spacing) : this._spacing), (this._vertical ? this.height - (this._verticalPadding * 2) : this.width - (this._horizontalPadding * 2))) + this._spacing;
         let previous: LayoutWindow | undefined;
 
@@ -1445,14 +1445,14 @@ class BoxSizerWindow extends LayoutWindow {
     }
 }
 
-/** The window types whose caption sizes them (`ButtonController`, `ButtonGroupController`, `TabButtonController`). */
-export const TEMPLATE_CAPTION_BUTTON_TAGS: ReadonlySet<string> = new Set([ 'button', 'button_thick', 'button_group_left', 'button_group_center', 'button_group_right', 'tab_button' ]);
+/** The window types whose caption sizes them (`ButtonController`, `SelectableButtonController`, `TabButtonController`). */
+const TEMPLATE_CAPTION_BUTTON_TAGS: ReadonlySet<string> = new Set([ 'button', 'button_thick', 'button_group_left', 'button_group_center', 'button_group_right', 'tab_button' ]);
 
 /**
- * `ButtonController` (`button`, `button_thick`, and `ButtonGroupController`'s `button_group_*`): built
+ * `ButtonController` (`button`, `button_thick`, and `SelectableButtonController`'s `button_group_*`): built
  * from its window layout - a `_BTN_TEXT` label centred in it, made at the layout's size and then
  * resized to its own rect - and always expanding to accommodate its children. Its caption goes to the
- * label, which takes its text's size (`TextLabelController.refresh`); on the label's `CHILD_RESIZED`
+ * label, which takes its text's size (`TextLabelController.refresh`); on the label's `WE_CHILD_RESIZED`
  * the button sets `width = 0` - its `width_min` holding it, its resize alignment keeping the edge it
  * names - and then expands round the label. A button is as wide as its caption, never under its
  * `width_min`.
@@ -1537,7 +1537,7 @@ interface SkinTemplate {
 
 /**
  * `SelectorListController` (`selector_list`, a tab context's `tab_selector`): on a child added,
- * resized or moved, every child is packed along it - `spacing` apart, across unless `vertical` -
+ * removed, resized or moved, every child is packed along it - `spacing` apart, across unless `vertical` -
  * whatever the layout placed it at.
  */
 class SelectorListWindow extends LayoutWindow {
@@ -1552,12 +1552,12 @@ class SelectorListWindow extends LayoutWindow {
     }
 
     public override update(source: LayoutWindow, type: WindowEventType, related?: LayoutWindow): void {
-        if (type === 'CHILD_ADDED' || type === 'CHILD_RESIZED' || type === 'CHILD_RELOCATED') this.pack();
+        if (type === 'CHILD_ADDED' || type === 'CHILD_REMOVED' || type === 'CHILD_RESIZED' || type === 'CHILD_RELOCATED') this.pack();
 
         super.update(source, type, related);
     }
 
-    /** `_Str_11558`. */
+    /** `updateSelectableRegion`. */
     private pack(): void {
         if (this._packing) return;
 
@@ -1732,7 +1732,7 @@ const createWindow = (element: TemplateElement, rect: TemplateRect, param: numbe
 const BITMAP_TAGS = new Set([ 'bitmap', 'static_bitmap' ]);
 
 /**
- * `BitmapDataController._Str_8020` (`fit_size_to_contents`): once it has its bitmap, the window takes
+ * `BitmapDataController.fitSize` (`fit_size_to_contents`): once it has its bitmap, the window takes
  * the bitmap's size times its zoom - `width` and then `height`, each through `setRectangle`.
  */
 const fitBitmapToContents = (window: LayoutWindow, element: TemplateElement, input: TemplateLayoutInput): void => {
@@ -1839,7 +1839,7 @@ export const buildTemplateWindows = (elements: readonly TemplateElement[], input
     for (const element of elements) buildScope(element, undefined);
 
     if (input.visibleOf) {
-        // `CHILD_VISIBILITY`: the lists and boxes whose items were shown or hidden arrange them again.
+        // `WE_CHILD_VISIBILITY`: the lists and boxes whose items were shown or hidden arrange them again.
         const lists = new Set<ListWindow | BoxSizerWindow>();
 
         for (const [ element, window ] of windows) {

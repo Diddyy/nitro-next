@@ -1,6 +1,7 @@
 /**
  * One floor type of the room's `floorData` (`101`, `default`, ...), drawn at the pixel size the
- * room's floor geometry gives it. Ports Flash `FloorPlane`.
+ * room's floor geometry gives it. Ports Flash's obfuscated
+ * `§_-RZ§`, the `Plane` `FloorRasterizer` builds.
  *
  * `width` and `height` come in as the plane's sides in world units times the scale; the
  * visualization's geometry turns them into the diamond's horizontal extent, and the texture offset

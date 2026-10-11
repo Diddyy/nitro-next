@@ -17,14 +17,14 @@ export const BADGE_TOKEN_LENGTH = 6;
 const SYMBOL_ALT_OFFSET = 100;
 
 /** One base and four symbols, what the editor makes. */
-export const MAX_BADGE_LAYERS = 5;
+const MAX_BADGE_LAYERS = 5;
 
 const TOKEN = /^([bst])(\d\d)(\d\d)(\d)$/;
 
 /**
  * The layers of a group badge code - the string the hotel stores for a group and the client
- * hands to the imager (`b0503Xs09114...` without the `X`): up to five tokens run together in
- * layer order,
+ * hands to the imager unread (`b05114s06114`): up to five tokens run together in layer order,
+ * as Turbo's `GuildBadgeCodes.Build` writes them,
  *
  *     b + part(2) + colour(2) + position(1)    the base
  *     s + part(2) + colour(2) + position(1)    a symbol, parts 1-99

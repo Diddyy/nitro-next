@@ -21,6 +21,7 @@ import {
 } from '../../messages';
 import { MovingObjectLogic } from './MovingObjectLogic';
 
+/** Port of Flash `PetLogic`, the logic `RoomObjectFactory` builds for `pet`. */
 export class PetLogic extends MovingObjectLogic {
     private _selected: boolean = false;
     private _reportedLocation: IVector3D = new Vector3d();

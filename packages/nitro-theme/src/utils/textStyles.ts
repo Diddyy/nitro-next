@@ -1,13 +1,19 @@
+/**
+ * The theme's text styles: the Flash style names (`TextStyleKey`), the browser-text face each falls
+ * back to (`TEXT_STYLES`, derived from the generated `HABBO_TEXT_STYLES`), the default style of a
+ * window's theme (`themeDefaultTextStyle`), and when an override still draws exactly
+ * (`resolveFlashStyle`). See docs/text.md.
+ */
 import { TextDropShadow, TextStyle, TextStyleOptions } from 'pixi.js';
 
 import type { FlashTextFace, FlashTextFieldOverrides, FlashTextFormat, HabboTextStyleName } from '../font/flash-text';
 import { HABBO_TEXT_STYLES } from '../font/flash-text/habboTextStyles';
+import { toCssHexColor } from './cssHexColor';
 
-/** Default drop-shadow shape a bare `dropShadow: true` (no explicit config) resolves to -
- *  see `ThemeText.tsx`'s `resolveDropShadow`. */
+/** Where a text sits vertically in a box taller than it. */
 export type TextVerticalAlign = 'top' | 'middle' | 'bottom';
 
-/** `objectPosition` (Pixi) / `object-position` (DOM canvas) for a text sitting inside a box larger than it. */
+/** The `objectPosition` of a text sitting inside a box larger than it. */
 export const textObjectPosition = (align: TextStyleOptions['align'] | undefined, verticalAlign: TextVerticalAlign | undefined): `${'left' | 'center' | 'right'} ${'top' | 'center' | 'bottom'}` => {
     const horizontal = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
     const vertical = verticalAlign === 'top' ? 'top' : verticalAlign === 'bottom' ? 'bottom' : 'center';
@@ -15,6 +21,7 @@ export const textObjectPosition = (align: TextStyleOptions['align'] | undefined,
     return `${horizontal} ${vertical}`;
 };
 
+/** The drop-shadow a bare `dropShadow: true` (no explicit config) resolves to - see `ThemeText`'s `resolveDropShadow`. */
 export const TEXT_DROP_SHADOW: TextDropShadow = {
     alpha: 0.3,
     angle: Math.PI / 4,
@@ -79,7 +86,7 @@ const habboTextStyle = (habboKey: HabboTextStyleName): ThemeTextStyle => {
     return {
         ...browserFace(format.fontFamily ?? 'Volter', !!format.bold, !!format.italic),
         fontSize: format.fontSize ?? 9,
-        ...(format.color !== undefined && { color: `#${format.color.toString(16).padStart(6, '0')}` }),
+        ...(format.color !== undefined && { color: toCssHexColor(format.color) }),
     };
 };
 
@@ -168,6 +175,7 @@ export const themeDefaultTextStyle = (style: string | number | undefined): TextS
 
 const cache = new Map<TextStyleKey, TextStyle>();
 
+/** A style as Pixi's canvas text takes it (the browser fallback), with `overrides` over it; the bare style is made once and kept. */
 export const getPixiTextStyle = (key: TextStyleKey, overrides?: TextStyleOptions): TextStyle => {
     const { color, ...base } = TEXT_STYLES[key];
     const options: TextStyleOptions = color ? { fill: color, ...base } : base;

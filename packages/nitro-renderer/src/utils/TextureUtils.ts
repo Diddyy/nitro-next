@@ -150,10 +150,6 @@ export class TextureUtils {
         return this.getRenderer().textureGenerator.generateTexture(options);
     }
 
-    public static generateTextureFromImage(image: HTMLImageElement): Texture {
-        return Texture.from(image);
-    }
-
     /**
      * Uploads an image-backed source to the GPU now and closes the decoded bitmap behind it, so the
      * sheet is held once - on the GPU - instead of also as a bitmap until its first draw. The
@@ -189,38 +185,14 @@ export class TextureUtils {
         return this.getExtractor().image(options);
     }
 
-    public static async generateImageUrl(options: ExtractImageOptions | Container | Texture) {
-        return this.getExtractor().base64(options);
-    }
-
     public static generateCanvas(options: ExtractOptions | Container | Texture) {
         return this.getExtractor().canvas(options);
-    }
-
-    public static clearRenderTexture(texture: Texture): Texture {
-        return this.writeToTexture(new Sprite(Texture.EMPTY), texture);
     }
 
     public static createRenderTexture(width: number, height: number) {
         if (width < 0 || height < 0) return undefined;
 
         return RenderTexture.create({ width, height });
-    }
-
-    public static createAndFillRenderTexture(
-        width: number,
-        height: number,
-        color: number = 16777215,
-    ): Texture | undefined {
-        if (width < 0 || height < 0) return undefined;
-
-        const renderTexture = this.createRenderTexture(width, height);
-
-        if (renderTexture) {
-            return this.clearAndFillRenderTexture(renderTexture, color);
-        }
-
-        return renderTexture;
     }
 
     public static createAndWriteRenderTexture(
@@ -238,19 +210,6 @@ export class TextureUtils {
         return renderTexture;
     }
 
-    public static clearAndFillRenderTexture(texture: Texture, color: number = 16777215): Texture {
-        if (!texture) return texture;
-
-        const sprite = new Sprite(Texture.WHITE);
-
-        sprite.tint = color;
-
-        sprite.width = texture.width;
-        sprite.height = texture.height;
-
-        return this.writeToTexture(sprite, texture);
-    }
-
     public static writeToTexture(
         container: Container,
         target: Texture,
@@ -266,39 +225,6 @@ export class TextureUtils {
             });
 
         return target;
-    }
-
-    public static flipTextureHorizontal(texture: Texture) {
-        if (!texture) return texture;
-
-        const matrix = new Matrix();
-
-        matrix.scale(-1, 1);
-        matrix.translate(texture.width, 0);
-
-        return this.createAndWriteRenderTexture(texture.width, texture.height, new Sprite(texture), matrix);
-    }
-
-    public static flipTextureVertical(texture: Texture) {
-        if (!texture) return texture;
-
-        const matrix = new Matrix();
-
-        matrix.scale(1, -1);
-        matrix.translate(0, texture.height);
-
-        return this.createAndWriteRenderTexture(texture.width, texture.height, new Sprite(texture), matrix);
-    }
-
-    public static flipTextureHorizontalAndVertical(texture: Texture) {
-        if (!texture) return texture;
-
-        const matrix = new Matrix();
-
-        matrix.scale(-1, -1);
-        matrix.translate(texture.width, texture.height);
-
-        return this.createAndWriteRenderTexture(texture.width, texture.height, new Sprite(texture), matrix);
     }
 
     public static makeWhiteTransparent(texture: Texture) {

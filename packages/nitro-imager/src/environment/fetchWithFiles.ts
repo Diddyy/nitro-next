@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 /**
  * `fetch` that also reads `file:` urls from the server's disk, which Node's own refuses. The
  * renderer loads every bundle and table with `fetch(url)`; with this in place, an address that
- * is a folder on the server (`config.ts` turns it into a `file:` url) loads through the very same
+ * is a folder on the server (`resolveAddress` turns it into a `file:` url) loads through the very same
  * code as one on a CDN. A missing file is a 404, as a missing url would be. Every other url goes
  * to `fetch` untouched.
  */

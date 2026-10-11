@@ -1,15 +1,7 @@
-import { GetAssetManager } from '@nitrodevco/nitro-renderer';
-import { SpritesheetData } from 'pixi.js';
-
-import { registerThemeTexture, resetThemeTextures } from '../hooks/usePixiTexture';
-import { themeHost } from '../host';
-import { registerThemeVariants, themeTextureAliases, ThemeVariantsData } from './themeRegistry';
-import { registerThemeAtlas, resetThemeSprites, themeTextureKeys } from './themeSprites';
-
 /**
  * Loads the theme out of the window manager library's bundle (`habbo-window-manager-com`, the library
  * the Habbo client draws its window skins from) and hands it to the registries the chrome reads, once
- * at boot, on both render targets.
+ * at boot.
  *
  * Nitro Studio builds the theme from the client release (`server/theme/clientTheme.ts` there) into that
  * bundle beside the library's templates and bitmaps: the sprites the theme draws packed into one sheet
@@ -19,19 +11,25 @@ import { registerThemeAtlas, resetThemeSprites, themeTextureKeys } from './theme
  * by the time this runs. What is left is naming them the way the theme does - a sprite `theme-<x>` is
  * the texture key `<x>-src`, and the file's `textures` name the keys drawn from another sprite:
  *
- * - the variants: into `themeRegistry`, which every theme component reads its variant from;
- * - Pixi: each sprite's `Texture` goes into `usePixiTexture`'s cache under its theme key, so a
- *   lookup during render is a synchronous `Map` read and no component ever builds a texture.
- * - DOM: `themeSprites.ts` gets the decoded sheet, its rects and a `blob:` URL of its bytes.
- *   Chrome then references that one URL (`background-position`/`-size` picks the rect), and the
- *   few places needing a standalone image (`border-image`, `background-repeat`, a tinted copy)
- *   slice it out of the decoded sheet on demand, once per key.
+ * - the variants go into `themeRegistry`, which every theme component reads its variant from;
+ * - each sprite's `Texture` goes into `usePixiTexture`'s cache under its theme key, so a lookup
+ *   during render is a synchronous `Map` read and no component ever builds a texture;
+ * - the decoded sheet and its rects go to `themeSprites.ts`, which cuts the standalone copies a
+ *   tiling sprite or a shadow needs out of it on demand, once per key.
  *
  * There is no fallback behind this: the client ships no theme of its own, and the hotel serves the
- * bundle as it does any library's, from `asset.bundles.templates` (`assetBundleUrl`). If the bundle fails, the chrome is missing and the
- * error is on the console - which is the intent, an asset silently taking the slow path is how a
- * regression hides.
+ * bundle as it does any library's, from `asset.bundles.templates` (`assetBundleUrl`). If the bundle
+ * fails, the chrome is missing and the error is on the console - which is the intent, an asset
+ * silently taking the slow path is how a regression hides.
  */
+import { GetAssetManager } from '@nitrodevco/nitro-renderer';
+import { SpritesheetData } from 'pixi.js';
+
+import { registerThemeTexture, resetThemeTextures } from '../hooks/usePixiTexture';
+import { themeHost } from '../host';
+import { registerThemeVariants, themeTextureAliases, ThemeVariantsData } from './themeRegistry';
+import { registerThemeAtlas, resetThemeSprites, themeTextureKeys } from './themeSprites';
+
 /** What the theme's sheet and its manifest are named after, in whichever bundle carries them. */
 const THEME_NAME = 'theme';
 
@@ -72,7 +70,7 @@ export const preloadThemeAssets = async (bundle: string = BUNDLE_NAME): Promise<
 
     if (!image) return;
 
-    registerThemeAtlas({ image, width: sheet.source.width, height: sheet.source.height }, manifest.frames, themeTextureAliases());
+    registerThemeAtlas({ image }, manifest.frames, themeTextureAliases());
 
     // The bundle's data is kept: the window manager's carries the library's templates too, which
     // `useTemplate` reads as they are drawn.

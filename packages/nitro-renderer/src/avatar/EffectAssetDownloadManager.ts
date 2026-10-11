@@ -3,6 +3,7 @@ import { IAvatarEffectListener, IEffectAssetDownloadLibrary, IEffectMapLibrary }
 import { AvatarStructure } from './AvatarStructure';
 import { EffectAssetDownloadLibrary } from './EffectAssetDownloadLibrary';
 
+/** Port of Flash `EffectAssetDownloadManager`. */
 export class EffectAssetDownloadManager {
     private static MANDATORY_LIBRARIES: string[] = [ 'dance.1', 'dance.2', 'dance.3', 'dance.4' ];
     private static MAX_SIMULTANEOUS_DOWNLOADS: number = 2;
@@ -130,7 +131,7 @@ export class EffectAssetDownloadManager {
         }
     }
 
-    /** Effect id -> the libraries holding it (Flash `effectMap`). */
+    /** Effect id -> the libraries holding it (Flash `map`, which `AvatarRenderManager.effectMap` hands out). */
     public get map(): Map<string, IEffectAssetDownloadLibrary[]> {
         return this._effectMap;
     }

@@ -1,6 +1,7 @@
 import { VariableFxWidth } from '../../VariableFxTables';
 import { ClassicBarAssetNames, ClassicBarOverlaySlice, ClassicProgressBarRenderer } from './ClassicProgressBarRenderer';
 
+/** Port of Flash `HealthProgressBarRenderer`. */
 export class HealthProgressBarRenderer extends ClassicProgressBarRenderer {
     private static HEALTH_PROGRESS_BAR_ASSETS: ClassicBarAssetNames = {
         background: 'variablefx_health_bar_background',

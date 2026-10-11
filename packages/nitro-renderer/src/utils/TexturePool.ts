@@ -5,6 +5,10 @@ import { ExtendedSprite } from './ExtendedSprite';
 import { GetTicker } from './GetTicker';
 import { TextureUtils } from './TextureUtils';
 
+/**
+ * Nitro's own pool of render textures by size, so the many short-lived renders (avatar heads, part
+ * thumbnails) reuse GPU memory; idle textures are destroyed by `startAutoCleanup`.
+ */
 export class TexturePool {
     private static _texturePool: Record<number, Record<number, RenderTexture[]>> = {};
     private static _totalTextures: number = 0;

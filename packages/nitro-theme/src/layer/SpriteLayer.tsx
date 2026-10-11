@@ -16,6 +16,7 @@ export interface SpriteLayerProps extends LayerNodeProps {
     layout?: BoxLayout;
 }
 
+/** One theme sprite (or a `frame` of it) filling its parent's box, or at the frame's own size. */
 export const SpriteLayer = ({ textureKey, frame, tintColor, layout, ref, alpha, visible }: SpriteLayerProps) => {
     const baseTexture = usePixiTexture(textureKey);
     // A sub-frame shares the base's source; `getCroppedTexture` hands back the same Texture

@@ -11,6 +11,10 @@ export type CloseButtonVariant = ThemeWithStatesVariant;
 
 export type CloseButtonProps = ThemeProps<CloseButtonVariant>;
 
+/**
+ * Flash's `CloseButtonController` (`closebutton`): the state's skin, stopping the press so the
+ * header it sits in is not dragged by it.
+ */
 export const CloseButton: ForwardRefExoticComponent<CloseButtonProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, CloseButtonProps>(
     ({
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible,

@@ -20,6 +20,10 @@ import { PlaneTextureCache } from './PlaneTextureCache';
 import { RoomPlane } from './RoomPlane';
 import { RoomVisualizationData } from './RoomVisualizationData';
 
+/**
+ * Port of Flash `RoomVisualization`, the visualization `RoomObjectVisualizationFactory` builds for
+ * `room`.
+ */
 export class RoomVisualization extends RoomObjectSpriteVisualization implements IPlaneVisualization {
     private static FLOOR_COLOR: number = 0xffffff;
     private static FLOOR_COLOR_LEFT: number = 0xdddddd;

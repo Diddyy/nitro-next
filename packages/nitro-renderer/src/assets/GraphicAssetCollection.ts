@@ -13,6 +13,7 @@ import { GetTickerTime, TextureUtils } from '#renderer/utils';
 import { GraphicAsset } from './GraphicAsset';
 import { GraphicAssetPalette } from './GraphicAssetPalette';
 
+/** Port of Flash `GraphicAssetCollection`. */
 export class GraphicAssetCollection implements IGraphicAssetCollection {
     private static PALETTE_ASSET_DISPOSE_THRESHOLD: number = 10;
 

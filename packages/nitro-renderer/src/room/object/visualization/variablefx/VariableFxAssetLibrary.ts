@@ -17,8 +17,8 @@ const TABLES_FILE = 'variable-fx-tables';
 
 /**
  * The Flash client embedded every `variablefx_*` bitmap (and the icon/renderer XML tables) in
- * its room visualization library, and so do we: `habbo-room-object-visualization-lib`'s bundle, with
- * the avatar additions - what the room engine draws, as against the UI's own art: the bitmaps packed into a
+ * its room visualization library, and so do we: `habbo-room-object-visualization-lib`'s bundle -
+ * what the room engine draws, as against the UI's own art: the bitmaps packed into a
  * sheet the shared `AssetManager` decodes and uploads once, and the two tables beside them as
  * JSON. The renderers compose on the CPU, so each asset is still cut out into its own canvas on
  * first use - out of the decoded sheet rather than a separately fetched atlas image.

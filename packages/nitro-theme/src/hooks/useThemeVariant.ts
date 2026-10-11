@@ -5,6 +5,13 @@ import { themeVariantsOf } from '../utils/themeRegistry';
 import { resolveByState, useInteractionState } from './useInteractionState';
 import { useResolvedVariant } from './useResolvedVariant';
 
+/**
+ * What every theme component draws from: its variant (the caller's, the cascaded one, or its
+ * default - `useResolvedVariant`), the skin for its interaction state, its tint (none for a
+ * `colorize: false` skin), drop shadow and text style (the theme's default for the window style
+ * when the variant names none - `themeDefaultTextStyle`), and the pointer handlers that track
+ * that state and show its tooltip.
+ */
 export const useThemeVariant = <T extends AnyThemeVariant>({
     cascadeKey, variant, defaultVariant = '0', tintColor, textStyle, textColor, dropShadow, tooltip, tooltipDelay, disabled, selected, pressed, interactive, stopsPropagation,
     onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,

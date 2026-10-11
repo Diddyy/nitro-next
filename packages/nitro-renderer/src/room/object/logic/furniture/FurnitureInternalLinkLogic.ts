@@ -2,6 +2,10 @@ import { IAssetData, IRoomGeometry, IRoomSpriteMouseEvent, MouseEventType, RoomO
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-31U§`, the logic `RoomObjectFactory` builds for
+ * `furniture_internal_link`.
+ */
 export class FurnitureInternalLinkLogic extends FurnitureLogic {
     private _showStateOnceRendered: boolean = false;
     private _updateCount: number = 0;

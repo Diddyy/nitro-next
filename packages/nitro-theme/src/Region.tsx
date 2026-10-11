@@ -70,8 +70,7 @@ export interface RegionProps extends ThemeProps<RegionVariant> {
  * cascade, text style inheritance for bare string children, the layout metadata in
  * `ThemeLayoutMeta`, and the pointer handlers a `region` uses as a hit area). Ported layouts
  * reach for this wherever the XML had a structural node; hand-written views keep using `Box`.
- * It's also the one component that applies `dropShadow`, so the generator wraps any other
- * element carrying a `<DropShadowFilter>` in one of these.
+ * Its `dropShadow` is cast by its box (a `Border` and a `Frame` cast their skin's own silhouette).
  *
  * A region is also the usual `dynamicStyle` host (the toolbar's `lifted_hover` tiles, the room
  * tools' `brightness_and_shadow_under` buttons): it tracks hover/press itself, applies the

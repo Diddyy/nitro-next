@@ -1,5 +1,6 @@
 import { AvatarActionStateType, IActionDefinition, IActiveActionData } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `ActiveActionData`. */
 export class ActiveActionData implements IActiveActionData {
     private _type: AvatarActionStateType;
     private _parameter: string;

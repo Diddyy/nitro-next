@@ -273,7 +273,6 @@ export * from './utils/LegacyWallGeometry';
 export * from './utils/ObjectMouseData';
 export * from './utils/RoomAreaSelectionManager';
 export * from './utils/RoomEnterEffect';
-export * from './utils/RoomFurnitureData';
 export * from './utils/RoomGeometry';
 export * from './utils/RoomObjectHighLighter';
 export * from './utils/RoomRotatingEffect';

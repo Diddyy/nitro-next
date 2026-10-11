@@ -78,6 +78,10 @@ import { AvatarLogic,
     SelectionArrowLogic,
 } from '../object';
 
+/**
+ * Port of Flash `RoomObjectFactory.createRoomObjectLogic`: the logic class for each
+ * `RoomObjectLogicType`.
+ */
 export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
     public getLogic(type: string | undefined): IRoomObjectEventHandler | undefined {
         try {

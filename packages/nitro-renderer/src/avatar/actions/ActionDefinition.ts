@@ -2,6 +2,7 @@ import { AvatarActionStateType, AvatarActionType, AvatarGeometryType, AvatarPart
 
 import { ActionType } from './ActionType';
 
+/** Port of Flash `ActionDefinition`. */
 export class ActionDefinition implements IActionDefinition {
     private _id: AvatarActionType;
     private _state: AvatarActionStateType;

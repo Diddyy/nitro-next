@@ -281,7 +281,7 @@ export type TemplateBindings = Record<string, TemplateBinding>;
 export const findTemplateChild = (children: readonly TemplateElement[], name: string): TemplateElement | undefined => findTemplateChildWhere(children, child => child.name === name);
 
 /** `findChildByTag`: the first element, in `findChildByName`'s order, carrying the tag. */
-export const findTemplateChildByTag = (children: readonly TemplateElement[], tag: string): TemplateElement | undefined => findTemplateChildWhere(children, child => !!child.tags?.includes(tag));
+const findTemplateChildByTag = (children: readonly TemplateElement[], tag: string): TemplateElement | undefined => findTemplateChildWhere(children, child => !!child.tags?.includes(tag));
 
 const findTemplateChildWhere = (children: readonly TemplateElement[], test: (child: TemplateElement) => boolean): TemplateElement | undefined => {
     const direct = children.find(test);
@@ -486,13 +486,6 @@ export class TemplateExpander {
         return node;
     }
 }
-
-/** Each binding's element, and the keys that name none. */
-export const resolveTemplateBindings = (elements: readonly TemplateElement[], bindings: TemplateBindings | undefined) => {
-    const { targets, missing } = resolveTemplateNames(elements, Object.keys(bindings ?? {}));
-
-    return { byElement: bindElements(targets, bindings), missing };
-};
 
 /** The bindings by element, from keys already resolved; two keys naming one element are merged. */
 export const bindElements = (targets: ReadonlyMap<string, TemplateElement>, bindings: TemplateBindings | undefined) => {

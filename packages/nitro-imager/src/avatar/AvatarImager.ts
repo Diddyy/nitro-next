@@ -1,27 +1,22 @@
 import { Canvas } from '@napi-rs/canvas';
 import { AvatarActionStateType, AvatarScaleType, AvatarSetType, IAvatarImage, IEffectMapLibrary, IFigureData, IFigureMapLibrary, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
-import { GetAssetManager, GetAvatarRenderManager, GetRenderer, LoadAvatarData, PrepareRenderer } from '@nitrodevco/nitro-renderer';
+import { AvatarAssetDownloadManager, AvatarVisualization, GetAssetManager, GetAvatarRenderManager, GetRenderer, LoadAvatarData, PrepareRenderer, RoomObjectSpriteVisualization } from '@nitrodevco/nitro-renderer';
 import { Container, Rectangle, Sprite, Texture } from 'pixi.js';
 
 import { ImagerConfig } from '../config';
 import { AvatarImageSize, AvatarRenderRequest } from './avatarRequest';
 import { halveImage } from './halveImage';
 
-/** The libraries every avatar draws from; the figure map starts them, and the imager waits for them. */
-const MANDATORY_LIBRARIES = [ 'hh_human_body', 'hh_human_item' ];
 const MANDATORY_TIMEOUT = 60_000;
 
 /**
  * `AvatarVisualization` advances an avatar a frame every `ANIMATION_FRAME_UPDATE_INTERVAL` (2)
- * room updates of `UPDATE_TIME_INCREASER` (41 ms): an animated image plays at the room's speed.
+ * room updates of `UPDATE_TIME_INCREASER` (41 ms): an animated image plays at the room's speed (82 ms).
  */
-export const AVATAR_FRAME_MS = 82;
+export const AVATAR_FRAME_MS = AvatarVisualization.ANIMATION_FRAME_UPDATE_INTERVAL * RoomObjectSpriteVisualization.UPDATE_TIME_INCREASER;
 
 /** The most frames an animated image has, whatever the actions add up to. */
 const MAX_ANIMATION_FRAMES = 64;
-
-/** `AvatarVisualization.DEFAULT_CANVAS_OFFSETS`. */
-const DEFAULT_CANVAS_OFFSETS = [ 0, 0, 0 ];
 
 /** One sprite of a frame, where the room would draw it relative to the avatar's tile. */
 interface PlacedSprite {
@@ -43,11 +38,6 @@ export interface AvatarRender {
     missing: string[];
 }
 
-export interface AvatarImagerOptions {
-    /** How many asset libraries may be loaded before the ones no avatar is drawing with are unloaded. */
-    maxLoadedLibraries: number;
-}
-
 /** How often, in ms, the imager looks at how many libraries are loaded. */
 const PURGE_CHECK_INTERVAL = 30_000;
 
@@ -58,27 +48,28 @@ const PURGE_CHECK_INTERVAL = 30_000;
  * A frame is laid out as `AvatarVisualization` lays an avatar out in the room: the avatar's own
  * image at its canvas offsets, and an effect's extra sprites (the ones `getSprites` lists besides
  * `avatar`) placed by their direction offsets and layer data, behind or in front by their z, with
- * ink 33 drawn additively. The image is the union of every sprite of every frame, so an avatar
- * with no effect is exactly its avatar canvas and an animation keeps one size throughout. Every
+ * ink 33 drawn additively. The image is the union of every sprite of every frame, rounded out to
+ * even pixels, so an avatar with no effect is its avatar canvas and an animation keeps one size
+ * throughout. Every
  * size is drawn from the large assets at the room's full scale; `s` is that image halved
  * afterwards, as the client's zoomed-out room is (`RoomDownsampleFilter`), effect sprites and all.
  *
  * Every figure the imager is asked for leaves its clothing libraries loaded. Once more than
- * `maxLoadedLibraries` are, the ones no avatar is drawing with are unloaded (`purgeAssets`): new
- * renders wait for the ones in progress to finish first, so no library goes from under a render
- * that has loaded it but not yet made its image.
+ * `maxLoadedLibraries` are - checked after every render and every `PURGE_CHECK_INTERVAL` - the
+ * ones no avatar is drawing with are unloaded (`purgeAssets`): new renders wait for the ones in
+ * progress to finish first, so no library goes from under a render that has loaded it but not yet
+ * made its image.
  */
 export class AvatarImager {
     private _rendering = 0;
     private _purge: { done: Promise<void>; resolve: () => void } | undefined;
-    private readonly _purgeTimer: ReturnType<typeof setInterval>;
 
-    private constructor(private readonly _hasEffects: boolean, private readonly _options: AvatarImagerOptions) {
-        this._purgeTimer = setInterval(() => this.purgeIfFull(), PURGE_CHECK_INTERVAL);
-        this._purgeTimer.unref();
+    private constructor(private readonly _hasEffects: boolean, private readonly _options: Pick<ImagerConfig, 'maxLoadedLibraries'>) {
+        // Unreferenced: the check never keeps the process alive on its own.
+        setInterval(() => this.purgeIfFull(), PURGE_CHECK_INTERVAL).unref();
     }
 
-    public static async create(config: ImagerConfig['avatar'], options: AvatarImagerOptions): Promise<AvatarImager> {
+    public static async create(config: ImagerConfig['avatar'], options: Pick<ImagerConfig, 'maxLoadedLibraries'>): Promise<AvatarImager> {
         await PrepareRenderer({ preference: 'canvas', skipExtensionImports: true, width: 1, height: 1, backgroundAlpha: 0, antialias: false });
 
         const manager = GetAvatarRenderManager();
@@ -98,7 +89,7 @@ export class AvatarImager {
 
         if (hasEffects) manager.processEffectMap(effectMap.effects, config.effectBundleUrl);
 
-        await waitForLibraries(MANDATORY_LIBRARIES, MANDATORY_TIMEOUT);
+        await waitForLibraries(AvatarAssetDownloadManager.MANDATORY_LIBRARIES, MANDATORY_TIMEOUT);
 
         return new AvatarImager(hasEffects, options);
     }
@@ -124,10 +115,6 @@ export class AvatarImager {
 
             if (this._purge && !this._rendering) this.runPurge();
         }
-    }
-
-    public dispose(): void {
-        clearInterval(this._purgeTimer);
     }
 
     /**
@@ -246,7 +233,7 @@ const placeFrame = (avatar: IAvatarImage, headOnly: boolean): PlacedSprite[] => 
 
     let canvasOffsets = avatar.getCanvasOffsets();
 
-    if (!canvasOffsets || (canvasOffsets.length < 3)) canvasOffsets = DEFAULT_CANVAS_OFFSETS;
+    if (!canvasOffsets || (canvasOffsets.length < 3)) canvasOffsets = AvatarVisualization.DEFAULT_CANVAS_OFFSETS;
 
     const sprites: PlacedSprite[] = [ {
         texture: image,

@@ -598,7 +598,7 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
                 switch (parameter as AvatarActionStateType) {
                     case AvatarActionStateType.Lay:
                         this.setDirection(AvatarSetType.Full, this._mainDirection === 0 ? 4 : 2);
-                    // eslint-disable-next-line no-fallthrough
+                    // falls through, as Flash's does
                     case AvatarActionStateType.Walk:
                     case AvatarActionStateType.Stand:
                     case AvatarActionStateType.Sit:
@@ -633,7 +633,7 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
             }
             case AvatarActionStateType.Effect:
                 if (parameter === '33' || parameter === '34' || parameter === '35' || parameter === '36' || parameter === '38' || parameter === '39') this._useFullImageCache = true;
-            // eslint-disable-next-line no-fallthrough
+            // falls through, as Flash's does
             case AvatarActionStateType.Dance:
             case AvatarActionStateType.Talk:
             case AvatarActionStateType.Wave:

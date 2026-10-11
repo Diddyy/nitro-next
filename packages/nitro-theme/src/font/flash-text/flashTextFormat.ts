@@ -36,7 +36,7 @@ export interface FlashTextFormat {
 
 /**
  * The face part of a format - what a raw `fontFamily` override has to resolve to before it can
- * be folded into a named style's format (`theme/utils/textStyles.ts`'s `flashFaceOverride`).
+ * be folded into a named style's format (`utils/textStyles.ts`'s `flashFaceOverride`).
  */
 export type FlashTextFace = Pick<FlashTextFormat, 'fontFamily' | 'bold' | 'italic'>;
 

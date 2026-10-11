@@ -2,6 +2,7 @@ import { AvatarFigurePartType, AvatarGenderType, IFigureDataSet, IFigurePart, IF
 
 import { FigurePart } from './FigurePart';
 
+/** Port of Flash `FigurePartSet`. */
 export class FigurePartSet implements IFigurePartSet {
     private _id: number;
     private _type: AvatarFigurePartType;

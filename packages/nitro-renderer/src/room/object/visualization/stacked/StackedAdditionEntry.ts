@@ -2,6 +2,7 @@ import { AnimatedScalar } from '../variablefx/animation/AnimatedScalar';
 import { IStackedAddition } from './IStackedAddition';
 import { StackedAdditionSprite } from './StackedAdditionSprite';
 
+/** Port of Flash `StackedAdditionEntry`. */
 export class StackedAdditionEntry {
     public addition: IStackedAddition | undefined;
     public sprite: StackedAdditionSprite | undefined = new StackedAdditionSprite();

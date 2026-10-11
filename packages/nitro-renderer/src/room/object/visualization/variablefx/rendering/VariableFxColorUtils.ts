@@ -1,3 +1,4 @@
+/** Port of Flash `VariableFxColorUtils`. */
 import { VariableFxBlendMode } from './VariableFxBitmapComposer';
 
 const clampByte = (value: number): number => {

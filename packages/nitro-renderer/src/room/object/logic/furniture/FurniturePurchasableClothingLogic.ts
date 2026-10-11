@@ -2,6 +2,10 @@ import { ContextMenuEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro
 
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-I2x§`, the logic `RoomObjectFactory` builds for
+ * `furniture_purchasable_clothing`.
+ */
 export class FurniturePurchasableClothingLogic extends FurnitureMultiStateLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [

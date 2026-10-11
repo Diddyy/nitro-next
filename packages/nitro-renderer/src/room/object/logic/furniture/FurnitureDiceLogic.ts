@@ -2,6 +2,7 @@ import { IAssetData, IRoomGeometry, IRoomSpriteMouseEvent, MouseEventType, RoomO
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/** Port of Flash `FurnitureDiceLogic`, the logic `RoomObjectFactory` builds for `furniture_dice`. */
 export class FurnitureDiceLogic extends FurnitureLogic {
     private _noTags: boolean = false;
     private _noTagsLastStateActivate: boolean = false;

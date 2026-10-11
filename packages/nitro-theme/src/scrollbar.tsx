@@ -1,3 +1,13 @@
+/**
+ * Flash's `ScrollBarController`, drawn from props: a scrollbar along one axis (`createScrollbar`),
+ * which `ScrollbarVertical` and `ScrollbarHorizontal` bind to their parts.
+ *
+ * It deliberately does not call `useScrollController` itself. A Pixi container only becomes
+ * available through a callback ref fired once at mount, so a controller here and another in the
+ * caller (`ScrollArea`, which needs one for the masked content) would hold independent, diverging
+ * copies of the offset and thumb. The caller owns the one controller and passes its computed pieces
+ * down; this owns only `useHoldToRepeat` for its two arrows and forwards `trackRef` to its track.
+ */
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { forwardRef, ForwardRefExoticComponent, RefAttributes } from 'react';
 
@@ -7,27 +17,8 @@ import { useHoldToRepeat } from './hooks/useHoldToRepeat';
 import { useResolvedVariant } from './hooks/useResolvedVariant';
 import { ScrollbarPartProps, ScrollbarTrackProps } from './scrollbarParts';
 
-/**
- * Props-driven skin, deliberately NOT calling `useScrollController` itself. DOM's scrollbars took
- * `viewportRef`/`contentRef` as `RefObject`s that their caller already populated by rendering the
- * real scrollable viewport elsewhere - multiple readers can share one `RefObject.current`. Pixi has
- * no equivalent: a container only becomes available via a callback ref fired once at mount, so if
- * this component called its own `useScrollController` AND its caller (ScrollArea, InfiniteGrid)
- * also needed one for the actual masked/scrolled content, the two instances would hold
- * independent, silently diverging copies of `scrollOffset`/`thumbSize`/etc. Instead the caller
- * owns the single `useScrollController` instance and passes its already-computed pieces down as
- * plain props; this component only still owns `useHoldToRepeat` (UI behavior local to the two
- * buttons, not shared scroll state) and forwards `trackRef` to its own track.
- *
- * DOM's scrollbars also stepped the position on arrow keys over the thumb. Pixi containers aren't
- * keyboard-focusable the way an HTML div with `tabIndex` is, so there is no event to hook that to -
- * intentionally dropped rather than silently omitted.
- */
 export interface ScrollbarProps {
     trackRef: (node: PixiContainer | null) => void;
-    /** Accepted for prop-shape parity with `useScrollController`'s return value (so callers
-     *  can spread the controller object wholesale) - unused here. */
-    scrollOffset?: number;
     thumbSize: number;
     thumbOffset: number;
     scrollable: boolean;

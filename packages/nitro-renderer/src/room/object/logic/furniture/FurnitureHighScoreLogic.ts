@@ -3,6 +3,10 @@ import { IRoomObjectUpdateMessage, RoomObjectWidgetRequestEvent } from '@nitrode
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-iI§`, the logic `RoomObjectFactory` builds for
+ * `furniture_high_score`.
+ */
 export class FurnitureHighScoreLogic extends FurnitureLogic {
     private static SHOW_WIDGET_IN_STATE = 1;
 

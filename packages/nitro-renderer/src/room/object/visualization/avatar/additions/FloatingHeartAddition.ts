@@ -6,6 +6,7 @@ import { GetTickerTime } from '#renderer/utils';
 
 import { ExpressionAddition } from './ExpressionAddition';
 
+/** Port of Flash `FloatingHeart`. */
 export class FloatingHeartAddition extends ExpressionAddition {
     private static DELAY_BEFORE_ANIMATION: number = 300;
     private static STATE_DELAY: number = 0;

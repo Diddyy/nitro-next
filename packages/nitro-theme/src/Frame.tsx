@@ -5,7 +5,7 @@ import { Box, BoxLayout } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { ContentArea } from './ContentArea';
 import { Header } from './Header';
-import { ChildBounds, ReflectResizeContext, useChildBounds, useFrameDrag, useFrameResize, useReflectResizeHost, useThemeVariant } from './hooks';
+import { ChildBounds, useChildBounds, useFrameDrag, useFrameResize, useThemeVariant } from './hooks';
 import { BackgroundLayer, ShadowLayer } from './layer';
 import { Scaler, ScalerDirection } from './Scaler';
 import { DropShadowConfig, expandSides, getWindowLayer, subscribeWindowLayer, ThemeProps, ThemeVariant, WindowPlacedContext } from './utils';
@@ -129,19 +129,26 @@ const marginsLayout = (
 /**
  * One axis of the frame's size, or `undefined` to leave `layout`'s. A fitted axis is the content's
  * bounds plus the margins (`resizeToFitContent`) - or Yoga's own size when the content is in flow,
- * and the stated size until the bounds are known; any other axis the layout states is that size
- * plus what the content's reflecting children have grown by.
+ * and the stated size until the bounds are known; any other axis is the size the layout states.
  */
-const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefined, margins: number, stated: unknown, reflected: number): number | 'auto' | undefined => {
+const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefined, margins: number, stated: unknown): number | 'auto' | undefined => {
     if (fit) {
         if (!hasMargins) return 'auto';
 
         if (bound !== undefined) return bound + margins;
     }
 
-    return (typeof stated === 'number') ? (stated + reflected) : undefined;
+    return (typeof stated === 'number') ? stated : undefined;
 };
 
+/**
+ * Flash's `FrameController` (`frame`): a window - its skin and drop shadow, the header with its
+ * caption and buttons, the `_CONTENT` area at the frame's margins, and the scaler - placed on the
+ * window desktop, dragged by its header (`useFrameDrag`), resized by its scaler (`useFrameResize`)
+ * and kept unrendered until its size and position have settled (`useRevealWhenSettled`). Give it an
+ * explicit `layout.height` (or `fitContent`): its size is otherwise its variant's or its minimum, and the content is
+ * clipped to it.
+ */
 export const Frame = ({
     variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, dropShadow, id, caption, resizeDirection = 'all', contentLayout, margins,
     defaultPosition, rememberPosition = true, rememberSize = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, children,
@@ -181,13 +188,10 @@ export const Frame = ({
         onResize?.(size);
     }, [ size, onResize ]);
     const contentBounds = useChildBounds(fitContent ? contentNode : null);
-    // What the content's `ReflectResize` children have grown by - the `_CONTENT` container
-    // reflects it on to the frame, so a frame whose layout states its size grows by as much.
-    const { delta: reflected, registry: reflectRegistry } = useReflectResizeHost();
     const fitWidth = (fitContent === true) || (fitContent === 'width');
     const fitHeight = (fitContent === true) || (fitContent === 'height');
-    const width = frameAxisSize(fitWidth, !!margins, contentBounds?.right, (margins?.[0] ?? 0) + (margins?.[2] ?? 0), layout?.width, reflected.width);
-    const height = frameAxisSize(fitHeight, !!margins, contentBounds?.bottom, (margins?.[1] ?? 0) + (margins?.[3] ?? 0), layout?.height, reflected.height);
+    const width = frameAxisSize(fitWidth, !!margins, contentBounds?.right, (margins?.[0] ?? 0) + (margins?.[2] ?? 0), layout?.width);
+    const height = frameAxisSize(fitHeight, !!margins, contentBounds?.bottom, (margins?.[1] ?? 0) + (margins?.[3] ?? 0), layout?.height);
     const sizeLayout: BoxLayout = {
         ...((width !== undefined) && { width }),
         ...((height !== undefined) && { height }),
@@ -248,35 +252,33 @@ export const Frame = ({
                 { resolvedOverlay && <BackgroundLayer layer={resolvedOverlay} /> }
                 { backdrop }
                 <VariantCascadeProvider map={ownCascade}>
-                    <ReflectResizeContext.Provider value={reflectRegistry}>
-                        <Header
-                            caption={caption}
-                            tintColor={resolvedTint}
-                            onClose={onClose}
-                            closeButtonVisible={closeButtonVisible}
-                            closeVariant={closeButtonVariant}
-                            onMenu={onMenu}
-                            helpPage={helpPage}
-                            onHelp={onHelp}
-                            onPointerDown={draggable ? onHeaderPointerDown : undefined}
-                        />
-                        <ContentArea
-                            ref={setContentNode}
-                            // Its children are cropped by the frame, not by this box: the margins are
-                            // how far past its own edges they may reach on each side. See `ContentArea`.
-                            clipOutset={margins}
-                            layout={margins ? { ...contentLayout, ...marginsLayout(margins, fitWidth, fitHeight, contentBounds) } : contentLayout}
-                        >
-                            {children}
-                        </ContentArea>
-                        <Scaler
-                            // `_FRAME_SCALER` is tagged `_COLORIZE` in every frame's window layout, so
-                            // the corner takes the window's own colour as the header does.
-                            tintColor={resolvedTint}
-                            direction={resizeDirection}
-                            onPointerDown={onScalerPointerDown}
-                        />
-                    </ReflectResizeContext.Provider>
+                    <Header
+                        caption={caption}
+                        tintColor={resolvedTint}
+                        onClose={onClose}
+                        closeButtonVisible={closeButtonVisible}
+                        closeVariant={closeButtonVariant}
+                        onMenu={onMenu}
+                        helpPage={helpPage}
+                        onHelp={onHelp}
+                        onPointerDown={draggable ? onHeaderPointerDown : undefined}
+                    />
+                    <ContentArea
+                        ref={setContentNode}
+                        // Its children are cropped by the frame, not by this box: the margins are
+                        // how far past its own edges they may reach on each side. See `ContentArea`.
+                        clipOutset={margins}
+                        layout={margins ? { ...contentLayout, ...marginsLayout(margins, fitWidth, fitHeight, contentBounds) } : contentLayout}
+                    >
+                        {children}
+                    </ContentArea>
+                    <Scaler
+                        // `_FRAME_SCALER` is tagged `_COLORIZE` in every frame's window layout, so
+                        // the corner takes the window's own colour as the header does.
+                        tintColor={resolvedTint}
+                        direction={resizeDirection}
+                        onPointerDown={onScalerPointerDown}
+                    />
                 </VariantCascadeProvider>
             </Box>
         </WindowPlacedContext.Provider>

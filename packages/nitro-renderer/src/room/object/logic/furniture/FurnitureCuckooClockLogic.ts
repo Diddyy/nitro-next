@@ -3,6 +3,10 @@ import { IRoomObjectUpdateMessage, RoomObjectPlaySoundIdEvent } from '@nitrodevc
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash `FurnitureCuckooClockLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_cuckoo_clock`.
+ */
 export class FurnitureCuckooClockLogic extends FurnitureMultiStateLogic {
     private _state: number = 1;
 

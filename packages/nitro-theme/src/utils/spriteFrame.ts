@@ -1,5 +1,6 @@
 import { BoxLayout } from '../Box';
 
+/** A rect inside a texture - the part of a sheet (an icon set, a skin) a sprite draws. */
 export interface SpriteFrame {
     x: number;
     y: number;

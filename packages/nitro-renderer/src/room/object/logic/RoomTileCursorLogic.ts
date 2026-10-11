@@ -3,6 +3,7 @@ import { IAssetData, IRoomObjectUpdateMessage, RoomObjectVariableEnum } from '@n
 import { ObjectTileCursorUpdateMessage } from '../../messages';
 import { ObjectLogicBase } from './ObjectLogicBase';
 
+/** Port of Flash `RoomTileCursorLogic`, the logic `RoomObjectFactory` builds for `tile_cursor`. */
 export class RoomTileCursorLogic extends ObjectLogicBase {
     private static CURSOR_VISIBLE_STATE: number = 0;
     private static CURSOR_HIDDEN_STATE: number = 1;

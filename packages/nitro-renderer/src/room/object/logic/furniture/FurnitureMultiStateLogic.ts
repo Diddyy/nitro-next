@@ -2,6 +2,10 @@ import { IRoomGeometry, IRoomSpriteMouseEvent, MouseEventType, RoomObjectFurnitu
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash `FurnitureMultiStateLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_multistate`.
+ */
 export class FurnitureMultiStateLogic extends FurnitureLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [

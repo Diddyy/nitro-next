@@ -3,6 +3,10 @@ import { IRoomObjectUpdateMessage, RoomObjectFurnitureActionEvent, RoomObjectVar
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash `FurnitureSoundMachineLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_sound_machine`.
+ */
 export class FurnitureSoundMachineLogic extends FurnitureMultiStateLogic {
     private _disposeEventsAllowed: boolean = false;
     private _isInitialized: boolean = false;

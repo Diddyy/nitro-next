@@ -3,6 +3,10 @@ import { IRoomObjectUpdateMessage, MapDataType, RoomObjectVariableEnum, RoomObje
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash `FurnitureMannequinLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_mannequin`.
+ */
 export class FurnitureMannequinLogic extends FurnitureLogic {
     private static GENDER: string = 'GENDER';
     private static FIGURE: string = 'FIGURE';

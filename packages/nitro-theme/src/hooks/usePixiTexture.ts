@@ -1,3 +1,15 @@
+/**
+ * Every texture the theme draws, resolved without a component ever building one of its own:
+ *
+ * - the theme's sprites (`usePixiTexture`): cut out of the window manager bundle's sheet at boot
+ *   (`preloadThemeAssets`), each sharing its one source, so a lookup is a synchronous `Map` read;
+ * - textures derived from them or from any loaded texture (a standalone copy for tiling, a shadow,
+ *   a silhouette, a greyscale, a rotation, a mirror, a crop), each built once and kept in the
+ *   shared `AssetManager` under a namespaced key - skipping Pixi's global `Cache`
+ *   (`Texture.from(canvas, true)`), which would hold a second reference to every canvas;
+ * - a url or bundle asset name (`useTextureFromUrl`, `loadTexture`), loaded through the
+ *   `AssetManager` - pulling in a lazily loaded bundle by its asset's name - and retried.
+ */
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Assets, groupD8, Rectangle, Texture } from 'pixi.js';
 import { useSyncExternalStore } from 'react';
@@ -7,23 +19,12 @@ import { isAssetName } from '../utils/isAssetName';
 import { SpriteFrame } from '../utils/spriteFrame';
 import { getThemeSliceCanvas, ThemeSliceEffect, themeSliceEffectId } from '../utils/themeSprites';
 
-// ---------------------------------------------------------------------------------------------
-// Theme textures - every chrome sprite the `theme` bundle's sheet holds, as a `Texture` sharing
-// its one base texture (see utils/themeAssetBundle.ts). Filled once at boot; every lookup after that
-// is a synchronous Map read, so no component ever creates a texture of its own for chrome.
-//
-// Every texture derived from one (a standalone copy, a silhouette, a shadow, a greyscale) is
-// stored in the shared `AssetManager` under a namespaced key, so there is one registry of what
-// the UI holds and nothing is built twice. Pixi's own global `Cache` is skipped for those
-// (`Texture.from(canvas, true)`): it would otherwise keep a second strong reference to every
-// canvas, released only by an explicit `destroy`.
-// ---------------------------------------------------------------------------------------------
-
 const themeTextures = new Map<string, Texture>();
 const croppedTextures = new Map<string, Texture>();
 /** The keys of the textures derived from the theme's art (`theme:*`): dropped with it (`resetThemeTextures`). */
 const themeDerivedKeys = new Set<string>();
 
+/** Registers one sprite of the theme's sheet under its texture key (`preloadThemeAssets`). */
 export const registerThemeTexture = (key: string, texture: Texture): void => {
     themeTextures.set(key, texture);
 };
@@ -42,7 +43,7 @@ export const resetThemeTextures = (): void => {
 };
 
 /** The atlas-backed texture of a theme key, if the atlas has loaded. */
-export const getThemeTexture = (key: string | undefined): Texture | undefined => (key ? themeTextures.get(key) : undefined);
+const getThemeTexture = (key: string | undefined): Texture | undefined => (key ? themeTextures.get(key) : undefined);
 
 /** A canvas as a texture the UI owns: pixel art, and outside Pixi's global `Cache` (see the module docblock). */
 export const textureFromCanvas = (canvas: HTMLCanvasElement, label: string): Texture => {
@@ -94,7 +95,7 @@ export const getStandaloneThemeTexture = (key: string | undefined): Texture | un
  * one shape their sheets are drawn over one another as - a skin's colorizing art and its
  * untintable pieces, which `ShadowLayer` shadows together.
  */
-export const getThemeEffectTexture = (key: string | readonly string[] | undefined, effect: ThemeSliceEffect): Texture | undefined => {
+const getThemeEffectTexture = (key: string | readonly string[] | undefined, effect: ThemeSliceEffect): Texture | undefined => {
     const keys = (typeof key === 'string') ? [ key ] : key;
 
     if (!keys?.length) return undefined;
@@ -241,10 +242,8 @@ export const getTextureSilhouette = (texture: Texture, color: string): Texture |
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 });
 
-/** The client's `BitmapDataRenderer` greyscale weights (Rec. 709 luminance). */
-const GREY_R = 0.212671;
-const GREY_G = 0.71516;
-const GREY_B = 0.072169;
+/** The client's `BitmapDataRenderer` greyscale weights (Rec. 709 luminance): the grey of `r, g, b` (0-255). */
+export const greyscaleLuminance = (r: number, g: number, b: number): number => Math.round((r * 0.212671) + (g * 0.71516) + (b * 0.072169));
 
 /**
  * A loaded texture reduced to luminance - a bitmap's `greyscale` variable. The client's
@@ -257,7 +256,7 @@ export const getTextureGreyscale = (texture: Texture): Texture | undefined => ge
     const { data } = image;
 
     for (let i = 0; i < data.length; i += 4) {
-        const grey = Math.round((data[i] * GREY_R) + (data[i + 1] * GREY_G) + (data[i + 2] * GREY_B));
+        const grey = greyscaleLuminance(data[i], data[i + 1], data[i + 2]);
 
         data[i] = grey;
         data[i + 1] = grey;
@@ -348,23 +347,16 @@ export const getCroppedTexture = (base: Texture, frame: SpriteFrame): Texture =>
     return texture;
 };
 
-// ---------------------------------------------------------------------------------------------
-// Arbitrary URLs (avatar images, room thumbnails, a layout's bitmaps) - loaded through the
-// shared AssetManager and cached there.
-// ---------------------------------------------------------------------------------------------
-
 const textureCache = new Map<string, Promise<Texture | undefined>>();
 const RETRY_DELAYS_MS = [ 500, 1500, 4000 ];
 
 /**
- * `AssetManager.downloadAsset` swallows its own fetch/decode errors internally (try/catch,
- * returns `false`) rather than rejecting - so a transient failure for a single asset URL never
- * throws here either, it just resolves `undefined`. Evicting that entry lets the next call for
- * the same URL retry instead of reusing the cached `undefined` forever.
- */
-/**
  * Resolves a url to a texture through the shared asset manager, once per url - the room's badge
  * loader wants the same thing `useTextureFromUrl` does, without being a component.
+ *
+ * `AssetManager.downloadAsset` swallows its own fetch/decode errors (it resolves `false`) rather
+ * than rejecting, so a failed url resolves `undefined` here too - and is evicted, so the next call
+ * for it retries instead of reusing the cached `undefined` forever.
  */
 export const loadTexture = (url: string): Promise<Texture | undefined> => {
     const cached = textureCache.get(url);
@@ -422,7 +414,7 @@ export const loadTexture = (url: string): Promise<Texture | undefined> => {
 /**
  * Resolves an arbitrary asset URL to a Pixi Texture, downloading it through the shared
  * GetAssetManager() if it isn't already cached. Since the UI and the room share one
- * renderer/context (see theme/PixiApplicationRoot), a texture used by both is fetched,
+ * renderer/context (see `PixiApplicationRoot`), a texture used by both is fetched,
  * decoded, and GPU-uploaded exactly once. Retries a few times (with backoff) on failure rather
  * than leaving an already-mounted component stuck blank forever.
  */
@@ -471,8 +463,8 @@ export interface PixiTextureOptions {
 
 /**
  * Resolves a theme asset key (`'border-9-default-src'`) to its Pixi Texture - the one the
- * `theme` bundle's sheet was cut into at boot, read synchronously with no state. `undefined`
- * until that bundle has landed, and for a key the sheet does not carry.
+ * theme's sheet was cut into at boot, read synchronously with no state. `undefined` until the
+ * theme has loaded, and for a key the sheet does not carry.
  */
 export const usePixiTexture = (themeKey: string | undefined, options?: PixiTextureOptions): Texture | undefined => (options?.standalone
     ? getStandaloneThemeTexture(themeKey)

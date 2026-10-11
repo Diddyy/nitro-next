@@ -2,6 +2,7 @@ import { AvatarFigurePartType, AvatarGenderType, IFigureDataSetType, IFigurePart
 
 import { FigurePartSet } from './FigurePartSet';
 
+/** Port of Flash `SetType`. */
 export class SetType implements ISetType {
     private _type: AvatarFigurePartType;
     private _paletteId: number;

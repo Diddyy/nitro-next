@@ -2,6 +2,10 @@ import { IRoomObjectUpdateMessage, RoomObjectVariableEnum, RoomWidgetEnumItemExt
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash `FurnitureSongDiskLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_song_disk`.
+ */
 export class FurnitureSongDiskLogic extends FurnitureLogic {
     public override processUpdateMessage(message: IRoomObjectUpdateMessage): void {
         super.processUpdateMessage(message);

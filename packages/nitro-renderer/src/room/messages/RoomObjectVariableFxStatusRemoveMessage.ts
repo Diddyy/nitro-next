@@ -1,5 +1,6 @@
 import { RoomObjectUpdateMessage } from './RoomObjectUpdateMessage';
 
+/** Port of Flash `RoomObjectVariableFxStatusRemoveMessage`. */
 export class RoomObjectVariableFxStatusRemoveMessage extends RoomObjectUpdateMessage {
     private _configId: number;
     private _variableId: string;

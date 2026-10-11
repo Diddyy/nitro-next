@@ -62,7 +62,7 @@ export const parseLayoutXml = (text: string): LayoutXmlNode | undefined => {
 };
 
 /** `WindowParam`'s names, as `WindowParser` reads a `<param name>` (`fillTables`, 2026 client). */
-export const WINDOW_PARAMS: Readonly<Record<string, number>> = {
+const WINDOW_PARAMS: Readonly<Record<string, number>> = {
     null: 0,
     bound_to_parent_rect: 32,
     child_window: 33,
@@ -133,7 +133,7 @@ const ALIGN_H: (TemplateAlignH | undefined)[] = [ 'left', 'right', undefined, 'c
 const ALIGN_V: (TemplateAlignV | undefined)[] = [ 'top', 'bottom', undefined, 'middle' ];
 
 /** A `params` value split by concern; `undefined` when it sets nothing. */
-export const decodeWindowParams = (value: number): TemplateParams | undefined => {
+const decodeWindowParams = (value: number): TemplateParams | undefined => {
     const bit = (index: number) => ((value >>> index) & 1) === 1;
     const params: TemplateParams = {};
     const events = EVENT_BITS.filter(([ index ]) => bit(index)).map(([ , name ]) => name);

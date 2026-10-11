@@ -1,8 +1,9 @@
-﻿import { IGraphicAsset } from '@nitrodevco/nitro-api';
+import { IGraphicAsset } from '@nitrodevco/nitro-api';
 
 import { GetAssetManager } from '../../assets';
 import { AssetAlias } from './AssetAlias';
 
+/** Port of Flash `AssetAliasCollection`. */
 export class AssetAliasCollection {
     private _aliases: Map<string, AssetAlias> = new Map();
 

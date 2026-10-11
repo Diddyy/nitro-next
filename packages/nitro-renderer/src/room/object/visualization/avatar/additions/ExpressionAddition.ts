@@ -3,6 +3,7 @@ import { IRoomObjectSprite, RoomGeometryScaleType } from '@nitrodevco/nitro-api'
 import { AvatarVisualization } from '../AvatarVisualization';
 import { IExpressionAddition } from './IExpressionAddition';
 
+/** Port of Flash `ExpressionAddition`. */
 export class ExpressionAddition implements IExpressionAddition {
     constructor(
         private _id: number,

@@ -2,6 +2,10 @@ import { IRoomGeometry, RoomGeometryScaleType, RoomObjectVariableEnum } from '@n
 
 import { FurnitureFireworksVisualization } from './FurnitureFireworksVisualization';
 
+/**
+ * Port of Flash `FurnitureGiftWrappedFireworksVisualization`, the visualization
+ * `RoomObjectVisualizationFactory` builds for `furniture_gift_wrapped_fireworks`.
+ */
 export class FurnitureGiftWrappedFireworksVisualization extends FurnitureFireworksVisualization {
     private static PRESENT_DEFAULT_STATE: number = 0;
     private static MAX_PACKET_TYPE_VALUE: number = 9;

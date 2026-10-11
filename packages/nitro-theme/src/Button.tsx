@@ -16,50 +16,62 @@ export interface ButtonProps extends ThemeProps<ButtonVariant> {
     children?: ReactNode;
 }
 
-export const Button: ForwardRefExoticComponent<ButtonProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, ButtonProps>(
-    ({
-        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, dynamicStyle, disabled, selected, pressed, children,
-        onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
-    }, ref) => {
-        const { ownCascade, config, state, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<ButtonVariant>({
-            cascadeKey: 'button', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled, selected, pressed, interactive: !!dynamicStyle,
+/**
+ * Flash's `ButtonController` (`button`, and `button_thick` - see `ButtonThick`): the state's skin
+ * behind a caption centred in a row, the window's `dynamic_style` applied to the button and its
+ * tagged children. Each window type is this component bound to its own cascade key.
+ */
+export const createButton = (displayName: string, cascadeKey: string): ForwardRefExoticComponent<ButtonProps & RefAttributes<PixiContainer>> => {
+    const Component = forwardRef<PixiContainer, ButtonProps>(
+        ({
+            variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, dynamicStyle, disabled, selected, pressed, children,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
-        });
-        // A few layouts put a `dynamic_style` on a button too: its own rule (only the disabled fade) and its tagged children's.
-        const hostEffect = useHostDynamicStyleEffect(dynamicStyle, state);
+        }, ref) => {
+            const { ownCascade, config, state, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<ButtonVariant>({
+                cascadeKey, variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled, selected, pressed, interactive: !!dynamicStyle,
+                onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
+            });
+            // A few layouts put a `dynamic_style` on a button too: its own rule (only the disabled fade) and its tagged children's.
+            const hostEffect = useHostDynamicStyleEffect(dynamicStyle, state);
 
-        return (
-            <Box
-                ref={ref}
-                visible={visible}
-                layout={{
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    ...expandSides(config.layout),
-                    ...expandSides(layout),
-                }}
-                {...dynamicStyleBoxProps(hostEffect)}
-                {...handlers}
-            >
-                {resolvedLayer && (
-                    <BackgroundLayer
-                        layer={resolvedLayer}
-                        tintColor={resolvedTint}
-                    />
-                )}
-                {resolvedOverlay && <BackgroundLayer layer={resolvedOverlay} />}
-                <DynamicStyleProvider
-                    name={dynamicStyle}
-                    state={state}
+            return (
+                <Box
+                    ref={ref}
+                    visible={visible}
+                    layout={{
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        ...expandSides(config.layout),
+                        ...expandSides(layout),
+                    }}
+                    {...dynamicStyleBoxProps(hostEffect)}
+                    {...handlers}
                 >
-                    <VariantCascadeProvider map={ownCascade}>
-                        {wrapTextChildren(children, { textStyle: resolvedTextStyle, textColor: resolvedTextColor })}
-                    </VariantCascadeProvider>
-                </DynamicStyleProvider>
-            </Box>
-        );
-    },
-);
+                    {resolvedLayer && (
+                        <BackgroundLayer
+                            layer={resolvedLayer}
+                            tintColor={resolvedTint}
+                        />
+                    )}
+                    {resolvedOverlay && <BackgroundLayer layer={resolvedOverlay} />}
+                    <DynamicStyleProvider
+                        name={dynamicStyle}
+                        state={state}
+                    >
+                        <VariantCascadeProvider map={ownCascade}>
+                            {wrapTextChildren(children, { textStyle: resolvedTextStyle, textColor: resolvedTextColor })}
+                        </VariantCascadeProvider>
+                    </DynamicStyleProvider>
+                </Box>
+            );
+        },
+    );
 
-Button.displayName = 'Button';
+    Component.displayName = displayName;
+
+    return Component;
+};
+
+/** `button`: its variants are the theme's `button`. */
+export const Button = createButton('Button', 'button');

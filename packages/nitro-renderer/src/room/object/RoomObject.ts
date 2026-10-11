@@ -12,6 +12,7 @@ import {
 
 import { RoomObjectModel } from './RoomObjectModel';
 
+/** Port of Flash `RoomObject`. */
 export class RoomObject implements IRoomObjectController {
     private static OBJECT_COUNTER: number = 0;
 

@@ -3,6 +3,11 @@ import { IVariableFxVisualizationRoomData } from './IVariableFxVisualizationRoom
 import { VariableFxRendererRegistry } from './VariableFxRendererRegistry';
 import { VariableFxVisualizationConfigManager } from './VariableFxVisualizationConfigManager';
 
+/**
+ * The Variable FX half of Flash's `AvatarVisualizationRoomData` /
+ * `FurnitureVisualizationRoomData`, shared by both: the room's FX configs, asset provider and
+ * renderer registry.
+ */
 export class VariableFxVisualizationRoomData implements IVariableFxVisualizationRoomData {
     private _assetProvider: IVariableFxAssetProvider;
     private _rendererRegistry: VariableFxRendererRegistry;

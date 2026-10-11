@@ -2,6 +2,10 @@ import { RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from '@nitrodevc
 
 import { FurnitureGuildCustomizedLogic } from './FurnitureGuildCustomizedLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-H2A§`, the logic `RoomObjectFactory` builds for
+ * `furniture_group_forum_terminal`.
+ */
 export class FurnitureGuildForumTerminalLogic extends FurnitureGuildCustomizedLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.INTERNAL_LINK ]);

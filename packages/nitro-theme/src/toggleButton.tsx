@@ -21,9 +21,9 @@ export interface ToggleButtonProps extends ThemeProps<ThemeWithStatesVariant> {
 }
 
 /**
- * A `checkbox` / `radiobutton`: the state's box art at the window's top left, with its label in
- * a row beside it. The two draw alike and differ only in their skins, so each is this component
- * bound to its own cascade key.
+ * Flash's `CheckBoxController` / `RadioButtonController` (`checkbox`, `radiobutton`): the state's
+ * box art at the window's top left, with its label in a row beside it. The two draw alike and
+ * differ only in their skins, so each is this component bound to its own cascade key.
  */
 export const createToggleButton = (displayName: string, cascadeKey: string): ForwardRefExoticComponent<ToggleButtonProps & RefAttributes<PixiContainer>> => {
     const Component = forwardRef<PixiContainer, ToggleButtonProps>(

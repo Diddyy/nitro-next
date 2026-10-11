@@ -20,7 +20,6 @@ declare module 'gifenc' {
     interface Gifenc {
         GIFEncoder(): GifEncoder;
         quantize(rgba: Uint8Array | Uint8ClampedArray, maxColors: number, options?: { format?: 'rgb565' | 'rgb444' | 'rgba4444'; oneBitAlpha?: boolean | number; clearAlpha?: boolean }): Palette;
-        applyPalette(rgba: Uint8Array | Uint8ClampedArray, palette: Palette, format?: 'rgb565' | 'rgb444' | 'rgba4444'): Uint8Array;
     }
 
     const gifenc: Gifenc;

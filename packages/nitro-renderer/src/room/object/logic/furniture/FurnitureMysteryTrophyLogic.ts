@@ -2,6 +2,10 @@ import { ContextMenuEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro
 
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash `FurnitureMysteryTrophyLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_mysterytrophy`.
+ */
 export class FurnitureMysteryTrophyLogic extends FurnitureMultiStateLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.MYSTERYTROPHY_OPEN_DIALOG ]);

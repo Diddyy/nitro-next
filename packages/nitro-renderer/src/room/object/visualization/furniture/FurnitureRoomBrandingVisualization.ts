@@ -4,6 +4,7 @@ import { Texture } from 'pixi.js';
 import { GetAssetManager } from '../../../../assets';
 import { FurnitureVisualization } from './FurnitureVisualization';
 
+/** Port of Flash `FurnitureRoomBrandingVisualization`. */
 export class FurnitureRoomBrandingVisualization extends FurnitureVisualization {
     protected static BRANDED_IMAGE: string = 'branded_image';
     protected static STATE_0: number = 0;

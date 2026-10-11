@@ -4,6 +4,10 @@ import { GetTickerTime } from '../../../../utils';
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-q1j§`, the logic `RoomObjectFactory` builds for
+ * `furniture_score`.
+ */
 export class FurnitureScoreBoardLogic extends FurnitureLogic {
     private static UPDATE_INTERVAL: number = 50;
     private static MAX_UPDATE_TIME: number = 3000;

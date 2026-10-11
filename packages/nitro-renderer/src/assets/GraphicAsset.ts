@@ -1,6 +1,7 @@
 import { IGraphicAsset } from '@nitrodevco/nitro-api';
 import { Rectangle, Texture } from 'pixi.js';
 
+/** Port of Flash `GraphicAsset`. */
 export class GraphicAsset implements IGraphicAsset {
     private static GRAPHIC_POOL: GraphicAsset[] = [];
 

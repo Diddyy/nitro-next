@@ -2,6 +2,7 @@ import { AvatarAssetDownloadStatus, IAvatarAssetDownloadLibrary, NitroLogger } f
 
 import { GetAssetManager } from '#renderer/assets';
 
+/** Port of Flash `AvatarAssetDownloadLibrary`. */
 export class AvatarAssetDownloadLibrary implements IAvatarAssetDownloadLibrary {
     private _state: AvatarAssetDownloadStatus = AvatarAssetDownloadStatus.NotLoaded;
     private _libraryName: string;

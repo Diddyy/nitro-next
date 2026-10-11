@@ -1,5 +1,6 @@
-﻿import { AvatarFigurePartType, AvatarGenderType } from '@nitrodevco/nitro-api';
+import { AvatarFigurePartType, AvatarGenderType } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `FigureDataContainer`. */
 export class FigureDataContainer {
     private static BLOCKED_FX_TYPES: number[] = [ 28, 29, 30, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 68 ];
 

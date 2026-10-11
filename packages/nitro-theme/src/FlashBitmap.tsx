@@ -2,9 +2,9 @@ import { BLEND_MODES, Container as PixiContainer, EventMode, FederatedPointerEve
 import { forwardRef, Fragment, useState } from 'react';
 
 import { BoxLayout } from './Box';
-import { alphaAt, getTextureAlpha, getTextureRotated, getTextureSilhouette, useLayoutSize } from './hooks';
+import { alphaAt, getTextureAlpha, getTextureRotated, getTextureSilhouette, greyscaleLuminance, useLayoutSize } from './hooks';
 import { leafBoxLayout } from './layer';
-import { DynamicStyleEffect, FlashBitmapVars, isHitTarget, multiplyAlphas, multiplyTints, PIVOT_POINTS, toCssHexColor } from './utils';
+import { DynamicStyleEffect, FlashBitmapVars, isHitTarget, multiplyAlphas, multiplyTints, parseCssHexColor, PIVOT_POINTS, toCssHexColor } from './utils';
 
 export interface FlashBitmapProps {
     /** The bitmap, already cropped and greyed as the window asked. */
@@ -55,8 +55,8 @@ const etchingTint = (argb: number, greyscale: boolean, tint: string | undefined)
     const r = (argb >> 16) & 0xFF;
     const g = (argb >> 8) & 0xFF;
     const b = argb & 0xFF;
-    const grey = Math.round((r * 0.212671) + (g * 0.71516) + (b * 0.072169));
-    const window = parseInt((tint ?? '#ffffff').slice(1), 16);
+    const grey = greyscaleLuminance(r, g, b);
+    const window = parseCssHexColor(tint ?? '#ffffff');
     const channel = (shift: number) => Math.round(grey * (((window >> shift) & 0xFF) / 255));
 
     return toCssHexColor((channel(16) << 16) | (channel(8) << 8) | channel(0));

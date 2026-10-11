@@ -1,5 +1,6 @@
-﻿import { IGraphicAsset, IVector3D, RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
+import { IGraphicAsset, IVector3D, RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `FurnitureParticleSystemParticle`. */
 export class FurnitureParticleSystemParticle {
     private _x: number;
     private _y: number;

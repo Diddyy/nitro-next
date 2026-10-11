@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarPostureUpdateMessage`. */
 export class ObjectAvatarPostureUpdateMessage extends ObjectStateUpdateMessage {
     private _postureType: string;
     private _parameter: string;

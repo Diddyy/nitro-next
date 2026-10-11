@@ -4,6 +4,10 @@ import { Texture } from 'pixi.js';
 import { DirectionalOffsetData } from '../data';
 import { FurnitureRoomBrandingVisualization } from './FurnitureRoomBrandingVisualization';
 
+/**
+ * Port of Flash `FurnitureRoomBackgroundVisualization`, the visualization
+ * `RoomObjectVisualizationFactory` builds for `furniture_bg`.
+ */
 export class FurnitureRoomBackgroundVisualization extends FurnitureRoomBrandingVisualization {
     private _imageOffset: DirectionalOffsetData;
 

@@ -2,6 +2,7 @@ import { IVector3D } from '@nitrodevco/nitro-api';
 
 import { RoomObjectUpdateMessage } from './RoomObjectUpdateMessage';
 
+/** Port of Flash `RoomObjectRoomMaskUpdateMessage`. */
 export class ObjectRoomMaskUpdateMessage extends RoomObjectUpdateMessage {
     public static ADD_MASK: string = 'RORMUM_ADD_MASK' as const;
     public static REMOVE_MASK: string = 'RORMUM_REMOVE_MASK' as const;

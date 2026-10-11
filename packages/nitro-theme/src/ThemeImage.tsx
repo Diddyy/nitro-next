@@ -22,7 +22,7 @@ export interface ImageProps extends ThemeLayoutMeta {
     /**
      * A texture the caller already holds (an avatar or furni render) - Pixi draws it directly,
      * so the render is never read back into a base64 URL. Takes precedence over `textureKey`
-     * and `src`. DOM has no way to show a texture and ignores it: pass `src` there.
+     * and `src`.
      */
     texture?: Texture;
     /** Crop a sub-region out of the image (a shared spritesheet) instead of showing it whole. */
@@ -82,10 +82,8 @@ export interface ImageProps extends ThemeLayoutMeta {
     eventMode?: EventMode;
     cursor?: string;
     /**
-     * Typed as taking Pixi's own event (accepting a caller who needs it, e.g. to
-     * `.stopPropagation()`) - a plain zero-arg callback is still assignable here, and the DOM
-     * branch passes through to the real PointerEvent/MouseEvent at runtime regardless of this
-     * declared type, same cross-target cast Box.tsx's own handler props already rely on.
+     * Typed as taking Pixi's own event (for a caller who needs it, e.g. to `.stopPropagation()`) -
+     * a plain zero-arg callback is still assignable here.
      */
     onPointerOver?: (event: FederatedPointerEvent) => void;
     onPointerOut?: (event: FederatedPointerEvent) => void;

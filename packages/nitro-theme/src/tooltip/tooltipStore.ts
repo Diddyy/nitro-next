@@ -1,11 +1,11 @@
-import { useSyncExternalStore } from 'react';
-
 /**
  * The one tooltip on screen, as the client's `WindowToolTipAgent` kept it: the window being
  * hovered (`owner`), its `tool_tip_caption`, the pointer position it follows, and whether the
  * `tool_tip_delay` (500ms) has elapsed. `TooltipLayer` renders it; `useTooltipHandlers` drives
  * it from a component's hover.
  */
+import { useSyncExternalStore } from 'react';
+
 export interface TooltipState {
     owner: string | null;
     text: string;

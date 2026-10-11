@@ -291,7 +291,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
         useOutsideClick(boxRef, () => setFocused(false), focused);
 
-        // The inner text area follows the box's laid-out width (the box may be inset-sized); works on both render targets.
+        // The inner text area follows the box's laid-out width (the box may be inset-sized).
         const { width: boxWidth, height: boxHeight } = useLayoutSize(boxNode);
         const innerWidth = Math.max(0, boxWidth - (PADDING_X * 2));
         // How far the caret may run before a single line scrolls: the box less its padding, or

@@ -1,5 +1,6 @@
 import { VariableFxPaintColors } from './VariableFxPaintColors';
 
+/** Port of Flash `VariableFxSegmentedProgress`. */
 export class VariableFxSegmentedProgress {
     public static MIN_SEGMENTS: number = 0;
     public static MAX_SEGMENTS: number = 100;

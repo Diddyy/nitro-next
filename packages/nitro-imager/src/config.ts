@@ -1,3 +1,4 @@
+/** The imager's configuration: the `IMAGER_*` variables of `.env.example`, read and checked at start-up. */
 import { fileURLToPath } from 'node:url';
 
 import { AddressError, AddressKind, resolveAddress } from './address';

@@ -28,7 +28,6 @@ import { expandSides } from './utils/expandSides';
 import { getGlobalRect } from './utils/getGlobalRect';
 import { TextStyleKey } from './utils/textStyles';
 
-/** `dropmenu_item*` layouts: one item row. */
 /** The closed menu's caption keeps clear of the arrow. */
 const ARROW_SPACE = 24;
 /** How long after an outside press closed the view a tap on the menu is taken as that same press. */

@@ -1,7 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { forwardRef, ForwardRefExoticComponent, JSX, ReactNode, RefAttributes, useCallback, useState } from 'react';
 
-import { cursorForHandlers, resolveEventMode, wrapTextChildren } from './utils';
+import { attachBoxHitArea, cursorForHandlers, FillLayout, resolveEventMode, wrapTextChildren } from './utils';
 
 /**
  * The flex/positioning primitive: a thin typed wrapper around pixiContainer + @pixi/layout's
@@ -36,48 +36,26 @@ export type BoxProps = JSX.IntrinsicElements['pixiContainer'] & {
 /** The object-shaped half of the `layout` prop's type (it also allows boolean/null shorthand). */
 export type BoxLayout = Extract<BoxProps['layout'], object>;
 
-/**
- * A self-tracking fallback hit area. Per Pixi's own EventBoundary (hitPruneFn/hitTestFn), a
- * `static`/`dynamic` Container is only ever a hit target over the area its own `hitArea` (or,
- * absent one, `containsPoint`) reports - a plain Container has no shape of its own, so with no
- * `hitArea` set its clickable region silently shrinks to the union of whatever passive/
- * interactive children happen to sit under the pointer. Every themed background/overlay layer
- * (NineSliceLayer, SpriteLayer, ColorLayer, CompositePieceSprite, BlendOverlay) deliberately
- * sets `eventMode="none"` so the art doesn't shadow its own container's press handlers - which
- * means without this, a Button/CloseButton/ContainerButton/etc.'s real clickable area is
- * whatever's left over (usually just its text label), even though its rendered art fills the
- * whole box. `contains` re-reads the box's own yoga-computed size on every hit test (the same
- * `.layout?.computedLayout` @pixi/layout exposes that theme/utils/useFrameDrag.ts already
- * reads for its own sizing math), so it stays correct as content/padding resize the box across
- * renders without an effect keeping a baked Rectangle in sync.
+/*
+ * Every Box gets `attachBoxHitArea`'s self-tracking hit area. Every themed background/overlay layer
+ * (`NineSliceLayer`, `SpriteLayer`, `ColorLayer`, a `CompositeLayer` piece) sets `eventMode="none"`
+ * so the art doesn't shadow its own container's press handlers - so without a `hitArea` of its own a
+ * Button's clickable area would be whatever is left over (usually just its label), though its art
+ * fills the whole box.
  *
- * It is not unused on a passive Box, as this once claimed: `hitTestFn` returns a hit for any
- * container carrying a `hitArea`, and the mode it tests is the one inherited from the nearest
- * interactive ancestor, not the container's own. A passive Box therefore still ends its parent's
- * sibling walk over the area it covers - which is what bounds a container's children to its own
- * box, and what `pointerTransparent` opts out of where a box must let the press through instead.
+ * It is not unused on a passive Box: `hitTestFn` returns a hit for any container carrying a
+ * `hitArea`, and the mode it tests is the one inherited from the nearest interactive ancestor, not
+ * the container's own. A passive Box therefore still ends its parent's sibling walk over the area it
+ * covers - which is what bounds a container's children to its own box, and what
+ * `pointerTransparent` opts out of where a box must let the press through instead.
  */
-const attachDefaultHitArea = (node: Container) => {
-    if (node.hitArea) return;
-
-    node.hitArea = {
-        contains: (x: number, y: number) => {
-            const computed = node.layout?.computedLayout;
-            const width = computed?.width ?? node.width;
-            const height = computed?.height ?? node.height;
-
-            return (x >= 0) && (x <= width) && (y >= 0) && (y <= height);
-        },
-    };
-};
 
 /**
  * @pixi/layout only implements `overflow: 'hidden'` / `'scroll'` clipping on its own specialised
- * `LayoutContainer`, never on the plain `pixiContainer` a Box wraps (confirmed in its source -
- * see utils/ScrollViewport.tsx, which worked around it for the scrollers). A CSS box clips, so
- * the Pixi Box does too: a rectangle Graphics that fills the box through the same fill-stretch
- * layout every background layer uses is added as the box's own child and assigned as its mask -
- * the child (not sibling) relationship is what pixi.js's mask bounds walk requires.
+ * `LayoutContainer`, never on the plain `pixiContainer` a Box wraps (`ScrollViewport` works round
+ * it the same way). So a Box that names an `overflow` clips itself: a rectangle Graphics filling the
+ * box (`FillLayout`) is added as the box's own child and assigned as its mask - the child (not
+ * sibling) relationship is what pixi.js's mask bounds walk requires.
  */
 const clipsOverflow = (layout: BoxProps['layout']): boolean => {
     if (!layout || typeof layout !== 'object') return false;
@@ -87,13 +65,18 @@ const clipsOverflow = (layout: BoxProps['layout']): boolean => {
     return overflow === 'hidden' || overflow === 'scroll';
 };
 
+/**
+ * The flex/positioning primitive every themed component and view is built from: a `pixiContainer`
+ * with @pixi/layout's `layout` prop, a hit area that follows its laid-out box, its own clip when its
+ * layout names an `overflow`, and loose text children drawn as `ThemeText`.
+ */
 export const Box: ForwardRefExoticComponent<BoxProps & RefAttributes<Container>> = forwardRef<Container, BoxProps>(
     ({ children, eventMode, cursor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap, mask, pointerTransparent, clipOutset, ...props }, ref) => {
         const [ overflowMask, setOverflowMask ] = useState<Graphics | null>(null);
         const clips = clipsOverflow(props.layout);
 
         const setRef = useCallback((node: Container | null) => {
-            if (node && !pointerTransparent) attachDefaultHitArea(node);
+            if (node && !pointerTransparent) attachBoxHitArea(node);
 
             if (typeof ref === 'function') ref(node);
             else if (ref) ref.current = node;
@@ -126,7 +109,7 @@ export const Box: ForwardRefExoticComponent<BoxProps & RefAttributes<Container>>
                         // rectangle draws - and a 1x1 mask hides everything the box holds.
                         layout={clipOutset
                             ? { position: 'absolute', left: -clipOutset[0], top: -clipOutset[1], right: -clipOutset[2], bottom: -clipOutset[3], width: 'auto', height: 'auto' }
-                            : { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+                            : FillLayout}
                         draw={(g: Graphics) => { g.clear().rect(0, 0, 1, 1).fill(0xffffff); }}
                     />
                 )}

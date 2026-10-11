@@ -1,4 +1,4 @@
-/** Server id <-> name tables shared by the Variable FX logic and visualization (Flash `VariableFxServerTables` + friends). */
+/** Server id <-> name tables shared by the Variable FX logic and visualization (Flash's obfuscated `§_-s1§`, `§_-J2p§` and friends). */
 
 export type VariableFxIconAlignment = 'left' | 'right' | 'double';
 

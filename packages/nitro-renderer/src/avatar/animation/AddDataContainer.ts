@@ -1,5 +1,6 @@
-﻿import { AvatarBodyPartType, AvatarFigurePartType, IAddDataContainer, IAssetAnimationAdd } from '@nitrodevco/nitro-api';
+import { AvatarBodyPartType, AvatarFigurePartType, IAddDataContainer, IAssetAnimationAdd } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `AddDataContainer`. */
 export class AddDataContainer implements IAddDataContainer {
     private _id: AvatarFigurePartType | string;
     private _align: AvatarBodyPartType | undefined;

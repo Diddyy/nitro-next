@@ -3,7 +3,6 @@ export * from './LegacyWallGeometry';
 export * from './ObjectMouseData';
 export * from './RoomAreaSelectionManager';
 export * from './RoomEnterEffect';
-export * from './RoomFurnitureData';
 export * from './RoomGeometry';
 export * from './RoomObjectHighLighter';
 export * from './RoomRotatingEffect';
