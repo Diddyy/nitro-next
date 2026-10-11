@@ -17,7 +17,7 @@ import { useEffect } from 'react';
 import { openClientLink, openGroupInfo, openProfile, openRentConfirmationWindow, requestGroupDetails, requestInfostandItemToMover, toggleCatalog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
-import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomStore } from '#base/context/room';
+import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
@@ -58,7 +58,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const controllerLevel = useOwnControllerLevel();
     const isRoomOwner = useIsRoomOwner();
     const isFreeFurniMovementsMode = useRoomStore(x => x.isFreeFurniMovementsMode);
-    const playTestMode = useRoomStore(x => x.playTestMode);
+    const playTestMode = useRoomPlayTestMode();
     const showWiredInspectButton = useWiredShowInspectButton();
     const nowPlayingSongId = useRoomStore(x => x.nowPlayingSongId);
     const songInfoById = useRoomStore(x => x.songInfoById);

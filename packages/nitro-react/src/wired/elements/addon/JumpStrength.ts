@@ -6,7 +6,7 @@
  * Variable ids: `[ the variable ]`. Flash opens a box saved with a typed value on no variable and
  * one saved with a variable on the value `JUMP_STRENGTH_VARIABLE_DEFAULT`.
  */
-import { setPickerTarget } from '../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -35,7 +35,7 @@ export const jumpStrengthAddon: WiredElementDefinition<JumpStrengthAddonForm> = 
         return { strength: createValueOrVariableState(getWiredRoomVariables(triggerable), variableId, target, option, value) };
     },
     readIntParams: form => [ form.strength.option, form.strength.value, form.strength.picker.target ],
-    readVariableIds: form => [ form.strength.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.strength.picker) ],
     isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && isValueOrVariableSourcePickingDisabled(form.strength),
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',
     mergedSelections: [ [ 0, 0 ] ],

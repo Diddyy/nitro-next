@@ -5,7 +5,7 @@ import { isHabbiconOfferOwned, purchaseWillBeGift, sendRoomAdPurchaseInitiatedEv
 import { CatalogPurchaseWidgetState, CatalogWidgetEventEnum, CatalogWidgetSpinnerEvent, useCatalogPurchaseActions, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation, useWindowActions } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useAccountSafetyLocked } from '#base/context/user';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { getOfferProduct } from '#base/utils';
 
@@ -73,7 +73,7 @@ interface PurchaseWidgetFields {
 export const CatalogPurchaseWidgetView = ({ page, tags }: CatalogWidgetProps) => {
     const record = useCatalogStore(x => x.purchaseWidgetState);
     const roomAdPurchaseData = useCatalogStore(x => x.roomAdPurchaseData);
-    const accountSafetyLocked = useUserStore(x => x.accountSafetyLocked);
+    const accountSafetyLocked = useAccountSafetyLocked();
     const { setPurchaseWidgetState } = useCatalogPurchaseActions();
     const { showAlert } = useWindowActions();
     const store = useCatalogStoreApi();

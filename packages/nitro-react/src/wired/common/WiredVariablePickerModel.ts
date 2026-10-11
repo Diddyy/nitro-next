@@ -80,7 +80,8 @@ export const filterPickerVariables = (variables: readonly IWiredVariable[] | nul
 
 /**
  * What a form keeps for one picker - everything `NewVariablePicker` holds that outlives a click.
- * `variableId` is what `finalizeSelection` returns (`''` for no selection), `target` what
+ * `variableId` is the selection (`''` for none; `finalizePickerSelection` is what
+ * `finalizeSelection` returns for it), `target` what
  * `variableTarget` / a section's `target` returns.
  */
 export interface WiredVariablePickerState {
@@ -277,21 +278,15 @@ export const getPickerSelectedVariable = (variables: readonly IWiredVariable[] |
 
 /**
  * `VariablePickerPreset.finalizeSelection` without its side effect - the id an element's
- * `readVariableIds` returns for a picker: the selection if the room still has it, otherwise
- * `''` (Flash's `null`, which `EvaWireFormat.encode` would skip, leaving the packet one string
- * short of its count - the port writes the empty string instead). Where Flash sends
- * `WiredVariable.§_-i8§` (`WIRED_VARIABLE_ID_NONE`, `'n'`) itself, the element names it. Without a
- * variables list the id is passed through, as `createVariablePickerState` keeps it - so a box an
- * element opened with `'n'` still saves `'n'`. The side effect - recording the variable in the
- * recent tab - is `rememberPickedVariables`, which `commands/wiredCommands.ts` runs when it reads
- * the form.
- *
- * Not yet called: every element's `readVariableIds` returns its pickers' `variableId` as it
- * stands, so a selection the room no longer has (deleted while the dialog is open) is still sent,
- * where Flash's `finalizeSelection` (`selected?.variableId`) sends none. Calling this needs the
- * room's variables in each `readVariableIds` - about twenty element definitions, each also
- * checked for the pickers that deliberately send `WIRED_VARIABLE_ID_NONE` - so it is a change of
- * its own rather than a one-line wiring.
+ * `readVariableIds` returns for a picker (`selected?.variableId`): the selection if the room's
+ * list still has it for the picker's target, otherwise `''` (Flash's `null`, which
+ * `EvaWireFormat.encode` would skip, leaving the packet one string short of its count - the port
+ * writes the empty string instead). Elements pass `ctx.roomVariables`, the list their pickers were
+ * `init`ed with. Where Flash sends `WiredVariable.§_-i8§` (`WIRED_VARIABLE_ID_NONE`, `'n'`) instead
+ * of asking the picker (`PlaceFurni`'s unused pickers), the element names it. Without a variables
+ * list the id is passed through, as `createVariablePickerState` keeps it. The side effect -
+ * recording the variable in the recent tab - is `rememberPickedVariables`, which
+ * `commands/wiredCommands.ts` runs when it reads the form.
  */
 export const finalizePickerSelection = (variables: readonly IWiredVariable[] | null | undefined, state: WiredVariablePickerState): string => {
     if (!variables) return state.variableId;

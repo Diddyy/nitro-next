@@ -18,6 +18,7 @@
  * save path read it without reaching into a component. Everything Flash exposed as a getter that
  * could depend on the element's state is a function of the form here.
  */
+import type { IWiredVariable } from '@nitrodevco/nitro-packets';
 import type { FC } from 'react';
 
 import type { WiredTriggerable } from './WiredTriggerable';
@@ -62,6 +63,12 @@ export interface WiredElementContext {
     guildMemberships: readonly WiredGuildMembership[];
     /** `roomEvents.achievementsInRoom` - the room's achievements from `WiredEnvironment`. */
     achievementsInRoom: readonly string[];
+    /**
+     * `triggerable.wiredContext.roomVariablesList.variables` (`getWiredRoomVariables`) of the box
+     * being edited - the list its pickers were `init`ed with, which `finalizeSelection`
+     * (`finalizePickerSelection`) checks a selection against in `readVariableIds`.
+     */
+    roomVariables: readonly IWiredVariable[];
     /** The memory of the element instance serving `holder` / `code` - `{}` until it remembers something. */
     elementMemory: (holder: WiredHolderKey, code: number) => WiredElementMemory;
 }

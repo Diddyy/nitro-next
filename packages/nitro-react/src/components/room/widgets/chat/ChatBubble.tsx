@@ -16,14 +16,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { ChatBubbleData, ChatBubbleMotion } from '#base/chat';
 import { useRoomChatActions } from '#base/context/room';
 import { useChatBubbleVisual, useChatFlow } from '#base/hooks';
+import { ChatBubbleBody } from '#base/views/room-widgets/chat/ChatBubbleBody';
 
-import { ChatBubbleBody } from './ChatBubbleBody';
-
-interface ChatBubbleViewProps {
+interface ChatBubbleProps {
     data: ChatBubbleData;
 }
 
-export const ChatBubbleView = ({ data }: ChatBubbleViewProps) => {
+export const ChatBubble = ({ data }: ChatBubbleProps) => {
     const { host, addBubble, removeBubble, maxBubbleWidth: maxWidth, selectBubbleUser } = useChatFlow();
     const { removeChatBubble } = useRoomChatActions();
     const { style, layout, backgroundTexture, shownFaceTexture, render, content } = useChatBubbleVisual(data, maxWidth);

@@ -11,7 +11,7 @@ import { CatalogTypeEnum, ICatalogNode, IFurnitureData, IPurchasableOffer } from
 import { useEffect, useState } from 'react';
 
 import { showCatalogPage } from '#base/commands';
-import { CatalogPage, useCatalogActions, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { CatalogPage, useCatalogActions, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useSystemStore } from '#base/context/system';
 import { useCatalogOfferActions } from '#base/hooks';
 
@@ -76,8 +76,8 @@ export const useCatalogSearch = () => {
     const floorItems = useSystemStore(x => x.floorItems);
     const wallItems = useSystemStore(x => x.wallItems);
     const productData = useSystemStore(x => x.productData);
-    const catalogType = useCatalogStore(x => x.catalogType);
-    const rootNode = useCatalogStore(x => x.rootNode);
+    const catalogType = useCatalogType();
+    const rootNode = useCatalogRootNode();
     const offersToNodes = useCatalogStore(x => x.offersToNodes);
     const { setSearchResult } = useCatalogActions();
     const store = useCatalogStoreApi();

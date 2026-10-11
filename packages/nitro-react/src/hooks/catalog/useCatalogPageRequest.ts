@@ -2,7 +2,7 @@ import { CatalogPageRequestType, CatalogRequestedPageUtilities, ICatalogRequeste
 import { useEffect } from 'react';
 
 import { applyRoomAdExtension } from '#base/commands';
-import { getCatalogWindowName, useCatalogActions, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { getCatalogWindowName, useCatalogActions, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useWindowParams } from '#base/context/system';
 
@@ -17,9 +17,9 @@ import { useCatalogNavigation } from './useCatalogNavigation';
  */
 export const useCatalogPageRequest = () => {
     // The window of this store's catalogue type - `catalog` or `builders_catalog`.
-    const windowName = getCatalogWindowName(useCatalogStore(x => x.catalogType));
+    const windowName = getCatalogWindowName(useCatalogType());
     const { isWindowVisible } = useWindowVisibility(windowName);
-    const rootNode = useCatalogStore(x => x.rootNode);
+    const rootNode = useCatalogRootNode();
     const activeNodes = useCatalogStore(x => x.activeNodes);
     const requestedPage = useCatalogStore(x => x.requestedPage);
     const { activateNode, openPageById, openPageByName, openPageByOfferId } = useCatalogNavigation();

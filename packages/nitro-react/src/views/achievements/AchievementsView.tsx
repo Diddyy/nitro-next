@@ -15,7 +15,7 @@ import {
     selectedAchievement, totalProgress, useAchievementsActions, useAchievementsStore,
 } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigData, useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
+import { useBadgePointLimits, useConfigData, useConfigValue, useTranslation } from '#base/context/system';
 import { useWiredStore } from '#base/context/wired';
 import { useViewportSize } from '#base/hooks';
 import { LayoutWindow, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
@@ -84,7 +84,7 @@ export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
     const t = useTranslation();
     const config = useConfigData();
     const badgeAssetUrl = useConfigValue<string>('badge.asset.url') ?? '';
-    const badgeLimits = useSystemStore(x => x.badgePointLimits);
+    const badgeLimits = useBadgePointLimits();
     const categories = useAchievementsStore(x => x.categories);
     const categoryCode = useAchievementsStore(x => x.category);
     const selected = useAchievementsStore(selectedAchievement);

@@ -5,7 +5,7 @@ import { requestInventoryBadgesIfEmpty } from '#base/commands';
 import { CatalogWidgetEventEnum } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryStore } from '#base/context/inventory';
-import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
+import { useBadgePointLimits, useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { useTemplateLibrary } from '#base/theme';
 import { getBadgeDesc, getBadgeName } from '#base/utils';
@@ -64,7 +64,7 @@ export const CatalogUserBadgeSelectorWidgetView = ({ page }: CatalogWidgetProps)
     const badgeCodes = useInventoryStore(x => x.badgeCodes);
     const { send } = useWebSocketContext();
     const t = useTranslation();
-    const badgePointLimits = useSystemStore(x => x.badgePointLimits);
+    const badgePointLimits = useBadgePointLimits();
 
     // `refreshBadgeData`: the owned badges but the excluded ones; a picked badge the user no longer owns is dropped quietly.
     const excluded = excludedBadges.split(',');

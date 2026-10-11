@@ -19,7 +19,7 @@ import { isWiredVariablePersisted, VariableType, WiredVariableAvailability, Wire
 
 import { resolveSourceTypeSelection } from '../../common/sourceTypeColors';
 import { findVariableById } from '../../common/WiredUtil';
-import { createVariablePickerState, getPickerSelectedVariable, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_USER, WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { TriggerConfCodes } from './triggerCodes';
@@ -95,7 +95,7 @@ export const variableUpdateTrigger: WiredElementDefinition<VariableUpdateTrigger
             originMask: originMask & 0b1111,
         };
     },
-    readVariableIds: form => [ form.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
     readIntParams: (form) => {
         const disabled = variableUpdateOriginDisabled(form.variable);
         const allSelected = VARIABLE_UPDATE_ORIGIN_IDS.every(id => ((form.originMask & (1 << id)) !== 0) || disabled[id]);

@@ -3,7 +3,7 @@ import { GetPetInfoComposer, PetSelectedComposer, RemovePetFromFlatComposer, Res
 import { useEffect } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useIsRoomOwner, useOwnControllerLevel, useRoomPetInfo, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
+import { useIsRoomOwner, useOwnControllerLevel, useRoomPetInfo, useRoomPlayTestMode, useRoomUserByObjectId } from '#base/context/room';
 import { useConfigValue, useWindowActions } from '#base/context/system';
 import { useOwnIsAnyRoomController, useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useRoomObjectModify } from '#base/hooks';
@@ -33,7 +33,7 @@ export const InfostandPet = ({ objectData, onClose }: { objectData: ISimpleRoomO
     const isAnyRoomController = useOwnIsAnyRoomController();
     const isRoomOwner = useIsRoomOwner();
     const controllerLevel = useOwnControllerLevel();
-    const playTestMode = useRoomStore(x => x.playTestMode);
+    const playTestMode = useRoomPlayTestMode();
     const { decreasePetRespects } = useUserActions();
     const { showWindow } = useWindowActions();
     const { modifyRoomObject } = useRoomObjectModify();

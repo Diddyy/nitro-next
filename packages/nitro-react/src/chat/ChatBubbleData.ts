@@ -3,7 +3,7 @@ import { IChatLink } from '@nitrodevco/nitro-packets';
 
 /**
  * One chat message as the room store keeps it (the Flash `ChatItem`) - everything a
- * `ChatBubbleView` needs to draw itself. Immutable: the text rewrites the Flash factory did
+ * `ChatBubble` needs to draw itself. Immutable: the text rewrites the Flash factory did
  * (escaping, localised special types, colour prefixes) happen while rendering instead.
  */
 export interface ChatBubbleData {

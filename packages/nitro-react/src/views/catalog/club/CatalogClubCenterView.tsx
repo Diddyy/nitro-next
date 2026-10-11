@@ -38,7 +38,7 @@ import { useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { getOfferCenterShowingVideo, useOfferCenterStore } from '#base/context/offer-center';
 import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
-import { useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
+import { useOwnClubSubscription, useOwnUserFigure, useOwnUserGender } from '#base/context/user';
 import { getGlobalRect, TemplateWindow, useAvatarImageTexture } from '#base/theme';
 import { CLUB_STATUS_ACTIVE, GetFriendlyTime, replaceFirst, resolveClubStatus } from '#base/utils';
 
@@ -66,7 +66,7 @@ export const CatalogClubCenterView = () => {
     // `HabboClubCenter.indicateVideoAvailable`: what the offer centre last said, and whether its video is up.
     const videoAvailable = useOfferCenterStore(x => x.videoAvailable);
     const showingVideo = useOfferCenterStore(getOfferCenterShowingVideo);
-    const subscription = useUserStore(x => x.clubSubscription);
+    const subscription = useOwnClubSubscription();
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();
     const config = useConfigData();

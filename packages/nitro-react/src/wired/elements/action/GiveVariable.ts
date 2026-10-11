@@ -15,7 +15,7 @@
 import { IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { intAsLong } from '../../common/WiredUtil';
-import { createVariablePickerState, getPickerSelectedVariable, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
@@ -45,7 +45,7 @@ export const giveVariableAction: WiredElementDefinition<GiveVariableActionForm> 
         };
     },
     readIntParams: form => [ form.picker.target, ...intAsLong(form.initialValue), form.overrideExisting ? 1 : 0 ],
-    readVariableIds: form => [ form.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
     mergedSelections: [ [ 0, 0 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_destination',
     getMergedType: form => form.picker.target,

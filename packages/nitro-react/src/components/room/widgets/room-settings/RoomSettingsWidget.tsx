@@ -6,7 +6,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorStore } from '#base/context/navigator';
 import { RoomSettingsErrorField, RoomSettingsFormError, useRoomSettingsFormActions, useRoomStore } from '#base/context/room';
 import { useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
-import { ClientGates, useClientGate, useFriends, useOwnHasClub, useUserStore } from '#base/context/user';
+import { ClientGates, useAccountSafetyLocked, useClientGate, useFriends, useOwnHasClub } from '#base/context/user';
 import { ROOM_SETTINGS_TAB_ACCESS, ROOM_SETTINGS_TAB_RIGHTS, RoomSettingsView } from '#base/views/room-widgets/room-settings/RoomSettingsView';
 
 /** The first tab, which the window always opens on. */
@@ -86,7 +86,7 @@ export const RoomSettingsWidget = () => {
     const friends = useFriends();
     const hasClub = useOwnHasClub();
     const isStaff = useClientGate(ClientGates.RoomSettingsStaff);
-    const accountSafetyLocked = useUserStore(x => x.accountSafetyLocked);
+    const accountSafetyLocked = useAccountSafetyLocked();
     const homeRoomId = useHomeRoomId();
     const { hideWindow, showAlert, showConfirm } = useWindowActions();
     const t = useTranslation();

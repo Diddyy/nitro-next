@@ -1,5 +1,5 @@
 import { useTranslation } from '#base/context/system';
-import { getPurseHasClubLeft, useUserStore } from '#base/context/user';
+import { getPurseHasClubLeft, useOwnClubSubscription } from '#base/context/user';
 import { GetFriendlyTime } from '#base/utils';
 
 /**
@@ -7,7 +7,7 @@ import { GetFriendlyTime } from '#base/utils';
  * otherwise the time left as a short friendly time, in minutes once under a day.
  */
 export const usePurseClubText = () => {
-    const subscription = useUserStore(x => x.clubSubscription);
+    const subscription = useOwnClubSubscription();
     const t = useTranslation();
 
     if (!getPurseHasClubLeft(subscription)) return t('purse.clubdays.zero.amount.text', 'Get');

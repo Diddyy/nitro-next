@@ -20,7 +20,7 @@ import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { resolveSourceTypeSelection } from '../../common/sourceTypeColors';
 import { intAsLong } from '../../common/WiredUtil';
-import { createVariablePickerState, getPickerSelectedVariable, setPickerTarget, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, setPickerTarget, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, WiredElementContext, WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -101,7 +101,7 @@ export const createWithVariableSelector = (code: number, variableSource: number)
         ...intAsLong(form.reference.value),
         form.reference.picker.target,
     ],
-    readVariableIds: form => [ form.picker.variableId, form.reference.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker), finalizePickerSelection(ctx.roomVariables, form.reference.picker) ],
     isInputSourceDisabled: (form, id, sourceType) => {
         if ((sourceType !== WIRED_SOURCE_MERGED) || (id !== REFERENCE_MERGED_ID)) return false;
 

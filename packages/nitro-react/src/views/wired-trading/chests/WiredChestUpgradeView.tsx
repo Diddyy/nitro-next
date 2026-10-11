@@ -19,7 +19,7 @@ import { useState } from 'react';
 import { getWiredChestConfigInteger, upgradeWiredChest } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData, useSystemStore, useTranslation } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useOwnCredits, useUserStore } from '#base/context/user';
 import { WiredChestUpgradeRequest } from '#base/context/wired-trading';
 import { useFurnitureImageTexture } from '#base/hooks';
 import { TemplateWindow, ThemeImage } from '#base/theme';
@@ -69,7 +69,7 @@ export const WiredChestUpgradeView = ({ request, onClose }: WiredChestUpgradeVie
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const config = useConfigData();
-    const credits = useUserStore(x => x.credits);
+    const credits = useOwnCredits();
     const diamonds = useUserStore(x => x.activityPoints[DIAMONDS_TYPE] ?? 0);
     const [ selection, setSelection ] = useState(0);
     const [ buying, setBuying ] = useState(false);

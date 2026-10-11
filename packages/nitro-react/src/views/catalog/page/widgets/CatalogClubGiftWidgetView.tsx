@@ -23,7 +23,7 @@ import { requestClubGiftInfo } from '#base/commands';
 import { useCatalogClubActions, useCatalogStore } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
-import { ClubSubscription, useUserStore } from '#base/context/user';
+import { ClubSubscription, useOwnClubSubscription } from '#base/context/user';
 import { useTemplateLibrary } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
 
@@ -107,7 +107,7 @@ const clubGiftItem = (templates: Record<string, Template>, offer: IPurchasableOf
 
 export const CatalogClubGiftWidgetView = () => {
     const giftInfo = useCatalogStore(x => x.clubGiftInfo);
-    const subscription = useUserStore(x => x.clubSubscription);
+    const subscription = useOwnClubSubscription();
     const { setClubGiftConfirmation } = useCatalogClubActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();

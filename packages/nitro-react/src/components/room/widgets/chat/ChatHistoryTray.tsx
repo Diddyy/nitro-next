@@ -11,8 +11,7 @@ import { useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { easeOutCubic, useRoomObjectSelect, useTween } from '#base/hooks';
 import { LayoutImage, useTextureFromUrl } from '#base/theme';
-
-import { CHAT_HISTORY_LEFT_MARGIN, ChatHistoryEntryMeasure, ChatHistoryEntryView } from './ChatHistoryEntryView';
+import { CHAT_HISTORY_LEFT_MARGIN, ChatHistoryEntryMeasure, ChatHistoryEntryView } from '#base/views/room-widgets/chat/ChatHistoryEntryView';
 
 /** `ChatHistoryTray._openedWidth`: `350 + 62 + 1`. */
 const OPENED_WIDTH = 413;

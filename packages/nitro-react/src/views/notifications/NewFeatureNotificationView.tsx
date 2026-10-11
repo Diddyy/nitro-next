@@ -28,12 +28,13 @@ import { ColorConverter } from '@nitrodevco/nitro-api';
 import { GetSecondsUntilComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { getHotelProperty, maybeShowNewFeatureNotifications, openNewFeatureLink } from '#base/commands';
+import { maybeShowNewFeatureNotifications, openNewFeatureLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useSingularNotificationActions, useSingularNotificationStore } from '#base/context/singular-notifications';
 import { HotelViewSecondsUntil, useConfigData, useSystemStore, useTranslation } from '#base/context/system';
 import { useSecondsClock } from '#base/hooks';
 import { Box, CountdownWidget, TemplateBindings, TemplateWindow } from '#base/theme';
+import { configReader } from '#base/utils';
 
 /** `SingularNotificationController.initComponent`: `setTimeout(maybeShowNewFeatureNotification, 2000)`. */
 const SHOW_DELAY_MS = 2000;
@@ -59,8 +60,6 @@ const answerSince = (answer: HotelViewSecondsUntil | undefined, askedAt: number)
 
 export const NewFeatureNotificationsView = () => {
     const keys = useSingularNotificationStore(x => x.newFeatureNotifications);
-    // The configured texts and colours, read when they come in.
-    useConfigData();
 
     useEffect(() => {
         const timer = setTimeout(maybeShowNewFeatureNotifications, SHOW_DELAY_MS);
@@ -85,9 +84,10 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     const { send } = useWebSocketContext();
     const opened = useSingularNotificationStore(x => x.newFeatureNotificationsOpened.includes(featureKey));
     const { markNewFeatureNotificationOpened, closeNewFeatureNotification } = useSingularNotificationActions();
-    const type = getHotelProperty(`notifications.new_feature.type.${featureKey}`) || TYPE_NORMAL;
-    const expiry = getHotelProperty(`notifications.new_feature.expiry.${featureKey}`);
-    const countdownTo = (type === TYPE_COUNTDOWN) ? getHotelProperty(`notifications.new_feature.count_down_to.${featureKey}`) : '';
+    const { configString } = configReader(useConfigData());
+    const type = configString(`notifications.new_feature.type.${featureKey}`) || TYPE_NORMAL;
+    const expiry = configString(`notifications.new_feature.expiry.${featureKey}`);
+    const countdownTo = (type === TYPE_COUNTDOWN) ? configString(`notifications.new_feature.count_down_to.${featureKey}`) : '';
     // When the times were asked (`Infinity` until then): only an answer after it counts.
     const [ askedAt, setAskedAt ] = useState(Number.POSITIVE_INFINITY);
     const expiryAnswer = answerSince(useSystemStore(x => (expiry ? x.hotelViewSecondsUntil[expiry] : undefined)), askedAt);
@@ -114,7 +114,7 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     // `tryInitialize`: built once every time asked about is answered.
     if ((expiry && !expiryAnswer) || expired || (countdownTo && !countdownAnswer)) return null;
 
-    const color = hexToUint(getHotelProperty(`notifications.new_feature.color.${featureKey}`) || BG_COLOR_NORMAL);
+    const color = hexToUint(configString(`notifications.new_feature.color.${featureKey}`) || BG_COLOR_NORMAL);
     // `initLayout`: the open button's lightness halfway from the colour's to the top.
     const hsl = ColorConverter.rgbToHSL(color);
     const buttonColor = ColorConverter.hslToRGB((255 - Math.trunc((255 - (hsl & 0xff)) / 2)) | (hsl & 0xffff00));
@@ -128,7 +128,7 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
 
     const bindings: TemplateBindings = {
         desc: { caption: t(`notifications.new_feature.${featureKey}.desc`, `notifications.new_feature.${featureKey}.desc`), setCaptionAfterBuild: true },
-        static_bitmap: { asset: getHotelProperty(`notifications.new_feature.image.${featureKey}`) },
+        static_bitmap: { asset: configString(`notifications.new_feature.image.${featureKey}`) },
         cancel_link_region: { visible: (type === TYPE_NORMAL) || (type === TYPE_COUNTDOWN) || opened, onPointerTap: cancel },
     };
 

@@ -1,11 +1,11 @@
 import { ICatalogNode } from '@nitrodevco/nitro-api';
 
 import { getCatalogNodesByOfferId } from '#base/commands';
-import { useCatalogStore } from '#base/context/catalog';
+import { useCatalogRootNode, useCatalogStore } from '#base/context/catalog';
 
 /** Finding nodes in the catalogue index - `CatalogNavigator.getNodeById`, `getNodeByName`, `getNodesByOfferId`. */
 export const useCatalogNodeActions = () => {
-    const rootNode = useCatalogStore(x => x.rootNode);
+    const rootNode = useCatalogRootNode();
     const offersToNodes = useCatalogStore(x => x.offersToNodes);
     const activeNodes = useCatalogStore(x => x.activeNodes);
 

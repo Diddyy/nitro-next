@@ -41,7 +41,16 @@ const messenger = () => {
         setModerationInfoShown: () => { state.moderationInfoShown = true; },
         takeConfirmationId: () => ++state.confirmationId,
     };
-    const windows = { visibleWindows: {}, showWindow: (name) => { windows.visibleWindows = { ...windows.visibleWindows, [name]: true }; }, hideWindow: (name) => { windows.visibleWindows = { ...windows.visibleWindows, [name]: false }; }, getLocalizationValue: key => key };
+    const windows = {
+        visibleWindows: {},
+        showWindow: (name) => {
+            windows.visibleWindows = { ...windows.visibleWindows, [name]: true };
+        },
+        hideWindow: (name) => {
+            windows.visibleWindows = { ...windows.visibleWindows, [name]: false };
+        },
+        getLocalizationValue: key => key,
+    };
     const user = { userId: 1, name: 'me', figure: 'hd-1', friends: { [FRIEND]: { playerId: FRIEND, name: 'Friend', figure: 'hd-2', gender: 0, isOnline: true, persistedUser: false, pocketHabboUser: false } } };
     const commands = load('nitro-react/src/commands/messengerCommands', {
         '@nitrodevco/nitro-api': { AvatarGenderType: { Male: 0 } },
@@ -59,7 +68,7 @@ const messenger = () => {
         '#base/context/system': { systemStore: { getState: () => windows } },
         '#base/context/user': { userStore: { getState: () => user } },
         '#base/sound': {
-            GetSoundManager: () => ({ playSound: (id) => sounds.push(id) }),
+            GetSoundManager: () => ({ playSound: id => sounds.push(id) }),
             HabboSoundTypesEnum: { SOUND_MESSAGE_RECEIVED: RECEIVED, SOUND_MESSAGE_SENT: SENT },
         },
     });
@@ -73,7 +82,7 @@ await test('a message that arrives while the messenger is closed is heard', () =
 
     m.commands.addMessengerConsoleMessage(m.send, m.incoming());
 
-    assert.deepEqual(m.sounds, [RECEIVED]);
+    assert.deepEqual(m.sounds, [ RECEIVED ]);
 });
 
 await test('a message that arrives while the messenger is open is not', () => {
@@ -97,14 +106,14 @@ await test('every message heard while closed makes the sound, and closing the wi
     m.commands.hideMessenger();
     m.commands.addMessengerConsoleMessage(m.send, m.incoming());
 
-    assert.deepEqual(m.sounds, [RECEIVED, RECEIVED, RECEIVED]);
+    assert.deepEqual(m.sounds, [ RECEIVED, RECEIVED, RECEIVED ]);
 });
 
 await test('a room invite is heard while the messenger is closed, and not while it is open', () => {
     const closed = messenger();
 
     closed.commands.addMessengerRoomInvite(closed.send, FRIEND, 'come in');
-    assert.deepEqual(closed.sounds, [RECEIVED]);
+    assert.deepEqual(closed.sounds, [ RECEIVED ]);
 
     const open = messenger();
 
@@ -121,11 +130,11 @@ await test('the first message sent into a conversation makes the sent sound, the
     assert.equal(m.state.entries[FRIEND].length, 1);
 
     m.commands.sendMessengerMessage(m.send, 'hi');
-    assert.deepEqual(m.sounds, [SENT]);
+    assert.deepEqual(m.sounds, [ SENT ]);
 
     m.commands.sendMessengerMessage(m.send, 'hi again');
     m.commands.sendMessengerMessage(m.send, 'and again');
-    assert.deepEqual(m.sounds, [SENT], 'only the first');
+    assert.deepEqual(m.sounds, [ SENT ], 'only the first');
 });
 
 await test('a conversation that already has a message from the friend does not make the sent sound', () => {
@@ -148,7 +157,7 @@ await test('an empty conversation makes the sent sound too', () => {
 
     m.commands.sendMessengerMessage(m.send, 'hi');
 
-    assert.deepEqual(m.sounds, [SENT]);
+    assert.deepEqual(m.sounds, [ SENT ]);
 });
 
 await test('nothing is sent, and nothing heard, when there is no conversation or no text', () => {

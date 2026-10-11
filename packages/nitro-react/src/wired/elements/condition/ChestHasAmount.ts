@@ -14,7 +14,7 @@
  */
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { setPickerTarget } from '../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -50,7 +50,7 @@ export const chestHasAmountCondition: WiredElementDefinition<ChestHasAmountCondi
         }, ctx);
     },
     readIntParams: form => [ form.amount.value, form.amount.option, form.amount.picker.target, form.operator ],
-    readVariableIds: form => [ form.amount.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.amount.picker) ],
     furniSelectionTitle: () => 'wiredfurni.params.sources.furni.title.chests',
     mergedSelections: [ [ 1, 0 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',

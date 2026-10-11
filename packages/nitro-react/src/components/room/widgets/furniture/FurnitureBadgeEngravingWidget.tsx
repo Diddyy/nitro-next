@@ -1,7 +1,7 @@
 import { RoomObjectWidgetRequestEvent, StringDataType } from '@nitrodevco/nitro-api';
 
 import { useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useSystemStore, useTranslation } from '#base/context/system';
+import { useBadgePointLimits, useTranslation } from '#base/context/system';
 import { useRoomFurnitureData } from '#base/hooks';
 import { getBadgeDesc, getBadgeName } from '#base/utils';
 import { FurnitureTrophyView } from '#base/views/room-widgets/furniture/FurnitureTrophyView';
@@ -23,7 +23,7 @@ export const FurnitureBadgeEngravingWidget = () => {
     const furnitureData = useRoomFurnitureData(request?.objectId ?? -1, request?.category ?? 0);
     const { closeRoomWidget } = useRoomWidgetActions();
     const t = useTranslation();
-    const badgePointLimits = useSystemStore(x => x.badgePointLimits);
+    const badgePointLimits = useBadgePointLimits();
 
     if (!request || !(furnitureData?.stuffData instanceof StringDataType)) return null;
 

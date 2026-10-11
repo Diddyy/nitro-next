@@ -1,6 +1,6 @@
 import { ICatalogOffer, IFurnitureData } from '@nitrodevco/nitro-api';
 
-import { useCatalogStore } from '#base/context/catalog';
+import { useCatalogType } from '#base/context/catalog';
 import { useSystemStore } from '#base/context/system';
 import { getOfferProduct, processCatalogOffer, processFurnitureAsOffer } from '#base/utils';
 
@@ -10,7 +10,7 @@ import { getOfferProduct, processCatalogOffer, processFurnitureAsOffer } from '#
  * product.
  */
 export const useCatalogOfferActions = () => {
-    const catalogType = useCatalogStore(x => x.catalogType);
+    const catalogType = useCatalogType();
     const floorItems = useSystemStore(x => x.floorItems);
     const wallItems = useSystemStore(x => x.wallItems);
     const productData = useSystemStore(x => x.productData);

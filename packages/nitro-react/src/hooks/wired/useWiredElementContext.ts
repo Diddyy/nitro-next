@@ -9,7 +9,7 @@ import { useConfigData, useTranslation } from '#base/context/system';
 import { useOwnUserId } from '#base/context/user';
 import { getWiredElementMemory, useWiredHasWritePermission, useWiredMenuEnabled, useWiredStore } from '#base/context/wired';
 import { configReader } from '#base/utils';
-import { WiredElementContext } from '#base/wired';
+import { getWiredRoomVariables, WiredElementContext } from '#base/wired';
 
 export const useWiredElementContext = (): WiredElementContext => {
     const t = useTranslation();
@@ -21,6 +21,7 @@ export const useWiredElementContext = (): WiredElementContext => {
     const guildMemberships = useWiredStore(x => x.guildMemberships);
     const achievementsInRoom = useWiredStore(x => x.wiredAchievements);
     const elementMemory = useWiredStore(x => x.elementMemory);
+    const triggerable = useWiredStore(x => x.setup?.triggerable);
     const { configBoolean, configString } = configReader(config);
 
     return {
@@ -33,6 +34,7 @@ export const useWiredElementContext = (): WiredElementContext => {
         roomId,
         guildMemberships,
         achievementsInRoom,
+        roomVariables: triggerable ? getWiredRoomVariables(triggerable) : [],
         elementMemory: (holder, code) => getWiredElementMemory(elementMemory, holder, code),
     };
 };

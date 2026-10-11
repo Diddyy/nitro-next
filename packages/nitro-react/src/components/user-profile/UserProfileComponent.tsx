@@ -3,7 +3,7 @@ import { BlockUserComposer, DeselectFavouriteHabboGroupComposer, SelectFavourite
 
 import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, requestGroupDetails, searchRoomsByOwner, showGroupBases } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useIsWindowVisible, useSystemActions, useWindowActions, useWindowParams } from '#base/context/system';
+import { useConfigValue, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useOwnUserId, useUserStore } from '#base/context/user';
 import { useProfileActions, useProfileStore } from '#base/context/user-profile';
 import { UserProfileView } from '#base/views/user-profile/UserProfileView';
@@ -14,7 +14,7 @@ export const UserProfileComponent = () => {
     const profile = useProfileStore(state => state.profile);
     const badges = useProfileStore(state => state.badges);
     const relationships = useProfileStore(state => state.relationships);
-    const { getLocalizationValue } = useSystemActions();
+    const getLocalizationValue = useTranslation();
     const { hideWindow, showAlert, showConfirm, showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const ownUserId = useOwnUserId();

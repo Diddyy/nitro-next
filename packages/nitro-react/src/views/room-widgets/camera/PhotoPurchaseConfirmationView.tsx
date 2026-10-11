@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 import { openClientLink, PhotoPurchaseState, returnToViewfinder, setPhotoPurchaseState, showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert, useCameraStore } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useOwnCredits, useUserStore } from '#base/context/user';
 import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 
 import { CAMERA_IMAGE_SIZE } from './cameraEffects';
@@ -42,7 +42,7 @@ const PhotoPurchaseConfirmation = () => {
     const ducketPrice = useCameraStore(x => x.ducketPrice);
     const publishDucketPrice = useCameraStore(x => x.publishDucketPrice);
     const { send } = useWebSocketContext();
-    const ownCredits = useUserStore(x => x.credits);
+    const ownCredits = useOwnCredits();
     const ownDuckets = useUserStore(x => x.activityPoints[0] ?? 0);
     const competitionEnabled = useConfigValue<boolean>('camera.competition.enabled') === true;
     const disclaimerEnabled = useConfigValue<boolean>('disclaimer.credit_spending.enabled') === true;

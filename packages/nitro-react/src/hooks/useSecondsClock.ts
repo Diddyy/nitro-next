@@ -4,32 +4,11 @@
  */
 import { useSyncExternalStore } from 'react';
 
+import { clockTicker } from '#base/utils';
+
 const TICK_MS = 1000;
 
 /** The clock React reads, updated once a second so the render itself never asks the time. */
-let now = performance.now();
-const listeners = new Set<() => void>();
-let timer: ReturnType<typeof setInterval> | undefined;
+const clock = clockTicker(() => performance.now(), TICK_MS);
 
-const subscribe = (onChange: () => void) => {
-    listeners.add(onChange);
-
-    if (!timer) {
-        timer = setInterval(() => {
-            now = performance.now();
-
-            for (const listener of listeners) listener();
-        }, TICK_MS);
-    }
-
-    return () => {
-        listeners.delete(onChange);
-
-        if (!listeners.size && timer) {
-            clearInterval(timer);
-            timer = undefined;
-        }
-    };
-};
-
-export const useSecondsClock = () => useSyncExternalStore(subscribe, () => now);
+export const useSecondsClock = () => useSyncExternalStore(clock.subscribe, clock.getSnapshot);

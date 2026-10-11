@@ -17,7 +17,7 @@ export interface RoomChatInputContent {
 }
 
 type State = {
-    /** The bubbles currently in the flow - `RoomChatBubbles` renders one `ChatBubbleView` per entry. */
+    /** The bubbles currently in the flow - `RoomChatBubbles` renders one `ChatBubble` per entry. */
     chatBubbles: ChatBubbleData[];
     /** Seconds the server told us to stop talking for (flood control), with when it said so. */
     floodBlockSeconds: number;

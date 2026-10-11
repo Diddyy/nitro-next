@@ -26,7 +26,7 @@ type State = {
     /** `SearchView.refreshList` has run: before the first answer the list holds no rows at all. */
     searchResultsReceived: boolean;
     /**
-     * `FriendRequestsView._SafeStr_4889` set: the requests tab's list has been built once
+     * `§_-fK§.§_-ku§` set (`friendlist/§_-fK§`, the requests tab): its list has been built once
      * (`fillList`), after which every tab click lets the answered requests go (`tabClicked`).
      * Flash never clears it.
      */
@@ -51,9 +51,9 @@ type Actions = {
     replaceFriendRequests: (requests: IFriendRequest[]) => void;
     /** `FriendRequest.state`: an answered request stays in the list, drawn with its outcome, until the tab is clicked. */
     setFriendRequestsState: (requesterIds: number[], state: FriendRequestStateType) => void;
-    /** `FriendRequestsView.tabClicked` -> `clearAndUpdateView(true)`: the answered requests go. */
+    /** `§_-fK§.tabClicked` -> `clearAndUpdateView(true)`: the answered requests go. */
     clearAnsweredFriendRequests: () => void;
-    /** `FriendRequestsView.fillList`: the requests tab has been opened. */
+    /** `§_-fK§.fillList`: the requests tab has been opened. */
     markFriendRequestsListShown: () => void;
     /** `FriendListTab.setNewMessageArrived`, or `setSelected(true)` clearing it. */
     setFriendListTabHighlighted: (tab: keyof FriendListHighlightedTabs, highlighted: boolean) => void;

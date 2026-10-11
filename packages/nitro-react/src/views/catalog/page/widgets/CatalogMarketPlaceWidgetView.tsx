@@ -5,7 +5,7 @@ import { buyMarketplaceOffer, requestMarketplaceItemStats, requestMarketplaceOff
 import { useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useSystemStore, useTranslation } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useAccountSafetyLocked } from '#base/context/user';
 import { findTemplateChild, useTemplateLibrary } from '#base/theme';
 import { getMarketplaceOfferTexts, MarketplaceOfferData } from '#base/utils';
 import { CatalogMarketplaceOfferDetailsView } from '#base/views/catalog/marketplace/CatalogMarketplaceOfferDetailsView';
@@ -108,7 +108,7 @@ export const CatalogMarketPlaceWidgetView = ({ tags }: CatalogWidgetProps) => {
     const offers = useCatalogStore(x => x.marketplaceOffers);
     const totalItemsFound = useCatalogStore(x => x.marketplaceTotalItemsFound);
     const offersSerial = useCatalogStore(x => x.marketplaceOffersSerial);
-    const safetyLocked = useUserStore(x => x.accountSafetyLocked);
+    const safetyLocked = useAccountSafetyLocked();
     const [ fields, setFields ] = useState<SearchFields>({ category: 'search_by_activity', sortSelection: 0, combineUniques: true, searchInput: '', minPriceInput: '', maxPriceInput: '' });
     // Bumped by each `selectSearchCategory`, which builds the search window anew.
     const [ searchBuild, setSearchBuild ] = useState(0);

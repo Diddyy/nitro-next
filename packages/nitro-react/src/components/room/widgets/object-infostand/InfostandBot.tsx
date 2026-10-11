@@ -2,7 +2,7 @@ import { ISimpleRoomObjectData, RoomControllerLevelEnum, RoomObjectCategoryEnum,
 import { RemoveBotFromFlatComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
+import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomUserByObjectId } from '#base/context/room';
 import { ClientGates, useClientGate } from '#base/context/user';
 import { useRoomObjectModify } from '#base/hooks';
 import { InfostandBotView } from '#base/views/room-widgets/object-infostand/InfostandBotView';
@@ -18,7 +18,7 @@ export const InfostandBot = ({ objectData, onClose }: { objectData: ISimpleRoomO
     // The raw room user rather than `useRoomUserData`'s avatar shape: only this one names the owner.
     const userData = useRoomUserByObjectId(objectData.objectId);
     const isRoomOwner = useIsRoomOwner();
-    const playTestMode = useRoomStore(x => x.playTestMode);
+    const playTestMode = useRoomPlayTestMode();
     const controllerLevel = useOwnControllerLevel();
     const { modifyRoomObject } = useRoomObjectModify();
     const { send } = useWebSocketContext();

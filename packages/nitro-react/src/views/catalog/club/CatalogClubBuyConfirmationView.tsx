@@ -16,7 +16,7 @@ import { cancelClubBuy, confirmClubBuy } from '#base/commands';
 import { useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
-import { getPurseHasClubLeft, useUserStore } from '#base/context/user';
+import { getPurseHasClubLeft, useOwnClubSubscription } from '#base/context/user';
 import { TemplateWindow, useTemplateLibrary } from '#base/theme';
 import { getClubOfferPrices } from '#base/utils';
 
@@ -25,7 +25,7 @@ import { priceDisplayBindings } from '../page/widgets/catalogPrice';
 
 export const CatalogClubBuyConfirmationView = () => {
     const confirmation = useCatalogStore(x => x.clubBuyConfirmation);
-    const clubSubscription = useUserStore(x => x.clubSubscription);
+    const clubSubscription = useOwnClubSubscription();
     const disclaimerEnabled = useConfigValue<boolean | string>('disclaimer.credit_spending.enabled');
     const config = useConfigData();
     const templates = useTemplateLibrary(CATALOG_LIBRARY);

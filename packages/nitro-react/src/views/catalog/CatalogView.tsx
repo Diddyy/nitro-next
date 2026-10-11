@@ -26,7 +26,7 @@ import { Container as PixiContainer } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
 import { refreshBuilderStatus, updateBuilderStatus } from '#base/commands';
-import { CATALOG_HEADER_DESCRIPTION, CATALOG_HEADER_IMAGE, CatalogPage, getCatalogPageImage, getCatalogPageText, getCatalogWindowName, isNonTabbedCatalog, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { CATALOG_HEADER_DESCRIPTION, CATALOG_HEADER_IMAGE, CatalogPage, getCatalogPageImage, getCatalogPageText, getCatalogWindowName, isNonTabbedCatalog, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogNavigation, useWindowVisibility } from '#base/hooks';
 import { Box, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLayoutSize, useTemplateLibrary } from '#base/theme';
@@ -76,10 +76,10 @@ const CatalogLayoutContainer = () => {
 };
 
 export const CatalogView = () => {
-    const rootNode = useCatalogStore(x => x.rootNode);
+    const rootNode = useCatalogRootNode();
     const activeNodes = useCatalogStore(x => x.activeNodes);
     const openNodes = useCatalogStore(x => x.openNodes);
-    const catalogType = useCatalogStore(x => x.catalogType);
+    const catalogType = useCatalogType();
     const isBusy = useCatalogStore(x => x.isBusy);
     const activePage = useCatalogStore(x => x.activePage);
     const searchResult = useCatalogStore(x => x.searchResult);

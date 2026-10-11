@@ -8,6 +8,7 @@ export * from './catalogPets';
 export * from './catalogProductImages';
 export * from './catalogSeasonalCurrency';
 export * from './chatCommandCompletion';
+export * from './clockTicker';
 export * from './clubCenter';
 export * from './clubOffers';
 export * from './configReader';

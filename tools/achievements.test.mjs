@@ -269,7 +269,11 @@ await test('wired achievements require the room-enabler binding in the wired_gam
 
 await test('handler list never opens a window, transition waits 2000ms, room exit closes and disconnect cancels work', () => {
     const store = createAchievementsStore();
-    class EventLogComposer { constructor(params) { this.params = params; } }
+    class EventLogComposer {
+        constructor(params) {
+            this.params = params;
+        }
+    }
     const packets = { AchievementEventMessage, AchievementsEventMessage, AchievementsScoreEventMessage, EventLogComposer, HabboAchievementNotificationMessage: class {}, UserObjectMessage: class {} };
     const listeners = new Map();
     const timers = new Map();

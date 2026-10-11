@@ -15,7 +15,7 @@
  * option, so the form keeps the name. A name that is not in the list shows no selection - Flash
  * would then save no name; here the box keeps the one it had until another is picked.
  */
-import { setPickerTarget } from '../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -50,7 +50,7 @@ export const progressAchievementAction: WiredElementDefinition<ProgressAchieveme
     }),
     readIntParams: form => [ form.mode, form.score.option, form.score.value, form.score.picker.target ],
     readStringParam: form => form.achievementName,
-    readVariableIds: form => [ form.score.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.score.picker) ],
     mergedSelections: [ [ 0, 1 ] ],
     getMergedType: form => form.score.picker.target,
     setMergedType: (form, _id, sourceType) => ({ ...form, score: { ...form.score, picker: setPickerTarget(form.score.picker, sourceType) } }),

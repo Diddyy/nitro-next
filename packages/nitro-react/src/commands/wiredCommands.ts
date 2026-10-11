@@ -36,8 +36,8 @@ const NOTIFICATION_TIME_DISPLAY_MS = 2500;
 
 const notifyWired = (text: string) => notificationStore.getState().addNotification(text, 'wired', undefined, undefined, { timeDisplay: NOTIFICATION_TIME_DISPLAY_MS });
 
-/** What an element may ask of its surroundings - built when it is needed, so it is never a packet behind. */
-export const getWiredElementContext = (): WiredElementContext => {
+/** What an element may ask of its surroundings while it serves `triggerable` - built when it is needed, so it is never a packet behind. */
+export const getWiredElementContext = (triggerable: WiredTriggerable): WiredElementContext => {
     const { getLocalizationValue, config } = systemStore.getState();
     const { guildMemberships, wiredAchievements, elementMemory } = wiredStore.getState();
     const { configBoolean, configString } = configReader(config);
@@ -52,6 +52,7 @@ export const getWiredElementContext = (): WiredElementContext => {
         roomId: getRoom()?.roomId ?? 0,
         guildMemberships,
         achievementsInRoom: wiredAchievements,
+        roomVariables: getWiredRoomVariables(triggerable),
         elementMemory: (holder, code) => getWiredElementMemory(elementMemory, holder, code),
     };
 };
@@ -148,7 +149,7 @@ export const prepareWiredForUpdate = (send: Send, triggerable: WiredTriggerable)
     if (!entry) return;
 
     const highLighter = getRoom()?.objectHighLighter;
-    const form = entry.definition.createForm(triggerable, getWiredElementContext());
+    const form = entry.definition.createForm(triggerable, getWiredElementContext(triggerable));
     const stuffIds1 = [ ...triggerable.stuffIds ];
     const stuffIds2 = [ ...triggerable.stuffIds2 ];
 
@@ -298,13 +299,13 @@ const resolveQuantifier = ({ triggerable }: WiredSetupSession): number =>
  * of the picker's recent tab (`NewVariablePickerHelper.addToHistory`).
  */
 const readWiredForm = ({ triggerable, entry: { definition }, form }: WiredSetupSession): Pick<WiredClipboardEntry, 'intParams' | 'stringParam' | 'variableIds'> => {
-    const ctx = getWiredElementContext();
+    const ctx = getWiredElementContext(triggerable);
     const intParams = definition.readIntParams?.(form, ctx) ?? [];
     const stringParam = definition.readStringParam?.(form, ctx) ?? '';
     const variableIds = definition.readVariableIds?.(form, ctx) ?? [];
 
     wiredStore.getState().rememberWiredElement(definition, definition.rememberOnRead?.(form));
-    rememberPickedVariables(ctx.roomId, variableIds, getWiredRoomVariables(triggerable));
+    rememberPickedVariables(ctx.roomId, variableIds, ctx.roomVariables);
 
     return { intParams, stringParam, variableIds };
 };
@@ -369,7 +370,7 @@ export const updateWired = (send: Send, updateMode: number = WIRED_UPDATE_MODE_N
     if (!setup) return;
 
     const { triggerable, entry: { definition }, form } = setup;
-    const ctx = getWiredElementContext();
+    const ctx = getWiredElementContext(triggerable);
     const error = definition.validate?.(form, ctx) ?? null;
 
     if (error !== null) {
@@ -441,7 +442,7 @@ export const saveWired = (send: Send) => {
         return;
     }
 
-    const confirmation = definition.requireConfirmation?.(form, getWiredElementContext()) ?? null;
+    const confirmation = definition.requireConfirmation?.(form, getWiredElementContext(triggerable)) ?? null;
 
     if (confirmation) confirm(confirmation.title, confirmation.body);
     else updateWired(send);

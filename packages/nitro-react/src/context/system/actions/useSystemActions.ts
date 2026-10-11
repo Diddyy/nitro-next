@@ -1,14 +1,14 @@
 /**
  * `SystemStore`'s actions across its slices other than the windows and dialogs (`useWindowActions`
- * has those): localization, the hotel view, the toolbar and the room session requests. Read off
- * the store once: a component using these re-renders for nothing.
+ * has those): setting the localization, the hotel view, the toolbar and the room session requests.
+ * Read off the store once: a component using these re-renders for nothing. Looking a text up is
+ * `useTranslation`.
  */
 import { systemStore } from '../store/SystemStore';
 
 const state = systemStore.getState();
 
 const actions = {
-    getLocalizationValue: state.getLocalizationValue,
     setLocalization: state.setLocalization,
     setLocalizationForFurniture: state.setLocalizationForFurniture,
     setLandingViewVisible: state.setLandingViewVisible,

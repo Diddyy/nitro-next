@@ -1,6 +1,6 @@
 /**
  * What a chat bubble draws, in the order `PooledChatBubble` added it: background, emblem,
- * pointer, face, text. Shared by the live bubble (`ChatBubbleView`) and the chat history's
+ * pointer, face, text. Shared by the live bubble (`ChatBubble`) and the chat history's
  * copy of it (`ChatHistoryEntryView`, Flash's `ChatBubbleFactory.getHistoryLineEntry`), which
  * each wrap it in their own container.
  */

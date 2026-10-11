@@ -5,6 +5,7 @@ export * from './CatalogContextProvider';
 export * from './catalogStores';
 export * from './CatalogWindowName';
 export * from './page';
+export * from './selectors';
 export * from './store';
 export * from './useCatalogStore';
 export * from './useCatalogStoreApi';

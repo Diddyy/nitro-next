@@ -13,7 +13,9 @@ is two files:
   (barrel `#base/wired`); the `*Elements.ts` files import views and stay out of the barrel.
 
 What a definition cannot compute from the triggerable comes through `WiredElementContext`
-(`ctx`): config, localization, permissions, the user's groups, the room's achievements, and
+(`ctx`): config, localization, permissions, the user's groups, the room's achievements, the
+room's variables (`roomVariables` - a `readVariableIds` sends each picker through
+`finalizePickerSelection(ctx.roomVariables, picker)`, Flash's `finalizeSelection`), and
 `elementMemory` - the element fields Flash keeps between edits (a grown option list, a captured
 figure, the last time zone), written through the definition's `rememberOnEdit` /
 `rememberOnRead` into `WiredElementMemorySlice`. Never keep that state in a module variable.

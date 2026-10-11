@@ -3,7 +3,7 @@ import { Container as PixiContainer } from 'pixi.js';
 import { useCallback, useEffect, useState } from 'react';
 
 import { buyFromPurchaseDialog, closePurchaseDialog } from '#base/commands';
-import { CatalogPurchaseRequest, useCatalogPurchaseActions, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { CatalogPurchaseRequest, useCatalogPurchaseActions, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData, useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { Box, TemplateWindow, useTemplateLibrary } from '#base/theme';
@@ -54,7 +54,7 @@ const useRaffleDots = (running: boolean) => {
  */
 const CatalogPurchaseConfirmationDialogView = ({ purchase }: { purchase: CatalogPurchaseRequest }) => {
     const isPurchasing = useCatalogStore(x => x.isPurchasing);
-    const catalogType = useCatalogStore(x => x.catalogType);
+    const catalogType = useCatalogType();
     const ltdRaffleRunning = useCatalogStore(x => x.ltdRaffleRunning);
     const bundleDiscountRuleset = useCatalogStore(x => x.bundleDiscountRuleset);
     // The offer's product data as the page offer resolved it (`getOfferProductData`), else the table's.

@@ -17,7 +17,7 @@
  */
 import { IWiredVariable, VariableType, WiredVariableTarget } from '@nitrodevco/nitro-packets';
 
-import { createVariablePickerState, getPickerSelectedVariable, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VARIABLE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -121,9 +121,9 @@ export const placeFurniAction: WiredElementDefinition<PlaceFurniActionForm> = {
             form.spawnValue.picker.target,
         ];
     },
-    readVariableIds: form => [
-        form.spawnWithVariable ? form.spawnVariable.variableId : WIRED_VARIABLE_ID_NONE,
-        (usesSpawnValue(form) && (form.spawnValue.option === VALUE_OR_VARIABLE_OPTION_VARIABLE)) ? form.spawnValue.picker.variableId : WIRED_VARIABLE_ID_NONE,
+    readVariableIds: (form, ctx) => [
+        form.spawnWithVariable ? finalizePickerSelection(ctx.roomVariables, form.spawnVariable) : WIRED_VARIABLE_ID_NONE,
+        (usesSpawnValue(form) && (form.spawnValue.option === VALUE_OR_VARIABLE_OPTION_VARIABLE)) ? finalizePickerSelection(ctx.roomVariables, form.spawnValue.picker) : WIRED_VARIABLE_ID_NONE,
     ],
     mergedSelections: [ [ 1, 0 ], [ 2, 1 ] ],
     getMergedType: (form, id) => {

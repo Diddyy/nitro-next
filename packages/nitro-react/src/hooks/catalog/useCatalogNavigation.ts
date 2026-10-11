@@ -7,7 +7,7 @@
 import { CatalogRequestedPageUtilities, ICatalogNode } from '@nitrodevco/nitro-api';
 
 import { loadCatalogPage } from '#base/commands';
-import { getCatalogWindowName, useCatalogActions, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { getCatalogWindowName, useCatalogActions, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 
 import { useWindowVisibility } from '../system';
@@ -16,11 +16,11 @@ import { useCatalogNodeActions } from './useCatalogNodeActions';
 export const useCatalogNavigation = () => {
     const activeNodes = useCatalogStore(x => x.activeNodes);
     const openNodes = useCatalogStore(x => x.openNodes);
-    const rootNode = useCatalogStore(x => x.rootNode);
+    const rootNode = useCatalogRootNode();
     const store = useCatalogStoreApi();
     const { setActiveNodes, setOpenNodes, setRequestedPage, setForceRefresh } = useCatalogActions();
     const { getNodeByPageId, getNodeByPageName, getNodesByOfferId } = useCatalogNodeActions();
-    const { isWindowVisible, show } = useWindowVisibility(getCatalogWindowName(useCatalogStore(x => x.catalogType)));
+    const { isWindowVisible, show } = useWindowVisibility(getCatalogWindowName(useCatalogType()));
     const { send } = useWebSocketContext();
 
     /**

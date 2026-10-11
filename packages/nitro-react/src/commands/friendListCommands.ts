@@ -79,9 +79,9 @@ export const showFriendRequestSentAlert = (name: string) => {
 };
 
 /**
- * `FriendRequestsView.acceptRequest`: the request is marked accepted before the limit is asked,
- * as Flash did, so a request refused for a full list is dropped on the next tab click without
- * having been sent.
+ * `§_-fK§.acceptRequest` (`friendlist/§_-fK§`, the friend list's requests tab, whose other
+ * answers follow): the request is marked accepted before the limit is asked, as Flash did, so a
+ * request refused for a full list is dropped on the next tab click without having been sent.
  */
 export const acceptFriendRequest = (send: Send, requestId: number) => {
     const { friends, requests, userFriendLimit, setFriendRequestsState } = userStore.getState();
@@ -100,7 +100,7 @@ export const acceptFriendRequest = (send: Send, requestId: number) => {
 };
 
 /**
- * `FriendRequestsView.acceptAllRequests`: refused outright when every listed request - answered
+ * `§_-fK§.acceptAllRequests`: refused outright when every listed request - answered
  * ones included - would not fit; otherwise every request not yet accepted or declined goes in one
  * packet.
  */
@@ -120,7 +120,7 @@ export const acceptAllFriendRequests = (send: Send) => {
     send(new AcceptFriendComposer({ playerIds: requestIds }));
 };
 
-/** `FriendRequestsView.declineRequest`. */
+/** `§_-fK§.declineRequest`. */
 export const declineFriendRequest = (send: Send, requestId: number) => {
     const { requests, setFriendRequestsState } = userStore.getState();
 
@@ -130,7 +130,7 @@ export const declineFriendRequest = (send: Send, requestId: number) => {
     send(new DeclineFriendComposer({ declineAll: false, playerIds: [ requestId ] }));
 };
 
-/** `FriendRequestsView.declineAllRequests`: the "all" form of the packet, sent even for an empty list. */
+/** `§_-fK§.declineAllRequests`: the "all" form of the packet, sent even for an empty list. */
 export const declineAllFriendRequests = (send: Send) => {
     const { requests, setFriendRequestsState } = userStore.getState();
 

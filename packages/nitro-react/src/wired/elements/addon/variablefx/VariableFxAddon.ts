@@ -25,7 +25,7 @@
 import { IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { pushIntAsLong } from '../../../common/WiredUtil';
-import { createVariablePickerState, WiredVariablePickerState } from '../../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, WiredVariablePickerState } from '../../../common/WiredVariablePickerModel';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_USER, WiredElementDefinition } from '../../../WiredElement';
 import type { WiredTriggerable } from '../../../WiredTriggerable';
 import { VariableFxAudience } from './model/VariableFxEditorEnums';
@@ -114,7 +114,12 @@ export const applyVariableFxVisualizationRules = (state: VariableFxState): Varia
     };
 };
 
-/** `VariableFxAdvancedRangePreset.applyToState(state, finalize)` - the rows' values, while the section shows. */
+/**
+ * `VariableFxAdvancedRangePreset.applyToState(state, finalize)` - the rows' values, while the section
+ * shows. A row's `selectedVariableId` is the picker's `selected?.variableId` whether or not it
+ * finalizes (`finalizeSelection` only adds the history side effect), so a selection the room's list
+ * no longer has is written as none.
+ */
 const applyOverrideRows = (form: VariableFxForm, state: VariableFxState): VariableFxState => {
     if (!variableFxCategoryUsesValueRange(state.categoryId)) return state;
 
@@ -122,10 +127,10 @@ const applyOverrideRows = (form: VariableFxForm, state: VariableFxState): Variab
         ...state,
         overrideMinEnabled: form.overrideMin.enabled,
         overrideMinTarget: form.overrideMin.picker.target,
-        overrideMinVariableId: form.overrideMin.picker.variableId,
+        overrideMinVariableId: finalizePickerSelection(form.roomVariables, form.overrideMin.picker),
         overrideMaxEnabled: form.overrideMax.enabled,
         overrideMaxTarget: form.overrideMax.picker.target,
-        overrideMaxVariableId: form.overrideMax.picker.variableId,
+        overrideMaxVariableId: finalizePickerSelection(form.roomVariables, form.overrideMax.picker),
     };
 };
 

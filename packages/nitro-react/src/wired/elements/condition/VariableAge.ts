@@ -13,7 +13,7 @@
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { intAsLong } from '../../common/WiredUtil';
-import { createVariablePickerState, setPickerTarget, WiredVariableFilter, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, setPickerTarget, WiredVariableFilter, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ConditionCodes } from './conditionCodes';
@@ -64,7 +64,7 @@ export const variableAgeCondition: WiredElementDefinition<VariableAgeConditionFo
         ...intAsLong(form.duration),
         form.timeUnit,
     ],
-    readVariableIds: form => [ form.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
     mergedSelections: [ [ 0, 0 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables',
     getMergedType: form => form.picker.target,

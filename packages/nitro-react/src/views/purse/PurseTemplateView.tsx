@@ -4,7 +4,7 @@ import { openClientLink, openClubCenter, openCreditsHabblet, rebootClient } from
 import { useWebSocketContext } from '#base/context/communication';
 import { useEarningsStore } from '#base/context/earnings';
 import { useWindowActions } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useOwnCredits, useUserStore } from '#base/context/user';
 import { Box, TemplateWindow } from '#base/theme';
 
 import { PurseSettingsList } from './PurseSettingsList';
@@ -22,7 +22,7 @@ import { usePurseClubText } from './usePurseClubText';
  */
 export const PurseTemplateView = () => {
     const clubText = usePurseClubText();
-    const credits = useUserStore(x => x.credits);
+    const credits = useOwnCredits();
     const activityPoints = useUserStore(x => x.activityPoints);
     const showingIndicator = useEarningsStore(x => x.showingIndicator);
     const { showWindow, toggleWindow } = useWindowActions();

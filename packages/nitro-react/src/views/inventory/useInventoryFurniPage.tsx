@@ -47,7 +47,7 @@ import {
 } from '#base/context/inventory';
 import { useRoom } from '#base/context/room';
 import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useAccountSafetyLocked } from '#base/context/user';
 import { useWiredTradingStore } from '#base/context/wired-trading';
 import { TemplateBindings, TemplateItem, TemplateWindow } from '#base/theme';
 import { GetFriendlyTime, getFurnitureData } from '#base/utils';
@@ -96,7 +96,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const web3TradeEnabled = useConfigValue<boolean>('web3trade.enabled') === true;
     const marketplaceEnabled = useInventoryStore(x => x.marketplaceConfiguration.isEnabled);
     const recyclerRunning = useInventoryStore(x => x.recyclerState === INVENTORY_RECYCLER_STATE_ACTIVE);
-    const safetyLocked = useUserStore(x => x.accountSafetyLocked);
+    const safetyLocked = useAccountSafetyLocked();
     const rentWarningSeconds = useConfigValue<number>('purchase.rent.warning_duration_seconds') ?? DEFAULT_RENT_WARNING_SECONDS;
     // `FurniModel.isPrivateRoom`: every room session is a private room.
     const inRoom = !!useRoom();

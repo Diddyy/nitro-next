@@ -11,7 +11,7 @@
  * `SelectorFilter` is never pushed into `AddonTypes` itself; `createSelectorFilterAddon` makes the
  * definition each subclass is.
  */
-import { setPickerTarget } from '../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -38,7 +38,7 @@ export const createSelectorFilterAddon = (code: number): WiredElementDefinition<
         return { filter: createValueOrVariableState(getWiredRoomVariables(triggerable), variableId, target, option, value) };
     },
     readIntParams: form => [ form.filter.value, form.filter.option, form.filter.picker.target ],
-    readVariableIds: form => [ form.filter.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.filter.picker) ],
     isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && isValueOrVariableSourcePickingDisabled(form.filter),
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',
     mergedSelections: [ [ 0, 0 ] ],

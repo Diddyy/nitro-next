@@ -26,8 +26,8 @@ export const RoomFriendRequestWidget = () => {
 
     /**
      * `HabboFriendBarData.acceptFriendRequest` / `declineFriendRequest`: the bubble goes, and the
-     * answer is the friend list's (`FriendRequestsView.acceptRequest` / `declineRequest`), limit
-     * check and request state included.
+     * answer is the friend list's (`§_-fK§.acceptRequest` / `declineRequest`, its requests tab),
+     * limit check and request state included.
      */
     const answer = (requestId: number, accept: boolean) => {
         if (accept) acceptFriendRequest(send, requestId);

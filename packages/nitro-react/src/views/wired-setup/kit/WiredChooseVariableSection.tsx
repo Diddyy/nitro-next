@@ -16,7 +16,7 @@
  * for `mergedId` -1; either way the retargeted picker selects what that target had before, and
  * Flash reports that selection through the callback - so an element whose callback derives
  * fields does the same derivation in its `setMergedType`. `readVariableIds` returns
- * `state.variableId` (`finalizeSelection`).
+ * `finalizePickerSelection(ctx.roomVariables, state)` (`finalizeSelection`).
  */
 import { IWiredVariable } from '@nitrodevco/nitro-packets';
 

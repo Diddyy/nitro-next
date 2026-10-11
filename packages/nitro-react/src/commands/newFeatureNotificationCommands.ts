@@ -11,6 +11,7 @@
 import { WebSocketConnection } from '#base/context/communication';
 import { singularNotificationStore } from '#base/context/singular-notifications';
 import { systemStore } from '#base/context/system';
+import { configReader } from '#base/utils';
 
 import { openClientLink } from './clientLinkCommands';
 import { hasRewardTrack, isRewardTrackComplete } from './rewardTrackCommands';
@@ -23,16 +24,12 @@ const MAX_RETRIES = 3;
 
 const CONDITION_REWARD_TRACK_INCOMPLETE = 'reward_track_incomplete';
 
-/** `getProperty`: the hotel's value, as text. */
-export const getHotelProperty = (key: string): string => {
-    const value = systemStore.getState().config[key];
-
-    return ((typeof value === 'string') || (typeof value === 'number') || (typeof value === 'boolean')) ? String(value) : '';
-};
+/** `getProperty`: the hotel's value as text, read when it is asked for. */
+const configString = (key: string): string => configReader(systemStore.getState().config).configString(key);
 
 /** `getNewFeatureConditionState`: 1 show, 0 don't, -1 not known yet. */
 const getConditionState = (key: string): number => {
-    const condition = getHotelProperty(`notifications.new_feature.condition.${key}`);
+    const condition = configString(`notifications.new_feature.condition.${key}`);
 
     if (!condition.length) return 1;
 
@@ -66,14 +63,14 @@ const maybeShowByKey = (key: string, attempt: number) => {
 
 /** `maybeShowNewFeatureNotification`. */
 export const maybeShowNewFeatureNotifications = () => {
-    for (const key of getHotelProperty('notifications.new_feature.active').split(',')) {
+    for (const key of configString('notifications.new_feature.active').split(',')) {
         if (key.length) maybeShowByKey(key, 0);
     }
 };
 
 /** `openConfiguredLink`. */
 export const openNewFeatureLink = (send: Send, key: string) => {
-    const internalLink = getHotelProperty(`notifications.new_feature.internal_link.${key}`);
+    const internalLink = configString(`notifications.new_feature.internal_link.${key}`);
 
     if (internalLink !== '') {
         openClientLink(send, internalLink);
@@ -81,7 +78,7 @@ export const openNewFeatureLink = (send: Send, key: string) => {
         return;
     }
 
-    const externalLink = getHotelProperty(`notifications.new_feature.external_link.${key}`);
+    const externalLink = configString(`notifications.new_feature.external_link.${key}`);
 
     if (externalLink !== '') window.open(externalLink, 'habboMain');
 };

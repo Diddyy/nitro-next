@@ -10,7 +10,7 @@
  */
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { createVariablePickerState, setPickerTarget, WiredVariableFilter, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, setPickerTarget, WiredVariableFilter, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ConditionCodes } from './conditionCodes';
@@ -32,7 +32,7 @@ export const hasVariableCondition: WiredElementDefinition<HasVariableConditionFo
         picker: createVariablePickerState(getWiredRoomVariables(triggerable), triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 0)),
     }, ctx),
     readIntParams: form => [ form.picker.target ],
-    readVariableIds: form => [ form.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
     mergedSelections: [ [ 0, 0 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables',
     getMergedType: form => form.picker.target,

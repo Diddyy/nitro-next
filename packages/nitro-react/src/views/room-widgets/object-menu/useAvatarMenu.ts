@@ -6,7 +6,7 @@ import { reportUser } from '#base/commands/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useOwnRoomObjectId, useRoomIsPlayingGame, useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { useOwnIsAmbassador, useUserStore } from '#base/context/user';
+import { useAccountSafetyLocked, useOwnIsAmbassador, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { TRADE_REASON_ROOM, TRADE_REASON_SHUTDOWN, useRoomUserData } from '#base/hooks';
 import { isHandItem } from '#base/utils';
@@ -50,7 +50,7 @@ export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => 
     const [ mode, setMode ] = useState(MODE_ACTIONS);
     const respectLeft = useUserStore(x => x.respectLeft);
     const respectReplenishesLeft = useUserStore(x => x.respectReplenishesLeft ?? 0);
-    const accountSafetyLocked = useUserStore(x => x.accountSafetyLocked);
+    const accountSafetyLocked = useAccountSafetyLocked();
     const isAmbassador = useOwnIsAmbassador();
     const isPlayingGame = useRoomIsPlayingGame();
     const citizenshipTrack = useConfigValue<boolean>('talent.track.citizenship.enabled') ?? false;

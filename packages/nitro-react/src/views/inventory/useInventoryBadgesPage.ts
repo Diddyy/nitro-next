@@ -34,7 +34,7 @@ import {
     getInventoryBadgeRarityIds, getInventoryBadges, INVENTORY_BADGE_FILTER_ACHIEVEMENTS, INVENTORY_BADGE_FILTER_ALL, INVENTORY_BADGE_FILTER_NORMAL, INVENTORY_BADGE_RARITY_ALL, INVENTORY_BADGE_RARITY_COMMON, INVENTORY_BADGES_ACTIVE,
     INVENTORY_BADGES_INACTIVE, INVENTORY_MAX_ACTIVE_BADGES, InventoryBadge, isInventoryBadgeRarityFilterEnabled, passInventoryBadgeFilter, useInventoryBadgesActions, useInventoryStore,
 } from '#base/context/inventory';
-import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
+import { useBadgePointLimits, useConfigValue, useTranslation } from '#base/context/system';
 import { TemplateItem } from '#base/theme';
 import { getBadgeDesc, getBadgeName, shouldShowBadgeOwnerCount } from '#base/utils';
 
@@ -50,7 +50,7 @@ const page = (name?: string) => inventoryPagePath('badges', name);
 export const useInventoryBadgesPage = ({ active, templates }: InventoryPageContext): InventoryPage => {
     const { send } = useWebSocketContext();
     const t = useTranslation();
-    const badgePointLimits = useSystemStore(x => x.badgePointLimits);
+    const badgePointLimits = useBadgePointLimits();
     const badges = useInventoryStore(x => x.badges);
     const wornBadgeCodes = useInventoryStore(x => x.wornBadgeCodes);
     const selectedBadgeCode = useInventoryStore(x => x.selectedBadgeCode);

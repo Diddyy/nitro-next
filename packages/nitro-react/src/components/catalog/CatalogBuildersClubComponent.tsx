@@ -2,7 +2,7 @@ import { RoomEngineObjectEvent } from '@nitrodevco/nitro-api';
 import { BuildersClubQueryFurniCountComposer, GetCatalogIndexComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useRef } from 'react';
 
-import { useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { useCatalogRootNode, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useIsWindowVisible } from '#base/context/system';
 import { bridgeCatalogRoomChanged, registerCatalogBuildersClubHandlers, registerCatalogHandlers } from '#base/handlers';
@@ -24,8 +24,8 @@ import { CatalogView } from '#base/views/catalog/CatalogView';
  */
 export const CatalogBuildersClubComponent = () => {
     const isVisible = useIsWindowVisible('builders_catalog');
-    const catalogType = useCatalogStore(x => x.catalogType);
-    const rootNode = useCatalogStore(x => x.rootNode);
+    const catalogType = useCatalogType();
+    const rootNode = useCatalogRootNode();
     const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { hasBuilderSecondsLeft } from '#base/commands';
-import { CatalogWidgetEventEnum, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { CatalogWidgetEventEnum, useCatalogRootNode, useCatalogStoreApi } from '#base/context/catalog';
 import { useConfigValue } from '#base/context/system';
 import { useCatalogNavigation, useCatalogNodeActions, useCatalogWidgetEvent } from '#base/hooks';
 import { openWebPage } from '#base/utils';
@@ -27,7 +27,7 @@ import { useCatalogWidgetView } from '../catalogWidgetView';
  */
 export const CatalogBuilderSubscriptionWidgetView = ({ page }: CatalogWidgetProps) => {
     const store = useCatalogStoreApi();
-    const rootNode = useCatalogStore(x => x.rootNode);
+    const rootNode = useCatalogRootNode();
     const [ hasSecondsLeft, setHasSecondsLeft ] = useState(() => hasBuilderSecondsLeft(store));
     const buyMembershipPage = useConfigValue<string>('builders_club.buy_membership_page') ?? '';
     const tryPage = useConfigValue<string>('builders_club.try_page') ?? '';

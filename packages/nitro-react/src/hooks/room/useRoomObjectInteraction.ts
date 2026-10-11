@@ -2,7 +2,7 @@ import { FurnitureUsagePolicyEnum, RoomObjectCategoryEnum, RoomObjectMouseEvent,
 import { MoveAvatarComposer, SetRandomStateComposer, UseFurnitureComposer, UseWallItemComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoom, useRoomStore } from '#base/context/room';
+import { useRoom, useRoomPlayTestMode, useRoomStore } from '#base/context/room';
 
 import { useRoomObjectValidation } from './useRoomObjectValidation';
 
@@ -15,7 +15,7 @@ import { useRoomObjectValidation } from './useRoomObjectValidation';
 export const useRoomObjectInteraction = () => {
     const room = useRoom();
     const isFreeFurniMovementsMode = useRoomStore(x => x.isFreeFurniMovementsMode);
-    const playTestMode = useRoomStore(x => x.playTestMode);
+    const playTestMode = useRoomPlayTestMode();
     const { getActiveSurfaceLocation } = useRoomObjectValidation();
     const { send } = useWebSocketContext();
 

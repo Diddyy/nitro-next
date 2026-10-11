@@ -1,7 +1,7 @@
 import { BuildersClubQueryFurniCountComposer, GetBundleDiscountRulesetComposer, GetCatalogIndexComposer, GetClubGiftInfoComposer, GetGiftWrappingConfigurationComposer, GetMarketplaceConfigurationComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
 
-import { useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { useCatalogRootNode, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsWindowVisible } from '#base/context/system';
 import { bridgeCatalogRoomChanged, bridgeGameTokensPurchaseConfirmation, registerCatalogBundleHandlers, registerCatalogClubHandlers, registerCatalogGuildHandlers, registerCatalogHandlers, registerCatalogLimitedEditionHandlers, registerCatalogMarketplaceHandlers, registerCatalogMediaHandlers, registerCatalogPetHandlers, registerCatalogPurchaseFlowHandlers, registerCatalogRoomAdHandlers } from '#base/handlers';
@@ -22,8 +22,8 @@ import { CatalogRentConfirmationView } from '#base/views/catalog/purchase/Catalo
  */
 export const CatalogComponent = () => {
     const isVisible = useIsWindowVisible('catalog');
-    const catalogType = useCatalogStore(x => x.catalogType);
-    const rootNode = useCatalogStore(x => x.rootNode);
+    const catalogType = useCatalogType();
+    const rootNode = useCatalogRootNode();
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();
 

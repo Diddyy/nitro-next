@@ -24,7 +24,7 @@ import { requestClubOffers, showClubPurchaseConfirmation } from '#base/commands'
 import { CLUB_OFFERS_SOURCE_CLUB_BUY, ClubBuyOfferData, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData, useTranslation } from '#base/context/system';
-import { getPurseClubType, useUserStore } from '#base/context/user';
+import { getPurseClubType, useOwnClubSubscription } from '#base/context/user';
 import { useTemplateLibrary } from '#base/theme';
 import { getClubOffersToShow } from '#base/utils';
 
@@ -52,7 +52,7 @@ const clubBuyItem = (templates: Record<string, Template>, offer: ClubBuyOfferDat
 
 export const CatalogClubBuyWidgetView = ({ page }: CatalogWidgetProps) => {
     const offers = useCatalogStore(x => x.clubOffers);
-    const subscription = useUserStore(x => x.clubSubscription);
+    const subscription = useOwnClubSubscription();
     const config = useConfigData();
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();

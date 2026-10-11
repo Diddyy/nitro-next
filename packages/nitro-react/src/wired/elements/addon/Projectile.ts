@@ -18,7 +18,7 @@
  * variable (`isInputSourceDisabled`).
  */
 import type { WiredSubVariableParam } from '../../common/SubVariableParam';
-import { setPickerTarget } from '../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -123,7 +123,7 @@ export const projectileAddon: WiredElementDefinition<ProjectileAddonForm> = {
         form.distance.picker.target,
         (form.trajectory === 1) ? form.trajectoryHeight : 0,
     ],
-    readVariableIds: form => [ form.animationTime.picker.variableId, form.distance.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.animationTime.picker), finalizePickerSelection(ctx.roomVariables, form.distance.picker) ],
     widthModifier: 1.3,
     allowScrolling: false,
     furniSelectionTitle: () => 'wiredfurni.params.sources.furni.title.projectile',

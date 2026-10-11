@@ -7,3 +7,4 @@ export * from './useOwnRoomObject';
 export * from './useOwnRoomObjectId';
 export * from './useRoomIsPlayingGame';
 export * from './useRoomIsSpectating';
+export * from './useRoomPlayTestMode';

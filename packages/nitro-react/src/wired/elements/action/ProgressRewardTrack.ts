@@ -8,7 +8,7 @@
  * `[ that variable ]`. A box saved with a value opens with no variable (Flash passes
  * `WiredVariable.§_-i8§`, an id no variable has, to the picker). Its input sources are always shown.
  */
-import { setPickerTarget } from '../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables, getWiredString } from '../../WiredTriggerable';
@@ -52,7 +52,7 @@ export const progressRewardTrackAction: WiredElementDefinition<ProgressRewardTra
     },
     readIntParams: form => [ form.addToExistingScore ? 1 : 0, form.score.option, form.score.value, form.score.picker.target ],
     readStringParam: form => `${form.trackId}\t${form.taskId}`,
-    readVariableIds: form => [ form.score.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.score.picker) ],
     mergedSelections: [ [ 0, 1 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',
     getMergedType: form => form.score.picker.target,

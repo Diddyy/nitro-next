@@ -1,5 +1,5 @@
 /**
- * The friend list's tabs as `FriendsView`, `FriendRequestsView` and `SearchView` fill them: the
+ * The friend list's tabs as `FriendsView`, `§_-fK§` (the requests tab) and `SearchView` fill them: the
  * rows each puts in its tab's `list_content` - clones of `friend_entry`, `friend_request_entry` and
  * `search_entry` with every part the row does not use hidden (`Util.hideChildren`, then the parts
  * shown again) - and the footer each fills (`fillFooter`).
@@ -257,7 +257,7 @@ const friendRow = (friend: IMessengerFriend, index: number, args: FriendsTabArgs
 
 const REQUEST_ENTRY_PARTS = [ 'bg_region', 'user_info_region', 'requester_name_text', 'info_text', 'accept', 'reject' ] as const;
 
-/** `FriendRequestsView.refreshRequestEntry`: what an answered request shows, by its state. */
+/** `§_-fK§.refreshRequestEntry`: what an answered request shows, by its state. */
 const REQUEST_STATE_TEXT: Partial<Record<FriendRequestStateType, string>> = {
     [FriendRequestStateType.Accepted]: '${friendlist.request.accepted}',
     [FriendRequestStateType.Declined]: '${friendlist.request.declined}',
@@ -277,7 +277,7 @@ export interface RequestsTabArgs {
 }
 
 /**
- * `FriendRequestsView.fillList`: a `friend_request_entry` per request, shaded from an even row
+ * `§_-fK§.fillList`: a `friend_request_entry` per request, shaded from an even row
  * (`FriendRequests.refreshShading`) with its `accept` / `reject` backgrounds in the row's colour
  * (`setButtonBg`). The row opens the requester's profile; an open request has its accept and
  * decline icons, an answered one its outcome in `info_text`.

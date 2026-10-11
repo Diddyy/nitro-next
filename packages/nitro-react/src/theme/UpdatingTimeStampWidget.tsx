@@ -8,43 +8,19 @@ import { BoxLayout, ThemeText } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { GetFriendlyTime } from '#base/utils';
+import { clockTicker, GetFriendlyTime } from '#base/utils';
 
 /** `UPDATE_TIMER`'s delay. */
 const UPDATE_MS = 60000;
 /** `§_-yk§.textColor = 5592405`. */
 const TEXT_COLOR = '#555555';
 
-let now = Date.now();
-const listeners = new Set<() => void>();
-let timer: ReturnType<typeof setInterval> | undefined;
-
-const subscribe = (onChange: () => void) => {
-    // A widget made, or given a new time, reads the time then (`reset` / `set timeStamp`): React reads
-    // the snapshot again once it has subscribed, and draws it with this one.
-    now = Date.now();
-    listeners.add(onChange);
-
-    if (!timer) {
-        timer = setInterval(() => {
-            now = Date.now();
-
-            for (const listener of listeners) listener();
-        }, UPDATE_MS);
-    }
-
-    return () => {
-        listeners.delete(onChange);
-
-        if (!listeners.size && timer) {
-            clearInterval(timer);
-            timer = undefined;
-        }
-    };
-};
+// A widget made, or given a new time, reads the time then (`reset` / `set timeStamp`): React reads
+// the snapshot again once it has subscribed, and draws it with this one.
+const minuteClock = clockTicker(() => Date.now(), UPDATE_MS, true);
 
 /** `Date.now()`, as the shared minute timer last read it. */
-const useMinuteClock = () => useSyncExternalStore(subscribe, () => now);
+const useMinuteClock = () => useSyncExternalStore(minuteClock.subscribe, minuteClock.getSnapshot);
 
 export interface UpdatingTimeStampWidgetProps {
     /** `timeStamp`: the time, in ms since the epoch, it counts from. */
