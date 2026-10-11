@@ -80,8 +80,7 @@ Rules that come out of that:
   pack is auditable rather than trusted.
 - **What is preloaded is `asset.bundles.preload` in `nitro-config.json`**, fetched by
   `preloadAssetBundles()` before the first view renders. A Flash library's bundle that is not
-  preloaded is pulled in by the first texture request for one of its bitmaps
-  (`lazyBundleForAsset` in `utils/assetBundles.ts`). `font-faces` is out of the preload too;
+  preloaded is pulled in lazily, as above (`lazyBundleForAsset` in `utils/assetBundles.ts`). `font-faces` is out of the preload too;
   `preloadFlashFonts` starts it in the background. `scripts/drift/bundle_loading.py` holds every
   bundle built here to being preloaded or loaded by name in code: a bundle reached by neither is
   art that never draws.

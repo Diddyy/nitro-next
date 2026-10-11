@@ -1,6 +1,11 @@
 # Runtime views and theme packs: design notes
 
-Status: proposal only, nothing built yet. Written 2026-09-25.
+Status: written 2026-09-25 as a proposal; parts are built since. The built-in theme data (layer 1)
+comes from Nitro Studio into `themeRegistry`, and view templates (layer 2) are how windows are drawn:
+Nitro Studio converts each library's Flash layouts with `layoutToTemplate` into the library's
+template bundle, and `TemplateView` / `useTemplate` / `TemplateWindow` render them (see
+[Layout views](../layout-views.md)). Theme packs, runtime overrides and code plugins are not built.
+Names in the proposal below predate the implementation.
 
 ## Goal
 
@@ -43,8 +48,8 @@ The client already pays those at runtime. What an interpreted tree does lose:
 - Per-node props merging. This is fine as long as bindings are resolved once per render and not
   per node per frame.
 
-The network cost is a small JSON file per window, zipped into a `.nitro` like `nitro-layouts`
-already is. It is lazy-loaded the same way `lazyBundleForAsset` pulls in a library's bundle.
+The network cost is a small JSON file per window, zipped into a `.nitro` like the library template
+bundles now are. It is lazy-loaded the same way `lazyBundleForAsset` pulls in a library's bundle.
 
 **The real risks are elsewhere:**
 
@@ -71,7 +76,8 @@ Three layers, in order of risk and effort. Each layer is useful on its own.
 ### 1. Theme packs: data only, low risk, do this first
 
 The `*_VARIANTS` tables are already data wearing TS syntax: a sheet id, a `windowLayout(...)`
-name, a tint colour, a text style (see `theme/Button.tsx`). Move them to JSON:
+name, a tint colour, a text style. Move them to JSON (now `theme-variants.json`, read through
+`themeRegistry` / `useThemeVariant`):
 
 - The built-in variant tables are generated JSON in the `theme` bundle. (Done: Nitro Studio builds
   it from the client release's window manager library, `server/theme/` there, and nitro-react
@@ -86,9 +92,9 @@ name, a tint colour, a text style (see `theme/Button.tsx`). Move them to JSON:
 ### 2. View templates: look without logic
 
 - **Format:** JSON, not XML. It is the same model as Flash's layout (element type, style,
-  layout box, name, vars), but parsed natively with no XML parser at runtime. The generator
-  (`generate-layout-views.ts`) already turns the Flash XML into this tree before printing TSX.
-  Have it also emit JSON, and the Flash layouts become the first templates for free.
+  layout box, name, vars), but parsed natively with no XML parser at runtime. (Built: Nitro
+  Studio's `layoutToTemplate` turns the Flash XML into this tree, so the Flash layouts are the
+  templates.)
 - **Renderer:** `<TemplateView id="catalog_ubuntu" bind={...} />` walks the tree and maps each
   element type to a theme component (`Frame`, `Button`, `ThemeText`, `Region`, ...). It uses the
   element-description mapping the generator already knows.

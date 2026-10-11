@@ -10,27 +10,26 @@ data for their reception views. Navigation remains available through the toolbar
 
 - AS3: `scripts/habbo-as3/com/sulake/habbo/friendbar/landingview/`.
   `layout/WidgetContainerLayout.as` decides background scheduling, visibility and
-  retention. The pinned layout was extracted from the September revision's SWF DefineBinaryData.
+  retention.
 - Habbo's JavaScript port: `scripts/habbo-js-resources/habbo-friend-bar-com/landing_view_default_dynamic_layout.xml`
   is the layout the release bundles, and `scripts/habbo-js` holds the corresponding controller,
-  identified by its background names, layout names, scheduling key and method flow. The
-  `r_5fe2d203ec900f056bb65ecb` release this pass was checked against matched September's
-  extracted XML after newline normalization; the build 90 bundle's copy no longer matches the pin
-  (`tools/references/hotel-view.json`), so review it before repinning. This does not assert that an
-  entire release matches the AS3.
+  identified by its background names, layout names, scheduling key and method flow. This does
+  not assert that an entire release matches the AS3.
 
-No proprietary reference code is shipped. The manifest pins the layout, official evidence and AS3
-controller/parser; the test reads its pinned copy of the layout from a git-ignored local path
-(see `tools/hotel-view.test.mjs`).
+`tools/references/hotel-view.json` pins the sources this pass was checked against. Against the
+current reference folders: the bundle's layout matches the `official-default.xml` pin, not the
+`layout` pin (the layout extracted from the September SWF, which differs from it); the
+`WidgetContainerLayout.as` pin no longer matches `scripts/habbo-as3`. Review the differences before
+repinning; never repin only to make the test pass.
 
 ```powershell
 node --test tools/hotel-view.test.mjs
 ```
 
-The tests compare the initial background table to the pinned XML when those local
-inputs are present; this check is explicitly skipped when they are absent. Other
-tests cover packet field order, composer payload, schedule filtering, room-hidden
-updates, activation requests, retained images and listener cleanup.
+The background-table test reads the pinned layout from an ignored local path that no longer exists
+(see `tools/hotel-view.test.mjs`), so it is currently always skipped. The other tests cover packet
+field order, composer payload, schedule filtering, room-hidden updates, activation requests,
+retained images and listener cleanup.
 
 Three review items from the layout are resolved as follows:
 
@@ -39,19 +38,17 @@ Three review items from the layout are resolved as follows:
   bundle art. The existing ThemeImage/FlashBitmap path preserves their bitmap rules.
 - `hideWarningIfPresent` hides the layout editor's warning unconditionally.
 
-The six added config values follow the workbench's captured external variables
-(`.workbench/gamedata-fixture/external_variables.txt`), with the source image-library
-URL used for the unmodified reception logo (protocol-relative host normalized to HTTPS).
-They are a September snapshot, not an
+The six added config values follow the hotel's external variables as captured in September
+(a local workbench fixture, not in the repository), with the source image-library URL used for the
+unmodified reception logo (protocol-relative host normalized to HTTPS). They are a snapshot, not an
 automatic external-variables refresh.
 
 ## Verification and limits
 
 The live local emulator connection rendered reception, including the matching timing
-reply and remote artwork. Browser captures are `tmp/hotel-live.png` (1264x569),
-`tmp/hotel-1172x822.png`, `tmp/hotel-800x600.png`, and
-`tmp/hotel-navigation.png` (toolbar Rooms button opens the navigator above reception).
-These are inspection artifacts, not approved official screenshot baselines.
+reply and remote artwork, at 1264x569, 1172x822 and 800x600, and with the toolbar's Rooms button
+opening the navigator above reception. Those captures were local inspection artifacts, not
+approved screenshot baselines, and are not kept.
 
 AS3 retains a layer's last URI when the new configuration omits it, and does not
 apply a replacement while the layer is hidden. One focused Jev request checked
@@ -66,22 +63,21 @@ the `generic` widget that code names (`caption`, `subcaption`, `bodytext`, `spac
 `CountdownWidget`). The reception, the grid, the generic widget and its elements, the promo
 article and the empty widget container are drawn from their `habbo-friend-bar-com` templates
 (`landing_view_default_dynamic_layout`, `dynamic_widget_grid`, `generic_widget`, `element_*`,
-`promo_article`, `widget_container_widget`). The live emulator capture `tmp/hotel-slots-2.png` shows the bonus rare and
+`promo_article`, `widget_container_widget`). A live emulator capture showed the bonus rare and
 four scheduled promos, with offsets, pane gap and row spacing matching a capture from the AIR
 client. Only the slot and code variables of the current schedule are in `nitro-config.json`.
 
 Captions use the layout's `spacing="-0.6"`. The exact text renderer used to refuse any letter
 spacing, and so did Sulake's JS build (`native letterSpacing is not implemented yet`), which
 dropped those captions to browser text. The advanced layouts now add it to the pen after each
-glyph. At 0 no step changes, but `scripts/flash-text-golden` was not available to hash-check.
+glyph. At 0 no step changes; the letter-spacing path was not hash-checked against the original
+renderer.
 
-Still open: body texts with non-ASCII punctuation (`Ã¢â‚¬â€œ`, `Ã¢â‚¬â„¢`) fall back to browser text because
-the captured AIR font bundles hold printable ASCII only; the caption's `max_lines="2"` is not
+Still open: the caption's `max_lines="2"` is not
 enforced; the promo-article and community-goal widgets draw their data but not their layouts
 (carousel, links, meter, voting); the new-identity override, moving
 background objects and alternate configured layouts are not ported; the bonus rare's credits
 button has no hotel web page to open.
-
 
 ## PR #37 merge reconciliation
 

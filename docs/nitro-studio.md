@@ -61,6 +61,5 @@ The detailed checks are listed in [staying in step](staying-in-step.md):
 - `config_keys.py` and `localization_keys.py`: imported workspace data against the keys the client
   and AS3 reference use.
 
-Confirm the relevant scripts and workspace inputs are available before running these checks.
-Report missing prerequisites explicitly. These contracts remain useful to developers working on
-Nitro Studio even when another developer cannot run the application locally.
+These checks need the workspace's imported data; when it is missing they say so, and the run is
+not a pass.

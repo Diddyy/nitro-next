@@ -32,23 +32,22 @@ answer yet.
 | Feature | What is missing | Packet areas |
 |---|---|---|
 | Moderation tool | Issues, chat logs, room and user info, room visits, sanctions. No window, no store, and nothing sends its requests. | `Moderation`, `Moderator` |
-| Help, call for help and guides | Reporting a user or room (the navigator's room info bubble keeps its report entry hidden until this exists), pending calls, guide sessions, chat review, the safety quiz. | `Help`, `Callforhelp` |
+| Help, call for help and guides | Pending calls, guide sessions, chat review, the safety quiz. Reporting a user, a room, an instant message or a photo is ported (`views/help`, `helpCommands`, the navigator's room info bubble). | `Help`, `Callforhelp` |
 | Talent track and the daily quest | Talent track levels, and the hotel view's `dailyquest` widget. The quest list, details, tracker and completed dialog are ported (`views/quests`), community goals are the hotel view's; the achievement browser, score and standard award packets are implemented - see [achievement client](achievements.md). | `Quest`, `Talent` |
-| Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. `commands/gameTokensCommands.ts` has nothing that calls it. | `Game` |
-| Room camera | Taking, buying and publishing photos, thumbnails, photo competitions. The mannequin and plane code note the missing camera render (`FurnitureMannequinVisualization`, `RoomPlane`). | `Camera` |
+| Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. Nothing calls `buySnowWarTokensOffer` (`commands/gameTokensCommands.ts`); the catalogue's game token offers are bought through `purchaseGameTokensOffer`. | `Game` |
 | Campaign calendar | The advent calendar and its doors, and the seasonal daily offer that shares it. | `Campaign`, `Catalog` |
 | New user experience | The gift offer, the initial room choice, the tutorial script. | `Nux` |
 | Room competitions | Submitting, voting, forwarding to competition rooms. | `Competition`, `Navigator` |
-| NFT wardrobe | Saved NFT outfits and their selection, silver. | `Nft` |
+| NFT wardrobe | Silver (`GetSilverComposer`). Saved NFT outfits, their selection and the avatar editor's `nfts` tab are ported. | `Nft` |
 | Name change | `AvatarEditorNameChangeView` and the in-room name change (`AvatarEditor`). | `Avatar` |
-| Avatar editor | The hot looks and effects lists (`HotLooksView`, `AvatarEditorGridViewEffects`, `effectParamsContainer`) and the `nfts` tab - nothing feeds them. | `AvatarEditor` |
+| Avatar editor | The hot looks and effects lists (`HotLooksView`, `AvatarEditorGridViewEffects`, `effectParamsContainer`) - nothing feeds them. | `AvatarEditor` |
 
 ## Gaps inside ported features
 
 | Area | Gap | Where |
 |---|---|---|
 | Room | YouTube playback control from the server (`YoutubeControlVideoMessage`). | `FurnitureYoutubeView` |
-| Navigator | Reporting a room from the room info bubble, which waits on the call-for-help reporting flow (see Help above). | `NavigatorRoomInfoPopup` |
+| Room camera | Photo competitions (`PhotoCompetitionComposer`, `CompetitionStatusMessage`); taking, buying and publishing photos and room thumbnails are ported (`views/room-widgets/camera`, `RoomThumbnailCameraWidget`). | `Camera` |
 | Catalogue | The gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
@@ -57,7 +56,7 @@ answer yet.
 | Group forums | Scrolling to the message a link names. | `GroupForumView` |
 | Wired | The limited-edition plaque and rarity flag on chest item icons. | `WiredChestFurniContentsView` |
 | Hotel view | The widget types `PORTED_LANDING_VIEW_WIDGETS` leaves out: the avatar image, the catalogue promos, daily quest, the competition prizes and hall of fame, the moderation, talents, Habbo Way and safety quiz promos, and the room hopper. The generic widget leaves out its title, image, room, badge, habblet, VIP, community goal, daily quest and concurrent-user elements. The expiring page widget is not asked again when an invisible catalogue page is visited (`CATALOG_INVISIBLE_PAGE_VISITED`), the next limited rare's buttons open its page without picking the offer, and the community goal keeps `goal_info` at its layout height. What the ported widgets wait on from the server is under [Hotel view: Turbo and the admin panel](#hotel-view-turbo-and-the-admin-panel). | `HotelViewWidgets`, `HotelViewGenericWidget`, `HotelViewPromoArticleWidget` |
-| Chat | Flash's chat commands other than the wired ones; the chat input sends them as chat. The chat bar's help button (`helpbutton`, shown while the pointer is over the field, opening `habbopages/chat/commands`) stays hidden. | `wiredChatCommands`, `RoomChatInputView` |
+| Chat | The chat commands `roomChatCommands` lists as not carried (`:shake`, `:ping`, `:showstats`, `:news`, ...). The chat bar's help button (`helpbutton`, shown while the pointer is over the field, opening `habbopages/chat/commands`) stays hidden. | `roomChatCommands`, `RoomChatInputView` |
 | Account | Email change and status. | `Users` |
 | Hot looks, mystery box keys, user classification, element pointer | No listener or request. | |
 
@@ -84,11 +83,11 @@ tab, as raw JSON. Where each widget stands:
 
 ## Views not yet drawn from their Flash template
 
-None: every window whose Flash layout is in the bundles draws from it through `TemplateWindow`,
-binding what its Flash code does to the layout's named windows. A view would count here when it
-draws theme components and loads no template although a layout for it exists; the layouts are the
-library's in `scripts/habbo-js-resources`. What Flash builds in code (a table, a previewer, a
-rotating image) is drawn by the port's own components inside the layout's containers.
+Every window whose Flash layout is in the bundles draws from it through `TemplateWindow` (see
+[Layout views](layout-views.md)), except the floor plan editor: `floor_plan_editor_bc` and
+`floor_plan_export_import` are in `habbo-window-manager-com`, but `FloorPlanEditorView` places
+their parts by hand. A view counts here when it draws theme components and loads no template
+although a layout for it exists in `scripts/habbo-js-resources`.
 
 The chat bar is drawn from `chatinput_window_new` but keeps the client's own text field in
 `chat_input`'s place, for the command completion the port adds to it.
@@ -96,8 +95,7 @@ The chat bar is drawn from `chatinput_window_new` but keeps the client's own tex
 No layout to convert to, so these stay hand-placed: the wired setup editor and the wired trading
 frame (`views/wired-setup`, `views/wired-common`, `WiredTradingFrame` and the chest settings and
 notification settings windows on it - Flash builds them in code from `UbuntuPresetManager`, and the
-`wired_style_*` templates are already read by the wired styles), the floor plan editor (its layout
-is not in the bundles) and the loading screen. In the room UI, also the room ad tooltip (built with `createWindow`), the chat command suggestions (the port's
+`wired_style_*` templates are already read by the wired styles) and the loading screen. In the room UI, also the room ad tooltip (built with `createWindow`), the chat command suggestions (the port's
 own) and `PetPortraitView` (a picture the breeding windows draw into their bitmaps).
 
 ## Not gaps

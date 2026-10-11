@@ -7,9 +7,10 @@ a new one costs you time. Rules with a longer story live in the other guides in 
 
 - **`display: 'none'` does not hide a theme `Icon`** - it drops the icon's position and draws it at
   the parent's corner. Render it conditionally (`{cond && <Icon ... />}`).
-- **A leaf placed by insets alone stays 1x1** (`left: 0, right: 0, height: 1` on a `ColorLayer`
-  draws one pixel, not a line). State the length too - `width: '100%'` - as `FillLayout` does.
-  `TextInput`'s `border` drew four corner dots in every window that used it until this was fixed.
+- **Insets alone do not size a leaf**: one without a texture stays 1x1 (`left: 0, right: 0,
+  height: 1` on a `ColorLayer` draws one pixel, not a line - `TextInput`'s `border` drew four
+  corner dots in every window), and a textured one keeps its texture's size. State the length too -
+  `width: '100%'` - as `FillLayout` does; see [Client conventions](client-conventions.md).
 - **`Box` lays out in a row by default.** A bubble with an arrow under it needs
   `flexDirection: 'column'`.
 - **Check the component's props before adding diagnostic labels.** Named-control browser
@@ -17,9 +18,11 @@ a new one costs you time. Rules with a longer story live in the other guides in 
 - **A Flash `TextFieldManager` hint is real text**, in the field's normal colour, cleared on focus -
   not a grey `placeholder`. See `NavigatorRoomCreateView`'s name and description fields.
 - **Config booleans go through `useConfigValue<boolean>(key) === true`**, and the key must be in
-  `nitro-config.json`: a missing key is silently `false`.
+  `nitro-config.json` under Flash's name - see the config section of
+  [Client conventions](client-conventions.md).
 - **A table lifted out of a Flash method** lives in `context/<feature>/store/`, not in the view
-  file (fast refresh fails lint), and gets a `scripts/drift/constants.py` entry.
+  file (fast refresh lint warns, and the gates allow no new warnings), and gets a
+  `scripts/drift/constants.py` entry.
 - **A template id is its bundle's key, and the libraries name them differently**: some keep the
   asset's `_xml` suffix (`habbo-friend-bar-com/bonus_rare_promo_xml`), others drop it
   (`habbo-groups-com/group`). A wrong id draws nothing and logs nothing - check the library's keys.

@@ -98,7 +98,9 @@ and the client never asks. An extension's packets are taken only once the server
 so a server using the same headers for something else cannot feed them in. Turbo's
 `docs/client-capabilities.md` owns the wire format.
 
-`permission.nodes` is the one extension so far: Turbo sends the user's client-facing permission
+Two extensions so far. `chat.commands.v2` gives the chat input Turbo's command tree and its
+suggestions (`TurboCommandTreeMessage` 30002, `TurboCommandSuggestComposer` 30003,
+`TurboCommandSuggestionsMessage` 30004, into `UserChatCommandsSlice`). `permission.nodes`: Turbo sends the user's client-facing permission
 nodes (`TurboPermissionNodesMessage`, 30001) after `UserRights` and on every change, into
 `userStore.permissionNodes`. Every security-level check goes through a `ClientGates` entry
 (`src/context/user/gates/ClientGate.ts`) and `useClientGate` / `hasClientGate`: the gate asks its

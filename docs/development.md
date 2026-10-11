@@ -7,13 +7,10 @@ corepack yarn install
 corepack yarn workspace @nitrodevco/nitro-react dev
 ```
 
-Open the URL printed by Vite. Use a dedicated test account and Turbo's configured WebSocket
-endpoint with a Turbo-issued SSO ticket. Each developer supplies their own endpoint, credentials
+Open the URL printed by Vite and log in through Turbo as [Nitro and Turbo
+development](turbo-development.md) describes (server startup, connection settings, packet ownership
+and verification across both repositories). Each developer supplies their own endpoint, credentials
 and reference locations; do not commit tickets, personal paths, or captured account data.
-For missing server behavior, work in the Turbo checkout used by your development environment.
-AS3 packet contracts and executable checks determine correctness.
-See [Nitro and Turbo development](turbo-development.md) for server startup, connection settings,
-packet ownership and verification across both repositories.
 
 ## Habbo reference code
 
@@ -33,6 +30,11 @@ not recover read `unk_<hex>`, `Unknown<Base>_<hex>` or `paramN`/`localN`, and `o
 the AS3's `§_-P1n§`. To find a class, search for a string that survives in both (a layout name, a
 localization key, a configuration key or an asset name).
 
+The folders need not be the same build: `scripts/habbo-js-resources` currently comes from a newer
+release than the `scripts/habbo-as3` decompile. Where an asset differs between them the AS3 wins;
+the drift checks list each such asset with its reason in `known.REFERENCE_BUILD_SKEW` (see
+[Staying in step](staying-in-step.md)).
+
 ## External prerequisites
 
 | Resource | Purpose |
@@ -51,11 +53,9 @@ assume every generator supports the same environment variables.
 
 ## Tool availability
 
-Nitro Studio is useful shared tooling even when it is absent from a developer's checkout.
-Keep its workflow and integration contracts documented; local availability does not determine
-whether a tool belongs in the project. Use its own README for setup and version-specific commands.
-
-Find shared tools and their usage guides in the [tools directory](../tools/).
+Shared test and diagnostic scripts are in the [tools directory](../tools/); the two with written
+guides are `hotel-view-reference.md` and `profile-visual-check.md`. Nitro Studio's workflow is
+documented in [Nitro Studio](nitro-studio.md) whether or not it is checked out.
 The topic guides also explain asset generation, packet synchronization and drift auditing; some
 of those scripts or external inputs may be absent from a checkout. Check that the named script
 exists before running it. Obtain missing tooling/inputs, or report that verification was not run.
@@ -68,7 +68,7 @@ work parked on a WIP branch is not part of a clean checkout.
 
 Keep generated captures, reports and task notes under ignored `tmp/`. Use test fixtures without
 personal information when adding shared regression tests. Follow the code gates in
-[AGENTS.md](../AGENTS.md); for UI changes, also verify the running client against Turbo.
+[AGENTS.md](../AGENTS.md).
 
 ## Porting and verification notes
 

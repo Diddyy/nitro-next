@@ -20,7 +20,7 @@ Many generated parsers and composers are empty. To complete one:
    `com/sulake/habbo/session/*` for field meanings.
 4. Register the class in `GetIncomingPackets.ts` / `GetOutgoingPackets.ts` and both barrels
    (`src/index.ts`, `src/incoming|outgoing/index.ts`, sorted case-insensitively). An
-   unregistered packet fails at runtime with "Invalid listener: not registered".
+   unregistered packet fails at runtime with "Invalid listener: packet <name> is not registered."
 5. Incoming parsers map to typed objects (`{ userId, selectedBadges: IHabboUserBadge[] }`), with
    the interface exported from the message file unless a shared parser already defines it.
 

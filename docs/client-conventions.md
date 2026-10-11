@@ -49,7 +49,7 @@ Lint enforces the style: 4-space indent, single quotes, `[ a, b ]` array spacing
 on multiline, `simple-import-sort` with `#base/*` as its own group. Run `eslint --fix` for the
 mechanical fixes rather than hand-formatting.
 
-The React Compiler is on. Never add `eslint-disable react-hooks/*`. When a rule fires, restructure:
+The React Compiler is on. When a `react-hooks` rule fires, restructure:
 no impure calls at render time (`performance.now()`, `Math.random()`, `new Date()` - use
 `useSyncExternalStore` or a hook such as `useSecondsClock`), no `setState` synchronously inside an
 effect to "sync" props (adjust during render instead, as `RoomBotSkillConfigurationWidget` does with
@@ -61,18 +61,17 @@ Imports go through the aliases: `#base/context/<feature>` (never `#base/context`
 
 ### Stores (`context/<feature>`)
 
-- **App-wide singletons**: `roomStore`, `userStore`, `systemStore`, `navigatorStore`,
-  `avatarEditorStore`, `notificationStore`, `inventoryStore`, `wiredStore`, `wiredTradingStore`.
-  Read in React with `useXStore(x => x.field)`, one field per call - never select an object
+- **App-wide singletons**: every store except catalog and friends (`roomStore`, `userStore`,
+  `systemStore`, `navigatorStore`, `inventoryStore`, `wiredStore`, ...). Read in React with `useXStore(x => x.field)`, one field per call - never select an object
   literal. Outside React use `xStore.getState()`.
 - **Window-scoped stores** (catalog, friends) keep a provider and are read with
   `useXStore(selector)` inside it; `useXStoreApi()` gives the raw store to handlers. Prefer a
   singleton: a window that should remember what it held when it reopens (the avatar editor's
   wardrobe) cannot do so from a store that is created with the window.
-- Each store is composed of slices: `context/room/store/RoomBotsSlice.ts` exports a `State`, an
-  `Actions` type, `XSliceInitialState` and `createXSlice`. `RoomStore.setRoom` resets every slice
+- Each store is composed of slices: `context/room/store/RoomBotsSlice.ts` declares its `State` and
+  `Actions` types and exports `XSlice` (the two combined), `XSliceInitialState` and `createXSlice`. `RoomStore.setRoom` resets every slice
   from its initial state, so put per-room data in a room slice and it is cleared for free.
-- **Actions** are exposed by `context/<feature>/actions/useXActions.tsx`, which reads them off the
+- **Actions** are exposed by `context/<feature>/actions/useXActions.ts`, which reads them off the
   store once and returns a constant object. Components take actions from there, not from a
   selector, so an action user never re-renders.
 - **Selectors** with a name live in `context/<feature>/selectors/`, one hook per file, grouped
@@ -127,12 +126,9 @@ Rules:
   still returns its unsubscribe and is named for what it does, not `*Handlers`.
 - No React in `handlers/`. If a listener needs a value React owns, the value belongs in a store.
 - A registered incoming packet nobody subscribes to is a feature that silently does nothing: the
-  packet arrives, is parsed and is dropped. `scripts/drift/handlers.py` holds every entry of
-  `GetIncomingPackets.ts` against the subscription sites and against the Flash component that
-  handles the same message id, so a parser with no listener is either wired up or listed in
-  `known.HANDLERS_UNHANDLED` with what it waits for - the window, store or manager that is
-  missing, never a blanket "not ported yet". Finishing a packet in `nitro-packets` is half the
-  job; the other half is the listener, or the entry saying why there is none.
+  packet arrives, is parsed and is dropped. Finishing a packet in `nitro-packets` is half the job;
+  the other half is the listener, or a `known.HANDLERS_UNHANDLED` entry naming what it waits for
+  (`handlers.py` checks it; see [Staying in step](staying-in-step.md)).
 
 ### Hooks (`hooks/`)
 

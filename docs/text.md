@@ -21,7 +21,7 @@ still Flash-exact - it does **not** drop the text to the browser's canvas, which
 fonts covers still falls back.
 
 Three things about those vars that are easy to get wrong, and that the theme's template code
-(`template/measureTemplateText.ts`) encodes:
+encodes (`themeDefaultTextStyle` in `utils/textStyles.ts`, used by `template/measureTemplateText.ts`):
 
 - **A text with no `text_style` var is not `regular`.** The window's `style` id picks a theme, and
   `ThemeManager`'s three real themes each default `text_style` differently: Volter (ids 0-2)
@@ -41,9 +41,11 @@ Three things about those vars that are easy to get wrong, and that the theme's t
   `advanced` + `subpixel` has no exact rendering - Sulake's own build throws on it - so those texts
   draw in canvas text, here and in the client this renderer came from.
 
-`UbuntuThick` is a fourth embedded face (`UbuntuThick-Bold.ttf`) that 39 layout texts name and the
-port has captured neither an AIR bundle nor a `.ttf` for. A template text naming it passes the
-face through as `fontFamily`, which no captured font covers, so it draws in browser text.
+`UbuntuThick` is a fourth embedded face that about forty layout texts name. The client's window
+manager bundle carries it (`ubuntuThick_bold_air51.json`, `ubuntuThick_bold.ttf` in
+`scripts/habbo-js-resources/habbo-window-manager-com`), but the port ships neither, so a template
+text naming it passes the face through as `fontFamily`, which no shipped font covers, and draws in
+browser text.
 
 - `flash-text/air32/` is a port of Sulake's bit-exact re-implementation of Adobe AIR's text
   rasterizer. Its arithmetic is deliberately literal: every `Math.fround`, every rounding helper
