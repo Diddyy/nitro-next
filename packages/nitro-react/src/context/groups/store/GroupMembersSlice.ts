@@ -1,6 +1,3 @@
-import { IGuildMemberData, IMemberData } from '@nitrodevco/nitro-packets';
-import { StateCreator } from 'zustand';
-
 /**
  * The members window's one page - Flash's `GuildMembersWindowCtrl` and the `GuildMemberData` it
  * holds. The server owns the paging: a page is asked for and the answer replaces what is shown,
@@ -8,6 +5,8 @@ import { StateCreator } from 'zustand';
  * flight (the spinner beside the filter box), and the two things the controller keeps between
  * openings - the kick being confirmed and when the last page was asked for.
  */
+import { IGuildMemberData, IMemberData } from '@nitrodevco/nitro-packets';
+import { StateCreator } from 'zustand';
 
 /**
  * `GuildKickData`: who is about to be kicked or blocked, kept while the server is asked how much

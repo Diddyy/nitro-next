@@ -1,4 +1,5 @@
 import { InteractionState } from '../hooks/useInteractionState';
+import { toCssHexColor } from './cssHexColor';
 
 /**
  * Port of the client's `com.sulake.core.window.dynamicstyle` - the hover/press effects a layout
@@ -156,7 +157,7 @@ export interface DynamicStyleEffect {
 }
 
 const byte = (value: number): number => Math.max(0, Math.min(255, Math.round(value)));
-const toHex = (r: number, g: number, b: number): string => `#${((byte(r) << 16) | (byte(g) << 8) | byte(b)).toString(16).padStart(6, '0')}`;
+const toHex = (r: number, g: number, b: number): string => toCssHexColor((byte(r) << 16) | (byte(g) << 8) | byte(b));
 
 export const dynamicStyleEffect = (rule: DynamicStyleRule): DynamicStyleEffect => {
     const effect: DynamicStyleEffect = { x: rule.offsetX ?? 0, y: rule.offsetY ?? 0 };
@@ -181,9 +182,7 @@ export const dynamicStyleEffect = (rule: DynamicStyleRule): DynamicStyleEffect =
     const etchingAlpha = rule.etchingColor === undefined ? 0 : ((rule.etchingColor >>> 24) & 0xff) / 255;
 
     if (etchingAlpha > 0 && rule.etchingPoint) {
-        const rgb = (rule.etchingColor ?? 0) & 0xffffff;
-
-        effect.etching = { color: `#${rgb.toString(16).padStart(6, '0')}`, alpha: etchingAlpha, x: rule.etchingPoint[0], y: rule.etchingPoint[1] };
+        effect.etching = { color: toCssHexColor(rule.etchingColor ?? 0), alpha: etchingAlpha, x: rule.etchingPoint[0], y: rule.etchingPoint[1] };
     }
 
     return effect;

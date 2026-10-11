@@ -35,7 +35,7 @@ import { forwardRef, useCallback, useRef, useState } from 'react';
 
 import { findNewFriends, followFriendFromBar, openProfile, startFriendBarConversation } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useIsWindowVisible, useSystemActions, useToolbarAreaWidth, useTranslation } from '#base/context/system';
+import { useConfigValue, useIsWindowVisible, useToolbarAreaWidth, useTranslation, useWindowActions } from '#base/context/system';
 import { FriendBarNotification, UiFlagEnum, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserActions, useUserMessengerActions, useUserStore } from '#base/context/user';
 import { easeOutCubic, useTween, useViewportSize } from '#base/hooks';
 import { Region, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useOutsideClick, useTemplate } from '#base/theme';
@@ -65,7 +65,7 @@ const sameTab = (a: SelectedTab, b: TabKey) => !!a && (('friendId' in a) ? (('fr
 export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
     const { send } = useWebSocketContext();
     const t = useTranslation();
-    const { showWindow, hideWindow, toggleWindow } = useSystemActions();
+    const { showWindow, hideWindow, toggleWindow } = useWindowActions();
     const { setUiFlag } = useUserActions();
     const friends = useFriendBarFriends();
     const requests = useFriendRequests();

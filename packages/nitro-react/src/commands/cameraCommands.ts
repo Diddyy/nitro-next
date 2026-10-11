@@ -5,6 +5,8 @@
  */
 import { GetConfigValue } from '@nitrodevco/nitro-api';
 import type { CameraPublishStatusMessageType, CameraStorageUrlMessageType, InitCameraMessageType } from '@nitrodevco/nitro-packets';
+import { GetRenderer, SpriteDataCollector } from '@nitrodevco/nitro-renderer';
+import { Rectangle } from 'pixi.js';
 import { createStore, useStore } from 'zustand';
 
 import { getRoom } from '#base/context/room';
@@ -16,6 +18,46 @@ export const isRoomUnfit = () => {
     const canvas = getRoom()?.canvas;
 
     return !!canvas && ((canvas.scale < 1) || canvas.isFlipped);
+};
+
+/**
+ * `CameraWidget.snapShotRoomCanvas`: the room stage's pixels in the `size` square at (x, y) on the
+ * screen, or undefined while there is no room stage to read.
+ */
+export const snapshotRoomCanvas = (x: number, y: number, size: number): ImageData | undefined => {
+    const stage = getRoom()?.canvas?.master;
+
+    if (!stage) return undefined;
+
+    try {
+        const { pixels, width, height } = GetRenderer().extract.pixels({ target: stage, frame: new Rectangle(Math.round(x), Math.round(y), size, size), resolution: 1 });
+
+        return new ImageData(new Uint8ClampedArray(pixels), width, height);
+    } catch {
+        return undefined;
+    }
+};
+
+/**
+ * `CameraWidgetHandler.collectPhotoData` -> `RoomEngine.getRenderRoomMessage`: the render data of
+ * the room under `viewport`, collected as the thumbnail camera does; undefined without a room.
+ */
+export const collectRoomPhotoData = (viewport: Rectangle, backgroundColor: number, imageLibraryUrl: string, groupBadgeUrl: string, topSecurityLevel: number): CameraPhoto['render'] => {
+    const room = getRoom();
+    const canvas = room?.canvas;
+
+    if (!room || !canvas) return undefined;
+
+    const collector = new SpriteDataCollector(room, canvas, imageLibraryUrl, groupBadgeUrl);
+
+    return {
+        sprites: collector.getFurniData(viewport, -1),
+        modifiers: collector.getRoomRenderingModifiers(),
+        planes: collector.getRoomPlanes(viewport, backgroundColor),
+        roomId: room.roomId,
+        topSecurityLevel,
+        time: Date.now(),
+    };
 };
 
 export const startTakingPhoto = () => {

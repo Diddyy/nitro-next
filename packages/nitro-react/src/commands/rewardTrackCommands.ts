@@ -19,14 +19,12 @@ import { ClaimRewardTrackPrizeComposer, PurchaseRewardTrackPremiumComposer } fro
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { rewardTrackStore } from '#base/context/reward-track';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 
 type Send = WebSocketConnection['send'];
 
-const localize = (key: string) => systemStore.getState().getLocalizationValue(key, key);
-
 /** `showNotification`: an info bubble. Flash's claim bubble picks an icon and then passes none (`addItemWithBitmap(text, "info", null)`). */
-const notify = (key: string) => notificationStore.getState().addNotification(localize(key), 'info');
+const notify = (key: string) => notificationStore.getState().addNotification(t(key, key), 'info');
 
 /** `localizeResult`. */
 const notifyResult = (prefix: string, code: number) => notify(`${prefix}${code}`);
@@ -42,7 +40,7 @@ export const onRewardTracks = (data: RewardTracksMessageType) => {
 
     setTracks(data.disabled ? [] : data.tracks, !disposesViews);
 
-    if (data.reload && wasShowing) systemStore.getState().showAlert(localize('reward_track.reload.title'), localize('reward_track.reload.desc'));
+    if (data.reload && wasShowing) systemStore.getState().showAlert(t('reward_track.reload.title', 'reward_track.reload.title'), t('reward_track.reload.desc', 'reward_track.reload.desc'));
 };
 
 /** `onRewardTrackProgress`: `RewardTrack.updateProgress`. */

@@ -4,9 +4,9 @@ import { ReactNode, useState } from 'react';
 
 import { dropCarryItem, openClientLink, openProfile } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useOwnIsDancing, useRoomSessionActions, useRoomStore } from '#base/context/room';
+import { useIsRoomOwner, useOwnIsDancing, useRoomSessionActions, useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
-import { useOwnClubLevel, useUserStore } from '#base/context/user';
+import { useOwnClubLevel, useOwnHasClub, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useRoomUserData } from '#base/hooks';
 import { Box, LayoutImage, TemplateBindings, TemplateWindow, ThemeImage } from '#base/theme';
@@ -14,6 +14,12 @@ import { isHandItem } from '#base/utils';
 
 import { useButtonMenu, useMinimizedMenu } from './useButtonMenu';
 
+/**
+ * The menu over your own avatar - `OwnAvatarMenuView`, drawn from its
+ * `habbo-room-ui-com/own_avatar_menu` template: looks, decorating, dancing, the expressions and
+ * signs sub-pages, effects and dropping what you carry. `updateButtons` shows each mode's rows of
+ * `buttons`, the sign grid in the signs mode.
+ */
 export interface InfoBubbleOwnAvatarViewProps {
     objectData: ISimpleRoomObjectData;
     onClose: () => void;
@@ -78,19 +84,14 @@ type MenuButton = {
     onPress: () => void;
 };
 
-/**
- * The menu over your own avatar - `OwnAvatarMenuView`, drawn from its `own_avatar_menu` template:
- * looks, decorating, dancing, the expressions and signs sub-pages, effects and dropping what you
- * carry. `updateButtons` shows each mode's rows of `buttons`, the sign grid in the signs mode.
- */
 export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAvatarViewProps) => {
     const info = useRoomUserData(objectData.objectId);
     const showWiredInspect = useWiredShowInspectButton();
     const isDancing = useOwnIsDancing();
     const clubLevel = useOwnClubLevel();
     const hasEffectOn = useUserStore(x => x.avatarEffects.some(effect => effect.isInUse));
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
-    const hasClub = clubLevel >= ClubLevelEnum.Club;
+    const isRoomOwner = useIsRoomOwner();
+    const hasClub = useOwnHasClub();
     const hasVip = clubLevel >= ClubLevelEnum.Vip;
     const [ mode, setMode ] = useState((isDancing && hasClub) ? MODE_CLUB_DANCES : MODE_NORMAL);
     const [ nameHovered, setNameHovered ] = useState(false);

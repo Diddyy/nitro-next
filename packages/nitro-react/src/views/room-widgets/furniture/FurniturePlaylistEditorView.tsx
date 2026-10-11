@@ -1,9 +1,38 @@
 import { FederatedPointerEvent } from 'pixi.js';
 import { useState } from 'react';
 
-import { useSystemActions } from '#base/context/system';
+import { useWindowActions } from '#base/context/system';
 import { LayoutImage, Template, TemplateBindings, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
+/**
+ * The jukebox playlist editor - `MainWindowHandler`, drawn from its
+ * `habbo-room-ui-com/playlisteditor_main_window` template at (80, 0): your own disks on the left,
+ * what the jukebox plays on the right. The header's close hides it (`findChildByTag("close")`).
+ *
+ * - `music_inventory_itemgrid`: a `playlisteditor_music_inventory_item` per disk
+ *   (`MusicInventoryGridView.refresh`, `MusicInventoryGridItem`): its song's title, `icon_cd_big` and
+ *   `title_fader`. A press selects it (`select`: 0xDEF6BF, its `selected` border and its
+ *   `action_buttons`) and drops the playlist's selection; its `button_to_playlist` (`icon_arrow`)
+ *   adds the disk and deselects it. The scrollbar shows past 9 disks (`onSongDiskInventoryReceived`).
+ * - `preview_play_container` (`MusicInventoryStatusView`): `get_more_music` while you own 6 disks or
+ *   fewer, whose `open_catalog_button` opens `trax_songs`; hidden otherwise.
+ * - `playlist_editor_itemlist`: a `playlisteditor_playlist_item` per entry (`PlayListEditorItemListView`,
+ *   `PlayListEditorItem`): title, author, `icon_cd_small`. A press selects it (0xD9F0FA) and drops the
+ *   inventory's selection; its `button_remove_from_playlist` (`icon_arrow_left`) removes it. The
+ *   scrollbar shows past 5 entries (`onPlayListUpdated`).
+ * - `now_playing_container` (`PlayListStatusView.selectView`): `nowplaying` with the song's name
+ *   while something plays, `play_now` while the list has songs, `add_songs` while it is empty.
+ *
+ * Kept from the port as it was: the add button is disabled while the jukebox is full (Flash sends
+ * it and alerts on `PLAY_LIST_FULL`). Not carried, as the view is handed nothing for them: the
+ * preview (`button_play_pause` and the `play_preview` status are drawn disabled / never chosen),
+ * `play_now_button` and `button_pause` (`sendTogglePlayPauseStateMessage`, drawn disabled), the disk
+ * colours (`getDiskColorTransformFromSongData` needs each song's data), the playing entry's
+ * `icon_notes_small` (needs the play position), the now playing author and a double click adding or
+ * removing. "Playing" is read as a song name being known. The splash and status backgrounds
+ * (`title_mymusic`, `title_playlist`, `background_*`) come from `image.library.playlist.url`, which
+ * the hotel config does not have, so those bitmaps stay empty.
+ */
 export interface PlaylistEditorSong {
     /** The disk in your inventory, or the slot it occupies in the jukebox. */
     id: number;
@@ -65,39 +94,10 @@ const selectionBindings = (selected: boolean, selectedColor: number): TemplateBi
 /** A window `selectView` puts in a status container, when its template is in. */
 const statusWindow = (key: string, template: Template | undefined, bindings?: TemplateBindings): TemplateItem[] => (template ? [ { key, from: template, bindings } ] : []);
 
-/**
- * The jukebox playlist editor - `MainWindowHandler`, drawn from its `playlisteditor_main_window`
- * template at (80, 0): your own disks on the left, what the jukebox plays on the right. The header's
- * close hides it (`findChildByTag("close")`).
- *
- * - `music_inventory_itemgrid`: a `playlisteditor_music_inventory_item` per disk
- *   (`MusicInventoryGridView.refresh`, `MusicInventoryGridItem`): its song's title, `icon_cd_big` and
- *   `title_fader`. A press selects it (`select`: 0xDEF6BF, its `selected` border and its
- *   `action_buttons`) and drops the playlist's selection; its `button_to_playlist` (`icon_arrow`)
- *   adds the disk and deselects it. The scrollbar shows past 9 disks (`onSongDiskInventoryReceived`).
- * - `preview_play_container` (`MusicInventoryStatusView`): `get_more_music` while you own 6 disks or
- *   fewer, whose `open_catalog_button` opens `trax_songs`; hidden otherwise.
- * - `playlist_editor_itemlist`: a `playlisteditor_playlist_item` per entry (`PlayListEditorItemListView`,
- *   `PlayListEditorItem`): title, author, `icon_cd_small`. A press selects it (0xD9F0FA) and drops the
- *   inventory's selection; its `button_remove_from_playlist` (`icon_arrow_left`) removes it. The
- *   scrollbar shows past 5 entries (`onPlayListUpdated`).
- * - `now_playing_container` (`PlayListStatusView.selectView`): `nowplaying` with the song's name
- *   while something plays, `play_now` while the list has songs, `add_songs` while it is empty.
- *
- * Kept from the port as it was: the add button is disabled while the jukebox is full (Flash sends
- * it and alerts on `PLAY_LIST_FULL`). Not carried, as the view is handed nothing for them: the
- * preview (`button_play_pause` and the `play_preview` status are drawn disabled / never chosen),
- * `play_now_button` and `button_pause` (`sendTogglePlayPauseStateMessage`, drawn disabled), the disk
- * colours (`getDiskColorTransformFromSongData` needs each song's data), the playing entry's
- * `icon_notes_small` (needs the play position), the now playing author and a double click adding or
- * removing. "Playing" is read as a song name being known. The splash and status backgrounds
- * (`title_mymusic`, `title_playlist`, `background_*`) come from `image.library.playlist.url`, which
- * the hotel config does not have, so those bitmaps stay empty.
- */
 export const FurniturePlaylistEditorView = ({
     inventory, playList, maxLength, nowPlaying, onAdd, onRemove, onClose,
 }: FurniturePlaylistEditorViewProps) => {
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
     const inventoryItemTemplate = useTemplate(INVENTORY_ITEM_TEMPLATE);
     const playlistItemTemplate = useTemplate(PLAYLIST_ITEM_TEMPLATE);
     const getMoreMusicTemplate = useTemplate(GET_MORE_MUSIC_TEMPLATE);

@@ -1,3 +1,7 @@
+/**
+ * One catalogue's mount inside its own `CatalogContextProvider`: the Builders Club catalogue for
+ * `BuildersClub`, the normal one otherwise, and the club purchase windows with the normal one only.
+ */
 import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
 
 import { CatalogContextProvider } from '#base/context/catalog';

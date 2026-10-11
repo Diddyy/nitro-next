@@ -107,7 +107,8 @@ interface IToken {
     closed: boolean;
 }
 
-const NONE: IChatCommandCompletion = { suggestions: [], request: null };
+/** No suggestions and nothing to ask the server. */
+export const NO_CHAT_COMMAND_COMPLETION: IChatCommandCompletion = { suggestions: [], request: null };
 
 /** The key a request and its answer share. */
 export const chatCommandSuggestKey = (command: string, parameter: number, _prefix: string, syntax = '', argumentText = '') => `${command}|${parameter}|${syntax.toLowerCase()}|${argumentText.toLowerCase()}`;
@@ -240,7 +241,7 @@ const parseLine = (text: string, commands: readonly ITurboCommand[], controllerL
 export const completeChatCommand = ({ text, commands, controllerLevel, roomUserNames, serverValues, cursor = text.length }: IChatCommandCompletionInput): IChatCommandCompletion => {
     const line = parseLine(text, commands, controllerLevel);
 
-    if (!line) return NONE;
+    if (!line) return NO_CHAT_COMMAND_COMPLETION;
 
     const cursorIndex = Math.max(0, Math.min(cursor, text.length));
     const isBoundary = cursorIndex === 0 || /\s/.test(text[cursorIndex - 1] ?? '');
@@ -248,7 +249,7 @@ export const completeChatCommand = ({ text, commands, controllerLevel, roomUserN
         ? line.tokens.find(token => token.start === cursorIndex)
         : line.tokens.find(token => token.start < cursorIndex && cursorIndex <= token.end);
     const activeIndex = activeToken ? line.tokens.indexOf(activeToken) : -1;
-    if (line.tokens.some(token => !token.valid || (!token.closed && token !== activeToken))) return NONE;
+    if (line.tokens.some(token => !token.valid || (!token.closed && token !== activeToken))) return NO_CHAT_COMMAND_COMPLETION;
 
     if (activeIndex === 0 && activeToken) {
         const typed = text.slice(activeToken.start, cursorIndex);
@@ -282,14 +283,14 @@ export const completeChatCommand = ({ text, commands, controllerLevel, roomUserN
         }
 
         // A name typed out in full, with nothing else it may stand for, has nothing left to offer.
-        if ((suggestions.length === 1) && (cursorIndex === activeToken.end) && exactName) return NONE;
+        if ((suggestions.length === 1) && (cursorIndex === activeToken.end) && exactName) return NO_CHAT_COMMAND_COMPLETION;
 
         return { suggestions, request: null };
     }
 
     const command = line.command;
 
-    if (!command) return NONE;
+    if (!command) return NO_CHAT_COMMAND_COMPLETION;
 
     let current = activeToken;
     let branchWordCount = 0;
@@ -344,14 +345,14 @@ export const completeChatCommand = ({ text, commands, controllerLevel, roomUserN
             };
         }
         if (!pathComplete) {
-            return NONE;
+            return NO_CHAT_COMMAND_COMPLETION;
         }
     }
     prefix = current ? tokenize(text.slice(current.start, cursorIndex))[0]?.text ?? '' : '';
     const tokenStart = current?.start ?? cursorIndex;
     const tokenEnd = current?.end ?? cursorIndex;
     const index = Math.max(0, priorTokens.length - branchWordCount);
-    if ((index >= selectedParameters.length) || selectedParameters.slice(0, index).some(x => kindOf(x) === KIND_REST)) return NONE;
+    if ((index >= selectedParameters.length) || selectedParameters.slice(0, index).some(x => kindOf(x) === KIND_REST)) return NO_CHAT_COMMAND_COMPLETION;
 
     const parameter = selectedParameters[index];
     const before = `${text.slice(0, tokenStart)}${branchNeedsSeparator ? ' ' : ''}`;

@@ -3,6 +3,25 @@ import { Region, TemplateWindows, ThemeImage, useTextureFromUrl } from '#base/th
 
 import { FurnitureTemplatePanel } from './FurnitureTemplatePanel';
 
+/**
+ * A photo hung on the wall - `ExternalImageWidget` on `habbo-room-ui-com/stories_image_widget_xml`.
+ * The layout's own geometry is only a placeholder: `drawImage` sizes everything around the photo in
+ * `imageLoader` - the photo plus a 1px outline (the photo drawn black at the four 1px offsets, then
+ * itself) - at `10 * 2 + previousButton.width` across and 71 down; `bgBorder` and the window 71
+ * taller than it on each side and 10 + a browse button + 10 wider on each side; `buttonContainer`
+ * at the top right; `creationDate` under the photo's left edge and `senderNameButton` under its
+ * right. `updateWindowPosition` centres the window, or pins it 50 from the edge on an axis the
+ * photo does not fit (stage less 100 across, less 200 down). The whole window drags
+ * (`draggable_with_mouse`).
+ *
+ * `loadPhoto` names the sender and the date only for a photo that has a sender (`senderNameButton`
+ * hidden otherwise, by `clearImage`). `captionContainer` stays hidden, as Flash never shows it.
+ * `reportButton` reports the photo (`openReportImage`, `HabboHelp.startPhotoReportingInNewCfhFlow`).
+ * What this port leaves out: the remove button of `buttonContainer` (the `deleteCard` confirmation is
+ * not ported), the next and previous buttons (they browse the room's
+ * other wall items of the same type, which the widget does not list), the sender's name opening
+ * their profile, the moderator's name copy (`name_copy_wrapper`) and the share area.
+ */
 export interface FurnitureExternalImageViewProps {
     imageUrl: string;
     creatorName: string;
@@ -24,24 +43,6 @@ const BROWSE_BUTTON_SIZE = 64;
 /** `imageLoader`'s layout size, which `clearImage` fills black (less its 1px outline) until the photo is in. */
 const EMPTY_IMAGE_SIZE = 322;
 
-/**
- * A photo hung on the wall - `ExternalImageWidget` on `stories_image_widget_xml`. The layout's own
- * geometry is only a placeholder: `drawImage` sizes everything around the photo in `imageLoader` -
- * the photo plus a 1px outline (the photo drawn black at the four 1px offsets, then itself) - at
- * `10 * 2 + previousButton.width` across and 71 down; `bgBorder` and the window 71 taller than it
- * on each side and 10 + a browse button + 10 wider on each side; `buttonContainer` at the top right;
- * `creationDate` under the photo's left edge and `senderNameButton` under its right.
- * `updateWindowPosition` centres the window, or pins it 50 from the edge on an axis the photo does not
- * fit (stage less 100 across, less 200 down). The whole window drags (`draggable_with_mouse`).
- *
- * `loadPhoto` names the sender and the date only for a photo that has a sender (`senderNameButton`
- * hidden otherwise, by `clearImage`). `captionContainer` stays hidden, as Flash never shows it.
- * `reportButton` reports the photo (`openReportImage`, `HabboHelp.startPhotoReportingInNewCfhFlow`).
- * What this port leaves out: the remove button of `buttonContainer` (the `deleteCard` confirmation is
- * not ported), the next and previous buttons (they browse the room's
- * other wall items of the same type, which the widget does not list), the sender's name opening
- * their profile, the moderator's name copy (`name_copy_wrapper`) and the share area.
- */
 export const FurnitureExternalImageView = ({ imageUrl, creatorName, time, reportVisible, onReport, onClose }: FurnitureExternalImageViewProps) => {
     const viewport = useViewportSize();
     const texture = useTextureFromUrl(imageUrl || undefined);

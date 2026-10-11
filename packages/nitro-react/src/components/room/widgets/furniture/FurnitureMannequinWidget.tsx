@@ -3,8 +3,8 @@ import { SetMannequinFigureComposer, SetMannequinNameComposer, UseFurnitureCompo
 import { useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoom, useRoomStore, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useOwnClubLevel, useUserStore } from '#base/context/user';
+import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
+import { useOwnClubLevel, useOwnUserFigure, useOwnUserGender } from '#base/context/user';
 import { FurnitureMannequinView, MannequinScreen } from '#base/views/room-widgets/furniture/FurnitureMannequinView';
 
 import { asMannequinFigure, getMannequinClubLevel, withMannequinOutfit } from './mannequinFigure';
@@ -20,11 +20,11 @@ import { asMannequinFigure, getMannequinClubLevel, withMannequinOutfit } from '.
 export const FurnitureMannequinWidget = () => {
     const request = useRoomWidget(RoomObjectWidgetRequestEvent.MANNEQUIN);
     const room = useRoom();
-    const ownFigure = useUserStore(x => x.figure);
-    const sex = useUserStore(x => x.sex);
+    const ownFigure = useOwnUserFigure();
+    const sex = useOwnUserGender();
     const clubLevel = useOwnClubLevel();
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
-    const controllerLevel = useRoomStore(x => x.controllerLevel);
+    const isRoomOwner = useIsRoomOwner();
+    const controllerLevel = useOwnControllerLevel();
     const { closeRoomWidget } = useRoomWidgetActions();
     const { send } = useWebSocketContext();
     const [ screen, setScreen ] = useState<MannequinScreen | undefined>(undefined);

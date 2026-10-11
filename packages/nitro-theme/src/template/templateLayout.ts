@@ -1623,6 +1623,27 @@ const LIST_TAGS = new Set([ 'itemlist', 'itemlist_vertical', 'itemlist_horizonta
 const GRID_TAGS = new Set([ 'itemgrid', 'itemgrid_vertical', 'scrollable_itemgrid_vertical' ]);
 const SCROLLABLE_TAGS = new Set([ 'scrollable_itemlist_vertical', 'scrollable_itemgrid_vertical' ]);
 
+/** `WindowController.getChildByName` on a laid-out window: a direct child by its element's name. */
+export const getLayoutChildByName = (window: LayoutWindow | undefined, name: string): LayoutWindow | undefined => window?.children.find(child => child.element?.name === name);
+
+/**
+ * `WindowController.findChildByName` on a laid-out window: every direct child first, then each
+ * child's subtree in turn - not a depth-first walk, so a nearer window wins over one deeper in an
+ * earlier sibling.
+ */
+export const findLayoutChildByName = (window: LayoutWindow, name: string): LayoutWindow | undefined => getLayoutChildByName(window, name)
+    ?? window.children.reduce<LayoutWindow | undefined>((found, child) => found ?? findLayoutChildByName(child, name), undefined);
+
+/**
+ * `IItemListWindow.getListItemAt`'s items: a list's (or grid's) are its `_CONTAINER`'s children, any
+ * other window's its own children; none without a window.
+ */
+export const getLayoutListItems = (window: LayoutWindow | undefined): readonly LayoutWindow[] => {
+    if (!window) return [];
+
+    return (window instanceof ListWindow) ? window.container.children : window.children;
+};
+
 /** `WindowController.findChildByName` - `findTemplateChild`, kept here so this module has no runtime imports. */
 const findChildByName = (children: readonly TemplateElement[], name: string): TemplateElement | undefined => children.find(child => child.name === name)
     ?? children.reduce<TemplateElement | undefined>((found, child) => found ?? findChildByName(child.children, name), undefined);

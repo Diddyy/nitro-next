@@ -16,7 +16,7 @@
 import { ClubLevelEnum } from '@nitrodevco/nitro-api';
 import {
     AddAdminRightsToMemberComposer, ApproveMembershipRequestComposer, CreateGuildComposer, DeactivateGuildComposer,
-    EventLogComposer, GetGuildCreationInfoComposer, GetGuildEditInfoComposer, GetGuildEditorDataComposer, GetGuildMembersComposer, GetHabboGroupDetailsComposer,
+    EventLogComposer, GetGuildEditInfoComposer, GetGuildEditorDataComposer, GetGuildMembersComposer, GetHabboGroupDetailsComposer,
     GetMemberGuildItemCountComposer, GUILD_MEMBER_SEARCH_MEMBERS, IMemberData, isGuildMemberAdmin, isGuildMemberBlocked, isGuildMemberMember, isGuildMemberOwner,
     JoinHabboGroupComposer, KickMemberComposer, RejectMembershipRequestComposer, RemoveAdminRightsFromMemberComposer,
     UnblockGroupMemberComposer, UpdateGuildBadgeComposer, UpdateGuildColorsComposer, UpdateGuildIdentityComposer, UpdateGuildSettingsComposer,
@@ -29,17 +29,14 @@ import {
     limitGroupMemberPage,
 } from '#base/context/groups';
 import { navigatorStore } from '#base/context/navigator';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 import { ClientGates, hasClientGate, userStore } from '#base/context/user';
 
 import { openClubCenter } from './catalogClubCommands';
 import { openClientLink } from './clientLinkCommands';
 import { goToRoom, performNavigatorSearch } from './navigatorCommands';
-import { openProfile } from './roomUserCommands';
 
 type Send = WebSocketConnection['send'];
-
-const t = (key: string, defaultValue?: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, defaultValue, replacements);
 
 /** `GROUPS_TRACKING_CATEGORY` - every group action logs against the same category. */
 const GROUPS_TRACKING_CATEGORY = 'HabboGroups';
@@ -248,18 +245,12 @@ export const blockGroupMember = (send: Send, member: IMemberData) => {
     requestGroupMemberKick(send, members.groupId, member.userId, true);
 };
 
-/** `GuildMembersWindowCtrl.onBg`: a row opens that user's extended profile. */
-export const showGroupMemberProfile = (send: Send, userId: number) => openProfile(send, userId);
-
 /** `HabboGroupsManager.requestGuildEditorData` - asked for once a session, whichever window needs it. */
 export const requestGuildEditorData = (send: Send) => {
     if (groupStore.getState().editorData) return;
 
     send(new GetGuildEditorDataComposer({}));
 };
-
-/** The creation wizard - `GuildMembershipsController.onCreateGroup` and the catalogue's buy-guild widget. */
-export const startGroupCreation = (send: Send) => send(new GetGuildCreationInfoComposer({}));
 
 /** `GroupDetailsCtrl.onManageGuild` / `GroupRoomInfoCtrl.onManage`. */
 export const openGroupManagement = (send: Send, groupId: number) => send(new GetGuildEditInfoComposer({ groupId }));

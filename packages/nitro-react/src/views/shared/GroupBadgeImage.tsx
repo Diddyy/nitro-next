@@ -1,6 +1,11 @@
 import { useConfigValue } from '#base/context/system';
 import { BoxLayout, Region, useTextureFromUrl } from '#base/theme';
 
+/**
+ * A group's badge - the `badge_image` widget with `badge_image:type` `group`, drawn from
+ * `badge.asset.group.url`. Every group window has one, and they all come from the same url, so the
+ * texture cache draws each badge once however many windows name it.
+ */
 export interface GroupBadgeImageProps {
     /** The group's badge data string, as the details and member packets carry it. */
     badgeCode: string | undefined;
@@ -11,11 +16,6 @@ export interface GroupBadgeImageProps {
     layout?: BoxLayout;
 }
 
-/**
- * A group's badge - the `badge_image` widget with `badge_image:type` `group`, drawn from
- * `badge.asset.group.url`. Every group window has one, and they all come from the same url, so the
- * texture cache draws each badge once however many windows name it.
- */
 export const GroupBadgeImage = ({ badgeCode, zoom = 1, tooltip, onPress, layout }: GroupBadgeImageProps) => {
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const texture = useTextureFromUrl(badgeCode?.length ? groupBadgeUrl.replace('%badgedata%', badgeCode) : undefined);

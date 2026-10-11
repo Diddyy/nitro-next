@@ -6,7 +6,7 @@ import { FLASH_TEXT_GUTTER, flashTextCaretRect, FlashTextFieldOverrides, flashTe
 import { useLayoutSize, useOutsideClick } from './hooks';
 import { ColorLayer } from './layer';
 import { ThemeText } from './ThemeText';
-import { DEFAULT_TEXT_STYLE, flashFaceOverride, getPixiTextStyle, resolveFlashStyle, TextStyleKey } from './utils';
+import { DEFAULT_TEXT_STYLE, escapeMarkup, flashFaceOverride, getPixiTextStyle, resolveFlashStyle, TextStyleKey } from './utils';
 
 /** A run of a `TextInput`'s value, `start` to `end` (exclusive), drawn in `color` (`#rrggbb`). */
 export interface TextInputMark {
@@ -14,8 +14,6 @@ export interface TextInputMark {
     end: number;
     color: string;
 }
-
-const escapeMarkup = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** The value as markup with each mark in a `<font color>`; marks are taken in order and may not overlap. */
 const markedValue = (value: string, marks: readonly TextInputMark[]): string => {

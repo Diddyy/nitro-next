@@ -1,3 +1,7 @@
+/**
+ * The friend list's store, made once per mount of the provider (`FriendListWrapper`) and handed to
+ * the friend list inside it.
+ */
 import { ReactNode, useState } from 'react';
 
 import { FriendsContext } from './FriendsContext';

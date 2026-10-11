@@ -23,7 +23,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { closePhotoLab, openPhotoPurchase, returnToViewfinder, useCameraStore } from '#base/commands';
 import { AchievementCategory, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useSystemStore } from '#base/context/system';
+import { useConfigValue, useTranslation } from '#base/context/system';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { buildRenderRoomMessageData } from '#base/utils';
 
@@ -86,7 +86,7 @@ export const CameraPhotoLabView = () => {
 const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
     const photo = useCameraStore(x => x.labPhoto)!;
     const { send } = useWebSocketContext();
-    const getLocalizationValue = useSystemStore(x => x.getLocalizationValue);
+    const getLocalizationValue = useTranslation();
     const libraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const availableEffects = useConfigValue<string>('camera.available.effects');
     const filterButton = useTemplate(FILTER_BUTTON);

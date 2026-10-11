@@ -2,6 +2,7 @@ import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { SystemMessageDialog, SystemSimpleAlertDialog, useSystemStore, useWindowActions } from '#base/context/system';
 import { ModalDialog, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { openWebPage } from '#base/utils';
 
 import { SimpleAlertView } from './SimpleAlertView';
 
@@ -57,7 +58,7 @@ const SystemSimpleAlertView = ({ dialog }: { dialog: SystemSimpleAlertDialog }) 
                 openClientLink(send, linkUrl.substring(6));
                 close();
             } else {
-                window.open(linkUrl, '_blank', 'noopener');
+                openWebPage(linkUrl);
             }
 
             return;

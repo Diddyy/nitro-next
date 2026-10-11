@@ -7,16 +7,16 @@ import {
     RECYCLER_SLOT_CATEGORY_WALL, releaseRecyclerSlot, setRecyclerNextAllowedTimestamp,
 } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
+import { useInventoryTradingActive } from '#base/context/inventory';
 import { getRecyclerSecondsToWait, isRecyclerReadyToRecycle, RECYCLER_SYSTEM_STATUS_CLOSED, RecyclerSlotItem, useRecyclerActions, useRecyclerStore } from '#base/context/recycler';
-import { useRoomStore } from '#base/context/room';
-import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
-import { useWiredTradingStore } from '#base/context/wired-trading';
+import { useIsInRoom } from '#base/context/room';
+import { useConfigValue, useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
 import { useSecondsClock } from '#base/hooks';
-import { findTemplateChild, LayoutImage, ThemeImage, useTemplateLibrary } from '#base/theme';
+import { findLayoutChildByName, findTemplateChild, LayoutImage, ThemeImage, useTemplateLibrary } from '#base/theme';
 import { RecyclerEngineAnimator } from '#base/views/catalog/recycler/RecyclerEngineAnimator';
 
 import { CATALOG_LIBRARY, catalogTemplateId } from '../catalogTemplates';
-import { findLayoutChild, useCatalogWidgetView } from '../catalogWidgetView';
+import { useCatalogWidgetView } from '../catalogWidgetView';
 
 /** `onAbortClick` / `onAnimationComplete`: how long the gauge waits before swinging back. */
 const ABORT_RESET_DELAY = 650;
@@ -124,10 +124,10 @@ export const CatalogRecyclerWidgetView = () => {
     const nextAllowedAt = useRecyclerStore(x => x.recyclerNextAllowedAt);
     const slots = useRecyclerStore(x => x.recyclerSlots);
     const shake = useRecyclerStore(x => x.recyclerMachineShake);
-    const inRoom = useRoomStore(x => !!x.room);
-    const tradingActive = useWiredTradingStore(x => x.tradeRunning);
+    const inRoom = useIsInRoom();
+    const tradingActive = useInventoryTradingActive();
     const floorItems = useSystemStore(x => x.floorItems);
-    const showAlert = useSystemStore(x => x.showAlert);
+    const { showAlert } = useWindowActions();
     const { setRecyclerArrowRotation, setRecyclerMachineShake } = useRecyclerActions();
     const now = useSecondsClock();
     const templates = useTemplateLibrary(CATALOG_LIBRARY);
@@ -273,7 +273,7 @@ export const CatalogRecyclerWidgetView = () => {
         arrange: ((shake.x !== 0) || (shake.y !== 0))
             ? ({ root }) => {
                     const page = root()?.parent?.parent;
-                    const machine = page && findLayoutChild(page, 'recycle_machine');
+                    const machine = page && findLayoutChildByName(page, 'recycle_machine');
 
                     machine?.setRectangle(machine.x + shake.x, machine.y + shake.y, machine.width, machine.height);
                 }

@@ -31,7 +31,7 @@ import { useEffect, useState } from 'react';
 import { useWebSocketContext } from '#base/context/communication';
 import {
     COMMUNITY_GOAL_METER_BUILDUP_MS, COMMUNITY_GOAL_METER_DELAY_MS, COMMUNITY_GOAL_NEEDLE_BASE_FRAMES, communityGoalNeedleFrame, communityGoalVsNeedleFrame, hotelViewColorableBindings, HotelViewCommonSettings,
-    hotelViewProperty, LandingViewWidgetType, useConfigData, useSystemActions, useSystemStore,
+    hotelViewProperty, LandingViewWidgetType, useConfigData, useSystemStore, useWindowActions,
 } from '#base/context/system';
 import { Box, LayoutImage, TemplateBindings, TemplateWindow, TemplateWindows } from '#base/theme';
 
@@ -61,7 +61,7 @@ export const HotelViewCommunityGoalWidget = ({ type, settings }: HotelViewCommun
     const voted = useSystemStore(x => x.hotelViewCommunityVoted);
     const config = useConfigData();
     const { send } = useWebSocketContext();
-    const { hideWindow, showWindow } = useSystemActions();
+    const { hideWindow, showWindow } = useWindowActions();
     const vsMode = type !== LandingViewWidgetType.COMMUNITYGOAL;
     const voting = type === LandingViewWidgetType.COMMUNITYGOALVSVOTE;
     // `refresh` on activation: the buttons for a user who has not contributed, as far as is known yet.

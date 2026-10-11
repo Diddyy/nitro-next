@@ -52,6 +52,13 @@ import { ViewErrorBoundaries } from './views/system/ViewErrorBoundary';
 import { ToolbarTransitionsView } from './views/toolbar/ToolbarTransitionsView';
 import { ToolbarView } from './views/toolbar/ToolbarView';
 
+/**
+ * The client once `NitroView` shows it: the room and hotel view under the window layer, which holds
+ * every window, the toolbar, the purse and the notifications, with the modal and tooltip layers on
+ * top. It registers the connection's packet handlers, applies `fps.limit` to the ticker, and only
+ * once the whole tree is mounted asks for the user info and furni aliases and lets the packets queued
+ * meanwhile through.
+ */
 export const MainView = () => {
     const { setReady, send } = useWebSocketContext();
     const maxFPS = useConfigValue<number>('fps.limit') ?? 60;

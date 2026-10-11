@@ -27,7 +27,7 @@ import { StoreApi } from 'zustand';
 
 import { CatalogStore, CLUB_CENTER_DATA_UPDATE_INTERVAL, CLUB_OFFERS_SOURCE_CLUB_CENTER, ClubBuyOfferData } from '#base/context/catalog';
 import { WebSocketConnection } from '#base/context/communication';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { clubBuyOfferAsPurchasableOffer, configReader } from '#base/utils';
 
@@ -39,8 +39,6 @@ import { openClientLink } from './clientLinkCommands';
 
 type Send = WebSocketConnection['send'];
 type CatalogStoreApi = StoreApi<CatalogStore>;
-
-const t = (key: string, defaultValue?: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, defaultValue, replacements);
 
 /** `getProperty` / `getBoolean` over the current config - see `configReader`. */
 const hotelConfig = () => configReader(systemStore.getState().config);

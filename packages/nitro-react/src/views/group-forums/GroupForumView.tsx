@@ -40,7 +40,7 @@ import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { GroupForumView as GroupForumViewState, useGroupStore } from '#base/context/groups';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { LayoutWindow, Template, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
+import { escapeMarkup, findLayoutChildByName, LayoutWindow, Template, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 const TEMPLATE = 'habbo-friend-bar-com/groupforum_main_view_xml';
@@ -60,8 +60,6 @@ const LINE_PATTERN = /\\?(?:(?:\*([^*]+)\*)|(?:_([^_]+)_)|(?:@\S+))/;
 const QUOTE_PATTERN = /^>(?: ?|$)/;
 
 const asset = (name: string) => `habbo-window-manager-com-${name}`;
-
-const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** The first `event:` link of a text, as a click on it sends it. */
 const firstLink = (html: string) => /href="event:([^"]+)"/.exec(html)?.[1];
@@ -92,7 +90,7 @@ const parseMessageChunk = (text: string): string => {
 
         if (!match) break;
 
-        if (match.index > 0) out += escapeHtml(rest.substring(0, match.index));
+        if (match.index > 0) out += escapeMarkup(rest.substring(0, match.index));
 
         const length = match[0].length;
         const first = rest.charAt(match.index);
@@ -102,7 +100,7 @@ const parseMessageChunk = (text: string): string => {
         } else if (first === '_') {
             out += ` <i>${parseMessageChunk(rest.substring(match.index + 1, match.index + length - 1))}</i> `;
         } else if ((first === '@') && ((match.index === 0) || (rest.charAt(match.index - 1) === ' '))) {
-            out += `<u>${escapeHtml(rest.substring(match.index + 1, match.index + length))}</u>`;
+            out += `<u>${escapeMarkup(rest.substring(match.index + 1, match.index + length))}</u>`;
         } else {
             // An escaped character, or an `@` inside a word: kept as it is.
             if (first === '@') out += '@';
@@ -115,7 +113,7 @@ const parseMessageChunk = (text: string): string => {
         rest = rest.substring(match.index + length);
     }
 
-    return out + escapeHtml(rest);
+    return out + escapeMarkup(rest);
 };
 
 /** `initMessageText`: the text's lines in blocks - plain, or quoted (`>`) one level in. */
@@ -147,19 +145,6 @@ const messageBlocks = (text: string): { html: string; level: number }[] => {
     blocks.push({ html: buffer, level });
 
     return blocks;
-};
-
-/** A window's descendant by name, as `findChildByName` finds it. */
-const findIn = (window: LayoutWindow, name: string): LayoutWindow | undefined => {
-    for (const child of window.children) {
-        if (child.element?.name === name) return child;
-
-        const found = findIn(child, name);
-
-        if (found) return found;
-    }
-
-    return undefined;
 };
 
 /** A scrollable list's `_ITEMLIST` (`ScrollableWindow.list`). */
@@ -242,7 +227,7 @@ export const GroupForumView = () => {
             from: forumItem,
             bindings: {
                 '': { color: ROW_COLORS[(index + 1) % 2] },
-                header: (unread > 0) ? { htmlText: `<b>${escapeHtml(entry.name)}</b>` } : { caption: entry.name },
+                header: (unread > 0) ? { htmlText: `<b>${escapeMarkup(entry.name)}</b>` } : { caption: entry.name },
                 header_region: { onPointerTap: open },
                 details: { htmlText: t('groupforum.view.forum_details', '', { rating: String(entry.leaderboardScore), last_author_id: String(entry.lastMessageAuthorId), last_author_name: entry.lastMessageAuthorName, update_time: ago(entry.lastMessageTimeAsSecondsAgo) }), onLink: onLink },
                 unread_region: { onPointerTap: open },
@@ -277,7 +262,7 @@ export const GroupForumView = () => {
                 unread_texts_container: { color },
                 button_container: { color },
                 left_button_container: { color },
-                header: (unread > 0) ? { htmlText: `<b>${escapeHtml(header)}</b>` } : { caption: header },
+                header: (unread > 0) ? { htmlText: `<b>${escapeMarkup(header)}</b>` } : { caption: header },
                 header_region: { onPointerTap: open },
                 details: { htmlText: t('groupforum.view.thread_details', '', { thread_author_id: String(thread.threadAuthorId), thread_author_name: thread.threadAuthorName, last_author_id: String(thread.lastMessageAuthorId), last_author_name: thread.lastMessageAuthorName, creation_time: ago(thread.creationTimeAsSecondsAgo), update_time: ago(thread.lastMessageTimeAsSecondsAgo) }), onLink: onLink },
                 unread_region: { onPointerTap: open },
@@ -311,7 +296,7 @@ export const GroupForumView = () => {
         const moderation = (state === GROUP_FORUM_STATE_HIDDEN_BY_ADMIN)
             ? t('groupforum.view.message_hidden_by_admin', '', { admin_name: message.adminName })
             : t('groupforum.view.message_hidden_by_staff', '', { admin_name: message.adminName });
-        const blocks = hidden ? [ { html: escapeHtml(moderation), level: 0 } ] : messageBlocks(message.messageText);
+        const blocks = hidden ? [ { html: escapeMarkup(moderation), level: 0 } ] : messageBlocks(message.messageText);
         const hideState = (state === GROUP_FORUM_STATE_HIDDEN_BY_ADMIN) ? 'unhide' : ((state === GROUP_FORUM_STATE_HIDDEN_BY_STAFF) ? (staff ? 'unhide' : 'none') : 'hide');
 
         return {
@@ -450,8 +435,8 @@ export const GroupForumView = () => {
 
             if (view.kind !== 'messages') continue;
 
-            const texts = findIn(row, 'texts_container');
-            const container = findIn(row, 'message_text_container');
+            const texts = findLayoutChildByName(row, 'texts_container');
+            const container = findLayoutChildByName(row, 'message_text_container');
 
             if (!texts || !container) continue;
 
@@ -483,7 +468,7 @@ export const GroupForumView = () => {
 const statusError = (t: ReturnType<typeof useTranslation>, operation: string, error: string) => t(`groupforum.view.error.${error}`, '', { operation: t(`groupforum.view.error.operation_${operation}`) });
 
 /** A text bold while it counts unread messages (`ITextWindow.bold`). */
-const boldCaption = (text: string, bold: boolean) => (bold ? { htmlText: `<b>${escapeHtml(text)}</b>` } : { caption: text });
+const boldCaption = (text: string, bold: boolean) => (bold ? { htmlText: `<b>${escapeMarkup(text)}</b>` } : { caption: text });
 
 /** A template element by name, as `findChildByName` finds it. */
 const findElement = (elements: readonly Template['elements'][number][], name: string): Template['elements'][number] | undefined => {

@@ -3,7 +3,7 @@
  * number or to another variable's value.
  *
  * Int params: `[ target, operator, reference option, reference value (a long: high, low),
- * reference target ]` - the operator is one of `CONDITION_OPERATORS` (0 `<`, 1 `=`, 2 `>`,
+ * reference target ]` - the operator is one of `WIRED_COMPARISON_OPERATORS` (0 `<`, 1 `=`, 2 `>`,
  * 3 `≤`, 4 `≠`, 5 `≥`); the reference option 0 compares with the typed value (any 32-bit int), 1 with
  * the reference variable. Variable ids: `[ variable, reference variable ]`. Both targets are merged
  * input sources (section 0 the variable, section 1 the reference) with the global and context

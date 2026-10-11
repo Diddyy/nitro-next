@@ -30,7 +30,7 @@ import { FederatedPointerEvent } from 'pixi.js';
 
 import { AVATAR_FACE_SIZE, AvatarFaceImage } from '#base/components';
 import { FriendBarNotification } from '#base/context/user';
-import { Box, LayoutImage, LayoutWindow, Template, TemplateBinding, TemplateItem } from '#base/theme';
+import { Box, findLayoutChildByName, getLayoutListItems, LayoutImage, LayoutWindow, Template, TemplateBinding, TemplateItem } from '#base/theme';
 
 import { FRIEND_BAR_TAB_HEIGHT, FRIEND_BAR_TAB_WIDTH } from './friendBarLayout';
 import { FriendBarTokenIcon, GAME_TOKEN_TYPE, TOKEN_ICON_SIZE } from './FriendBarTokenIcon';
@@ -240,30 +240,11 @@ export const findFriendsTabItem = (template: Template, args: FindFriendsTabArgs)
 };
 
 /** `IItemListWindow.getListItemAt`: a list's items are its `container`'s children. */
-export const listItemAt = (list: LayoutWindow | undefined, index: number): LayoutWindow | undefined => {
-    if (!list) return undefined;
-
-    const items = ('container' in list) ? (list.container as LayoutWindow).children : list.children;
-
-    return items[index];
-};
-
-/** `getChildByName` down a window's tree. */
-const windowNamed = (window: LayoutWindow, name: string): LayoutWindow | undefined => {
-    for (const child of window.children) {
-        if (child.element?.name === name) return child;
-
-        const found = windowNamed(child, name);
-
-        if (found) return found;
-    }
-
-    return undefined;
-};
+export const listItemAt = (list: LayoutWindow | undefined, index: number): LayoutWindow | undefined => getLayoutListItems(list)[index];
 
 /** `NewFriendEntityTab.select`: the tab as tall as `pieces`, its bottom kept on the bar. */
 export const growSelectedFriendTab = (tab: LayoutWindow) => {
-    const pieces = windowNamed(tab, 'pieces');
+    const pieces = findLayoutChildByName(tab, 'pieces');
 
     if (!pieces) return;
 

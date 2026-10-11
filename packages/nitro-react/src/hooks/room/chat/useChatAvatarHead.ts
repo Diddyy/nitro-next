@@ -1,3 +1,7 @@
+/**
+ * The speaker's head and chest colour for a chat bubble, rendered once per figure and cached for
+ * every bubble; a figure still downloading re-renders its bubbles when it lands.
+ */
 import { AvatarFigurePartType, AvatarGenderType, AvatarScaleType, AvatarSetType } from '@nitrodevco/nitro-api';
 import { GetAssetManager, GetAvatarRenderManager, TexturePool } from '@nitrodevco/nitro-renderer';
 import { RenderTexture, Texture } from 'pixi.js';

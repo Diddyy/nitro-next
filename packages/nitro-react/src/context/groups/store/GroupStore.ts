@@ -1,3 +1,11 @@
+/**
+ * The group store, its slices combined, and `groupStore`, the one for the whole client - the port
+ * of `HabboGroupsManager`, which is a component that lives as long as the session and owns every
+ * group window. Its windows reopen onto what they held (the details cache, the badge parts the
+ * server sends once), so there is nothing a window-scoped store would add: components read it
+ * through their hooks, and packet handlers and commands through `getState()`, which is always
+ * current.
+ */
 import { createStore } from 'zustand';
 
 import { createGroupDetailsSlice, GroupDetailsSlice } from './GroupDetailsSlice';
@@ -16,11 +24,4 @@ export const createGroupStore = () => createStore<GroupStore>()((set, get, store
     ...createGroupForumSlice(set, get, store),
 }));
 
-/**
- * The one GroupStore for the whole client - the port of `HabboGroupsManager`, which is a component
- * that lives as long as the session and owns every group window. Its windows reopen onto what they
- * held (the details cache, the badge parts the server sends once), so there is nothing a
- * window-scoped store would add: components read it through their hooks, and packet handlers and
- * commands through `getState()`, which is always current.
- */
 export const groupStore = createGroupStore();

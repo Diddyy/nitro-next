@@ -4,6 +4,11 @@ import { NOTIFICATION_ASSETS, NotificationAssetName, NotificationPopupItem, useN
 import { useInterpolate } from '#base/context/system';
 import { LayoutImage, ModalDialog, TemplateWindow, useTemplateFrame } from '#base/theme';
 
+/**
+ * Every open `NotificationPopup` (`com/sulake/habbo/notifications/NotificationPopup`), each a
+ * modal dialog built from `habbo-notifications-com/layout_notification_popup_xml`. Mounted once,
+ * in `MainView`'s window layer.
+ */
 const TEMPLATE = 'habbo-notifications-com/layout_notification_popup_xml';
 
 /** `NotificationPopup.CRITICAL_COLOR`, the frame's colour for `alertStyle` `critical`. */
@@ -16,11 +21,6 @@ const illustrationSource = (image: string) => {
     return file ? LayoutImage(`habbo-notifications-com/${file}`) : image;
 };
 
-/**
- * Every open `NotificationPopup` (`com/sulake/habbo/notifications/NotificationPopup`), each a
- * modal dialog built from the notifications library's `layout_notification_popup`. Mounted once,
- * in `MainView`'s window layer.
- */
 export const NotificationPopupsView = () => {
     const popups = useNotificationStore(x => x.popups);
 

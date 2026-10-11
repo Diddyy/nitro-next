@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { CatalogWidgetEventEnum } from '#base/context/catalog';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { LayoutImage, ThemeImage, useTemplateLibrary } from '#base/theme';
+import { toCssHexColor } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
 import { CATALOG_LIBRARY, catalogTemplateId } from '../catalogTemplates';
@@ -53,7 +54,7 @@ const colourCellItem = (from: Template, colours: readonly number[], index: numbe
                     <ThemeImage
                         src={catalogAsset(state.colourAssetName)}
                         frame={{ x: half, y: 0, width: width - half, height }}
-                        tint={(secondTint === undefined) ? undefined : `#${secondTint.toString(16).padStart(6, '0')}`}
+                        tint={(secondTint === undefined) ? undefined : toCssHexColor(secondTint)}
                         layout={{ position: 'absolute', left: half, top: 0 }}
                     />
                 ),

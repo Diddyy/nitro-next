@@ -7,8 +7,10 @@ import { RoomChatTypeEnum } from '@nitrodevco/nitro-api';
 import { IChatLink } from '@nitrodevco/nitro-packets';
 import { Texture } from 'pixi.js';
 
+import { toCssHexColor } from '#base/utils';
+
 import { ChatBubbleData } from './ChatBubbleData';
-import { chatColorToCss, escapeChatMarkup } from './ChatBubbleText';
+import { escapeChatMarkup } from './ChatBubbleText';
 import { applyChatColourToChat, applyChatMarkupToElements } from './ChatMarkup';
 import { IChatStyle } from './ChatStyle';
 
@@ -99,7 +101,7 @@ export const buildChatBubbleMarkup = (text: string, userName: string, chatType: 
     markup += (isItalic ? '</i>' : '');
 
     for (let i = 0; i < links.length; i++) {
-        const anchor = `<font color="${chatColorToCss(style.linkColor)}"><u>${links[i].url}</u></font>`;
+        const anchor = `<font color="${toCssHexColor(style.linkColor)}"><u>${links[i].url}</u></font>`;
 
         markup = markup.replace(`{${i}}`, anchor);
     }

@@ -3,6 +3,10 @@ import { useEffect, useState } from 'react';
 
 import { useConfigValue, useFurnitureDataActions } from '#base/context/system';
 
+/**
+ * The boot's product data step: loads `productdata.url` once the config names it, and says when
+ * it is in for the loading screen.
+ */
 export const useProductDataLoader = () => {
     const [ needsUpdate, setNeedsUpdate ] = useState(true);
     const { parseProductData } = useFurnitureDataActions();
@@ -21,7 +25,7 @@ export const useProductDataLoader = () => {
             try {
                 const response = await fetch(url);
 
-                if (response.status !== 200) throw new Error('Invalid furnidata url');
+                if (response.status !== 200) throw new Error('Invalid productdata url');
 
                 const responseData = await response.json();
 

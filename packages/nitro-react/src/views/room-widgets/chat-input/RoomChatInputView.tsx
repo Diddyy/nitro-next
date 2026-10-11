@@ -1,4 +1,4 @@
-import { ClubLevelEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
+import { RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer, WhisperComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -7,12 +7,12 @@ import { openHabbiconHub, requestChatCommandSuggestions, resetUnseenHabbicons, r
 import { useWebSocketContext } from '#base/context/communication';
 import { HabbiconsStore, useHabbiconsStore } from '#base/context/habbicons';
 import { getUnseenItemCount, UnseenItemCategory, useInventoryStore } from '#base/context/inventory';
-import { roomStore, useRoom, useRoomChatActions, useRoomIsSpectating, useRoomStore } from '#base/context/room';
+import { useOwnControllerLevel, useRoom, useRoomIsSpectating, useRoomStore } from '#base/context/room';
 import { useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
-import { ClientGates, useClientGate, useOwnClubLevel, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
-import { useChatStyles, useViewportSize } from '#base/hooks';
+import { ClientGates, useClientGate, useOwnHasClub, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
+import { useChatInputContentRequest, useChatStyles, useViewportSize } from '#base/hooks';
 import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useTemplate } from '#base/theme';
-import { completeChatCommand, findInvalidArguments, IChatCommandCompletion, mergeChatCommands } from '#base/utils';
+import { completeChatCommand, findInvalidArguments, IChatCommandCompletion, mergeChatCommands, NO_CHAT_COMMAND_COMPLETION } from '#base/utils';
 import { roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
 
@@ -39,7 +39,6 @@ const IDLE_DELAY_MS = 10000;
 const NO_STYLE_SELECTED = -1;
 /** How long typing pauses before the server is asked what to offer (`chat.commands.v2`). */
 const SUGGEST_DELAY_MS = 120;
-const NO_COMPLETION: IChatCommandCompletion = { suggestions: [], request: null };
 /** An argument the server would refuse: the red of the field's own flood warning (`block_text`). */
 const INVALID_ARGUMENT_COLOR = '#ff0000';
 
@@ -111,10 +110,9 @@ export const RoomChatInputView = () => {
     const floodBlockSeconds = useRoomStore(x => x.floodBlockSeconds);
     const floodBlockStamp = useRoomStore(x => x.floodBlockStamp);
     const allStyles = useChatStyles();
-    const { clearChatInputContent } = useRoomChatActions();
     const preferredChatStyle = useUserStore(x => x.preferredChatStyle);
     const chatSizePreference = useUserStore(x => x.chatSizePreference);
-    const clubLevel = useOwnClubLevel();
+    const hasClub = useOwnHasClub();
     const isStaff = useClientGate(ClientGates.StaffChatStyles);
     const mayUseWired = useClientGate(ClientGates.WiredMenu);
     const isAmbassador = useOwnIsAmbassador();
@@ -131,7 +129,7 @@ export const RoomChatInputView = () => {
     const disabledStyles = useConfigValue<string>('disabled.custom.chat.styles') ?? '';
     const chatCommands = useUserStore(x => x.chatCommands);
     const chatCommandSuggestions = useUserStore(x => x.chatCommandSuggestions);
-    const controllerLevel = useRoomStore(x => x.controllerLevel);
+    const controllerLevel = useOwnControllerLevel();
     const usersByRoomObjectId = useRoomStore(x => x.usersByRoomObjectId);
     // The bar starts where the room tools end, as `RoomToolsWidget.getWidgetAreaWidth` told it to.
     const roomToolsCollapsed = useRoomToolsCollapsed();
@@ -200,7 +198,7 @@ export const RoomChatInputView = () => {
 
     const completion = useMemo<IChatCommandCompletion>(() => (focused
         ? completeChatCommand({ text: value, cursor, commands, controllerLevel, roomUserNames, serverValues: chatCommandSuggestions })
-        : NO_COMPLETION), [ commands, focused, value, cursor, controllerLevel, roomUserNames, chatCommandSuggestions ]);
+        : NO_CHAT_COMMAND_COMPLETION), [ commands, focused, value, cursor, controllerLevel, roomUserNames, chatCommandSuggestions ]);
     // What the server would refuse, drawn in red as it is typed (`TextField.setTextFormat`).
     const invalidArguments = useMemo(() => findInvalidArguments({ text: value, commands, controllerLevel, roomUserNames })
         .map(x => ({ ...x, color: INVALID_ARGUMENT_COLOR })), [ value, commands, controllerLevel, roomUserNames ]);
@@ -238,7 +236,6 @@ export const RoomChatInputView = () => {
         if (!customStylesEnabled) return [];
 
         const disabled = disabledStyles.split(',');
-        const hasClub = (clubLevel >= ClubLevelEnum.Club);
         const styles: IChatStyle[] = [];
 
         for (const style of allStyles) {
@@ -275,7 +272,7 @@ export const RoomChatInputView = () => {
         }
 
         return styles;
-    }, [ allStyles, customStylesEnabled, disabledStyles, isStaff, clubLevel, isAmbassador, nftChatStyles, purchasableChatStyles ]);
+    }, [ allStyles, customStylesEnabled, disabledStyles, isStaff, hasClub, isAmbassador, nftChatStyles, purchasableChatStyles ]);
 
     const sendTypingStatus = () => {
         if (isFloodBlocked) return;
@@ -554,23 +551,16 @@ export const RoomChatInputView = () => {
         return () => clearInterval(interval);
     }, [ floodBlockSeconds, floodBlockStamp ]);
 
-    /*
-     * The avatar menu asked us to whisper to someone (`RoomWidgetUpdateChatInputContentEvent`).
-     * It is a one-off request rather than state to render, so it is taken as the store announces
-     * it and cleared straight away.
-     */
-    useEffect(() => roomStore.subscribe(({ chatInputContent }) => {
-        if (!chatInputContent) return;
-
-        const prefix = (chatInputContent.mode === 'whisper') ? whisperMode : shoutMode;
-        const next = `${prefix} ${chatInputContent.userName.length ? `${chatInputContent.userName} ` : ''}`;
+    // The avatar menu asked us to whisper or shout to someone (`onChatInputUpdate`).
+    useChatInputContentRequest((content) => {
+        const prefix = (content.mode === 'whisper') ? whisperMode : shoutMode;
+        const next = `${prefix} ${content.userName.length ? `${content.userName} ` : ''}`;
 
         setReplacementCursor(null);
         setValue(next);
         lastContentRef.current = next;
         setFocused(true);
-        clearChatInputContent();
-    }), [ whisperMode, shoutMode, clearChatInputContent ]);
+    });
 
     // `focus_capturer`: typing anywhere while nothing else has the keyboard starts a message.
     useEffect(() => {

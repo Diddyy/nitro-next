@@ -1,10 +1,3 @@
-import { AvatarFigurePartType, AvatarGenderType, AvatarScaleType, AvatarSetType, IAvatarImage, IFigurePartSet, IGraphicAsset, IPartColor } from '@nitrodevco/nitro-api';
-import { GetAvatarRenderManager, TexturePool } from '@nitrodevco/nitro-renderer';
-import { RenderTexture, Texture } from 'pixi.js';
-import { useEffect, useSyncExternalStore } from 'react';
-
-import { useAvatarEditorStore } from '#base/context/avatar-editor';
-
 /**
  * Clothing-part grid thumbnails straight from the avatar asset library: each part set is a
  * stack of its figure-part sprites (the render manager's own textures, shared with the avatar
@@ -21,6 +14,12 @@ import { useAvatarEditorStore } from '#base/context/avatar-editor';
  * virtualised, so a part's libraries only start downloading once its cell has actually been
  * rendered into view - opening a tab with hundreds of parts no longer fetches all of them.
  */
+import { AvatarFigurePartType, AvatarGenderType, AvatarScaleType, AvatarSetType, IAvatarImage, IFigurePartSet, IGraphicAsset, IPartColor } from '@nitrodevco/nitro-api';
+import { GetAvatarRenderManager, TexturePool } from '@nitrodevco/nitro-renderer';
+import { RenderTexture, Texture } from 'pixi.js';
+import { useEffect, useSyncExternalStore } from 'react';
+
+import { useAvatarEditorStore } from '#base/context/avatar-editor';
 
 const HEAD_SET_TYPE = 'hd';
 

@@ -1,25 +1,3 @@
-import { ISimpleRoomObjectData, RoomObjectUserType } from '@nitrodevco/nitro-api';
-import { Container as PixiContainer } from 'pixi.js';
-import { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
-
-import { useRoomObjectBubblePlacement } from '#base/hooks';
-import { Box } from '#base/theme';
-
-const LOCATION_STACK_SIZE: number = 25;
-const FADE_DELAY = 5000;
-const FADE_LENGTH = 75;
-
-type RoomObjectInfoBubbleProps = {
-    objectData: ISimpleRoomObjectData;
-    /** Humanoid units get the taller gap above the head; furniture and pets leave this out. */
-    userType?: RoomObjectUserType;
-    fades?: boolean;
-    children?: ReactNode;
-    onClose?: () => void;
-};
-
-const isAvatar = (userType: RoomObjectUserType | undefined) => (userType === RoomObjectUserType.User) || (userType === RoomObjectUserType.Bot) || (userType === RoomObjectUserType.RentableBot);
-
 /**
  * A bubble that follows a room object - Flash's `ContextInfoView`, placed by
  * `useRoomObjectBubblePlacement` and kept inside the window.
@@ -32,7 +10,29 @@ const isAvatar = (userType: RoomObjectUserType | undefined) => (userType === Roo
  * It takes no `zIndex`: a non-zero one makes its parent sort, which lifts the bubble over the
  * window layer that follows the room in the tree. Room UI stays under every window.
  */
-export const RoomObjectMenuBubble = (props: RoomObjectInfoBubbleProps) => {
+import { ISimpleRoomObjectData, RoomObjectUserType } from '@nitrodevco/nitro-api';
+import { Container as PixiContainer } from 'pixi.js';
+import { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
+
+import { useRoomObjectBubblePlacement } from '#base/hooks';
+import { Box } from '#base/theme';
+
+const LOCATION_STACK_SIZE: number = 25;
+const FADE_DELAY = 5000;
+const FADE_LENGTH = 75;
+
+type RoomObjectMenuBubbleProps = {
+    objectData: ISimpleRoomObjectData;
+    /** Humanoid units get the taller gap above the head; furniture and pets leave this out. */
+    userType?: RoomObjectUserType;
+    fades?: boolean;
+    children?: ReactNode;
+    onClose?: () => void;
+};
+
+const isAvatar = (userType: RoomObjectUserType | undefined) => (userType === RoomObjectUserType.User) || (userType === RoomObjectUserType.Bot) || (userType === RoomObjectUserType.RentableBot);
+
+export const RoomObjectMenuBubble = (props: RoomObjectMenuBubbleProps) => {
     const { objectData, userType, fades = false, children, onClose = undefined } = props;
     const { objectId, category } = objectData;
     const isFading = useRef<boolean>(false);

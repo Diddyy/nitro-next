@@ -8,10 +8,10 @@ import { productImageWidgetPreview, requestSelectedItemToMover } from '#base/com
 import { AvatarImage, RoomPreviewer, RoomPreviewerHandle } from '#base/components';
 import { CatalogWidgetEventEnum, CatalogWidgetSpinnerEvent, getCatalogPageImage, getCatalogPageText, SelectProductEvent, useCatalogStoreApi } from '#base/context/catalog';
 import { COLLECTIBLE_PREVIEW_EASTER_EGG_INITIAL, COLLECTIBLE_PRODUCT_TYPE_CHAT_STYLE, CollectiblePreview, CollectiblePreviewEasterEgg, CollectibleProductInfo } from '#base/context/collectibles';
-import { useHabbiconsStore } from '#base/context/habbicons';
+import { useHabbiconPreview } from '#base/context/habbicons';
 import { getRoomPatterns } from '#base/context/room';
 import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useOwnUserFigure, useOwnUserGender } from '#base/context/user';
 import { ROOM_PREVIEWER_OBJECT_ID, useCatalogWidgetEvent } from '#base/hooks';
 import { Box, Region, ThemeImage, useLayoutSize, useTemplateLibrary } from '#base/theme';
 import { getOfferProduct, PRODUCT_IMAGES } from '#base/utils';
@@ -95,7 +95,7 @@ const isBundle = (offer: IPurchasableOffer) => (Number(offer.pricingModel) === N
 
 /** `getHabbiconPreviewBitmap`: the habbicon's preview, or Flash's grey 40x40 square until the habbicon assets are in. */
 const HabbiconPreview = ({ habbiconId }: { habbiconId: number }) => {
-    const preview = useHabbiconsStore(state => state.previews[habbiconId]);
+    const preview = useHabbiconPreview(habbiconId);
 
     return (
         <Box layout={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
@@ -270,8 +270,8 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
     const applyQuantityWidgets = useProductQuantityWidgets(page);
     const catalogImageUrl = useConfigValue<string>('asset.urls.catalog') ?? '';
     const store = useCatalogStoreApi();
-    const ownFigure = useUserStore(x => x.figure);
-    const ownGender = useUserStore(x => x.sex);
+    const ownFigure = useOwnUserFigure();
+    const ownGender = useOwnUserGender();
     const templates = useTemplateLibrary(CATALOG_LIBRARY);
     const config = useConfigData();
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';

@@ -1,11 +1,11 @@
+/**
+ * `WiredMenuSlice`'s actions: patching or resetting the wired menu's state. Read off the store
+ * once: a component using these re-renders for nothing.
+ */
 import { wiredStore } from '../store/WiredStore';
 
 const state = wiredStore.getState();
 
-/**
- * Zustand actions are created once and never change, so they are read off the store a single
- * time here rather than subscribed to: a component using these re-renders for nothing.
- */
 const actions = {
     patchWiredMenu: state.patchWiredMenu,
     resetWiredMenu: state.resetWiredMenu,

@@ -5,6 +5,18 @@ import { Template, TemplateBindings, TemplateWindow, useTemplate } from '#base/t
 
 import { PetPortraitView } from './PetPortraitView';
 
+/**
+ * Two pets in a nest, waiting for a name for their baby - `ConfirmPetBreedingView` on the
+ * `habbo-room-ui-com/confirm_pet_breeding_xml` layout: the parents, the name field, and the odds
+ * of each rarity class with the breeds in it.
+ *
+ * `updateWindow` registers the parents' names, owners and levels and each class's `percent`,
+ * fills the previews and the `breeds<n>` lists, then `arrangeListItems` ends in
+ * `resizeToFitContent`: the window fits `element_list` and the `button_list` at its fixed y of
+ * 524, its width bounded by the frame's 320. `save_button` sends the name and `disable`s the
+ * dialog (greying `save_button` and `cancel_button`) while the server checks it; a refusal hands
+ * the field back (`enable`). The header close and `cancel_button` cancel.
+ */
 export interface NestBreedingViewProps {
     pet1: IBreedingPetInfo;
     pet2: IBreedingPetInfo;
@@ -70,18 +82,6 @@ const breedLists = (categories: readonly IRarityCategoryData[], petType: number,
     },
 ]));
 
-/**
- * Two pets in a nest, waiting for a name for their baby - `ConfirmPetBreedingView` on the
- * `habbo-room-ui-com/confirm_pet_breeding_xml` layout: the parents, the name field, and the odds
- * of each rarity class with the breeds in it.
- *
- * `updateWindow` registers the parents' names, owners and levels and each class's `percent`,
- * fills the previews and the `breeds<n>` lists, then `arrangeListItems` ends in
- * `resizeToFitContent`: the window fits `element_list` and the `button_list` at its fixed y of
- * 524, its width bounded by the frame's 320. `save_button` sends the name and `disable`s the
- * dialog (greying `save_button` and `cancel_button`) while the server checks it; a refusal hands
- * the field back (`enable`). The header close and `cancel_button` cancel.
- */
 export const NestBreedingView = ({ pet1, pet2, rarityCategories, resultPetType, nameRejected, onBreed, onCancel }: NestBreedingViewProps) => {
     const preview = useTemplate(BREED_PREVIEW_TEMPLATE);
     const [ name, setName ] = useState('');

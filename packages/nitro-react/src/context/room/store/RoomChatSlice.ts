@@ -1,3 +1,7 @@
+/**
+ * The room's chat: the bubbles in the flow, the flood control block the server imposed, and text
+ * another widget wants put into the chat input.
+ */
 import { StateCreator } from 'zustand';
 
 import type { ChatBubbleData } from '#base/chat';

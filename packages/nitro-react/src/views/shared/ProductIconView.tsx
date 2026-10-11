@@ -18,7 +18,7 @@
  */
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 
-import { useHabbiconsStore } from '#base/context/habbicons';
+import { useHabbiconPreview } from '#base/context/habbicons';
 import { useConfigData, useInterpolate } from '#base/context/system';
 import { Region, TemplateBindings, TemplateWindow, TemplateWindows, themeIconFrame, ThemeImage } from '#base/theme';
 import { getCurrencyIconStyle } from '#base/utils';
@@ -47,7 +47,7 @@ const PRODUCT_ICON_SLOTS: CollectiblesPreviewSlots = {
 
 /** `habbiconResult`: the habbicon's preview, or a grey 40x40 square until the habbicon assets are in. */
 const HabbiconPreview = ({ habbiconId }: { habbiconId: number }) => {
-    const preview = useHabbiconsStore(state => state.previews[habbiconId]);
+    const preview = useHabbiconPreview(habbiconId);
 
     if (!preview) {
         return (

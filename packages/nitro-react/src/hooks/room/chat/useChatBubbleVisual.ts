@@ -1,10 +1,17 @@
+/**
+ * Everything a chat bubble draws, from its data: the style's bitmaps, the speaker's head or the
+ * pet's face, the rasterised text and the size arithmetic (`PooledChatBubble.recreate`, whose
+ * result `ChatBubbleFactory.getHistoryLineEntry` draws into a bitmap as well). The live bubble
+ * adds its motion to this; the chat history only places it. `maxWidth` is the wrap width the
+ * bubble-width setting maps to.
+ */
 import { AvatarGenderType, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import { PetFigureData } from '@nitrodevco/nitro-renderer';
 import { Rectangle, Texture } from 'pixi.js';
 import { useEffect, useMemo, useState } from 'react';
 
 import { buildChatBubbleMarkup, ChatBubbleData, chatFontSizeScale, computeChatBubbleLayout, resolveChatBubbleText, scaleChatFontSize } from '#base/chat';
-import { useRoom, useRoomStore } from '#base/context/room';
+import { useRoom, useRoomUserByObjectId } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 
@@ -19,18 +26,11 @@ const EMPTY_LINKS: never[] = [];
 /** `ChatBubbleFactory.getPetImage` draws every pet's head alone except this type's (the cow). */
 const FULL_BODY_CHAT_PET_TYPE = 35;
 
-/**
- * Everything a chat bubble draws, from its data: the style's bitmaps, the speaker's head or the
- * pet's face, the rasterised text and the size arithmetic (`PooledChatBubble.recreate`, whose
- * result `ChatBubbleFactory.getHistoryLineEntry` draws into a bitmap as well). The live bubble
- * adds its motion to this; the chat history only places it. `maxWidth` is the wrap width the
- * bubble-width setting maps to.
- */
 export const useChatBubbleVisual = (data: ChatBubbleData, maxWidth: number) => {
     const t = useTranslation();
     const room = useRoom();
     const style = useChatStyle(data.styleId);
-    const liveUserData = useRoomStore(x => x.usersByRoomObjectId[data.objectId]);
+    const liveUserData = useRoomUserByObjectId(data.objectId);
     // Flash built the bubble once from the speaker; one who leaves the room keeps their name, head and colour.
     const [ userData, setUserData ] = useState(liveUserData);
 

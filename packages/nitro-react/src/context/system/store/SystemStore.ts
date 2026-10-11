@@ -8,6 +8,11 @@ import { createSystemDialogsSlice, SystemDialogsSlice } from './SystemDialogsSli
 import { createToolbarTransitionsSlice, ToolbarTransitionsSlice } from './ToolbarTransitionsSlice';
 import { VisibleWindows, WindowName, WindowRegistry } from './WindowRegistry';
 
+/**
+ * The client-wide store: configuration, localizations, furniture and product data, the open
+ * windows and their stacking, the toolbar's widths, the home room and the room session
+ * requests, plus the dialogs, hotel view and toolbar transition slices.
+ */
 type State = {
     config: Record<string, unknown>;
     localizations: Record<string, string>;
@@ -165,12 +170,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
     },
     setBadgePointLimits: (limits: Record<string, number>) => set(state => ({ badgePointLimits: { ...state.badgePointLimits, ...limits } })),
     setLocalization: (localizations: Record<string, string>) =>
-        set((state) => {
-            return {
-                localizations: { ...state.localizations, ...localizations },
-                localizationNeedsUpdate: false,
-            };
-        }),
+        set(state => ({ localizations: { ...state.localizations, ...localizations } })),
     setLocalizationForFurniture: (furniture: IFurnitureData[]) => {
         if (!furniture || !furniture.length) return;
 

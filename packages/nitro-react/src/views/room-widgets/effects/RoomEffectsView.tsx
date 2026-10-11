@@ -32,6 +32,7 @@ import { useTranslation } from '#base/context/system';
 import { UserAvatarEffect } from '#base/context/user';
 import { secondsLeftOf } from '#base/context/user/store/avatarEffectsModel';
 import { Box, LayoutImage, LayoutWindow, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
+import { twoDigits } from '#base/utils';
 
 export interface RoomEffectsViewProps {
     effects: UserAvatarEffect[];
@@ -62,8 +63,6 @@ const LIST_HEIGHT_MIN = 48;
 const SECONDS_PER_DAY = 86400;
 const SECONDS_PER_HOUR = 3600;
 const SECONDS_PER_MINUTE = 60;
-
-const twoDigits = (value: number) => ((value < 10) ? `0${value}` : String(value));
 
 /** `EffectView.setTimeLeft`: `hh:mm:ss` from an hour up, `mm:ss` under it. */
 const formatTimeLeft = (seconds: number) => {

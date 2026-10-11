@@ -4,6 +4,12 @@ import { BADGE_IMAGE_HEIGHT, BADGE_IMAGE_WIDTH, BadgeLayerOptions, badgePartImag
 import { useConfigValue } from '#base/context/system';
 import { Region, useTextureFromUrl } from '#base/theme';
 
+/**
+ * One badge layer - `BadgeEditorPartItem.getComposite`: the part's bitmap tinted with the layer's
+ * colour, with its mask copied over the result untinted. A `ColorTransform` whose three multipliers
+ * are the colour's own channels is exactly a Pixi tint, so the composite is two sprites rather than
+ * a bitmap the client rebuilds on every change.
+ */
 export interface GroupBadgePartImageProps {
     /** The part this layer draws, or nothing for an empty layer. */
     part: IBadgePartData | undefined;
@@ -13,12 +19,6 @@ export interface GroupBadgePartImageProps {
     color: number | undefined;
 }
 
-/**
- * One badge layer - `BadgeEditorPartItem.getComposite`: the part's bitmap tinted with the layer's
- * colour, with its mask copied over the result untinted. A `ColorTransform` whose three multipliers
- * are the colour's own channels is exactly a Pixi tint, so the composite is two sprites rather than
- * a bitmap the client rebuilds on every change.
- */
 export const GroupBadgePartImage = ({ part, options, color }: GroupBadgePartImageProps) => {
     const badgePartUrl = useConfigValue<string>('image.library.badgepart.url') ?? '';
     const urls = part ? badgePartImageUrls(badgePartUrl, part.fileName, part.maskFileName) : undefined;

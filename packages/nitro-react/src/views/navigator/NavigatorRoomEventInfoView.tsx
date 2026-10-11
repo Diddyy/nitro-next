@@ -1,5 +1,15 @@
 import { TemplateBindings, TemplateWindow, TemplateWindows } from '#base/theme';
 
+/**
+ * The room event card - `RoomEventInfoCtrl` over `habbo-navigator-com/iro_event_info_xml`, docked in
+ * the toolbar's extension column as `room_event_info`.
+ *
+ * `refresh` is the bindings: the owner's or the visitor's background for an expanded event, the
+ * title bar for a folded one or for no event; the event's name in `header_txt` and, expanded, its
+ * description; for whoever may change it the edit link, and the extend link when it may be
+ * extended; for a visitor `in_progress_txt`; with no event, `get_event` for whoever may make one.
+ * `create_link` never shows. The window is as tall as the background it shows.
+ */
 const TEMPLATE = 'habbo-navigator-com/iro_event_info_xml';
 
 /** `event_bg_visitor`'s height (the expanded card) and `event_bg_contracted`'s (the title bar). */
@@ -26,16 +36,6 @@ export interface NavigatorRoomEventInfoViewProps {
     onExtend: () => void;
 }
 
-/**
- * The room event card - `RoomEventInfoCtrl` over `habbo-navigator-com/iro_event_info_xml`, docked in
- * the toolbar's extension column as `room_event_info`.
- *
- * `refresh` is the bindings: the owner's or the visitor's background for an expanded event, the
- * title bar for a folded one or for no event; the event's name in `header_txt` and, expanded, its
- * description; for whoever may change it the edit link, and the extend link when it may be
- * extended; for a visitor `in_progress_txt`; with no event, `get_event` for whoever may make one.
- * `create_link` never shows. The window is as tall as the background it shows.
- */
 export const NavigatorRoomEventInfoView = ({ eventName, eventDescription, expanded, isOwner, canModify, canExtend, onBackgroundClick, onModify, onExtend }: NavigatorRoomEventInfoViewProps) => {
     const hasEvent = eventName !== undefined;
     const open = expanded && hasEvent;

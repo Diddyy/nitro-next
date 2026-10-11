@@ -1,14 +1,3 @@
-import { RoomControllerLevelEnum, RoomThicknessType } from '@nitrodevco/nitro-api';
-import { useEffect, useMemo, useState } from 'react';
-
-import { requestFloorPlanData, saveFloorPlan, saveFloorPlanImport } from '#base/commands';
-import { useWebSocketContext } from '#base/context/communication';
-import { useOwnControllerLevel, useRoomFloorPlanActions, useRoomStore } from '#base/context/room';
-import { useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
-import { ClientGates, PerkCodes, useClientGate, useOwnPerkAllowed, useUserActions, useUserStore } from '#base/context/user';
-import { createFloorPlanModel, floorPlanModelText, FloorPlanTile } from '#base/utils';
-import { FloorPlanEditorView } from '#base/views/room-widgets/floor-plan-editor/FloorPlanEditorView';
-
 /**
  * The floor plan editor - `BCFloorPlanEditor`. Flash kept it in the window manager and opened it
  * from the room info panel (`RoomInfoViewCtrl.onFloorPlanEditorButtonClick`); here it is a room
@@ -27,6 +16,16 @@ import { FloorPlanEditorView } from '#base/views/room-widgets/floor-plan-editor/
  * Flash asked for the entry tile and the occupied tiles every time the window was shown, and the
  * map itself never - the room already sent it on the way in. That is kept.
  */
+import { RoomControllerLevelEnum, RoomThicknessType } from '@nitrodevco/nitro-api';
+import { useEffect, useMemo, useState } from 'react';
+
+import { requestFloorPlanData, saveFloorPlan, saveFloorPlanImport } from '#base/commands';
+import { useWebSocketContext } from '#base/context/communication';
+import { useOwnControllerLevel, useRoomFloorPlanActions, useRoomStore } from '#base/context/room';
+import { useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
+import { ClientGates, PerkCodes, useClientGate, useOwnPerkAllowed, useUserActions, useUserStore } from '#base/context/user';
+import { createFloorPlanModel, floorPlanModelText, FloorPlanTile } from '#base/utils';
+import { FloorPlanEditorView } from '#base/views/room-widgets/floor-plan-editor/FloorPlanEditorView';
 
 /** `BCFloorPlanEditor._bcSecondsCountdownTimer` ticks every ten seconds and takes ten off. */
 const BC_COUNTDOWN_MS = 10000;

@@ -7,7 +7,7 @@ import { ignoreUser } from '#base/commands';
 import { ChatHistoryEntry, useChatHistoryActions, useChatHistoryStore } from '#base/context/chat-history';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
-import { useSystemStore, useTranslation } from '#base/context/system';
+import { useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { easeOutCubic, useRoomObjectSelect, useTween } from '#base/hooks';
 import { LayoutImage, useTextureFromUrl } from '#base/theme';
@@ -113,7 +113,7 @@ export const ChatHistoryTray = () => {
     // `_-21L`: the line the ignore icon is beside.
     const [ ignoreEntryId, setIgnoreEntryId ] = useState<number | undefined>(undefined);
     const ignoredUserIds = useUserStore(x => x.ignoredUserIds);
-    const showConfirm = useSystemStore(x => x.showConfirm);
+    const { showConfirm } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
 

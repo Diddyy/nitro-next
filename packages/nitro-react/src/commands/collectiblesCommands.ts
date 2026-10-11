@@ -33,31 +33,18 @@ import {
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore, isInventoryFurniGroupWallItem } from '#base/context/inventory';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { getBadgeName } from '#base/utils';
+import { configReader, getBadgeName, getFurnitureData, openWebPage } from '#base/utils';
 
 import { showNotEnoughActivityPointsAlert } from './catalogClubCommands';
 import { checkFurniInventoryInitialization } from './inventoryCommands';
 
 type Send = WebSocketConnection['send'];
 
-/** `ILocalizationManager.getLocalization` / `getLocalizationWithParams`: a missing key is the default, `''` unless one is given. */
-const t = (key: string, defaultValue: string = '', replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, defaultValue, replacements);
-const getProperty = (key: string) => {
-    const value = systemStore.getState().config[key];
-
-    return ((typeof value === 'string') || (typeof value === 'number') || (typeof value === 'boolean')) ? String(value) : '';
-};
-
 /** The bubble every collectibles notification uses: `info`, with the curator stamp. */
 const COLLECTIBLES_NOTIFICATION_ICON = 'icon_curator_stamp_large_png';
 const notify = (text: string) => notificationStore.getState().addNotification(text, 'info', COLLECTIBLES_NOTIFICATION_ICON);
-
-/** `HabboWebTools.openWebPageAndMinimizeClient`. */
-const openWebPage = (url: string) => {
-    if (url.length) window.open(url, '_blank', 'noopener');
-};
 
 /** `CollectiblesView.onClickHtmlLink`: a link of the info tab's texts opens its page. */
 export const openCollectiblesHtmlLink = (link: string) => openWebPage(link);
@@ -119,8 +106,7 @@ export const getCollectibleProductName = (info: CollectibleProductInfo | null): 
 
 /** The furni a wall or floor product names, as the room engine draws it; `none` when the furni data has no such type. */
 const getFurniPreview = (info: CollectibleProductInfo, isWallItem: boolean, icon: boolean): CollectiblePreview => {
-    const { floorItems, wallItems } = systemStore.getState();
-    const data = (isWallItem ? wallItems : floorItems)[parseInt(info.itemTypeId)];
+    const data = getFurnitureData(systemStore.getState(), parseInt(info.itemTypeId), isWallItem);
 
     if (!data) return COLLECTIBLE_PREVIEW_NONE;
 
@@ -833,10 +819,10 @@ export const onCollectibleMintableItemResult = (send: Send, mintResult: number) 
 };
 
 /** `onClickCreateWallet`. */
-export const openCreateWalletPage = () => openWebPage(getProperty('nft.wallet.create.url'));
+export const openCreateWalletPage = () => openWebPage(configReader(systemStore.getState().config).configString('nft.wallet.create.url'));
 
 /** `onClickMoreInfo`. */
-export const openWalletSettingsPage = () => openWebPage(getProperty('web.settings.wallet.relativeUrl'));
+export const openWalletSettingsPage = () => openWebPage(configReader(systemStore.getState().config).configString('web.settings.wallet.relativeUrl'));
 
 // ------------------------------------------------------------------------------------------------
 // ShopTab

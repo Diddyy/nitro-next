@@ -102,14 +102,6 @@ export const createMarketplaceOfferData = (offer: IMarketPlaceOffersOffer, own: 
 /** `MarketPlaceOfferData.isUniqueLimitedItem`. */
 export const isMarketplaceUniqueLimitedItem = (offer: MarketplaceOfferData) => ((offer.stuffData?.uniqueNumber ?? 0) > 0);
 
-/** The furni data behind an offer - `HabboCatalog.getFurnitureData(furniId, "s" | "i")`. */
-export const getMarketplaceOfferFurniData = (offer: MarketplaceOfferData, floorItems: Record<number, IFurnitureData>, wallItems: Record<number, IFurnitureData>): IFurnitureData | undefined => {
-    if (offer.furniType === MARKETPLACE_FURNI_TYPE_FLOOR) return floorItems[offer.furniId];
-    if (offer.furniType === MARKETPLACE_FURNI_TYPE_WALL) return wallItems[offer.furniId];
-
-    return undefined;
-};
-
 /** `MarketPlaceLogic.isPosterItem`: a wall item whose class is `poster`, with its poster id as the extra data. */
 export const isMarketplacePosterItem = (offer: MarketplaceOfferData, wallItems: Record<number, IFurnitureData>) => ((offer.furniType === MARKETPLACE_FURNI_TYPE_WALL) && (offer.extraData !== undefined) && (wallItems[offer.furniId]?.className === 'poster'));
 

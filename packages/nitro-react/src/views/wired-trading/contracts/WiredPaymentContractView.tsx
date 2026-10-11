@@ -18,11 +18,11 @@ import { useInterpolate } from '#base/context/system';
 import { useWiredHasWritePermission } from '#base/context/wired';
 import { finalizeWiredTradeRules, useWiredContractActions, useWiredTradingStore } from '#base/context/wired-trading';
 import { WiredDropdown } from '#base/views/wired-setup/kit/WiredDropdown';
+import { WiredFooter } from '#base/views/wired-setup/kit/WiredFooter';
 import { WiredRadioGroup } from '#base/views/wired-setup/kit/WiredRadioGroup';
 import { WiredSection } from '#base/views/wired-setup/kit/WiredSection';
 import { WiredTextInput } from '#base/views/wired-setup/kit/WiredTextInput';
 import { WiredTradeRuleListEditor } from '#base/views/wired-trading/common/WiredTradeRuleListEditor';
-import { WiredTradingFooter } from '#base/views/wired-trading/common/WiredTradingFooter';
 import { WiredTradingFrame } from '#base/views/wired-trading/common/WiredTradingFrame';
 
 /** `PaymentContract.LAYOUT_TYPES`. */
@@ -113,7 +113,7 @@ export const WiredPaymentContractView = ({ contract, onClose }: WiredPaymentCont
                         caption="${wiredcontracts.payment_contract.layout_type}"
                     />
                 </WiredSection>,
-                <WiredTradingFooter
+                <WiredFooter
                     key="footer"
                     onSave={onSave}
                     onCancel={onClose}

@@ -1,11 +1,12 @@
+/**
+ * `UserFriendsSlice`'s actions: friend limits, categories, friends and requests, the friend list
+ * tabs, the search tab's results and the friend bar's notifications. Read off the store once: a
+ * component using these re-renders for nothing.
+ */
 import { userStore } from '../store/UserStore';
 
 const state = userStore.getState();
 
-/**
- * Zustand actions are created once and never change, so they are read off the store a single
- * time here rather than subscribed to: a component using these re-renders for nothing.
- */
 const actions = {
     setFriendLimits: state.setFriendLimits,
     setFriendCategories: state.setFriendCategories,

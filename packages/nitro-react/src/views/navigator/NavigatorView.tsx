@@ -37,7 +37,7 @@ import { useEffect, useState } from 'react';
 import { goBackNavigatorSearch, openClientLink, performNavigatorSearch, refreshNavigatorSearch, requestRoomGroupDetails } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { NAVIGATOR_FILTER_TYPES, splitNavigatorFilter, useNavigatorActions, useNavigatorOpeningGeometry, useNavigatorStore } from '#base/context/navigator';
-import { useConfigValue, useSystemActions, useTranslation } from '#base/context/system';
+import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
 import { getGlobalRect, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
@@ -140,7 +140,7 @@ export const NavigatorView = () => {
     const thumbnailsInAmazon = useConfigValue<boolean | string>('new.navigator.official.room.thumbnails.in.amazon');
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const { hide } = useWindowVisibility('navigator');
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const [ roomInfoBubble, setRoomInfoBubble ] = useState<RoomInfoBubble>();

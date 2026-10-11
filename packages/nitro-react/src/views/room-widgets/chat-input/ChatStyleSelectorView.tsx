@@ -4,6 +4,22 @@ import { useState } from 'react';
 import { CHAT_FONT_SIZE_LABELS, IChatStyle } from '#base/chat';
 import { FloatingPopup, GlobalRect, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
 
+/**
+ * The style menu - `ChatStyleGridView` on its `habbo-room-ui-com/styleselector_menu_new_xml`
+ * template, filled by `ChatStyleSelector`: one `chatinput_chatstyle_template` clone per pickable
+ * style in its `itemgrid`, the styles in last first as `createChatStyleSelectorMenuItems` adds
+ * them, each its style's `selector_preview` bitmap centred in it (`center()`). The grid is made 4
+ * to 6 columns wide (`gridColumns`) and fills a row before starting the next; it grows the menu
+ * with it (`reflect_resize_to_parent`). A cell's `background_color` shows only on the picked cell
+ * (`showBackgroundOnlyForItem`), grey while the pointer is over it.
+ *
+ * Under the grid, `font_size_list` holds a `chatinput_chatfontsize_template` clone per font size -
+ * S, M, L, XL, XXL for modes 0-4 (`createFontSizeOptions`) - the current mode's background shown
+ * and its label dark (`updateFontSizeSelectionHighlight`). A click on either kind picks it and
+ * leaves the menu open; a click anywhere else closes it (`hideIfClickAway`). It floats over the room
+ * as a desktop window of its own (`FloatingPopup`), at the selector's x with its bottom 55 above the
+ * selector's (`alignToSelector`).
+ */
 const LIBRARY = 'habbo-room-ui-com';
 
 /** `RoomChatInputView.createChatStyleSelectorMenuItems`: `gridColumns = clamp(count / 6 + 1, 4, 6)`. */
@@ -46,22 +62,6 @@ const previewAsset = (style: IChatStyle): string | undefined => {
     return name;
 };
 
-/**
- * The style menu - `ChatStyleGridView` on its `styleselector_menu_new` template, filled by
- * `ChatStyleSelector`: one `chatinput_chatstyle_template` clone per pickable style in its `itemgrid`,
- * the styles in last first as `createChatStyleSelectorMenuItems` adds them, each its style's
- * `selector_preview` bitmap centred in it (`center()`). The grid is made 4 to 6 columns wide
- * (`gridColumns`) and fills a row before starting the next; it grows the menu with it
- * (`reflect_resize_to_parent`). A cell's `background_color` shows only on the picked cell
- * (`showBackgroundOnlyForItem`), grey while the pointer is over it.
- *
- * Under the grid, `font_size_list` holds a `chatinput_chatfontsize_template` clone per font size -
- * S, M, L, XL, XXL for modes 0-4 (`createFontSizeOptions`) - the current mode's background shown
- * and its label dark (`updateFontSizeSelectionHighlight`). A click on either kind picks it and
- * leaves the menu open; a click anywhere else closes it (`hideIfClickAway`). It floats over the room
- * as a desktop window of its own (`FloatingPopup`), at the selector's x with its bottom 55 above the
- * selector's (`alignToSelector`).
- */
 export const ChatStyleSelectorView = ({ anchor, styles, selectedStyleId, onSelect, fontSizeMode, onSelectFontSize, onClose }: ChatStyleSelectorViewProps) => {
     const menu = useTemplate(`${LIBRARY}/styleselector_menu_new_xml`);
     const entry = useTemplate(`${LIBRARY}/chatinput_chatstyle_template_xml`);

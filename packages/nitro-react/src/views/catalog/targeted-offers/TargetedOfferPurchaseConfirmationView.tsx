@@ -11,6 +11,22 @@ import { TemplateWindow, useTemplateLibrary } from '#base/theme';
 import { CATALOG_LIBRARY, catalogTemplateId } from '../page/catalogTemplates';
 import { priceDisplayItem } from '../page/widgets/catalogPrice';
 
+/**
+ * Flash's `TargetedOfferPurchaseConfirmationView` on
+ * `habbo-catalog-com/targeted_offer_purchase_confirmation_xml`, centred.
+ *
+ * `disclaimer` is disposed unless `disclaimer.credit_spending.enabled`, and the `content` list - and
+ * the frame with it - closes up round it. When it is there its checkbox changes nothing:
+ * `setDisclaimerAccepted` enables and disables a `select_button` this layout does not have, so the
+ * buy button stays live either way - as in Flash.
+ *
+ * `product_name` is the offer's title, `quantity` `X <n>` only when
+ * `catalog.multiple.purchase.enabled` and more than one is bought, and `purchase_cost_box` gets
+ * `HabboCatalogUtils.showPriceInContainer(box, offer, quantity)`.
+ *
+ * Cancel and the header close go back to the dialog (`maximizeOffer`), buy is
+ * `purchaseTargetedOffer`.
+ */
 export interface TargetedOfferPurchaseConfirmationViewProps {
     offer: TargetedOffer;
     quantity: number;
@@ -29,22 +45,6 @@ const asPurchasableOffer = (offer: TargetedOffer) => ({
     bundlePurchaseAllowed: false,
 }) as IPurchasableOffer;
 
-/**
- * Flash's `TargetedOfferPurchaseConfirmationView` on `targeted_offer_purchase_confirmation_xml`,
- * centred.
- *
- * `disclaimer` is disposed unless `disclaimer.credit_spending.enabled`, and the `content` list - and
- * the frame with it - closes up round it. When it is there its checkbox changes nothing:
- * `setDisclaimerAccepted` enables and disables a `select_button` this layout does not have, so the
- * buy button stays live either way - as in Flash.
- *
- * `product_name` is the offer's title, `quantity` `X <n>` only when
- * `catalog.multiple.purchase.enabled` and more than one is bought, and `purchase_cost_box` gets
- * `HabboCatalogUtils.showPriceInContainer(box, offer, quantity)`.
- *
- * Cancel and the header close go back to the dialog (`maximizeOffer`), buy is
- * `purchaseTargetedOffer`.
- */
 export const TargetedOfferPurchaseConfirmationView = ({ offer, quantity }: TargetedOfferPurchaseConfirmationViewProps) => {
     const { send } = useWebSocketContext();
     const getLocalization = useTargetedOfferLocalization(offer);

@@ -18,6 +18,7 @@ import { IScrKickbackData } from '@nitrodevco/nitro-packets';
 
 import { useTranslation } from '#base/context/system';
 import { FloatingPopup, Region, TemplateWindow } from '#base/theme';
+import { replaceFirst } from '#base/utils';
 
 import { catalogTemplateId } from '../page/catalogTemplates';
 
@@ -34,9 +35,6 @@ export interface CatalogClubCenterBreakdownViewProps {
     onPaydayHelp: () => void;
     onClose: () => void;
 }
-
-/** AS3 `String.replace(string, string)`: the first occurrence, with no `$` patterns. */
-const replaceFirst = (text: string, search: string, replacement: string | number) => text.replace(search, () => String(replacement));
 
 export const CatalogClubCenterBreakdownView = ({ kickback, placement, onPaydayHelp, onClose }: CatalogClubCenterBreakdownViewProps) => {
     const t = useTranslation();

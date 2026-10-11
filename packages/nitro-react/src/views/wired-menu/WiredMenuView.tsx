@@ -25,6 +25,7 @@ import { useConfigValue, useTranslation, useWindowActions } from '#base/context/
 import { useWiredStore, WIRED_INSPECTION_STATE_AWAITING_VARIABLES, WIRED_INSPECTION_STATE_FETCHING, WIRED_MENU_TAB_CHESTS, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW, WIRED_MENU_TAB_SETTINGS, WIRED_MENU_TABS } from '#base/context/wired';
 import { useWiredMenuLinkRequest } from '#base/hooks';
 import { Region, TemplateWindow, TemplateWindows } from '#base/theme';
+import { openWebPage } from '#base/utils';
 
 import { WiredMenuChestsTab } from './WiredMenuChestsTab';
 import { WiredMenuInspectionTab } from './WiredMenuInspectionTab';
@@ -112,9 +113,7 @@ export const WiredMenuView = () => {
                 ...Object.fromEntries(WIRED_MENU_TABS.map(tab => [ `${tab.id}_container`, { visible: false } ])),
                 header_title: { caption: t(`wiredmenu.${activeTab}.title`, activeTab) },
                 discord_region: {
-                    onPointerTap: () => {
-                        if (discordLink.length) window.open(discordLink, '_blank', 'noopener');
-                    },
+                    onPointerTap: () => openWebPage(discordLink),
                 },
                 loading_view: { visible: false },
                 body_container: {

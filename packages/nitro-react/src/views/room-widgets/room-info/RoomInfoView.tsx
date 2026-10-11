@@ -63,7 +63,7 @@
 import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { LayoutImage, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
+import { getLayoutChildByName, LayoutImage, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { getLowestPoint, layoutChildrenInArea } from '#base/views/shared/flashWindowUtils';
 
 export interface RoomInfoViewProps {
@@ -158,12 +158,10 @@ const ROOM_DETAILS_COLUMN = [ 'room_name', 'owner_name_cont', 'rating_cont', 'ra
 const BUTTONS_COLUMN = [ 'room_settings_button', 'raid_protection_settings_button', 'room_filter_button', 'floor_plan_editor_button', 'staff_pick_button', 'room_report_button', 'room_muteall_button' ];
 const CONTENT_COLUMN = [ 'room_details', 'public_space_details', 'guild_info', 'embed_info', 'buttons_cont' ];
 
-const childNamed = (window: LayoutWindow, name: string) => window.children.find(child => child.element?.name === name);
-
 /** `Util.moveChildrenToColumn`: the named visible children with a height, from `y` down, `spacing` apart. */
 const moveChildrenToColumn = (window: LayoutWindow, names: readonly string[], y: number, spacing: number) => {
     for (const name of names) {
-        const child = childNamed(window, name);
+        const child = getLayoutChildByName(window, name);
 
         if (!child || !child.visible || child.height <= 0) continue;
 
@@ -175,7 +173,7 @@ const moveChildrenToColumn = (window: LayoutWindow, names: readonly string[], y:
 /** `Util.moveChildrenToRow`: the named visible children from `x` across, at `y`, `spacing` apart. */
 const moveChildrenToRow = (window: LayoutWindow, names: readonly string[], x: number, y: number, spacing: number) => {
     for (const name of names) {
-        const child = childNamed(window, name);
+        const child = getLayoutChildByName(window, name);
 
         if (!child || !child.visible) continue;
 

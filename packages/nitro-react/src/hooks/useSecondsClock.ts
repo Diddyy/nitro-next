@@ -1,3 +1,7 @@
+/**
+ * `performance.now()` for countdowns, refreshed every second: reading the time during render is
+ * impure, so a component that counts down reads it through this instead.
+ */
 import { useSyncExternalStore } from 'react';
 
 const TICK_MS = 1000;
@@ -28,8 +32,4 @@ const subscribe = (onChange: () => void) => {
     };
 };
 
-/**
- * `performance.now()` for countdowns, refreshed every second: reading the time during render is
- * impure, so a component that counts down reads it through this instead.
- */
 export const useSecondsClock = () => useSyncExternalStore(subscribe, () => now);

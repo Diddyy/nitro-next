@@ -51,7 +51,7 @@ import { TabContext } from '../TabContext';
 import { TextInput } from '../TextInput';
 import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
-import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, ThemeVariant, themeVariantOf, WindowPlacedContext } from '../utils';
+import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, ThemeVariant, themeVariantOf, toCssHexColor, WindowPlacedContext } from '../utils';
 import { localizeCaption } from './localizeCaption';
 import { isMarkupTemplateText, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
@@ -126,7 +126,7 @@ export type { TemplateItem, TemplateWindows } from './templateBindings';
  * (`0xAARRGGBB`, `0xRRGGBB`).
  */
 const flashColor = (value: TemplateValue | undefined): { hex: string; alpha: number } | undefined => {
-    if (typeof value === 'number') return { hex: `#${(value & 0xffffff).toString(16).padStart(6, '0')}`, alpha: (value >>> 24) / 255 };
+    if (typeof value === 'number') return { hex: toCssHexColor(value), alpha: (value >>> 24) / 255 };
     if (typeof value !== 'string') return undefined;
 
     const digits = value.replace(/^0x/i, '').replace(/^#/, '');
@@ -1609,7 +1609,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 dropShadow={element.dropShadow && {
                     distance: element.dropShadow.distance,
                     angle: element.dropShadow.angle,
-                    color: `#${element.dropShadow.color.toString(16).padStart(6, '0')}`,
+                    color: toCssHexColor(element.dropShadow.color),
                     alpha: element.dropShadow.alpha,
                     blur: element.dropShadow.blur,
                 }}

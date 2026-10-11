@@ -9,7 +9,7 @@
  * catalogue at the rare's page (`openCatalogPageById`); this port opens the page without also
  * picking the offer on it.
  */
-import { hotelViewColorableBindings, hotelViewColorableFormat, HotelViewCommonSettings, useSystemActions, useSystemStore } from '#base/context/system';
+import { hotelViewColorableBindings, hotelViewColorableFormat, HotelViewCommonSettings, useSystemStore, useWindowActions } from '#base/context/system';
 import { useSecondsClock } from '#base/hooks';
 import { Box, CountdownWidget, TemplateWindow } from '#base/theme';
 
@@ -21,7 +21,7 @@ export const HotelViewNextLimitedRareWidget = ({ settings }: HotelViewNextLimite
     const offer = useSystemStore(x => x.hotelViewNextLimited);
     const product = useSystemStore(x => x.productData[offer?.productClassName ?? '']);
     const now = useSecondsClock();
-    const { hideWindow, showWindow } = useSystemActions();
+    const { hideWindow, showWindow } = useWindowActions();
     const onSale = !!offer && (offer.pageId >= 0);
     const coming = !!offer && !onSale && (offer.appearsInSeconds > 0);
     const seconds = offer ? Math.max(0, offer.appearsInSeconds - ((now - offer.receivedAt) / 1000)) : 0;

@@ -1,3 +1,7 @@
+/**
+ * Bookkeeping for the room's mouse handling: the last event id per object category, so a move
+ * is not handled twice, and who currently owns the cursor.
+ */
 import { RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { StateCreator } from 'zustand';
 
@@ -16,10 +20,6 @@ type Actions = {
     hasCursorOwners: () => boolean;
 };
 
-/**
- * Bookkeeping for the room's mouse handling: the last event id per object category, so a move
- * is not handled twice, and who currently owns the cursor.
- */
 export const RoomMouseSliceInitialState: State = {
     eventIds: new Map(),
     cursorOwners: [],

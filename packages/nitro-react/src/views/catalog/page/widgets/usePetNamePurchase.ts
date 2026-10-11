@@ -8,6 +8,14 @@ import { useTranslation, useWindowActions } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { PET_NAME_ERRORS } from '#base/utils';
 
+/**
+ * The name approval the buy button goes through on a pet page - identical in Flash's
+ * `PetsCatalogWidget` and `NewPetsCatalogWidget`: `onPurchase` sends `approveName(name, 1)`
+ * (once the purchase parameters are good), and `CWE_APPROVE_RESULT` either alerts why the name was
+ * refused (`constructErrorMessage`: the reason's text, or its `.additionalInfo` text when the
+ * server said more) or opens the purchase confirmation with the extra parameter. Returns
+ * `overridePurchase`, which takes the buy button over (`CatalogWidgetPurchaseOverrideEvent`).
+ */
 interface PetNamePurchaseOptions {
     /** Whether this widget runs the page - the other pet widget's `init()` failed. */
     initialised: boolean;
@@ -19,14 +27,6 @@ interface PetNamePurchaseOptions {
     getPetImageRequest: () => PetImageRequest | undefined;
 }
 
-/**
- * The name approval the buy button goes through on a pet page - identical in Flash's
- * `PetsCatalogWidget` and `NewPetsCatalogWidget`: `onPurchase` sends `approveName(name, 1)`
- * (once the purchase parameters are good), and `CWE_APPROVE_RESULT` either alerts why the name was
- * refused (`constructErrorMessage`: the reason's text, or its `.additionalInfo` text when the
- * server said more) or opens the purchase confirmation with the extra parameter. Returns
- * `overridePurchase`, which takes the buy button over (`CatalogWidgetPurchaseOverrideEvent`).
- */
 export const usePetNamePurchase = (page: CatalogPage, { initialised, name, offer, getPurchaseParameters, getPetImageRequest }: PetNamePurchaseOptions) => {
     const waitingForApproval = useRef(false);
     const store = useCatalogStoreApi();

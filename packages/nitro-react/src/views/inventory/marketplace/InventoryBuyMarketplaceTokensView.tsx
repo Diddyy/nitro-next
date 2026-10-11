@@ -5,11 +5,6 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryMarketplaceActions } from '#base/context/inventory';
 import { TemplateWindow } from '#base/theme';
 
-interface InventoryBuyMarketplaceTokensViewProps {
-    price: number;
-    count: number;
-}
-
 /**
  * Flash's `MarketplaceView.showBuyTokens` on `habbo-inventory-com/buy_marketplace_tokens_xml`,
  * built and centred (`center()`): `inventory.marketplace.buy_tokens.info` with the batch's price,
@@ -21,6 +16,11 @@ interface InventoryBuyMarketplaceTokensViewProps {
  * Flash registers the info text's parameters before it builds the window, and the unnamed text
  * reads them through its `${key}` caption - the window's `parameters` here.
  */
+interface InventoryBuyMarketplaceTokensViewProps {
+    price: number;
+    count: number;
+}
+
 export const InventoryBuyMarketplaceTokensView = ({ price, count }: InventoryBuyMarketplaceTokensViewProps) => {
     const { send } = useWebSocketContext();
     const { setMarketplaceView } = useInventoryMarketplaceActions();

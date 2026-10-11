@@ -4,10 +4,11 @@
  *
  * Int params: `[ interval ]` - in units of five seconds (`SliderValueSeconds5`), 1 to `PERIODIC_LONG_MAX`.
  */
+import { clampSliderValue } from '../../common/WiredUtil';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';
 import { TriggerConfCodes } from './triggerCodes';
-import { clampSliderSectionValue, TriggerSliderForm } from './triggerShared';
+import { TriggerSliderForm } from './triggerShared';
 
 /** `createSliderSection("wiredfurni.params.settime3", "", new SliderValueSeconds5(), 1, 120, 1)`. */
 export const PERIODIC_LONG_MIN = 1;
@@ -16,6 +17,6 @@ export const PERIODIC_LONG_MAX = 120;
 export const periodicLongTrigger: WiredElementDefinition<TriggerSliderForm> = {
     holder: 'trigger',
     code: TriggerConfCodes.PERIODIC_LONG,
-    createForm: triggerable => ({ value: clampSliderSectionValue(getWiredInt(triggerable, 0), PERIODIC_LONG_MIN, PERIODIC_LONG_MAX) }),
+    createForm: triggerable => ({ value: clampSliderValue(getWiredInt(triggerable, 0), PERIODIC_LONG_MIN, PERIODIC_LONG_MAX) }),
     readIntParams: form => [ form.value ],
 };

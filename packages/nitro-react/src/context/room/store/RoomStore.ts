@@ -20,6 +20,10 @@ import { createRoomStackingHeightMapSlice, RoomStackingHeightMapSlice } from './
 import { createRoomUsersSlice, RoomUsersSlice } from './RoomUsersSlice';
 import { createRoomWidgetSlice, RoomWidgetSlice } from './RoomWidgetSlice';
 
+/**
+ * The room store: the room on screen and every per-room slice, composed into one Zustand store.
+ * A new room (or none) resets every slice to its initial state.
+ */
 type State = {
     room: IRoom | undefined;
 };

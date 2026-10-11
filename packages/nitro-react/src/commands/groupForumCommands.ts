@@ -22,7 +22,7 @@ import { GetForumsListComposer, GetForumStatsComposer, GetMessagesComposer, GetT
 
 import { WebSocketConnection } from '#base/context/communication';
 import { GroupForumsList, GroupForumThreadsList, GroupForumView, groupStore } from '#base/context/groups';
-import { systemStore } from '#base/context/system';
+import { translate as t } from '#base/context/system';
 
 import { showNotification } from './notificationCommands';
 
@@ -62,7 +62,6 @@ let forumWindowRect = { x: 0, y: 0, width: 0 };
 let composeKey = 0;
 
 const groups = () => groupStore.getState();
-const localize = (key: string, params?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, '', params);
 
 const isWindowOpen = () => !!groups().forumView;
 
@@ -224,9 +223,9 @@ export const onGroupForumData = (forum: IExtendedForumData) => {
         closeGroupForumView();
         requestedGroupId = 0;
 
-        const operation = localize('groupforum.view.error.operation_read');
+        const operation = t('groupforum.view.error.operation_read');
 
-        showNotification('forums.error.access_denied', { message: localize(`groupforum.view.error.${forum.readPermissionError}`, { operation }) });
+        showNotification('forums.error.access_denied', { message: t(`groupforum.view.error.${forum.readPermissionError}`, '', { operation }) });
 
         return;
     }
@@ -334,7 +333,17 @@ export const onGroupForumMessagePosted = (send: Send, groupId: number, thread: n
     requestGroupForumMessages(send, groupId, threadId, message.messageIndex - (message.messageIndex % GROUP_FORUM_PAGE_SIZE));
 };
 
-/** `getGoToMessageIndex` / `getGoToThreadId` / `resetGoTo`: where the opened thread should scroll to, once. */
+/**
+ * `getGoToMessageIndex` / `getGoToThreadId` / `resetGoTo`: where the opened thread should scroll to, once.
+ *
+ * Nothing calls it yet. Flash's `GroupForumView.openMessagesList` reads it after building the
+ * `MessageListView` and, for an index above 0 in that thread, calls
+ * `scrollToSpecificElement(index, true)` (the row at `index - 1`, `scrollV = row.bottom / maxScrollV`)
+ * before `resetGoTo`. `GroupForumView` does not port that scroll (its docblock lists it as not
+ * ported): it needs the message rows laid out and sized (`arrange`) before the list's `scrollV` can
+ * be worked out, and the index taken once per arriving page. Only a `groupforum/<group>/<thread>/<index>`
+ * link sets an index above 0.
+ */
 export const takeGroupForumGoTo = (thread: number): number => {
     if ((goToMessageIndex <= 0) || (goToThreadId !== thread)) return -1;
 

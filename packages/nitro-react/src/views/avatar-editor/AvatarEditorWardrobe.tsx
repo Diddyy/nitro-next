@@ -19,12 +19,13 @@
  * `WardrobeModel.isSlotEnabled` asks `hasClub` for the first five slots and `hasVip` for the rest,
  * and both are `clubLevel >= 1`: every slot is open at club level 1 and none below it.
  */
-import { AvatarGenderType, ClubLevelEnum } from '@nitrodevco/nitro-api';
+import { AvatarGenderType } from '@nitrodevco/nitro-api';
 
 import { verifyClubLevel } from '#base/commands';
 import { AvatarEditorWardrobeOutfit } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue } from '#base/context/system';
+import { useOwnHasClub } from '#base/context/user';
 import { TemplateItem, TemplateWindow, useAvatarImageTexture } from '#base/theme';
 
 /** `WardrobeView.SLOTS_PER_COL`. */
@@ -40,7 +41,6 @@ const SLOT_DIRECTION = 4;
 export interface AvatarEditorWardrobeProps {
     slots: AvatarEditorWardrobeOutfit[];
     slotCount: number;
-    clubLevel: ClubLevelEnum;
     onSave: (index: number) => void;
     onLoad: (index: number, outfit: NonNullable<AvatarEditorWardrobeOutfit>) => void;
 }
@@ -62,11 +62,11 @@ const WardrobeSlotImage = ({ figure, gender, zoom }: { figure: string; gender: A
     );
 };
 
-export const AvatarEditorWardrobe = ({ slots, slotCount, clubLevel, onSave, onLoad }: AvatarEditorWardrobeProps) => {
+export const AvatarEditorWardrobe = ({ slots, slotCount, onSave, onLoad }: AvatarEditorWardrobeProps) => {
     const zoom = useConfigValue<boolean>('zoom.enabled') === true;
     const { send } = useWebSocketContext();
     const count = Math.max(slotCount, slots.length);
-    const usable = clubLevel >= ClubLevelEnum.Club;
+    const usable = useOwnHasClub();
 
     const slotItem = (index: number): TemplateItem => {
         const outfit = slots[index] ?? null;

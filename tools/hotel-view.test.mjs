@@ -25,7 +25,7 @@ const { CurrentTimingCodeMessage } = load('nitro-packets/src/incoming/Competitio
 const { GetCurrentTimingCodeComposer } = load('nitro-packets/src/outgoing/Competition/GetCurrentTimingCodeComposer');
 const { SecondsUntilMessage } = load('nitro-packets/src/incoming/Competition/SecondsUntilMessage');
 const { GetSecondsUntilComposer } = load('nitro-packets/src/outgoing/Competition/GetSecondsUntilComposer');
-const widgets = load('nitro-react/src/context/system/store/HotelViewWidgets', { './HotelViewSlice': backgrounds });
+const widgets = load('nitro-react/src/context/system/store/HotelViewWidgets', { './HotelViewSlice': backgrounds, '#base/utils': load('nitro-theme/src/utils/cssHexColor') });
 const config = {
     'image.library.url': 'https://images.example/',
     'landing.view.bgtiming': 'schedule',
@@ -138,6 +138,7 @@ const composer = name => class {
 const loadHandlers = systemStore => load('nitro-react/src/handlers/system/registerHotelViewHandlers', {
     '@nitrodevco/nitro-packets': { ...Object.fromEntries(INCOMING.map(name => [ name, { name } ])), ...Object.fromEntries(OUTGOING.map(name => [ name, composer(name) ])) },
     '#base/context/system': { ...backgrounds, ...widgets, systemStore },
+    '../packetSubscriptions': load('nitro-react/src/handlers/packetSubscriptions'),
 });
 
 await test('activation refreshes every slot widget; container slots follow their own schedule', () => {

@@ -1,3 +1,10 @@
+/**
+ * The engine's render of a furni type, taken as a texture (`getGenericRoomObjectTexture`) -
+ * the render texture the engine drew into is the one the sprite shows, nothing is read back
+ * or re-uploaded. When the furni's asset is still downloading the engine calls back through
+ * `textureReady` once it can render, so the image fills in rather than staying blank. The
+ * textures' life cycle is `useOwnedEngineTexture`'s.
+ */
 import { IObjectData, RoomGeometryScaleType, StringDataType, Vector3d } from '@nitrodevco/nitro-api';
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
@@ -10,14 +17,6 @@ export interface FurnitureImageTexture {
     height: number;
 }
 
-/**
- * Pixi counterpart of components/FurnitureImage.tsx: the same engine render of a furni type,
- * taken as a texture (`getGenericRoomObjectTexture`) instead of the DOM's base64 `<img>` -
- * the render texture the engine drew into is the one the sprite shows, nothing is read back
- * or re-uploaded. When the furni's asset is still downloading the engine calls back through
- * `textureReady` once it can render, so the image fills in rather than staying blank. The
- * textures' life cycle is `useOwnedEngineTexture`'s.
- */
 export const useFurnitureImageTexture = (
     type: string | undefined,
     colorIndex: number = 0,

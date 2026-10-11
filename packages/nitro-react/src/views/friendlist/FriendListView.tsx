@@ -17,14 +17,27 @@ import {
 } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsActions, useFriendsStore } from '#base/context/friend';
-import { useConfigValue, useSystemActions, useTranslation, useWindowParams, WindowParams } from '#base/context/system';
+import { useConfigValue, useTranslation, useWindowActions, useWindowParams, WindowParams } from '#base/context/system';
 import { useFriendRequests, useOfflineFriends, useOnlineFriends, useOwnUserId, useUserMessengerActions, useUserStore } from '#base/context/user';
-import { getGlobalRect, getStoredFramePosition, GlobalRect, LayoutWindow, TemplateBindings, TemplateFrameOptions, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
+import { getGlobalRect, getLayoutChildByName, getLayoutListItems, getStoredFramePosition, GlobalRect, TemplateBindings, TemplateFrameOptions, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
 import { getLowestPoint, layoutChildrenInArea } from '#base/views/shared/flashWindowUtils';
 
 import { buttonImage, FRIEND_LIST_PAGE_SIZE, FriendCategoryRow, friendListImage, FriendListTip, friendsTabRows, requestsTabRows, searchTabRows } from './friendListEntries';
 import { FriendListRelationshipChooser } from './FriendListRelationshipChooser';
 
+/**
+ * The friend list window - `habbo-friend-list-com/main_window_xml` as `FriendListView` and
+ * `FriendListTabsView` fill it: a `flt_<id>` per tab in `main_content`, each its 18px `header` and,
+ * while it is the open tab, the `tab_content` holding its list and footer; the window's `footer`
+ * under them carries the `info_text` `showInfo` fills with the hovered control's tip.
+ * `open_edit_ctgs_but` is hidden: `friendship.category.management.enabled` is not set.
+ *
+ * With every tab closed the window is as tall as its headers; with one open its height comes from
+ * the window - 350 at first, then what the user resizes it to - and the open tab takes what the
+ * headers leave (`onWindow`'s `tabContentHeight`), so the scaler only works with a tab open. Where
+ * Flash grows the window when the requests tab appears, this keeps the window and shortens the
+ * open tab.
+ */
 type FriendListTabName = Exclude<WindowParams<'friendlist'>['tab'], '' | undefined>;
 
 const LIBRARY = 'habbo-friend-list-com';
@@ -61,27 +74,9 @@ const WINDOW_CHROME_HEIGHT = 62;
 const SCROLLBAR_ROOM = 22;
 const ENTRY_HEIGHT = 20;
 
-/** `IItemListWindow.getListItemAt`: a list's items are its `container`'s children. */
-const listItems = (list: LayoutWindow): readonly LayoutWindow[] => (('container' in list) ? (list.container as LayoutWindow).children : list.children);
-
-const childNamed = (window: LayoutWindow, name: string) => window.children.find(child => child.element?.name === name);
-
-/**
- * The friend list window - `main_window` as `FriendListView` and `FriendListTabsView` fill it: a
- * `flt_<id>` per tab in `main_content`, each its 18px `header` and, while it is the open tab, the
- * `tab_content` holding its list and footer; the window's `footer` under them carries the
- * `info_text` `showInfo` fills with the hovered control's tip. `open_edit_ctgs_but` is hidden:
- * `friendship.category.management.enabled` is not set.
- *
- * With every tab closed the window is as tall as its headers; with one open its height comes from
- * the window - 350 at first, then what the user resizes it to - and the open tab takes what the
- * headers leave (`onWindow`'s `tabContentHeight`), so the scaler only works with a tab open. Where
- * Flash grows the window when the requests tab appears, this keeps the window and shortens the
- * open tab.
- */
 export const FriendListView = () => {
     const { tab: activeTab = 'friends' } = useWindowParams('friendlist');
-    const { showWindow, toggleWindow, updateWindowParams } = useSystemActions();
+    const { showWindow, toggleWindow, updateWindowParams } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
 
@@ -456,11 +451,11 @@ export const FriendListView = () => {
             footer.setY(tabContentHeight - footer.height);
             footer.setWidth(tabContentWidth);
 
-            for (const row of listItems(listContent)) {
+            for (const row of getLayoutListItems(listContent)) {
                 row.setWidth(rowWidth);
 
                 // `refreshPager`: the page links laid out in the pager's width, the row as tall as what it shows.
-                const pager = childNamed(row, 'pager');
+                const pager = getLayoutChildByName(row, 'pager');
 
                 if (pager?.visible) {
                     layoutChildrenInArea(pager, pager.width, 15);

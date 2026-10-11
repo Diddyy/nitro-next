@@ -1,3 +1,7 @@
+/**
+ * The background toner's backdrop - `RoomDesktop`'s `background_wrapper`: one flat rectangle at the
+ * back of the room stage, faded to the toner's colour, that lives as long as the room does.
+ */
 import { ColorConverter, IRoomRenderingCanvas } from '@nitrodevco/nitro-api';
 import { ColorTransitioner, GetRenderer, GetRoomStage, GetTicker, GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { Graphics } from 'pixi.js';

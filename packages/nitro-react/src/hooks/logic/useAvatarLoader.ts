@@ -4,6 +4,10 @@ import { useEffect } from 'react';
 
 import { useConfigValue } from '#base/context/system';
 
+/**
+ * The boot's avatar step: once the config names them, starts the avatar render manager from its
+ * bundle (`asset.bundles.templates`), then loads the figure map, effect map and figure data into it.
+ */
 export const useAvatarLoader = () => {
     const figureMapUrl = useConfigValue<string>('figuremap.url') ?? '';
     const effectMapUrl = useConfigValue<string>('effectmap.url') ?? '';
@@ -81,5 +85,5 @@ export const useAvatarLoader = () => {
         };
 
         void startAsync();
-    }, [ figureMapUrl, effectMapUrl ]);
+    }, [ figureMapUrl, effectMapUrl, figureDataUrl, avatarAssetUrl, effectAssetUrl, templatesUrl ]);
 };

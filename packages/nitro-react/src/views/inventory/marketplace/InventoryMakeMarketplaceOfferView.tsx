@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { makeMarketplaceOffer, releaseMarketplaceOfferItems } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { INVENTORY_FURNI_CATEGORY_POSTER, InventoryFurniItem, useInventoryMarketplaceActions, useInventoryStore } from '#base/context/inventory';
-import { useSystemStore, useTranslation } from '#base/context/system';
+import { useFurnitureData, useTranslation, useWindowActions } from '#base/context/system';
 import { useFurnitureImageTexture } from '#base/hooks';
 import { Box, TemplateBindings, TemplateWindow } from '#base/theme';
 import { calculateMarketplaceFinalPrice } from '#base/utils';
@@ -27,9 +27,7 @@ const toInt = (text: string) => {
  * cut to that bitmap.
  */
 const OfferItemImage = ({ item }: { item: InventoryFurniItem }) => {
-    const floorItems = useSystemStore(x => x.floorItems);
-    const wallItems = useSystemStore(x => x.wallItems);
-    const furniData = (item.isWallItem ? wallItems : floorItems)[item.typeId];
+    const furniData = useFurnitureData(item.typeId, item.isWallItem);
     const { texture, width, height } = useFurnitureImageTexture(furniData?.className, furniData?.colorIndex ?? 0, 2, RoomGeometryScaleType.ZoomedIn, item.isWallItem ? 0 : item.extra);
 
     if (!texture) return null;
@@ -81,7 +79,7 @@ export const InventoryMakeMarketplaceOfferView = ({ item, maxAmount }: Inventory
     const t = useTranslation();
     const configuration = useInventoryStore(x => x.marketplaceConfiguration);
     const stats = useInventoryStore(x => x.marketplaceViewStats);
-    const showConfirm = useSystemStore(x => x.showConfirm);
+    const { showConfirm } = useWindowActions();
     const { setMarketplaceView } = useInventoryMarketplaceActions();
     const [ priceText, setPriceText ] = useState('');
     // `showMakeOffer`: `amount_input.text = _offerAmount` (1).

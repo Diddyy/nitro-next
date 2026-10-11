@@ -1,3 +1,8 @@
+/**
+ * The client's entry point: registers the Pixi classes `@pixi/react` renders, applies the build's
+ * socket URL to the page config, and mounts `Nitro` - the boot - inside the socket's provider on the
+ * page's `#root`. Not a Flash port.
+ */
 import '@pixi/layout';
 
 import { extend } from '@pixi/react';

@@ -19,7 +19,7 @@ import { GetBadgeLeaderboardComposer } from '@nitrodevco/nitro-packets';
 
 import { BadgeLeaderboardPageData, badgeLeaderboardStore } from '#base/context/badge-leaderboard';
 import { WebSocketConnection } from '#base/context/communication';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 
 import { openProfile } from './roomUserCommands';
 
@@ -57,7 +57,6 @@ const RARITY_INFO_KEYS = [ 'uncommon', 'rare', 'epic', 'mythical', 'legendary', 
 const RARITY_FRAME_STYLES = [ 10007, 10002, 10003, 10004, 10005, 10006 ];
 
 const config = () => systemStore.getState().config;
-const t = (key: string, params?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, '', params);
 
 /** `isUncommonBadgeRarityEnabled`. */
 const isUncommonBadgeRarityEnabled = () => config()['badge_rarity.uncommon'] === true;
@@ -83,7 +82,7 @@ const rarityText = (rarity: number) => t(getBadgeRarityLocalizationKey(rarity, i
 export const getBadgeLeaderboardDropdownOptions = (): string[] => [
     t('badge_leaderboard.option.total_badges'),
     t('badge_leaderboard.option.achievement_level'),
-    ...getBadgeLeaderboardSupportedRarities().map(rarity => t('badge_leaderboard.option.rarity', { rarity: rarityText(rarity) })),
+    ...getBadgeLeaderboardSupportedRarities().map(rarity => t('badge_leaderboard.option.rarity', '', { rarity: rarityText(rarity) })),
 ];
 
 /** `getDropdownSelectionIndex`. */
@@ -98,7 +97,7 @@ export const getBadgeLeaderboardDropdownSelection = (type: number, rarity: numbe
 
 /** `getTitleText`. */
 export const getBadgeLeaderboardTitle = (type: number, rarity: number): string => {
-    if (type === BADGE_LEADERBOARD_TYPE_RARITY) return t('badge_leaderboard.title.rarity', { rarity: rarityText(rarity) });
+    if (type === BADGE_LEADERBOARD_TYPE_RARITY) return t('badge_leaderboard.title.rarity', '', { rarity: rarityText(rarity) });
     if (type === BADGE_LEADERBOARD_TYPE_ACHIEVEMENT) return t('badge_leaderboard.title.achievement_level');
 
     return t('badge_leaderboard.title.total_badges');

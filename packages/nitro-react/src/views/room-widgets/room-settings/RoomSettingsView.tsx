@@ -9,9 +9,43 @@ import { useTranslation } from '#base/context/system';
 import { findTemplateChild, TemplateBindings, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { flatCategoryName } from '#base/utils';
 import { NavigatorErrorPopup } from '#base/views/navigator/NavigatorErrorPopup';
+import { ROOM_TRADE_MODE_TEXTS } from '#base/views/navigator/roomTradeModeTexts';
 
 import { BANNED_USER_TEMPLATE, FLAT_CONTROLLER_TEMPLATE, FRIEND_TEMPLATE, userRowItem } from './roomSettingsUserRows';
 
+/**
+ * The room settings, drawn from `habbo-navigator-com/ros_room_settings` - `RoomSettingsCtrl`, which
+ * builds it in `prepareWindow` and opens it centred (`_window.center()`).
+ *
+ * - The tabs: `onTab` / `switchToTab` select `tab_N`, and `refresh` shows only `tab_container_N` of
+ *   `content_container` (`Util.hideChildren`). `refreshNavigatorTabs` hides tabs 2 and 3 for a room
+ *   you are not standing in, and `resizeTabs` gives each visible tab `_window.width / visible - 1`
+ *   and a hidden one 0, which the tab context's selector packs.
+ * - Tab 1: `room_name`, `description`, the two tags (`setTag` shows a tag with its `#`, `addTag`
+ *   takes it off), the `categories` (`setCategorySelection`: the visible non-automatic ones and the
+ *   room's own), `maxvisitors` (`refreshMaxVisitors`) and `tradesettings` (`setTradeModeSelection`)
+ *   menus, `allow_walk_through_checkbox`, and `remove_link_region` (`showDeleteButton`: greyed while
+ *   the account is safety locked), its `remove_icon` put 15 left of `remove_link`.
+ * - Tab 2: the `doormode` radio buttons, `password_container` while the password door is picked
+ *   (`changePasswordField`), `doormode_override_info` while Builders Club hid the room (staff are not
+ *   told), and `flexible_content`: `guild_access_disclaimer` in a group room, then the pet switches.
+ * - Tab 3: `filter_users_input` narrows both lists (`refreshFlatControllers`), the users with rights
+ *   and the friends without them (`UserListCtrl`, `roomSettingsUserRows`), with their counts as the
+ *   texts' `displayed` / `total` parameters, and `remove_all_flat_ctrls`.
+ * - Tab 4: `refreshRoomBehaviorSettingsState` / `refreshTimeoutFieldState` - without club the club
+ *   settings are disabled at half blend, and each timeout field only while its switch is off; the
+ *   wall / floor thickness and flood menus take their entries from the layout's `item_array`.
+ * - Tab 5: the three moderation menus (`populateRoomModerationSettings`), the banned users
+ *   (`BanListCtrl`) and `moderation_unban_btn`.
+ *
+ * There is no Save button: `onUnfocus` saves the whole form on every pick and whenever a text field
+ * is left. `TextFieldManager.displayError` puts `nav_error_popup` over a refused field, in the
+ * field's parent. The Builders Club panel's `builders_faq_button` sends the
+ * `habbopages/builders-club/faq` link, which `openClientLink` only logs until the habbo pages are ported.
+ *
+ * `TextFieldManager` gives each field its `maxChars`, and `displayError` tints a refused one
+ * (`textBackgroundColor`) as well as putting its popup over it.
+ */
 export interface RoomSettingsViewProps {
     settings: RoomSettingsDataEventMessageType;
     /** `navigator.data.allCategories` - every category the client knows, unfiltered. */
@@ -93,7 +127,6 @@ const DOOR_MODES: { mode: RoomDoorModeEnum; name: string }[] = [
 
 /** `setTradeModeSelection`: the entries, whose index is the trade mode. */
 const TRADE_MODES = [ RoomTradeModeEnum.Disabled, RoomTradeModeEnum.RoomOwnerAndRights, RoomTradeModeEnum.Everyone ];
-const TRADE_MODE_TEXTS = [ '${navigator.roomsettings.trade_not_allowed}', '${navigator.roomsettings.trade_not_with_Controller}', '${navigator.roomsettings.trade_allowed}' ];
 
 /**
  * `RoomSettingsCtrl.localizeItems`: every moderation level the client can name. Value 3 is not one
@@ -147,39 +180,6 @@ const ERROR_BACKGROUND = 0xf18f9b;
 /** A timeout typed: its digits, as many as the field takes. */
 const parseTimeout = (text: string) => Number(text.replace(/\D/g, '').slice(0, MAX_TIMEOUT_LENGTH)) || 0;
 
-/**
- * The room settings, drawn from `habbo-navigator-com/ros_room_settings` - `RoomSettingsCtrl`, which
- * builds it in `prepareWindow` and opens it centred (`_window.center()`).
- *
- * - The tabs: `onTab` / `switchToTab` select `tab_N`, and `refresh` shows only `tab_container_N` of
- *   `content_container` (`Util.hideChildren`). `refreshNavigatorTabs` hides tabs 2 and 3 for a room
- *   you are not standing in, and `resizeTabs` gives each visible tab `_window.width / visible - 1`
- *   and a hidden one 0, which the tab context's selector packs.
- * - Tab 1: `room_name`, `description`, the two tags (`setTag` shows a tag with its `#`, `addTag`
- *   takes it off), the `categories` (`setCategorySelection`: the visible non-automatic ones and the
- *   room's own), `maxvisitors` (`refreshMaxVisitors`) and `tradesettings` (`setTradeModeSelection`)
- *   menus, `allow_walk_through_checkbox`, and `remove_link_region` (`showDeleteButton`: greyed while
- *   the account is safety locked), its `remove_icon` put 15 left of `remove_link`.
- * - Tab 2: the `doormode` radio buttons, `password_container` while the password door is picked
- *   (`changePasswordField`), `doormode_override_info` while Builders Club hid the room (staff are not
- *   told), and `flexible_content`: `guild_access_disclaimer` in a group room, then the pet switches.
- * - Tab 3: `filter_users_input` narrows both lists (`refreshFlatControllers`), the users with rights
- *   and the friends without them (`UserListCtrl`, `roomSettingsUserRows`), with their counts as the
- *   texts' `displayed` / `total` parameters, and `remove_all_flat_ctrls`.
- * - Tab 4: `refreshRoomBehaviorSettingsState` / `refreshTimeoutFieldState` - without club the club
- *   settings are disabled at half blend, and each timeout field only while its switch is off; the
- *   wall / floor thickness and flood menus take their entries from the layout's `item_array`.
- * - Tab 5: the three moderation menus (`populateRoomModerationSettings`), the banned users
- *   (`BanListCtrl`) and `moderation_unban_btn`.
- *
- * There is no Save button: `onUnfocus` saves the whole form on every pick and whenever a text field
- * is left. `TextFieldManager.displayError` puts `nav_error_popup` over a refused field, in the
- * field's parent. The Builders Club panel's `builders_faq_button` sends the
- * `habbopages/builders-club/faq` link, which `openClientLink` only logs until the habbo pages are ported.
- *
- * `TextFieldManager` gives each field its `maxChars`, and `displayError` tints a refused one
- * (`textBackgroundColor`) as well as putting its popup over it.
- */
 export const RoomSettingsView = ({
     settings, categories, controllers, bannedUsers, selectedBannedUser, friends, friendFilter,
     password, passwordConfirm, visitorSteps, selectedVisitors, hasClub, isGroupRoom, canDelete, deleteDisabled, isStaff,
@@ -291,7 +291,7 @@ export const RoomSettingsView = ({
             onSelect: index => onSelectSetting({ maximumVisitors: visitorSteps[index] }),
         },
         tradesettings: {
-            options: TRADE_MODE_TEXTS,
+            options: ROOM_TRADE_MODE_TEXTS,
             selection: tradeIndex,
             onSelect: index => onSelectSetting({ tradeMode: TRADE_MODES[index] }),
         },

@@ -1,7 +1,7 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Point, Rectangle, Texture } from 'pixi.js';
 
-import { destroyOwnedTexture, RetainedCache } from '#base/utils';
+import { destroyOwnedTexture, RetainedCache, toCssHexColor } from '#base/utils';
 
 import { ChatStyleDefinition } from './ChatStyleDefinitions';
 
@@ -88,9 +88,6 @@ const toPoint = (point: { x: number; y: number } | undefined) => (point ? new Po
 const DEFAULT_TEXT_COLOR = 0;
 const DEFAULT_FONT_FACE = 'Volter';
 const DEFAULT_FONT_SIZE = 9;
-
-/** `0xRRGGBB` -> `#rrggbb`. */
-const toCssColor = (color: number): string => `#${(color & 0xffffff).toString(16).padStart(6, '0')}`;
 
 /**
  * Blits one texture onto a canvas at `(x, y)`, for the compositing `createBackground` does.
@@ -346,7 +343,7 @@ export class ChatStyle implements IChatStyle {
         if (!drawTexture(tintCtx, colorLayer, 0, 0)) return this._textures.base;
 
         tintCtx.globalCompositeOperation = 'multiply';
-        tintCtx.fillStyle = toCssColor(key);
+        tintCtx.fillStyle = toCssHexColor(key);
         tintCtx.fillRect(0, 0, tinted.width, tinted.height);
         tintCtx.globalCompositeOperation = 'destination-in';
         drawTexture(tintCtx, colorLayer, 0, 0);

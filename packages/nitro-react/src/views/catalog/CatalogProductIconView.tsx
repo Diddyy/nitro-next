@@ -23,7 +23,7 @@
 import { AvatarGenderType, FurnitureTypeEnum, IProduct, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 
 import { GetChatStyleLibrary } from '#base/chat';
-import { useHabbiconsStore } from '#base/context/habbicons';
+import { useHabbiconPreview } from '#base/context/habbicons';
 import { useConfigValue } from '#base/context/system';
 import { useFurnitureImageTexture } from '#base/hooks';
 import { Region, ThemeImage, useAvatarImageTexture } from '#base/theme';
@@ -72,7 +72,7 @@ const GuildFloorIcon = ({ product, guildStuffData, box }: { product: IProduct; g
 };
 
 const HabbiconIcon = ({ habbiconId, box }: { habbiconId: number; box: IconBox }) => {
-    const preview = useHabbiconsStore(state => state.previews[habbiconId]);
+    const preview = useHabbiconPreview(habbiconId);
 
     if (!preview) {
         return (

@@ -3,6 +3,12 @@ import { StateCreator } from 'zustand';
 
 import { friendBarAfterFragment, friendBarAfterNotification, friendBarAfterUpdates, FriendBarNotification } from './friendBarOrder';
 
+/**
+ * The friend list as the server sends it - limits, categories, friends and requests - and the
+ * search tab's last results (Flash's `AvatarSearchResults`; which of them were asked to be
+ * friends is `UserSocialSlice.sentFriendRequestIds`, the same record the infostand reads). On the
+ * user store rather than the friend list window's, because the room widgets read it too.
+ */
 type State = {
     userFriendLimit: number;
     normalFriendLimit: number;
@@ -59,13 +65,7 @@ type Actions = {
     setSearchResults: (friends: IMessengerSearchResult[], others: IMessengerSearchResult[]) => void;
 };
 
-/**
- * The friend list as the server sends it - limits, categories, friends and requests - and the
- * search tab's last results (Flash's `AvatarSearchResults`; which of them were asked to be
- * friends is `UserSocialSlice.sentFriendRequestIds`, the same record the infostand reads). On the
- * user store rather than the friend list window's, because the room widgets read it too.
- */
-export const UserFriendsSlice: State = {
+export const UserFriendsSliceInitialState: State = {
     userFriendLimit: 0,
     normalFriendLimit: 0,
     extendedFriendLimit: 0,
@@ -84,7 +84,7 @@ export const UserFriendsSlice: State = {
 export type UserFriendsSlice = State & Actions;
 
 export const createUserFriendsSlice: StateCreator<UserFriendsSlice, [], [], UserFriendsSlice> = set => ({
-    ...UserFriendsSlice,
+    ...UserFriendsSliceInitialState,
     setFriendLimits: (userFriendLimit: number, normalFriendLimit: number, extendedFriendLimit: number) => set({ userFriendLimit, normalFriendLimit, extendedFriendLimit }),
     setFriendCategories: (categories: IMessengerCategory[]) => set({ categories }),
     setFriendListTabHighlighted: (tab: keyof FriendListHighlightedTabs, highlighted: boolean) => set(x => ((x.friendListTabsHighlighted[tab] === highlighted)

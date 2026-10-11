@@ -108,7 +108,8 @@ const iconAlignmentRuntimeValue = (alignment: number): string => {
     }
 };
 
-const isVariableAudience = (visibility: number): boolean =>
+/** An audience that depends on a variable: those who have it, or have it at a value. */
+export const isVariableFxVariableAudience = (visibility: number): boolean =>
     (visibility === VariableFxAudience.HAS_VARIABLE) || (visibility === VariableFxAudience.HAS_VARIABLE_VALUE);
 
 /** `segmentRendererId` - the renderer whose segments count: the sub renderer of a level-with-progress style. */
@@ -125,8 +126,8 @@ export const sanitizeVariableFxState = (input: VariableFxState): VariableFxState
     if ((state.sourceType !== WIRED_SOURCE_FURNI) && (state.sourceType !== WIRED_SOURCE_USER)) state.sourceType = WIRED_SOURCE_USER;
     if ((state.visibility < 0) || (state.visibility > 4)) state.visibility = VariableFxAudience.EVERYONE;
     if ((state.showMode < 0) || (state.showMode > 2)) state.showMode = 0;
-    if ((state.sourceType === WIRED_SOURCE_FURNI) && !isVariableAudience(state.visibility)) state.visibility = VariableFxAudience.EVERYONE;
-    if (!isVariableAudience(state.visibility)) {
+    if ((state.sourceType === WIRED_SOURCE_FURNI) && !isVariableFxVariableAudience(state.visibility)) state.visibility = VariableFxAudience.EVERYONE;
+    if (!isVariableFxVariableAudience(state.visibility)) {
         state.audienceVariableId = '';
         state.audienceVariableValue = 0;
     }

@@ -1,5 +1,11 @@
 import { TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 
+/**
+ * One message-of-the-day window - Flash's `notifications/singular/MOTDNotification` over
+ * `habbo-notifications-com/motd_notification_xml`, centred (`_window.center()`). Each message is a
+ * clone of `motd_notification_item` in `message_list`, its `message_text` the message and the item
+ * made `textHeight + 20` high. `close` and the header close dispose it.
+ */
 const TEMPLATE = 'habbo-notifications-com/motd_notification_xml';
 const ITEM_TEMPLATE = 'habbo-notifications-com/motd_notification_item_xml';
 
@@ -18,12 +24,6 @@ export interface MotdNotificationViewProps {
     onClose: () => void;
 }
 
-/**
- * One message-of-the-day window - Flash's `notifications/singular/MOTDNotification` over
- * `habbo-notifications-com/motd_notification_xml`, centred (`_window.center()`). Each message is a
- * clone of `motd_notification_item` in `message_list`, its `message_text` the message and the item
- * made `textHeight + 20` high. `close` and the header close dispose it.
- */
 export const MotdNotificationView = ({ id, messages, onClose }: MotdNotificationViewProps) => {
     const item = useTemplate(ITEM_TEMPLATE);
     const frame = useTemplateFrame({ id: `motd_notification_${id}`, centered: true, rememberPosition: false, onClose });

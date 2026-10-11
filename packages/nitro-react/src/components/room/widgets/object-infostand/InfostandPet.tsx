@@ -3,8 +3,8 @@ import { GetPetInfoComposer, PetSelectedComposer, RemovePetFromFlatComposer, Res
 import { useEffect } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoomPetInfo, useRoomStore } from '#base/context/room';
-import { useConfigValue, useSystemActions } from '#base/context/system';
+import { useIsRoomOwner, useOwnControllerLevel, useRoomPetInfo, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
+import { useConfigValue, useWindowActions } from '#base/context/system';
 import { useOwnIsAnyRoomController, useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useRoomObjectModify } from '#base/hooks';
 import { InfostandPetView } from '#base/views/room-widgets/object-infostand/InfostandPetView';
@@ -25,17 +25,17 @@ export const InfostandPet = ({ objectData, onClose }: { objectData: ISimpleRoomO
     const { objectId } = objectData;
     // The raw room user, not `useRoomUserData`'s avatar shape: only this one carries the
     // pet id and its posture.
-    const userData = useRoomStore(x => x.usersByRoomObjectId[objectId]);
+    const userData = useRoomUserByObjectId(objectId);
     const petId = userData?.webID ?? 0;
     const info = useRoomPetInfo(petId);
     const petRespectLeft = useUserStore(x => x.petRespectLeft);
     const ownUserId = useOwnUserId();
     const isAnyRoomController = useOwnIsAnyRoomController();
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
-    const controllerLevel = useRoomStore(x => x.controllerLevel);
+    const isRoomOwner = useIsRoomOwner();
+    const controllerLevel = useOwnControllerLevel();
     const playTestMode = useRoomStore(x => x.playTestMode);
     const { decreasePetRespects } = useUserActions();
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
     const { modifyRoomObject } = useRoomObjectModify();
     const petSelectEnabled = useConfigValue<boolean>('petSelect.enabled') === true;
     const { send } = useWebSocketContext();

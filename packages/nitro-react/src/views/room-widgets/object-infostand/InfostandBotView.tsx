@@ -8,6 +8,24 @@ import { isHandItem } from '#base/utils';
 
 import { arrangeInfostandButtons } from './infostandButtons';
 
+/**
+ * The bot panel. An ordinary bot is `InfoStandBotView` on `habbo-room-ui-com/bot_view` - its name,
+ * its look with the bot badge, its motto and what it is holding. A rentable bot is
+ * `InfoStandRentableBotView` on `habbo-room-ui-com/rentable_bot_view` - the look on the bot info
+ * backdrop, what it holds, its description and owner, and the move / rotate / pick up buttons under
+ * the panel. Both are drawn from their templates; the code's sizing is the `arrange`.
+ *
+ * `avatar_image` is an `AvatarImageWidget` the templates do not draw: the cropped figure facing
+ * southwest is put in it, and `refresh` sizes the widget to the bitmap - its `hCenter | vCenter`
+ * params then centre it in `grey_bg` (or the backdrop region), as the layout's 34 x 84 rect is.
+ *
+ * `bot_view`'s `badge_0` is the bot badge (`update` -> `updateBadges([ "BOT" ])`); hovering it is
+ * `showBadgeInfo`, which builds `badge_details` and places it left of the badge. The code looks its
+ * `name` and `description` up with `getChildByName`, which finds only direct children - and both are
+ * inside `details_list` - so neither is filled and the window stays its layout's empty 25 high
+ * border, as it is drawn here. `rentable_bot_view`'s `badge` has no hover. `motto_text` is an `input`
+ * the code never reads; it is drawn read-only. `home_icon` is a bitmap nothing fills.
+ */
 export interface InfostandBotViewProps {
     objectData: ISimpleRoomObjectData;
     /** A rentable bot gets `rentable_bot_view`, any other bot `bot_view`. */
@@ -51,24 +69,6 @@ const BUTTON_REGIONS = [ 'whisper', 'ignore', 'unignore', 'move', 'rotate', 'pic
 const BADGE_DETAILS_WIDTH = 263;
 const BADGE_DETAILS_HEIGHT = 25;
 
-/**
- * The bot panel. An ordinary bot is `InfoStandBotView` on `habbo-room-ui-com/bot_view` - its name,
- * its look with the bot badge, its motto and what it is holding. A rentable bot is
- * `InfoStandRentableBotView` on `habbo-room-ui-com/rentable_bot_view` - the look on the bot info
- * backdrop, what it holds, its description and owner, and the move / rotate / pick up buttons under
- * the panel. Both are drawn from their templates; the code's sizing is the `arrange`.
- *
- * `avatar_image` is an `AvatarImageWidget` the templates do not draw: the cropped figure facing
- * southwest is put in it, and `refresh` sizes the widget to the bitmap - its `hCenter | vCenter`
- * params then centre it in `grey_bg` (or the backdrop region), as the layout's 34 x 84 rect is.
- *
- * `bot_view`'s `badge_0` is the bot badge (`update` -> `updateBadges([ "BOT" ])`); hovering it is
- * `showBadgeInfo`, which builds `badge_details` and places it left of the badge. The code looks its
- * `name` and `description` up with `getChildByName`, which finds only direct children - and both are
- * inside `details_list` - so neither is filled and the window stays its layout's empty 25 high
- * border, as it is drawn here. `rentable_bot_view`'s `badge` has no hover. `motto_text` is an `input`
- * the code never reads; it is drawn read-only. `home_icon` is a bitmap nothing fills.
- */
 export const InfostandBotView = ({ rentable, name, motto, figure, gender, ownerName, carryItem, canMove = false, canPickUp = false, onMove, onRotate, onPickUp, onClose }: InfostandBotViewProps) => {
     const t = useTranslation();
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';

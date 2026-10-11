@@ -1,3 +1,9 @@
+/**
+ * The navigator's actions over `navigatorStore` - `HabboNavigator` / `HabboNewNavigator`: entering a
+ * room (direct, forwarded or home), searching with its cache, history and refresh, the window
+ * preferences sync, and the in-room dialogs it owns (`RoomEventViewCtrl`, `EnforceCategoryCtrl`,
+ * `RoomFilterCtrl`), plus creating a room.
+ */
 import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
 import { CreateFlatComposer, CreateFlatComposerType, EditEventComposer, GetCustomRoomFilterComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, SetNewNavigatorWindowPreferencesComposer, UpdateRoomCategoryAndTradeSettingsComposer, UpdateRoomFilterComposer } from '@nitrodevco/nitro-packets';
 

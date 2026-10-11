@@ -38,9 +38,8 @@ import { useEffect, useMemo } from 'react';
 
 import { resetInventoryUnseenCounters } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { UnseenItemCategory, useInventoryActions, useInventoryStore, useInventoryUnseenItemCount } from '#base/context/inventory';
-import { useConfigValue, useSystemActions, useWindowParams, WindowParams } from '#base/context/system';
-import { useWiredTradingStore } from '#base/context/wired-trading';
+import { UnseenItemCategory, useInventoryActions, useInventoryTradingActive, useInventoryUnseenItemCount } from '#base/context/inventory';
+import { useConfigValue, useWindowActions, useWindowParams, WindowParams } from '#base/context/system';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateLibrary } from '#base/theme';
 import { getLowestPoint } from '#base/views/shared/flashWindowUtils';
 
@@ -77,12 +76,12 @@ const COUNTER_TEMPLATE = 'habbo-window-manager-com/unseen_item_counter_xml';
 
 export const InventoryView = () => {
     const { tab: activeTab = 'furni' } = useWindowParams('inventory');
-    const { toggleWindow, showWindow, updateWindowParams } = useSystemActions();
+    const { toggleWindow, showWindow, updateWindowParams } = useWindowActions();
     const allowScaling = useConfigValue<boolean>('inventory.allow.scaling') === true;
     const botsEnabled = useConfigValue<boolean>('inventory.bots.enabled') === true;
     const web3TradeEnabled = useConfigValue<boolean>('web3trade.enabled') === true;
-    const userTradeActive = useInventoryStore(x => x.tradingActive);
-    const wiredTradeRunning = useWiredTradingStore(x => x.tradeRunning);
+    // `HabboInventory.tradingActive`: either trade.
+    const tradingActive = useInventoryTradingActive();
     const dockHeight = useInventoryTradingDockHeight();
     const unseenCounts: Partial<Record<InventoryTab, number>> = {
         furni: useInventoryUnseenItemCount(UnseenItemCategory.OWNED_FURNI),
@@ -94,8 +93,6 @@ export const InventoryView = () => {
     const counterTemplate = useTemplate(COUNTER_TEMPLATE);
     const { send } = useWebSocketContext();
 
-    // `HabboInventory.tradingActive`: either trade.
-    const tradingActive = userTradeActive || wiredTradeRunning;
     const docked = dockHeight > 0;
 
     const frame = useMemo(() => ({

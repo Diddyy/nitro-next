@@ -8,6 +8,37 @@ import { petTypeFromFigure } from '#base/utils';
 
 import { arrangeInfostandButtons } from './infostandButtons';
 
+/**
+ * The pet panel - `InfoStandPetView` drawn from its Flash template (`habbo-room-ui-com/pet_view`):
+ * the pet's name and breed, its picture and level, the three bars it lives by, its respect, age
+ * and owner, and the command buttons under the panel. Everything drawn that the code does not set
+ * - the border, the close button, the icons, the texts' formats and places - is the layout's.
+ *
+ * `update` is the bindings: the texts' captions with their parameters, `showStatusContainer`
+ * swapping `status_item_list_default` for `status_item_list_monsterplant` (its wellbeing as
+ * `formatSeconds` of what is left, and the `countdown` widget of the time left to grow, both
+ * hidden once grown - `updateStateWidget`), `setLevelText` / `updatePetRespect` hiding the level
+ * and respect for a monsterplant, `setSpecialSkillLevel` showing the skill text and
+ * `pet_skill_level_<getSkillLevelIndex>` only for pet type 15 under `pet.enhancements.enabled`,
+ * `setRarityLevel` the rarity line for types 16 and 26, and `showButton` each command's region.
+ * The bars (`createPercentageBar`), the picture (`set image`), the countdown (`CountdownWidget`,
+ * never `countdown:running` in this layout, so it shows the seconds it was given) and the rarity
+ * plaque (`RarityItemPreviewOverlayWidget`'s `rarity_item_overlay_preview_xml`) go into their
+ * elements as children.
+ *
+ * `arrange` is what the code measures and moves: `updatePetRespect` puts the respect icon 2 past
+ * its text, `updateStateElement` sizes each bar's bitmap to the bar, `onButtonResized` gives each
+ * region its button's width, `arrangeButtons` fills `button_list` right to left within
+ * `BUTTONS_MAX_WIDTH`, wrapping onto a new row, and `updateWindow` fits the element list to its
+ * items, the border to the list plus 20 and the window to both, the narrower right-aligned.
+ *
+ * Until the info arrives the panel is the name and picture alone, with no buttons.
+ *
+ * What is not done, and why:
+ * - `btn_train` opens Flash's `PetCommandTool` window, which the port does not have (its commands
+ *   are the pet menu's rows), so the train button stays hidden;
+ * - `btn_buy_food`'s `trackGoogle` has no tracking receiver here.
+ */
 export interface InfostandPetViewProps {
     objectData: ISimpleRoomObjectData;
     /** What the server has said about this pet, once it has been asked. */
@@ -132,37 +163,6 @@ const PercentageBar = ({ value, max, colors }: { value: number; max: number; col
     );
 };
 
-/**
- * The pet panel - `InfoStandPetView` drawn from its Flash template (`habbo-room-ui-com/pet_view`):
- * the pet's name and breed, its picture and level, the three bars it lives by, its respect, age
- * and owner, and the command buttons under the panel. Everything drawn that the code does not set
- * - the border, the close button, the icons, the texts' formats and places - is the layout's.
- *
- * `update` is the bindings: the texts' captions with their parameters, `showStatusContainer`
- * swapping `status_item_list_default` for `status_item_list_monsterplant` (its wellbeing as
- * `formatSeconds` of what is left, and the `countdown` widget of the time left to grow, both
- * hidden once grown - `updateStateWidget`), `setLevelText` / `updatePetRespect` hiding the level
- * and respect for a monsterplant, `setSpecialSkillLevel` showing the skill text and
- * `pet_skill_level_<getSkillLevelIndex>` only for pet type 15 under `pet.enhancements.enabled`,
- * `setRarityLevel` the rarity line for types 16 and 26, and `showButton` each command's region.
- * The bars (`createPercentageBar`), the picture (`set image`), the countdown (`CountdownWidget`,
- * never `countdown:running` in this layout, so it shows the seconds it was given) and the rarity
- * plaque (`RarityItemPreviewOverlayWidget`'s `rarity_item_overlay_preview_xml`) go into their
- * elements as children.
- *
- * `arrange` is what the code measures and moves: `updatePetRespect` puts the respect icon 2 past
- * its text, `updateStateElement` sizes each bar's bitmap to the bar, `onButtonResized` gives each
- * region its button's width, `arrangeButtons` fills `button_list` right to left within
- * `BUTTONS_MAX_WIDTH`, wrapping onto a new row, and `updateWindow` fits the element list to its
- * items, the border to the list plus 20 and the window to both, the narrower right-aligned.
- *
- * Until the info arrives the panel is the name and picture alone, with no buttons.
- *
- * What is not done, and why:
- * - `btn_train` opens Flash's `PetCommandTool` window, which the port does not have (its commands
- *   are the pet menu's rows), so the train button stays hidden;
- * - `btn_buy_food`'s `trackGoogle` has no tracking receiver here.
- */
 export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isOwnPet, canRemovePet, canMoveAndRotate, onRespect, onPickUp, onBuyFood, onTreat, onMove, onRotate, onClose }: InfostandPetViewProps) => {
     const t = useTranslation();
     const { texture: petTexture } = useChatPetFace(figure, posture, { scale: RoomGeometryScaleType.ZoomedIn, direction: 2 });

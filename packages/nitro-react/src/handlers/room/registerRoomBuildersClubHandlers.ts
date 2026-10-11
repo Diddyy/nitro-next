@@ -13,12 +13,12 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * appears and nothing says why.
  */
 export const registerRoomBuildersClubHandlers = ({ send, subscribe }: WebSocketConnection) => subscribeAll(subscribe, [
-    on(BuildersClubPlacementWarningMessage, (warning) => {
+    on(BuildersClubPlacementWarningMessage, (data) => {
         const { interpolate, showConfirm } = systemStore.getState();
 
-        const composer = (warning.typeCode === BUILDERS_CLUB_PLACEMENT_FLOOR)
-            ? new BuildersClubPlaceRoomItemComposer({ pageId: warning.pageId, offerId: warning.offerId, extraParam: warning.extraParam, x: warning.x, y: warning.y, direction: warning.direction, confirmed: true })
-            : new BuildersClubPlaceWallItemComposer({ pageId: warning.pageId, offerId: warning.offerId, extraParam: warning.extraParam, location: warning.wallLocation, confirmed: true });
+        const composer = (data.typeCode === BUILDERS_CLUB_PLACEMENT_FLOOR)
+            ? new BuildersClubPlaceRoomItemComposer({ pageId: data.pageId, offerId: data.offerId, extraParam: data.extraParam, x: data.x, y: data.y, direction: data.direction, confirmed: true })
+            : new BuildersClubPlaceWallItemComposer({ pageId: data.pageId, offerId: data.offerId, extraParam: data.extraParam, location: data.wallLocation, confirmed: true });
 
         showConfirm(interpolate('${generic.alert.title}'), interpolate('${room.confirm.hide_room}'), () => send(composer));
     }),

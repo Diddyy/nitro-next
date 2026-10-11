@@ -8,6 +8,7 @@
  * shown (2: `150` reads `1.5`; -1: `15` reads `150`), and `endsWithFive` shows the value times
  * five and refuses a text that does not end in 0 or 5 - `min` and `max` are scaled with it.
  */
+import { toInt } from './WiredUtil';
 
 export interface WiredNumberInputRules {
     /** `NumberInputParam.min`. */
@@ -24,9 +25,6 @@ export interface WiredNumberInputRules {
 
 export const WIRED_INT_MIN = -2147483648;
 export const WIRED_INT_MAX = 2147483647;
-
-/** ActionScript's `int(x)`. */
-const toInt = (value: number): number => (value | 0);
 
 const VALID_INT = /^-?\d+$/;
 const VALID_DECIMAL = /^-?([0-9]*[.])?[0-9]+$/;

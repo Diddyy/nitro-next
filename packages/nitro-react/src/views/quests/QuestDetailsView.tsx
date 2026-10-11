@@ -3,8 +3,8 @@
  * bare frame), holding one `QuestEntry` built as the list builds its (`QuestsList.createListEntry`,
  * `refreshEntryDetails`) at (8, 8), with the quest's hint (`hint_txt`, its height the text's + 5)
  * and, under it, one link (`setupLink`): the catalogue for a placing or pet quest type, else the
- * navigator when the campaign has a `.searchtag`, else the quest rooms for a seasonal quest with
- * `quest.room.ids`. The quest panel grows by the hint and the link, the entry with it, and the
+ * navigator when the campaign has a `.searchtag`, else the quest rooms for a seasonal quest whose
+ * campaign has `quests.<seasonal prefix>.roomids` (`getQuestRoomIds`, a text, not a config key). The quest panel grows by the hint and the link, the entry with it, and the
  * window is the entry's height + 56 (`openDetails`). Activate sends `AcceptQuest` in a room and
  * `ActivateQuest` outside one (`onAcceptQuest`) and closes the window; Cancel sends `RejectQuest`.
  * The seasonal calendar's close and quest-room forward on accept, and the per-second wait-period
@@ -15,9 +15,9 @@ import { useMemo, useState } from 'react';
 
 import { acceptQuestFromDetails, closeQuestDetails, goToRoom, rejectQuest, searchNavigator } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigData, useSystemActions, useTranslation } from '#base/context/system';
+import { useConfigData, useTranslation, useWindowActions } from '#base/context/system';
 import { findTemplateChild, measureTemplateText, TemplateWindow, TemplateWindows, useTemplateFrame, useTemplateLibrary } from '#base/theme';
-import { configReader } from '#base/utils';
+import { configReader, openWebPage } from '#base/utils';
 
 import { campaignKey, EntryContext, QUEST_LIBRARY, questEntry, questKey } from './questEntries';
 
@@ -33,14 +33,9 @@ const CATALOG_LINK_TYPES = [ 'PLACE_ITEM', 'PLACE_FLOOR', 'PLACE_WALLPAPER', 'PE
 /** The layout's frame. */
 const WINDOW_WIDTH = 493;
 
-/** `HabboWebTools.openWebPageAndMinimizeClient` for a hint's `<a href>`. */
-const openWebPage = (url: string) => {
-    if (url.length) window.open(url, '_blank', 'noopener');
-};
-
 type Link = 'catalog' | 'navigator' | 'room' | null;
 
-/** `HabboQuestEngine.goToQuestRooms`: one of `quest.room.ids` at random. */
+/** `HabboQuestEngine.goToQuestRooms`: one of the quest room ids at random. */
 const randomQuestRoomId = (ids: string): number => {
     const list = ids.split(',');
 
@@ -52,7 +47,7 @@ export const QuestDetailsView = ({ quest }: { quest: IQuestMessageData }) => {
     const config = useConfigData();
     const templates = useTemplateLibrary(QUEST_LIBRARY);
     const { send } = useWebSocketContext();
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
     // `_window.center()` once, `close` tag -> `onDetailsWindowClose`.
     const frame = useTemplateFrame({ id: 'quest_details', centered: true, onClose: closeQuestDetails });
 
@@ -60,8 +55,11 @@ export const QuestDetailsView = ({ quest }: { quest: IQuestMessageData }) => {
     const [ now ] = useState(() => Date.now());
     const { configString } = configReader(config);
     const hint = t(`${questKey(quest)}.hint`, `${questKey(quest)}.hint`);
-    const isSeasonal = (configString('seasonalQuestCalendar.campaignPrefix') !== '') && (quest.campaignCode.indexOf(configString('seasonalQuestCalendar.campaignPrefix')) === 0);
-    const questRoomIds = configString('quest.room.ids');
+    // `getSeasonalCampaignCodePrefix`.
+    const seasonalPrefix = configString('seasonalQuestCalendar.campaignPrefix');
+    const isSeasonal = (seasonalPrefix !== '') && (quest.campaignCode.indexOf(seasonalPrefix) === 0);
+    // `getQuestRoomIds`.
+    const questRoomIds = t(`quests.${seasonalPrefix}.roomids`, '');
     // `hasCatalogLink` / `hasNavigatorLink` / `hasRoomLink`, in `setupLink`'s order.
     const link: Link = CATALOG_LINK_TYPES.includes(quest.type)
         ? 'catalog'
@@ -86,7 +84,7 @@ export const QuestDetailsView = ({ quest }: { quest: IQuestMessageData }) => {
     const linkY = hintElement.y + hintHeight + SPACING;
 
     const onLink = () => {
-        // `onLinkProc`: `openCatalog` (the quest's page, else the catalogue), `openNavigator` (the quest's `.searchtag`, else the campaign's), `goToQuestRooms` (one of `quest.room.ids` at random).
+        // `onLinkProc`: `openCatalog` (the quest's page, else the catalogue), `openNavigator` (the quest's `.searchtag`, else the campaign's), `goToQuestRooms` (one of the quest room ids at random).
         if (link === 'catalog') showWindow('catalog', quest.catalogPageName ? { pageName: quest.catalogPageName } : undefined);
         else if (link === 'navigator') searchNavigator(send, t(`${questKey(quest)}.searchtag`, '') || t(`${campaignKey(quest)}.searchtag`, ''));
         else if (link === 'room') {

@@ -11,7 +11,7 @@ import {
 } from '#base/theme';
 import {
     FLOOR_PLAN_DRAW_MODES, FLOOR_PLAN_LEVELS, FLOOR_PLAN_ZOOM_LARGE, FLOOR_PLAN_ZOOM_NORMAL,
-    FloorPlanDrawMode, floorPlanHeightColors, FloorPlanModel, FloorPlanTile,
+    FloorPlanDrawMode, floorPlanHeightColors, FloorPlanModel, FloorPlanTile, toCssHexColor,
 } from '#base/utils';
 
 import { FloorPlanHeightMapView } from './FloorPlanHeightMapView';
@@ -19,6 +19,25 @@ import { FloorPlanImportExportView } from './FloorPlanImportExportView';
 import { FloorPlanPreviewView } from './FloorPlanPreviewView';
 import { FloorPlanSlider } from './FloorPlanSlider';
 
+/**
+ * The floor plan editor - `BCFloorPlanEditor`, on the `habbo-window-manager-com/floor_plan_editor_bc`
+ * layout (662x600, frame style 3, margins 0/33/0/0), whose parts this view places by hand rather
+ * than through `TemplateWindow` (see docs/feature-gaps.md). The map on the left is drawn on with
+ * the five tools above it; the panel on the right holds the door direction, the two thickness
+ * menus, the fixed wall height and the isometric preview.
+ *
+ * Controls the port leaves out, and why:
+ *
+ * - `refresh`, beside the preview, is `visible="false"` in the layout: Flash rebuilt the preview
+ *   on a two-second timer and this was the manual nudge for it. The preview here follows the map
+ *   directly, so there is nothing for it to do and it stays hidden, as the client leaves it.
+ * - `mouse_capturer`, the invisible region over the whole scrolling view, is how Flash kept
+ *   receiving mouse moves once a drag left the map. `useRoomFloorPlanDrawing` listens on the
+ *   window instead, which covers the same case without a second interactive layer.
+ *
+ * `BCFloorPlanEditor.WALL_HEIGHT_LIMIT` steps the wall height slider, and the number beside it is
+ * the step plus one - the client counts walls from one and sends them from zero.
+ */
 export interface FloorPlanEditorViewProps {
     model: FloorPlanModel;
     /** The map as text, for the import/export dialog to open on. */
@@ -43,25 +62,6 @@ export interface FloorPlanEditorViewProps {
     onSaveImport: (modelData: string) => void;
     onClose: () => void;
 }
-
-/**
- * The floor plan editor - `BCFloorPlanEditor`, on the `floor_plan_editor_bc` layout (662x600, frame
- * style 3, margins 0/33/0/0; read from the decompiled client, as the bundles do not carry it). The
- * map on the left is drawn on with the five tools above it; the panel on the right holds the door
- * direction, the two thickness menus, the fixed wall height and the isometric preview.
- *
- * Controls the port leaves out, and why:
- *
- * - `refresh`, beside the preview, is `visible="false"` in the layout: Flash rebuilt the preview
- *   on a two-second timer and this was the manual nudge for it. The preview here follows the map
- *   directly, so there is nothing for it to do and it stays hidden, as the client leaves it.
- * - `mouse_capturer`, the invisible region over the whole scrolling view, is how Flash kept
- *   receiving mouse moves once a drag left the map. `useRoomFloorPlanDrawing` listens on the
- *   window instead, which covers the same case without a second interactive layer.
- *
- * `BCFloorPlanEditor.WALL_HEIGHT_LIMIT` steps the wall height slider, and the number beside it is
- * the step plus one - the client counts walls from one and sends them from zero.
- */
 
 /** `AvatarImageWidget.FIGURE_DEFAULT` - the figure the empty `avatar_image` widget draws. */
 const GHOST_FIGURE = 'hd-180-1.ch-210-66.lg-270-82.sh-290-81';
@@ -253,7 +253,7 @@ export const FloorPlanEditorView = ({
                                 {heightColors.map((color, level) => (
                                     <Shape
                                         key={level}
-                                        color={`#${color.toString(16).padStart(6, '0')}`}
+                                        color={toCssHexColor(color)}
                                         layout={{ position: 'absolute', left: Math.round((level * COLORMAP_WIDTH) / FLOOR_PLAN_LEVELS), top: 0, width: Math.ceil(COLORMAP_WIDTH / FLOOR_PLAN_LEVELS), height: COLORMAP_HEIGHT }}
                                     />
                                 ))}

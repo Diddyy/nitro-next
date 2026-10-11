@@ -45,7 +45,7 @@ import { useInventoryStore, useInventoryUnseenTotalCount } from '#base/context/i
 import { useMessengerStore } from '#base/context/messenger';
 import { getRewardTrackClaimableCount, useRewardTrackStore } from '#base/context/reward-track';
 import { useOwnRoomObjectId } from '#base/context/room';
-import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation } from '#base/context/system';
+import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useRoomObjectSelect, useTween, useViewportSize } from '#base/hooks';
@@ -182,7 +182,8 @@ export const ToolbarView = () => {
     const ownGender = useOwnUserGender();
     const ownUserId = useOwnUserId();
     const meMenuIcon = useMeMenuIcon(ownFigure, ownGender);
-    const { toggleWindow, endRoomSession, setToolbarWidths } = useSystemActions();
+    const { endRoomSession, setToolbarWidths } = useSystemActions();
+    const { toggleWindow } = useWindowActions();
     const { width: viewportWidth } = useViewportSize();
     const [ rightGroup, setRightGroup ] = useState<PixiContainer | null>(null);
     const [ rightWidth, setRightWidth ] = useState(0);

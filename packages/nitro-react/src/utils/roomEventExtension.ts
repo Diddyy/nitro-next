@@ -1,3 +1,7 @@
+/**
+ * Whether a running room event may be extended by one more ad - `RoomEventInfoCtrl.canExtend` -
+ * with the defaults of the config values it reads.
+ */
 import { IRoomEventData } from '@nitrodevco/nitro-packets';
 
 const MINUTE_MS = 60 * 1000;

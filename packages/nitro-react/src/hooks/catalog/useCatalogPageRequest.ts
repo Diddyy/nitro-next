@@ -9,6 +9,12 @@ import { useWindowParams } from '#base/context/system';
 import { useWindowVisibility } from '../system';
 import { useCatalogNavigation } from './useCatalogNavigation';
 
+/**
+ * The catalogue window's params acted on: a `pageId`, `pageName` or `offerId` passed to `showWindow`
+ * (or a catalogue link) becomes the requested page, opened once the window is up and the index is
+ * in - `HabboCatalog.openCatalogPageById` / `openCatalogPage` / `openCatalogPageByOfferId` - and
+ * then cleared. With nothing requested and nothing open, the first visible root node opens.
+ */
 export const useCatalogPageRequest = () => {
     // The window of this store's catalogue type - `catalog` or `builders_catalog`.
     const windowName = getCatalogWindowName(useCatalogStore(x => x.catalogType));

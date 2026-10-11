@@ -8,7 +8,7 @@ import { AvatarImage } from '#base/components';
 import { useAvatarEditorStore } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useOwnUserId, useUserStore } from '#base/context/user';
+import { useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
 import { useRoomFurnitureData } from '#base/hooks';
 import { FurnitureUseProductView } from '#base/views/room-widgets/furniture/FurnitureUseProductView';
 
@@ -44,9 +44,9 @@ export const FurniturePurchasableClothingWidget = () => {
     const request = useRoomWidget(RoomObjectWidgetRequestEvent.PURCHASABLE_CLOTHING_CONFIRMATION_DIALOG);
     const roomFurniture = useRoomFurnitureData(request?.objectId ?? -1, request?.category ?? 0);
     const ownUserId = useOwnUserId();
-    const figure = useUserStore(x => x.figure);
+    const figure = useOwnUserFigure();
     const boundFurnitureNames = useAvatarEditorStore(x => x.boundFurnitureNames);
-    const sex = useUserStore(x => x.sex);
+    const sex = useOwnUserGender();
     const { closeRoomWidget } = useRoomWidgetActions();
     const { send } = useWebSocketContext();
 

@@ -113,9 +113,9 @@ export const CatalogMarketPlaceWidgetView = ({ tags }: CatalogWidgetProps) => {
     // Bumped by each `selectSearchCategory`, which builds the search window anew.
     const [ searchBuild, setSearchBuild ] = useState(0);
     // The list serial the last search was sent at: "searching" until a newer list arrives.
-    const [ searchSerial, setSearchSerial ] = useState(() => store.getState().marketplaceOffersSerial);
+    const [ searchSerial, setSearchSerial ] = useState(offersSerial);
     // The list the widget was built on: its rows only fill once a list arrives after that (`init` removes the template).
-    const [ mountSerial ] = useState(() => store.getState().marketplaceOffersSerial);
+    const [ mountSerial ] = useState(offersSerial);
     const [ detailsOffer, setDetailsOffer ] = useState<MarketplaceOfferData | undefined>(undefined);
     const [ detailsSerial, setDetailsSerial ] = useState(offersSerial);
 
@@ -132,8 +132,7 @@ export const CatalogMarketPlaceWidgetView = ({ tags }: CatalogWidgetProps) => {
         const minPrice = (!isAdvanced || (next.minPriceInput === '')) ? -1 : parseInt(next.minPriceInput, 10);
         const maxPrice = (!isAdvanced || (next.maxPriceInput === '')) ? -1 : parseInt(next.maxPriceInput, 10);
 
-        setSearchSerial(store.getState().marketplaceOffersSerial);
-        requestMarketplaceOffers(send, store, minPrice, maxPrice, isAdvanced ? next.searchInput : '', sortType, next.combineUniques);
+        setSearchSerial(requestMarketplaceOffers(send, store, minPrice, maxPrice, isAdvanced ? next.searchInput : '', sortType, next.combineUniques));
     };
 
     // `init` -> `displayMainView`: the activity search, run once.

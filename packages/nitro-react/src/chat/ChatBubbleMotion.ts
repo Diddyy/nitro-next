@@ -5,6 +5,14 @@ import { ChatBubbleLayout } from './ChatBubbleContent';
 import { ChatBubbleData } from './ChatBubbleData';
 import { IChatFlowBubble, IChatFlowHost } from './simulation/IChatFlowBubble';
 
+/**
+ * The movement half of the Flash `PooledChatBubble`, driving a React-rendered bubble's Pixi
+ * container by ref. The simulation sets targets through `moveTo`/`setPosition`; each frame
+ * `update` eases toward them over 150ms, re-aims the pointer at the speaker every two seconds,
+ * and reveals the sprite after its first 150ms so it never flashes at its unrelaxed spot. The
+ * x it exposes is a "proxy": the sprite's real x adds the room's pan offset (and, in
+ * line-by-line mode, clamps to the desktop margins).
+ */
 export interface ChatBubbleMotionOptions {
     data: ChatBubbleData;
     host: Pick<IChatFlowHost, 'stageWidth' | 'getUserScreenLocation'>;
@@ -23,14 +31,6 @@ export interface ChatBubbleMotionMetrics {
     minHeight?: number;
 }
 
-/**
- * The movement half of the Flash `PooledChatBubble`, driving a React-rendered bubble's Pixi
- * container by ref. The simulation sets targets through `moveTo`/`setPosition`; each frame
- * `update` eases toward them over 150ms, re-aims the pointer at the speaker every two seconds,
- * and reveals the sprite after its first 150ms so it never flashes at its unrelaxed spot. The
- * x it exposes is a "proxy": the sprite's real x adds the room's pan offset (and, in
- * line-by-line mode, clamps to the desktop margins).
- */
 export class ChatBubbleMotion implements IChatFlowBubble {
     /** `_Str_10527` / `_Str_16997` */
     private static readonly DESKTOP_MARGIN_LEFT = 85;

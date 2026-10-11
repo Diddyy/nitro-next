@@ -1,10 +1,3 @@
-import { AvatarGenderType } from '@nitrodevco/nitro-api';
-import { createStore } from 'zustand';
-
-import type { CollectibleProductInfo } from '#base/context/collectibles';
-
-import { NOTIFICATION_STYLES, NotificationAssetName, NotificationLayoutName, NotificationStyleConfig, NotificationStyleName } from './NotificationConfig';
-
 /**
  * The bubble notifications that stack up under the purse - Flash's `HabboNotifications.addItem`
  * and the `SingularNotificationController` behind it: a queue of items waiting for room on the
@@ -24,6 +17,12 @@ import { NOTIFICATION_STYLES, NotificationAssetName, NotificationLayoutName, Not
  * `addSongPlayingNotification` is the sound manager's (`HabboSoundManager.notifyPlayedSong`),
  * which adds its `soundmachine` bubble here.
  */
+import { AvatarGenderType } from '@nitrodevco/nitro-api';
+import { createStore } from 'zustand';
+
+import type { CollectibleProductInfo } from '#base/context/collectibles';
+
+import { NOTIFICATION_STYLES, NotificationAssetName, NotificationLayoutName, NotificationStyleConfig, NotificationStyleName } from './NotificationConfig';
 
 /**
  * `addItem`'s extra data object, by `NotificationExtraDataKey`. `product`, `rarity` and

@@ -1,7 +1,8 @@
-import { IFurnitureData, IRoomObjectNameData, ISimpleRoomObjectData, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
+import { IRoomObjectNameData, ISimpleRoomObjectData, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
 import { useRoom, useRoomUsersActions } from '#base/context/room';
 import { useSystemStore, useTranslation } from '#base/context/system';
+import { getFurnitureData } from '#base/utils';
 
 /**
  * The name a bubble shows for a room object - a user's name, a furni's localized name -
@@ -32,18 +33,7 @@ export const useRoomObjectName = (objectData: ISimpleRoomObjectData) => {
             } else {
                 const typeId = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureTypeId);
 
-                let furnitureData: IFurnitureData | undefined = undefined;
-
-                switch (category) {
-                    case RoomObjectCategoryEnum.Floor: {
-                        furnitureData = floorItems[typeId];
-                        break;
-                    }
-                    case RoomObjectCategoryEnum.Wall: {
-                        furnitureData = wallItems[typeId];
-                        break;
-                    }
-                }
+                const furnitureData = getFurnitureData({ floorItems, wallItems }, typeId, (category === RoomObjectCategoryEnum.Wall));
 
                 if (furnitureData) {
                     id = objectId;

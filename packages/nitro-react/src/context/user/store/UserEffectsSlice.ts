@@ -5,6 +5,10 @@ import { effectsAfterActivated, effectsAfterAdded, effectsAfterExpired, effectsA
 
 export type { UserAvatarEffect } from './avatarEffectsModel';
 
+/**
+ * The avatar effects the user owns and the one last worn - what the inventory's `EffectsModel`
+ * keeps; the list logic is in `avatarEffectsModel`.
+ */
 type State = {
     avatarEffects: UserAvatarEffect[];
     /**

@@ -6,7 +6,6 @@ export * from './AvatarImage';
 export * from './catalog';
 export * from './collectibles';
 export * from './earnings';
-export * from './FurnitureImage';
 export * from './groups';
 export * from './habbicons';
 export * from './help';

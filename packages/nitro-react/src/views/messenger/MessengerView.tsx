@@ -36,7 +36,7 @@ import {
     MESSENGER_NO_CONVERSATION, MESSENGER_NOTIFICATION_ICON_WIDTH, MessengerChatEntry, MessengerConversation, useMessengerActions, useMessengerStore,
 } from '#base/context/messenger';
 import { useConfigValue } from '#base/context/system';
-import { useFriends, useUserStore } from '#base/context/user';
+import { useFriends, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { Box, findTemplateChild, Template, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 
 import { MESSENGER_CHAT_BUBBLE_TEMPLATE, messengerCaption, messengerChatBubbleItem } from './MessengerChatBubble';
@@ -110,8 +110,8 @@ export const MessengerView = () => {
     const { setAvatarScrollOffset } = useMessengerActions();
     const habbiconPreviews = useHabbiconsStore(x => x.previews);
     const friends = useFriends();
-    const ownFigure = useUserStore(x => x.figure);
-    const ownGender = useUserStore(x => x.sex);
+    const ownFigure = useOwnUserFigure();
+    const ownGender = useOwnUserGender();
     const ownName = useUserStore(x => x.name);
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const frame = useTemplateFrame({ id: 'messenger', defaultPosition: { x: 120, y: 120 }, onClose: hideMessenger, closeButtonVariant: '102' });

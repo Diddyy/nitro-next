@@ -38,7 +38,7 @@ import { confirmHelpReportedUser, forgetUnlistedReportedUser, hasSelectedHelpLin
 import { useWebSocketContext } from '#base/context/communication';
 import { HelpReportEntry, HelpUserItem, useHelpStore } from '#base/context/help';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useOwnUserId } from '#base/context/user';
 import { ModalDialog, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
 import { AvatarImageWidgetHead } from '#base/views/shared/AvatarImageWidgetHead';
 
@@ -110,7 +110,7 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
     const reportsStatusEnabled = useConfigValue<boolean>('my.reports.status.enabled') === true;
     const minimumLength = useConfigValue<number>('help.cfh.length.minimum') ?? MESSAGE_MINIMUM_LENGTH_DEFAULT;
     const frame = useTemplateFrame({ id: 'help_topics_flow', modal: true, rememberPosition: false, resizeDirection: 'none', onClose });
-    const ownUserId = useUserStore(x => x.userId);
+    const ownUserId = useOwnUserId();
     const users = useHelpStore(x => x.users);
     const chatItems = useHelpStore(x => x.chatItems);
     const categories = useHelpStore(x => x.callForHelpCategories);

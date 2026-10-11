@@ -3,7 +3,7 @@ import { AvatarGenderType, FurnitureTypeEnum, IObjectData, IPurchasableOffer, Ro
 import { GetChatStyleLibrary } from '#base/chat';
 import { habbiconPreviewAssetName } from '#base/commands';
 import { PetImageRequest } from '#base/context/catalog';
-import { useCatalogOfferProduct, useFurnitureImageTexture, usePetImageTexture } from '#base/hooks';
+import { useCatalogOfferActions, useFurnitureImageTexture, usePetImageTexture } from '#base/hooks';
 import { LayoutImage, ThemeImage, useAvatarImageTexture } from '#base/theme';
 import { PRODUCT_IMAGES } from '#base/utils';
 
@@ -40,7 +40,9 @@ export interface CatalogOfferImageViewProps {
  * actions, so the furni shows its default state and the bot stands.
  */
 export const CatalogOfferImageView = ({ offer, previewImage }: CatalogOfferImageViewProps) => {
-    const product = useCatalogOfferProduct(offer);
+    const { getOfferProduct } = useCatalogOfferActions();
+    // `ProductContainer.firstProduct`: the one product the offer is about.
+    const product = getOfferProduct(offer);
     const shippedImage = SHIPPED_PRODUCT_IMAGES[PRODUCT_IMAGES[offer.localizationId] ?? ''];
     const productType = product?.productType;
     const isFurni = !shippedImage && !previewImage && ((productType === FurnitureTypeEnum.Floor) || (productType === FurnitureTypeEnum.Wall));

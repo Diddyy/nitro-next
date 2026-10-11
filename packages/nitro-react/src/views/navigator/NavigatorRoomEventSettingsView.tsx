@@ -8,6 +8,22 @@ import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme'
 
 import { NavigatorErrorPopup } from './NavigatorErrorPopup';
 
+/**
+ * The room event's settings - `RoomEventViewCtrl` over `habbo-navigator-com/iro_event_settings_xml`,
+ * which the event card's edit link toggles.
+ *
+ * `show` fills the fields from the running event under `navigator.eventsettings.editcaption`; with
+ * no event it is `navigator.createevent` with both fields back at their empty info text
+ * (`goBackToInitialState`). Each field is a `TextFieldManager` (25 and 100 characters): the first
+ * focus of a field holding its info text empties it, and leaving either field saves the event
+ * (`onUnfocus` -> `save`) once the name passes `checkMandatory` - else the name turns
+ * `0xf1a39b` with `navigator.eventsettings.nameerr` over it. A `RoomAdErrorMessage` puts the
+ * server's filtered text back in the field it names, with `roomad.error.0.description` over it.
+ *
+ * The layout's `buttons` container is empty and nothing in Flash adds to it: `onEndButtonClick`
+ * (`CancelEventMessageComposer`) and `onCancelButtonClick` are never wired, so there is no way to
+ * end an event from here.
+ */
 const TEMPLATE = 'habbo-navigator-com/iro_event_settings_xml';
 
 /** The `TextFieldManager` limits `prepareWindow` builds the two fields with. */
@@ -35,22 +51,6 @@ interface ManagedField {
 /** `checkMandatory`'s `isInputValid`: not the info text, and more than two characters once trimmed. */
 const isFieldValid = (field: ManagedField) => !field.info && (field.text.trim().length > 2);
 
-/**
- * The room event's settings - `RoomEventViewCtrl` over `habbo-navigator-com/iro_event_settings_xml`,
- * which the event card's edit link toggles.
- *
- * `show` fills the fields from the running event under `navigator.eventsettings.editcaption`; with
- * no event it is `navigator.createevent` with both fields back at their empty info text
- * (`goBackToInitialState`). Each field is a `TextFieldManager` (25 and 100 characters): the first
- * focus of a field holding its info text empties it, and leaving either field saves the event
- * (`onUnfocus` -> `save`) once the name passes `checkMandatory` - else the name turns
- * `0xf1a39b` with `navigator.eventsettings.nameerr` over it. A `RoomAdErrorMessage` puts the
- * server's filtered text back in the field it names, with `roomad.error.0.description` over it.
- *
- * The layout's `buttons` container is empty and nothing in Flash adds to it: `onEndButtonClick`
- * (`CancelEventMessageComposer`) and `onCancelButtonClick` are never wired, so there is no way to
- * end an event from here.
- */
 export const NavigatorRoomEventSettingsView = () => {
     const roomEventData = useNavigatorStore(x => x.roomEventData);
     const roomAdError = useNavigatorStore(x => x.roomAdError);

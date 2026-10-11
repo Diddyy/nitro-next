@@ -6,9 +6,9 @@ import { closePurchaseDialog, giveGift } from '#base/commands';
 import { CatalogPurchaseRequest, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
-import { ClientGates, useClientGate, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
+import { ClientGates, useClientGate, useFriends, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { useFurnitureImageTexture } from '#base/hooks';
-import { Box, LayoutImage, TemplateWindow, ThemeImage, useAvatarImageTexture, useTemplateLibrary } from '#base/theme';
+import { Box, escapeMarkup, LayoutImage, TemplateWindow, ThemeImage, useAvatarImageTexture, useTemplateLibrary } from '#base/theme';
 
 import { CATALOG_LIBRARY, catalogTemplateId } from '../page/catalogTemplates';
 
@@ -70,10 +70,9 @@ const suggestionMarkup = (name: string, typed: string) => {
 
     if (start === -1) return undefined;
 
-    const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const end = Math.min(start + typed.length, name.length);
 
-    return `${escape(name.slice(0, start))}<b>${escape(name.slice(start, end))}</b>${escape(name.slice(end))}`;
+    return `${escapeMarkup(name.slice(0, start))}<b>${escapeMarkup(name.slice(start, end))}</b>${escapeMarkup(name.slice(end))}`;
 };
 
 /**
@@ -150,7 +149,7 @@ export const CatalogGiftWrappingView = ({ purchase }: CatalogGiftWrappingViewPro
     const defaultStuffType = useCatalogStore(x => x.giftDefaultStuffType);
     const giveGiftEnabled = useCatalogStore(x => x.giveGiftEnabled);
     const floorItems = useSystemStore(x => x.floorItems);
-    const friends = useUserStore(x => x.friends);
+    const friends = useFriends();
     const userName = useUserStore(x => x.name);
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();

@@ -45,13 +45,6 @@ export const readWiredPlaceholderAddonFields = (triggerable: WiredTriggerable): 
 export const writeWiredPlaceholderAddonString = (fields: WiredPlaceholderAddonFields): string =>
     (fields.showMultiple ? `${fields.name}\t${fields.delimiter}` : fields.name);
 
-/**
- * `SliderSection.value = x` (`SliderWindowControllerNew.setValue`) - a slider takes any value and
- * holds it clamped to its range, so a box saved with nothing (a fresh one's 0) reads back as the
- * slider's minimum.
- */
-export const clampWiredSliderValue = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
-
 /** `ExpandableDropdown.init(options, id)` - the selection the drop-down shows afterwards. */
 export const reinitWiredDropdownSelection = (optionIds: readonly number[], id: number): number =>
     (optionIds.includes(id) ? id : WIRED_DROPDOWN_NO_SELECTION);

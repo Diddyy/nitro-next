@@ -27,7 +27,11 @@ const load = (path, dependencies = {}) => {
 };
 
 class ColorMatrixFilter {}
-class FurnitureVisualization { constructor() { this.lookThrough = false; } }
+class FurnitureVisualization {
+    constructor() {
+        this.lookThrough = false;
+    }
+}
 
 const { RoomAreaSelectionManager } = load('nitro-renderer/src/room/utils/RoomAreaSelectionManager', {
     '@nitrodevco/nitro-api': { RoomEngineObjectEvent: { ADDED: 'REOE_ADDED' }, RoomObjectCategoryEnum: { Floor: 10, Wall: 20 }, RoomObjectMouseEvent: { MOUSE_DOWN: 'ROE_MOUSE_DOWN', MOUSE_MOVE: 'ROE_MOUSE_MOVE' } },
@@ -50,7 +54,7 @@ const room = () => {
         eventDispatcher: { addEventListener: () => {} },
         setMoveBlocked: (value) => { log.moveBlocked = value; },
         getRoomObjectRoom: () => ({ visualization: { initializeHighlightArea: (...args) => highlight.push(args.slice(0, 4)), clearHighlightArea: () => highlight.push('cleared') } }),
-        getRoomObjectsForCategory: category => (category === 10 ? [furni] : []),
+        getRoomObjectsForCategory: category => (category === 10 ? [ furni ] : []),
     };
 };
 
@@ -72,12 +76,12 @@ await test('dragging out a rectangle and ending the click hands the area to whoe
     assert.equal(manager.areaSelectionState, RoomAreaSelectionManager.SELECTING);
 
     manager.handleTileMouseEvent(tile(MOVE, 6, 2));
-    assert.deepEqual(r.highlight.at(-1), [3, 2, 4, 3], 'the rectangle follows the drag from either corner');
+    assert.deepEqual(r.highlight.at(-1), [ 3, 2, 4, 3 ], 'the rectangle follows the drag from either corner');
 
     // Nothing is handed over until the click that ends the drag: this is the call that was missing.
     assert.deepEqual(areas, []);
     assert.equal(manager.finishSelecting(), true);
-    assert.deepEqual(areas, [[3, 2, 4, 3]]);
+    assert.deepEqual(areas, [ [ 3, 2, 4, 3 ] ]);
     assert.equal(manager.areaSelectionState, RoomAreaSelectionManager.NOT_SELECTING_AREA);
     assert.equal(r.log.moveBlocked, false);
 
@@ -106,12 +110,12 @@ await test('clearing the area reports an empty one, and shift-click starts a dra
 
     manager.activate((...area) => areas.push(area), 'highlight_brighten');
     manager.clearHighlight();
-    assert.deepEqual(areas, [[0, 0, 0, 0]]);
+    assert.deepEqual(areas, [ [ 0, 0, 0, 0 ] ]);
 
     manager.handleTileMouseEvent(tile(DOWN, 5, 5, true));
     assert.equal(manager.areaSelectionState, RoomAreaSelectionManager.SELECTING);
     manager.finishSelecting();
-    assert.deepEqual(areas.at(-1), [5, 5, 1, 1]);
+    assert.deepEqual(areas.at(-1), [ 5, 5, 1, 1 ]);
 });
 
 await test('the selection can only be claimed by one at a time, and releasing it restores the furni', () => {
@@ -130,14 +134,13 @@ await test('the selection can only be claimed by one at a time, and releasing it
 // The manager is only half of it: the live mouse dispatcher has to end the drag on the click, as
 // `RoomEngine.handleMouseEvent` does. This reads the source because the dispatcher is a React hook.
 await test('the room canvas ends an area drag on the click, before anything else handles it', () => {
-    for (const path of ['nitro-react/src/components/room/RoomCanvas.tsx', 'nitro-react/src/hooks/room/useRoomMouse.ts']) {
-        const source = read(path);
-        const dispatch = source.slice(source.indexOf('const dispatchMouseEvent'));
-        const finish = dispatch.indexOf('areaSelection.finishSelecting()');
-        const dragging = dispatch.indexOf('handleRoomDragging(');
+    const path = 'nitro-react/src/components/room/RoomCanvas.ts';
+    const source = read(path);
+    const dispatch = source.slice(source.indexOf('const dispatchMouseEvent'));
+    const finish = dispatch.indexOf('areaSelection.finishSelecting()');
+    const dragging = dispatch.indexOf('handleRoomDragging(');
 
-        assert.ok(finish > -1, `${path} never finishes an area selection`);
-        assert.ok(finish < dragging, `${path} must finish the selection before the click is handled as a walk or a select`);
-        assert.match(dispatch.slice(Math.max(0, finish - 90), finish), /MouseEventType\.MOUSE_CLICK/, `${path} finishes it on a click only`);
-    }
+    assert.ok(finish > -1, `${path} never finishes an area selection`);
+    assert.ok(finish < dragging, `${path} must finish the selection before the click is handled as a walk or a select`);
+    assert.match(dispatch.slice(Math.max(0, finish - 90), finish), /MouseEventType\.MOUSE_CLICK/, `${path} finishes it on a click only`);
 });

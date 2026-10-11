@@ -1,3 +1,10 @@
+/**
+ * What Flash's `HabboFriendList` and its views do over `userStore`: the avatar search
+ * (`SearchView`), asking someone to be a friend with the list's own limit check and the alerts
+ * that answer it, accepting and declining requests, following a friend and inviting friends to
+ * the room (`FriendsView`, `RoomInviteView`), the friend online bubble (`FriendCategories`) and
+ * the highlight on a tab with news (`FriendListTab`).
+ */
 import { AcceptFriendComposer, DeclineFriendComposer, EventLogComposer, FollowFriendComposer, FriendRequestQuestCompleteComposer, FriendRequestStateType, HabboSearchComposer, IFriendRequest, IMessengerFriend, MessengerFriendRelationType, SendRoomInviteComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
@@ -8,12 +15,6 @@ import { FriendListHighlightedTabs, UserStore, userStore } from '#base/context/u
 import { sendFriendRequest } from './roomUserCommands';
 
 type Send = WebSocketConnection['send'];
-
-/**
- * What Flash's `HabboFriendList` does on behalf of its search tab (`SearchView`) and anything else
- * that asks someone to be a friend: the search itself, the friend request with the friend list's
- * own limit check, and the two alerts that answer it.
- */
 
 /**
  * `FriendCategories.getFriendCount(false)`, less the group chats. Flash counts every entry of its

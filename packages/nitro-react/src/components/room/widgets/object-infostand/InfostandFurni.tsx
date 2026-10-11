@@ -1,3 +1,15 @@
+/**
+ * The infostand for furniture - `InfoStandFurniView` and its crackable, jukebox and song disk
+ * variants. It works out what you may do with the object - move, rotate, pick up or eject, use,
+ * wired inspect - the way `InfoStandFurniView.update` did, and gathers what the variants show. In
+ * wired play test mode (`playTestMode`) only what a visitor could do is offered.
+ *
+ * The Builders Club parts: the place more button (`bcOfferId >= 0 && availableForBuildersClub &&
+ * canPlaceWithBC()`, under `infostand.place_more.enabled`) starts placing another from the
+ * Builders Club (`InfoStandWidget.requestItemToMover`); the owner line of a Builders Club furni opens
+ * that catalogue at the furni's offer, or just the catalogue (`onOwnerRegion`); and picking up a
+ * Builders Club furni the Builders Club no longer offers asks first (`pickupObjectWithConfirmation`).
+ */
 import { CatalogTypeEnum, CrackableDataType, FurniId, FurnitureSpecialType, FurnitureUsagePolicyEnum, ISimpleRoomObjectData, MapDataType, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectVariableEnum, RoomWidgetEnumItemExtradataParameter } from '@nitrodevco/nitro-api';
 import { GetSongInfoComposer, SetObjectDataComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
@@ -5,8 +17,8 @@ import { useEffect } from 'react';
 import { openClientLink, openGroupInfo, openProfile, openRentConfirmationWindow, requestGroupDetails, requestInfostandItemToMover, toggleCatalog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
-import { useOwnControllerLevel, useRoom, useRoomStore } from '#base/context/room';
-import { useConfigValue, useSystemActions, useTranslation } from '#base/context/system';
+import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomStore } from '#base/context/room';
+import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useCanPlaceWithBuildersClub, useRoomFurnitureData, useRoomObjectInteraction, useRoomObjectModify, useSecondsClock } from '#base/hooks';
@@ -34,18 +46,6 @@ const furniVariant = (extraParam: string): InfostandFurniVariant => {
     return 'furni';
 };
 
-/**
- * The infostand for furniture - `InfoStandFurniView` and its crackable, jukebox and song disk
- * variants. It works out what you may do with the object - move, rotate, pick up or eject, use,
- * wired inspect - the way `InfoStandFurniView.update` did, and gathers what the variants show. In
- * wired play test mode (`playTestMode`) only what a visitor could do is offered.
- *
- * The Builders Club parts: the place more button (`bcOfferId >= 0 && availableForBuildersClub &&
- * canPlaceWithBC()`, under `infostand.place_more.enabled`) starts placing another from the
- * Builders Club (`InfoStandWidget.requestItemToMover`); the owner line of a Builders Club furni opens
- * that catalogue at the furni's offer, or just the catalogue (`onOwnerRegion`); and picking up a
- * Builders Club furni the Builders Club no longer offers asks first (`pickupObjectWithConfirmation`).
- */
 export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => {
     const { objectId, category } = objectData;
     const room = useRoom();
@@ -56,7 +56,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     // `createWindow` disposes `custom_variables` without `hasSecurity(5)`.
     const canSeeCustomVariables = useClientGate(ClientGates.FurniCustomVariables);
     const controllerLevel = useOwnControllerLevel();
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
+    const isRoomOwner = useIsRoomOwner();
     const isFreeFurniMovementsMode = useRoomStore(x => x.isFreeFurniMovementsMode);
     const playTestMode = useRoomStore(x => x.playTestMode);
     const showWiredInspectButton = useWiredShowInspectButton();
@@ -70,7 +70,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const canPlaceWithBuildersClub = useCanPlaceWithBuildersClub();
     const { modifyRoomObject } = useRoomObjectModify();
     const { changeItemState } = useRoomObjectInteraction();
-    const { showWindow, hideWindow, showConfirm } = useSystemActions();
+    const { showWindow, hideWindow, showConfirm } = useWindowActions();
     const t = useTranslation();
     const { send } = useWebSocketContext();
 

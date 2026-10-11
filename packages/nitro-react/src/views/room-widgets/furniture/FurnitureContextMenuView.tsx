@@ -9,19 +9,12 @@ import { useRoomFurnitureData } from '#base/hooks';
 
 import { FurnitureMenuBubble } from './FurnitureMenuBubble';
 
-export interface FurnitureContextMenuViewProps {
-    objectData: ISimpleRoomObjectData;
-    /** The `ContextMenuEnum` value the object's logic offers. */
-    menu: string;
-    onClose: () => void;
-}
-
 /**
- * The little menu a selected piece of furniture puts over itself, on the `generic_usable_menu`
- * layout (115x86, drawn by `FurnitureMenuBubble`): the furni's name, a rule, and the `use` row,
- * over the minimize arrow. `monsterplant_seed_menu`, `mysterybox_menu` and `random_teleport_menu`
- * are that same window with their own captions, which is why there is a single view here rather
- * than one each.
+ * The little menu a selected piece of furniture puts over itself, on the
+ * `habbo-room-ui-com/generic_usable_menu` layout (115x86, drawn by `FurnitureMenuBubble`): the
+ * furni's name, a rule, and the `use` row, over the minimize arrow. `monsterplant_seed_menu`,
+ * `mysterybox_menu` and `random_teleport_menu` are that same window with their own captions, which
+ * is why there is a single view here rather than one each.
  *
  * `friendfurni_menu` (`FriendFurniContextMenuView`) is the same window again, captioned
  * `${friendfurni.context.title}` / `${friendfurni.context.use}`: an unlocked friend furni - a love
@@ -30,6 +23,13 @@ export interface FurnitureContextMenuViewProps {
  * Only the menus Flash actually shows are shown. `DUMMY` (a friend furni already locked), the
  * effect box and the mystery trophy open their own dialogs on use instead, so they get no menu.
  */
+export interface FurnitureContextMenuViewProps {
+    objectData: ISimpleRoomObjectData;
+    /** The `ContextMenuEnum` value the object's logic offers. */
+    menu: string;
+    onClose: () => void;
+}
+
 export const FurnitureContextMenuView = ({ objectData, menu, onClose }: FurnitureContextMenuViewProps) => {
     const { objectId, category } = objectData;
     const furnitureData = useRoomFurnitureData(objectId, category);

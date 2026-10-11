@@ -35,7 +35,7 @@ import {
     isRewardTrackPrizePremiumLocked, isRewardTrackTaskComplete, RewardTrack, RewardTrackPrize, rewardTrackPrizeHasEnoughPoints, RewardTrackTask, rewardTrackTaskHasProgress, useRewardTrackStore,
 } from '#base/context/reward-track';
 import { useConfigData, useTranslation } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useOwnUserFigure, useOwnUserGender } from '#base/context/user';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
 import { ProductIconView } from '#base/views/shared/ProductIconView';
 
@@ -134,8 +134,8 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
     // The hint links the hotel configures (`getProperty`), read when they come in.
     const config = useConfigData();
     const { send } = useWebSocketContext();
-    const figure = useUserStore(x => x.figure);
-    const gender = useUserStore(x => x.sex);
+    const figure = useOwnUserFigure();
+    const gender = useOwnUserGender();
     const frame = useTemplateFrame({ id: 'reward_track', centered: true, resizeDirection: 'none', onClose: hideRewardTrack });
     const theme = THEMES[track.theme] ?? THEMES.blue;
     const layout = buildRewardTrackPrizeLayout(track.prizes, PRIZE_CONTENT_WIDTH, PRIZE_WIDTH, MIN_PRIZE_SPACING);

@@ -2,6 +2,22 @@ import { useTranslation } from '#base/context/system';
 import { TemplateWindow, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
+/**
+ * A rentable space - `RentableSpaceDisplayWidget`, which builds
+ * `habbo-room-ui-com/rentablespace_xml` and centres it (`createWindow`). `populateRentInfo` shows
+ * one of its two item lists:
+ *
+ * - `rent_view` while the space is free: `price_label` reads `"<price> x"`; `cant_rent_error` says
+ *   why it may not be rented (the server's code) or that you cannot afford it (200), and otherwise
+ *   hides while `rent_button` is enabled.
+ * - `rented_view` while it is held: `renter_name`, `time_remaining_label` (`FriendlyTime` of what
+ *   is left) and `cancel_rent_button` for the furni's owner and moderators
+ *   (`isOwnerOfFurniture || hasSecurity(MODERATOR)`, worked out by the widget).
+ *
+ * `rent_button` rents and `cancel_rent_button` cancels (`windowProcedure`); the header close closes.
+ * Not here: `error_view`, which `showErrorView` raises for a failed rent - the handler answers a
+ * failure by asking for the status again, so the widget never holds an error to show.
+ */
 export interface FurnitureRentableSpaceViewProps {
     rented: boolean;
     /** Whether the rented view offers `cancel_rent_button`: the space's owner, or staff. */
@@ -36,21 +52,6 @@ const RENT_ERROR_MESSAGES: Record<number, string> = {
 /** `errorCodesToMessages[200]` - what a space you cannot afford says. */
 const NOT_ENOUGH_CREDITS = 200;
 
-/**
- * A rentable space - `RentableSpaceDisplayWidget`, which builds `rentablespace_xml` and centres it
- * (`createWindow`). `populateRentInfo` shows one of its two item lists:
- *
- * - `rent_view` while the space is free: `price_label` reads `"<price> x"`; `cant_rent_error` says
- *   why it may not be rented (the server's code) or that you cannot afford it (200), and otherwise
- *   hides while `rent_button` is enabled.
- * - `rented_view` while it is held: `renter_name`, `time_remaining_label` (`FriendlyTime` of what
- *   is left) and `cancel_rent_button` for the furni's owner and moderators
- *   (`isOwnerOfFurniture || hasSecurity(MODERATOR)`, worked out by the widget).
- *
- * `rent_button` rents and `cancel_rent_button` cancels (`windowProcedure`); the header close closes.
- * Not here: `error_view`, which `showErrorView` raises for a failed rent - the handler answers a
- * failure by asking for the status again, so the widget never holds an error to show.
- */
 export const FurnitureRentableSpaceView = ({
     rented, canCancelRent, canRent, canRentErrorCode, canAfford, renterName, timeRemaining, price, onRent, onCancelRent, onClose,
 }: FurnitureRentableSpaceViewProps) => {

@@ -1,3 +1,8 @@
+/**
+ * The in-client link router: `navigator/goto/<room>`, `catalog/open/<page>`, `wiredmenu/open`, ...
+ * mapped onto the window or command each one opens - what every Flash component did for the links
+ * under its own `linkPattern` in `ILinkEventTracker.linkReceived`.
+ */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
 

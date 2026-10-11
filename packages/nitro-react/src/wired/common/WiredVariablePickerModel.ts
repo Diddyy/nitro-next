@@ -285,6 +285,13 @@ export const getPickerSelectedVariable = (variables: readonly IWiredVariable[] |
  * element opened with `'n'` still saves `'n'`. The side effect - recording the variable in the
  * recent tab - is `rememberPickedVariables`, which `commands/wiredCommands.ts` runs when it reads
  * the form.
+ *
+ * Not yet called: every element's `readVariableIds` returns its pickers' `variableId` as it
+ * stands, so a selection the room no longer has (deleted while the dialog is open) is still sent,
+ * where Flash's `finalizeSelection` (`selected?.variableId`) sends none. Calling this needs the
+ * room's variables in each `readVariableIds` - about twenty element definitions, each also
+ * checked for the pickers that deliberately send `WIRED_VARIABLE_ID_NONE` - so it is a change of
+ * its own rather than a one-line wiring.
  */
 export const finalizePickerSelection = (variables: readonly IWiredVariable[] | null | undefined, state: WiredVariablePickerState): string => {
     if (!variables) return state.variableId;

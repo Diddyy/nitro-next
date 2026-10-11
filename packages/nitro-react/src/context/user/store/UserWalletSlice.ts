@@ -1,5 +1,9 @@
 import { StateCreator } from 'zustand';
 
+/**
+ * The purse: credits, emeralds, silver and the activity point currencies by type, and the
+ * subscription (`ClubSubscription`) Flash's `Purse` carries beside them.
+ */
 type State = {
     credits: number;
     emeralds: number;
@@ -40,11 +44,7 @@ type Actions = {
     setClubSubscription: (clubSubscription: ClubSubscription) => void;
 };
 
-/**
- * The purse: credits, emeralds, silver and the activity point currencies by type, and the
- * subscription (`ClubSubscription`) Flash's `Purse` carries beside them.
- */
-export const UserWalletSlice: State = {
+export const UserWalletSliceInitialState: State = {
     credits: 0,
     emeralds: 0,
     silver: 0,
@@ -55,7 +55,7 @@ export const UserWalletSlice: State = {
 export type UserWalletSlice = State & Actions;
 
 export const createUserWalletSlice: StateCreator<UserWalletSlice, [], [], UserWalletSlice> = set => ({
-    ...UserWalletSlice,
+    ...UserWalletSliceInitialState,
     setCredits: (credits: number) => set({ credits }),
     setEmeralds: (emeralds: number) => set({ emeralds }),
     setSilver: (silver: number) => set({ silver }),

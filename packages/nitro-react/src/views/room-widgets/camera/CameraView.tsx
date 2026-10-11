@@ -20,16 +20,15 @@
  *   (`sendInitCameraMessage`: `RequestCameraConfigurationMessageComposer` with the `CAMERA` perk).
  */
 import { RequestCameraConfigurationComposer } from '@nitrodevco/nitro-packets';
-import { GetRenderer, SpriteDataCollector } from '@nitrodevco/nitro-renderer';
 import { Rectangle } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
-import { CameraPhoto, editPhoto, isRoomUnfit, openClientLink } from '#base/commands';
+import { CameraPhoto, collectRoomPhotoData, editPhoto, isRoomUnfit, openClientLink, snapshotRoomCanvas } from '#base/commands';
 import { GetRoomBackgroundColor } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
-import { getRoom, useRoom } from '#base/context/room';
-import { useConfigValue, useIsWindowVisible, useSystemStore, useWindowActions } from '#base/context/system';
-import { PerkCodes, useOwnPerkAllowed, useUserStore } from '#base/context/user';
+import { useRoom } from '#base/context/room';
+import { useConfigValue, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
+import { PerkCodes, useOwnPerkAllowed, useOwnSecurityLevel } from '#base/context/user';
 import { GetSoundManager, HabboSoundTypesEnum } from '#base/sound';
 import { Region, TemplateBindings, TemplateWindow, TemplateWindows, useWindowActivation } from '#base/theme';
 
@@ -101,7 +100,7 @@ const setImageNode = (node: unknown) => {
 export const CameraView = () => {
     const visible = useIsWindowVisible('camera');
     const { hideWindow, showAlert } = useWindowActions();
-    const getLocalizationValue = useSystemStore(x => x.getLocalizationValue);
+    const getLocalizationValue = useTranslation();
     const { zIndex, onPointerDown } = useWindowActivation('camera');
     // `_window.center()`: the window is its layout's 340 x 536 whether or not `slot_container` shows.
     const position = { x: Math.max(0, Math.floor((window.innerWidth - WINDOW_WIDTH) / 2)), y: Math.max(0, Math.floor((window.innerHeight - WINDOW_FULL_HEIGHT) / 2)) };
@@ -114,7 +113,7 @@ export const CameraView = () => {
     const [ flashAlpha, setFlashAlpha ] = useState(0);
     const refresh = () => redraw(version => version + 1);
     const room = useRoom();
-    const securityLevel = useUserStore(x => x.securityLevel);
+    const securityLevel = useOwnSecurityLevel();
     const { send } = useWebSocketContext();
     const cameraAllowed = useOwnPerkAllowed(PerkCodes.Camera);
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
@@ -131,21 +130,16 @@ export const CameraView = () => {
 
         const capture = () => {
             const node = imageNode;
-            const stage = getRoom()?.canvas?.master;
 
-            if (!node || !stage) return;
+            if (!node) return;
 
             const { x, y } = node.getGlobalPosition();
+            const pixels = snapshotRoomCanvas(x, y, CAMERA_IMAGE_SIZE);
 
-            try {
-                const { pixels, width, height } = GetRenderer().extract.pixels({ target: stage, frame: new Rectangle(Math.round(x), Math.round(y), CAMERA_IMAGE_SIZE, CAMERA_IMAGE_SIZE), resolution: 1 });
-                const context = liveCanvas.getContext('2d');
+            // The stage is not there (no room): the viewfinder stays as it was.
+            if (!pixels) return;
 
-                context?.putImageData(new ImageData(new Uint8ClampedArray(pixels), width, height), 0, 0);
-            } catch {
-                // The stage is not there (no room): the viewfinder stays as it was.
-            }
-
+            liveCanvas.getContext('2d')?.putImageData(pixels, 0, 0);
             refresh();
         };
 
@@ -229,23 +223,12 @@ export const CameraView = () => {
 
     /** `collectPhotoData` -> `RoomEngine.getRenderRoomMessage`: the room under the image, as the thumbnail camera collects it. */
     const collectPhotoData = (): Slot['render'] => {
-        const current = getRoom();
-        const canvas = current?.canvas;
-
-        if (!current || !canvas || !imageNode) return undefined;
+        if (!imageNode) return undefined;
 
         const { x, y } = imageNode.getGlobalPosition();
         const viewport = new Rectangle(Math.round(x), Math.round(y), CAMERA_IMAGE_SIZE, CAMERA_IMAGE_SIZE);
-        const collector = new SpriteDataCollector(current, canvas, imageLibraryUrl, groupBadgeUrl);
 
-        return {
-            sprites: collector.getFurniData(viewport, -1),
-            modifiers: collector.getRoomRenderingModifiers(),
-            planes: collector.getRoomPlanes(viewport, GetRoomBackgroundColor()),
-            roomId: current.roomId,
-            topSecurityLevel: securityLevel,
-            time: Date.now(),
-        };
+        return collectRoomPhotoData(viewport, GetRoomBackgroundColor(), imageLibraryUrl, groupBadgeUrl, securityLevel);
     };
 
     /** `button_editor`: the viewfinder hides and the lab opens on the photo shown. */

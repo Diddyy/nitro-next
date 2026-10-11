@@ -6,12 +6,6 @@ import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator'
 import { TemplateWindow, useTemplateFrame } from '#base/theme';
 import { useFilterWordRows } from '#base/views/shared/useFilterWordRows';
 
-const TEMPLATE = 'habbo-navigator-com/iro_room_filter_framed_xml';
-const ROW_TEMPLATE = 'habbo-navigator-com/ros_badword_xml';
-
-/** The add field's text as the layout has it, and as `onAddWordClick` puts it back. */
-const ADD_WORD_DEFAULT = 'bobba';
-
 /**
  * The room's word filter - `RoomFilterCtrl` over `habbo-navigator-com/iro_room_filter_framed_xml`,
  * opened from the room info panel's filter button (`startRoomFilterEdit`), which asks for the words.
@@ -26,6 +20,12 @@ const ADD_WORD_DEFAULT = 'bobba';
  * hides it (`close`). Flash leaves the removed row in the list at no height and keeps its selection
  * on it, so a second Remove sends the same word again; here the row goes and nothing stays selected.
  */
+const TEMPLATE = 'habbo-navigator-com/iro_room_filter_framed_xml';
+const ROW_TEMPLATE = 'habbo-navigator-com/ros_badword_xml';
+
+/** The add field's text as the layout has it, and as `onAddWordClick` puts it back. */
+const ADD_WORD_DEFAULT = 'bobba';
+
 export const NavigatorRoomFilterView = () => {
     const words = useNavigatorStore(x => x.roomFilterWords);
     const selectedIndex = useNavigatorStore(x => x.roomFilterSelectedIndex);

@@ -66,10 +66,6 @@ export interface WiredElementContext {
     elementMemory: (holder: WiredHolderKey, code: number) => WiredElementMemory;
 }
 
-/** `getProperty(key)`'s answer from the client config: a configured string, number or flag as text, `''` for anything else. */
-export const wiredConfigString = (value: unknown): string =>
-    (((typeof value === 'string') || (typeof value === 'number') || (typeof value === 'boolean')) ? String(value) : '');
-
 /** The header button `UserDefinedRoomEventsCtrl.createHeader` picks by the element's class. */
 export type WiredHeaderButton = 'none' | 'snapshot' | 'variable' | 'logs' | 'apiDocs';
 

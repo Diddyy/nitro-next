@@ -1,3 +1,9 @@
+/**
+ * Which icon a price shows for its currency - the purse's `§_-u1R§.getIconStyleFor`, read from the
+ * hotel's variables.
+ */
+import { configReader } from './configReader';
+
 /** The silver currency's type - the unit every price in silver is given in. */
 export const CURRENCY_TYPE_SILVER = 1000;
 
@@ -37,17 +43,16 @@ const SEASONAL_CURRENCY_ICONS: Record<string, [ number, number ]> = {
     letter: [ 87, 86 ],
 };
 
-/** A hotel variable as the text `getProperty` returns, empty when it is not set. */
-const configText = (value: unknown): string => (((typeof value === 'string') || (typeof value === 'number') || (typeof value === 'boolean')) ? String(value) : '');
-
 /** `§_-u1R§.getIconStyleFor`: `config` is the hotel's variables, read the way `getBoolean` / `getProperty` / `getInteger` read them. */
 export const getCurrencyIconStyle = (type: number, config: Record<string, unknown>, big: boolean, combo: boolean = false): number => {
+    const { configString, configBoolean } = configReader(config);
+
     if ((type === -1) || (type === 7)) return big ? 34 : 35;
     if (type === 0) return big ? 32 : 33;
     if (type === 3) return big ? 36 : 37;
 
     if (type === 5) {
-        if (configText(config['diamonds.enabled']) === 'true') return big ? 41 : 42;
+        if (configBoolean('diamonds.enabled')) return big ? 41 : 42;
 
         return big ? 53 : 54;
     }
@@ -56,12 +61,12 @@ export const getCurrencyIconStyle = (type: number, config: Record<string, unknow
     if (type === 1001) return big ? 70 : 71;
 
     if ((type >= 101) && (type <= 105)) {
-        const icons = SEASONAL_CURRENCY_ICONS[configText(config[`seasonalcurrency.id.${type}`])];
+        const icons = SEASONAL_CURRENCY_ICONS[configString(`seasonalcurrency.id.${type}`)];
 
         if (icons) return big ? icons[1] : icons[0];
     }
 
-    const style = parseInt(configText(config[`currencyiconstyle.${big ? 'big' : 'small'}.${type}${combo ? '.combo' : ''}`]));
+    const style = parseInt(configString(`currencyiconstyle.${big ? 'big' : 'small'}.${type}${combo ? '.combo' : ''}`));
 
     return isNaN(style) ? 0 : style;
 };

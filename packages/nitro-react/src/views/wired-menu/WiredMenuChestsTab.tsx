@@ -13,7 +13,7 @@
  */
 import type { IWiredTransactionInfo } from '@nitrodevco/nitro-packets';
 
-import { lockAllWiredChests, lockOwnWiredChests, openWiredUserProfile, viewWiredChestsLogsInDetail } from '#base/commands';
+import { lockAllWiredChests, lockOwnWiredChests, openProfile, viewWiredChestsLogsInDetail } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
 import { useWiredHasWritePermission, useWiredIsRoomOwnerOrStaff, useWiredStore } from '#base/context/wired';
@@ -50,7 +50,7 @@ export const WiredMenuChestsTab = () => {
     const getCell = (info: IWiredTransactionInfo, columnId: string): TableCell => {
         switch (columnId) {
             case 'type': return { text: t(`wiredmenu.chests.transaction.type.${info.transactionType}`, `wiredmenu.chests.transaction.type.${info.transactionType}`) };
-            case 'username': return { type: 'link', text: info.userName, inspectable: true, onLinkClick: () => openWiredUserProfile(send, info.userId) };
+            case 'username': return { type: 'link', text: info.userName, inspectable: true, onLinkClick: () => openProfile(send, info.userId) };
             case 'deposits': return { text: summarize(info.depositFurniCount, info.depositCoinsCount) };
             default: return { text: summarize(info.withdrawFurniCount, info.withdrawCoinsCount) };
         }

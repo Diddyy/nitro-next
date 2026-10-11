@@ -5,7 +5,7 @@
  * source type selector switches merged section 0.
  */
 import { setWiredMergedSourceType } from '#base/commands';
-import { CHEST_HAS_AMOUNT_MAX, chestHasAmountCondition, ChestHasAmountConditionForm, CONDITION_OPERATORS, conditionMergedSourceOptions, getWiredRoomVariables, WiredElementView } from '#base/wired';
+import { CHEST_HAS_AMOUNT_MAX, chestHasAmountCondition, ChestHasAmountConditionForm, conditionMergedSourceOptions, getWiredRoomVariables, WIRED_COMPARISON_OPERATORS, WiredElementView } from '#base/wired';
 
 import { WiredRadioGroup } from '../../kit/WiredRadioGroup';
 import { WiredSection } from '../../kit/WiredSection';
@@ -15,10 +15,10 @@ export const ChestHasAmountView: WiredElementView<ChestHasAmountConditionForm> =
     <>
         <WiredSection title="${wiredfurni.params.comparison_selection}">
             <WiredRadioGroup
-                options={[ ...CONDITION_OPERATORS ]}
+                options={[ ...WIRED_COMPARISON_OPERATORS ]}
                 selected={form.operator}
                 onSelect={operator => setForm({ operator })}
-                columns={CONDITION_OPERATORS.length}
+                columns={WIRED_COMPARISON_OPERATORS.length}
             />
         </WiredSection>
         <WiredValueOrVariableSection

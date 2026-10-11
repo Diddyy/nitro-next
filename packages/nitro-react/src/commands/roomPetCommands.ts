@@ -1,3 +1,7 @@
+/**
+ * Monsterplant breeding: `BreedPetsMessageComposer`'s states, and `AvatarInfoWidget`'s waiting
+ * confirmation shown to whoever proposed it, which calls the breeding off when cancelled.
+ */
 import { BreedPetsComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';

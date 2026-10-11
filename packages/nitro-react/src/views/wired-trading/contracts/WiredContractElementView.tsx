@@ -13,15 +13,15 @@ import type { ITradeRequirementNode } from '@nitrodevco/nitro-packets';
 import { TradeRequirementNodeType } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
-import { useInterpolate, useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
+import { useFurnitureData, useInterpolate, useTranslation, useWindowActions } from '#base/context/system';
 import { useWiredHasWritePermission } from '#base/context/wired';
 import { useWiredContractActions, WIRED_CONTRACT_ELEMENT_MAX_COINS, WIRED_CONTRACT_ELEMENT_MAX_FURNI, WiredContractElementEdit } from '#base/context/wired-trading';
+import { WiredFooter } from '#base/views/wired-setup/kit/WiredFooter';
 import { WiredHorizontalSectionList } from '#base/views/wired-setup/kit/WiredHorizontalSectionList';
 import { WiredNumberInput } from '#base/views/wired-setup/kit/WiredNumberInput';
 import { WiredRadioGroup } from '#base/views/wired-setup/kit/WiredRadioGroup';
 import { WiredSection } from '#base/views/wired-setup/kit/WiredSection';
 import { WiredItemTypeSelectionSection } from '#base/views/wired-trading/common/WiredItemTypeSelection';
-import { WiredTradingFooter } from '#base/views/wired-trading/common/WiredTradingFooter';
 import { WiredTradingFrame } from '#base/views/wired-trading/common/WiredTradingFrame';
 
 const FRAME_WIDTH = 420;
@@ -47,8 +47,6 @@ export const WiredContractElementView = ({ edit }: WiredContractElementViewProps
     const t = useTranslation();
     const interpolate = useInterpolate();
     const { showAlert } = useWindowActions();
-    const floorItems = useSystemStore(x => x.floorItems);
-    const wallItems = useSystemStore(x => x.wallItems);
     const hasWritePermission = useWiredHasWritePermission();
     const { addContractNode, updateContractNode, setContractElementEdit } = useWiredContractActions();
     const [ form, setForm ] = useState<ElementForm>(() => readForm(edit.node));
@@ -60,6 +58,7 @@ export const WiredContractElementView = ({ edit }: WiredContractElementViewProps
         setForm(readForm(edit.node));
     }
 
+    const furniData = useFurnitureData(form.itemType?.typeId, form.itemType?.isWallItem ?? false);
     const isFurni = (Number(form.type) === Number(TradeRequirementNodeType.Furni));
     const isEditMode = (edit.nodeKey !== -1);
     const close = () => setContractElementEdit(undefined);
@@ -69,8 +68,6 @@ export const WiredContractElementView = ({ edit }: WiredContractElementViewProps
         if (isFurni && (form.amount > WIRED_CONTRACT_ELEMENT_MAX_FURNI)) return t('wiredcontracts.element.too_many_items', '', { amount: String(WIRED_CONTRACT_ELEMENT_MAX_FURNI) });
 
         if (isFurni) {
-            const furniData = form.itemType ? (form.itemType.isWallItem ? wallItems : floorItems)[form.itemType.typeId] : undefined;
-
             if (!furniData || !furniData.tradeable) return interpolate('${wiredcontracts.element.item_not_allowed}');
         }
 
@@ -132,7 +129,7 @@ export const WiredContractElementView = ({ edit }: WiredContractElementViewProps
                     resetKey={edit}
                     disabled={!isFurni}
                 />,
-                <WiredTradingFooter
+                <WiredFooter
                     key="footer"
                     onSave={onSave}
                     onCancel={close}

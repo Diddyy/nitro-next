@@ -3,8 +3,6 @@ export * from './useCanPlaceWithBuildersClub';
 export * from './useCatalogNavigation';
 export * from './useCatalogNodeActions';
 export * from './useCatalogOfferActions';
-export * from './useCatalogOfferProduct';
-export * from './useCatalogPageImage';
 export * from './useCatalogPageRequest';
 export * from './useCatalogPurchaseFlow';
 export * from './useCatalogWidgetEvent';

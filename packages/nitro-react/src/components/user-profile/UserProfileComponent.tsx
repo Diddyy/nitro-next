@@ -4,7 +4,7 @@ import { BlockUserComposer, DeselectFavouriteHabboGroupComposer, SelectFavourite
 import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, requestGroupDetails, searchRoomsByOwner, showGroupBases } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useIsWindowVisible, useSystemActions, useWindowActions, useWindowParams } from '#base/context/system';
-import { useUserStore } from '#base/context/user';
+import { useOwnUserId, useUserStore } from '#base/context/user';
 import { useProfileActions, useProfileStore } from '#base/context/user-profile';
 import { UserProfileView } from '#base/views/user-profile/UserProfileView';
 
@@ -14,10 +14,10 @@ export const UserProfileComponent = () => {
     const profile = useProfileStore(state => state.profile);
     const badges = useProfileStore(state => state.badges);
     const relationships = useProfileStore(state => state.relationships);
-    const { getLocalizationValue, hideWindow, showConfirm, showWindow } = useSystemActions();
-    const { showAlert } = useWindowActions();
+    const { getLocalizationValue } = useSystemActions();
+    const { hideWindow, showAlert, showConfirm, showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
-    const ownUserId = useUserStore(state => state.userId);
+    const ownUserId = useOwnUserId();
     const isBlocked = useUserStore(state => state.blockedUserIds.includes(profile?.userId ?? -1));
     // `refreshHeader`: the add friend button follows the friend list, so one made a friend elsewhere loses it.
     const canAskForFriend = useUserStore(state => !!profile && canBeAskedForAFriend(profile.userId, state));

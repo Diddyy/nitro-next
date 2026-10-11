@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
+import { toCssHexColor } from '#base/utils';
 import { FurnitureBackgroundColorView } from '#base/views/room-widgets/furniture/FurnitureBackgroundColorView';
 
 /**
@@ -49,7 +50,7 @@ export const FurnitureBackgroundColorWidget = () => {
             hue={current.hue}
             saturation={current.saturation}
             lightness={current.lightness}
-            previewColor={`#${previewColor.toString(16).padStart(6, '0')}`}
+            previewColor={toCssHexColor(previewColor)}
             onChange={(hue, saturation, lightness) => setDraft({ hue, saturation, lightness })}
             onApply={() => send(new SetRoomBackgroundColorDataComposer({ objectId: request.objectId, ...current }))}
             onToggle={() => send(new UseFurnitureComposer({ objectId: request.objectId, param: 0 }))}

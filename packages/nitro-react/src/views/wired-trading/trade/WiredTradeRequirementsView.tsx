@@ -29,7 +29,7 @@ import { TradeRequirementNodeType, TradeRequirementRulesType, TradeRequirementTy
 import { useEffect, useMemo, useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { LayoutImage, LayoutWindow, measureTemplateText, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
+import { getLayoutChildByName, getLayoutListItems, LayoutImage, LayoutWindow, measureTemplateText, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
 import { isWiredTradePaymentOnly } from '#base/utils';
 import { inventoryTemplateId } from '#base/views/inventory/inventoryPage';
 import { ChestItemIcon } from '#base/views/wired-trading/chests/WiredChestFurniContentsView';
@@ -134,12 +134,6 @@ const offeringItem = (give: boolean, active: string | undefined, rules: ITradeRe
     },
 });
 
-/** An item list's items (`getListItemAt`): the windows in its `_CONTAINER`. */
-const listItems = (window: LayoutWindow | undefined): LayoutWindow[] => ((window && ('container' in window) && (window.container instanceof LayoutWindow)) ? window.container.children : []);
-
-/** A window's direct child by its element's name. */
-const childNamed = (window: LayoutWindow | undefined, name: string) => window?.children.find(child => child.element?.name === name);
-
 /** `TextField.numLines`: its text's height in lines of the field's style. */
 const numLines = (window: LayoutWindow): number => {
     const lineHeight = window.element ? (measureTemplateText(window.element, 'X', undefined)?.textHeight ?? 0) : 0;
@@ -174,9 +168,9 @@ const arrangeFor = (give: OfferingSide, get: OfferingSide | undefined) => ({ fin
         const border = view && find(`${side.container}/requirements_definition`);
         const rulesList = view && find(`${side.container}/rules_list`);
 
-        for (const rule of listItems(rulesList)) {
+        for (const rule of getLayoutListItems(rulesList)) {
             rule.setWidth(view?.width ?? rule.width);
-            rule.setHeight(childNamed(rule, 'rule_nodes_rows')?.height ?? rule.height);
+            rule.setHeight(getLayoutChildByName(rule, 'rule_nodes_rows')?.height ?? rule.height);
         }
 
         const active = side.active ? find(`${side.container}/${side.active}`) : undefined;
@@ -208,8 +202,8 @@ const arrangeFor = (give: OfferingSide, get: OfferingSide | undefined) => ({ fin
         if (active) active.setY(Math.trunc((border.height / 2) - (active.height / 2)));
 
         if (side.centerRule && rulesList) {
-            const rows = childNamed(listItems(rulesList)[0], 'rule_nodes_rows');
-            const colsWidth = Math.max(0, ...listItems(rows).map(row => row.width));
+            const rows = getLayoutChildByName(getLayoutListItems(rulesList)[0], 'rule_nodes_rows');
+            const colsWidth = Math.max(0, ...getLayoutListItems(rows).map(row => row.width));
 
             rows?.setX(Math.trunc(((border.width - (rulesList.x * 2)) / 2) - (colsWidth / 2)));
         }

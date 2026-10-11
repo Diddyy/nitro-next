@@ -15,7 +15,7 @@
 import type { IWiredUserVariablesElement, IWiredUserVariablesPage, IWiredVariable } from '@nitrodevco/nitro-packets';
 import { useRef, useState } from 'react';
 
-import { closeWiredVariableOwners, openWiredUserProfile, openWiredVariableHolder, requestWiredVariableOwnersPage } from '#base/commands';
+import { closeWiredVariableOwners, openProfile, openWiredVariableHolder, requestWiredVariableOwnersPage } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
 import { WIRED_VARIABLE_MANAGEMENT_PAGE_SIZE } from '#base/context/wired';
@@ -104,7 +104,7 @@ export const WiredVariableOwnersView = ({ page, variable }: WiredVariableOwnersV
         switch (columnId) {
             case 'usertype': return { text: loc(`wiredfurni.params.usertype.${element.entityType}`) };
             case 'name': return (element.entityType === 1)
-                ? { type: 'link', text: element.entityName, inspectable: true, onLinkClick: () => openWiredUserProfile(send, element.entityId) }
+                ? { type: 'link', text: element.entityName, inspectable: true, onLinkClick: () => openProfile(send, element.entityId) }
                 : { text: element.entityName, inspectable: true };
             case 'creation_time': return { text: element.storage.creationTimeStr, inspectable: true };
             case 'last_update_time': return { text: element.storage.lastUpdateTimeStr, inspectable: true };

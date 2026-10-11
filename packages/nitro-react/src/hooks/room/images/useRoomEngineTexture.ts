@@ -1,3 +1,7 @@
+/**
+ * Room engine renders held as Pixi textures: `useOwnedEngineTexture`, the life cycle every render
+ * hook shares, and `useRoomEngineTexture`, the same for a render the caller describes itself.
+ */
 import { IGetImageListener } from '@nitrodevco/nitro-api';
 import { Texture } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';

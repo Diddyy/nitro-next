@@ -1,4 +1,4 @@
-import { ChangeUserNameResultMessageCode } from '@nitrodevco/nitro-api';
+import { AvatarGenderType, ChangeUserNameResultMessageCode, ClubLevelEnum } from '@nitrodevco/nitro-api';
 import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
@@ -30,7 +30,7 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
 
     return subscribeAll(subscribe, [
         on(FigureUpdateEventMessage, (data) => {
-            setFigure(data.figure, data.gender);
+            setFigure(data.figure, data.gender as AvatarGenderType);
         }),
 
         on(UserObjectMessage, (data) => {
@@ -78,8 +78,9 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
 
         on(AvailabilityStatusMessage, data => setAvailabilityStatus(data.isOpen, data.onShutDown, data.isAuthenticHabbo)),
 
+        // `SessionDataManager.onUserRights`: any club at all is kept as VIP (`clubLevel != 0 ? 2 : 0`).
         on(UserRightsMessage, (data) => {
-            setRights(data.clubLevel, data.securityLevel, data.isAmbassador);
+            setRights((data.clubLevel !== ClubLevelEnum.None) ? ClubLevelEnum.Vip : ClubLevelEnum.None, data.securityLevel, data.isAmbassador);
         }),
 
         // `SessionDataManager.onPetRespectFailed`: the respect `givePetRespect` took is returned.

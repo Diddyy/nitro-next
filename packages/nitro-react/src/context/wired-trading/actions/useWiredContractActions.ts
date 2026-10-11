@@ -1,12 +1,12 @@
-import { wiredTradingStore } from '../store/WiredTradingStore';
-
-const state = wiredTradingStore.getState();
-
 /**
  * The contract slice's actions: the rule editors of the contract windows and the element window.
  * Saving goes through `wiredTradingCommands`. Read off the store once: a component using these
  * re-renders for nothing.
  */
+import { wiredTradingStore } from '../store/WiredTradingStore';
+
+const state = wiredTradingStore.getState();
+
 const actions = {
     closeContract: state.closeContract,
     addContractGiveRule: state.addContractGiveRule,

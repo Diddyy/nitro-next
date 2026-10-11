@@ -9,6 +9,11 @@ import { NavigatorRoomFilterView } from '#base/views/navigator/NavigatorRoomFilt
 import { NavigatorView } from '#base/views/navigator/NavigatorView';
 import { RaidProtectionSettingsView } from '#base/views/navigator/RaidProtectionSettingsView';
 
+/**
+ * The navigator's mount - `HabboNewNavigator`'s main window and the windows it owns that outlive
+ * it: room creation, the room entry popups, the event, category, raid protection and word filter
+ * dialogs, and the queue into a full room. It also runs the window's link and preferences hooks.
+ */
 export const NavigatorComponent = () => {
     const { isWindowVisible } = useWindowVisibility('navigator');
     const { isWindowVisible: isRoomCreateVisible } = useWindowVisibility('navigator_room_create');

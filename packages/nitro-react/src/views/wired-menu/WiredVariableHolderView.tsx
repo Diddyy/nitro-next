@@ -20,7 +20,7 @@ import type { IWiredUserPermanentVariablesList, IWiredVariable } from '@nitrodev
 import { isWiredVariablePersisted } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { closeWiredHolderCreateBubble, closeWiredVariableHolder, createWiredHolderVariable, deleteWiredHolderVariable, openWiredUserProfile, refreshWiredVariableHolder, selectWiredHolderVariable, setWiredHolderVariableValue, toggleWiredHolderCreateBubble } from '#base/commands';
+import { closeWiredHolderCreateBubble, closeWiredVariableHolder, createWiredHolderVariable, deleteWiredHolderVariable, openProfile, refreshWiredVariableHolder, selectWiredHolderVariable, setWiredHolderVariableValue, toggleWiredHolderCreateBubble } from '#base/commands';
 import { AvatarImage } from '#base/components/AvatarImage';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
@@ -132,7 +132,7 @@ export const WiredVariableHolderView = ({ holder }: WiredVariableHolderViewProps
                 refresh_btn: { onPointerTap: () => refreshWiredVariableHolder(send) },
                 searching_icon: { visible: loading, style: String(LOADING_FRAMES[loadingFrame]) },
                 // `updatePreviewUI` / `setUserPreview`: the region opens the holder's profile (`onPreviewAvatarClicked`).
-                avatar_preview_region: { visible: !isPet, onPointerTap: () => openWiredUserProfile(send, holder.entityId) },
+                avatar_preview_region: { visible: !isPet, onPointerTap: () => openProfile(send, holder.entityId) },
                 preview: {
                     children: (
                         <Box

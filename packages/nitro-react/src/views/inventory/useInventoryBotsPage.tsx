@@ -24,7 +24,7 @@ import { useEffect, useRef } from 'react';
 import { checkBotInventoryInitialization, placeInventoryBotToRoom } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { UnseenItemCategory, useInventoryBotsActions, useInventoryStore, useInventoryUnseenIds } from '#base/context/inventory';
-import { useRoomStore } from '#base/context/room';
+import { useIsRoomOwner } from '#base/context/room';
 import { TemplateItem } from '#base/theme';
 
 import { InventoryBotImage } from './InventoryBotImage';
@@ -47,7 +47,7 @@ export const useInventoryBotsPage = ({ active, templates }: InventoryPageContext
     const listInitialized = useInventoryStore(x => x.botListInitialized);
     const selectedBotId = useInventoryStore(x => x.botSelectedId);
     const unseenBotIds = useInventoryUnseenIds(UnseenItemCategory.BOT);
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
+    const isRoomOwner = useIsRoomOwner();
     const { selectBot } = useInventoryBotsActions();
     // The thumb held down, so leaving it is a drag (`BotGridItem.eventHandler`).
     const heldBot = useRef(-1);

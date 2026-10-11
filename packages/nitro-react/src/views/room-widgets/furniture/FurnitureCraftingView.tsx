@@ -1,6 +1,23 @@
 import { useTranslation } from '#base/context/system';
 import { Box, Button, ModalDialog, ScrollArea, TemplateWindow, ThemeText, useTemplateFrame } from '#base/theme';
 
+/**
+ * A crafting table - `CraftingWidget.createMainWindow`, which builds
+ * `habbo-room-ui-com/craftingwidget_xml` as a modal dialog (`buildModalDialogFromXML`): the
+ * `craft_craft_bg` backdrop, the recipes under `header_recipes` in `itemgrid_products`, the mixer
+ * in `itemgrid_mixer`, the info texts and `btn_craft`. The button reads `${crafting.btn.craft}`, or
+ * `${crafting.btn.notowner}` (and stays disabled) on someone else's table, as
+ * `CraftingInfoController.enableButton` captioned it; the header close closes.
+ *
+ * What the port has is names, not items, so the grids hold text: each recipe is a row button drawn
+ * in `itemgrid_products` in place of the 40x40 furni icon clones, the selected recipe's ingredients
+ * are listed in `itemgrid_mixer` in the headers' colour, and the result is `info_text1`. The
+ * inventory grid under `header_inventory`, the `furniture_icon` preview, `header_mixer`,
+ * `info_text2`, the `progress_bar` and `CraftingInfoController`'s state texts need the inventory, the
+ * room engine's icons and the controller's states, none of which the widget carries - and Flash let
+ * ingredients be dragged in from the inventory, which the port has no dragging for - so the mixer is
+ * filled by putting the furni on the table in the room, and those stay empty or hidden.
+ */
 export interface CraftingProduct {
     recipeCode: string;
     /** The furni the recipe makes, already named for reading. */
@@ -31,23 +48,6 @@ export interface FurnitureCraftingViewProps {
 /** `header_recipes` / `header_inventory`'s colour, which the ingredient lines take. */
 const INGREDIENT_COLOR = '#cec7b6';
 
-/**
- * A crafting table - `CraftingWidget.createMainWindow`, which builds `craftingwidget_xml` as a modal
- * dialog (`buildModalDialogFromXML`): the `craft_craft_bg` backdrop, the recipes under
- * `header_recipes` in `itemgrid_products`, the mixer in `itemgrid_mixer`, the info texts and
- * `btn_craft`. The button reads `${crafting.btn.craft}`, or `${crafting.btn.notowner}` (and stays
- * disabled) on someone else's table, as `CraftingInfoController.enableButton` captioned it; the header
- * close closes.
- *
- * What the port has is names, not items, so the grids hold text: each recipe is a row button drawn
- * in `itemgrid_products` in place of the 40x40 furni icon clones, the selected recipe's ingredients
- * are listed in `itemgrid_mixer` in the headers' colour, and the result is `info_text1`. The
- * inventory grid under `header_inventory`, the `furniture_icon` preview, `header_mixer`,
- * `info_text2`, the `progress_bar` and `CraftingInfoController`'s state texts need the inventory, the
- * room engine's icons and the controller's states, none of which the widget carries - and Flash let
- * ingredients be dragged in from the inventory, which the port has no dragging for - so the mixer is
- * filled by putting the furni on the table in the room, and those stay empty or hidden.
- */
 export const FurnitureCraftingView = ({
     products, selectedRecipeCode, ingredients, isOwner, canCraft, result, onSelectRecipe, onCraft, onClose,
 }: FurnitureCraftingViewProps) => {

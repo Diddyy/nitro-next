@@ -1,6 +1,10 @@
 import { HABBO_TEXT_STYLES, normalizeFlashTextFormat, parseFlashTextMarkup, renderBrowserTextCanvas, renderFlashTextCanvas } from '@nitrodevco/nitro-theme/flash-text';
 import { Texture } from 'pixi.js';
 
+/**
+ * A chat bubble's text: escaping a message for the bubble's markup as `HabboFreeFlowChat.fixHtml`
+ * does, and rasterising that markup to a texture through the Flash text renderer.
+ */
 export interface ChatBubbleTextRender {
     texture: Texture;
     /** The laid-out text's extent (the Flash `TextField.textWidth` / `textHeight`). */
@@ -9,9 +13,6 @@ export interface ChatBubbleTextRender {
     /** `TextField.numLines`. */
     lineCount: number;
 }
-
-/** `0xRRGGBB` -> `#rrggbb` for the rich-text markup. */
-export const chatColorToCss = (color: number): string => `#${(color & 0xffffff).toString(16).padStart(6, '0')}`;
 
 /**
  * `HabboFreeFlowChat.fixHtml`'s escape: `<` and `>` only. An `&amp;` a user types is read as an

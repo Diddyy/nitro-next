@@ -3,12 +3,25 @@ import { CommandBotComposer, RemoveBotFromFlatComposer } from '@nitrodevco/nitro
 
 import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { BOT_SKILL_CHANGE_NAME, BOT_SKILL_SETUP_CHAT, useOwnControllerLevel, useRoomBotsActions, useRoomStore } from '#base/context/room';
+import { BOT_SKILL_CHANGE_NAME, BOT_SKILL_SETUP_CHAT, useIsRoomOwner, useOwnControllerLevel, useRoomBotsActions, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { TemplateBindings, TemplateWindow } from '#base/theme';
 
 import { useButtonMenu, useMinimizedMenu } from './useButtonMenu';
 
+/**
+ * The menu over a rentable bot - `RentableBotMenuView`, drawn from the
+ * `habbo-room-ui-com/avatar_menu_widget` template it shares with `AvatarMenuView`. What it offers
+ * is what the bot can do: each of its skills adds a button, some only for its owner, and a few
+ * skills carry a label and a target in their command data that become buttons of their own - clones
+ * of the layout's `link_template` and `nux_proceed_1`, which the layout keeps hidden.
+ *
+ * The list's items are the shown rows in the layout's child order (`LAYOUT_ORDER`), each a clone of
+ * its layout row: hiding the rest and adding the clones, as `updateButtons` does, comes to that.
+ * The captions are the layout's: `nux_take_tour` is `${avatar.widget.nux.take.tour}` and
+ * `nux_proceed_1` `${avatar.widget.nux.proceed}`. Neither text file defines them today; they are
+ * Flash's keys all the same, so they stay.
+ */
 export interface InfoBubbleRentableBotViewProps {
     objectData: ISimpleRoomObjectData;
     onClose: () => void;
@@ -44,23 +57,10 @@ type MenuButton = {
  */
 const LAYOUT_ORDER = [ 'change_bot_name', 'dress_up', 'setup_chat', 'random_walk', 'dance', 'pick', 'nux_proceed_1', 'nux_take_tour', 'donate_to_all', 'donate_to_user', 'wired_inspect', 'link_template' ];
 
-/**
- * The menu over a rentable bot - `RentableBotMenuView`, drawn from the `avatar_menu_widget`
- * template it shares with `AvatarMenuView`. What it offers is what the bot can do: each of its
- * skills adds a button, some only for its owner, and a few skills carry a label and a target in
- * their command data that become buttons of their own - clones of the layout's `link_template` and
- * `nux_proceed_1`, which the layout keeps hidden.
- *
- * The list's items are the shown rows in the layout's child order (`LAYOUT_ORDER`), each a clone of
- * its layout row: hiding the rest and adding the clones, as `updateButtons` does, comes to that.
- * The captions are the layout's: `nux_take_tour` is `${avatar.widget.nux.take.tour}` and
- * `nux_proceed_1` `${avatar.widget.nux.proceed}`. Neither text file defines them today; they are
- * Flash's keys all the same, so they stay.
- */
 export const InfoBubbleRentableBotView = ({ objectData, onClose }: InfoBubbleRentableBotViewProps) => {
-    const userData = useRoomStore(x => x.usersByRoomObjectId[objectData.objectId]);
+    const userData = useRoomUserByObjectId(objectData.objectId);
     const skillsWithCommands = useRoomStore(x => (userData ? x.botSkillsById[userData.webID] : undefined));
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
+    const isRoomOwner = useIsRoomOwner();
     const controllerLevel = useOwnControllerLevel();
     const { send } = useWebSocketContext();
     const { openBotSkillConfiguration } = useRoomBotsActions();

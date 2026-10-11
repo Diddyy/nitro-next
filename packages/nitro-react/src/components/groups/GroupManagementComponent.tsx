@@ -12,7 +12,7 @@ import { GUILD_MEMBER_SEARCH_MEMBERS } from '@nitrodevco/nitro-packets';
 import { buyGroup, closeGroupManagement, goToGroupManagementStep, hasGroupVip, openGroupVipPurchase, toggleGroupMembers } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupActions, useGroupStore } from '#base/context/groups';
-import { useSystemActions } from '#base/context/system';
+import { useWindowActions } from '#base/context/system';
 import { GroupManagementView } from '#base/views/groups/GroupManagementView';
 
 export const GroupManagementComponent = () => {
@@ -26,7 +26,7 @@ export const GroupManagementComponent = () => {
         openBadgePartPicker, closeBadgePartPicker,
     } = useGroupActions();
     const { send } = useWebSocketContext();
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
 
     if (!session) return null;
 

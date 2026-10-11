@@ -1,3 +1,16 @@
+/**
+ * Places a bubble over a room object on every `RoomRenderedEvent` - Flash's `ContextInfoView.update`.
+ * The bubble is moved straight on its Pixi container: the room's screen location and bounding
+ * rectangle are already in the canvas pixels a `position: 'absolute', top: 0, left: 0` node lives in.
+ *
+ * Its bottom edge sits the gap above the highest of the object's recent heights, so it rises as
+ * fast as the object does but falls at most a few pixels a frame, and never more than
+ * `MAX_VERTICAL_LEAD_RATIO` of the object's height above its top. A bubble with no measured size
+ * yet is not placed: placing a zero-sized node would put it somewhere else for a frame.
+ *
+ * Given another object, the bubble starts over, hidden until placed. Showing it again is the
+ * caller's, from `onRendered`.
+ */
 import { RoomObjectCategoryEnum, RoomRenderedEvent } from '@nitrodevco/nitro-api';
 import { Container as PixiContainer } from 'pixi.js';
 import { RefObject, useLayoutEffect, useRef } from 'react';
@@ -33,19 +46,6 @@ export interface RoomObjectBubblePlacementOptions {
     onRendered?: (placed: boolean, time: number) => void;
 }
 
-/**
- * Places a bubble over a room object on every `RoomRenderedEvent` - Flash's `ContextInfoView.update`.
- * The bubble is moved straight on its Pixi container: the room's screen location and bounding
- * rectangle are already in the canvas pixels a `position: 'absolute', top: 0, left: 0` node lives in.
- *
- * Its bottom edge sits the gap above the highest of the object's recent heights, so it rises as
- * fast as the object does but falls at most a few pixels a frame, and never more than
- * `MAX_VERTICAL_LEAD_RATIO` of the object's height above its top. A bubble with no measured size
- * yet is not placed: placing a zero-sized node would put it somewhere else for a frame.
- *
- * Given another object, the bubble starts over, hidden until placed. Showing it again is the
- * caller's, from `onRendered`.
- */
 export const useRoomObjectBubblePlacement = (bubbleRef: RefObject<PixiContainer | null>, options: RoomObjectBubblePlacementOptions) => {
     const { objectId, category, isAvatar, stackSize, keepOnScreen = false, onRendered = undefined } = options;
     const room = useRoom();

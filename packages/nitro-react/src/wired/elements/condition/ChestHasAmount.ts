@@ -5,7 +5,7 @@
  * Int params: `[ amount, amount option, amount target, operator ]` - the amount 0 to 1000000
  * when typed (option 0) or taken from the variable (option 1, variable ids `[ variable ]`), the
  * target the variable's (merged section 0, furni / users / global / context, type picker drawn by
- * the element) and the operator one of `CONDITION_OPERATORS`. A box using a variable opens with
+ * the element) and the operator one of `WIRED_COMPARISON_OPERATORS`. A box using a variable opens with
  * the amount input at 1; one using the typed amount with no variable (`WiredVariable.§_-i8§`).
  *
  * The merged section pairs the furni selection 1 (the first, 0, is the chests -

@@ -1,8 +1,20 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
-const { TurboCommandTreeMessage } = await import('../packages/nitro-packets/src/incoming/Turbo/TurboCommandTreeMessage.ts');
-const { TurboCommandSuggestComposer } = await import('../packages/nitro-packets/src/outgoing/Turbo/TurboCommandSuggestComposer.ts');
+import ts from 'typescript';
+
+// Transpiled rather than imported as `.ts`: Node's type stripping rejects the packets' enums. Both
+// import only types, so the module has no imports left once transpiled.
+const load = async (path) => {
+    const source = readFileSync(new URL(`../packages/nitro-packets/src/${path}.ts`, import.meta.url), 'utf8');
+    const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } });
+
+    return import(`data:text/javascript,${encodeURIComponent(outputText)}`);
+};
+
+const { TurboCommandTreeMessage } = await load('incoming/Turbo/TurboCommandTreeMessage');
+const { TurboCommandSuggestComposer } = await load('outgoing/Turbo/TurboCommandSuggestComposer');
 
 const parameterFields = (name, description) => [ name, 1, false, 0, false, 0, description, '1', '20', 1, 12, '3' ];
 

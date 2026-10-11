@@ -10,7 +10,7 @@
  * but, as in Flash, never drawn. The large layout's title line stretches up to its title
  * (`positionAfterAndStretch`).
  */
-import { hotelViewColorableBindings, hotelViewColorableFormat, HotelViewCommonSettings, hotelViewProperty, useConfigData, useSystemActions, useSystemStore } from '#base/context/system';
+import { hotelViewColorableBindings, hotelViewColorableFormat, HotelViewCommonSettings, hotelViewProperty, useConfigData, useSystemStore, useWindowActions } from '#base/context/system';
 import { useSecondsClock } from '#base/hooks';
 import { Box, CountdownWidget, TemplateBindings, TemplateWindow, TemplateWindows } from '#base/theme';
 
@@ -31,7 +31,7 @@ export const HotelViewExpiringCatalogPageWidget = ({ small, settings }: HotelVie
     const page = useSystemStore(x => x.hotelViewExpiringPage);
     const config = useConfigData();
     const now = useSecondsClock();
-    const { hideWindow, showWindow } = useSystemActions();
+    const { hideWindow, showWindow } = useWindowActions();
     const pageName = page?.pageName ?? '';
     const seconds = page ? Math.max(0, page.secondsToExpiry - ((now - page.receivedAt) / 1000)) : 0;
 

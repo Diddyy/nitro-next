@@ -1,12 +1,3 @@
-import { IFigurePartSet, IPartColor } from '@nitrodevco/nitro-api';
-import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
-import { useMemo } from 'react';
-
-import { useAvatarEditorStore } from '#base/context/avatar-editor';
-import { useConfigValue } from '#base/context/system';
-import { useOwnClubLevel } from '#base/context/user';
-import { firstSelectableColorId, getAvatarEditorPartSets } from '#base/utils';
-
 /**
  * Derives the part grid and colour palettes for one figure set type - the React-first port of
  * the old `AvatarEditorUtilities.createCategory` + `CategoryData` classes: instead of mutable
@@ -14,6 +5,14 @@ import { firstSelectableColorId, getAvatarEditorPartSets } from '#base/utils';
  * the avatar structure on demand, and selection state is simply "what the figure currently
  * wears".
  */
+import { IFigurePartSet, IPartColor } from '@nitrodevco/nitro-api';
+import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
+import { useMemo } from 'react';
+
+import { useAvatarEditorStore } from '#base/context/avatar-editor';
+import { useConfigValue } from '#base/context/system';
+import { useOwnClubLevel } from '#base/context/user';
+import { firstSelectableColorId, getAvatarEditorPartSets, toCssHexColor } from '#base/utils';
 
 export interface AvatarEditorPartData {
     id: number;
@@ -39,8 +38,6 @@ export interface AvatarEditorColorData {
 }
 
 const MAX_COLOR_LAYERS = 2;
-
-const cssColor = (rgb: number): string => `#${rgb.toString(16).padStart(6, '0')}`;
 
 export const useAvatarEditorData = (setType: string): { parts: AvatarEditorPartData[]; palettes: AvatarEditorColorData[][]; maxColorLayers: number } => {
     const figureParts = useAvatarEditorStore(x => x.parts);
@@ -99,7 +96,7 @@ export const useAvatarEditorData = (setType: string): { parts: AvatarEditorPartD
         const palettes: AvatarEditorColorData[][] = Array.from({ length: maxColorLayers }, (_, layer) => colors.map(color => ({
             id: color.id,
             partColor: color,
-            color: cssColor(color.rgb),
+            color: toCssHexColor(color.rgb),
             isClub: color.clubLevel > 0,
             selected: (selectedColorIds[layer] ?? selectedColorIds[0]) === color.id,
             disabled: color.clubLevel > clubLevel,

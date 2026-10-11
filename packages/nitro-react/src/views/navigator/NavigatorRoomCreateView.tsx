@@ -31,12 +31,13 @@ import { createFlat, openClubCenter } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ROOM_CREATE_LAYOUTS, RoomCreateLayout, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { ClientGates, useClientGate, useOwnClubLevel } from '#base/context/user';
+import { ClientGates, useClientGate, useOwnClubLevel, useOwnHasClub } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
 import { LayoutImage, TemplateBindings, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { flatCategoryName } from '#base/utils';
 
 import { NavigatorErrorPopup } from './NavigatorErrorPopup';
+import { ROOM_TRADE_MODE_TEXTS } from './roomTradeModeTexts';
 
 const TEMPLATE = 'habbo-navigator-com/roc_create_room_xml';
 const THUMBNAIL_TEMPLATE = 'habbo-navigator-com/roc_room_thumbnail_xml';
@@ -45,9 +46,6 @@ const VIP_PROMO_TEMPLATE = 'habbo-navigator-com/roc_vip_promo_xml';
 /** `ROOM_LIMIT_NON_SUBSCRIBER` / `ROOM_LIMIT_HC`: the highest visitor cap offered, which `refresh` picks by `hasVip`. */
 const ROOM_LIMIT_NON_SUBSCRIBER = 50;
 const ROOM_LIMIT_HC = 75;
-
-/** `prepareTradeModeSelection`: the trade menu's entries, whose index is the value sent. */
-const TRADE_MODES = [ '${navigator.roomsettings.trade_not_allowed}', '${navigator.roomsettings.trade_not_with_Controller}', '${navigator.roomsettings.trade_allowed}' ];
 
 /** The `TextFieldManager` limits the two fields are built with. */
 const MAX_NAME_LENGTH = 25;
@@ -112,6 +110,8 @@ const fieldText = (field: ManagedField) => (field.info ? '' : field.text);
 export const NavigatorRoomCreateView = () => {
     const flatCategories = useNavigatorStore(x => x.flatCategories);
     const clubLevel = useOwnClubLevel();
+    // `SessionDataManager.hasClub` and `hasVip` are both `clubLevel >= 1` in this revision.
+    const hasClub = useOwnHasClub();
     const isStaff = useClientGate(ClientGates.RoomCreateStaffOptions);
     const staffCategories = useClientGate(ClientGates.StaffCategories);
     const clubBuyDisabled = useConfigValue<boolean>('habbo_club_buy_disabled') === true;
@@ -138,8 +138,6 @@ export const NavigatorRoomCreateView = () => {
         return () => clearInterval(timer);
     }, []);
 
-    // `SessionDataManager.hasClub` and `hasVip` are both `clubLevel >= 1` in this revision.
-    const hasClub = Number(clubLevel) >= Number(ClubLevelEnum.Club);
     const hasVip = hasClub;
 
     /** `isAllowed(layout, requireClub)`: listing asks only about staff layouts; choosing asks about club too. */
@@ -264,7 +262,7 @@ export const NavigatorRoomCreateView = () => {
         },
         categories_list: { options: categories.map(category => flatCategoryName(category, t)), selection: categoryIndex, onSelect: setCategoryIndex },
         visitors_list: { options: visitorSteps.map(String), selection: visitorsIndex, onSelect: setVisitorsIndex },
-        trade_settings_list: { options: TRADE_MODES, selection: tradeIndex, onSelect: setTradeIndex },
+        trade_settings_list: { options: ROOM_TRADE_MODE_TEXTS, selection: tradeIndex, onSelect: setTradeIndex },
         create_button: { onPointerTap: create },
         back_button: { onPointerTap: hide },
         layout_item_list: { items },

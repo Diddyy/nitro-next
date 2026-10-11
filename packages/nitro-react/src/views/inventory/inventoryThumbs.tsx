@@ -1,8 +1,8 @@
 /**
  * The inventory's two thumbs as bindings over their templates - what `GroupItem` sets on its
  * `inventory_thumb_xml` window and `CollectibleGroupedItem` on its `inventory_thumb_nft_xml` one.
- * The furni page shows them in its grid and the trade in its slots (`TradingView.fixItemWindow`
- * takes the same window), each adding what a press does.
+ * The furni page shows them in its grid and the trade in its slots (`TradingView.fixItemWindow`,
+ * `fixTradeItemWindow` here, takes the same window), each adding what a press does.
  */
 import { ITradeNftAsset } from '@nitrodevco/nitro-packets';
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
@@ -11,13 +11,31 @@ import {
     getInventoryFurniRecyclableCount, getInventoryFurniSecondsToExpiration, getInventoryFurniUnlockedCount, getStuffDataContentsCount, INVENTORY_FURNI_CATEGORY_CHEST_BROWN, INVENTORY_FURNI_CATEGORY_CHEST_GOLD, INVENTORY_FURNI_MIN_ITEMS_TO_SHOW_COUNTER, InventoryFurniGroup,
     isInventoryFurniGroupWallItem,
 } from '#base/context/inventory';
-import { LayoutImage, TemplateBindings } from '#base/theme';
+import { LayoutImage, TemplateBindings, TemplateWindows } from '#base/theme';
 import { LimitedItemGridOverlayView } from '#base/views/shared/LimitedItemGridOverlayView';
 import { RarityItemGridOverlayView } from '#base/views/shared/RarityItemGridOverlayView';
 
 import { ChestItemGridOverlayView, ChestOverlayColor } from './ChestItemGridOverlayView';
 import { InventoryNftIcon } from './InventoryNftIcon';
 import { inventoryThumbLook } from './inventoryPage';
+
+/** `TradingView.fixItemWindow`: a thumb in a trade cell, and each of its windows, is 40x40. */
+const TRADE_SLOT_SIZE = 40;
+
+/**
+ * `TradingView.fixItemWindow` (and the wired trade's copy of it), as a thumb's `arrange`: the thumb
+ * 40x40, and every window directly in it moved to 0,0 and made 40x40.
+ */
+export const fixTradeItemWindow = ({ root }: TemplateWindows) => {
+    const thumb = root();
+
+    if (!thumb) return;
+
+    thumb.setWidth(TRADE_SLOT_SIZE);
+    thumb.setHeight(TRADE_SLOT_SIZE);
+
+    for (const child of thumb.children) child.setRectangle(0, 0, TRADE_SLOT_SIZE, TRADE_SLOT_SIZE);
+};
 
 /** `updateItemCountVisual` / `unlockedAssetCountChanged`: the icon's blend with nothing unlocked. */
 const LOCKED_ALPHA = 0.2;

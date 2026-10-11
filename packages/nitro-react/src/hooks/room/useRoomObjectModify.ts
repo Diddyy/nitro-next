@@ -3,7 +3,7 @@ import { MoveEntityInFlatComposer, MoveObjectComposer, MovePetComposer, MoveWall
 import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { roomStore, useRoom, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
+import { roomStore, useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
 import { useOwnIsAnyRoomController, useOwnUserId } from '#base/context/user';
 import { getValidRoomObjectDirection, isFurnitureOwnedBy, setObjectAlphaMultiplier } from '#base/utils';
 
@@ -22,8 +22,8 @@ export const useRoomObjectModify = () => {
     const ownUserId = useOwnUserId();
     const isAnyRoomController = useOwnIsAnyRoomController();
     const selectedObject = useRoomSelectedObject();
-    const controllerLevel = useRoomStore(x => x.controllerLevel);
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
+    const controllerLevel = useOwnControllerLevel();
+    const isRoomOwner = useIsRoomOwner();
     const isFreeFurniMovementsMode = useRoomStore(x => x.isFreeFurniMovementsMode);
     const playTestMode = useRoomStore(x => x.playTestMode);
     const { setSelectedObject } = useRoomSelectedObjectActions();

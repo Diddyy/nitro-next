@@ -1,3 +1,7 @@
+/**
+ * The floor plan editor's two requests and its two saves - `BCFloorPlanEditor`'s `visible` setter,
+ * its `reload` button and its `save`, plus `ImportExportDialog`'s own save.
+ */
 import { RoomThicknessType } from '@nitrodevco/nitro-api';
 import { GetOccupiedTilesComposer, GetRoomEntryTileComposer, UpdateFloorPropertiesComposer } from '@nitrodevco/nitro-packets';
 
@@ -5,11 +9,6 @@ import { WebSocketConnection } from '#base/context/communication';
 import { FLOOR_PLAN_WALLS_NOT_FIXED } from '#base/context/room';
 
 type Send = WebSocketConnection['send'];
-
-/**
- * The floor plan editor's two requests and its two saves - `BCFloorPlanEditor`'s `visible` setter,
- * its `reload` button and its `save`, plus `ImportExportDialog`'s own save.
- */
 
 /**
  * What `BCFloorPlanEditor` asks for each time the window is shown, and again on "revert changes":

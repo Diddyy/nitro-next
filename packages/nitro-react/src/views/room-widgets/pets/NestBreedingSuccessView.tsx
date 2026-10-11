@@ -2,6 +2,14 @@ import { TemplateWindow } from '#base/theme';
 
 import { PetPortraitView } from './PetPortraitView';
 
+/**
+ * A nest finished - `NestBreedingSuccessView` on the `habbo-room-ui-com/nestBreedingSuccess_xml`
+ * layout, which `updateWindow` builds and centres: the new pet on the `icons_hilighter_yellow`
+ * spotlight, its name in `pet.name`, its rarity class as
+ * `${breedpets.nestbreeding.success.raritycategory.<n>}` in `pet.raritycategory`, and `button.ok`.
+ * `pet_image` is filled as `updatePreviewImage` does it: the pet's 64-scale image centred in a
+ * transparent bitmap of the window's size. `button.ok` and the header close both `close` it.
+ */
 export interface NestBreedingSuccessViewProps {
     petName: string;
     /** The baby's figure, once it has been placed in the room; empty draws no picture. */
@@ -14,14 +22,6 @@ export interface NestBreedingSuccessViewProps {
 /** The layout's `pet_image` bitmap. */
 const PET_IMAGE_SIZE = 40;
 
-/**
- * A nest finished - `NestBreedingSuccessView` on the `habbo-room-ui-com/nestBreedingSuccess_xml`
- * layout, which `updateWindow` builds and centres: the new pet on the `icons_hilighter_yellow`
- * spotlight, its name in `pet.name`, its rarity class as
- * `${breedpets.nestbreeding.success.raritycategory.<n>}` in `pet.raritycategory`, and `button.ok`.
- * `pet_image` is filled as `updatePreviewImage` does it: the pet's 64-scale image centred in a
- * transparent bitmap of the window's size. `button.ok` and the header close both `close` it.
- */
 export const NestBreedingSuccessView = ({ petName, figure, posture, rarityCategory, onOk }: NestBreedingSuccessViewProps) => (
     <TemplateWindow
         id="habbo-room-ui-com/nestBreedingSuccess_xml"

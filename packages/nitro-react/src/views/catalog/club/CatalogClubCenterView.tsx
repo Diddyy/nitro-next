@@ -4,8 +4,11 @@
  *
  * Built: without `hccenter.activity.enabled` the payday block, its post-it and the breakdown link
  * are removed; with it the post-it's amount, its icon, the breakdown link and the payday time wait
- * hidden for the data. `btn_earn` stays hidden: only the offer centre's video offers show it
- * (`indicateVideoAvailable`), and the port has no video offer provider. The avatar is the full
+ * hidden for the data. `btn_earn` shows while the offer centre has a video offer
+ * (`indicateVideoAvailable` -> `setVideoOfferButtonVisibility`), disabled while that video is
+ * playing (`showingVideo`); a click plays it (`onInput`'s `btn_earn` -> `offerCenter.showVideo`).
+ * Without the provider scripts on the page no offer arrives and it stays hidden, as in Flash. The
+ * button's colour alpha (0 enabled, 51 disabled) is not mirrored. The avatar is the full
  * figure facing 4, cropped to its own bounds (`getCroppedImage`), in the `avatar` room previewer
  * at twice its size from its corner (`RoomPreviewerWidget.showPreview` scales the bitmap by 2 and
  * nothing offsets it) - reaching past the widget's 90x130, as Flash's display object does.
@@ -30,13 +33,14 @@ import { GetRenderer } from '@nitrodevco/nitro-renderer';
 import { FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
-import { isClubKickbackEnabled, openClubCatalogPage, openClubHelpPage, removeClubCenter, showClubCenter } from '#base/commands';
+import { isClubKickbackEnabled, openClubCatalogPage, openClubHelpPage, removeClubCenter, showClubCenter, showOfferVideo } from '#base/commands';
 import { useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
+import { getOfferCenterShowingVideo, useOfferCenterStore } from '#base/context/offer-center';
 import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
 import { useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { getGlobalRect, TemplateWindow, useAvatarImageTexture } from '#base/theme';
-import { CLUB_STATUS_ACTIVE, GetFriendlyTime, resolveClubStatus } from '#base/utils';
+import { CLUB_STATUS_ACTIVE, GetFriendlyTime, replaceFirst, resolveClubStatus } from '#base/utils';
 
 import { catalogTemplateId } from '../page/catalogTemplates';
 import { CatalogClubCenterBreakdownView, ClubCenterBreakdownPlacement } from './CatalogClubCenterBreakdownView';
@@ -55,13 +59,13 @@ const POSTIT_HEIGHT = 150;
 const BREAKDOWN_LINK_RIGHT = 207;
 const BREAKDOWN_LINK_TOP = 120;
 
-/** AS3 `String.replace(string, string)`: the first occurrence, with no `$` patterns. */
-const replaceFirst = (text: string, search: string, replacement: string | number) => text.replace(search, () => String(replacement));
-
 export const CatalogClubCenterView = () => {
     const kickback = useCatalogStore(x => x.clubKickbackData);
     const giftsAvailable = useCatalogStore(x => x.clubCenterGiftsAvailable);
     const badgeId = useCatalogStore(x => x.clubBadgeId);
+    // `HabboClubCenter.indicateVideoAvailable`: what the offer centre last said, and whether its video is up.
+    const videoAvailable = useOfferCenterStore(x => x.videoAvailable);
+    const showingVideo = useOfferCenterStore(getOfferCenterShowingVideo);
     const subscription = useUserStore(x => x.clubSubscription);
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();
@@ -136,7 +140,8 @@ export const CatalogClubCenterView = () => {
                     special_amount_title: { visible: showAmount },
                     special_amount_content: { visible: showAmount, caption: showAmount ? replaceFirst(t('hccenter.special.sum', 'hccenter.special.sum'), '%credits%', paydaySum) : '' },
                     special_time_content: { visible: !!kickback && kickbackEnabled, caption: paydayTime },
-                    btn_earn: { visible: false },
+                    // `ClubCenterView.setVideoOfferButtonVisibility`; `onInput`'s `btn_earn` -> `IOfferCenter.showVideo`.
+                    btn_earn: { visible: videoAvailable, disabled: showingVideo, onPointerTap: showOfferVideo },
                     avatar: {
                         children: avatar.texture && (
                             <pixiSprite

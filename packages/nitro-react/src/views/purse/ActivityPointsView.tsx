@@ -1,10 +1,26 @@
 import { useState } from 'react';
 
-import { useConfigData, useSystemActions, useTranslation } from '#base/context/system';
+import { useConfigData, useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { Box, BoxLayout, TemplateWindow } from '#base/theme';
 import { configReader, getCurrencyIconStyle } from '#base/utils';
 
+/**
+ * The seasonal currencies under the purse - `toolbar/extensions/purse/indicators/SeasonalCurrencyIndicator`
+ * over `habbo-toolbar-com/purse_indicator_seasonal_xml`, one per type in
+ * `seasonalcurrencyindicator.active`, and none unless `seasonalcurrencyindicator.enabled`
+ * (`HabboToolbar.initSeasonalCurrencyExtension`).
+ *
+ * `initializeCurrencyLayouts`: `seasonal_icon` the currency's big icon (`getIconStyleFor(type, true)`),
+ * `seasonal_name` its name (`getActivityPointName`) in its `font` colour, and `seasonal_bg` its
+ * `border` colour - the presets of `seasonalcurrency.<id>.color`, `id` being
+ * `seasonalcurrency.id.<type>`. `setAmount`: the balance in `amount`, or the zero text underlined.
+ * The pointer over it lightens the `BGCOLOR` border and leaving darkens it (`CurrencyIndicatorBase`);
+ * a click opens the catalogue page `seasonalcurrencyindicator.page` (`onContainerClick`), which this
+ * hotel does not set, so the catalogue opens on no page.
+ *
+ * The `change_overlay` animation (`animateChange`) is not ported.
+ */
 export interface ActivityPointsViewProps {
     layout?: BoxLayout;
 }
@@ -52,26 +68,10 @@ const hexColor = (hex: string): number => {
     return Number.isNaN(value) ? 0 : ((0xff000000 | value) >>> 0);
 };
 
-/**
- * The seasonal currencies under the purse - `toolbar/extensions/purse/indicators/SeasonalCurrencyIndicator`
- * over `habbo-toolbar-com/purse_indicator_seasonal_xml`, one per type in
- * `seasonalcurrencyindicator.active`, and none unless `seasonalcurrencyindicator.enabled`
- * (`HabboToolbar.initSeasonalCurrencyExtension`).
- *
- * `initializeCurrencyLayouts`: `seasonal_icon` the currency's big icon (`getIconStyleFor(type, true)`),
- * `seasonal_name` its name (`getActivityPointName`) in its `font` colour, and `seasonal_bg` its
- * `border` colour - the presets of `seasonalcurrency.<id>.color`, `id` being
- * `seasonalcurrency.id.<type>`. `setAmount`: the balance in `amount`, or the zero text underlined.
- * The pointer over it lightens the `BGCOLOR` border and leaving darkens it (`CurrencyIndicatorBase`);
- * a click opens the catalogue page `seasonalcurrencyindicator.page` (`onContainerClick`), which this
- * hotel does not set, so the catalogue opens on no page.
- *
- * The `change_overlay` animation (`animateChange`) is not ported.
- */
 export const ActivityPointsView = ({ layout }: ActivityPointsViewProps) => {
     const activityPoints = useUserStore(x => x.activityPoints);
     const config = useConfigData();
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
     const t = useTranslation();
     const [ bgColor, setBgColor ] = useState<number | undefined>(undefined);
 

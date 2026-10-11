@@ -40,10 +40,10 @@ import { groupTradingItems, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADING_M
 import { useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredTradeActions, useWiredTradingStore, WIRED_TRADE_STATE_ADDING_ITEMS, WIRED_TRADE_STATE_CONFIRMED, WIRED_TRADE_STATE_CONFIRMING, WIRED_TRADE_STATE_COUNTDOWN, WIRED_TRADE_STATE_READY } from '#base/context/wired-trading';
 import { useSecondsClock } from '#base/hooks';
-import { Box, findTemplateChild, FloatingPopup, LayoutImage, Template, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLayoutSize, useTemplateLibrary } from '#base/theme';
-import { isWiredTradePaymentOnly } from '#base/utils';
+import { Box, findTemplateChild, FloatingPopup, LayoutImage, Template, TemplateBindings, TemplateItem, TemplateWindow, useLayoutSize, useTemplateLibrary } from '#base/theme';
+import { getFurnitureData, isWiredTradePaymentOnly } from '#base/utils';
 import { INVENTORY_LIBRARY, inventoryTemplateId, inventoryThumbLook } from '#base/views/inventory/inventoryPage';
-import { getInventoryFurniIconUrl, inventoryFurniThumbBindings } from '#base/views/inventory/inventoryThumbs';
+import { fixTradeItemWindow, getInventoryFurniIconUrl, inventoryFurniThumbBindings } from '#base/views/inventory/inventoryThumbs';
 import { InventoryTradingItemPopup, InventoryTradingItemPopupContent } from '#base/views/inventory/trading/InventoryTradingItemPopup';
 import { useInventoryTradingItemPopup } from '#base/views/inventory/trading/useInventoryTradingItemPopup';
 import { getWiredTradingBubbleAnchor, WiredTradingBubbleAnchor } from '#base/views/wired-trading/common/wiredTradingBubbleAnchor';
@@ -62,9 +62,6 @@ const SECONDS_LEFT_LIMIT = 120;
 /** `recenter`: the bubble this far right of the "i". */
 const BUBBLE_GAP = 4;
 
-/** `fixItemWindow`: a thumb in a trade cell, and each of its windows, is 40x40. */
-const SLOT_SIZE = 40;
-
 /** `updateStateUI`'s lock icons, `updateUI`'s trade type icons. */
 const LOCKED_ICON = LayoutImage('habbo-window-manager-com/inventory_trading_trading_locked_icon.png');
 const UNLOCKED_ICON = LayoutImage('habbo-window-manager-com/inventory_trading_trading_unlocked_icon.png');
@@ -78,25 +75,13 @@ type WiredTradeSlotContent
     = | { kind: 'furni'; group: InventoryFurniGroup }
         | { kind: 'credits'; credits: number };
 
-/** `fixItemWindow`: the thumb 40x40, and every window directly in it moved to 0,0 and made 40x40. */
-const fixItemWindow = ({ root }: TemplateWindows) => {
-    const thumb = root();
-
-    if (!thumb) return;
-
-    thumb.setWidth(SLOT_SIZE);
-    thumb.setHeight(SLOT_SIZE);
-
-    for (const child of thumb.children) child.setRectangle(0, 0, SLOT_SIZE, SLOT_SIZE);
-};
-
 /**
  * A cell's thumb: a furni group's `inventory_thumb_xml` as the user trade shows it, or the
  * credits' `inventory_thumb_credits_xml` - the credits icon and the value, shown from 1 up
  * (`CreditTradingItem.getMinimumItemsToShowCounter`).
  */
 const slotThumb = (content: WiredTradeSlotContent, thumbTemplate: Template, creditsTemplate: Template): TemplateItem => ((content.kind === 'furni')
-    ? { key: `group-${content.group.id}`, from: thumbTemplate, bindings: inventoryFurniThumbBindings(content.group, { selected: false, unseen: false, showRecyclable: false }), arrange: fixItemWindow }
+    ? { key: `group-${content.group.id}`, from: thumbTemplate, bindings: inventoryFurniThumbBindings(content.group, { selected: false, unseen: false, showRecyclable: false }), arrange: fixTradeItemWindow }
     : {
             key: 'credits',
             from: creditsTemplate,
@@ -106,7 +91,7 @@ const slotThumb = (content: WiredTradeSlotContent, thumbTemplate: Template, cred
                 number_container: { visible: content.credits >= 1 },
                 number: { caption: String(content.credits) },
             },
-            arrange: fixItemWindow,
+            arrange: fixTradeItemWindow,
         });
 
 export const WiredTradeView = () => {
@@ -225,7 +210,7 @@ export const WiredTradeView = () => {
 
         if (group.category === INVENTORY_FURNI_CATEGORY_POSTER) return t(`poster_${peekInventoryFurni(group)?.stuffData.getLegacyString() ?? ''}_name`);
 
-        return (isInventoryFurniGroupWallItem(group) ? wallItems : floorItems)[group.typeId]?.localizedName ?? '';
+        return getFurnitureData({ floorItems, wallItems }, group.typeId, isInventoryFurniGroupWallItem(group))?.localizedName ?? '';
     };
 
     /** `thumbEventProc`'s `updateContent`: the credits' icon, or the furni's picture and limited edition. */

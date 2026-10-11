@@ -9,6 +9,10 @@ import { CatalogPublishedMessage } from '@nitrodevco/nitro-packets';
 import { loadFurnitureData } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 
-export const registerFurnitureDataHandlers = ({ subscribe }: WebSocketConnection) => subscribe(CatalogPublishedMessage, (data) => {
-    if (data.newFurniDataHash) void loadFurnitureData(data.newFurniDataHash);
-});
+import { on, subscribeAll } from '../packetSubscriptions';
+
+export const registerFurnitureDataHandlers = ({ subscribe }: WebSocketConnection) => subscribeAll(subscribe, [
+    on(CatalogPublishedMessage, (data) => {
+        if (data.newFurniDataHash) void loadFurnitureData(data.newFurniDataHash);
+    }),
+]);

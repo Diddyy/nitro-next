@@ -7,6 +7,23 @@ import { useTranslation } from '#base/context/system';
 import { Box, FloatingPopup, GlobalRect, Region, TemplateBindings, TemplateItem, TemplateWindow } from '#base/theme';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
 
+/**
+ * The chat bar's habbicon menu - `HabbiconSelector` over `habbo-room-ui-com/habbiconselector_menu_xml`.
+ *
+ * Only the habbicons the user owns are offered (`createEntry`: state 2 or 3, 3 a favourite), named by
+ * `habbicon_<name key>_name`. `refreshSections` makes the sections: favourites, the recently used,
+ * then one per shop set holding owned habbicons (its reward included) once the shop data is in. A
+ * search replaces them with one "search results" section over every owned habbicon whose name holds
+ * the text (`addSearchResultsSection`). Each section is its title over a five-column grid of 42 px
+ * slots, the empty ones darker; a slot shows its preview, lights under the pointer, carries a "1"
+ * while the habbicon is unseen, and its name as a tooltip. The list grows the menu up to 292 high
+ * (`updateHeight`), and `empty_view` shows when there is nothing.
+ *
+ * The recently used section is taken as the menu opens: Flash holds back a pick's reorder while the
+ * menu is up (`onRecentHabbiconsUpdated`), so shift-picking does not move the slots under the
+ * pointer. Flash hides the menu on a press on the room (`RoomDesktop.hideTransientSelectors`); this
+ * menu, like the chat style one, closes on a press anywhere outside it.
+ */
 const TEMPLATE = 'habbo-room-ui-com/habbiconselector_menu_xml';
 
 /** `SCREEN_LEFT_BORDER` / `CHAT_BAR_POPUP_OFFSET`: the menu stays right of 92 and its bottom 55 above the button's. */
@@ -77,23 +94,6 @@ export interface HabbiconSelectorViewProps {
     onClose: () => void;
 }
 
-/**
- * The chat bar's habbicon menu - `HabbiconSelector` over `habbo-room-ui-com/habbiconselector_menu_xml`.
- *
- * Only the habbicons the user owns are offered (`createEntry`: state 2 or 3, 3 a favourite), named by
- * `habbicon_<name key>_name`. `refreshSections` makes the sections: favourites, the recently used,
- * then one per shop set holding owned habbicons (its reward included) once the shop data is in. A
- * search replaces them with one "search results" section over every owned habbicon whose name holds
- * the text (`addSearchResultsSection`). Each section is its title over a five-column grid of 42 px
- * slots, the empty ones darker; a slot shows its preview, lights under the pointer, carries a "1"
- * while the habbicon is unseen, and its name as a tooltip. The list grows the menu up to 292 high
- * (`updateHeight`), and `empty_view` shows when there is nothing.
- *
- * The recently used section is taken as the menu opens: Flash holds back a pick's reorder while the
- * menu is up (`onRecentHabbiconsUpdated`), so shift-picking does not move the slots under the
- * pointer. Flash hides the menu on a press on the room (`RoomDesktop.hideTransientSelectors`); this
- * menu, like the chat style one, closes on a press anywhere outside it.
- */
 export const HabbiconSelectorView = ({ anchor, onPick, onOpenHub, onClose }: HabbiconSelectorViewProps) => {
     const ownedHabbicons = useHabbiconsStore(x => x.ownedHabbicons);
     const shopCollections = useHabbiconsStore(x => x.shopCollections);

@@ -2,7 +2,7 @@ import { RemoveFriendComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsActions, useFriendsStore } from '#base/context/friend';
-import { useIsWindowVisible, useSystemActions } from '#base/context/system';
+import { useIsWindowVisible, useWindowActions } from '#base/context/system';
 import { useFriends } from '#base/context/user';
 import { TemplateWindow, useTemplateFrame } from '#base/theme';
 
@@ -20,7 +20,7 @@ const TEMPLATE = 'habbo-friend-list-com/friend_remove_confirm_xml';
  * `cancel` or the close button drops the alert.
  */
 const FriendListRemoveConfirmation = () => {
-    const { toggleWindow } = useSystemActions();
+    const { toggleWindow } = useWindowActions();
     const selectedFriendIds = useFriendsStore(x => x.selectedFriendIds);
     const { setSelectedFriendIds } = useFriendsActions();
     const { send } = useWebSocketContext();

@@ -7,7 +7,7 @@
  * (`variableSource`: furni or users), the second from the value-or-variable section.
  * Int params: `[ comparison, reference, value (as a long: high, low), reference target ]` -
  * `reference` is 0 while "select by value" is unchecked, otherwise the section's option + 1
- * (1 a typed value, 2 a variable); the comparison ids are those of the `WITH_VARIABLE_COMPARISONS`
+ * (1 a typed value, 2 a variable); the comparison ids are those of the `WIRED_COMPARISON_OPERATORS`
  * radio. The reference target is merged source 0, whose type picker the section draws itself
  * (`hasCustomTypePicker`); it offers the global and context sources besides furni and users.
  *
@@ -25,16 +25,6 @@ import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VAL
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, WiredElementContext, WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
-
-/** The comparison radio (`createRadioGroup(..., null, 6)`), in its order. */
-export const WITH_VARIABLE_COMPARISONS: readonly { id: number; label: string }[] = [
-    { id: 2, label: '>' },
-    { id: 5, label: '≥' },
-    { id: 1, label: '=' },
-    { id: 3, label: '≤' },
-    { id: 0, label: '<' },
-    { id: 4, label: '≠' },
-];
 
 /** `createValueOrVariableSection(0, ..., -2147483648, 2147483647)`. */
 export const WITH_VARIABLE_VALUE_MIN = -2147483648;

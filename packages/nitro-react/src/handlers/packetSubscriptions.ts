@@ -1,3 +1,7 @@
+/**
+ * The plumbing every `register<Feature>Handlers` file builds on: `on` describes one packet
+ * listener, and `subscribeAll` attaches a list of them and hands back one unsubscribe.
+ */
 import { IncomingPacketConstructor } from '@nitrodevco/nitro-api';
 
 import { WebSocketConnection } from '#base/context/communication';

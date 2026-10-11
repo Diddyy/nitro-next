@@ -5,10 +5,10 @@
  *
  * Int params: `[ executions, time window in pulses ]`.
  */
+import { clampSliderValue } from '../../common/WiredUtil';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';
 import { AddonCodes } from './addonCodes';
-import { clampWiredSliderValue } from './addonShared';
 
 /** `createSliderSection("wiredfurni.params.setexecutions", "amount", CONVERTER_ECHO, 1, 100, 1, false)`. */
 export const EXECUTION_LIMIT_MAX_EXECUTIONS = 100;
@@ -24,8 +24,8 @@ export const executionLimitAddon: WiredElementDefinition<ExecutionLimitAddonForm
     holder: 'addon',
     code: AddonCodes.EXECUTION_LIMIT,
     createForm: triggerable => ({
-        executions: clampWiredSliderValue(getWiredInt(triggerable, 0), 1, EXECUTION_LIMIT_MAX_EXECUTIONS),
-        timeWindow: clampWiredSliderValue(getWiredInt(triggerable, 1), 1, EXECUTION_LIMIT_MAX_TIME_WINDOW),
+        executions: clampSliderValue(getWiredInt(triggerable, 0), 1, EXECUTION_LIMIT_MAX_EXECUTIONS),
+        timeWindow: clampSliderValue(getWiredInt(triggerable, 1), 1, EXECUTION_LIMIT_MAX_TIME_WINDOW),
     }),
     readIntParams: form => [ form.executions, form.timeWindow ],
 };

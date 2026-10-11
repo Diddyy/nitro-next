@@ -47,9 +47,10 @@ import { getTradingItemsTotal, hasTradingOffer,
 import { useSystemStore, useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { Template, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplateLibrary } from '#base/theme';
+import { getFurnitureData } from '#base/utils';
 
 import { INVENTORY_LIBRARY, inventoryTemplateId } from '../inventoryPage';
-import { getInventoryFurniIconUrl, inventoryFurniThumbBindings, inventoryNftThumbBindings } from '../inventoryThumbs';
+import { fixTradeItemWindow, getInventoryFurniIconUrl, inventoryFurniThumbBindings, inventoryNftThumbBindings } from '../inventoryThumbs';
 import { InventoryTradingItemPopup, InventoryTradingItemPopupContent } from './InventoryTradingItemPopup';
 import { INVENTORY_TRADING_SECTION_GAP, useInventoryTradingSections } from './inventoryTradingLayout';
 import { useInventoryTradingItemPopup } from './useInventoryTradingItemPopup';
@@ -57,9 +58,6 @@ import { useInventoryTradingItemPopup } from './useInventoryTradingItemPopup';
 /** `GroupItem.THUMB_WINDOW_LAYOUT` and `CollectibleGroupedItem`'s thumb. */
 const THUMB_TEMPLATE = inventoryTemplateId('inventory_thumb_xml');
 const NFT_THUMB_TEMPLATE = inventoryTemplateId('inventory_thumb_nft_xml');
-
-/** `fixItemWindow`: a thumb in a trade cell, and each of its windows, is 40x40. */
-const SLOT_SIZE = 40;
 
 /** `updateUserInterface`'s two lock icons. */
 const LOCKED_ICON = 'habbo-window-manager-com-inventory_trading_trading_locked_icon';
@@ -74,18 +72,6 @@ type TradingSlotContent
     = | { kind: 'furni'; group: InventoryFurniGroup }
         | { kind: 'nft'; asset: ITradeNftAsset };
 
-/** `fixItemWindow`: the thumb 40x40, and every window directly in it moved to 0,0 and made 40x40. */
-const fixItemWindow = ({ root }: TemplateWindows) => {
-    const thumb = root();
-
-    if (!thumb) return;
-
-    thumb.setWidth(SLOT_SIZE);
-    thumb.setHeight(SLOT_SIZE);
-
-    for (const child of thumb.children) child.setRectangle(0, 0, SLOT_SIZE, SLOT_SIZE);
-};
-
 /**
  * A furni group's thumb - `GroupItem.window` (`inventory_thumb_xml`) as `updateAllThumbDataVisuals`
  * leaves it: the seen grey ground and no selection outline.
@@ -94,7 +80,7 @@ const furniThumb = (group: InventoryFurniGroup, template: Template): TemplateIte
     key: `group-${group.id}`,
     from: template,
     bindings: inventoryFurniThumbBindings(group, { selected: false, unseen: false, showRecyclable: false }),
-    arrange: fixItemWindow,
+    arrange: fixTradeItemWindow,
 });
 
 /** A collectible's thumb - `CollectibleGroupedItem.window` (`inventory_thumb_nft_xml`), one copy, unselected. */
@@ -102,7 +88,7 @@ const nftThumb = (asset: ITradeNftAsset, template: Template): TemplateItem => ({
     key: `nft-${asset.assetId}`,
     from: template,
     bindings: inventoryNftThumbBindings(asset, 1, false),
-    arrange: fixItemWindow,
+    arrange: fixTradeItemWindow,
 });
 
 /** A side's offer in `updateItemsGrid`'s order: the furni groups, then the collectibles. */
@@ -141,7 +127,7 @@ export const InventoryTradingView = () => {
 
         if (group.category === INVENTORY_FURNI_CATEGORY_POSTER) return t(`poster_${peekInventoryFurni(group)?.stuffData.getLegacyString() ?? ''}_name`);
 
-        return (isInventoryFurniGroupWallItem(group) ? wallItems : floorItems)[group.typeId]?.localizedName ?? '';
+        return getFurnitureData({ floorItems, wallItems }, group.typeId, isInventoryFurniGroupWallItem(group))?.localizedName ?? '';
     };
 
     /** `thumbEventProc`'s `updateContent`: a furni's picture and limited edition, or a collectible's product (`nft_image`'s `previewImage`). */

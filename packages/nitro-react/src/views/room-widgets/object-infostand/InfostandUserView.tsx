@@ -12,6 +12,32 @@ import { isHandItem } from '#base/utils';
 
 import { InfostandBadgeView } from './InfostandBadgeView';
 
+/**
+ * The infostand for a user - `InfoStandUserView`, drawn from its Flash template
+ * (`habbo-room-ui-com/user_view`): their name (a link to their profile), their look and badges with
+ * the group badge, their motto (editable when it is your own), their badge rank, achievement score
+ * and what they carry, and who they have a relationship with. Selecting them asks for the badges and
+ * relationships, which fill in a moment later.
+ *
+ * What the code sets on the layout's elements are the bindings: `setMotto`'s text, colour and pen,
+ * the crocodile sticker over the avatar, the `badgesRank`, `achievementScore` and `carryItem` rows and
+ * their spacers, `setRelationshipStatuses`' rows, and `createWindow`'s config gates. What it measures
+ * and moves is `arrange`: the motto field `textHeight + 5` high within 23-50 and its container 3
+ * higher, the hand item text `textHeight + 5`, and `updateWindow` - the border the element list's
+ * height plus 20, the window the border's size. The element list follows its items itself
+ * (`resize_on_item_update`).
+ *
+ * The badge widgets hold `InfostandBadgeView`, which draws the badge and names it on hover with its
+ * owner count (`showBadgeInfo`'s details); a `badge_image` binding draws the badge only. `home_icon`
+ * holds `icon_home` drawn at 0,0 unstretched - `createWindow` copies it into a bitmap of the window's
+ * own 16x15, which a binding's `asset` would stretch to the window. `avatar_image` holds the cropped
+ * render: `AvatarImageWidget.refresh` sizes the widget to it, and the widget is centred in its region
+ * (`params` centre both ways), so a resize re-centres it as `WE_RESIZED` does.
+ *
+ * Not drawn, as in this revision: `setRealName` looks for a `realname_text` the layout does not have,
+ * and `xp` an `xp_text`. The rarity glow (`playGlow`) and the badge details window's rarity tag are
+ * not ported.
+ */
 export interface InfostandUserViewProps {
     objectData: ISimpleRoomObjectData;
     onClose: () => void;
@@ -51,32 +77,6 @@ const BADGE_LEADERBOARD_LINK = 'badge_leaderboard/0/-1/0';
 /** The cropped render's direction - `avatar_image:direction` `southwest`. */
 const AVATAR_DIRECTION = 4;
 
-/**
- * The infostand for a user - `InfoStandUserView`, drawn from its Flash template
- * (`habbo-room-ui-com/user_view`): their name (a link to their profile), their look and badges with
- * the group badge, their motto (editable when it is your own), their badge rank, achievement score
- * and what they carry, and who they have a relationship with. Selecting them asks for the badges and
- * relationships, which fill in a moment later.
- *
- * What the code sets on the layout's elements are the bindings: `setMotto`'s text, colour and pen,
- * the crocodile sticker over the avatar, the `badgesRank`, `achievementScore` and `carryItem` rows and
- * their spacers, `setRelationshipStatuses`' rows, and `createWindow`'s config gates. What it measures
- * and moves is `arrange`: the motto field `textHeight + 5` high within 23-50 and its container 3
- * higher, the hand item text `textHeight + 5`, and `updateWindow` - the border the element list's
- * height plus 20, the window the border's size. The element list follows its items itself
- * (`resize_on_item_update`).
- *
- * The badge widgets hold `InfostandBadgeView`, which draws the badge and names it on hover with its
- * owner count (`showBadgeInfo`'s details); a `badge_image` binding draws the badge only. `home_icon`
- * holds `icon_home` drawn at 0,0 unstretched - `createWindow` copies it into a bitmap of the window's
- * own 16x15, which a binding's `asset` would stretch to the window. `avatar_image` holds the cropped
- * render: `AvatarImageWidget.refresh` sizes the widget to it, and the widget is centred in its region
- * (`params` centre both ways), so a resize re-centres it as `WE_RESIZED` does.
- *
- * Not drawn, as in this revision: `setRealName` looks for a `realname_text` the layout does not have,
- * and `xp` an `xp_text`. The rarity glow (`playGlow`) and the badge details window's rarity tag are
- * not ported.
- */
 export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProps) => {
     const info = useRoomUserData(objectData.objectId);
     // `InfoStandUserView.badgesRank`: shown whenever the server sends a rank (>= 0) - Flash has no config gate for it.

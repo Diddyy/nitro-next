@@ -1,3 +1,9 @@
+/**
+ * What a chat bubble draws, in the order `PooledChatBubble` added it: background, emblem,
+ * pointer, face, text. Shared by the live bubble (`ChatBubbleView`) and the chat history's
+ * copy of it (`ChatHistoryEntryView`, Flash's `ChatBubbleFactory.getHistoryLineEntry`), which
+ * each wrap it in their own container.
+ */
 import { Graphics, Sprite, Texture } from 'pixi.js';
 import { Ref, useState } from 'react';
 
@@ -20,12 +26,6 @@ interface ChatBubbleBodyProps {
     pointerRef?: Ref<Sprite | null>;
 }
 
-/**
- * What a chat bubble draws, in the order `PooledChatBubble` added it: background, emblem,
- * pointer, face, text. Shared by the live bubble (`ChatBubbleView`) and the chat history's
- * copy of it (`ChatHistoryEntryView`, Flash's `ChatBubbleFactory.getHistoryLineEntry`), which
- * each wrap it in their own container.
- */
 export const ChatBubbleBody = ({ style, layout, backgroundTexture, shownFaceTexture, render, textAlpha = 1, pointerRef }: ChatBubbleBodyProps) => {
     const [ clipMask, setClipMask ] = useState<Graphics | null>(null);
 

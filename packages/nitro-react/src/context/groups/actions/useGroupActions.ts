@@ -1,11 +1,13 @@
+/**
+ * The group store's actions, every slice's: details, members, management (creating and editing a
+ * group), room info and the forum. Zustand actions are created once and never change, so they are
+ * read off the store a single time here rather than subscribed to: a component using these
+ * re-renders for nothing.
+ */
 import { groupStore } from '../store/GroupStore';
 
 const state = groupStore.getState();
 
-/**
- * Zustand actions are created once and never change, so they are read off the store a single time
- * here rather than subscribed to: a component using these re-renders for nothing.
- */
 const actions = {
     setGroupDetails: state.setGroupDetails,
     closeGroupInfo: state.closeGroupInfo,

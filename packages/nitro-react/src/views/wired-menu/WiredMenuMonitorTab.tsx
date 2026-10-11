@@ -19,7 +19,7 @@ import { useTranslation } from '#base/context/system';
 import { useWiredHasReadPermission, useWiredHasWritePermission, useWiredStore } from '#base/context/wired';
 import { useSecondsClock } from '#base/hooks';
 import { TemplateBindings, TemplateWindow } from '#base/theme';
-import { GetFriendlyTime } from '#base/utils';
+import { GetFriendlyTime, twoDigits } from '#base/utils';
 import { TableCell, TableColumn, TableView } from '#base/views/shared/table/TableView';
 
 const COLOR_RED = 'ff5733';
@@ -52,13 +52,11 @@ const isFrankPanicking = (stats: IWiredRoomStatsData, errors: IWiredErrorLogsErr
     return errors.some(error => error.throwCount > 0);
 };
 
-const addLeadingZero = (value: number) => ((value < 10) ? `0${value}` : String(value));
-
 /** `ErrorDataTableObject.convertTimestamp`. */
 const convertTimestamp = (time: number): string => {
     const date = new Date(time);
 
-    return `${date.getFullYear()}-${addLeadingZero(date.getMonth() + 1)}-${addLeadingZero(date.getDate())} ${addLeadingZero(date.getHours())}:${addLeadingZero(date.getMinutes())}:${addLeadingZero(date.getSeconds())}`;
+    return `${date.getFullYear()}-${twoDigits(date.getMonth() + 1)}-${twoDigits(date.getDate())} ${twoDigits(date.getHours())}:${twoDigits(date.getMinutes())}:${twoDigits(date.getSeconds())}`;
 };
 
 export const WiredMenuMonitorTab = () => {

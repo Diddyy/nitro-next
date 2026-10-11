@@ -3,13 +3,13 @@ import { Point, Rectangle } from 'pixi.js';
 import { CHAT_BUBBLE_HEIGHT_PADDING, CHAT_FLOW_SCROLL_UP_STEP } from '../ChatConstants';
 import { IChatFlowBubble } from './IChatFlowBubble';
 
-let nextSpacerId = -1;
-
 /**
  * The invisible row spacer line-by-line mode inserts on every scroll-up cycle (the Flash
  * `BlankStyle` bubble): nothing is drawn, it only occupies one scroll step in the simulation so
  * the next real bubble lands a full row lower. Pure simulation state - no React, no sprite.
  */
+let nextSpacerId = -1;
+
 export class ChatFlowSpacer implements IChatFlowBubble {
     private static readonly EMPTY_OVERLAP = new Rectangle(0, 0, 0, 0);
 

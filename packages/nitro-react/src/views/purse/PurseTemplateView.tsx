@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { openClientLink, openClubCenter, openCreditsHabblet, rebootClient } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useEarningsStore } from '#base/context/earnings';
-import { useSystemActions } from '#base/context/system';
+import { useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { Box, TemplateWindow } from '#base/theme';
 
@@ -25,7 +25,7 @@ export const PurseTemplateView = () => {
     const credits = useUserStore(x => x.credits);
     const activityPoints = useUserStore(x => x.activityPoints);
     const showingIndicator = useEarningsStore(x => x.showingIndicator);
-    const { showWindow, toggleWindow } = useSystemActions();
+    const { showWindow, toggleWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const [ settingsVisible, setSettingsVisible ] = useState(false);
 

@@ -15,12 +15,13 @@
  *   moderator on anyone's group);
  * - the owner, admin or member icon of a guild; the forum link for a group with a forum.
  */
-import { IHabboGroupDetails, isGuildJoiningAllowed, isGuildLeaveAllowed, isGuildMembershipRequestAllowed } from '@nitrodevco/nitro-packets';
+import { GUILD_MEMBER_SEARCH_MEMBERS, GUILD_MEMBER_SEARCH_PENDING, IHabboGroupDetails, isGuildJoiningAllowed, isGuildLeaveAllowed, isGuildMembershipRequestAllowed } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
+import { canDeleteAnyGroup, deleteGroup, goToGroupBaseRoom, joinGroup, leaveGroup, openGroupForum, openGroupFurniCatalog, openGroupManagement, showGroupBases, toggleGroupMembers } from '#base/commands';
+import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { useGroupDetailsHandlers } from '#base/hooks';
 import { findTemplateChild, measureTemplateText, TemplateElement, TemplateItem, templateTextMargins, TemplateWindows, useTemplate } from '#base/theme';
 
 /** `GroupDetailsCtrl`'s step down the link column, from `pending_members_region`. */
@@ -46,7 +47,8 @@ const GROUP_TYPE_REGIONS = [ 0, 1, 2 ] as const;
 
 export const useGroupDetailsItem = (groupId: number): TemplateItem | undefined => {
     const details = useGroupStore(x => x.detailsById[groupId]);
-    const handlers = useGroupDetailsHandlers(groupId, details);
+    const groupDeletionEnabled = useConfigValue<boolean>('group.deletion.enabled') === true;
+    const { send } = useWebSocketContext();
     const template = useTemplate('habbo-groups-com/group');
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const t = useTranslation();
@@ -60,7 +62,8 @@ export const useGroupDetailsItem = (groupId: number): TemplateItem | undefined =
     const status = Number(details.status);
     const showPending = details.pendingMemberCount > 0;
     const showManage = details.isOwner && details.isGuild;
-    const showDelete = details.isGuild && handlers.canDelete;
+    // `onDeleteGuild`'s gate: `group.deletion.enabled`, and the owner or a moderator on anyone's group.
+    const showDelete = details.isGuild && groupDeletionEnabled && (details.isOwner || canDeleteAnyGroup());
     // `group_description_scrollbar.visible`: the text, grown to its lines plus 5, is taller than its list.
     const descriptionElement = findTemplateChild(template.elements, 'group_description');
     const descriptionList = findTemplateChild(template.elements, 'group_description_item_list');
@@ -93,33 +96,33 @@ export const useGroupDetailsItem = (groupId: number): TemplateItem | undefined =
             group_decorate_icon_region: { visible: details.membersCanDecorate },
             group_description: { caption: details.description },
             group_description_scrollbar: { visible: scrolls },
-            show_forum_link_region: { visible: details.hasBoard, onPointerTap: handlers.onForum },
+            show_forum_link_region: { visible: details.hasBoard, onPointerTap: () => openGroupForum(send, groupId) },
             show_forum_link: { visible: details.hasBoard },
             created_txt: { caption: t('group.created', '', { date: details.creationDate, owner: details.ownerName }) },
             members_txt: { caption: t('group.membercount', '', { totalMembers: String(details.totalMembers) }) },
-            members_region: { onPointerTap: handlers.onMembers },
-            group_room_link_region: { visible: details.roomId > -1, onPointerTap: handlers.onBaseRoom },
+            members_region: { onPointerTap: () => toggleGroupMembers(send, groupId, GUILD_MEMBER_SEARCH_MEMBERS) },
+            group_room_link_region: { visible: details.roomId > -1, onPointerTap: () => goToGroupBaseRoom(send, groupId, details.roomId) },
             group_room_link: { caption: t('group.linktobase', '', { room_name: details.roomName }) },
-            buy_furni_link_region: { onPointerTap: handlers.onBuyFurni },
-            show_groups_link_region: { onPointerTap: handlers.onShowGroups },
+            buy_furni_link_region: { onPointerTap: openGroupFurniCatalog },
+            show_groups_link_region: { onPointerTap: () => showGroupBases(send) },
             group_logo: { asset: details.badgeCode ? groupBadgeUrl.replace('%badgedata%', details.badgeCode) : undefined },
             join_button: {
                 visible: isGuildJoiningAllowed(details),
                 disabled: joinSentFor === details,
                 onPointerTap: () => {
                     setJoinSentFor(details);
-                    handlers.onJoin();
+                    joinGroup(send, groupId);
                 },
             },
-            request_membership_button: { visible: isGuildMembershipRequestAllowed(details), onPointerTap: handlers.onJoin },
-            leave_button: { visible: isGuildLeaveAllowed(details), onPointerTap: handlers.onLeave },
+            request_membership_button: { visible: isGuildMembershipRequestAllowed(details), onPointerTap: () => joinGroup(send, groupId) },
+            leave_button: { visible: isGuildLeaveAllowed(details), onPointerTap: () => leaveGroup(send, groupId) },
             membership_pending_txt: { visible: status === STATUS_PENDING },
             youaremember_txt: { visible: !details.isGuild && (status === STATUS_MEMBER) },
             youaremember_icon: { visible: !details.isGuild && (status === STATUS_MEMBER) },
-            pending_members_region: { visible: showPending, onPointerTap: handlers.onPendingMembers },
+            pending_members_region: { visible: showPending, onPointerTap: () => toggleGroupMembers(send, groupId, GUILD_MEMBER_SEARCH_PENDING) },
             ...(showPending ? { pending_members_txt: { caption: t('group.pendingmembercount', '', { amount: String(details.pendingMemberCount) }) } } : {}),
-            manage_guild_region: { visible: showManage, onPointerTap: handlers.onManage },
-            delete_guild_region: { visible: showDelete, onPointerTap: handlers.onDelete },
+            manage_guild_region: { visible: showManage, onPointerTap: () => openGroupManagement(send, groupId) },
+            delete_guild_region: { visible: showDelete, onPointerTap: () => deleteGroup(send, groupId) },
             you_are_owner_region: { visible: details.isGuild && details.isOwner },
             you_are_admin_region: { visible: details.isGuild && details.isAdmin && !details.isOwner },
             you_are_member_region: { visible: details.isGuild && (status === STATUS_MEMBER) && !(details.isAdmin || details.isOwner) },

@@ -7,7 +7,7 @@
  * picking a type there goes through `setMergedSourceType`, as Flash's `ValueOrVariableSection` does.
  */
 import { setWiredMergedSourceType } from '#base/commands';
-import { getWiredRoomVariables, isWithVariableValueSelectionEnabled, WiredElementView, WITH_VARIABLE_COMPARISONS, WITH_VARIABLE_VALUE_MAX, WITH_VARIABLE_VALUE_MIN, withVariableReferenceSourceOptions, WithVariableSelectorForm } from '#base/wired';
+import { getWiredRoomVariables, isWithVariableValueSelectionEnabled, WIRED_COMPARISON_OPERATORS, WiredElementView, WITH_VARIABLE_VALUE_MAX, WITH_VARIABLE_VALUE_MIN, withVariableReferenceSourceOptions, WithVariableSelectorForm } from '#base/wired';
 
 import { WiredCheckboxOption } from '../../kit/WiredCheckboxOption';
 import { WiredChooseVariableSection } from '../../kit/WiredChooseVariableSection';
@@ -48,8 +48,8 @@ export const WithVariableView: WiredElementView<WithVariableSelectorForm> = ({ f
                 disabled={!valueSelectionEnabled}
             >
                 <WiredRadioGroup
-                    options={[ ...WITH_VARIABLE_COMPARISONS ]}
-                    columns={WITH_VARIABLE_COMPARISONS.length}
+                    options={[ ...WIRED_COMPARISON_OPERATORS ]}
+                    columns={WIRED_COMPARISON_OPERATORS.length}
                     selected={form.comparison}
                     onSelect={comparison => setForm({ comparison })}
                     disabled={!valueSelectionEnabled}

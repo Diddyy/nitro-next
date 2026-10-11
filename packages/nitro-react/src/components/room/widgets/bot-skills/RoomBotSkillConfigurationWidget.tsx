@@ -5,6 +5,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { BOT_SKILL_CHANGE_NAME, BOT_SKILL_SETUP_CHAT, useRoomBotsActions, useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Bubble, ButtonThick, CheckBox, Region, TextInput, ThemeText } from '#base/theme';
+import { openWebPage } from '#base/utils';
 
 /** Older servers separate the chatter fields with `;`, newer ones with `;#;`. */
 const CHATTER_SEPARATOR = ';#;';
@@ -293,9 +294,7 @@ export const RoomBotSkillConfigurationWidget = () => {
             </Region>
             <Region
                 cursor="pointer"
-                onPointerTap={() => {
-                    if (helpLink.length) window.open(helpLink, '_blank', 'noopener');
-                }}
+                onPointerTap={() => openWebPage(helpLink)}
                 layout={{ width: 250, height: 16, flexShrink: 0, overflow: 'hidden' }}
             >
                 <ThemeText

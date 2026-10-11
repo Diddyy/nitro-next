@@ -50,8 +50,8 @@ import { hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, o
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
 import { DEFAULT_WARDROBE_SLOTS, normalizeGender, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useSystemActions, useTranslation, useWindowParams } from '#base/context/system';
-import { useOwnClubLevel, useUserStore } from '#base/context/user';
+import { useConfigValue, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
+import { useOwnClubLevel, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { AvatarEditorColorData, AvatarEditorPartData, useAvatarEditorData, usePartThumbnailLifetime, useWindowVisibility } from '#base/hooks';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture, useTemplate } from '#base/theme';
 import { firstSelectableColorId } from '#base/utils';
@@ -222,8 +222,8 @@ const DEFAULT_FIGURES: Partial<Record<AvatarGenderType, string>> = {
 
 export const AvatarEditor = () => {
     const name = useUserStore(x => x.name);
-    const ownFigure = useUserStore(x => x.figure);
-    const ownGender = useUserStore(x => x.sex);
+    const ownFigure = useOwnUserFigure();
+    const ownGender = useOwnUserGender();
     const clubLevel = useOwnClubLevel();
     const { clothingChange } = useWindowParams('avatar_editor');
     const activeCategory = useAvatarEditorStore(x => x.activeCategory);
@@ -257,7 +257,7 @@ export const AvatarEditor = () => {
     // `generateDataContent`: the `GET_MORE` thumb with `avatareditor.support.sellablefurni`. This hotel
     // leaves it unset; the official one shows the thumb (editor-plus.png, avatareditor.png), so unset is on.
     const sellableSupport = useConfigValue<boolean>('avatareditor.support.sellablefurni') ?? OFFICIAL_SELLABLE_SUPPORT;
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
     const t = useTranslation();
     // The sub tab, part and colour under the pointer (`WME_OVER` / `WME_OUT`).
     const [ hoveredTab, setHoveredTab ] = useState<string | null>(null);
@@ -533,7 +533,6 @@ export const AvatarEditor = () => {
                 <AvatarEditorWardrobe
                     slots={wardrobe}
                     slotCount={maxWardrobeSlots}
-                    clubLevel={clubLevel}
                     onSave={saveWardrobeSlot}
                     onLoad={(index, outfit) => loadFigure(outfit.figure, outfit.gender)}
                 />

@@ -3,7 +3,7 @@ import { RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { openCatalogRoomAdsExtendPage, openClientLink, ROOM_AD_CATALOG_PAGE } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
-import { useOwnControllerLevel, useRoomStore } from '#base/context/room';
+import { useIsInRoom, useOwnControllerLevel } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
 import { ClientGates, useClientGate } from '#base/context/user';
 import { Box } from '#base/theme';
@@ -33,7 +33,7 @@ export const NavigatorRoomEventInfoComponent = () => {
     const enteredRoom = useNavigatorStore(x => x.enteredRoom);
     const settingsVisible = useNavigatorStore(x => x.roomEventSettingsVisible);
     const { setRoomEventInfoExpanded, setRoomEventSettingsVisible } = useNavigatorActions();
-    const inRoom = useRoomStore(x => !!x.room);
+    const inRoom = useIsInRoom();
     const controllerLevel = useOwnControllerLevel();
     const eventMod = useClientGate(ClientGates.RoomEventModerator);
     const eventInfoEnabled = useConfigValue<boolean>('eventinfo.enabled') === true;

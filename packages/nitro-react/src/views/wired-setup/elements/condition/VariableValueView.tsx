@@ -5,7 +5,7 @@
  * `variables.reference_value` section (a typed int or a variable, merged section 1).
  */
 import { setWiredMergedSourceType } from '#base/commands';
-import { CONDITION_OPERATORS, conditionMergedSourceOptions, getWiredRoomVariables, variableValueCondition, variableValueConditionFilter, VariableValueConditionForm, WIRED_INT_MAX, WIRED_INT_MIN, WiredElementView } from '#base/wired';
+import { conditionMergedSourceOptions, getWiredRoomVariables, variableValueCondition, variableValueConditionFilter, VariableValueConditionForm, WIRED_COMPARISON_OPERATORS, WIRED_INT_MAX, WIRED_INT_MIN, WiredElementView } from '#base/wired';
 
 import { WiredChooseVariableSection } from '../../kit/WiredChooseVariableSection';
 import { WiredRadioGroup } from '../../kit/WiredRadioGroup';
@@ -28,10 +28,10 @@ export const VariableValueView: WiredElementView<VariableValueConditionForm> = (
             />
             <WiredSection title="${wiredfurni.params.comparison_selection}">
                 <WiredRadioGroup
-                    options={[ ...CONDITION_OPERATORS ]}
+                    options={[ ...WIRED_COMPARISON_OPERATORS ]}
                     selected={form.operator}
                     onSelect={operator => setForm({ operator })}
-                    columns={CONDITION_OPERATORS.length}
+                    columns={WIRED_COMPARISON_OPERATORS.length}
                 />
             </WiredSection>
             <WiredValueOrVariableSection

@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { performNavigatorSearch } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { navigatorStore, useNavigatorStore } from '#base/context/navigator';
-import { useSystemActions, useWindowParams } from '#base/context/system';
+import { useWindowActions, useWindowParams } from '#base/context/system';
 
 /**
  * `HabboNewNavigator.performSearch(searchCode)`: a `navigator/tab/<name>` link opens the
@@ -15,7 +15,7 @@ import { useSystemActions, useWindowParams } from '#base/context/system';
 export const useNavigatorSearchCodeRequest = () => {
     const { searchCode } = useWindowParams('navigator');
     const topLevelContexts = useNavigatorStore(x => x.topLevelContexts);
-    const { updateWindowParams } = useSystemActions();
+    const { updateWindowParams } = useWindowActions();
     const { send } = useWebSocketContext();
 
     useEffect(() => {

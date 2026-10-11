@@ -41,6 +41,7 @@ import {
     createInventoryFurniItem, getInventoryFurniSecondsToExpiration, getInventoryFurniTotalCount, getStuffDataChestName, getStuffDataContentsCount, INVENTORY_FURNI_CATEGORY_CHEST_BROWN, INVENTORY_FURNI_CATEGORY_CHEST_GOLD, INVENTORY_FURNI_CATEGORY_GUILD_FURNI,
     INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_CATEGORY_RARE, InventoryFurniGroup, InventoryFurniItem, isInventoryFurniGroupGroupable, isInventoryFurniGroupWallItem,
 } from './InventoryFurniGroup';
+import { keepInventorySelection } from './inventorySelection';
 import { addUnseenItemIds, InventoryUnseenSlice, isUnseenItem, UnseenItemCategory, UnseenItemIds } from './InventoryUnseenSlice';
 
 type State = {
@@ -312,13 +313,6 @@ const resetUnseen = (groups: InventoryFurniGroup[]): InventoryFurniGroup[] => {
     return groups.map(group => (isNew(group) ? { ...group, hasUnseenItems: false } : group));
 };
 
-/** `selectFirstItem` when the selected group is gone (or there was none). */
-const keepSelection = (groups: InventoryFurniGroup[], selectedGroupId: number): number => {
-    if (groups.some(group => group.id === selectedGroupId)) return selectedGroupId;
-
-    return groups[0]?.id ?? -1;
-};
-
 export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & InventoryUnseenSlice, [], [], InventoryFurniSlice> = (set, get) => ({
     ...InventoryFurniSliceInitialState,
     insertFurniture: furni => set((x) => {
@@ -335,7 +329,7 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         return {
             furniGroups: draft.groups,
-            furniSelectedGroupId: keepSelection(draft.groups, x.furniSelectedGroupId),
+            furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId),
             furniListInitialized: true,
             furniCategoryInitialized: true,
         };
@@ -374,7 +368,7 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         if (!removeItem(draft, stripId)) return false;
 
-        set({ furniGroups: draft.groups, furniSelectedGroupId: keepSelection(draft.groups, x.furniSelectedGroupId) });
+        set({ furniGroups: draft.groups, furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId) });
 
         return true;
     },
@@ -391,7 +385,7 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         for (const stripId of expired) removeItem(draft, stripId);
 
-        set({ furniGroups: draft.groups, furniSelectedGroupId: keepSelection(draft.groups, x.furniSelectedGroupId) });
+        set({ furniGroups: draft.groups, furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId) });
 
         return expired.length;
     },

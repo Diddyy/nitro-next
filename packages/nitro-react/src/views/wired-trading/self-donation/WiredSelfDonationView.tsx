@@ -14,11 +14,11 @@ import { useState } from 'react';
 import { selfDonateWiredItem, WIRED_SELF_DONATION_MAX_AMOUNT } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
+import { WiredFooter } from '#base/views/wired-setup/kit/WiredFooter';
 import { WiredNumberInput } from '#base/views/wired-setup/kit/WiredNumberInput';
 import { WiredSection } from '#base/views/wired-setup/kit/WiredSection';
 import { WiredSimpleList } from '#base/views/wired-setup/kit/WiredSimpleList';
 import { WiredItemTypeSelectionSection } from '#base/views/wired-trading/common/WiredItemTypeSelection';
-import { WiredTradingFooter } from '#base/views/wired-trading/common/WiredTradingFooter';
 import { WiredTradingFrame } from '#base/views/wired-trading/common/WiredTradingFrame';
 
 const FRAME_WIDTH = 420;
@@ -54,7 +54,7 @@ export const WiredSelfDonationView = ({ onClose }: WiredSelfDonationViewProps) =
                         selected={itemType}
                         onSelect={setItemType}
                     />
-                    <WiredTradingFooter
+                    <WiredFooter
                         onSave={() => selfDonateWiredItem(send, itemType, amount)}
                         onCancel={onClose}
                         saveCaption={t('selfdonation.donate', 'Donate')}

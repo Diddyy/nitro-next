@@ -21,7 +21,8 @@ import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { getWiredElementMemory, getWiredHasWritePermission, getWiredMenuEnabled, WIRED_FURNI_PICKS_1, WIRED_UPDATE_MODE_NORMAL, WIRED_UPDATE_MODE_SAVE_INTO_OTHER, WIRED_UPDATE_MODE_SAVE_WITHOUT_CLOSING, WiredClipboardEntry, wiredClipboardKey, WiredSetupSession, wiredStore } from '#base/context/wired';
-import { allowFurniSelection, forcesFurniSelection, getWiredRoomVariables, isDualFurniPickingMode, rememberPickedVariables, stepInputSource, switchMergedSourceType, usingCustomInputSources, WIRED_QUANTIFIER_NONE, wiredConfigString, WiredElementContext, WiredHolderKey, WiredTriggerable } from '#base/wired';
+import { configReader, openWebPage } from '#base/utils';
+import { allowFurniSelection, forcesFurniSelection, getWiredRoomVariables, isDualFurniPickingMode, rememberPickedVariables, stepInputSource, switchMergedSourceType, usingCustomInputSources, WIRED_QUANTIFIER_NONE, WiredElementContext, WiredHolderKey, WiredTriggerable } from '#base/wired';
 import { getWiredElementByCode } from '#base/wired/WiredElementRegistry';
 
 import { openClientLink } from './clientLinkCommands';
@@ -39,11 +40,12 @@ const notifyWired = (text: string) => notificationStore.getState().addNotificati
 export const getWiredElementContext = (): WiredElementContext => {
     const { getLocalizationValue, config } = systemStore.getState();
     const { guildMemberships, wiredAchievements, elementMemory } = wiredStore.getState();
+    const { configBoolean, configString } = configReader(config);
 
     return {
         localize: (key, replacements) => getLocalizationValue(key, key, replacements),
-        configBoolean: key => config[key] === true,
-        configString: key => wiredConfigString(config[key]),
+        configBoolean,
+        configString,
         menuEnabled: getWiredMenuEnabled(),
         hasWritePermission: getWiredHasWritePermission(),
         userId: userStore.getState().userId,
@@ -531,9 +533,7 @@ export const viewWiredLogs = (send: Send) => openClientLink(send, 'wiredmenu/log
 
 /** `openApiDocs` - the header button of a `VariablesWebApiAddon` box: `HabboWebTools.openWebPageAndMinimizeClient(getProperty("wired.api.docs.link"))`. */
 export const openWiredApiDocs = () => {
-    const link = wiredConfigString(systemStore.getState().config['wired.api.docs.link']);
-
-    if (link.length) window.open(link, '_blank', 'noopener');
+    openWebPage(configReader(systemStore.getState().config).configString('wired.api.docs.link'));
 };
 
 /**

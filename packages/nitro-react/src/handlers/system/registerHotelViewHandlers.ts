@@ -35,6 +35,8 @@ import {
     LANDING_VIEW_ELEMENT_CUSTOMTIMER, LandingViewWidgetType, parseHotelViewGenericConf, systemStore,
 } from '#base/context/system';
 
+import { on, subscribeAll } from '../packetSubscriptions';
+
 /** `PromoArticleWidget.refresh`: a new request only once the last is ten minutes old. */
 const PROMO_ARTICLES_REQUEST_INTERVAL_MS = 600000;
 
@@ -141,58 +143,53 @@ export const registerHotelViewHandlers = ({ send, subscribe }: WebSocketConnecti
         send(new GetCurrentTimingCodeComposer({ slotConfig: schedulingStr }));
     };
 
-    const unsubscribeTiming = subscribe(CurrentTimingCodeMessage, (data) => {
-        const { config, hotelViewBackgrounds } = systemStore.getState();
+    const unsubscribePackets = subscribeAll(subscribe, [
+        on(CurrentTimingCodeMessage, (data) => {
+            const { config, hotelViewBackgrounds } = systemStore.getState();
 
-        if ((schedulingStr !== undefined) && (data.schedulingStr === schedulingStr)) {
-            setHotelViewBackgrounds(applyHotelViewTiming(hotelViewBackgrounds, config, data.code));
-            setHotelViewBackgroundCode(data.code);
-        }
+            if ((schedulingStr !== undefined) && (data.schedulingStr === schedulingStr)) {
+                setHotelViewBackgrounds(applyHotelViewTiming(hotelViewBackgrounds, config, data.code));
+                setHotelViewBackgroundCode(data.code);
+            }
 
-        for (const slot of LANDING_VIEW_DYNAMIC_SLOTS) {
-            if (hotelViewSlotWidget(config, slot) !== LandingViewWidgetType.WIDGETCONTAINER) continue;
-            if (hotelViewSlotSchedule(config, slot) !== data.schedulingStr) continue;
+            for (const slot of LANDING_VIEW_DYNAMIC_SLOTS) {
+                if (hotelViewSlotWidget(config, slot) !== LandingViewWidgetType.WIDGETCONTAINER) continue;
+                if (hotelViewSlotSchedule(config, slot) !== data.schedulingStr) continue;
 
-            setHotelViewTimingCode(data.schedulingStr, data.code);
+                setHotelViewTimingCode(data.schedulingStr, data.code);
 
-            if (data.code !== '') refreshWidget(hotelViewCodeWidget(config, data.code), slot, data.code);
-        }
-    });
+                if (data.code !== '') refreshWidget(hotelViewCodeWidget(config, data.code), slot, data.code);
+            }
+        }),
+        on(SecondsUntilMessage, data => setHotelViewSecondsUntil(data.timeStr, { seconds: data.secondsUntil, receivedAt: performance.now() })),
+        on(BonusRareInfoMessage, data => setHotelViewBonusRare(data)),
+        on(PromoArticlesMessage, data => setHotelViewPromoArticles(data.articles.slice(0, 10))),
+        on(CommunityGoalProgressMessage, (data) => {
+            communityGoalPending = false;
+            setHotelViewCommunityGoal(data);
+        }),
+        on(CommunityVoteReceivedMessage, (data) => {
+            if (data.acknowledged) setHotelViewCommunityVoted(true);
+        }),
+        on(CatalogPageWithEarliestExpiryMessage, data => setHotelViewExpiringPage({ ...data, receivedAt: performance.now() })),
+        on(LimitedOfferAppearingNextMessage, (data) => {
+            setHotelViewNextLimited({ ...data, receivedAt: performance.now() });
+
+            // `setModeSwitchTimer`: asked again a second after the countdown runs out.
+            if (nextLimitedTimer !== undefined) clearTimeout(nextLimitedTimer);
+
+            nextLimitedTimer = (data.appearsInSeconds > 0) ? setTimeout(requestNextLimited, (data.appearsInSeconds + 1) * 1000) : undefined;
+        }),
+    ]);
     const unsubscribeStore = systemStore.subscribe((state, previous) => {
         if (state.landingViewVisible && !previous.landingViewVisible) activate();
-    });
-    const unsubscribeSeconds = subscribe(SecondsUntilMessage, data => setHotelViewSecondsUntil(data.timeStr, { seconds: data.secondsUntil, receivedAt: performance.now() }));
-    const unsubscribeBonusRare = subscribe(BonusRareInfoMessage, data => setHotelViewBonusRare(data));
-    const unsubscribeArticles = subscribe(PromoArticlesMessage, data => setHotelViewPromoArticles(data.articles.slice(0, 10)));
-    const unsubscribeGoal = subscribe(CommunityGoalProgressMessage, (data) => {
-        communityGoalPending = false;
-        setHotelViewCommunityGoal(data);
-    });
-    const unsubscribeVote = subscribe(CommunityVoteReceivedMessage, (data) => {
-        if (data.acknowledged) setHotelViewCommunityVoted(true);
-    });
-    const unsubscribeExpiring = subscribe(CatalogPageWithEarliestExpiryMessage, data => setHotelViewExpiringPage({ ...data, receivedAt: performance.now() }));
-    const unsubscribeNextLimited = subscribe(LimitedOfferAppearingNextMessage, (data) => {
-        setHotelViewNextLimited({ ...data, receivedAt: performance.now() });
-
-        // `setModeSwitchTimer`: asked again a second after the countdown runs out.
-        if (nextLimitedTimer !== undefined) clearTimeout(nextLimitedTimer);
-
-        nextLimitedTimer = (data.appearsInSeconds > 0) ? setTimeout(requestNextLimited, (data.appearsInSeconds + 1) * 1000) : undefined;
     });
 
     if (systemStore.getState().landingViewVisible) activate();
 
     return () => {
-        unsubscribeTiming();
+        unsubscribePackets();
         unsubscribeStore();
-        unsubscribeSeconds();
-        unsubscribeBonusRare();
-        unsubscribeArticles();
-        unsubscribeGoal();
-        unsubscribeVote();
-        unsubscribeExpiring();
-        unsubscribeNextLimited();
         if (nextLimitedTimer !== undefined) clearTimeout(nextLimitedTimer);
         setHotelViewBackgrounds({});
     };

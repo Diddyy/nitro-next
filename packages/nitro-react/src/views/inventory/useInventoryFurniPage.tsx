@@ -43,14 +43,14 @@ import { useEffect, useRef, useState } from 'react';
 import { cancelInventoryFurniInMover, checkFurniInventoryInitialization, checkMarketplaceInitialization, goToRoom, offerSelectedFurniToTrade, openRentConfirmationWindow, recycleSelectedInventoryFurni, requestSelectedFurniPlacement, requestSelectedFurniSelling } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import {
-    canOfferInventoryFurniToWiredTrade, getInventoryFurniRecyclableCount, getInventoryFurniSecondsToExpiration, getInventoryFurniTradeableCount, getInventoryFurniTypeFilters, getInventoryFurniUnlockedCount, getStuffDataChestName, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_MAIN_FILTERS, INVENTORY_RECYCLER_STATE_ACTIVE, InventoryFurniGroup, isInventoryFurniGroupWallItem, passInventoryFurniFilter, peekInventoryFurni, useInventoryFurniActions, useInventoryStore,
+    canOfferInventoryFurniToWiredTrade, getInventoryFurniRecyclableCount, getInventoryFurniSecondsToExpiration, getInventoryFurniTradeableCount, getInventoryFurniTypeFilters, getInventoryFurniUnlockedCount, getStuffDataChestName, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_MAIN_FILTERS, INVENTORY_RECYCLER_STATE_ACTIVE, InventoryFurniGroup, isInventoryFurniGroupWallItem, passInventoryFurniFilter, peekInventoryFurni, useInventoryFurniActions, useInventoryStore, useInventoryTradingActive,
 } from '#base/context/inventory';
 import { useRoom } from '#base/context/room';
 import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { useWiredTradingStore } from '#base/context/wired-trading';
 import { TemplateBindings, TemplateItem, TemplateWindow } from '#base/theme';
-import { GetFriendlyTime } from '#base/utils';
+import { GetFriendlyTime, getFurnitureData } from '#base/utils';
 import { LimitedItemPreviewOverlayView } from '#base/views/shared/LimitedItemPreviewOverlayView';
 
 import { InventoryFurniPreview } from './InventoryFurniPreview';
@@ -86,6 +86,8 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const filterText = useInventoryStore(x => x.furniFilterText);
     const userTradeActive = useInventoryStore(x => x.tradingActive);
     const wiredTradeRunning = useWiredTradingStore(x => x.tradeRunning);
+    // `HabboInventory.activeTradingModel`: either trade puts the page into its trading shape.
+    const tradeRunning = useInventoryTradingActive();
     const requirement = useWiredTradingStore(x => x.tradeRequirement);
     const floorItems = useSystemStore(x => x.floorItems);
     const wallItems = useSystemStore(x => x.wallItems);
@@ -118,9 +120,6 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     })();
     const rentCounting = active && !!selectedPeek?.isRented && selectedPeek.hasRentPeriodStarted;
 
-    // `HabboInventory.activeTradingModel`: either trade puts the page into its trading shape.
-    const tradeRunning = userTradeActive || wiredTradeRunning;
-
     if (appliedText !== filterText) {
         setAppliedText(filterText);
         setFilterCaption(filterText);
@@ -148,7 +147,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const showContent = listInitialized && (groups.length > 0);
 
     /** `GroupItem.furniData`. */
-    const getFurniData = (group: InventoryFurniGroup): IFurnitureData | undefined => (isInventoryFurniGroupWallItem(group) ? wallItems : floorItems)[group.typeId];
+    const getFurniData = (group: InventoryFurniGroup): IFurnitureData | undefined => getFurnitureData({ floorItems, wallItems }, group.typeId, isInventoryFurniGroupWallItem(group));
 
     /** `GroupItem.getFurniItemName` / `getFurniItemDesc`: a poster by its poster id, anything else by its furni data. */
     const getGroupTexts = (group: InventoryFurniGroup): { name: string; description: string } => {

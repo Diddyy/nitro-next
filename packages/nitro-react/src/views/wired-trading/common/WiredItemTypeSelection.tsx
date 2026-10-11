@@ -24,6 +24,7 @@ import { useState } from 'react';
 import { useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredChestItemIconUrl } from '#base/hooks';
 import { Border, Box, ThemeImage } from '#base/theme';
+import { getFurnitureData } from '#base/utils';
 import { TableCell, TableColumn, TableView } from '#base/views/shared/table/TableView';
 import { WiredFloatVertically } from '#base/views/wired-setup/kit/WiredFloatVertically';
 import { WiredNamedTextInput } from '#base/views/wired-setup/kit/WiredNamedTextInput';
@@ -88,7 +89,7 @@ const createAllFurnis = (floorItems: Record<number, IFurnitureData>, wallItems: 
 const getWiredItemTypeCode = (type: IChestItemType | undefined, floorItems: Record<number, IFurnitureData>, wallItems: Record<number, IFurnitureData>): string => {
     if (!type) return '';
 
-    const furniData = (type.isWallItem ? wallItems : floorItems)[type.typeId];
+    const furniData = getFurnitureData({ floorItems, wallItems }, type.typeId, type.isWallItem);
 
     if (!furniData) return '';
 

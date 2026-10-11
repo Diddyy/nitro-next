@@ -51,6 +51,7 @@ import { Border, Box, Frame, ScrollArea, useLayoutSize } from '#base/theme';
 import { ActionTypeCodes, hasWiredAdvancedSettings, hidesPickFurniInstructions, SLIDER_CONVERTER_PULSES } from '#base/wired';
 
 import { WiredCheckboxGroup } from './kit/WiredCheckboxGroup';
+import { WiredFooter } from './kit/WiredFooter';
 import { WiredFrameList } from './kit/WiredFrameList';
 import { WiredFrameListItem } from './kit/WiredFrameListItem';
 import { WiredSection } from './kit/WiredSection';
@@ -60,7 +61,6 @@ import { WiredStyleProvider } from './kit/WiredStyleContext';
 import { WiredText } from './kit/WiredText';
 import { WiredSetupAdvancedSettings } from './WiredSetupAdvancedSettings';
 import { WiredSetupBanner } from './WiredSetupBanner';
-import { WiredSetupFooter } from './WiredSetupFooter';
 import { WiredSetupHeader, WiredSetupHeaderSourceTypeSelector } from './WiredSetupHeader';
 import { WiredSetupQuickMenu, WiredSetupQuickMenuItem } from './WiredSetupQuickMenu';
 
@@ -252,8 +252,7 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
             ref={setFooterNode}
             layout={{ flexDirection: 'column', alignItems: 'stretch', flexShrink: 0 }}
         >
-            <WiredSetupFooter
-                style={style}
+            <WiredFooter
                 saveDisabled={!hasWritePermission}
                 splitterVisible={!style.useInnerBorder}
                 onSave={() => saveWired(send)}

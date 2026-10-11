@@ -1,12 +1,12 @@
-import { inventoryStore } from '../store/InventoryStore';
-
-const state = inventoryStore.getState();
-
 /**
  * `InventoryMarketplaceSlice`'s setters. Making an offer talks to the server and goes through
  * `inventoryMarketplaceCommands`; the dialogs read the slice. Read off the store once: a
  * component using these re-renders for nothing.
  */
+import { inventoryStore } from '../store/InventoryStore';
+
+const state = inventoryStore.getState();
+
 const actions = {
     setMarketplaceConfiguration: state.setMarketplaceConfiguration,
     setMarketplaceOfferGroupId: state.setMarketplaceOfferGroupId,

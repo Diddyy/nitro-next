@@ -18,7 +18,7 @@ import { ClaimDailyTaskComposer, DAILY_TASK_STATUS_ACTIVE, DAILY_TASK_STATUS_CLA
 import { WebSocketConnection } from '#base/context/communication';
 import { dailyTasksStore } from '#base/context/daily-tasks';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 
 type Send = WebSocketConnection['send'];
 
@@ -32,7 +32,6 @@ const NOTIFICATION_LINK = 'dailytasks/open';
 let lastRequestTime = -REQUEST_TASKS_TIMEOUT_MS;
 
 const tasks = () => dailyTasksStore.getState();
-const localize = (key: string) => systemStore.getState().getLocalizationValue(key);
 
 /** `isEnabled`. */
 export const isDailyTasksEnabled = () => systemStore.getState().config['dailytasks.enabled'] === true;
@@ -75,7 +74,7 @@ export const hideDailyTasks = () => tasks().setShown(false);
 
 export const showUnclaimedDailyTasks = (shown: boolean) => tasks().setUnclaimedShown(shown);
 
-const notify = (key: string) => notificationStore.getState().addNotification(localize(key), 'info', NOTIFICATION_ICON, NOTIFICATION_LINK);
+const notify = (key: string) => notificationStore.getState().addNotification(t(key), 'info', NOTIFICATION_ICON, NOTIFICATION_LINK);
 
 /** `onActiveDailyTasks`. */
 export const onDailyTasksActiveList = (list: IDailyTaskInfo[]) => tasks().setTasks(list);

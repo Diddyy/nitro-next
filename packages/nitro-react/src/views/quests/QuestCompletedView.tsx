@@ -9,7 +9,7 @@ import type { IQuestMessageData } from '@nitrodevco/nitro-packets';
 
 import { moreQuests, nextQuest } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigData, useSystemActions, useTranslation } from '#base/context/system';
+import { useConfigData, useTranslation, useWindowActions } from '#base/context/system';
 import { TemplateWindow, useTemplateFrame } from '#base/theme';
 import { configReader } from '#base/utils';
 
@@ -22,7 +22,7 @@ export const QuestCompletedView = ({ quest }: { quest: IQuestMessageData }) => {
     const t = useTranslation();
     const config = useConfigData();
     const { send } = useWebSocketContext();
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
     // `close` tag: `onNextQuest`.
     const frame = useTemplateFrame({ id: 'quest_completed', centered: true, onClose: () => nextQuest(send) });
 

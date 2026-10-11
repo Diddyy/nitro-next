@@ -3,6 +3,30 @@ import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { useTranslation } from '#base/context/system';
 import { LayoutImage, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture } from '#base/theme';
 
+/**
+ * A wrapped gift - `PresentFurniWidget.showInterface`, which builds
+ * `habbo-room-ui-com/packagecard_new` and centres it:
+ *
+ * - the frame's caption `widget.furni.present.window.title_from` for a known sender;
+ * - an untrusted sender's `warning`: `warning_foreground_border` coloured 0xB1004C, `warning_icon`
+ *   the alert icon at (22, 12) 26x26, and `warning_text` `gift.untrusted.banner.text`;
+ * - `gift_card` the staff card for a trusted sender;
+ * - the head in `avatar_image` (`updateAvatarImageContainer`): the sender's, or `gift_incognito` for
+ *   an unknown one, centred across `avatar_image_container` and at a half (untrusted) or two thirds
+ *   (trusted) of its height. A trusted gift from no one shows no head, and `staff_image` centred
+ *   instead; an untrusted one drops `staff_image`;
+ * - `message_text` the note and `message_from` the sender, hidden for an unknown one;
+ * - in `button_list`, `open_gift_button` and `give_gift_button` (`widget.furni.present.give_gift`),
+ *   each only when the widget offers it.
+ *
+ * Then `element_list` goes `spacing` in, the frame fits its content (`resizeToFitContent`) and the
+ * list's container is made as high as the list's bottom. The opened gift is its own card,
+ * `FurniturePresentOpenedView`.
+ *
+ * Left out: the sender's name and head opening their profile (`onSenderNameClick` /
+ * `onSenderImageClick`) - the port has no extended profile to show - and the hotel's own gift card
+ * art (`catalog.gift_wrapping_new.gift_card`).
+ */
 export interface FurniturePresentViewProps {
     message: string;
     purchaserName: string;
@@ -27,29 +51,6 @@ const UNTRUSTED_ICON = { x: 22, y: 12, width: 26, height: 26 };
 /** `gift_incognito`'s size: `updateUnknownSenderAvatarImage` puts it where the head goes. */
 const INCOGNITO_SIZE = { width: 37, height: 48 };
 
-/**
- * A wrapped gift - `PresentFurniWidget.showInterface`, which builds `packagecard_new` and centres it:
- *
- * - the frame's caption `widget.furni.present.window.title_from` for a known sender;
- * - an untrusted sender's `warning`: `warning_foreground_border` coloured 0xB1004C, `warning_icon`
- *   the alert icon at (22, 12) 26x26, and `warning_text` `gift.untrusted.banner.text`;
- * - `gift_card` the staff card for a trusted sender;
- * - the head in `avatar_image` (`updateAvatarImageContainer`): the sender's, or `gift_incognito` for
- *   an unknown one, centred across `avatar_image_container` and at a half (untrusted) or two thirds
- *   (trusted) of its height. A trusted gift from no one shows no head, and `staff_image` centred
- *   instead; an untrusted one drops `staff_image`;
- * - `message_text` the note and `message_from` the sender, hidden for an unknown one;
- * - in `button_list`, `open_gift_button` and `give_gift_button` (`widget.furni.present.give_gift`),
- *   each only when the widget offers it.
- *
- * Then `element_list` goes `spacing` in, the frame fits its content (`resizeToFitContent`) and the
- * list's container is made as high as the list's bottom. The opened gift is its own card,
- * `FurniturePresentOpenedView`.
- *
- * Left out: the sender's name and head opening their profile (`onSenderNameClick` /
- * `onSenderImageClick`) - the port has no extended profile to show - and the hotel's own gift card
- * art (`catalog.gift_wrapping_new.gift_card`).
- */
 export const FurniturePresentView = ({ message, purchaserName, purchaserFigure, trustedSender, canOpen, canGiveGift, onOpen, onGiveGift, onClose }: FurniturePresentViewProps) => {
     const t = useTranslation();
     const knownSender = !!purchaserName.length;

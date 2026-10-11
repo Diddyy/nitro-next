@@ -31,7 +31,7 @@ import { useEffect, useRef, useState } from 'react';
 import { checkPetInventoryInitialization, placeInventoryPetToRoom } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { UnseenItemCategory, useInventoryPetsActions, useInventoryStore, useInventoryUnseenIds } from '#base/context/inventory';
-import { useRoomStore } from '#base/context/room';
+import { useIsRoomOwner, useRoomStore } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
 import { TemplateItem } from '#base/theme';
 import { RarityItemGridOverlayView } from '#base/views/shared/RarityItemGridOverlayView';
@@ -64,7 +64,7 @@ export const useInventoryPetsPage = ({ active, templates }: InventoryPageContext
     const selectedPetId = useInventoryStore(x => x.petSelectedId);
     const unseenPetIds = useInventoryUnseenIds(UnseenItemCategory.PET);
     const petsAllowed = useRoomStore(x => x.allowPets);
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
+    const isRoomOwner = useIsRoomOwner();
     const { selectPet } = useInventoryPetsActions();
     const [ typeFilter, setTypeFilter ] = useState(FILTER_ALL);
     const [ rarityFilter, setRarityFilter ] = useState(FILTER_ALL);

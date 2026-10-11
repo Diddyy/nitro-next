@@ -3,6 +3,11 @@ import { MarketplaceOfferData } from '#base/utils';
 
 import { getMarketplaceOfferIconUrl } from './marketplaceOfferIcon';
 
+/**
+ * The offer's furni icon as the marketplace code copies it into an `item_image` bitmap: centred and
+ * unscaled (`copyPixels` / `draw` at `(width - image.width) / 2`). The icon is the room engine's, so
+ * it is injected into the template's bitmap.
+ */
 export interface CatalogMarketplaceOfferImageViewProps {
     offer: MarketplaceOfferData;
     withExtraData: boolean;
@@ -11,11 +16,6 @@ export interface CatalogMarketplaceOfferImageViewProps {
     height: number;
 }
 
-/**
- * The offer's furni icon as the marketplace code copies it into an `item_image` bitmap: centred and
- * unscaled (`copyPixels` / `draw` at `(width - image.width) / 2`). The icon is the room engine's, so
- * it is injected into the template's bitmap.
- */
 export const CatalogMarketplaceOfferImageView = ({ offer, withExtraData, width, height }: CatalogMarketplaceOfferImageViewProps) => {
     const iconUrl = getMarketplaceOfferIconUrl(offer, withExtraData);
 

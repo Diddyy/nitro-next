@@ -11,7 +11,7 @@
  * loads; its bindings and `arrange` then resolve inside it. Without one, or in an `EMBEDDED`
  * container, they resolve inside the container.
  */
-import { LayoutWindow, TemplateBindings, TemplateWindows } from '@nitrodevco/nitro-theme';
+import { TemplateBindings, TemplateWindows } from '@nitrodevco/nitro-theme';
 import { createContext, useContext, useLayoutEffect } from 'react';
 
 export interface CatalogWidgetView {
@@ -94,10 +94,6 @@ export const useCatalogWidgetView = (view: CatalogWidgetView | undefined) => {
 
     useLayoutEffect(() => () => slot?.store.set(slot.container, undefined), [ slot ]);
 };
-
-/** `WindowController.findChildByName` on laid-out windows: the direct children first, then each child's subtree. */
-export const findLayoutChild = (window: LayoutWindow, name: string): LayoutWindow | undefined => window.children.find(child => child.element?.name === name)
-    ?? window.children.reduce<LayoutWindow | undefined>((found, child) => found ?? findLayoutChild(child, name), undefined);
 
 /**
  * `ItemGridCatalogWidget` / `ProductViewCatalogWidget`: the attached view sized to its container

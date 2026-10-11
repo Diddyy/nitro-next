@@ -1,5 +1,14 @@
 import { ModalDialog, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
 
+/**
+ * `IHabboWindowManager.simpleAlert` - `SimpleAlertDialog` over
+ * `habbo-window-manager-com/simple_alert_xml`, built as a modal dialog (`buildModalDialogFromXML`): centred over the darkened
+ * desktop, its header close disposed so only `close_button` closes it. The frame takes the caption,
+ * `message` the message; the `subtitle`, the `link` and the `illustration` are each disposed when the
+ * alert has none.
+ *
+ * Drawn by `SystemDialogsView` for every `simpleAlert` the system store holds.
+ */
 const TEMPLATE = 'habbo-window-manager-com/simple_alert_xml';
 
 /** `SimpleAlertDialog.WINDOW_MARGIN`. */
@@ -53,15 +62,6 @@ const arrange = (illustrated: boolean) => ({ find, root }: TemplateWindows) => {
 const arrangePlain = arrange(false);
 const arrangeIllustrated = arrange(true);
 
-/**
- * `IHabboWindowManager.simpleAlert` - `SimpleAlertDialog` over the window manager's
- * `simple_alert_xml`, built as a modal dialog (`buildModalDialogFromXML`): centred over the darkened
- * desktop, its header close disposed so only `close_button` closes it. The frame takes the caption,
- * `message` the message; the `subtitle`, the `link` and the `illustration` are each disposed when the
- * alert has none.
- *
- * Drawn by `SystemDialogsView` for every `simpleAlert` the system store holds.
- */
 export const SimpleAlertView = ({ id, caption, subtitle, message, linkTitle, onLink, illustration, onClose }: SimpleAlertViewProps) => {
     const frame = useTemplateFrame({ id: `simple_alert_${id}`, modal: true, rememberPosition: false, closeButtonVisible: false });
 

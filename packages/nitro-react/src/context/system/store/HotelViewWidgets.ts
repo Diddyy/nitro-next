@@ -6,6 +6,7 @@
  * views (what each widget draws).
  */
 import type { ColorableTextFormat, TemplateBindings } from '#base/theme';
+import { toCssHexColor } from '#base/utils';
 
 import { hotelViewProperty } from './HotelViewSlice';
 
@@ -176,7 +177,7 @@ export const hotelViewPaneWidths = (config: Record<string, unknown>) => {
 
 /** `WidgetContainerLayout.applyCommonWidgetSettings` as ThemeText props, for a `COLORABLE` text. */
 export const hotelViewColorableFormat = (settings: HotelViewCommonSettings): ColorableTextFormat => ({
-    fill: (settings.textColor !== null) ? `#${(settings.textColor & 0xFFFFFF).toString(16).padStart(6, '0')}` : undefined,
+    fill: (settings.textColor !== null) ? toCssHexColor(settings.textColor) : undefined,
     flashFormat: {
         ...((settings.etchingColor !== null) ? { etchingColor: settings.etchingColor } : {}),
         ...((settings.etchingPosition !== null) ? { etchingPosition: settings.etchingPosition as NonNullable<NonNullable<ColorableTextFormat['flashFormat']>['etchingPosition']> } : {}),

@@ -14,7 +14,7 @@
 import { AvatarGenderType, RoomGeometryScaleType, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
 import { AvatarImage } from '#base/components/AvatarImage';
-import { useRoom, useRoomStore } from '#base/context/room';
+import { useRoom, useRoomUserByObjectId } from '#base/context/room';
 import { WiredInspectionPreview } from '#base/context/wired';
 import { useChatPetFace, useFurnitureImageTexture } from '#base/hooks';
 import { Box, ThemeImage } from '#base/theme';
@@ -55,7 +55,7 @@ const PetPreview = ({ figure, posture }: { figure: string; posture: string }) =>
 
 /** `setPreviewByUserIndex`: a user, bot or rentable bot in the avatar widget, a pet in the pet widget. */
 const UserPreview = ({ userIndex }: { userIndex: number }) => {
-    const userData = useRoomStore(x => x.usersByRoomObjectId[userIndex]);
+    const userData = useRoomUserByObjectId(userIndex);
 
     if (!userData) return null;
 

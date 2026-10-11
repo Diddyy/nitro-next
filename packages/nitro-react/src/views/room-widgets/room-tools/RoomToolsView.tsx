@@ -27,7 +27,7 @@
 import { ReactNode } from 'react';
 
 import { easeOutCubic, useTween } from '#base/hooks';
-import { Box, LayoutWindow, TemplateBinding, TemplateBindings, TemplateWindow, TemplateWindows } from '#base/theme';
+import { Box, getLayoutListItems, TemplateBinding, TemplateBindings, TemplateWindow, TemplateWindows } from '#base/theme';
 
 import { ROOM_TOOLS_BOTTOM, ROOM_TOOLS_SIDE_BAR_WIDTH, ROOM_TOOLS_X } from './roomToolsGeometry';
 
@@ -80,9 +80,6 @@ const HISTORY_TINT = { color: 0x44a88d };
 /** `RoomToolsToolbarCtrl.ANIMATION_DURATION_MS`. */
 const ANIMATION_DURATION_MS = 140;
 
-/** `IItemListWindow.getListItemAt`'s items: a list's items are its `container`'s children. */
-const listItems = (list: LayoutWindow) => (('container' in list) ? (list.container as LayoutWindow).children : list.children);
-
 export const RoomToolsView = ({
     buttons, zoomLevel, canZoomIn, canZoomOut, onZoomIn, onZoomOut,
     canGoBack, canGoForward, canOpenHistory, onGoBack, onGoForward, onToggleHistory,
@@ -114,7 +111,7 @@ export const RoomToolsView = ({
         background.setX(EXPAND_TARGET_X + offsetX);
 
         // `updatePosition`.
-        const height = listItems(list).reduce((total, item) => (item.visible ? (total + item.height) : total), 0);
+        const height = getLayoutListItems(list).reduce((total, item) => (item.visible ? (total + item.height) : total), 0);
 
         collapseBar.setHeight(height);
         collapseBar.setX(0);

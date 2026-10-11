@@ -2,6 +2,13 @@ import { useTranslation } from '#base/context/system';
 
 import { FurnitureMenuBubble, FurnitureMenuButton } from './FurnitureMenuBubble';
 
+/**
+ * The menu over a piece of guild furniture, on the `habbo-room-ui-com/guild_furni_menu` layout
+ * (115x140) - `GuildFurnitureContextMenuView`: the guild's name in `profile_link` and up to three
+ * rows below it, `join` only for a non-member and `open_forum` only for a guild with a readable
+ * forum (`updateButtons`); the bubble shrinks with the rows it drops. Pressing `profile_link` opens
+ * the group info window (`HabboGroupsManager.openGroupInfo`).
+ */
 export interface FurnitureGuildMenuViewProps {
     guildName: string;
     /** A member is not offered the join; a guild without a readable forum is not offered it. */
@@ -13,13 +20,6 @@ export interface FurnitureGuildMenuViewProps {
     onProfile: () => void;
 }
 
-/**
- * The menu over a piece of guild furniture, on the `guild_furni_menu` layout (115x140) -
- * `GuildFurnitureContextMenuView`: the guild's name in `profile_link` and up to three rows below
- * it, `join` only for a non-member and `open_forum` only for a guild with a readable forum
- * (`updateButtons`); the bubble shrinks with the rows it drops.
- * Pressing `profile_link` opens the group info window (`HabboGroupsManager.openGroupInfo`).
- */
 export const FurnitureGuildMenuView = ({
     guildName, isMember, hasForum, onJoin, onHomeRoom, onForum, onProfile,
 }: FurnitureGuildMenuViewProps) => {

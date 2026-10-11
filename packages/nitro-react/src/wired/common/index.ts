@@ -5,6 +5,7 @@ export * from './expandableDropdown';
 export * from './interpolationPoints';
 export * from './NeighborhoodFloor';
 export * from './numberInput';
+export * from './operatorRadios';
 export * from './sliderConverters';
 export * from './sourceTypeColors';
 export * from './SpiralUtils';

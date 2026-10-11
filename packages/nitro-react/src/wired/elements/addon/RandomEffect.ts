@@ -4,10 +4,10 @@
  *
  * Int params: `[ skip, pick ]` - the reverse of the order the sliders are shown in.
  */
+import { clampSliderValue } from '../../common/WiredUtil';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';
 import { AddonCodes } from './addonCodes';
-import { clampWiredSliderValue } from './addonShared';
 
 /** Both sliders' maximum: `createSliderSection(..., 0 or 1, 100, 1, false)`. */
 export const RANDOM_EFFECT_MAX = 100;
@@ -21,8 +21,8 @@ export const randomEffectAddon: WiredElementDefinition<RandomEffectAddonForm> = 
     holder: 'addon',
     code: AddonCodes.RANDOM,
     createForm: triggerable => ({
-        skip: clampWiredSliderValue(getWiredInt(triggerable, 0), 0, RANDOM_EFFECT_MAX),
-        pick: clampWiredSliderValue(getWiredInt(triggerable, 1), 1, RANDOM_EFFECT_MAX),
+        skip: clampSliderValue(getWiredInt(triggerable, 0), 0, RANDOM_EFFECT_MAX),
+        pick: clampSliderValue(getWiredInt(triggerable, 1), 1, RANDOM_EFFECT_MAX),
     }),
     readIntParams: form => [ form.skip, form.pick ],
 };

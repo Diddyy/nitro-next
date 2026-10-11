@@ -8,10 +8,7 @@ import { ClientGates, useClientGate } from '#base/context/user';
 import { ModalDialog, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 import { flatCategoryName } from '#base/utils';
 
-const TEMPLATE = 'habbo-navigator-com/enforce_category_xml';
-
-/** `show`'s `trade_mode` entries, in `RoomTradeModeEnum` order - the selection is the mode sent. */
-const TRADE_MODE_OPTIONS = [ '${navigator.roomsettings.trade_not_allowed}', '${navigator.roomsettings.trade_not_with_Controller}', '${navigator.roomsettings.trade_allowed}' ];
+import { ROOM_TRADE_MODE_TEXTS } from './roomTradeModeTexts';
 
 /**
  * `EnforceCategoryCtrl` over `habbo-navigator-com/enforce_category_xml`, built as a modal dialog
@@ -29,6 +26,8 @@ const TRADE_MODE_OPTIONS = [ '${navigator.roomsettings.trade_not_allowed}', '${n
  * touching the menus would send the first one's picks under menus showing the first entries; each
  * dialog here starts over with what it shows.
  */
+const TEMPLATE = 'habbo-navigator-com/enforce_category_xml';
+
 export const NavigatorEnforceCategoryView = () => {
     const flatCategories = useNavigatorStore(x => x.flatCategories);
     const currentRoomId = useNavigatorStore(x => x.currentRoomId);
@@ -48,7 +47,8 @@ export const NavigatorEnforceCategoryView = () => {
             onSelect: setCategoryIndex,
         },
         trade_mode: {
-            options: TRADE_MODE_OPTIONS,
+            // `show`'s `trade_mode` entries - the selection is the mode sent.
+            options: ROOM_TRADE_MODE_TEXTS,
             selection: tradeMode,
             onSelect: setTradeMode,
         },

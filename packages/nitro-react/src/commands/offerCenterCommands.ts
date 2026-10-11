@@ -1,6 +1,6 @@
 /**
  * The offer centre's behaviour - `catalog/offers/OfferCenter` (`IOfferCenter`: `showRewards`,
- * `showVideo`, `showingVideo`) and its providers `SupersonicProvider` and `SponsorPayProvider`,
+ * `showVideo`; `showingVideo` is the store's `getOfferCenterShowingVideo`) and its providers `SupersonicProvider` and `SponsorPayProvider`,
  * whose state is `offerCenterStore`.
  *
  * A provider is a script on the hotel's web page, reached through `ExternalInterface.call`: the
@@ -18,7 +18,7 @@
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 
-import { getOfferCenterShowingVideo, OFFER_PROVIDERS, offerCenterStore, OfferProviderName } from '#base/context/offer-center';
+import { OFFER_PROVIDERS, offerCenterStore, OfferProviderName } from '#base/context/offer-center';
 import { systemStore } from '#base/context/system';
 
 /** `SponsorPayProvider`'s `SponsorPay.loadIntegration` argument: `offers.sponsorpay.appid`. */
@@ -184,9 +184,6 @@ export const showOfferVideo = () => {
         }
     }
 };
-
-/** `IOfferCenter.showingVideo`. */
-export const isOfferVideoShowing = (): boolean => getOfferCenterShowingVideo(offerCenterStore.getState());
 
 /**
  * `IOfferCenter.showRewards`: the `offer_center` window, its list built now. No Flash code path

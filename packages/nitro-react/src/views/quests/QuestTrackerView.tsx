@@ -14,7 +14,7 @@ import { ReactNode, useEffect, useState } from 'react';
 
 import { toggleQuestDetails, TRACKER_FRAME_MS, TRACKER_SUCCESS_FRAMES } from '#base/commands';
 import { QuestTrackerState } from '#base/context/quests';
-import { useRoomStore } from '#base/context/room';
+import { useIsInRoom } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
 import { Box, TemplateItem, TemplateWindow, useTemplateLibrary } from '#base/theme';
 import { QuestProgressBar } from '#base/views/shared/QuestProgressBar';
@@ -37,7 +37,7 @@ export const QuestTrackerView = ({ tracker }: { tracker: QuestTrackerState }) =>
     const { quest, phase, completedAt } = tracker;
     const t = useTranslation();
     const templates = useTemplateLibrary(QUEST_LIBRARY);
-    const inRoom = useRoomStore(x => !!x.room);
+    const inRoom = useIsInRoom();
     const [ frame, setFrame ] = useState(0);
 
     // `COMPLETED_ANIMATION`: the next `_SafeStr_N17` frame each update until the last.

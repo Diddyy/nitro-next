@@ -22,7 +22,7 @@ import type { IWiredTransactionInfo, IWiredTransactionLogList } from '@nitrodevc
 import { WiredTransactionLogListType } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
-import { openWiredTransactionUserProfile, requestWiredTransactionDetails, requestWiredTransactionLogsPage } from '#base/commands';
+import { openProfile, requestWiredTransactionDetails, requestWiredTransactionLogsPage } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
 import { WIRED_TRANSACTION_PAGE_SIZE } from '#base/context/wired-trading';
@@ -81,7 +81,7 @@ export const WiredTransactionLogsView = ({ logs, onClose }: WiredTransactionLogs
         switch (columnId) {
             case 'type': return { text: t(`wired_transactions.type.${info.transactionType}`) };
             case 'timestamp': return { text: info.readableTimestamp };
-            case 'username': return { type: 'link', text: info.userName, onLinkClick: () => openWiredTransactionUserProfile(send, info.userId) };
+            case 'username': return { type: 'link', text: info.userName, onLinkClick: () => openProfile(send, info.userId) };
             case 'deposits': return { text: summarizeWiredTransaction(t, info.depositFurniCount, info.depositCoinsCount) };
             case 'withdraws': return { text: summarizeWiredTransaction(t, info.withdrawFurniCount, info.withdrawCoinsCount) };
             case 'chests': return { text: String(info.chestCount) };

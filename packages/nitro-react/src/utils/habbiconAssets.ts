@@ -1,11 +1,12 @@
-import type { HabbiconAnimationStep, HabbiconDefinition, HabbiconRuntimeFrameDefinition } from '@nitrodevco/nitro-renderer';
-
 /**
  * The pure half of `habbicons/assets/HabbiconAssetManager`: where the habbicon assets live
  * (`HabboConfigurationManager.updateHabbiconAssetProperties` + `refreshAssetRoot`), what
  * `habbicons.json` says (`onMetadataLoaded`), and cutting a frame out of a sheet
  * (`extractFrameBitmapFromSheet`). The loading itself is `commands/habbiconCommands`.
  */
+import type { HabbiconAnimationStep, HabbiconDefinition, HabbiconRuntimeFrameDefinition } from '@nitrodevco/nitro-renderer';
+
+import { configReader } from './configReader';
 
 /** `HabboConfigurationManager.§_-Z1O§`: the root when the hotel names a hash but no `habbicons.url`. */
 export const HABBICONS_DEFAULT_ASSET_ROOT = 'https://images.habbo.com/habbicons';
@@ -37,8 +38,6 @@ export interface HabbiconMetadata {
     definitions: Record<number, HabbiconDefinition>;
 }
 
-const configText = (value: unknown): string => (((typeof value === 'string') || (typeof value === 'number')) ? String(value) : '');
-
 /**
  * The asset root with its trailing `/`, or `''` when the hotel configures none.
  *
@@ -50,13 +49,14 @@ const configText = (value: unknown): string => (((typeof value === 'string') || 
  * `%hash%` in the root, or appends it as a path segment unless the root already ends in it.
  */
 export const resolveHabbiconAssetRoot = (config: Record<string, unknown>): string => {
-    let root = configText(config['habbicons.asset.root']);
-    let hash = configText(config['habbicons.asset.hash']);
-    const externalHash = configText(config['habbicons.hash']);
+    const { configString } = configReader(config);
+    let root = configString('habbicons.asset.root');
+    let hash = configString('habbicons.asset.hash');
+    const externalHash = configString('habbicons.hash');
 
     if (externalHash.length) {
         hash = externalHash;
-        root = (config['habbicons.url'] !== undefined) ? configText(config['habbicons.url']) : HABBICONS_DEFAULT_ASSET_ROOT;
+        root = (config['habbicons.url'] !== undefined) ? configString('habbicons.url') : HABBICONS_DEFAULT_ASSET_ROOT;
     } else if (config['habbicons.asset.hash'] !== undefined) {
         root = HABBICONS_DEFAULT_ASSET_ROOT;
     }

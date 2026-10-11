@@ -16,12 +16,11 @@
  * offer with both credits and points keeps the skin's own colour. The builders club draws none.
  */
 import { IPurchasableOffer } from '@nitrodevco/nitro-api';
-import { LayoutWindow, Template, TemplateBindings, TemplateItem } from '@nitrodevco/nitro-theme';
+import { findLayoutChildByName, LayoutWindow, Template, TemplateBindings, TemplateItem } from '@nitrodevco/nitro-theme';
 
-import { calculateBundlePrice, CURRENCY_TYPE_SILVER, getCurrencyIconStyle, getSeasonalCurrencyActivityPointType } from '#base/utils';
+import { calculateBundlePrice, configReader, CURRENCY_TYPE_SILVER, getCurrencyIconStyle, getSeasonalCurrencyActivityPointType } from '#base/utils';
 
 import { catalogTemplateId } from '../catalogTemplates';
-import { findLayoutChild } from '../catalogWidgetView';
 
 /** `HabboCatalogUtils.DEFAULT_ACTIVITY_POINTS_PRICE_COLOR`. */
 const DEFAULT_ACTIVITY_POINTS_PRICE_COLOR = 0x89d3c8;
@@ -46,9 +45,6 @@ export interface CatalogPriceOptions {
     combo?: boolean;
 }
 
-/** A hotel variable as the text `getProperty` returns, empty when it is not set. */
-const configText = (value: unknown): string => (((typeof value === 'string') || (typeof value === 'number') || (typeof value === 'boolean')) ? String(value) : '');
-
 /** `HabboCatalogUtils.getPriceArray(offer, quantity, seasonal)`. */
 export const getPriceArray = (offer: IPurchasableOffer, quantity: number, seasonal: boolean, config: Record<string, unknown>): PriceItem[] => {
     const prices: PriceItem[] = [];
@@ -68,16 +64,17 @@ export const getPriceArray = (offer: IPurchasableOffer, quantity: number, season
 const getSeasonalCurrencyPriceColor = (type: number, config: Record<string, unknown>): number => {
     if ((type < 101) || (type > 105)) return DEFAULT_ACTIVITY_POINTS_PRICE_COLOR;
 
-    const currency = configText(config[`seasonalcurrency.id.${type}`]);
+    const { configString } = configReader(config);
+    const currency = configString(`seasonalcurrency.id.${type}`);
 
     if (currency === '') return DEFAULT_ACTIVITY_POINTS_PRICE_COLOR;
 
-    const color = configText(config[`seasonalcurrency.${currency}.color`]);
+    const color = configString(`seasonalcurrency.${currency}.color`);
 
     if (color === '') return DEFAULT_ACTIVITY_POINTS_PRICE_COLOR;
 
     // `ColorConverter.hexToUint` of the preset: `#rrggbb` read as hex, 0 when it is not one.
-    const border = parseInt(configText(config[`seasonalcurrency.preset.${color}.border`]).replace('#', ''), 16);
+    const border = parseInt(configString(`seasonalcurrency.preset.${color}.border`).replace('#', ''), 16);
 
     return isNaN(border) ? 0 : border;
 };
@@ -148,7 +145,7 @@ export interface PriceBoxPlacement {
 }
 
 /** The reference `showPriceOnProduct` places against: the widget's `room_canvas_container`, else the one it names. */
-const findReference = (widget: LayoutWindow, name: string | undefined) => findLayoutChild(widget, 'room_canvas_container') ?? (name ? findLayoutChild(widget, name) : undefined);
+const findReference = (widget: LayoutWindow, name: string | undefined) => findLayoutChildByName(widget, 'room_canvas_container') ?? (name ? findLayoutChildByName(widget, name) : undefined);
 
 /**
  * `showPriceOnProduct`: the `priceDisplayWidget` box added to the widget's window (the box's parent);

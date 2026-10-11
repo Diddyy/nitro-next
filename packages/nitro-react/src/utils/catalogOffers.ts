@@ -15,22 +15,11 @@ import { CatalogPricingModelEnum, CatalogPricingTypeEnum, CatalogTypeEnum, Furni
 
 import type { GameTokensOffer } from '#base/context/game-tokens';
 
-export interface CatalogFurnitureLookup {
-    readonly floorItems: Record<number, IFurnitureData>;
-    readonly wallItems: Record<number, IFurnitureData>;
+import { FurnitureDataLookup, getFurnitureDataForProductType } from './furnitureData';
+
+export interface CatalogFurnitureLookup extends FurnitureDataLookup {
     readonly productData: Record<string, IProductData>;
 }
-
-const getFurnitureData = (lookup: CatalogFurnitureLookup, classId: number, productType: FurnitureTypeEnum) => {
-    switch (productType) {
-        case FurnitureTypeEnum.Floor:
-            return lookup.floorItems[classId];
-        case FurnitureTypeEnum.Wall:
-            return lookup.wallItems[classId];
-    }
-
-    return undefined;
-};
 
 /** `Product.EFFECT_CLASSID_NINJA_DISAPPEAR`: the effect a bundle may carry along as an add-on. */
 export const EFFECT_CLASSID_NINJA_DISAPPEAR = 108;
@@ -128,7 +117,7 @@ export const processCatalogOffer = (offer: ICatalogOffer, catalogType: CatalogTy
     if (!offer) return undefined;
 
     const products: IProduct[] = offer.products.map((product) => {
-        const furnitureData = getFurnitureData(lookup, product.spriteId, product.productType);
+        const furnitureData = getFurnitureDataForProductType(lookup, product.productType, product.spriteId);
         const productData = getOfferProductData(offer.localizationId, furnitureData, lookup);
 
         return {

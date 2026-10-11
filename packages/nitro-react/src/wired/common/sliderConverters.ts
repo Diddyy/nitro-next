@@ -3,6 +3,7 @@
  * The interface is Flash's `§_-71X§`; `precision` and `endsWithFive` also configure the number
  * input `SliderSection` puts next to the title (`NumberInputParam.precision` / `endsWithFive`).
  */
+import { toInt } from './WiredUtil';
 
 /** `slider_converter.§_-71X§`. */
 export interface WiredSliderConverter {
@@ -15,9 +16,6 @@ export interface WiredSliderConverter {
     /** `endsWithFive` - the number input shows the value times five and only accepts a last digit of 0 or 5. */
     endsWithFive: boolean;
 }
-
-/** ActionScript's `int(x)`. */
-const toInt = (value: number): number => (value | 0);
 
 /** `slider_converter.§_-L3§` (`SliderSection.CONVERTER_ECHO`) - the value as it is. */
 export const SLIDER_CONVERTER_ECHO: WiredSliderConverter = {

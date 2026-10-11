@@ -4,10 +4,10 @@
  * Int params: `[ level, comparison ]` - the level 1 to 30 (`level_selection`) and the comparison
  * 0 less than, 1 equal, 2 greater than.
  */
+import { clampSliderValue } from '../../common/WiredUtil';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';
 import { ConditionCodes } from './conditionCodes';
-import { clampConditionSliderValue } from './conditionShared';
 
 /** `createSliderSection("wiredfurni.params.level_selection", "level", new §_-L3§(), 1, 30, 1)`. */
 export const LEVEL_MATCHES_MIN = 1;
@@ -22,7 +22,7 @@ export const levelMatchesCondition: WiredElementDefinition<LevelMatchesCondition
     holder: 'condition',
     code: ConditionCodes.USER_LEVEL,
     createForm: triggerable => ({
-        level: clampConditionSliderValue(getWiredInt(triggerable, 0), LEVEL_MATCHES_MIN, LEVEL_MATCHES_MAX),
+        level: clampSliderValue(getWiredInt(triggerable, 0), LEVEL_MATCHES_MIN, LEVEL_MATCHES_MAX),
         comparison: getWiredInt(triggerable, 1),
     }),
     readIntParams: form => [ form.level, form.comparison ],

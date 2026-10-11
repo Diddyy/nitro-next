@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 
 import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useOwnRoomObjectId, useRoomPetCommands, useRoomPetInfo, useRoomPetsActions, useRoomStore } from '#base/context/room';
-import { useConfigValue, useSystemActions, useTranslation } from '#base/context/system';
+import { useIsRoomOwner, useOwnRoomObjectId, useRoomPetCommands, useRoomPetInfo, useRoomPetsActions, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
+import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useRoomObjectModify, useRoomUserData } from '#base/hooks';
@@ -44,7 +44,7 @@ const TREAT_ENERGY_RATIO = 0.98;
  */
 export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimpleRoomObjectData; onClose: () => void }) => {
     const { objectId } = objectData;
-    const userData = useRoomStore(x => x.usersByRoomObjectId[objectId]);
+    const userData = useRoomUserByObjectId(objectId);
     const petId = userData?.webID ?? 0;
     const info = useRoomPetInfo(petId);
     const commands = useRoomPetCommands(petId);
@@ -56,10 +56,10 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
     const { modifyRoomObject } = useRoomObjectModify();
     const ownUserId = useOwnUserId();
     const ownCarryItem = useRoomUserData(useOwnRoomObjectId())?.carryItem ?? 0;
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
+    const isRoomOwner = useIsRoomOwner();
     const handItemGivePetEnabled = useConfigValue<boolean>('handitem.give.pet.enabled') === true;
     const compostingEnabled = useConfigValue<boolean>('monsterplants.composting.enabled') === true;
-    const { showConfirm } = useSystemActions();
+    const { showConfirm } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const petType = petTypeFromFigure(userData?.figure);

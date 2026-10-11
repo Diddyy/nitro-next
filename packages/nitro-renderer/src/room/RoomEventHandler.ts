@@ -14,7 +14,7 @@ import { RoomEnterEffect } from './utils';
 /**
  * The engine's end of Flash `RoomObjectEventHandler`: room object events and canvas mouse events
  * pass through here on their way to the UI, which holds the rest of that class
- * (`RoomEventHandler.tsx`, `useRoomEventHandler`). What is decided here is what Flash decided
+ * (`RoomEventHandler.ts`, `useRoomEventHandler`). What is decided here is what Flash decided
  * before looking at the event at all - the head of `processRoomCanvasMouseEvent` - and the one
  * request the engine answers without the UI, a furni asking for another furni's icon.
  */

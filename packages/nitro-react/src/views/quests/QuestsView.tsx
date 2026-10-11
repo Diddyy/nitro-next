@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { acceptQuest, rejectQuest } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useQuestsStore } from '#base/context/quests';
-import { useConfigData, useSystemActions, useTranslation } from '#base/context/system';
+import { useConfigData, useTranslation, useWindowActions } from '#base/context/system';
 import { useOwnHasClub } from '#base/context/user';
 import { useViewportSize } from '#base/hooks';
 import { TemplateWindow, useTemplateFrame, useTemplateLibrary } from '#base/theme';
@@ -38,7 +38,7 @@ export const QuestsView = ({ onClose }: { onClose: () => void }) => {
     const quests = useQuestsStore(x => x.quests);
     const hasClub = useOwnHasClub();
     const templates = useTemplateLibrary(LIBRARY);
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const viewport = useViewportSize();
     const [ now, setNow ] = useState(() => Date.now());

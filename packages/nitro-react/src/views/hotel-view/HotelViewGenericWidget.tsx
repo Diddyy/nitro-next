@@ -32,7 +32,7 @@ import { openCatalogExternalLink, openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import {
     hotelViewColorableBindings, hotelViewColorableFormat, HotelViewCommonSettings, hotelViewGenericConf, HotelViewGenericElement, hotelViewPaneWidths, hotelViewTimerTimeStr, isWideHotelViewSlot, parseHotelViewGenericConf, parseHotelViewGenericLayout, useConfigData,
-    useSystemActions, useSystemStore,
+    useSystemStore, useWindowActions,
 } from '#base/context/system';
 import { useSecondsClock } from '#base/hooks';
 import { CountdownWidget, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplateLibrary } from '#base/theme';
@@ -66,7 +66,7 @@ export interface HotelViewGenericWidgetProps {
 export const HotelViewGenericWidget = ({ slot, code, settings }: HotelViewGenericWidgetProps) => {
     const config = useConfigData();
     const { send } = useWebSocketContext();
-    const { showWindow, hideWindow } = useSystemActions();
+    const { showWindow, hideWindow } = useWindowActions();
     const templates = useTemplateLibrary(HOTEL_VIEW_LIBRARY);
     const secondsUntil = useSystemStore(x => x.hotelViewSecondsUntil);
     const now = useSecondsClock();

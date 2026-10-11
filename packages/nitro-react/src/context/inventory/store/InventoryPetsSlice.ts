@@ -20,6 +20,8 @@
 import { IPetData } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
+import { keepInventorySelection } from './inventorySelection';
+
 /** Flash `PetData`, as the grid and the preview read it. */
 export type InventoryPet = IPetData;
 
@@ -54,13 +56,6 @@ export const InventoryPetsSliceInitialState: State = {
 
 export type InventoryPetsSlice = State & Actions;
 
-/** `PetsView.updateState`'s selection: the one held while it is still in the list, else the first pet. */
-const keepSelection = (pets: readonly InventoryPet[], selectedId: number): number => {
-    if (pets.some(pet => pet.id === selectedId)) return selectedId;
-
-    return pets[0]?.id ?? -1;
-};
-
 export const createInventoryPetsSlice: StateCreator<InventoryPetsSlice, [], [], InventoryPetsSlice> = set => ({
     ...InventoryPetsSliceInitialState,
     updatePets: incoming => set((x) => {
@@ -68,21 +63,21 @@ export const createInventoryPetsSlice: StateCreator<InventoryPetsSlice, [], [], 
         const held = new Set(kept.map(pet => pet.id));
         const pets = [ ...kept, ...[ ...incoming.values() ].filter(pet => !held.has(pet.id)) ];
 
-        return { pets, petSelectedId: keepSelection(pets, x.petSelectedId), petListInitialized: true };
+        return { pets, petSelectedId: keepInventorySelection(pets, x.petSelectedId), petListInitialized: true };
     }),
     addPet: pet => set((x) => {
         if (x.pets.some(held => held.id === pet.id)) return x;
 
         const pets = [ ...x.pets, pet ];
 
-        return { pets, petSelectedId: keepSelection(pets, x.petSelectedId) };
+        return { pets, petSelectedId: keepInventorySelection(pets, x.petSelectedId) };
     }),
     removePet: petId => set((x) => {
         if (!x.pets.some(pet => pet.id === petId)) return x;
 
         const pets = x.pets.filter(pet => pet.id !== petId);
 
-        return { pets, petSelectedId: keepSelection(pets, x.petSelectedId) };
+        return { pets, petSelectedId: keepInventorySelection(pets, x.petSelectedId) };
     }),
     selectPet: petSelectedId => set({ petSelectedId }),
     setPetsAllowed: petsAllowed => set({ petsAllowed }),

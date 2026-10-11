@@ -1,7 +1,7 @@
 import { AvatarGenderType, RoomControllerLevelEnum, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
 
-import { useRoom, useRoomStore, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useSystemActions } from '#base/context/system';
+import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
+import { useWindowActions } from '#base/context/system';
 import { FurnitureClothingChangeView } from '#base/views/room-widgets/furniture/FurnitureClothingChangeView';
 
 /** What an undressed booth starts from, as Flash's handler had it. */
@@ -18,10 +18,10 @@ const DEFAULT_FEMALE_FIGURE = 'hd-99999-99999.ch-630-62.lg-695-62';
 export const FurnitureClothingChangeWidget = () => {
     const request = useRoomWidget(RoomObjectWidgetRequestEvent.CLOTHING_CHANGE);
     const room = useRoom();
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
-    const controllerLevel = useRoomStore(x => x.controllerLevel);
+    const isRoomOwner = useIsRoomOwner();
+    const controllerLevel = useOwnControllerLevel();
     const { closeRoomWidget } = useRoomWidgetActions();
-    const { showWindow } = useSystemActions();
+    const { showWindow } = useWindowActions();
 
     const onClose = () => closeRoomWidget(RoomObjectWidgetRequestEvent.CLOTHING_CHANGE);
 

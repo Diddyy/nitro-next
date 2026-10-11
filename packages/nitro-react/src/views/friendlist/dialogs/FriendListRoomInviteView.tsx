@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { sendRoomInvite } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsStore } from '#base/context/friend';
-import { useIsWindowVisible, useSystemActions } from '#base/context/system';
+import { useIsWindowVisible, useWindowActions } from '#base/context/system';
 import { TemplateWindow, useTemplateFrame } from '#base/theme';
 
 import { friendListAlertPosition } from './friendListAlertPosition';
@@ -24,7 +24,7 @@ const MESSAGE_MAX_LENGTH = 120;
  * message only answers with its alert - and `cancel` or the close button drops it unsent.
  */
 const FriendListRoomInvite = () => {
-    const { toggleWindow } = useSystemActions();
+    const { toggleWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const selectedFriendIds = useFriendsStore(x => x.selectedFriendIds);
     const [ message, setMessage ] = useState('');

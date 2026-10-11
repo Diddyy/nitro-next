@@ -1,3 +1,15 @@
+/**
+ * One chat bubble - the visual half of the Flash `PooledChatBubble`, composed from hooks: the
+ * style's bitmaps (`useChatStyle`), the speaker's head or the pet's face, the rasterised
+ * text (`useChatBubbleText`) and the size arithmetic (`computeChatBubbleLayout`). The children
+ * stack as Flash added them: background, emblem, pointer, face, text. The chat font size setting
+ * (`HabboFreeFlowChat.chatFontSizeScale`) scales the text size and the height cap the way
+ * `recreate` applied it - once, when the bubble is built, so a bubble already on screen keeps its
+ * size when the setting changes; only `displayedHeight`, which reads the scale each time, follows
+ * the new one. Once laid out it registers a `ChatBubbleMotion` with the flow provider, which then
+ * drives the container's position and pointer by ref every frame - the one part of a bubble that
+ * can't be declarative.
+ */
 import { Container as PixiContainer, FederatedPointerEvent, Rectangle, Sprite } from 'pixi.js';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
@@ -11,18 +23,6 @@ interface ChatBubbleViewProps {
     data: ChatBubbleData;
 }
 
-/**
- * One chat bubble - the visual half of the Flash `PooledChatBubble`, composed from hooks: the
- * style's bitmaps (`useChatStyle`), the speaker's head or the pet's face, the rasterised
- * text (`useChatBubbleText`) and the size arithmetic (`computeChatBubbleLayout`). The children
- * stack as Flash added them: background, emblem, pointer, face, text. The chat font size setting
- * (`HabboFreeFlowChat.chatFontSizeScale`) scales the text size and the height cap the way
- * `recreate` applied it - once, when the bubble is built, so a bubble already on screen keeps its
- * size when the setting changes; only `displayedHeight`, which reads the scale each time, follows
- * the new one. Once laid out
- * it registers a `ChatBubbleMotion` with the flow provider, which then drives the container's
- * position and pointer by ref every frame - the one part of a bubble that can't be declarative.
- */
 export const ChatBubbleView = ({ data }: ChatBubbleViewProps) => {
     const { host, addBubble, removeBubble, maxBubbleWidth: maxWidth, selectBubbleUser } = useChatFlow();
     const { removeChatBubble } = useRoomChatActions();

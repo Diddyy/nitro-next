@@ -24,7 +24,7 @@ const load = (path, dependencies = {}) => {
 };
 
 const objects = load('nitro-react/src/views/hotel-view/movingBackgroundObjects');
-const widgets = load('nitro-react/src/context/system/store/HotelViewWidgets', { './HotelViewSlice': load('nitro-react/src/context/system/store/HotelViewSlice') });
+const widgets = load('nitro-react/src/context/system/store/HotelViewWidgets', { './HotelViewSlice': load('nitro-react/src/context/system/store/HotelViewSlice'), '#base/utils': load('nitro-theme/src/utils/cssHexColor') });
 
 const LIBRARY = 'https://images.example/';
 const stage = { width: 1000, height: 800, desktopHeight: 800, random: () => 0.5 };

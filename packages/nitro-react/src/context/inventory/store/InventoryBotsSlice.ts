@@ -14,6 +14,8 @@
 import { IBotData } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
+import { keepInventorySelection } from './inventorySelection';
+
 /** Flash `BotData`, as the grid and the preview read it. */
 export type InventoryBot = IBotData;
 
@@ -44,13 +46,6 @@ export const InventoryBotsSliceInitialState: State = {
 
 export type InventoryBotsSlice = State & Actions;
 
-/** `BotsView.updateState`'s selection: the one held while it is still in the list, else the first bot. */
-const keepSelection = (bots: readonly InventoryBot[], selectedId: number): number => {
-    if (bots.some(bot => bot.id === selectedId)) return selectedId;
-
-    return bots[0]?.id ?? -1;
-};
-
 export const createInventoryBotsSlice: StateCreator<InventoryBotsSlice, [], [], InventoryBotsSlice> = set => ({
     ...InventoryBotsSliceInitialState,
     updateBots: incoming => set((x) => {
@@ -58,21 +53,21 @@ export const createInventoryBotsSlice: StateCreator<InventoryBotsSlice, [], [], 
         const held = new Set(kept.map(bot => bot.id));
         const bots = [ ...kept, ...[ ...incoming.values() ].filter(bot => !held.has(bot.id)) ];
 
-        return { bots, botSelectedId: keepSelection(bots, x.botSelectedId), botListInitialized: true };
+        return { bots, botSelectedId: keepInventorySelection(bots, x.botSelectedId), botListInitialized: true };
     }),
     addBot: bot => set((x) => {
         if (x.bots.some(held => held.id === bot.id)) return x;
 
         const bots = [ ...x.bots, bot ];
 
-        return { bots, botSelectedId: keepSelection(bots, x.botSelectedId) };
+        return { bots, botSelectedId: keepInventorySelection(bots, x.botSelectedId) };
     }),
     removeBot: botId => set((x) => {
         if (!x.bots.some(bot => bot.id === botId)) return x;
 
         const bots = x.bots.filter(bot => bot.id !== botId);
 
-        return { bots, botSelectedId: keepSelection(bots, x.botSelectedId) };
+        return { bots, botSelectedId: keepInventorySelection(bots, x.botSelectedId) };
     }),
     selectBot: botSelectedId => set({ botSelectedId }),
 });

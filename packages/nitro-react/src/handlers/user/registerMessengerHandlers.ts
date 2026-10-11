@@ -1,5 +1,5 @@
 import {
-    AcceptFriendResultMessage, ConsoleMessageHistoryMessage, FindFriendsProcessResultMessage, FollowFriendErrorCodeType, FollowFriendFailedMessage, FriendListErrorCodeType, FriendListFragmentMessage, FriendListUpdateMessage,
+    AcceptFriendResultMessage, ConsoleMessageHistoryMessage, FindFriendsProcessResultMessage, FollowFriendErrorCodeType, FollowFriendFailedMessage, FriendListErrorCodeType, FriendListFragmentMessage, FriendListUpdateComposer, FriendListUpdateMessage,
     FriendRequestsMessage, GetFriendRequestsComposer, HabboGroupDetailsMessage, HabboSearchResultMessage, InstantMessageErrorMessage, MessengerErrorMessage, MessengerInitMessage, MiniMailNewMessage, MiniMailUnreadCountMessage, NewConsoleMessageMessage, NewFriendRequestMessage, RoomInviteErrorMessage,
     RoomInviteMessage,
 } from '@nitrodevco/nitro-packets';
@@ -51,13 +51,18 @@ const showFriendListError = (errorCode: number, clientMessageId: number = 0) => 
     friendListAlert(getLocalizationValue('friendlist.alert.title'), key ? getLocalizationValue(key) : `Received messenger error: msg: ${clientMessageId}, errorCode: ${errorCode}`);
 };
 
+/** `HabboFriendList.onMessengerInit`'s `Timer(1000000)`: how often `sendFriendListUpdate` asks for the list again. */
+const FRIEND_LIST_UPDATE_INTERVAL_MS = 1000000;
+
 /** `client.minimail.embed.enabled`: `HabboMessenger` listens for mini mail only with it on. */
 const miniMailEnabled = () => configReader(systemStore.getState().config).configBoolean('client.minimail.embed.enabled');
 
 export const registerMessengerHandlers = ({ send, subscribe }: WebSocketConnection) => {
     const { setFriendLimits, setFriendCategories, processFriends, processFriendUpdates, processFriendRequests, replaceFriendRequests, setSearchResults } = userStore.getState();
+    // `HabboFriendList.§_-U2E§`, the friend list update timer.
+    let updateTimer: ReturnType<typeof setInterval> | undefined;
 
-    return subscribeAll(subscribe, [
+    const unsubscribe = subscribeAll(subscribe, [
         // `HabboFriendList.onAcceptFriendResult`: each refused request is marked failed, and explained.
         on(AcceptFriendResultMessage, (data) => {
             for (const failure of data.failures) {
@@ -148,6 +153,9 @@ export const registerMessengerHandlers = ({ send, subscribe }: WebSocketConnecti
 
             if (data.friendCategories) setFriendCategories(data.friendCategories);
 
+            // Started once, by the first init: `sendFriendListUpdate` on every tick.
+            updateTimer ??= setInterval(() => send(new FriendListUpdateComposer({})), FRIEND_LIST_UPDATE_INTERVAL_MS);
+
             // `HabboFriendList.onMessengerInit` -> `getFriendRequests`: the requests waiting since the
             // last session come only when asked; `NewFriendRequest` brings just the ones sent live.
             send(new GetFriendRequestsComposer({}));
@@ -195,4 +203,9 @@ export const registerMessengerHandlers = ({ send, subscribe }: WebSocketConnecti
             friendListAlert(systemStore.getState().getLocalizationValue('friendlist.alert.title'), `Received room invite error: errorCode: ${data.errorCode}, recipients: ${data.failedRecipients.join(', ')}`);
         }),
     ]);
+
+    return () => {
+        unsubscribe();
+        clearInterval(updateTimer);
+    };
 };
