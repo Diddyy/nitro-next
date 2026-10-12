@@ -16,7 +16,11 @@ export interface IWiredVariable {
     canWriteValue: boolean;
     canInterceptChanges: boolean;
     isInvisible: boolean;
-    /** Only has a value inside a running stack; kept out of pickers that read it at another time. */
+    /**
+     * Flash's `requiresExecutionContext`: kept out of the pickers that use a variable outside a
+     * running stack (Echo, Variable Changed, the fx rows). Habbo sends it false for every
+     * variable today, the context ones included (official client capture, WIN63-202610121709).
+     */
     requiresExecutionContext: boolean;
     canReadCreationTime: boolean;
     canReadLastUpdateTime: boolean;
