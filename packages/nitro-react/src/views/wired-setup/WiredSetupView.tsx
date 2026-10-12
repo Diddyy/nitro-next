@@ -8,7 +8,8 @@
  * 3. `createSelectorOptions` - a selector's "filter" and "invert" checkboxes;
  * 4. `createFurniPicks` - the "pick furni" caption with its `[count/limit]`, while room clicks
  *    pick furni and the instructions are not hidden;
- * 5. `createDelaySection` - an action's delay slider, 0 to 20 pulses;
+ * 5. `createDelaySection` - an action's delay (`ActionDelaySection` since WIN63-202610121624:
+ *    standard 0 to 120 pulses or precise 0 to 1200 steps of 0.05 s, saved negative);
  * 6. `createAdvancedSections` - the quantifier and the input sources, in advanced mode;
  * 7. `createFooter` - "ready" and "cancel".
  *
@@ -48,14 +49,14 @@ import { useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredHasWritePermission, useWiredMenuEnabled, useWiredSetupActions, useWiredStore, wiredClipboardKey, WiredSetupSession } from '#base/context/wired';
 import { useWiredActiveStyle, useWiredElementContext } from '#base/hooks';
 import { Border, Box, Frame, ScrollArea, useLayoutSize } from '#base/theme';
-import { ActionTypeCodes, hasWiredAdvancedSettings, hidesPickFurniInstructions, SLIDER_CONVERTER_PULSES } from '#base/wired';
+import { ActionTypeCodes, hasWiredAdvancedSettings, hidesPickFurniInstructions } from '#base/wired';
 
+import { WiredActionDelaySection } from './kit/WiredActionDelaySection';
 import { WiredCheckboxGroup } from './kit/WiredCheckboxGroup';
 import { WiredFooter } from './kit/WiredFooter';
 import { WiredFrameList } from './kit/WiredFrameList';
 import { WiredFrameListItem } from './kit/WiredFrameListItem';
 import { WiredSection } from './kit/WiredSection';
-import { WiredSliderSection } from './kit/WiredSliderSection';
 import { WiredSpacer } from './kit/WiredSpacer';
 import { WiredStyleProvider } from './kit/WiredStyleContext';
 import { WiredText } from './kit/WiredText';
@@ -63,9 +64,6 @@ import { WiredSetupAdvancedSettings } from './WiredSetupAdvancedSettings';
 import { WiredSetupBanner } from './WiredSetupBanner';
 import { WiredSetupHeader, WiredSetupHeaderSourceTypeSelector } from './WiredSetupHeader';
 import { WiredSetupQuickMenu, WiredSetupQuickMenuItem } from './WiredSetupQuickMenu';
-
-/** `createDelaySection`: `createSliderSection("wiredfurni.params.delay", "seconds", CONVERTER_PULSES, 0, 20, 1, false)`. */
-const DELAY_MAX_PULSES = 20;
 
 /** `InnerBorderFramePreset`'s padding around the inner border's content. */
 const INNER_BORDER_PADDING = { left: 9, top: 8, right: 9, bottom: 8 };
@@ -213,16 +211,10 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
                 </WiredSection>
             )}
             {(triggerable.holder === 'action') && (definition.allowDelaying ?? true) && (
-                <WiredSliderSection
-                    titleKey="wiredfurni.params.delay"
-                    unitKey="seconds"
-                    converter={SLIDER_CONVERTER_PULSES}
-                    min={0}
-                    max={DELAY_MAX_PULSES}
-                    step={1}
+                <WiredActionDelaySection
+                    key={triggerable.id}
                     value={triggerable.delayInPulses}
                     onChange={delayInPulses => patchSetupTriggerable({ delayInPulses })}
-                    showInput={false}
                 />
             )}
             {hasWiredAdvancedSettings(triggerable) && (
