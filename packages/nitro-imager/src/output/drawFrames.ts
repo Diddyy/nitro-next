@@ -23,9 +23,10 @@ export interface PlacedSprite {
 
 /**
  * The frames, back to front each, on one canvas size - the union of every sprite of every frame -
- * at `size`: `n` as drawn, `l` doubled, `s` halved. The bounds are kept to even pixels about the
- * object's tile, so the halving averages the same 2x2 blocks the client's zoomed-out room does
- * (`RoomDownsampleFilter`), and an animation keeps one size throughout.
+ * at `size`: `n` as drawn, `l` doubled, `s` halved. An animation keeps one size throughout, and an
+ * avatar with no effect is its geometry's canvas exactly (90x130 large). Only for `s` are the
+ * bounds rounded out to even pixels about the object's tile, so the halving averages the same 2x2
+ * blocks the client's zoomed-out room does (`RoomDownsampleFilter`).
  */
 export const drawFrames = (frames: PlacedSprite[][], size: ImageSize): Canvas[] => {
     let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
@@ -42,10 +43,14 @@ export const drawFrames = (frames: PlacedSprite[][], size: ImageSize): Canvas[] 
 
     if (!Number.isFinite(left)) throw new Error('Nothing was drawn');
 
-    left = Math.floor(left / 2) * 2;
-    top = Math.floor(top / 2) * 2;
+    if (size === 's') {
+        left = Math.floor(left / 2) * 2;
+        top = Math.floor(top / 2) * 2;
+        right = left + Math.ceil((right - left) / 2) * 2;
+        bottom = top + Math.ceil((bottom - top) / 2) * 2;
+    }
 
-    const bounds = new Rectangle(left, top, Math.ceil((right - left) / 2) * 2, Math.ceil((bottom - top) / 2) * 2);
+    const bounds = new Rectangle(left, top, right - left, bottom - top);
     const zoom = (size === 'l') ? 2 : 1;
 
     return frames.map((sprites) => {
