@@ -92,6 +92,12 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             if (data.resultCode !== ChangeUserNameResultMessageCode.NameOk) return;
 
             setName(data.name, false);
+
+            // `NameChangeController.onUserNameChanged`: every name change the server confirms is
+            // announced, the new user flow's included.
+            const { getLocalizationValue, showAlert } = systemStore.getState();
+
+            showAlert(getLocalizationValue('generic.notice', 'Notice'), getLocalizationValue('help.tutorial.name.changed', 'Your Habbo name is now changed to %name%!', { name: data.name }));
         }),
 
         on(UserNameChangedMessage, (data) => {
