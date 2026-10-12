@@ -3,7 +3,12 @@
 This sets up [the imager](imager.md) on a server managed by [Ploi](https://ploi.io): a site for its
 domain and certificate, Ploi's NGINX in front of it, and a Ploi daemon (Supervisor) keeping it
 running. The examples use `habbo-imaging.example.com` and Ploi's default `ploi` user; put your
-own domain in their place everywhere, paths included. The images are at the subdomain's root:
+own domain in their place everywhere, paths included.
+
+**If the site runs as another system user** - Ploi lets a site have its own, and its files are
+then under that user's home - every `/home/ploi/` below is `/home/<that user>/`, and the daemon in
+step 4 runs as that user. `ls -ld` on the site directory shows who owns it. A daemon with the
+wrong user or paths never starts, and every request is then a 502. The images are at the subdomain's root:
 
 - `https://habbo-imaging.example.com/avatar?figure=...`
 - `https://habbo-imaging.example.com/badge/<code>.gif`
@@ -16,14 +21,14 @@ browser / client ──https──▶ NGINX (Ploi site, SSL) ──▶ 127.0.0.1
 
 ## What the server needs
 
-- **Ubuntu, managed by Ploi.** Nothing has to be built: the canvas library ships prebuilt for
-  Linux x64 and arm64, glibc and musl alike.
-- **Node.js 24 (LTS).** Over SSH as `ploi`, `node -v` should print `v24.x`, and `which node`
+- **Ubuntu, managed by Ploi.** Nothing native has to be compiled: the canvas library and esbuild
+  ship prebuilt for Linux x64 and arm64, glibc and musl alike.
+- **Node.js 24 (LTS).** Over SSH, `node -v` should print `v24.x`, and `which node`
   tells you its path for the daemon below. Node 25 and later no longer ship `corepack`, which the
   install step uses; on those, `npm install -g corepack` first.
 - **Memory: about 1 GB for the imager** at the default settings. It levels off around 800 MB
   resident with 300 libraries loaded (`IMAGER_MAX_LIBRARIES`); lower that on a smaller server.
-- **Disk: about 150 MB** for the imager's dependencies, on top of the repository.
+- **Disk: about 200 MB** for the imager's dependencies and build tooling, on top of the repository.
 
 ## 1. Give the imager its subdomain
 
@@ -115,7 +120,7 @@ IMAGER_EFFECT_BUNDLE_URL=/home/ploi/cdn.example.com/public/bundled/effects
 IMAGER_FIGUREMAP_URL=/home/ploi/cdn.example.com/public/gamedata/FigureMap.json
 ```
 
-A bundle folder holds `<library>.nitro` files. The `ploi` user must be able to read them, and a
+A bundle folder holds `<library>.nitro` files. The site's user must be able to read them, and a
 path that is not there stops the imager at start-up, naming it.
 
 ## 3. Deploy script
@@ -124,20 +129,20 @@ Replace the site's deploy script with the following. Keep the `cd` and `git pull
 generated for the site if they differ: they carry its directory and branch.
 
 ```sh
-cd /home/ploi/habbo-imaging.example.com
-git pull origin main
-
-# Only the imager and what it runs on, without the client's build tooling.
-corepack yarn workspaces focus --production @nitrodevco/nitro-imager
-
-# Supervisor starts the imager again at once, on the new code.
-pkill -f "/home/ploi/habbo-imaging.example.com/node_modules/tsx" || true
-
-echo "Imager deployed"
+cd {SITE_DIRECTORY}
+git pull origin {BRANCH}
+bash packages/nitro-imager/deploy/ploi-deploy.sh
 ```
 
-Deploy once now, so the dependencies are in place before the daemon starts. The `pkill` finds
-nothing on this first deploy, which is fine.
+[`ploi-deploy.sh`](../packages/nitro-imager/deploy/ploi-deploy.sh) installs only the imager and
+what it runs on (`yarn workspaces focus`, without the client's build tooling), builds it into
+`packages/nitro-imager/dist`, then stops the running imager so Supervisor starts it on the new
+build, and waits for `/health` to answer on the `IMAGER_HOST` and `IMAGER_PORT` in the site's
+`.env`. A failed install or build stops the deploy and leaves the running imager and its last
+build alone; an imager that does not answer within 2 minutes fails it.
+
+Deploy once now, so the imager is built before the daemon starts. This first deploy ends with
+"The imager is not running", which is expected.
 
 ## 4. Daemon
 
@@ -145,17 +150,23 @@ On the **server** (not the site), open **Daemons** and add one:
 
 | Field | Value |
 |---|---|
-| Command | `/usr/bin/node --env-file=/home/ploi/habbo-imaging.example.com/.env /home/ploi/habbo-imaging.example.com/node_modules/tsx/dist/cli.mjs src/main.ts` |
+| Command | `/usr/bin/node --enable-source-maps --env-file=/home/ploi/habbo-imaging.example.com/.env /home/ploi/habbo-imaging.example.com/packages/nitro-imager/dist/main.js` |
 | Directory | `/home/ploi/habbo-imaging.example.com/packages/nitro-imager` |
-| User | `ploi` |
+| User | the site's system user: `ploi`, or the one the site was created with |
 | Processes | `1` |
 
 - Use the path `which node` gave you if it is not `/usr/bin/node`. Supervisor does not load
   your shell's `PATH`, so a Node installed through nvm needs its full path here.
 - **One process only.** Each would try to listen on the same port, and every process holds its
   own libraries and cache.
-- The daemon's output is in `/home/ploi/.ploi/worker-<id>.log`. A healthy start ends with
-  `Imager listening on http://127.0.0.1:3030`; a missing or wrong setting is named there instead.
+- Keep the command's `.../packages/nitro-imager/dist/main.js` path as it is: the deploy script
+  restarts the imager by finding the process running it.
+- The daemon's output is in a `worker-<id>.log` under the `.ploi` folder of a user's home
+  (`sudo sh -c 'ls -t /home/*/.ploi/worker-*.log | head'` finds the newest). A healthy start ends
+  with `Imager listening on http://127.0.0.1:3030`; a missing or wrong setting is named there
+  instead.
+- To see a start-up error directly, run the command by hand as the site's user, from the
+  daemon's directory: `sudo -u <user> <the command above>`. Ctrl+C stops it.
 
 ## 5. NGINX
 
@@ -182,9 +193,23 @@ The client loads the images from an https page, so they must be https too.
 
 ## 7. Check it
 
+On the server, the imager itself:
+
+```sh
+curl http://127.0.0.1:3030/health
+```
+
+Then from anywhere, through NGINX:
+
 ```sh
 curl https://habbo-imaging.example.com/health
 ```
+
+With Ploi's **Cloudflare-only** setting on for the site, NGINX closes any connection that does not
+come from Cloudflare without answering. A request to the server's own address - `curl` on the
+server against `127.0.0.1:443`, or `--resolve` to its IP - then fails with an empty reply or an
+HTTP/2 `PROTOCOL_ERROR`, whatever the imager is doing. Test the imager on `127.0.0.1:3030`, and the
+site through its Cloudflare address.
 
 This returns `ok: true`, with how many images are cached, the loaded libraries, the badge table's
 version and the process's memory. Then open an avatar and a badge in a browser:
@@ -222,7 +247,7 @@ With Cloudflare or similar in front, cache by the full url, query string include
 
 ## Updating
 
-Deploy the site. The script installs any new dependencies and restarts the imager. In-memory
+Deploy the site. The script installs any new dependencies, rebuilds and restarts the imager. In-memory
 caches start empty, so the first requests for each figure fetch their libraries again.
 
 ## When something is wrong
@@ -230,8 +255,10 @@ caches start empty, so the first requests for each figure fetch their libraries 
 | Symptom | Look at |
 |---|---|
 | The certificate request fails, or the subdomain shows another site | `dig +short habbo-imaging.example.com` must give this server's address. Behind Cloudflare, the SSL mode must be Full (strict). Another site on the server must not already list the subdomain as an alias. |
-| `502 Bad Gateway` | The daemon is not running, or `IMAGER_PORT` and the `proxy_pass` port differ. Check the daemon's log and its status under Daemons. |
-| The daemon keeps restarting | Its log: a missing setting or path is named at start-up. `node: not found` means the command needs Node's full path. |
+| `502 Bad Gateway`; the site's NGINX error log says `connect() failed (111: Connection refused)` to `127.0.0.1:3030` | The imager is not running. `sudo supervisorctl status`, then the daemon's log. A site under another system user needs that user and its `/home/<user>/` paths in the daemon. Or `IMAGER_PORT` and the `proxy_pass` port differ. |
+| A request straight to the server's address gets no reply at all | The site's Cloudflare-only setting, working as meant: see step 7. |
+| A deploy fails with "The imager did not come back" | The daemon's log: the new build did not start, or took over 2 minutes to load its data. |
+| The daemon keeps restarting | `Cannot find module .../dist/main.js`: nothing is built yet, so deploy the site. Otherwise its log: a missing setting or path is named at start-up. `node: not found` means the command needs Node's full path. |
 | Every avatar is `no-store` | The bundle addresses: the libraries are not being found. A folder must hold `<library>.nitro`; a url must contain `%libname%`. |
 | Badges draw in the wrong colours | `IMAGER_BADGE_PARTS` is not Turbo's table, or Turbo predates `badgeparts_json`; `/health` shows the table version in use. |
 | Memory keeps climbing past ~1 GB | Lower `IMAGER_MAX_LIBRARIES` (and `IMAGER_CACHE_MB`). `/health` shows the library count and memory. |

@@ -1633,6 +1633,7 @@ __metadata:
     "@napi-rs/canvas": "npm:^1.0.11"
     "@nitrodevco/nitro-api": "workspace:*"
     "@nitrodevco/nitro-renderer": "workspace:*"
+    esbuild: "npm:^0.28.2"
     gifenc: "npm:^1.0.3"
     hono: "npm:^4.13.13"
     pixi.js: "npm:^8.18.1"
@@ -3898,7 +3899,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild@npm:~0.28.0":
+"esbuild@npm:^0.28.2, esbuild@npm:~0.28.0":
   version: 0.28.2
   resolution: "esbuild@npm:0.28.2"
   dependencies:

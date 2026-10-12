@@ -6,8 +6,14 @@ windows, infostand and navigator (`badge.asset.group.url`, `group.badge.url`), a
 
 ```sh
 cp packages/nitro-imager/.env.example packages/nitro-imager/.env   # then set the urls
-yarn workspace @nitrodevco/nitro-imager start                      # or: dev (watch), test
+yarn workspace @nitrodevco/nitro-imager build                      # into dist/
+yarn workspace @nitrodevco/nitro-imager start                      # runs dist/main.js; or: dev (watch), test
 ```
+
+`build.ts` bundles it with esbuild: the `@nitrodevco/*` packages export their TypeScript source, so
+they go into the bundle, and every other package is left to Node to load from `node_modules`. The
+bundle is split so `main.ts`'s dynamic import of `startImager` stays a separate chunk, loaded after
+the Node environment is installed. `dev` and `test` run the source through tsx.
 
 To run it on a server managed by Ploi, see [Running the imager on Ploi](imager-ploi.md).
 
