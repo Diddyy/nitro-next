@@ -1,3 +1,7 @@
+/**
+ * The background toner's backdrop - `RoomDesktop`'s `background_wrapper`: one flat rectangle at the
+ * back of the room stage, faded to the toner's colour, that lives as long as the room does.
+ */
 import { ColorConverter, IRoomRenderingCanvas } from '@nitrodevco/nitro-api';
 import { ColorTransitioner, GetRenderer, GetRoomStage, GetTicker, GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { Graphics } from 'pixi.js';
@@ -82,3 +86,6 @@ export const DisposeRoomBackgroundColor = () => {
     transitioner = undefined;
     backdropColor = 0;
 };
+
+/** `RoomDesktop.roomBackgroundColor`: the toner's colour as it shows now, 0 without one. */
+export const GetRoomBackgroundColor = () => backdropColor;

@@ -1,12 +1,11 @@
 import { ISimpleRoomObjectData, RoomObjectCategoryEnum, RoomObjectUserType, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
 import { ReactNode, useState } from 'react';
 
-import { useOwnRoomObjectId, useRoom, useRoomBotsActions, useRoomFurnitureContextMenu, useRoomIsPlayingGame, useRoomObjectIdByWebId, useRoomStore } from '#base/context/room';
-import { useConfigValue } from '#base/context/system';
+import { useOwnRoomObjectId, useRoom, useRoomBotsActions, useRoomFurnitureContextMenu, useRoomIsPlayingGame, useRoomIsSpectating, useRoomObjectIdByWebId, useRoomStore } from '#base/context/room';
+import { useUserStore } from '#base/context/user';
 import { useWiredStore } from '#base/context/wired';
 import { useRoomEventDispatcher } from '#base/hooks';
 import { FurnitureContextMenuView } from '#base/views/room-widgets/furniture/FurnitureContextMenuView';
-import { AvatarMenuTemplateView } from '#base/views/room-widgets/object-menu/AvatarMenuTemplateView';
 import { DecorateModeBubbleView } from '#base/views/room-widgets/object-menu/DecorateModeBubbleView';
 import { InfoBubbleAvatarView } from '#base/views/room-widgets/object-menu/InfoBubbleAvatarView';
 import { InfoBubbleOwnAvatarView } from '#base/views/room-widgets/object-menu/InfoBubbleOwnAvatarView';
@@ -26,6 +25,8 @@ import { RoomObjectMenuPet } from './RoomObjectMenuPet';
  * While the room's wired listens for clicks on users (`hasClickUserWired`), a unit's menu is held
  * back (`maybeSetupMenuView`) until the server answers the reported click
  * (`WIRED_USER_CLICK_HANDLED`) with `openMenu` for that same unit (`onUserClickHandledEvent`).
+ * A spectator (`isSpectatorMode`) gets none of the unit parts: Flash does not create the avatar
+ * info widget for them, only the furniture context menu.
  * While the room is playing a game - a game arena, or wired click settings that make it one
  * (`isGameMode`: `RoomEngine.getActiveRoomIsPlayingGame`) - users, pets and rentable bots open no
  * menu at all.
@@ -34,13 +35,16 @@ export const RoomObjectMenuWidget = () => {
     const [ selectedData, setSelectedData ] = useState<ISimpleRoomObjectData | undefined>(undefined);
     const [ hoverData, setHoverData ] = useState<ISimpleRoomObjectData | undefined>(undefined);
     const room = useRoom();
+    const nameChangeAllowed = useUserStore(x => x.nameChangeAllowed);
+    // `RWAIE_AVATAR_INFO`: the own user's name over their avatar from the moment they are in the room.
+    const [ dismissedEntryKey, setDismissedEntryKey ] = useState<string | undefined>(undefined);
     const ownRoomObjectId = useOwnRoomObjectId();
     const contextMenu = useRoomFurnitureContextMenu();
     const isDecorating = useRoomStore(x => x.isDecorating);
     const isPlayingGame = useRoomIsPlayingGame();
+    // `RoomUI` creates `RWE_AVATAR_INFO` - every unit's menu and name, and the decorate bubble - only for a session that is not spectating.
+    const isSpectating = useRoomIsSpectating();
     const forcedBotMenuId = useRoomStore(x => x.forcedBotMenuId);
-    // The window templates spike: the menu over another user drawn from its Flash template.
-    const templateAvatarMenu = useConfigValue<boolean>('ui.templates.avatarMenu') === true;
     // The room object's type is a pet's breed name, not its kind; the user list knows the kind.
     const selectedUserType = useRoomStore(x => (selectedData ? x.usersByRoomObjectId[selectedData.objectId]?.userType : undefined));
     const { setForcedBotMenuId } = useRoomBotsActions();
@@ -66,6 +70,10 @@ export const RoomObjectMenuWidget = () => {
 
     const onClose = () => setSelectedData(undefined);
 
+    // `dispatchOwnAvatarInfo` -> `updateUserView(own, allowNameChange false)`: `AvatarContextInfoButtonView` over the own avatar, once per room entry until something else is selected. A user who may change the name gets the minimised menu selected instead.
+    const entryKey = (room && !isSpectating && !nameChangeAllowed && (ownRoomObjectId >= 0)) ? `${room.roomId}:${ownRoomObjectId}` : undefined;
+    const entryData: ISimpleRoomObjectData | undefined = (entryKey && (entryKey !== dismissedEntryKey)) ? { objectId: ownRoomObjectId, category: RoomObjectCategoryEnum.Unit } : undefined;
+
     useRoomEventDispatcher(RoomWidgetUpdateRoomObjectEvent.OBJECT_DESELECTED, () => setSelectedData(undefined));
 
     useRoomEventDispatcher<RoomWidgetUpdateRoomObjectEvent>([ RoomWidgetUpdateRoomObjectEvent.USER_REMOVED, RoomWidgetUpdateRoomObjectEvent.FURNI_REMOVED ], (event) => {
@@ -75,6 +83,7 @@ export const RoomObjectMenuWidget = () => {
     useRoomEventDispatcher<RoomWidgetUpdateRoomObjectEvent>(RoomWidgetUpdateRoomObjectEvent.OBJECT_SELECTED, (event) => {
         setSelectedData({ objectId: event.objectId, category: event.category });
         setHoverData(undefined);
+        setDismissedEntryKey(entryKey);
         setHeldMenuIndex((hasClickUserWired && (Number(event.category) === Number(RoomObjectCategoryEnum.Unit))) ? event.objectId : undefined);
     });
 
@@ -120,7 +129,7 @@ export const RoomObjectMenuWidget = () => {
             case RoomObjectCategoryEnum.Unit: {
                 const userType = selectedUserType;
 
-                if (userType === undefined) return null;
+                if ((userType === undefined) || isSpectating) return null;
 
                 // `isGameMode()` - `updateUserView` / `updatePetView` / `updateRentableBotView` set no menu up.
                 if (isPlayingGame && (userType !== RoomObjectUserType.Bot)) return null;
@@ -168,19 +177,12 @@ export const RoomObjectMenuWidget = () => {
                             );
                         }
 
-                        return bubble(templateAvatarMenu
-                            ? (
-                                    <AvatarMenuTemplateView
-                                        objectData={selectedData}
-                                        onClose={onClose}
-                                    />
-                                )
-                            : (
-                                    <InfoBubbleAvatarView
-                                        objectData={selectedData}
-                                        onClose={onClose}
-                                    />
-                                ));
+                        return bubble(
+                            <InfoBubbleAvatarView
+                                objectData={selectedData}
+                                onClose={onClose}
+                            />,
+                        );
                 }
 
                 return null;
@@ -190,9 +192,37 @@ export const RoomObjectMenuWidget = () => {
         return null;
     };
 
+    const renderUnitBubble = () => {
+        if (hoverData && !isDecorating) {
+            if (isSpectating) return null;
+
+            return (
+                <RoomObjectMenuNameBubble
+                    key="hover"
+                    objectData={hoverData}
+                />
+            );
+        }
+
+        const selected = renderSelected();
+
+        if (selected) return selected;
+
+        if (!entryData || selectedData || isDecorating) return null;
+
+        // The entry name fades like any other; once gone it stays gone for this entry.
+        return (
+            <RoomObjectMenuNameBubble
+                key="entry"
+                objectData={entryData}
+                onClose={() => setDismissedEntryKey(entryKey)}
+            />
+        );
+    };
+
     return (
         <>
-            {isDecorating && (ownRoomObjectId >= 0) && (
+            {isDecorating && !isSpectating && (ownRoomObjectId >= 0) && (
                 <RoomObjectMenuBubble
                     objectData={{ objectId: ownRoomObjectId, category: RoomObjectCategoryEnum.Unit }}
                     userType={RoomObjectUserType.User}
@@ -200,7 +230,7 @@ export const RoomObjectMenuWidget = () => {
                     <DecorateModeBubbleView />
                 </RoomObjectMenuBubble>
             )}
-            {(hoverData && !isDecorating) ? <RoomObjectMenuNameBubble objectData={hoverData} /> : renderSelected()}
+            {renderUnitBubble()}
         </>
     );
 };

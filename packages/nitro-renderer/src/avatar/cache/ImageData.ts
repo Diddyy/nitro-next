@@ -1,5 +1,6 @@
 import { Container, Point, Rectangle, Texture } from 'pixi.js';
 
+/** Port of Flash `ImageData`. */
 export class ImageData {
     private _texture: Texture | undefined;
     private _rect: Rectangle;

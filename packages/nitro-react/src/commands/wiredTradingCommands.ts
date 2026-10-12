@@ -8,11 +8,11 @@
  * The wired menu's chests tab (another window) uses `openWiredChest`,
  * `requestWiredRoomTransactionLogs` and `requestWiredTransactionDetails` from here.
  *
- * The reference server (turbo-cloud) answers none of these packets: every flow follows Flash.
+ * Every flow follows Flash, which is the specification here; Turbo implements the chest packets.
  */
 import { IChestItemType, RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import {
-    CloseChestComposer, GetExtendedProfileComposer, IWiredContractContents, IWiredTransactionLogList, OpenChestAndGetContentsComposer, SelfDonateItemComposer, SetChestNotificationPreferencesComposer,
+    CloseChestComposer, IWiredContractContents, IWiredTransactionLogList, OpenChestAndGetContentsComposer, SelfDonateItemComposer, SetChestNotificationPreferencesComposer,
     SetChestNotificationPreferencesComposerType, SetChestOptionsComposer, SetChestPreferencesComposer, SetChestPreferencesComposerType, StartAddingToChestComposer, UpgradeChestComposer, WiredTradeAddDeleteItemsComposer,
     WiredTradeCancelComposer, WiredTradeConfirmComposer, WiredTransactionGetChestLogsComposer, WiredTransactionGetLogDetailsComposer, WiredTransactionGetRoomLogsComposer, WiredTransactionLogListType, WiredUpdateContractComposer,
     WithdrawAllFromChestComposer, WithdrawCoinsFromChestComposer, WithdrawItemsFromChestComposer,
@@ -26,6 +26,7 @@ import {
     WIRED_CHEST_KEY_CAPACITY_LEVEL, WIRED_CHEST_KEY_EVERYONE_CAN_OPEN, WIRED_CHEST_TYPE_COIN, WIRED_TRADE_STATE_ADDING_ITEMS, WIRED_TRADE_STATE_CONFIRMED, WIRED_TRADE_STATE_CONFIRMING, WIRED_TRADE_STATE_COUNTDOWN,
     WIRED_TRADE_STATE_READY, WIRED_TRANSACTION_PAGE_SIZE, WiredChestFurniData, wiredTradingStore,
 } from '#base/context/wired-trading';
+import { getFurnitureData } from '#base/utils';
 
 type Send = WebSocketConnection['send'];
 
@@ -223,9 +224,6 @@ export const requestWiredRoomTransactionLogs = (send: Send, pageSize: number, pa
 /** `TransactionTableObject.onClickDetails`. */
 export const requestWiredTransactionDetails = (send: Send, transactionId: number) => send(new WiredTransactionGetLogDetailsComposer({ transactionId }));
 
-/** `TransactionTableObject.onClickUsername`. */
-export const openWiredTransactionUserProfile = (send: Send, userId: number) => send(new GetExtendedProfileComposer({ userId, openProfile: true }));
-
 /** `RewardNotificationController.linkReceived` (`wiredrewards/open/<id>`): a reward nobody kept is ignored. */
 export const openWiredRewardView = (internalId: number) => {
     const { rewardsById, openRewardView } = wiredTradingStore.getState();
@@ -251,7 +249,8 @@ export const openWiredSelfDonation = () => {
 
 /** `SelfDonationTool.onDonate` with its `validate`: a failed check is an alert, not a packet. */
 export const selfDonateWiredItem = (send: Send, type: IChestItemType | undefined, amount: number) => {
-    const { getLocalizationValue, showAlert, floorItems, wallItems } = systemStore.getState();
+    const system = systemStore.getState();
+    const { getLocalizationValue, showAlert } = system;
     const alert = (message: string) => showAlert(getLocalizationValue('wiredfurni.error.title', 'wiredfurni.error.title'), message);
 
     if (!isWiredSelfDonationAllowed()) {
@@ -272,7 +271,7 @@ export const selfDonateWiredItem = (send: Send, type: IChestItemType | undefined
         return;
     }
 
-    if (!(type.isWallItem ? wallItems : floorItems)[type.typeId]) {
+    if (!getFurnitureData(system, type.typeId, type.isWallItem)) {
         alert(getLocalizationValue('selfdonation.invalid_item', 'This item cannot be donated from the sandbox tool.'));
 
         return;

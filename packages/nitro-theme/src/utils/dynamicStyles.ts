@@ -1,9 +1,7 @@
-import { InteractionState } from '../hooks/useInteractionState';
-
 /**
  * Port of the client's `com.sulake.core.window.dynamicstyle` - the hover/press effects a layout
  * names through `dynamic_style="..."`, all five of them, transcribed from
- * `DynamicStyleManager.fillStyleTable()` (and matching `flash-js`'s `DynamicStyleManager.js`):
+ * `DynamicStyleManager.fillStyleTable()` (and matching `habbo-js`'s `DynamicStyleManager.js`):
  * `lifted_hover` (toolbar icons, friend bar buttons), `brightness_and_shadow_under` (room tool
  * buttons), `brightness_and_shadow_under_gentle`, `reward_track_item` and `button`.
  *
@@ -20,6 +18,9 @@ import { InteractionState } from '../hooks/useInteractionState';
  * and an unknown style name, or a tagged child under a style that has no rule for its tag,
  * resolves to that bare default - so a disabled dynamic-style host always fades.
  */
+import { InteractionState } from '../hooks/useInteractionState';
+import { parseCssHexColor, toCssHexColor } from './cssHexColor';
+
 /**
  * The `dynamic_style="..."` names the client's `DynamicStyleManager` knows - `DynamicStyle`'s
  * `STYLE_LIFTED_HOVER`, `BRIGHTNESS_AND_SHADOW_UNDER`, `BRIGHTNESS_AND_SHADOW_UNDER_GENTLE`,
@@ -48,7 +49,7 @@ interface DynamicStyleDefinition {
 }
 
 const EMPTY_RULE: DynamicStyleRule = {};
-/** `DynamicStyle`'s constructor default for `disabledStyles` - the same in the AS3 and `flash-js`. */
+/** `DynamicStyle`'s constructor default for `disabledStyles` - the same in the AS3 and `habbo-js`. */
 const DISABLED_RULE: DynamicStyleRule = { colorTransform: [ 1, 1, 1, 0.5, 0, 0, 0, 0 ] };
 
 const LIFTED_HOVER: DynamicStyleDefinition = {
@@ -156,7 +157,7 @@ export interface DynamicStyleEffect {
 }
 
 const byte = (value: number): number => Math.max(0, Math.min(255, Math.round(value)));
-const toHex = (r: number, g: number, b: number): string => `#${((byte(r) << 16) | (byte(g) << 8) | byte(b)).toString(16).padStart(6, '0')}`;
+const toHex = (r: number, g: number, b: number): string => toCssHexColor((byte(r) << 16) | (byte(g) << 8) | byte(b));
 
 export const dynamicStyleEffect = (rule: DynamicStyleRule): DynamicStyleEffect => {
     const effect: DynamicStyleEffect = { x: rule.offsetX ?? 0, y: rule.offsetY ?? 0 };
@@ -181,9 +182,7 @@ export const dynamicStyleEffect = (rule: DynamicStyleRule): DynamicStyleEffect =
     const etchingAlpha = rule.etchingColor === undefined ? 0 : ((rule.etchingColor >>> 24) & 0xff) / 255;
 
     if (etchingAlpha > 0 && rule.etchingPoint) {
-        const rgb = (rule.etchingColor ?? 0) & 0xffffff;
-
-        effect.etching = { color: `#${rgb.toString(16).padStart(6, '0')}`, alpha: etchingAlpha, x: rule.etchingPoint[0], y: rule.etchingPoint[1] };
+        effect.etching = { color: toCssHexColor(rule.etchingColor ?? 0), alpha: etchingAlpha, x: rule.etchingPoint[0], y: rule.etchingPoint[1] };
     }
 
     return effect;
@@ -191,11 +190,7 @@ export const dynamicStyleEffect = (rule: DynamicStyleRule): DynamicStyleEffect =
 
 /** Parses `#rgb` / `#rrggbb` into 0..255 channels (white for anything unparsable). */
 const parseHex = (color: string): [ number, number, number ] => {
-    let hex = color.trim().replace(/^#/, '');
-
-    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-
-    const value = Number.parseInt(hex, 16);
+    const value = parseCssHexColor(color);
 
     if (Number.isNaN(value)) return [ 255, 255, 255 ];
 

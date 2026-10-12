@@ -1,8 +1,3 @@
-import { RoomThicknessType } from '@nitrodevco/nitro-api';
-import { StateCreator } from 'zustand';
-
-import { FloorPlanTile } from '#base/utils';
-
 /**
  * What the floor plan editor is working on - `FloorPlanCache`, plus the bits of `BCFloorPlanEditor`
  * that are the room's rather than the window's.
@@ -12,6 +7,10 @@ import { FloorPlanTile } from '#base/utils';
  * a room slice, all of it is cleared by `RoomStore.setRoom` when you walk into the next room - which
  * is what Flash's `REE_DISPOSED` listener did by hiding the window.
  */
+import { RoomThicknessType } from '@nitrodevco/nitro-api';
+import { StateCreator } from 'zustand';
+
+import { FloorPlanTile } from '#base/utils';
 
 /** `BCFloorPlanEditor.WALL_HEIGHT_LIMIT` - how many steps the fixed wall height slider has. */
 export const FLOOR_PLAN_WALL_HEIGHT_LIMIT = 16;

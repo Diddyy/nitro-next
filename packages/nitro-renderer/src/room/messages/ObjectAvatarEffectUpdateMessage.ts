@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarEffectUpdateMessage`. */
 export class ObjectAvatarEffectUpdateMessage extends ObjectStateUpdateMessage {
     private _effect: number;
     private _delayMilliseconds: number;

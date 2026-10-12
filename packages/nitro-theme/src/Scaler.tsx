@@ -28,6 +28,10 @@ export interface ScalerProps extends ThemeProps<ScalerVariant> {
     direction?: ScalerDirection;
 }
 
+/**
+ * Flash's `ScalerController` (`scaler`): a frame's resize corner, its skin at its own size over the
+ * content, with the resize cursor of its direction; `Frame` hands it the drag (`useFrameResize`).
+ */
 export const Scaler: ForwardRefExoticComponent<ScalerProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, ScalerProps>(
     ({
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, direction = 'all',

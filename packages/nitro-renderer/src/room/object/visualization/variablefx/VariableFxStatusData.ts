@@ -1,3 +1,4 @@
+/** Port of Flash `VariableFxStatusData`. */
 export class VariableFxStatusData {
     public extra: Map<string, string>;
 

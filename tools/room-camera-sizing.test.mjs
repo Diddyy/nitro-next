@@ -10,14 +10,14 @@ import ts from 'typescript';
 const load = (source, dependencies) => {
     const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
     const exports = {};
-    runInNewContext(outputText, { exports, window: { innerWidth: 800, innerHeight: 600 }, require: (name) => {
+    runInNewContext(outputText, { exports, window: { innerWidth: 800, innerHeight: 600, addEventListener() {}, removeEventListener() {} }, require: (name) => {
         assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`);
         return dependencies[name];
     } });
     return exports;
 };
 const { Vector3d } = load(readFileSync(new URL('../packages/nitro-api/src/utils/Vector3d.ts', import.meta.url), 'utf8'), {});
-const source = readFileSync(new URL('../packages/nitro-react/src/hooks/room/useRoomCamera.tsx', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../packages/nitro-react/src/hooks/room/useRoomCamera.ts', import.meta.url), 'utf8');
 const fixture = ({ width = 800, height = 600, small = false, follow = false, disabled = false, disabledByUser = false, followEnabled = true, configuredSpeed = 12 } = {}) => {
     let ref;
     const target = new Vector3d(10, 10, 0);
@@ -195,7 +195,7 @@ await test('own-avatar camera target is assigned in both login packet orders, ne
 });
 
 await test('the installed room ticker and resize listener use the latest camera callback', () => {
-    const component = readFileSync(new URL('../packages/nitro-react/src/components/room/RoomCanvas.tsx', import.meta.url), 'utf8');
+    const component = readFileSync(new URL('../packages/nitro-react/src/components/room/RoomCanvas.ts', import.meta.url), 'utf8');
     let callback;
     let effect;
     let refIndex = 0;
@@ -205,7 +205,8 @@ await test('the installed room ticker and resize listener use the latest camera 
     let registrations = 0;
     const seen = [];
 
-    const canvas = { master: { on() {}, off() {} }, initialize() {} };
+    let initialized = 0;
+    const canvas = { master: { on() {}, off() {} }, initialize: () => initialized++ };
     const room = { canvas, roomId: 1, dispatchEvent() {} };
     const { RoomCanvas } = load(component, {
         '@nitrodevco/nitro-api': { RoomRenderedEvent: class {} },
@@ -216,6 +217,7 @@ await test('the installed room ticker and resize listener use the latest camera 
         react: { useRef: value => (refs[refIndex++] ??= { current: value }), useEffect: (fn) => { effect ??= fn; }, useLayoutEffect: fn => fn() },
         '#base/context/room': { useRoom: () => room, useRoomStore: select => select({}), useRoomMouseActions: () => ({ hasAndResetCursorUpdate: () => false }) },
         '#base/hooks': { useRoomCamera: () => ({ updateRoomCamera: callback }) },
+        './touchPlacementDrop': { touchPlacementDrop: { objectId: -1, category: -1 } },
     });
     callback = time => seen.push([ 'initial', time ]);
     RoomCanvas();
@@ -225,8 +227,13 @@ await test('the installed room ticker and resize listener use the latest camera 
     refIndex = 0;
     RoomCanvas();
     tick({ lastTime: 2, deltaTime: 1 });
+    // A resize only re-initializes the canvas (`RoomEngine.modifyRoomCanvas`); the next tick's camera
+    // update eases to the new size, so the listener itself never updates the camera.
+    const before = initialized;
     resize();
-    assert.deepEqual(seen, [ [ 'initial', -1 ], [ 'initial', 1 ], [ 'updated target/settings', 2 ], [ 'updated target/settings', -1 ] ]);
+    assert.equal(initialized, before + 1);
+    tick({ lastTime: 3, deltaTime: 1 });
+    assert.deepEqual(seen, [ [ 'initial', -1 ], [ 'initial', 1 ], [ 'updated target/settings', 2 ], [ 'updated target/settings', 3 ] ]);
     assert.equal(registrations, 1);
 });
 

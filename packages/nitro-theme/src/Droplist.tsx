@@ -20,6 +20,10 @@ export interface DroplistProps extends ThemeProps<DroplistVariant> {
     children?: ReactNode;
 }
 
+/**
+ * Flash's `DropListController` (`droplist`): the skin with its caption, and the skin's `arrow` at
+ * its distance from the top right corner.
+ */
 export const Droplist: ForwardRefExoticComponent<DroplistProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, DroplistProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, children }, ref) => {
         const { ownCascade, config, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<DroplistVariant>({

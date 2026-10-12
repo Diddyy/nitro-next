@@ -1,7 +1,8 @@
-﻿import { IActiveActionData } from '@nitrodevco/nitro-api';
+import { IActiveActionData } from '@nitrodevco/nitro-api';
 
 import { AvatarImageActionCache } from './AvatarImageActionCache';
 
+/** Port of Flash `AvatarImageBodyPartCache`. */
 export class AvatarImageBodyPartCache {
     private _cache: Map<string, AvatarImageActionCache> = new Map();
     private _currentAction: IActiveActionData | undefined = undefined;

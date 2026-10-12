@@ -6,21 +6,14 @@
 import { IChestItemType, IFurnitureData } from '@nitrodevco/nitro-api';
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 
-import { useSystemStore, useTranslation } from '#base/context/system';
-import { getWiredChestItemName } from '#base/utils';
+import { useFurnitureData, useSystemStore, useTranslation } from '#base/context/system';
+import { getFurnitureData, getWiredChestItemName } from '#base/utils';
 
 /** `ItemTypeSelectionPreset.furniDataForSelectedItem`. */
-export const useWiredChestItemFurniData = (type: IChestItemType | undefined): IFurnitureData | undefined => {
-    const floorItems = useSystemStore(x => x.floorItems);
-    const wallItems = useSystemStore(x => x.wallItems);
-
-    if (!type) return undefined;
-
-    return (type.isWallItem ? wallItems : floorItems)[type.typeId];
-};
+export const useWiredChestItemFurniData = (type: IChestItemType | undefined): IFurnitureData | undefined => useFurnitureData(type?.typeId, type?.isWallItem ?? false);
 
 /** The icon's URL, `''` for none: a floor type's own icon, a wall type's with the poster id as its extra. */
-export const useWiredChestItemIconUrl = (type: IChestItemType | undefined): string => {
+export const getWiredChestItemIconUrl = (type: IChestItemType | undefined): string => {
     if (!type) return '';
 
     const engine = GetRoomEngine();
@@ -28,13 +21,16 @@ export const useWiredChestItemIconUrl = (type: IChestItemType | undefined): stri
     return (type.isWallItem ? engine.getFurnitureWallIconUrl(type.typeId, type.legacyPosterId || undefined) : engine.getFurnitureFloorIconUrl(type.typeId)) ?? '';
 };
 
+/** `getWiredChestItemIconUrl`, for a component that shows one item. */
+export const useWiredChestItemIconUrl = (type: IChestItemType | undefined): string => getWiredChestItemIconUrl(type);
+
 /** `getChestBasedItemName` as a function, for a list of items (the furni chest's search). */
 export const useWiredChestItemNameResolver = (): ((type: IChestItemType, specialType: number) => string) => {
     const t = useTranslation();
     const floorItems = useSystemStore(x => x.floorItems);
     const wallItems = useSystemStore(x => x.wallItems);
 
-    return (type, specialType) => getWiredChestItemName(type, specialType, key => t(key, key), (isWallItem, typeId) => (isWallItem ? wallItems : floorItems)[typeId]?.localizedName);
+    return (type, specialType) => getWiredChestItemName(type, specialType, key => t(key, key), (isWallItem, typeId) => getFurnitureData({ floorItems, wallItems }, typeId, isWallItem)?.localizedName);
 };
 
 /** `getChestBasedItemName`. */

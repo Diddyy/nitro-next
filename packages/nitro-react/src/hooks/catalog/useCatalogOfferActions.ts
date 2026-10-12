@@ -1,6 +1,6 @@
 import { ICatalogOffer, IFurnitureData } from '@nitrodevco/nitro-api';
 
-import { useCatalogStore } from '#base/context/catalog';
+import { useCatalogType } from '#base/context/catalog';
 import { useSystemStore } from '#base/context/system';
 import { getOfferProduct, processCatalogOffer, processFurnitureAsOffer } from '#base/utils';
 
@@ -10,14 +10,14 @@ import { getOfferProduct, processCatalogOffer, processFurnitureAsOffer } from '#
  * product.
  */
 export const useCatalogOfferActions = () => {
-    const catalogType = useCatalogStore(x => x.catalogType);
+    const catalogType = useCatalogType();
     const floorItems = useSystemStore(x => x.floorItems);
     const wallItems = useSystemStore(x => x.wallItems);
     const productData = useSystemStore(x => x.productData);
     const lookup = { floorItems, wallItems, productData };
 
     const processOffer = (offer: ICatalogOffer) => processCatalogOffer(offer, catalogType, lookup);
-    const processAsOffer = (furnitureData: IFurnitureData) => processFurnitureAsOffer(furnitureData, lookup);
+    const processAsOffer = (furnitureData: IFurnitureData, offerId?: number, isRentOffer?: boolean) => processFurnitureAsOffer(furnitureData, lookup, offerId, isRentOffer);
 
     return { getOfferProduct, processOffer, processAsOffer };
 };

@@ -1,9 +1,11 @@
-import { AvatarActionStateType, IVector3D, LegacyDataType, RoomObjectCategoryEnum, RoomObjectVariableEnum, SlideAvatarMoveType, Vector3d } from '@nitrodevco/nitro-api';
-import { DiceValueMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
+import { AvatarActionStateType, IRoom, IVector3D, LegacyDataType, RoomObjectCategoryEnum, RoomObjectVariableEnum, SlideAvatarMoveType, Vector3d } from '@nitrodevco/nitro-api';
+import { DiceValueMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveConfirmMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, PickupObjectComposer, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
 import { GetRoomContentLoader, LegacyWallGeometry, ObjectMoveUpdateMessage } from '@nitrodevco/nitro-renderer';
 
+import { createPickupTransition } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
+import { systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -16,7 +18,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * The furni aliases (`onFurnitureAliases`) are the content loader's, not a room's: a type drawn
  * from another type's asset (`RoomEngine.setRoomObjectAlias`).
  */
-export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection) => {
+export const registerRoomFurnitureHandlers = ({ subscribe, send }: WebSocketConnection) => {
     const addRoomObjectFloor = (item: IRoomFloorItem) => {
         const room = getRoom();
 
@@ -110,25 +112,38 @@ export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection
             for (const { name, alias } of data.aliases) GetRoomContentLoader().setAssetAliasName(name, alias);
         }),
 
+        /*
+         * `RoomMessageHandler.onObjectRemoveConfirm`: the server asks before a pickup - its title and
+         * text are localization keys - and OK sends the pickup again, confirmed.
+         */
+        on(ObjectRemoveConfirmMessage, ({ id, category, confirmTitle, confirmBody }) => {
+            const { interpolate, showConfirm } = systemStore.getState();
+
+            showConfirm(interpolate(`\${${confirmTitle}}`), interpolate(`\${${confirmBody}}`), () => send(new PickupObjectComposer({ objectId: id, objectCategory: category, confirm: true })));
+        }),
+
         on(ObjectRemoveMessage, (data) => {
             const room = getRoom();
 
             if (!room) return;
 
-            const isOwner = false;
+            // `onObjectRemove`: an expired item was picked up by no one.
+            const pickerId = data.isExpired ? -1 : data.pickerId;
+
+            const remove = (room: IRoom) => {
+                createPickupTransition(room, data.objectId, RoomObjectCategoryEnum.Floor, pickerId);
+                room.removeRoomObjectFloor(data.objectId);
+                room.refreshTileObjectMap();
+            };
 
             if (data.delay > 0) {
                 setTimeout(() => {
                     const room = getRoom();
 
-                    if (!room) return;
-
-                    room.removeRoomObjectFloor(data.objectId, isOwner);
-                    room.refreshTileObjectMap();
+                    if (room) remove(room);
                 }, data.delay);
             } else {
-                room.removeRoomObjectFloor(data.objectId, isOwner);
-                room.refreshTileObjectMap();
+                remove(room);
             }
         }),
 
@@ -138,9 +153,8 @@ export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection
             if (!room) return;
 
             for (const objectId of data.objectIds) {
-                const isOwner = false;
-
-                room.removeRoomObjectFloor(objectId, isOwner);
+                createPickupTransition(room, objectId, RoomObjectCategoryEnum.Floor, data.pickerId);
+                room.removeRoomObjectFloor(objectId);
                 room.refreshTileObjectMap();
             }
         }),
@@ -196,9 +210,8 @@ export const registerRoomFurnitureHandlers = ({ subscribe }: WebSocketConnection
 
             if (!room) return;
 
-            const isOwner = false;
-
-            room.removeRoomObjectWall(data.objectId, isOwner);
+            createPickupTransition(room, data.objectId, RoomObjectCategoryEnum.Wall, data.pickerId);
+            room.removeRoomObjectWall(data.objectId);
         }),
 
         on(ItemsMessage, (data) => {

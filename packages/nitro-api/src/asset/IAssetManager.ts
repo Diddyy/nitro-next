@@ -24,5 +24,7 @@ export interface IAssetManager {
     getBundleBinary(bundleName: string, fileName: string): ArrayBuffer | undefined;
     /** Drops a retained bundle's tables and raw bytes once its consumer has read them. */
     releaseBundleData(name: string): void;
+    /** Forgets a retained bundle and frees its textures - for a bundle nothing draws any more. */
+    removeAssetBundle(name: string): void;
     readonly collections: Map<string, IGraphicAssetCollection>;
 }

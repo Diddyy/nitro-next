@@ -118,11 +118,9 @@ export interface LoadingScreenViewProps {
     photo: number;
     /** A random number in [0, 1) the first line of the revolving text is picked with. */
     seed: number;
-    /** Whether `loading-screen-photos` has arrived - until then the frame shows without a photo. */
-    photoReady: boolean;
 }
 
-export const LoadingScreenView = ({ progress, error, photo, seed, photoReady }: LoadingScreenViewProps) => {
+export const LoadingScreenView = ({ progress, error, photo, seed }: LoadingScreenViewProps) => {
     const { width, height } = useViewportSize();
     const t = useTranslation();
     const revolving = t('client.starting.revolving', '');
@@ -164,13 +162,11 @@ export const LoadingScreenView = ({ progress, error, photo, seed, photoReady }: 
                     bitmap={{}}
                     layout={{ position: 'absolute', left: 0, top: 0, width: SPLASH_WIDTH, height: SPLASH_HEIGHT }}
                 />
-                {photoReady && (
-                    <ThemeImage
-                        src={`loading-screen-photos-userphoto_${photo}`}
-                        bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
-                        layout={{ position: 'absolute', left: PHOTO_X, top: PHOTO_Y }}
-                    />
-                )}
+                <ThemeImage
+                    src={`loading-screen-userphoto_${photo}`}
+                    bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
+                    layout={{ position: 'absolute', left: PHOTO_X, top: PHOTO_Y }}
+                />
                 <ThemeImage
                     src="loading-screen-splash_top"
                     bitmap={{}}

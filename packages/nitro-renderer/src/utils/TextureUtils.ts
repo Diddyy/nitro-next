@@ -1,10 +1,23 @@
-import { Container, ExtractImageOptions, ExtractOptions, GenerateTextureOptions, ImageSource, Matrix, RenderTexture, Sprite, Texture } from 'pixi.js';
+import { BindGroup, Container, ExtractImageOptions, ExtractOptions, GenerateTextureOptions, ImageSource, Matrix, pruneTextureBatchBindGroups, RenderGroup, RenderTexture, Sprite, Texture, TextureSource } from 'pixi.js';
 
 import { GetRenderer } from './GetRenderer';
 import { TexturePool } from './TexturePool';
 
 /** The strength (`k = 8`) of the sharpen the Flash `AvatarImage` ran over a reduced-size render. */
 const REDUCED_TEXTURE_SHARPEN = 8;
+
+/** How long, in ms, a batch bind group may go undrawn before `pruneBatchBindGroups` drops it. */
+const BATCH_BIND_GROUP_MAX_IDLE = 30_000;
+
+/** An eventemitter3 listener record, as Pixi's emitters store them. */
+type BindListener = { fn: () => void; context: unknown };
+
+/** A texture source or style, seen through the eventemitter3 internals that hold its listeners. */
+type BindEmitter = {
+    _events?: Record<string, BindListener | BindListener[]>;
+    off(event: string, fn: () => void, context: unknown): void;
+    removeAllListeners(event: string): void;
+};
 
 export class TextureUtils {
     /** Containers whose render groups draw room textures (`RoomSpriteCanvas`'s): `destroyTexture` rebuilds their batches. */
@@ -30,6 +43,36 @@ export class TextureUtils {
     public static destroyTexture(texture: Texture, destroySource: boolean = true): void {
         if (!texture || texture.destroyed) return;
 
+        this.rebuildWatchedBatches();
+
+        if (destroySource) this.releaseBatchBindGroups(texture.source);
+
+        texture.destroy(destroySource);
+    }
+
+    /** `destroyTexture` for a bare source - a collection's sheet, once its frames are gone. */
+    public static destroySource(source: TextureSource): void {
+        if (!source || source.destroyed) return;
+
+        this.rebuildWatchedBatches();
+        this.releaseBatchBindGroups(source);
+
+        source.destroy();
+    }
+
+    /**
+     * Rebuilds the batches of every watched container (the room canvases and the UI stage) before a
+     * texture they may draw is destroyed. A pooled texture can be drawn by either - an avatar head
+     * shows in the room and in a chat bubble - so every destroy path rebuilds them all. A render group
+     * only rebuilds its own instructions, so the nested groups under each are marked as well.
+     */
+    public static rebuildWatchedBatches(): void {
+        const markGroup = (group: RenderGroup): void => {
+            group.structureDidChange = true;
+
+            for (const child of group.renderGroupChildren) markGroup(child);
+        };
+
         for (const container of this._batchOwners) {
             if (container.destroyed) {
                 this._batchOwners.delete(container);
@@ -39,18 +82,93 @@ export class TextureUtils {
 
             const group = container.renderGroup ?? container.parentRenderGroup;
 
-            if (group) group.structureDidChange = true;
+            if (group) markGroup(group);
         }
+    }
 
-        texture.destroy(destroySource);
+    /**
+     * Detaches a source, and its style, from Pixi's batch bind groups before the source is destroyed.
+     * The WebGPU batcher caches a bind group for every texture combination it has drawn and never evicts
+     * one, so a pooled texture reused across frames ends up subscribed to hundreds of them. Destroying the
+     * source then warns once per group (`a 'textureSampler' was destroyed while still bound`), flooding the
+     * console and stalling the frame. This does what `BindGroup.onResourceChange` would - clears the slot
+     * and marks the key dirty - without the warning; the groups are unreachable once the source is gone.
+     */
+    private static releaseBatchBindGroups(source: TextureSource): void {
+        if (!source || source.destroyed) return;
+
+        const handler = (BindGroup.prototype as unknown as { onResourceChange: () => void }).onResourceChange;
+
+        for (const emitter of [ source, source.style ] as unknown as BindEmitter[]) {
+            if (!emitter?._events) continue;
+
+            const events = emitter._events.change;
+
+            if (!events) continue;
+
+            const listeners = Array.isArray(events) ? events : [ events ];
+            const kept: BindListener[] = [];
+
+            for (const listener of listeners) {
+                const { fn, context } = listener;
+
+                if ((fn !== handler) || !(context instanceof BindGroup)) {
+                    kept.push(listener);
+
+                    continue;
+                }
+
+                for (const key in context.resources) {
+                    if ((context.resources[key] as unknown) === emitter) delete context.resources[key];
+                }
+
+                (context as unknown as { _dirty: boolean })._dirty = true;
+            }
+
+            if (kept.length === listeners.length) continue;
+
+            // One rebuild of the list: eventemitter3's `off` copies the whole list per call, and a pooled
+            // source can be subscribed to hundreds of groups, so removing them one by one was quadratic.
+            if (kept.length) emitter._events.change = (kept.length === 1) ? kept[0] : kept;
+            else emitter.removeAllListeners('change');
+        }
+    }
+
+    /**
+     * Lets textures the room no longer draws be garbage collected. Pixi's WebGPU batcher caches a bind
+     * group for every texture combination it has drawn and never evicts one, so every avatar frame,
+     * chat bubble and furniture texture of a busy room stayed reachable - with its pixels and hit map -
+     * for the rest of the session, even after leaving. The patched `pixi.js` (`.yarn/patches`) adds
+     * `pruneTextureBatchBindGroups`, which drops the groups not drawn recently; a dropped group that is
+     * drawn again rejoins the cache, so nothing still on screen is affected.
+     */
+    public static pruneBatchBindGroups(): number {
+        return pruneTextureBatchBindGroups(performance.now(), BATCH_BIND_GROUP_MAX_IDLE);
     }
 
     public static generateTexture(options: GenerateTextureOptions | Container) {
         return this.getRenderer().textureGenerator.generateTexture(options);
     }
 
-    public static generateTextureFromImage(image: HTMLImageElement): Texture {
-        return Texture.from(image);
+    /**
+     * Uploads an image-backed source to the GPU now and closes the decoded bitmap behind it, so the
+     * sheet is held once - on the GPU - instead of also as a bitmap until its first draw. The
+     * renderer's texture garbage collection is turned off for it: with no bitmap left, an unloaded
+     * source could not upload again. Its owner releases it (`destroySource`). Does nothing for a
+     * source that is not an `ImageBitmap`, or while there is no renderer.
+     */
+    public static makeGpuResident(source: TextureSource): void {
+        const bitmap = source?.resource as unknown;
+
+        if (!source || source.destroyed || (typeof ImageBitmap === 'undefined') || !(bitmap instanceof ImageBitmap)) return;
+
+        const renderer = this.getRenderer();
+
+        if (!renderer) return;
+
+        source.autoGarbageCollect = false;
+        renderer.texture.initSource(source);
+        bitmap.close();
     }
 
     /** Decodes an encoded image straight into a texture. A `Blob` is handed to the decoder as is - no intermediate byte copy. */
@@ -67,38 +185,14 @@ export class TextureUtils {
         return this.getExtractor().image(options);
     }
 
-    public static async generateImageUrl(options: ExtractImageOptions | Container | Texture) {
-        return this.getExtractor().base64(options);
-    }
-
     public static generateCanvas(options: ExtractOptions | Container | Texture) {
         return this.getExtractor().canvas(options);
-    }
-
-    public static clearRenderTexture(texture: Texture): Texture {
-        return this.writeToTexture(new Sprite(Texture.EMPTY), texture);
     }
 
     public static createRenderTexture(width: number, height: number) {
         if (width < 0 || height < 0) return undefined;
 
         return RenderTexture.create({ width, height });
-    }
-
-    public static createAndFillRenderTexture(
-        width: number,
-        height: number,
-        color: number = 16777215,
-    ): Texture | undefined {
-        if (width < 0 || height < 0) return undefined;
-
-        const renderTexture = this.createRenderTexture(width, height);
-
-        if (renderTexture) {
-            return this.clearAndFillRenderTexture(renderTexture, color);
-        }
-
-        return renderTexture;
     }
 
     public static createAndWriteRenderTexture(
@@ -116,19 +210,6 @@ export class TextureUtils {
         return renderTexture;
     }
 
-    public static clearAndFillRenderTexture(texture: Texture, color: number = 16777215): Texture {
-        if (!texture) return texture;
-
-        const sprite = new Sprite(Texture.WHITE);
-
-        sprite.tint = color;
-
-        sprite.width = texture.width;
-        sprite.height = texture.height;
-
-        return this.writeToTexture(sprite, texture);
-    }
-
     public static writeToTexture(
         container: Container,
         target: Texture,
@@ -144,39 +225,6 @@ export class TextureUtils {
             });
 
         return target;
-    }
-
-    public static flipTextureHorizontal(texture: Texture) {
-        if (!texture) return texture;
-
-        const matrix = new Matrix();
-
-        matrix.scale(-1, 1);
-        matrix.translate(texture.width, 0);
-
-        return this.createAndWriteRenderTexture(texture.width, texture.height, new Sprite(texture), matrix);
-    }
-
-    public static flipTextureVertical(texture: Texture) {
-        if (!texture) return texture;
-
-        const matrix = new Matrix();
-
-        matrix.scale(1, -1);
-        matrix.translate(0, texture.height);
-
-        return this.createAndWriteRenderTexture(texture.width, texture.height, new Sprite(texture), matrix);
-    }
-
-    public static flipTextureHorizontalAndVertical(texture: Texture) {
-        if (!texture) return texture;
-
-        const matrix = new Matrix();
-
-        matrix.scale(-1, -1);
-        matrix.translate(texture.width, texture.height);
-
-        return this.createAndWriteRenderTexture(texture.width, texture.height, new Sprite(texture), matrix);
     }
 
     public static makeWhiteTransparent(texture: Texture) {
@@ -248,7 +296,8 @@ export class TextureUtils {
         if (!texture) return undefined;
 
         // A one-off upload: skip Pixi's global `Cache`, which would otherwise register the canvas.
-        const upload = new Sprite(Texture.from(canvas, true));
+        const uploadTexture = Texture.from(canvas, true);
+        const upload = new Sprite(uploadTexture);
 
         this.getRenderer().render({
             target: texture,
@@ -256,7 +305,10 @@ export class TextureUtils {
             clear: true,
         });
 
-        upload.destroy({ texture: true, textureSource: true });
+        // Drawn once, by itself: only the batcher's cached bind groups still hold the source.
+        upload.destroy();
+        this.releaseBatchBindGroups(uploadTexture.source);
+        uploadTexture.destroy(true);
 
         return texture;
     }

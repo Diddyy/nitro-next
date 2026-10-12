@@ -16,8 +16,9 @@ import {
 } from '@nitrodevco/nitro-api';
 import { ImageLike, Texture, Ticker, UPDATE_PRIORITY } from 'pixi.js';
 
+import { GetAvatarRenderManager } from '#renderer/avatar';
 import { PetFigureData } from '#renderer/session';
-import { GetTicker, NumberBank, PurgeTrigger, TextureUtils } from '#renderer/utils';
+import { GetTicker, LoadMetrics, NumberBank, PurgeTrigger, TextureUtils } from '#renderer/utils';
 
 import { GetRoomContentLoader } from './GetRoomContentLoader';
 import { ObjectDataUpdateMessage, ObjectRoomMaskUpdateMessage } from './messages';
@@ -27,8 +28,11 @@ import { GetVariableFxAssetLibrary } from './object/visualization/variablefx/Var
 import { Room } from './Room';
 import { RoomGeometry } from './utils';
 
+/** Port of Flash `RoomEngine`. */
 export class RoomEngine implements IRoomEngine {
     public static TEMPORARY_ROOM_ID: number = -1;
+    /** `createRoomFurniture`'s `getTimer() - start >= 30`: how long a frame may spend building queued furniture. */
+    private static FURNITURE_CREATION_BUDGET_MS: number = 30;
 
     private _rooms: Map<number, IRoom> = new Map();
     private _imageObjectIdBank = new NumberBank(1000);
@@ -40,8 +44,13 @@ export class RoomEngine implements IRoomEngine {
         await GetRoomContentLoader().init();
 
         // Flash `CoreComponentContext` starts the purge trigger with the client; `Core.purge` reaches
-        // the room engine's `purge`, which purges the room content.
-        PurgeTrigger.start(() => this.purgeRoomContent());
+        // the room engine's `purge`, which purges the room content. The avatar render manager's
+        // `purge` was empty in Flash, so clothing and effect libraries stayed for the session; here
+        // they go too once no live avatar draws with them.
+        PurgeTrigger.start(() => {
+            this.purgeRoomContent();
+            GetAvatarRenderManager().purgeAssets();
+        });
 
         // The Variable FX atlas is not needed for the first frame; statuses that arrive before it
         // has loaded are kept by their stack additions and drawn once it is ready.
@@ -74,13 +83,30 @@ export class RoomEngine implements IRoomEngine {
         GetTicker().remove(this._tick);
     }
 
-    /** Advances every room that is being drawn (has a canvas): the main room and any previewers alike. */
+    /**
+     * Flash `RoomEngine.update`: the queued furniture of every room is built first, within one shared
+     * budget (`createRoomFurniture`), then every room that is being drawn (has a canvas) advances - the
+     * main room and any previewers alike.
+     */
     public update(time: number): void {
+        this.createRoomFurniture();
+
         for (const room of this._rooms.values()) {
             if (!room.canvas) continue;
 
             room.update(time);
         }
+    }
+
+    /**
+     * Flash `RoomEngine.createRoomFurniture`: each room builds its queued furniture until the frame has
+     * spent `FURNITURE_CREATION_BUDGET_MS` since this started, checked every four pieces - so a room
+     * that comes after the budget is spent still builds up to four.
+     */
+    private createRoomFurniture(): void {
+        const startTime = performance.now();
+
+        for (const room of this._rooms.values()) room.createPendingFurniture(startTime, RoomEngine.FURNITURE_CREATION_BUDGET_MS);
     }
 
     public createRoom(roomId: number): IRoom {
@@ -90,27 +116,31 @@ export class RoomEngine implements IRoomEngine {
 
         room = new Room(roomId);
 
+        LoadMetrics.event('room-created', { roomId });
+
         this._rooms.set(roomId, room);
 
         return room;
     }
 
-    /*
-     * RoomEngine.disposeRoom in the SWF removes the instance from its map before
-     * disposing it (`roomInstanceData.remove(identifier)`), so a later createRoom for
-     * the same id builds a fresh room rather than handing back a disposed one.
-     */
     /** Flash `purgeRoomContent` (and the engine's `purge`): the loader releases what nothing draws. */
     public purgeRoomContent(): void {
         GetRoomContentLoader().purge();
     }
 
+    /**
+     * Flash `RoomEngine.disposeRoom` removes the room from its map (`§_-C2o§.remove(identifier)`)
+     * before disposing it, so a later `createRoom` for the same id builds a fresh room rather than
+     * handing back a disposed one.
+     */
     public disposeRoom(roomId: number): void {
         const room = this._rooms.get(roomId);
 
         if (!room) return;
 
         this._rooms.delete(roomId);
+
+        LoadMetrics.event('room-disposed', { roomId });
 
         room.dispose();
     }
@@ -377,9 +407,12 @@ export class RoomEngine implements IRoomEngine {
 
         let geometry: IRoomGeometry | undefined = undefined;
         let scale: RoomGeometryScaleType = RoomGeometryScaleType.None;
+        const rendered: number[] = [];
 
         for (const roomObject of roomObjects) {
             if (!roomObject?.model || roomObject.type !== type) continue;
+
+            rendered.push(roomObject.id);
 
             const imageScale = roomObject.model.getValue<RoomGeometryScaleType>(RoomObjectVariableEnum.ImageQueryScale);
 
@@ -410,6 +443,14 @@ export class RoomEngine implements IRoomEngine {
         }
 
         geometry?.dispose();
+
+        // Flash removed each one once rendered and handed its id back; left in place, every delayed
+        // image kept a whole room object, and after 1000 the id bank ran dry and every image failed.
+        for (const objectId of rendered) {
+            room.removeRoomObject(objectId, objectCategory);
+
+            this._imageObjectIdBank.freeNumber(objectId - 1);
+        }
     }
 
     public getTemporaryRoom(): IRoom {

@@ -5,8 +5,15 @@ import { themeVariantsOf } from '../utils/themeRegistry';
 import { resolveByState, useInteractionState } from './useInteractionState';
 import { useResolvedVariant } from './useResolvedVariant';
 
+/**
+ * What every theme component draws from: its variant (the caller's, the cascaded one, or its
+ * default - `useResolvedVariant`), the skin for its interaction state, its tint (none for a
+ * `colorize: false` skin), drop shadow and text style (the theme's default for the window style
+ * when the variant names none - `themeDefaultTextStyle`), and the pointer handlers that track
+ * that state and show its tooltip.
+ */
 export const useThemeVariant = <T extends AnyThemeVariant>({
-    cascadeKey, variant, defaultVariant = '0', tintColor, textStyle, textColor, dropShadow, tooltip, tooltipDelay, disabled, selected, interactive, stopsPropagation,
+    cascadeKey, variant, defaultVariant = '0', tintColor, textStyle, textColor, dropShadow, tooltip, tooltipDelay, disabled, selected, pressed, interactive, stopsPropagation,
     onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
 }: ThemeOptions<T>): ThemeResult<T> => {
     const { resolvedVariant, ownCascade } = useResolvedVariant(cascadeKey, variant, defaultVariant);
@@ -19,11 +26,12 @@ export const useThemeVariant = <T extends AnyThemeVariant>({
     // reads the cursor off the click handlers alone, a component hovered only for its tooltip
     // keeps the arrow rather than reading as clickable.
     const tooltipHandlers = useTooltipHandlers(tooltip, tooltipDelay);
-    const { state, handlers } = useInteractionState({
+    const { state: pointerState, handlers } = useInteractionState({
         disabled, interactive, stopsPropagation, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         onPointerOver: compose(tooltipHandlers.onPointerOver, onPointerOver),
         onPointerOut: compose(tooltipHandlers.onPointerOut, onPointerOut),
     });
+    const state = (pressed && (pointerState !== 'disabled')) ? 'pressed' : pointerState;
 
     const statesConfig = config as ThemeWithStatesVariant;
     const layerConfig = config as ThemeVariant;

@@ -3,6 +3,10 @@ import { IAssetData, IRoomObjectUpdateMessage, RoomObjectVariableEnum, RoomObjec
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash `FurnitureClothingChangeLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_clothing_change`.
+ */
 export class FurnitureClothingChangeLogic extends FurnitureLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.CLOTHING_CHANGE ]);

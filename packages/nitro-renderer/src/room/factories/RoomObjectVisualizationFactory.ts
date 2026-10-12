@@ -51,6 +51,7 @@ import { AnimatedFurnitureVisualization,
     TileCursorVisualization,
 } from '../object';
 
+/** Port of Flash `RoomObjectVisualizationFactory`. */
 export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationFactory {
     private static CACHING_ENABLED: boolean = true;
 
@@ -181,6 +182,9 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
             case RoomObjectVisualizationType.FURNITURE_YOUTUBE:
                 visualization = FurnitureYoutubeVisualization;
                 break;
+            // Flash builds two more types that deliberately land here on the static furniture
+            // visualization: the snowwar `game_snowball` / `game_snowsplash`, which need the game
+            // engine. Run `scripts/drift/factories.py` after a revision bump to see whether that list grew.
             default:
                 visualization = FurnitureVisualization;
                 break;

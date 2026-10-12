@@ -3,6 +3,12 @@ import { useState } from 'react';
 import { useTranslation } from '#base/context/system';
 import { Border, Button, Frame, TextInput } from '#base/theme';
 
+/**
+ * `data`'s `font_face`: Courier, which none of the captured faces cover, so it is the browser's
+ * own - with the faces a system without Courier keeps the columns in.
+ */
+const MAP_FONT = 'Courier, Courier New, monospace';
+
 export interface FloorPlanImportExportViewProps {
     /** The map the dialog opens on - `_floorPlanCache.getData()` at the moment it was shown. */
     modelData: string;
@@ -16,8 +22,11 @@ export interface FloorPlanImportExportViewProps {
 /**
  * The floor plan editor's import/export dialog - `ImportExportDialog`, on the
  * `floor_plan_export_import` layout (379x374, frame style 3, margins 1/30/1/1). The map as text,
- * to copy out of or paste into. The layout's two scrollbars on `data` are left out: the port's
- * `TextInput` scrolls itself and exposes no scroll position for a bar to drive.
+ * to copy out of or paste into. `data` is `multiline` without `word_wrap`, so every row of the
+ * map stays one line, its tiles in columns; wrapped, a row wider than the box broke onto the next
+ * line and the columns no longer lined up. The layout's two scrollbars on `data` are left out:
+ * the port's `TextInput` scrolls itself to the caret and exposes no scroll position for a bar to
+ * drive.
  *
  * Its save is not the editor's: Flash sends the pasted text with the entry point and the two
  * thicknesses but leaves the fixed wall height off the packet entirely, so the room keeps whatever
@@ -49,7 +58,8 @@ export const FloorPlanImportExportView = ({ modelData, receivedModel, canSave, o
                     value={value}
                     onChange={setValue}
                     multiline
-                    fontFamily="Courier"
+                    wordWrap={false}
+                    fontFamily={MAP_FONT}
                     flashPlacement
                     backgroundColor={null}
                     focusedBackgroundColor={null}

@@ -4,6 +4,10 @@ import { ObjectDataUpdateMessage, ObjectMoveUpdateMessage } from '../../../messa
 import { MovingObjectLogic } from '../MovingObjectLogic';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash `FurniturePushableLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_pushable`.
+ */
 export class FurniturePushableLogic extends FurnitureMultiStateLogic {
     private static ANIMATION_NOT_MOVING: number = 0;
     private static ANIMATION_MOVING: number = 1;

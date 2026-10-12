@@ -1,3 +1,8 @@
+/**
+ * A themed component's interaction state - default, hovering, pressed or disabled, the states a
+ * Flash window's skin is drawn in - and the pointer handlers that track it (`useInteractionState`),
+ * with the state's entry of a per-state table (`resolveByState`).
+ */
 import { useMemo, useState } from 'react';
 
 import { compose, hasAnyPointerHandler, hasClickHandler, PointerHandlerProps } from '../utils/interaction';
@@ -36,7 +41,7 @@ export interface UseInteractionStateOptions extends PointerHandlerProps {
  * pointer handlers/eventMode its `<Box>` renders with - composing in whatever pointer handlers
  * the component's own caller already wanted (an `onPress` prop, a drag-start handler, ...) so
  * both fire, instead of every call site hand-merging its own handler with this hook's internal
- * one the way ScrollbarSliderButtonUp.tsx and its three siblings each used to, separately.
+ * one.
  * `onPointerTap` has no internal use here (tapping doesn't drive a hover/press transition) so
  * it passes straight through unchanged.
  *

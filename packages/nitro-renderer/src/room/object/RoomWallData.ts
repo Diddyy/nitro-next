@@ -1,6 +1,7 @@
-﻿import { IVector3D, Vector3d } from '@nitrodevco/nitro-api';
+import { IVector3D, Vector3d } from '@nitrodevco/nitro-api';
 import { Point } from 'pixi.js';
 
+/** Port of Flash `RoomWallData`. */
 export class RoomWallData {
     public static WALL_DIRECTION_VECTORS: IVector3D[] = [
         new Vector3d(1, 0, 0),

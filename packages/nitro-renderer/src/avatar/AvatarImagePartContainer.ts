@@ -2,6 +2,7 @@ import { AvatarFigurePartType, IActionDefinition, IPartColor } from '@nitrodevco
 
 import { AvatarAnimationFrame } from './structure';
 
+/** Port of Flash `AvatarImagePartContainer`. */
 export class AvatarImagePartContainer {
     private _bodyPartId: string;
     private _partType: AvatarFigurePartType;

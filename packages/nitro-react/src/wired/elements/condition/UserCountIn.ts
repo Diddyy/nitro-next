@@ -5,10 +5,10 @@
  * Int params: `[ minimum, maximum ]`, each 0 to 125 (`usercountmin` / `usercountmax` sliders
  * without a number input).
  */
+import { clampSliderValue } from '../../common/WiredUtil';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';
 import { ConditionCodes } from './conditionCodes';
-import { clampConditionSliderValue } from './conditionShared';
 
 /** `createSliderSection(..., new §_-L3§(), 0, 125, 1, false)` - both sliders. */
 export const USER_COUNT_IN_MAX = 125;
@@ -23,8 +23,8 @@ export const userCountInCondition: WiredElementDefinition<UserCountInConditionFo
     code: ConditionCodes.USER_COUNT_IN,
     negativeCode: ConditionCodes.NOT_USER_COUNT_IN,
     createForm: triggerable => ({
-        min: clampConditionSliderValue(getWiredInt(triggerable, 0), 0, USER_COUNT_IN_MAX),
-        max: clampConditionSliderValue(getWiredInt(triggerable, 1), 0, USER_COUNT_IN_MAX),
+        min: clampSliderValue(getWiredInt(triggerable, 0), 0, USER_COUNT_IN_MAX),
+        max: clampSliderValue(getWiredInt(triggerable, 1), 0, USER_COUNT_IN_MAX),
     }),
     readIntParams: form => [ form.min, form.max ],
 };

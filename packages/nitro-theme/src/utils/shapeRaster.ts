@@ -14,6 +14,7 @@
  * Colours are Flash ARGB: an alpha byte of 0 counts as opaque (`alphaFromColor`,
  * `argbFromColor`), which is how a layout colour written without an alpha draws solid.
  */
+import { parseCssHexColor } from './cssHexColor';
 
 export type ShapeKind = 'rectangle' | 'round_rectangle' | 'ellipse' | 'rhombus';
 
@@ -30,7 +31,7 @@ export interface ShapeRasterOptions {
 }
 
 /** `ShapeSkinRenderer.alphaFromColor`. */
-export const flashAlphaFromColor = (color: number): number => {
+const flashAlphaFromColor = (color: number): number => {
     const alpha = (color >>> 24) & 0xFF;
 
     return (alpha === 0) ? 1 : (alpha / 255);
@@ -43,11 +44,7 @@ export const flashAlphaFromColor = (color: number): number => {
 export const flashColorFromString = (color: string | undefined, fallback: number): number => {
     if (!color) return fallback;
 
-    let hex = color.trim().replace(/^#|^0x/i, '');
-
-    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-
-    const value = Number.parseInt(hex, 16);
+    const value = parseCssHexColor(color);
 
     return Number.isNaN(value) ? fallback : (value >>> 0);
 };

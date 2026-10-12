@@ -3,9 +3,9 @@ import { MoveEntityInFlatComposer, MoveObjectComposer, MovePetComposer, MoveWall
 import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { roomStore, useRoom, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
+import { roomStore, useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
 import { useOwnIsAnyRoomController, useOwnUserId } from '#base/context/user';
-import { isFurnitureOwnedBy } from '#base/utils';
+import { getValidRoomObjectDirection, isFurnitureOwnedBy, setObjectAlphaMultiplier } from '#base/utils';
 
 import { useRoomObjectSelect } from './useRoomObjectSelect';
 import { useRoomObjectValidation } from './useRoomObjectValidation';
@@ -22,13 +22,13 @@ export const useRoomObjectModify = () => {
     const ownUserId = useOwnUserId();
     const isAnyRoomController = useOwnIsAnyRoomController();
     const selectedObject = useRoomSelectedObject();
-    const controllerLevel = useRoomStore(x => x.controllerLevel);
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
+    const controllerLevel = useOwnControllerLevel();
+    const isRoomOwner = useIsRoomOwner();
     const isFreeFurniMovementsMode = useRoomStore(x => x.isFreeFurniMovementsMode);
-    const playTestMode = useRoomStore(x => x.playTestMode);
+    const playTestMode = useRoomPlayTestMode();
     const { setSelectedObject } = useRoomSelectedObjectActions();
     const { resetSelectedObject } = useRoomObjectSelect();
-    const { setObjectAlphaMultiplier, isValidLocation, getValidRoomObjectDirection } = useRoomObjectValidation();
+    const { isValidLocation } = useRoomObjectValidation();
     const { send } = useWebSocketContext();
 
     /**
@@ -90,7 +90,7 @@ export const useRoomObjectModify = () => {
             }
             case RoomObjectOperationType.OBJECT_EJECT:
             case RoomObjectOperationType.OBJECT_PICKUP:
-                send(new PickupObjectComposer({ categoryId: category, objectId, confirm: true }));
+                send(new PickupObjectComposer({ objectId, objectCategory: category }));
                 break;
             /*
              * A pet and a bot are picked up by their own id rather than the room object's, which

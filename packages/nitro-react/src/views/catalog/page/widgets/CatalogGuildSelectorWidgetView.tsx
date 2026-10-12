@@ -5,48 +5,74 @@ import { useEffect, useRef, useState } from 'react';
 import { registerGuildSelectorWidget } from '#base/commands';
 import { CATALOG_NO_GUILD_SELECTED, CatalogGuildSelector, CatalogPage, CatalogWidgetEventEnum, useCatalogGuildActions, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
-import { useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Border, Button, Dropmenu, Region, ThemeText } from '#base/theme';
+import { Dropmenu, getOrBuildTexture, TemplateWindow, ThemeImage } from '#base/theme';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
+import { catalogTemplateId } from '../catalogTemplates';
+import { useCatalogWidgetView } from '../catalogWidgetView';
 
-/** A group colour as the server sends it (`rrggbb`), as a fill colour. */
-const groupColor = (color: string) => `#${color.padStart(6, '0')}`;
+/** `§_-N1u§`: the layout each droplist item is built from. */
+const GUILD_SELECTOR_ITEM_NAME = 'guild_selector_widget_item';
+
+/** `createGuildColorsBitmap`'s size. */
+const GUILD_COLORS_BMP_WIDTH = 21;
+const GUILD_COLORS_BMP_HEIGHT = 14;
+
+/** A group colour as the server sends it (`rrggbb`, `parseInt(color, 16)`), as a fill colour. */
+const groupColor = (color: string) => `#${(parseInt(color, 16) || 0).toString(16).padStart(6, '0')}`;
 
 /**
- * One `guild_selector_widget_item` (133x22): the group's name in `guild_name`, and `guild_colors`
- * - `createGuildColorsBitmap`, 21x14 in black with the primary colour in the left half and the
- * secondary in the right, a 1px border round both.
+ * `createGuildColorsBitmap`: 21x14 in black, the primary colour filling the left half and the
+ * secondary the right, a 1px border round both. Kept in the asset manager per colour pair.
  */
+const getGuildColorsTexture = (primary: string, secondary: string) => getOrBuildTexture(`guild_selector_colors:${primary}:${secondary}`, () => {
+    const canvas = document.createElement('canvas');
+
+    canvas.width = GUILD_COLORS_BMP_WIDTH;
+    canvas.height = GUILD_COLORS_BMP_HEIGHT;
+
+    const context = canvas.getContext('2d');
+
+    if (!context) return undefined;
+
+    const middle = Math.trunc(GUILD_COLORS_BMP_WIDTH / 2 + 1);
+
+    context.fillStyle = '#000000';
+    context.fillRect(0, 0, GUILD_COLORS_BMP_WIDTH, GUILD_COLORS_BMP_HEIGHT);
+    context.fillStyle = groupColor(primary);
+    context.fillRect(1, 1, middle - 1, GUILD_COLORS_BMP_HEIGHT - 2);
+    context.fillStyle = groupColor(secondary);
+    context.fillRect(middle, 1, GUILD_COLORS_BMP_WIDTH - 1 - middle, GUILD_COLORS_BMP_HEIGHT - 2);
+
+    return canvas;
+});
+
+/** The colours bitmap, drawn into `guild_colors`. */
+const GuildColors = ({ guild }: { guild: IHabboGroupEntryData }) => {
+    const texture = getGuildColorsTexture(guild.primaryColor, guild.secondaryColor);
+
+    return texture
+        ? (
+                <ThemeImage
+                    texture={texture}
+                    bitmap={{ stretchedX: false, stretchedY: false }}
+                    layout={{ position: 'absolute', left: 0, width: GUILD_COLORS_BMP_WIDTH, top: 0, height: GUILD_COLORS_BMP_HEIGHT }}
+                />
+            )
+        : null;
+};
+
+/** `createDropmenuItemWindow`: a `guild_selector_widget_item` with the group's name and colours. */
 const GuildSelectorItem = ({ guild }: { guild: IHabboGroupEntryData }) => (
-    <Region
-        name="guild_item"
-        layout={{ width: 133, height: 22, flexShrink: 0 }}
-    >
-        <ThemeText
-            name="guild_name"
-            text={guild.groupName}
-            textStyle="u_regular"
-            verticalAlign="top"
-            layout={{ position: 'absolute', left: 0, top: 4 }}
-        />
-        <Region
-            name="guild_colors"
-            backgroundColor="#000000"
-            layout={{ position: 'absolute', left: 112, width: 21, top: 4, height: 14 }}
-        >
-            <Region
-                backgroundColor={groupColor(guild.primaryColor)}
-                layout={{ position: 'absolute', left: 1, width: 10, top: 1, height: 12 }}
-            />
-            <Region
-                backgroundColor={groupColor(guild.secondaryColor)}
-                layout={{ position: 'absolute', left: 11, width: 9, top: 1, height: 12 }}
-            />
-        </Region>
-    </Region>
+    <TemplateWindow
+        id={catalogTemplateId(GUILD_SELECTOR_ITEM_NAME)}
+        bindings={{
+            guild_name: { caption: guild.groupName },
+            guild_colors: { children: <GuildColors guild={guild} /> },
+        }}
+    />
 );
 
 interface GuildSelectorProps {
@@ -89,7 +115,6 @@ const GuildSelector = ({ page, forum }: GuildSelectorProps) => {
     const { send } = useWebSocketContext();
     const userId = useOwnUserId();
     const anyGroup = useClientGate(ClientGates.GuildAnyGroup);
-    const t = useTranslation();
 
     /** `filterGroupMemberships`: every group, or for a forum the ones one can be bought for. */
     const filterGroupMemberships = (all: IHabboGroupEntryData[]) => {
@@ -171,53 +196,34 @@ const GuildSelector = ({ page, forum }: GuildSelectorProps) => {
 
     const selected = guilds[selection];
 
-    return (
-        <Region
-            name="guildSelectorWidget"
-            layout={{ position: 'absolute', left: 0, width: 170, top: 0, height: 85 }}
-        >
-            <Region layout={{ position: 'absolute', left: 0, width: 170, top: 0, height: 26 }}>
-                <Dropmenu
-                    variant="0"
-                    visible={hasGuilds === true}
-                    captionContent={selected && <GuildSelectorItem guild={selected} />}
-                    options={guilds.map((guild, index) => ({
-                        key: guild.groupId,
-                        label: guild.groupName,
-                        content: <GuildSelectorItem guild={guild} />,
-                        selected: (index === selection),
-                        onSelect: () => select(index, guilds),
-                    }))}
-                    itemHeight={22}
-                    layout={{ width: 170, height: 26 }}
-                />
-            </Region>
-            {(hasGuilds === false) && (
-                <Border
-                    variant="2"
-                    name="members_only"
-                    tintColor="#5ea1ab"
-                    layout={{ position: 'absolute', left: 0, width: 170, top: 0, height: 85, overflow: 'hidden' }}
-                >
-                    <ThemeText
-                        text={t('catalog.guild_selector.members_only')}
-                        textStyle="u_regular"
-                        textOptions={{ fill: '#ffffff', wordWrap: true, wordWrapWidth: 143 }}
-                        clip
-                        verticalAlign="top"
-                        layout={{ position: 'absolute', left: 7, width: 147, top: 7, height: 46 }}
+    useCatalogWidgetView({
+        template: 'guildSelectorWidget',
+        bindings: {
+            // The droplist with the groups' item windows (`addMenuItem(createDropmenuItemWindow(...))`):
+            // a binding's `options` are texts only, so the menu is injected over the droplist.
+            guild_selector: {
+                visible: hasGuilds === true,
+                children: (
+                    <Dropmenu
+                        variant="0"
+                        captionContent={selected && <GuildSelectorItem guild={selected} />}
+                        options={guilds.map((guild, index) => ({
+                            key: guild.groupId,
+                            label: guild.groupName,
+                            content: <GuildSelectorItem guild={guild} />,
+                            selected: (index === selection),
+                            onSelect: () => select(index, guilds),
+                        }))}
+                        itemHeight={22}
+                        layout={{ position: 'absolute', left: 0, top: 0, width: 170, height: 26 }}
                     />
-                    <Button
-                        variant="3"
-                        name="find_groups_button"
-                        layout={{ position: 'absolute', left: -23, width: 210, top: 55, height: 25 }}
-                    >
-                        {t('catalog.guild_selector.find_groups')}
-                    </Button>
-                </Border>
-            )}
-        </Region>
-    );
+                ),
+            },
+            members_only: { visible: hasGuilds === false },
+        },
+    });
+
+    return null;
 };
 
 /** `guildSelectorWidget` - the group furni page's picker; see `GuildSelector`. */

@@ -1,19 +1,20 @@
+/**
+ * What Flash's `HabboFriendList` and its views do over `userStore`: the avatar search
+ * (`SearchView`), asking someone to be a friend with the list's own limit check and the alerts
+ * that answer it, accepting and declining requests, following a friend and inviting friends to
+ * the room (`FriendsView`, `RoomInviteView`), the friend online bubble (`FriendCategories`) and
+ * the highlight on a tab with news (`FriendListTab`).
+ */
 import { AcceptFriendComposer, DeclineFriendComposer, EventLogComposer, FollowFriendComposer, FriendRequestQuestCompleteComposer, FriendRequestStateType, HabboSearchComposer, IFriendRequest, IMessengerFriend, MessengerFriendRelationType, SendRoomInviteComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { systemStore } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { FriendListHighlightedTabs, UserStore, userStore } from '#base/context/user';
 
 import { sendFriendRequest } from './roomUserCommands';
 
 type Send = WebSocketConnection['send'];
-
-/**
- * What Flash's `HabboFriendList` does on behalf of its search tab (`SearchView`) and anything else
- * that asks someone to be a friend: the search itself, the friend request with the friend list's
- * own limit check, and the two alerts that answer it.
- */
 
 /**
  * `FriendCategories.getFriendCount(false)`, less the group chats. Flash counts every entry of its
@@ -32,10 +33,10 @@ export const searchAvatar = (send: Send, searchQuery: string) => {
 /**
  * `HabboFriendList.canBeAskedForAFriend`: not a friend already, not asked already, and fewer
  * friends than the list's limit (`friendRequests.limit`, which `MessengerInit` sets from
- * `userFriendLimit`).
+ * `userFriendLimit`). A selector passes the state it was given, so a view follows the friend list.
  */
-export const canBeAskedForAFriend = (userId: number): boolean => {
-    const { friends, sentFriendRequestIds, userFriendLimit } = userStore.getState();
+export const canBeAskedForAFriend = (userId: number, state: UserStore = userStore.getState()): boolean => {
+    const { friends, sentFriendRequestIds, userFriendLimit } = state;
 
     return !friends[userId] && !sentFriendRequestIds.includes(userId) && (countFriends(friends) < userFriendLimit);
 };
@@ -78,9 +79,9 @@ export const showFriendRequestSentAlert = (name: string) => {
 };
 
 /**
- * `FriendRequestsView.acceptRequest`: the request is marked accepted before the limit is asked,
- * as Flash did, so a request refused for a full list is dropped on the next tab click without
- * having been sent.
+ * `§_-fK§.acceptRequest` (`friendlist/§_-fK§`, the friend list's requests tab, whose other
+ * answers follow): the request is marked accepted before the limit is asked, as Flash did, so a
+ * request refused for a full list is dropped on the next tab click without having been sent.
  */
 export const acceptFriendRequest = (send: Send, requestId: number) => {
     const { friends, requests, userFriendLimit, setFriendRequestsState } = userStore.getState();
@@ -99,7 +100,7 @@ export const acceptFriendRequest = (send: Send, requestId: number) => {
 };
 
 /**
- * `FriendRequestsView.acceptAllRequests`: refused outright when every listed request - answered
+ * `§_-fK§.acceptAllRequests`: refused outright when every listed request - answered
  * ones included - would not fit; otherwise every request not yet accepted or declined goes in one
  * packet.
  */
@@ -119,7 +120,7 @@ export const acceptAllFriendRequests = (send: Send) => {
     send(new AcceptFriendComposer({ playerIds: requestIds }));
 };
 
-/** `FriendRequestsView.declineRequest`. */
+/** `§_-fK§.declineRequest`. */
 export const declineFriendRequest = (send: Send, requestId: number) => {
     const { requests, setFriendRequestsState } = userStore.getState();
 
@@ -129,7 +130,7 @@ export const declineFriendRequest = (send: Send, requestId: number) => {
     send(new DeclineFriendComposer({ declineAll: false, playerIds: [ requestId ] }));
 };
 
-/** `FriendRequestsView.declineAllRequests`: the "all" form of the packet, sent even for an empty list. */
+/** `§_-fK§.declineAllRequests`: the "all" form of the packet, sent even for an empty list. */
 export const declineAllFriendRequests = (send: Send) => {
     const { requests, setFriendRequestsState } = userStore.getState();
 
@@ -210,4 +211,14 @@ export const notifyFriendOnline = (friend: IMessengerFriend) => {
         `messenger/${friend.playerId}`,
         { figure: friend.figure, gender: friend.gender },
     );
+};
+
+/**
+ * `FriendListTab.setNewMessageArrived(true)`: the tab's header is highlighted, unless it is the open
+ * tab. A closed friend list opens on the friends tab, which counts as open.
+ */
+export const highlightFriendListTab = (tab: keyof FriendListHighlightedTabs) => {
+    const openTab = systemStore.getState().visibleWindows.friendlist?.tab ?? 'friends';
+
+    userStore.getState().setFriendListTabHighlighted(tab, openTab !== tab);
 };

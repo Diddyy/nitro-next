@@ -1,6 +1,7 @@
 import { AlphaTolerance, IRoomObjectSprite, RoomObjectSpriteTypeEnum } from '@nitrodevco/nitro-api';
 import { BLEND_MODES, Filter, Texture } from 'pixi.js';
 
+/** Port of Flash `RoomObjectSprite`. */
 export class RoomObjectSprite implements IRoomObjectSprite {
     private static SPRITE_COUNTER: number = 0;
 
@@ -294,6 +295,8 @@ export class RoomObjectSprite implements IRoomObjectSprite {
     }
 
     public set filters(filters: Filter[]) {
+        if (this._filters === filters) return;
+
         this._filters = filters;
 
         this._updateCounter++;

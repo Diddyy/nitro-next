@@ -1,11 +1,10 @@
-import { NOTIFICATION_VIEWS, NotificationItem } from '#base/context/notifications';
-
 /**
  * The arithmetic of the notification stack, kept apart from React: one bubble's life
  * (`HabboNotificationItemView.update`) and where the bubbles go
  * (`HabboNotificationViewManager`). `NotificationsView` owns the records and runs these once a
  * frame; everything here works on plain records, so none of it touches a store or a ref.
  */
+import { NOTIFICATION_VIEWS, NotificationItem } from '#base/context/notifications';
 
 /** `HabboNotificationViewManager.SPACING`, also the gap under the toolbar's extension view. */
 export const NOTIFICATION_SPACING = 4;

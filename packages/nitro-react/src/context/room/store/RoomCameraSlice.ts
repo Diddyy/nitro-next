@@ -1,3 +1,7 @@
+/**
+ * Who the camera follows and for how long, and whether following is suspended because the user
+ * dragged the room.
+ */
 import { RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { StateCreator } from 'zustand';
 
@@ -17,10 +21,6 @@ type Actions = {
     disableFollowTemporarily: (duration: number) => void;
 };
 
-/**
- * Who the camera follows and for how long, and whether following is suspended because the user
- * dragged the room.
- */
 export const RoomCameraSliceInitialState: State = {
     targetId: -1,
     targetCategory: RoomObjectCategoryEnum.Minimum,
@@ -30,7 +30,7 @@ export const RoomCameraSliceInitialState: State = {
 
 export type RoomCameraSlice = State & Actions;
 
-export const createRoomCameraSlice: StateCreator<RoomCameraSlice, [], [], RoomCameraSlice> = (set, get, store) => ({
+export const createRoomCameraSlice: StateCreator<RoomCameraSlice, [], [], RoomCameraSlice> = set => ({
     ...RoomCameraSliceInitialState,
     setTargetId: (id: number) => set({ targetId: id }),
     setTargetCategory: (category: RoomObjectCategoryEnum) => set({ targetCategory: category }),

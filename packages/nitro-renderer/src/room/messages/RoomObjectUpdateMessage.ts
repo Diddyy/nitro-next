@@ -1,5 +1,6 @@
 import { IRoomObjectUpdateMessage, IVector3D } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `RoomObjectUpdateMessage`. */
 export class RoomObjectUpdateMessage implements IRoomObjectUpdateMessage {
     private _location: IVector3D | undefined;
     private _direction: IVector3D | undefined;

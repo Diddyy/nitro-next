@@ -2,7 +2,7 @@ import { ISimpleRoomObjectData, RoomControllerLevelEnum, RoomObjectCategoryEnum,
 import { RemoveBotFromFlatComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useOwnControllerLevel, useRoom, useRoomStore } from '#base/context/room';
+import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomUserByObjectId } from '#base/context/room';
 import { ClientGates, useClientGate } from '#base/context/user';
 import { useRoomObjectModify } from '#base/hooks';
 import { InfostandBotView } from '#base/views/room-widgets/object-infostand/InfostandBotView';
@@ -16,9 +16,9 @@ import { InfostandBotView } from '#base/views/room-widgets/object-infostand/Info
 export const InfostandBot = ({ objectData, onClose }: { objectData: ISimpleRoomObjectData; onClose: () => void }) => {
     const room = useRoom();
     // The raw room user rather than `useRoomUserData`'s avatar shape: only this one names the owner.
-    const userData = useRoomStore(x => x.usersByRoomObjectId[objectData.objectId]);
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
-    const playTestMode = useRoomStore(x => x.playTestMode);
+    const userData = useRoomUserByObjectId(objectData.objectId);
+    const isRoomOwner = useIsRoomOwner();
+    const playTestMode = useRoomPlayTestMode();
     const controllerLevel = useOwnControllerLevel();
     const { modifyRoomObject } = useRoomObjectModify();
     const { send } = useWebSocketContext();
@@ -44,10 +44,8 @@ export const InfostandBot = ({ objectData, onClose }: { objectData: ISimpleRoomO
             canPickUp={hasOwner && (isRoomOwner || isAnyRoomController)}
             onMove={() => modifyRoomObject(objectData.objectId, RoomObjectCategoryEnum.Unit, RoomObjectOperationType.OBJECT_MOVE)}
             onRotate={() => modifyRoomObject(objectData.objectId, RoomObjectCategoryEnum.Unit, RoomObjectOperationType.OBJECT_ROTATE_POSITIVE)}
-            onPickUp={() => {
-                send(new RemoveBotFromFlatComposer({ botId: userData.webID }));
-                onClose();
-            }}
+            // `onButtonClicked`'s `pick` only asks; the bot leaving the room closes the stand.
+            onPickUp={() => send(new RemoveBotFromFlatComposer({ botId: userData.webID }))}
             onClose={onClose}
         />
     );

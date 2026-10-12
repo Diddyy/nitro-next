@@ -1,11 +1,9 @@
 /**
  * `CheckboxGroupPreset.mask` - a checkbox group's selection as a bit mask, one bit per option
- * id (`1 << id`), which is how the boxes that use it store the group in an int param.
+ * id (`1 << id`), which is how the boxes that use it store the group in an int param. The form
+ * holds the mask itself, kept current by `setCheckboxMaskBit` on each toggle, so `get mask` is
+ * the form field as it stands.
  */
-
-/** `get mask` - the ids of the selected options folded into an int. */
-export const checkboxMaskFromIds = (selectedIds: readonly number[]): number =>
-    selectedIds.reduce((mask, id) => (mask | (1 << id)), 0);
 
 /** `set mask` - whether option `id` is selected in `mask`. */
 export const isCheckboxMaskBitSet = (mask: number, id: number): boolean => ((mask & (1 << id)) !== 0);

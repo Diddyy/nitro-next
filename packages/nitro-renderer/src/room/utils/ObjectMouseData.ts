@@ -1,4 +1,5 @@
-﻿export class ObjectMouseData {
+/** Port of Flash `ObjectMouseData`. */
+export class ObjectMouseData {
     private _objectId: string;
     private _spriteTag: string;
 

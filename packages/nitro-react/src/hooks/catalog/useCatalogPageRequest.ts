@@ -1,21 +1,31 @@
 import { CatalogPageRequestType, CatalogRequestedPageUtilities, ICatalogRequestedPage } from '@nitrodevco/nitro-api';
 import { useEffect } from 'react';
 
-import { getCatalogWindowName, useCatalogActions, useCatalogStore } from '#base/context/catalog';
+import { applyRoomAdExtension } from '#base/commands';
+import { getCatalogWindowName, useCatalogActions, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
+import { useWebSocketContext } from '#base/context/communication';
 import { useWindowParams } from '#base/context/system';
 
 import { useWindowVisibility } from '../system';
 import { useCatalogNavigation } from './useCatalogNavigation';
 
+/**
+ * The catalogue window's params acted on: a `pageId`, `pageName` or `offerId` passed to `showWindow`
+ * (or a catalogue link) becomes the requested page, opened once the window is up and the index is
+ * in - `HabboCatalog.openCatalogPageById` / `openCatalogPage` / `openCatalogPageByOfferId` - and
+ * then cleared. With nothing requested and nothing open, the first visible root node opens.
+ */
 export const useCatalogPageRequest = () => {
     // The window of this store's catalogue type - `catalog` or `builders_catalog`.
-    const windowName = getCatalogWindowName(useCatalogStore(x => x.catalogType));
+    const windowName = getCatalogWindowName(useCatalogType());
     const { isWindowVisible } = useWindowVisibility(windowName);
-    const rootNode = useCatalogStore(x => x.rootNode);
-    const activePage = useCatalogStore(x => x.activePage);
+    const rootNode = useCatalogRootNode();
+    const activeNodes = useCatalogStore(x => x.activeNodes);
     const requestedPage = useCatalogStore(x => x.requestedPage);
     const { activateNode, openPageById, openPageByName, openPageByOfferId } = useCatalogNavigation();
     const { setRequestedPage } = useCatalogActions();
+    const store = useCatalogStoreApi();
+    const { send } = useWebSocketContext();
 
     const params = useWindowParams(windowName);
 
@@ -34,6 +44,9 @@ export const useCatalogPageRequest = () => {
             requestedPage = CatalogRequestedPageUtilities.getForOfferId(params.offerId);
         }
 
+        // `openRoomAdCatalogPageInExtendedMode`: the purchase data is written before the page opens.
+        if (params.roomAdExtension) applyRoomAdExtension(send, store, params.roomAdExtension);
+
         if (!requestedPage) return;
 
         setRequestedPage(requestedPage);
@@ -44,7 +57,10 @@ export const useCatalogPageRequest = () => {
 
         switch (requestedPage.type) {
             case CatalogPageRequestType.None: {
-                if (activePage) return;
+                // The front page only when nothing is open yet. Not `activePage`: a requested page
+                // is still on its way from the server when the request is cleared, and the front
+                // page would replace it.
+                if (activeNodes.length) return;
 
                 if (rootNode.children.length > 0) for (const child of rootNode.children) {
                     if (child.visible) {

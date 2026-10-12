@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarPlayingGameMessage`. */
 export class ObjectAvatarPlayingGameUpdateMessage extends ObjectStateUpdateMessage {
     private _isPlayingGame: boolean;
 

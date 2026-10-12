@@ -1,3 +1,4 @@
+/** Port of Flash `VariableFxIconDefinition`. */
 export class VariableFxIconDefinition {
     constructor(
         public name: string,

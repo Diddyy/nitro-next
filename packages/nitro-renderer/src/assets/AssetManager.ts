@@ -2,9 +2,13 @@ import { IAssetData, IAssetManager, IGraphicAsset, IGraphicAssetCollection, Nitr
 import { AnimatedGIF } from '@pixi/gif';
 import { Spritesheet, SpritesheetData, Texture, TextureSource } from 'pixi.js';
 
-import { NitroBundle, TextureUtils } from '../utils';
+import { LoadMetrics, NitroBundle, TextureUtils } from '../utils';
 import { GraphicAssetCollection } from './GraphicAssetCollection';
 
+/**
+ * Nitro's asset store: every texture, graphic asset collection and `.nitro` bundle the room engine
+ * and the UI draw from, by name. Flash keeps an `AssetLibrary` per component; the port has one.
+ */
 export class AssetManager implements IAssetManager {
     private _textures: Map<string, Texture> = new Map();
     private _collections: Map<string, IGraphicAssetCollection> = new Map();
@@ -87,9 +91,7 @@ export class AssetManager implements IAssetManager {
 
         collection.dispose();
 
-        for (const source of sources) {
-            if (!source.destroyed) source.destroy();
-        }
+        for (const source of sources) TextureUtils.destroySource(source);
     }
 
     public createCollection(
@@ -123,20 +125,37 @@ export class AssetManager implements IAssetManager {
     }
 
     public async downloadAsset(url: string): Promise<boolean> {
+        const ext = url ? url.slice(url.lastIndexOf('.') + 1) : '';
+        const measured = (ext === 'nitro') && LoadMetrics.enabled;
+
+        let succeeded = false;
+
         try {
             if (!url || !url.length) throw new Error(`Invalid url: ${url}`);
 
-            const ext = url.slice(url.lastIndexOf('.') + 1);
+            if (measured) LoadMetrics.mark(url, 'fetch');
+
             const response = await fetch(url);
 
             if (!response || response.status !== 200) throw new Error('Invalid response');
 
+            if (measured) LoadMetrics.mark(url, 'headers');
+
             const responseData = await response.arrayBuffer();
+
+            if (measured) {
+                LoadMetrics.mark(url, 'body');
+                LoadMetrics.addBytes(url, responseData.byteLength);
+            }
 
             switch (ext) {
                 case 'nitro': {
                     // Not retained, so nothing of it is kept beyond the collection it defines.
-                    await this.processNitroBundle(await NitroBundle.fromBuffer(responseData));
+                    const bundle = await NitroBundle.fromBuffer(responseData, measured ? url : undefined);
+
+                    if (measured) LoadMetrics.mark(url, 'decoded');
+
+                    await this.processNitroBundle(bundle);
                     break;
                 }
                 case 'gif': {
@@ -168,11 +187,15 @@ export class AssetManager implements IAssetManager {
                 }
             }
 
+            succeeded = true;
+
             return true;
         } catch (err) {
             NitroLogger.error(err);
 
             return false;
+        } finally {
+            if (measured) LoadMetrics.end(url, succeeded);
         }
     }
 
@@ -184,7 +207,7 @@ export class AssetManager implements IAssetManager {
      * A UI asset bundle: the same `.nitro` archive furniture comes in, kept by name after it is
      * read so its JSON entries and encoded bitmaps stay reachable (`getBundleFile`,
      * `getBundleBinary`). Every asset in it lands in `_textures` under its own name, so a
-     * bundled bitmap is `GetAssetManager().getTexture('room-ui-roomtools_gear')` from anywhere.
+     * bundled bitmap is `GetAssetManager().getTexture('habbo-room-ui-com-roomtools_gear')` from anywhere.
      *
      * Downloading the same bundle twice joins the first download rather than fetching again.
      */
@@ -251,6 +274,19 @@ export class AssetManager implements IAssetManager {
      */
     public releaseBundleData(name: string): void {
         this._bundles.get(name)?.releaseData();
+    }
+
+    /**
+     * Forgets a retained bundle entirely: its raw entries, and its collection with every texture
+     * and the GPU sources they sit on (`removeCollection`). Only for a bundle nothing draws any
+     * more; asking for it again downloads it again.
+     */
+    public removeAssetBundle(name: string): void {
+        this._bundles.get(name)?.releaseData();
+        this._bundles.delete(name);
+        this._bundlePromises.delete(name);
+
+        this.removeCollection(name);
     }
 
     /**

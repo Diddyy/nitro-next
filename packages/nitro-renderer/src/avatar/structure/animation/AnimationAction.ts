@@ -3,6 +3,7 @@ import { Point } from 'pixi.js';
 
 import { AnimationActionPart } from './AnimationActionPart';
 
+/** Port of Flash `AnimationAction`. */
 export class AnimationAction {
     public static DEFAULT_OFFSET: Point = new Point(0, 0);
 

@@ -7,33 +7,41 @@ import { useResolvedVariant } from './hooks';
 import { expandSides, ThemeVariant, wrapTextChildren } from './utils';
 import { themeVariantOf } from './utils/themeRegistry';
 
-/**
- * `scrollable_itemgrid_vertical`: no art of its own - a leaf that sizes the grid or list content it holds, at least as big
- * as its window layout (the theme's `scrollableItemGridVertical` variants).
- */
-export interface ScrollableItemGridVerticalProps {
+export interface ScrollableItemProps {
     variant?: string;
     defaultVariant?: string;
     layout?: BoxLayout;
     children?: ReactNode;
 }
 
-export const ScrollableItemGridVertical: ForwardRefExoticComponent<ScrollableItemGridVerticalProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, ScrollableItemGridVerticalProps>(
-    ({ variant, defaultVariant, layout, children }, ref) => {
-        const { resolvedVariant, ownCascade } = useResolvedVariant('scrollableItemGridVertical', variant, defaultVariant);
-        const config = themeVariantOf<ThemeVariant>('scrollableItemGridVertical', resolvedVariant) ?? themeVariantOf<ThemeVariant>('scrollableItemGridVertical', '0');
+/**
+ * A scrollable item list or grid window (`ScrollableItemListWindow`, `ScrollableItemGridWindow`)
+ * as a theme component: no art of its own - a box that holds the list or grid content, at least
+ * as big as its window layout (the variants of `cascadeKey`), and cascades its style to it.
+ */
+export const createScrollableItemComponent = (displayName: string, cascadeKey: string): ForwardRefExoticComponent<ScrollableItemProps & RefAttributes<PixiContainer>> => {
+    const Component = forwardRef<PixiContainer, ScrollableItemProps>(
+        ({ variant, defaultVariant, layout, children }, ref) => {
+            const { resolvedVariant, ownCascade } = useResolvedVariant(cascadeKey, variant, defaultVariant);
+            const config = themeVariantOf<ThemeVariant>(cascadeKey, resolvedVariant) ?? themeVariantOf<ThemeVariant>(cascadeKey, '0');
 
-        return (
-            <Box
-                ref={ref}
-                layout={{ ...expandSides(config?.layout), ...layout }}
-            >
-                {/* DOM's `text-[#000000]` needs no explicit style here - PixiJS's own default
-                    TextStyle fill is already black, matching by coincidence, not override. */}
-                <VariantCascadeProvider map={ownCascade}>{wrapTextChildren(children)}</VariantCascadeProvider>
-            </Box>
-        );
-    },
-);
+            return (
+                <Box
+                    ref={ref}
+                    layout={{ ...expandSides(config?.layout), ...expandSides(layout) }}
+                >
+                    <VariantCascadeProvider map={ownCascade}>{wrapTextChildren(children)}</VariantCascadeProvider>
+                </Box>
+            );
+        },
+    );
 
-ScrollableItemGridVertical.displayName = 'ScrollableItemGridVertical';
+    Component.displayName = displayName;
+
+    return Component;
+};
+
+export type ScrollableItemGridVerticalProps = ScrollableItemProps;
+
+/** `scrollable_itemgrid_vertical`: its variants are the theme's `scrollableItemGridVertical`. */
+export const ScrollableItemGridVertical = createScrollableItemComponent('ScrollableItemGridVertical', 'scrollableItemGridVertical');

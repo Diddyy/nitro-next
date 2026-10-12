@@ -81,34 +81,34 @@ export const NOTIFICATION_VIEWS: Record<NotificationLayoutName, NotificationView
 /**
  * The bitmaps of the `HabboNotifications` asset library, by the name Flash callers pass as
  * `addItem`'s third argument (`"icon_wired_notification_png"`, `"chests_icon_successful"`).
- * Each is a file under `public/assets/notifications`, for `LayoutImage(`notifications/<file>`)`.
+ * Each is the library's own bitmap, for `LayoutImage(`habbo-notifications-com/<file>`)`.
  * `moderation_badge_png` is left out: it belongs to the moderation alert dialogs, not to a bubble.
  */
 export const NOTIFICATION_ASSETS = {
-    if_icon_temp_png: 'notifications_if_icon_temp.png',
-    if_icon_hc_png: 'notifications_if_icon_hc.png',
-    if_icon_vip_png: 'notifications_if_icon_vip.png',
-    if_icon_recycler_png: 'notifications_if_icon_recycler.png',
-    if_icon_friend_bg_blue_png: 'notifications_if_icon_friend_bg_blue.png',
-    if_icon_duckets_png: 'notifications_if_icon_duckets.png',
-    if_icon_earning_png: 'notifications_if_icon_earning.png',
-    if_icon_loyalty_png: 'notifications_if_icon_loyalty.png',
-    if_icon_ltd_png: 'notifications_if_icon_ltd.png',
-    if_icon_diamond_png: 'notifications_if_icon_diamond.png',
-    icon_curator_stamp_large_png: 'notifications_icon_curator_stamp_large.png',
-    icon_daily_tasks_png: 'notifications_icon_daily_tasks.png',
-    icon_wired_error_png: 'notifications_icon_wired_error.png',
-    icon_wired_notification_png: 'notifications_icon_wired_notification.png',
-    icon_wired_warning_png: 'notifications_icon_wired_warning.png',
-    chests_icon_chest_capacity_exceeds: 'notifications_chests_icon_chest_capacity_exceeds.png',
-    chests_icon_chest_donation: 'notifications_chests_icon_chest_donation.png',
-    chests_icon_chest_empty: 'notifications_chests_icon_chest_empty.png',
-    chests_icon_chest_full: 'notifications_chests_icon_chest_full.png',
-    chests_icon_chest_wired_transaction: 'notifications_chests_icon_chest_wired_transaction.png',
-    chests_icon_chest_withdraw: 'notifications_chests_icon_chest_withdraw.png',
-    chests_icon_rejected: 'notifications_chests_icon_rejected.png',
-    chests_icon_successful: 'notifications_chests_icon_successful.png',
-    chests_icon_trading_error: 'notifications_chests_icon_trading_error.png',
+    if_icon_temp_png: 'if_icon_temp.png',
+    if_icon_hc_png: 'if_icon_hc.png',
+    if_icon_vip_png: 'if_icon_vip.png',
+    if_icon_recycler_png: 'if_icon_recycler.png',
+    if_icon_friend_bg_blue_png: 'if_icon_friend_bg_blue.png',
+    if_icon_duckets_png: 'if_icon_duckets.png',
+    if_icon_earning_png: 'if_icon_earning.png',
+    if_icon_loyalty_png: 'if_icon_loyalty.png',
+    if_icon_ltd_png: 'if_icon_ltd.png',
+    if_icon_diamond_png: 'if_icon_diamond.png',
+    icon_curator_stamp_large_png: 'icon_curator_stamp_large.png',
+    icon_daily_tasks_png: 'icon_daily_tasks.png',
+    icon_wired_error_png: 'icon_wired_error.png',
+    icon_wired_notification_png: 'icon_wired_notification.png',
+    icon_wired_warning_png: 'icon_wired_warning.png',
+    chests_icon_chest_capacity_exceeds: 'chests_icon_chest_capacity_exceeds.png',
+    chests_icon_chest_donation: 'chests_icon_chest_donation.png',
+    chests_icon_chest_empty: 'chests_icon_chest_empty.png',
+    chests_icon_chest_full: 'chests_icon_chest_full.png',
+    chests_icon_chest_wired_transaction: 'chests_icon_chest_wired_transaction.png',
+    chests_icon_chest_withdraw: 'chests_icon_chest_withdraw.png',
+    chests_icon_rejected: 'chests_icon_rejected.png',
+    chests_icon_successful: 'chests_icon_successful.png',
+    chests_icon_trading_error: 'chests_icon_trading_error.png',
 } as const;
 
 export type NotificationAssetName = keyof typeof NOTIFICATION_ASSETS;

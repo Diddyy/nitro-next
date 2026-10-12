@@ -2,6 +2,10 @@ import { RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro
 
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
+/**
+ * Port of Flash's obfuscated `§_-QC§`, the visualization `RoomObjectVisualizationFactory` builds
+ * for `furniture_badge_display`.
+ */
 export class FurnitureBadgeDisplayVisualization extends AnimatedFurnitureVisualization {
     private static BADGE: string = 'BADGE';
 

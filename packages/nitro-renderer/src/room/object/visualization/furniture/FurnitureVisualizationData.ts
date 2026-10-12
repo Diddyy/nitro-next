@@ -3,6 +3,7 @@ import { BLEND_MODES } from 'pixi.js';
 
 import { ColorData, LayerData, SizeData } from '../data';
 
+/** Port of Flash `FurnitureVisualizationData`. */
 export class FurnitureVisualizationData implements IObjectVisualizationData {
     public static LAYER_LETTERS: string[] = [
         'a',

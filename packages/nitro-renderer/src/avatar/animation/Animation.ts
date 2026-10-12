@@ -1,4 +1,4 @@
-﻿import { AvatarActionStateType, AvatarBodyPartType, AvatarFigurePartType, IAddDataContainer, IAnimation, IAnimationLayerData, IAssetAnimation, IAssetAnimationFrame, IAssetAnimationFramePart, IAvatarDataContainer, IDirectionDataContainer, ISpriteDataContainer } from '@nitrodevco/nitro-api';
+import { AvatarActionStateType, AvatarBodyPartType, AvatarFigurePartType, IAddDataContainer, IAnimation, IAnimationLayerData, IAssetAnimation, IAssetAnimationFrame, IAssetAnimationFramePart, IAvatarDataContainer, IDirectionDataContainer, ISpriteDataContainer } from '@nitrodevco/nitro-api';
 
 import { AvatarStructure } from '../AvatarStructure';
 import { AddDataContainer } from './AddDataContainer';
@@ -7,6 +7,7 @@ import { AvatarDataContainer } from './AvatarDataContainer';
 import { DirectionDataContainer } from './DirectionDataContainer';
 import { SpriteDataContainer } from './SpriteDataContainer';
 
+/** Port of Flash `Animation`. */
 export class Animation implements IAnimation {
     private static readonly EMPTY_ARRAY: unknown[] = [] as const;
 

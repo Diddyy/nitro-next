@@ -1,4 +1,4 @@
-﻿import {
+import {
     IAssetPlaneMaskData,
     IAssetPlaneTextureBitmap,
     IGraphicAssetCollection,
@@ -11,6 +11,7 @@ import { TextureUtils } from '../../../../../utils';
 import { PlaneMask } from './PlaneMask';
 import { PlaneMaskVisualization } from './PlaneMaskVisualization';
 
+/** Port of Flash `PlaneMaskManager`. */
 export class PlaneMaskManager {
     private _masks: Map<string, PlaneMask> = new Map();
     private _data: IAssetPlaneMaskData | undefined = undefined;

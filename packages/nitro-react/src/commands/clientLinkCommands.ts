@@ -1,16 +1,28 @@
+/**
+ * The in-client link router: `navigator/goto/<room>`, `catalog/open/<page>`, `wiredmenu/open`, ...
+ * mapped onto the window or command each one opens - what every Flash component did for the links
+ * under its own `linkPattern` in `ILinkEventTracker.linkReceived`.
+ */
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { ForwardToSomeRoomComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
+import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore, WindowParams } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { getWiredHasReadPermission, getWiredMenuEnabled } from '#base/context/wired';
+import { getWiredHasReadPermission, getWiredMenuEnabled, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW } from '#base/context/wired';
 
 import { openAchievements } from './achievementCommands';
+import { openBadgeLeaderboardLink } from './badgeLeaderboardCommands';
+import { openDailyTasksLink } from './dailyTasksCommands';
 import { showEarnings } from './earningsCommands';
+import { openGroupForumLink } from './groupForumCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
 import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './navigatorCommands';
+import { toggleQuests } from './questCommands';
+import { openRaidProtectionFromLink } from './raidProtectionCommands';
+import { openRewardTrackLink } from './rewardTrackCommands';
+import { openRoomThumbnailCameraLink } from './roomThumbnailCameraCommands';
 import { openSpecialItemsDisplay } from './specialItemsCommands';
 import { openWiredRewardView, openWiredSelfDonation } from './wiredTradingCommands';
 
@@ -20,11 +32,6 @@ type Send = WebSocketConnection['send'];
 const TAB_LINK_SEARCH_CODES: Record<string, string> = { me: 'myworld_view' };
 
 const INVENTORY_TABS: WindowParams<'inventory'>['tab'][] = [ 'furni', 'pets', 'bots', 'badges' ];
-
-/** `WiredMenuTabConfigs.TAB_*_ID` - the wired menu tabs a link can route further into. */
-const WIRED_MENU_TAB_MONITOR = 'monitor';
-const WIRED_MENU_TAB_OVERVIEW = 'variable_overview';
-const WIRED_MENU_TAB_INSPECTION = 'inspection';
 
 /**
  * `WiredMenuController.linkReceived` - `wiredmenu/open[/<tab>[/...]]` and `wiredmenu/logs`, turned
@@ -111,6 +118,12 @@ export const openClientLink = (send: Send, link: string) => {
 
                     return;
                 }
+                // `HabboNewNavigator.linkReceived` -> `RaidProtectionSettingsController.openFromLink`.
+                case 'raidprotection': {
+                    openRaidProtectionFromLink(send, (parts.length === 3) ? parts[2] : undefined);
+
+                    return;
+                }
             }
 
             break;
@@ -156,6 +169,8 @@ export const openClientLink = (send: Send, link: string) => {
         // `HabboInventory.linkReceived`: `open` alone means the furni tab.
         case 'questengine': {
             if (parts[1] === 'achievements') openAchievements(send, parts[2]);
+            // `questController.onToolbarClick()`.
+            else if (parts[1] === 'quests') toggleQuests(send);
 
             return;
         }
@@ -245,6 +260,36 @@ export const openClientLink = (send: Send, link: string) => {
 
             return;
         }
+        // `GroupForumController.linkReceived`: groupforum/list/<active|popular|my>, groupforum/<group>[/<thread>[/<index>]].
+        case 'groupforum': {
+            openGroupForumLink(send, parts);
+
+            return;
+        }
+        // `DailyTasksController.linkReceived`: dailytasks/open, with `dailytasks.enabled` on.
+        case 'dailytasks': {
+            openDailyTasksLink(parts);
+
+            return;
+        }
+        // `RewardTrackController.linkReceived`: reward_track/open/<track id>.
+        case 'reward_track': {
+            openRewardTrackLink(parts);
+
+            return;
+        }
+        // `RoomThumbnailCameraWidget.linkReceived`: roomThumbnailCamera/open.
+        case 'roomThumbnailCamera': {
+            openRoomThumbnailCameraLink(parts);
+
+            return;
+        }
+        // `BadgeLeaderboardController.linkReceived`: badge_leaderboard/<type>/<rarity>/<page>.
+        case 'badge_leaderboard': {
+            openBadgeLeaderboardLink(send, parts);
+
+            return;
+        }
         // `CollectiblesController.linkReceived`: `collectibles/open`; anything else under it does nothing.
         case 'collectibles': {
             if ((parts.length >= 2) && (parts[1] === 'open')) showWindow('collectibles');
@@ -275,6 +320,12 @@ export const openClientLink = (send: Send, link: string) => {
             }
 
             break;
+        }
+        // `HabboFriendBarView.linkReceived`: `friendbar/user/<name>` shows that user's profile (`showProfileByName`).
+        case 'friendbar': {
+            if ((parts[1] === 'user') && (parts.length > 2)) send(new GetExtendedProfileByNameComposer({ userName: parts[2] }));
+
+            return;
         }
         // `HabboMessenger.linkReceived`: `messenger/<id>` opens a conversation.
         case 'messenger': {

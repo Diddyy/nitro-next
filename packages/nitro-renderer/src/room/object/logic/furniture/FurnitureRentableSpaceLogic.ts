@@ -2,6 +2,10 @@ import { RoomObjectDataRequestEvent, RoomObjectVariableEnum, RoomWidgetEnum } fr
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-o1g§`, the logic `RoomObjectFactory` builds for
+ * `furniture_rentable_space`.
+ */
 export class FurnitureRentableSpaceLogic extends FurnitureLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectDataRequestEvent.RODRE_CURRENT_USER_ID ]);

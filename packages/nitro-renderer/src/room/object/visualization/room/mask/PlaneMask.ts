@@ -1,7 +1,8 @@
-﻿import { IGraphicAsset, IVector3D, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
+import { IGraphicAsset, IVector3D, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 
 import { PlaneMaskVisualization } from './PlaneMaskVisualization';
 
+/** Port of Flash `PlaneMask`. */
 export class PlaneMask {
     private _maskVisualizations: Map<RoomGeometryScaleType, PlaneMaskVisualization> = new Map();
     private _sizes: RoomGeometryScaleType[] = [];

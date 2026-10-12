@@ -1,3 +1,11 @@
+/**
+ * The client's one connection to the server - the job of Flash's `HabboCommunicationManager`. It
+ * opens the socket to `socket.url`, says hello and sends the SSO ticket from the page's `sso`
+ * query, frames and parses packets by the registered header maps, and answers pings. From
+ * authentication until `setReady` it holds packets both ways, so nothing is handled or sent before
+ * the handlers are registered; a disconnect reason or a closed socket ends the session and shows
+ * the alert.
+ */
 import { BinaryReader, BinaryWriter, Byte, ClientDeviceCategoryEnum, ClientPlatformEnum, EvaWireDataWrapper, IMessageDataWrapper, IncomingPacketConstructor, IOutgoingPacket, NitroLogger, Short } from '@nitrodevco/nitro-api';
 import { AuthenticationOKMessage, ClientHelloComposer, DisconnectReasonMessage, GetIncomingPackets, GetOutgoingPackets, PingMessage, PongComposer, SSOTicketComposer } from '@nitrodevco/nitro-packets';
 import { GetTickerTime } from '@nitrodevco/nitro-renderer';
@@ -317,7 +325,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
             const header = incomingHeaderByCtor.current.get(event);
 
             NitroLogger.error(
-                'CommunicationStore',
+                'WebSocketContextProvider',
                 `Invalid listener: packet ${event?.name ?? '(unknown)'} is not registered.`
                 + (header != null ? ` (header: ${header})` : ''),
             );

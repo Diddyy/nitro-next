@@ -11,6 +11,11 @@ import { createUserSoundSettingsSlice, UserSoundSettingsSlice } from './UserSoun
 import { createUserWalletSlice, UserWalletSlice } from './UserWalletSlice';
 import { createUserWordFilterSlice, UserWordFilterSlice } from './UserWordFilterSlice';
 
+/**
+ * The user store: everything about the logged-in account - `SessionDataManager`'s rights, perks,
+ * preferences and availability, plus the info, friends, wallet, effects, social, sound settings,
+ * word filter and chat command slices.
+ */
 type State = {
     tags: string[];
     clubLevel: ClubLevelEnum;
@@ -124,7 +129,7 @@ type Actions = {
 
 const initialState: State = {
     tags: [],
-    clubLevel: ClubLevelEnum.Club,
+    clubLevel: ClubLevelEnum.None,
     securityLevel: 0,
     isAmbassador: false,
     permissionNodes: null,

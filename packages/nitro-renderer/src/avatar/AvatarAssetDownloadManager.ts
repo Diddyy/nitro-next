@@ -3,10 +3,17 @@ import { IAvatarFigureContainer, IAvatarImageListener, IFigureMapLibrary } from 
 import { AvatarAssetDownloadLibrary } from './AvatarAssetDownloadLibrary';
 import { AvatarStructure } from './AvatarStructure';
 
+/** Port of Flash `AvatarAssetDownloadManager`. */
 export class AvatarAssetDownloadManager {
     /** The libraries every figure needs (Flash `LIB_BODY`, `LIB_ITEMS`); the manager is not ready until they are in. */
-    private static MANDATORY_LIBRARIES: string[] = [ 'hh_human_body', 'hh_human_item' ];
-    private static MAX_SIMULTANEOUS_DOWNLOADS: number = 6;
+    public static readonly MANDATORY_LIBRARIES: string[] = [ 'hh_human_body', 'hh_human_item' ];
+    /**
+     * Flash downloads 6 libraries at once, and 16 from a host that can take it (`//rumba.sulake.com`).
+     * Every figure library is a request of its own - a clothing tab asks for one per part shown - so
+     * the waves of 6 were what an editor tab spent waiting on; the asset host serves HTTP/2 and 3,
+     * which carry every request on the one connection, so it is the fast host's 16.
+     */
+    private static MAX_SIMULTANEOUS_DOWNLOADS: number = 16;
 
     private _structure: AvatarStructure;
     private _libraries: Map<string, AvatarAssetDownloadLibrary> = new Map();
@@ -122,21 +129,62 @@ export class AvatarAssetDownloadManager {
         return this._missingMandatoryLibs.length > 0;
     }
 
-    /** Flash `purge`: unload every downloaded library except the mandatory ones. */
-    public purge(): void {
+    /**
+     * Flash `purge` unloaded every downloaded library except the mandatory ones - safe there only
+     * because nothing called it. Here it runs on the purge interval, so it keeps what is still in
+     * use: the libraries of `inUse` (every live figure) and of the figures still downloading, whose
+     * completion waits on all of theirs being loaded. The next figure needing a purged one downloads it again.
+     */
+    public purge(inUse: Iterable<IAvatarFigureContainer>): void {
+        const keep = new Set<AvatarAssetDownloadLibrary>();
+
+        for (const container of inUse) {
+            for (const library of this.getAvatarFigureLibraries(container)) keep.add(library);
+        }
+
+        for (const libraries of this._incompleteFigures.values()) {
+            for (const library of libraries) keep.add(library);
+        }
+
         for (const library of this._libraries.values()) {
-            if (library.isLoaded && !library.isMandatory) library.purge();
+            if (library.isLoaded && !library.isMandatory && !keep.has(library)) library.purge();
         }
     }
 
-    private getAvatarFigurePendingLibraries(container: IAvatarFigureContainer): AvatarAssetDownloadLibrary[] {
-        const pendingLibraries: AvatarAssetDownloadLibrary[] = [];
+    /**
+     * `IAvatarRenderManager.getUndrawableFigureParts`: the figure's sets, as `type-set`, that do not
+     * draw - unknown to the figure data, with no part any library holds, or needing a library that
+     * is not loaded. A set naming some parts no library holds still draws: Habbo's figure data lists
+     * layers that have no art (`rs`, `lc`, `hrb` ...), and the renderer skips them as Flash did.
+     */
+    public getUndrawableParts(container: IAvatarFigureContainer): string[] {
+        const undrawable: string[] = [];
+        const figureData = this._structure?.figureData;
 
-        if (!container || !this._structure) return pendingLibraries;
+        for (const partType of container.getPartTypeIds()) {
+            const setId = container.getPartSetId(partType);
+            const partSet = figureData?.getSetType(partType)?.getPartSet(setId);
+            const libraries = partSet ? partSet.parts.flatMap(part => this._figureMap.get(`${part.type}:${part.id}`) ?? []) : [];
+
+            if (!libraries.length || !libraries.every(library => library.isLoaded)) undrawable.push(`${partType}-${setId}`);
+        }
+
+        return undrawable;
+    }
+
+    private getAvatarFigurePendingLibraries(container: IAvatarFigureContainer): AvatarAssetDownloadLibrary[] {
+        return this.getAvatarFigureLibraries(container).filter(library => !library.isReady);
+    }
+
+    /** Every library holding a part of the figure, loaded or not. */
+    private getAvatarFigureLibraries(container: IAvatarFigureContainer): AvatarAssetDownloadLibrary[] {
+        const libraries: AvatarAssetDownloadLibrary[] = [];
+
+        if (!container || !this._structure) return libraries;
 
         const figureData = this._structure.figureData;
 
-        if (!figureData) return pendingLibraries;
+        if (!figureData) return libraries;
 
         for (const partType of container.getPartTypeIds()) {
             const set = figureData.getSetType(partType);
@@ -148,19 +196,19 @@ export class AvatarAssetDownloadManager {
             if (!figurePartSet) continue;
 
             for (const part of figurePartSet.parts) {
-                const libraries = this._figureMap.get(`${part.type}:${part.id}`);
+                const partLibraries = this._figureMap.get(`${part.type}:${part.id}`);
 
-                if (!libraries) continue;
+                if (!partLibraries) continue;
 
-                for (const library of libraries) {
-                    if (!library || library.isReady || pendingLibraries.indexOf(library) >= 0) continue;
+                for (const library of partLibraries) {
+                    if (!library || libraries.indexOf(library) >= 0) continue;
 
-                    pendingLibraries.push(library);
+                    libraries.push(library);
                 }
             }
         }
 
-        return pendingLibraries;
+        return libraries;
     }
 
     private downloadLibrary(library: AvatarAssetDownloadLibrary): void {

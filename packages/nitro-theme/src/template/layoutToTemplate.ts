@@ -62,7 +62,7 @@ export const parseLayoutXml = (text: string): LayoutXmlNode | undefined => {
 };
 
 /** `WindowParam`'s names, as `WindowParser` reads a `<param name>` (`fillTables`, 2026 client). */
-export const WINDOW_PARAMS: Readonly<Record<string, number>> = {
+const WINDOW_PARAMS: Readonly<Record<string, number>> = {
     null: 0,
     bound_to_parent_rect: 32,
     child_window: 33,
@@ -133,7 +133,7 @@ const ALIGN_H: (TemplateAlignH | undefined)[] = [ 'left', 'right', undefined, 'c
 const ALIGN_V: (TemplateAlignV | undefined)[] = [ 'top', 'bottom', undefined, 'middle' ];
 
 /** A `params` value split by concern; `undefined` when it sets nothing. */
-export const decodeWindowParams = (value: number): TemplateParams | undefined => {
+const decodeWindowParams = (value: number): TemplateParams | undefined => {
     const bit = (index: number) => ((value >>> index) & 1) === 1;
     const params: TemplateParams = {};
     const events = EVENT_BITS.filter(([ index ]) => bit(index)).map(([ , name ]) => name);
@@ -260,6 +260,21 @@ const convertElement = (node: LayoutXmlNode, options: LayoutToTemplateOptions): 
     if (attrs.clipping === 'false') element.clipping = false;
     if (attrs.treshold !== undefined && Number(attrs.treshold) !== 10) element.mouseThreshold = Number(attrs.treshold);
     if (attrs.tags) element.tags = unescapeAs3(attrs.tags).split(',').map(tag => tag.trim()).filter(Boolean);
+
+    // `WindowParser`'s `DropShadowFilter`, with its defaults; `GraphicContext` draws the first outer one.
+    const shadow = (child(node, 'filters')?.children ?? []).find(entry => (entry.tag === 'DropShadowFilter') && (entry.attrs.inner !== 'true'));
+
+    if (shadow) {
+        const value = (key: string, fallback: number) => (shadow.attrs[key] === undefined ? fallback : Number(shadow.attrs[key]));
+
+        element.dropShadow = {
+            distance: value('distance', 0),
+            angle: value('angle', 45),
+            color: value('color', 0),
+            alpha: value('alpha', 1),
+            blur: Math.max(0, value('blurX', 0), value('blurY', 0)),
+        };
+    }
 
     // `FrameController` and `BubbleController`, which extends it: children go into a content area.
     if (element.tag === 'frame' || element.tag === 'bubble') {

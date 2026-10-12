@@ -11,10 +11,10 @@
  * and nothing in the room reports a placement the user simply abandoned, so a stale one would
  * otherwise sit there and pop the window open on somebody else's placement later.
  */
-import { RoomEngineObjectEvent } from '@nitrodevco/nitro-api';
+import { RoomEngineObjectEvent, RoomEngineObjectPlacedEvent } from '@nitrodevco/nitro-api';
 import { useEffect } from 'react';
 
-import { returnInventoryAfterPlacement } from '#base/commands';
+import { onInventoryObjectPlaced, returnInventoryAfterPlacement } from '#base/commands';
 import { useInventoryPlacementActions, useInventoryStore } from '#base/context/inventory';
 import { useIsWindowVisible } from '#base/context/system';
 
@@ -25,11 +25,12 @@ export const useRoomInventoryPlacementHandler = () => {
     const moverRequested = useInventoryStore(x => x.inventoryMoverRequested);
     const { setInventoryMoverRequested } = useInventoryPlacementActions();
 
-    useRoomEventDispatcher<RoomEngineObjectEvent>([
-        RoomEngineObjectEvent.PLACED,
-        // A drop onto a user never reaches a tile, but the placement is over either way.
-        RoomEngineObjectEvent.PLACED_ON_USER,
-    ], () => returnInventoryAfterPlacement());
+    // `FurniModel.onObjectPlaced`: the next furni of a stack is placed straight away, and the window
+    // comes back when the stack is used up or the drop did not place anything.
+    useRoomEventDispatcher<RoomEngineObjectPlacedEvent>(RoomEngineObjectEvent.PLACED, event => onInventoryObjectPlaced(event));
+
+    // A drop onto a user never reaches a tile, but the placement is over either way.
+    useRoomEventDispatcher<RoomEngineObjectEvent>(RoomEngineObjectEvent.PLACED_ON_USER, () => returnInventoryAfterPlacement());
 
     useEffect(() => {
         if (isVisible && moverRequested) setInventoryMoverRequested(false);

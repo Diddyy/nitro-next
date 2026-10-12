@@ -1,4 +1,5 @@
-﻿export class RoomFloorHole {
+/** Port of Flash `RoomFloorHole`. */
+export class RoomFloorHole {
     private _x: number;
     private _y: number;
     private _width: number;

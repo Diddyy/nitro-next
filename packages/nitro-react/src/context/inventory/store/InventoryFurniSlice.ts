@@ -13,6 +13,8 @@
  *   (19), which stack by rarity level, and chests (24, 25), which stack only while empty and
  *   unnamed. Groupable items stack by type and wall/floor, posters (6) also by poster id and
  *   guild furni (17) by equal stuff data.
+ * - `onImageUpdateTimerEvent` (`removeExpiredRentedFurni`): a rented item whose time has run out
+ *   leaves the list.
  * - The locks: `updateItemLocks` marks the items whose room item id is in a running trade,
  *   `removeAllLocks` clears them.
  *
@@ -31,13 +33,15 @@
  * The recycler (`RecyclerModel`) and the marketplace (`MarketplaceModel`) lock items by strip id
  * through `setFurniItemLocks`, and `updateFurniLocks` counts their items with the trade's.
  */
+import { LegacyDataType } from '@nitrodevco/nitro-api';
 import { IFurniListAddOrUpdateFurni } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
 import {
-    createInventoryFurniItem, getInventoryFurniTotalCount, getStuffDataChestName, getStuffDataContentsCount, INVENTORY_FURNI_CATEGORY_CHEST_BROWN, INVENTORY_FURNI_CATEGORY_CHEST_GOLD, INVENTORY_FURNI_CATEGORY_GUILD_FURNI,
+    createInventoryFurniItem, getInventoryFurniSecondsToExpiration, getInventoryFurniTotalCount, getStuffDataChestName, getStuffDataContentsCount, INVENTORY_FURNI_CATEGORY_CHEST_BROWN, INVENTORY_FURNI_CATEGORY_CHEST_GOLD, INVENTORY_FURNI_CATEGORY_GUILD_FURNI,
     INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_CATEGORY_RARE, InventoryFurniGroup, InventoryFurniItem, isInventoryFurniGroupGroupable, isInventoryFurniGroupWallItem,
 } from './InventoryFurniGroup';
+import { keepInventorySelection } from './inventorySelection';
 import { addUnseenItemIds, InventoryUnseenSlice, isUnseenItem, UnseenItemCategory, UnseenItemIds } from './InventoryUnseenSlice';
 
 type State = {
@@ -61,6 +65,16 @@ type Actions = {
      * `onFurniListRemove` goes on to `resetUnseenItems` (`resetInventoryFurniUnseenItems`).
      */
     removeFurni: (stripId: number) => boolean;
+    /**
+     * `FurniModel.onImageUpdateTimerEvent`: every group whose first item is a rented one whose time has
+     * run out is removed (`removeFurni`); how many went.
+     */
+    removeExpiredRentedFurni: () => number;
+    /**
+     * `FurniModel.updatePostItCount`: a post-it stack's sheets left after one was stuck to a wall -
+     * the item's legacy stuff data holds the count.
+     */
+    updatePostItCount: (stripId: number, count: number) => void;
     /** `IncomingMessages.onFurniListInvalidate`. */
     invalidateFurni: () => void;
     /** `GroupItem.itemEventProc` on `WME_DOWN`: `removeSelections` and select this one. */
@@ -299,13 +313,6 @@ const resetUnseen = (groups: InventoryFurniGroup[]): InventoryFurniGroup[] => {
     return groups.map(group => (isNew(group) ? { ...group, hasUnseenItems: false } : group));
 };
 
-/** `selectFirstItem` when the selected group is gone (or there was none). */
-const keepSelection = (groups: InventoryFurniGroup[], selectedGroupId: number): number => {
-    if (groups.some(group => group.id === selectedGroupId)) return selectedGroupId;
-
-    return groups[0]?.id ?? -1;
-};
-
 export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & InventoryUnseenSlice, [], [], InventoryFurniSlice> = (set, get) => ({
     ...InventoryFurniSliceInitialState,
     insertFurniture: furni => set((x) => {
@@ -322,7 +329,7 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         return {
             furniGroups: draft.groups,
-            furniSelectedGroupId: keepSelection(draft.groups, x.furniSelectedGroupId),
+            furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId),
             furniListInitialized: true,
             furniCategoryInitialized: true,
         };
@@ -361,10 +368,42 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         if (!removeItem(draft, stripId)) return false;
 
-        set({ furniGroups: draft.groups, furniSelectedGroupId: keepSelection(draft.groups, x.furniSelectedGroupId) });
+        set({ furniGroups: draft.groups, furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId) });
 
         return true;
     },
+    removeExpiredRentedFurni: () => {
+        const x = get();
+        const expired = x.furniGroups
+            .map(group => group.items[0])
+            .filter(item => item && item.isRented && item.hasRentPeriodStarted && (getInventoryFurniSecondsToExpiration(item) <= 0))
+            .map(item => item.id);
+
+        if (!expired.length) return 0;
+
+        const draft = new FurniGroupsDraft(x.furniGroups);
+
+        for (const stripId of expired) removeItem(draft, stripId);
+
+        set({ furniGroups: draft.groups, furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId) });
+
+        return expired.length;
+    },
+    updatePostItCount: (stripId, count) => set((x) => {
+        const draft = new FurniGroupsDraft(x.furniGroups);
+        const index = draft.indexOfItem(stripId);
+
+        if (index === -1) return x;
+
+        const group = draft.edit(index);
+        const itemIndex = group.items.findIndex(item => item.id === stripId);
+        const stuffData = new LegacyDataType();
+
+        stuffData.setString(String(count));
+        group.items[itemIndex] = { ...group.items[itemIndex], stuffData };
+
+        return { furniGroups: draft.groups };
+    }),
     invalidateFurni: () => set({ furniCategoryInitialized: false }),
     selectFurniGroup: furniSelectedGroupId => set({ furniSelectedGroupId }),
     updateFurniLocks: lockedRefs => set((x) => {

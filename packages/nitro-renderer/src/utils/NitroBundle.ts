@@ -1,6 +1,7 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { Texture } from 'pixi.js';
 
+import { LoadMetrics } from './LoadMetrics';
 import { TextureUtils } from './TextureUtils';
 import { readZipEntries } from './ZipArchive';
 
@@ -21,7 +22,8 @@ export class NitroBundle {
     private _textures: { [key: string]: Texture } = {};
     private _binaries: { [key: string]: ArrayBuffer } = {};
 
-    public static async fromBuffer(data: ArrayBuffer): Promise<NitroBundle> {
+    /** `metricsKey` is the url the archive came from, set only when `LoadMetrics` is timing it. */
+    public static async fromBuffer(data: ArrayBuffer, metricsKey?: string): Promise<NitroBundle> {
         const bundle = new NitroBundle();
 
         for (const entry of readZipEntries(data)) {
@@ -30,12 +32,27 @@ export class NitroBundle {
 
                 switch (name.slice(name.lastIndexOf('.') + 1)) {
                     case 'json': {
-                        bundle.files[name] = JSON.parse(NitroBundle.TEXT_DECODER.decode(await entry.bytes()));
+                        const startedAt = metricsKey ? performance.now() : 0;
+                        const bytes = await entry.bytes();
+
+                        if (metricsKey) LoadMetrics.addTime(metricsKey, 'inflateMs', performance.now() - startedAt);
+
+                        bundle.files[name] = JSON.parse(NitroBundle.TEXT_DECODER.decode(bytes));
                         break;
                     }
                     case 'png': {
                         // A blob goes to the image decoder directly - one fewer copy of the sheet at the load peak.
-                        bundle.textures[name] = await TextureUtils.textureFromEncodedBytes(await entry.blob('image/png'), 'image/png', name);
+                        const startedAt = metricsKey ? performance.now() : 0;
+                        const blob = await entry.blob('image/png');
+                        const inflated = metricsKey ? performance.now() : 0;
+
+                        bundle.textures[name] = await TextureUtils.textureFromEncodedBytes(blob, 'image/png', name);
+
+                        if (metricsKey) {
+                            LoadMetrics.addTime(metricsKey, 'inflateMs', inflated - startedAt);
+                            LoadMetrics.addTime(metricsKey, 'imageMs', performance.now() - inflated);
+                        }
+
                         break;
                     }
                     default: {

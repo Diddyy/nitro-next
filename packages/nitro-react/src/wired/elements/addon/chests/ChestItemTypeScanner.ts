@@ -8,7 +8,7 @@
  */
 import { type IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { createVariablePickerState, type WiredVariablePickerState } from '../../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, type WiredVariablePickerState } from '../../../common/WiredVariablePickerModel';
 import type { WiredElementDefinition } from '../../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../../WiredTriggerable';
 import { AddonCodes } from '../addonCodes';
@@ -30,7 +30,7 @@ export const chestItemTypeScannerAddon: WiredElementDefinition<ChestItemTypeScan
         mode: getWiredInt(triggerable, 0),
     }),
     readIntParams: form => [ form.mode ],
-    readVariableIds: form => [ form.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
     furniSelectionTitle: id => ((id === 0) ? 'wiredfurni.params.sources.furni.title.item_types' : 'wiredfurni.params.sources.furni.title.chests'),
     forceHidePickFurniInstructions: true,
     advancedAlwaysVisible: true,

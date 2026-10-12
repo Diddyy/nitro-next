@@ -2,6 +2,10 @@ import { ContextMenuEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-I2Q§`, the logic `RoomObjectFactory` builds for
+ * `furniture_effectbox`.
+ */
 export class FurnitureEffectBoxLogic extends FurnitureLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectWidgetRequestEvent.EFFECTBOX_OPEN_DIALOG ]);

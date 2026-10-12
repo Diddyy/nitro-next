@@ -13,6 +13,7 @@ export interface TooltipProps extends ThemeProps<TooltipVariant> {
     children?: ReactNode;
 }
 
+/** Flash's `ToolTipController` (`tooltip`): the tooltip window's skin behind its caption - see `TooltipLayer`. */
 export const Tooltip: ForwardRefExoticComponent<TooltipProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TooltipProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, children, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
         const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<TooltipVariant>({

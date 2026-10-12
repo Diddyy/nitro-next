@@ -21,12 +21,15 @@ Use `git sync-dev` from clean personal `dev` after upstream merges; do not creat
 | `nitro-renderer` | Room engine, object logic, visualizations and asset loading |
 | `nitro-theme` | The themed UI components (window skins, buttons, text, layers) shared by `nitro-react` and `nitro-studio`; holds no app state - the app supplies bundles, config and window stacking through `configureThemeHost` |
 | `nitro-react` | Client UI rendered through Pixi |
-| `nitro-studio` | Asset imports/conversion, versioned workspaces, gamedata and Turbo catalog integration; separate web application in its own git repository, checked out here |
+| `nitro-imager` | Server-side avatar and group badge images over HTTP: the renderer's avatar code on Pixi's Canvas 2D renderer in Node |
+| `nitro-studio` | Asset imports/conversion, versioned workspaces and gamedata; separate web application in its own git repository, checked out here |
 
 ## Core contracts
 
-- AS3 for the revision in `production.version` is the behavioral source of truth. Use the official
-  JavaScript client as implementation guidance. Port docblocks name the AS3 class/method.
+- The AS3 in `scripts/habbo-as3` is the behavioral source of truth. Habbo's own JavaScript port in
+  `scripts/habbo-js` shows how it can be done in JavaScript; the AS3 wins where they differ. The
+  client's bundled templates and assets are in `scripts/habbo-js-resources`. Port docblocks name
+  the AS3 class/method. See [Habbo reference code](docs/development.md#habbo-reference-code).
 - Match the reachable behavior, configuration gates and packet contracts. Trace initialization,
   reset, mutable-value ownership and numeric units when they affect the change.
 - Turbo is the development server. Use its configured endpoint and Turbo-issued SSO tickets.
@@ -48,12 +51,14 @@ Use the relevant references below; a small edit does not require reading every g
 | A view or layout | [Layout views](docs/layout-views.md), [porting gotchas](docs/porting-gotchas.md) |
 | Fonts, localization or text rendering | [Text](docs/text.md) |
 | Bundled images, fonts or asset loading | [Asset bundles](docs/asset-bundles.md) |
-| Asset imports, workspace versions, gamedata or catalog publishing | [Nitro Studio](docs/nitro-studio.md) |
+| Asset imports, workspace versions or gamedata | [Nitro Studio](docs/nitro-studio.md) |
 | Parsers, composers or packet registration | [Packets](docs/packets.md) |
 | Wired definitions, setup views or stores | [Wired](docs/wired.md) |
 | Revision updates or copied reference tables | [Staying in step](docs/staying-in-step.md) |
 | Unported or partly ported features, and picking work | [Feature gaps](docs/feature-gaps.md) |
+| What the client does that Turbo does not answer yet | [Server gaps](docs/server-gaps.md) |
 | Room rendering, water, zoom or GPU behavior | [Renderer verification](docs/renderer-parity.md) |
+| The avatar or group badge imager | [Imager](docs/imager.md) |
 | Shared test and diagnostic commands | [Developer tools directory](tools/) |
 
 ## Working scope

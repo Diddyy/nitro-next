@@ -2,6 +2,7 @@ import { AnimationFrameData } from './AnimationFrameData';
 import { AnimationFrameDirectionalData } from './AnimationFrameDirectionalData';
 import { DirectionalOffsetData } from './DirectionalOffsetData';
 
+/** Port of Flash `AnimationFrameSequenceData`. */
 export class AnimationFrameSequenceData {
     private _frames: AnimationFrameData[];
     private _frameIndexes: number[];

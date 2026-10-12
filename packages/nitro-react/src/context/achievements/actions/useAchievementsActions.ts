@@ -1,6 +1,6 @@
-/** Stable actions for the achievement browser and congratulations queue. */
+/** Stable actions for the achievement browser. */
 import { achievementsStore } from '../store/AchievementsStore';
 
-const { selectCategory, selectAchievement, close, dismissCongratulations, reset } = achievementsStore.getState();
+const { back, close, reset } = achievementsStore.getState();
 
-export const useAchievementsActions = () => ({ selectCategory, selectAchievement, close, dismissCongratulations, reset });
+export const useAchievementsActions = () => ({ back, close, reset });

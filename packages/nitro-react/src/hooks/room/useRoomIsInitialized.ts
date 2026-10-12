@@ -1,10 +1,3 @@
-import { RoomEngineEvent } from '@nitrodevco/nitro-api';
-import { useCallback, useSyncExternalStore } from 'react';
-
-import { useRoom } from '#base/context/room';
-
-const ROOM_STATE_EVENTS = [ RoomEngineEvent.INITIALIZED, RoomEngineEvent.DISPOSED ];
-
 /**
  * Whether the current room has its floor map and can be shown - Flash's `REE_INITIALIZED`, which
  * is what made `RoomUI` create the room view.
@@ -14,8 +7,16 @@ const ROOM_STATE_EVENTS = [ RoomEngineEvent.INITIALIZED, RoomEngineEvent.DISPOSE
  * attached in an effect cannot do that. The floor map of a room the server already has loaded - a
  * room from the visit history, say - can arrive after the render that saw "not initialized" and
  * before the effect that would have listened, and then nothing ever asks again: a black screen
- * in a room the server has long since put you in.
+ * in a room the server has long since put you in. That is why this listens to the room's events
+ * itself rather than through `useRoomEventDispatcher`, which attaches its listener in an effect.
  */
+import { RoomEngineEvent } from '@nitrodevco/nitro-api';
+import { useCallback, useSyncExternalStore } from 'react';
+
+import { useRoom } from '#base/context/room';
+
+const ROOM_STATE_EVENTS = [ RoomEngineEvent.INITIALIZED, RoomEngineEvent.DISPOSED ];
+
 export const useRoomIsInitialized = () => {
     const room = useRoom();
 

@@ -29,6 +29,10 @@ export interface InventoryFurniItem {
     recyclable: boolean;
     sellable: boolean;
     isRented: boolean;
+    /** `secondsToExpiration` as the packet gave it (-1 when not rented) and when it arrived (`expirationTimeStamp`). */
+    rentSeconds: number;
+    rentReceivedAt: number;
+    hasRentPeriodStarted: boolean;
     flatId: number;
     /** `locked`: in a trade (`FurniModel.updateItemLocks`). */
     locked: boolean;
@@ -46,6 +50,15 @@ export interface InventoryFurniGroup {
     /** `hasUnseenItems`: the thumb's green background. */
     hasUnseenItems: boolean;
 }
+
+/** The `FurnitureItem` categories of the three room layout papers (`§_-72Z§.isWallpaper` / `isFloor` / `isLandscape`). */
+export const INVENTORY_FURNI_CATEGORY_WALLPAPER = 2;
+export const INVENTORY_FURNI_CATEGORY_FLOOR = 3;
+export const INVENTORY_FURNI_CATEGORY_LANDSCAPE = 4;
+
+/** A room layout paper - previewed on the room's planes and applied rather than placed. */
+export const isRoomLayoutCategory = (category: number): boolean =>
+    (category === INVENTORY_FURNI_CATEGORY_WALLPAPER) || (category === INVENTORY_FURNI_CATEGORY_FLOOR) || (category === INVENTORY_FURNI_CATEGORY_LANDSCAPE);
 
 /** `FurnitureItem`'s categories the group rules name (`FurniModel.addOrUpdateItem`, `GroupItem.getTotalCount`). */
 export const INVENTORY_FURNI_CATEGORY_POST_IT = 5;
@@ -74,9 +87,24 @@ export const createInventoryFurniItem = (data: IFurniListAddOrUpdateFurni, locke
     recyclable: data.isRecyclable,
     sellable: data.isSellable,
     isRented: !!data.isRented,
+    rentSeconds: data.secondsToExpiration,
+    rentReceivedAt: data.expirationTimeStamp,
+    hasRentPeriodStarted: data.hasRentPeriodStarted,
     flatId: data.flatId,
     locked,
 });
+
+/**
+ * `FurnitureItem.secondsToExpiration`: -1 when the packet gave none; a period that has started
+ * counts down from when the packet arrived, never below 0; one that has not stays as it came.
+ */
+export const getInventoryFurniSecondsToExpiration = (item: InventoryFurniItem, now: number = Date.now()): number => {
+    if (item.rentSeconds === -1) return -1;
+
+    if (!item.hasRentPeriodStarted) return item.rentSeconds;
+
+    return Math.max(0, Math.trunc(item.rentSeconds - ((now - item.rentReceivedAt) / 1000)));
+};
 
 /** `IStuffData.contentsCount`: only a map stuff data carries one (`MapStuffData`). */
 export const getStuffDataContentsCount = (stuffData: IObjectData): number => {
@@ -118,6 +146,23 @@ export const getInventoryFurniTradeableCount = (group: InventoryFurniGroup, unlo
 
 /** `GroupItem.getRecyclableCount`: the recyclable items no trade has locked. */
 export const getInventoryFurniRecyclableCount = (group: InventoryFurniGroup): number => group.items.filter(item => item.recyclable && !item.locked).length;
+
+/**
+ * `FurniModel.attemptPlaceNextFurni`: the item to put into the room after the one just placed. A
+ * placement starts from the last item (`GroupItem.peek`, `selectedItemIndex` = count - 1) and walks
+ * down the stack, so the next one is the nearest unlocked item below the placed one. The placed item
+ * is still in the group when the room reports it (the server removes it after the request), which is
+ * why its position, not the group's size, says where to look. Nothing is left when it was the lowest.
+ */
+export const findNextInventoryFurniToPlace = (group: InventoryFurniGroup, placedItemId: number): InventoryFurniItem | undefined => {
+    const placedIndex = group.items.findIndex(item => item.id === placedItemId);
+
+    for (let index = placedIndex - 1; index >= 0; index--) {
+        if (!group.items[index].locked) return group.items[index];
+    }
+
+    return undefined;
+};
 
 /** `GroupItem.getOneForTrade` (without `selectedItemIndex`, see the docblock). */
 export const getInventoryFurniOneForTrade = (group: InventoryFurniGroup): InventoryFurniItem | undefined => group.items.find(item => !item.locked && item.tradeable);

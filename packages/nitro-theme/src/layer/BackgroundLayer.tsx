@@ -6,7 +6,7 @@ import { NineSliceLayer, NineSliceRepeatAxis } from './NineSliceLayer';
 import { SpriteLayer } from './SpriteLayer';
 import { TileLayer } from './TileLayer';
 
-/** One layer of a theme variant's art, as the `theme` bundle's `theme-variants.json` describes it. */
+/** One layer of a theme variant's art, as the window manager bundle's `theme-variants.json` describes it. */
 export type BackgroundLayerConfig
     = | { kind: 'nineSlice'; textureKey: string; leftWidth: number; topHeight: number; rightWidth: number; bottomHeight: number; repeat?: NineSliceRepeatAxis }
         | { kind: 'sprite'; textureKey: string; frame?: SpriteFrame }

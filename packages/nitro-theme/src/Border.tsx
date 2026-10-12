@@ -5,7 +5,7 @@ import { Box } from './Box';
 import { VariantCascadeProvider } from './cascade';
 import { dynamicStyleBoxProps, useDynamicStyleEffect } from './dynamicstyle';
 import { useThemeVariant } from './hooks';
-import { BackgroundLayer, ColorLayer, isSingleNodeLayer, leafBoxLayout } from './layer';
+import { BackgroundLayer, ColorLayer, isSingleNodeLayer, leafBoxLayout, ShadowLayer } from './layer';
 import { DynamicStyleRole, expandSides, FillLayout, ThemeProps, ThemeVariant, wrapTextChildren } from './utils';
 
 /**
@@ -62,8 +62,8 @@ export interface BorderProps extends ThemeProps<BorderVariant> {
  * parent, not white.
  */
 export const Border: ForwardRefExoticComponent<BorderProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, BorderProps>(
-    ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, blend, ownGraphicContext, backgroundColor, backgroundAlpha, dynamicRole, children, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
-        const { ownCascade, config, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<BorderVariant>({
+    ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, dropShadow, blend, ownGraphicContext, backgroundColor, backgroundAlpha, dynamicRole, children, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
+        const { ownCascade, config, handlers, resolvedLayer, resolvedPlain, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<BorderVariant>({
             cascadeKey: 'border', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
         const roleEffect = useDynamicStyleEffect(dynamicRole);
@@ -76,7 +76,7 @@ export const Border: ForwardRefExoticComponent<BorderProps & RefAttributes<PixiC
         const alone = isSingleNodeLayer(resolvedLayer) && !backgroundColor && !resolvedOverlay;
         const interactive = !!tooltip || !!dynamicRole || !!(onPointerOver || onPointerOut || onPointerDown || onPointerUp || onPointerUpOutside || onPointerTap);
 
-        if (alone && !interactive && (children === undefined)) {
+        if (alone && !interactive && !dropShadow && (children === undefined)) {
             return (
                 <BackgroundLayer
                     ref={ref}
@@ -116,6 +116,14 @@ export const Border: ForwardRefExoticComponent<BorderProps & RefAttributes<PixiC
                 {...dynamicStyleBoxProps(roleEffect, ownGraphicContext ? blend : undefined)}
                 {...handlers}
             >
+                {/* The skin's own silhouette, as a `Frame` casts it - a `Region`'s would be a square box. Not faded by `blend`. */}
+                {dropShadow && (
+                    <ShadowLayer
+                        {...dropShadow}
+                        layer={resolvedLayer}
+                        plain={resolvedPlain}
+                    />
+                )}
                 {((skinBlend === undefined) || alone)
                     ? skin
                     : (

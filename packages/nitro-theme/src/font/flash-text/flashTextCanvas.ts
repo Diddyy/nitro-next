@@ -1,7 +1,7 @@
 /**
- * A rendered text block as a canvas - what both render targets show: Pixi as a texture, the DOM
- * by drawing it onto its own `<canvas>`. A drop shadow is the same block rendered once more in
- * the shadow's colour and composited underneath, so the two targets bake identical pixels.
+ * A rendered text block as a canvas, which `ThemeText` shows as a texture and a caller drawing its
+ * own texture (a chat bubble, a chart) draws onto it. A drop shadow is the same block rendered
+ * once more in the shadow's colour and composited underneath.
  */
 import { FlashTextBlock, FlashTextBlockOptions, FlashTextLine, FlashTextRun, renderTextBlock } from './flashTextBlock';
 import { FlashTextFormat, normalizeFlashTextFormat } from './flashTextFormat';

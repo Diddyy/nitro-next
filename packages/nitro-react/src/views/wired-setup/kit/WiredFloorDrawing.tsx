@@ -32,8 +32,8 @@ import { useWiredStyle } from './WiredStyleContext';
 const TAKEN_TILE_TINT = '#0066cc';
 const UNTAKEN_TILE_TINT = '#333333';
 
-const TILE_BASE = LayoutImage('wired/floor_editor_tile_base.png');
-const TILE_ENTRY = LayoutImage('wired/wired_floor_editor_tile_entry.png');
+const TILE_BASE = LayoutImage('habbo-user-defined-room-events-com/floor_editor_tile_base.png');
+const TILE_ENTRY = LayoutImage('habbo-user-defined-room-events-com/floor_editor_tile_entry.png');
 const TILE_WIDTH = 18;
 const TILE_HEIGHT = 9;
 
@@ -102,19 +102,19 @@ export const WiredFloorDrawing = ({ plan, smallMode, rootX, rootY, mode, onPlanC
     if ((rootX >= -radius) && (rootX <= radius) && (rootY >= -radius) && (rootY <= radius)) push('root', rootX + radius, rootY + radius, TILE_ENTRY);
 
     for (let x = 0; x < dimension; x++) {
-        push(`n:${x}`, x, -1, LayoutImage('wired/fp_border_N.png'));
-        push(`s:${x}`, x, dimension, LayoutImage('wired/fp_border_S.png'));
+        push(`n:${x}`, x, -1, LayoutImage('habbo-user-defined-room-events-com/fp_border_N.png'));
+        push(`s:${x}`, x, dimension, LayoutImage('habbo-user-defined-room-events-com/fp_border_S.png'));
     }
 
     for (let y = 0; y < dimension; y++) {
-        push(`w:${y}`, -1, y, LayoutImage('wired/fp_border_W.png'));
-        push(`e:${y}`, dimension, y, LayoutImage('wired/fp_border_E.png'));
+        push(`w:${y}`, -1, y, LayoutImage('habbo-user-defined-room-events-com/fp_border_W.png'));
+        push(`e:${y}`, dimension, y, LayoutImage('habbo-user-defined-room-events-com/fp_border_E.png'));
     }
 
-    push('nw', -1, -1, LayoutImage('wired/fp_border_NW.png'));
-    push('ne', dimension, -1, LayoutImage('wired/fp_border_NE.png'));
-    push('se', dimension, dimension, LayoutImage('wired/fp_border_SE.png'));
-    push('sw', -1, dimension, LayoutImage('wired/fp_border_SW.png'));
+    push('nw', -1, -1, LayoutImage('habbo-user-defined-room-events-com/fp_border_NW.png'));
+    push('ne', dimension, -1, LayoutImage('habbo-user-defined-room-events-com/fp_border_NE.png'));
+    push('se', dimension, dimension, LayoutImage('habbo-user-defined-room-events-com/fp_border_SE.png'));
+    push('sw', -1, dimension, LayoutImage('habbo-user-defined-room-events-com/fp_border_SW.png'));
 
     /** `applyDraw` - one tile with the current mode. */
     const applyDraw = (tile: TilePoint) => {

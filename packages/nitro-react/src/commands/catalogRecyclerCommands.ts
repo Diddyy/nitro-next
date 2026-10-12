@@ -11,7 +11,7 @@
  *
  * `HabboCatalog.privateRoomSessionActive` is being in a room: every room session is a private
  * room (`RoomSession.isPrivateRoom` answers true). `tradingActive` is the inventory's running
- * trade, which in this client is only the wired trade.
+ * trade: the trade with another user or the wired trade.
  */
 import { GetRecyclerPrizesComposer, GetRecyclerStatusComposer, IPrizeLevelMessageData, RecycleItemsComposer } from '@nitrodevco/nitro-packets';
 
@@ -24,6 +24,7 @@ import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { wiredTradingStore } from '#base/context/wired-trading';
+import { getFurnitureDataForProductType } from '#base/utils';
 
 type Send = WebSocketConnection['send'];
 
@@ -61,8 +62,8 @@ const isReady = () => (statusActive() && systemActive() && (recyclerStore.getSta
 /** `HabboCatalog.privateRoomSessionActive`. */
 export const isRecyclerRoomSessionActive = () => !!getRoom();
 
-/** `HabboCatalog.tradingActive`: `HabboInventory.activeTradingModel` - the running wired trade. */
-const isTradingActive = () => wiredTradingStore.getState().tradeRunning;
+/** `HabboCatalog.tradingActive`: `HabboInventory.activeTradingModel` - the user trade or the wired trade, whichever is running. */
+const isTradingActive = () => inventoryStore.getState().tradingActive || wiredTradingStore.getState().tradeRunning;
 
 // ---------------------------------------------------------------------------------------------
 // The inventory's `RecyclerModel`
@@ -128,9 +129,6 @@ const returnInventoryFurniFromRecycler = (itemId: number): boolean => {
     return true;
 };
 
-/** `RecyclerModel.getOwnItemsInRecycler`: what `FurniModel.updateItemLocks` counts as locked by the recycler. */
-export const getInventoryItemsInRecycler = (): readonly number[] => inventoryStore.getState().recyclerItemIds ?? [];
-
 // ---------------------------------------------------------------------------------------------
 // `RecyclerLogic`
 // ---------------------------------------------------------------------------------------------
@@ -158,11 +156,6 @@ export const initRecycler = (send: Send) => {
     setRecyclerVisualization(true);
 
     send(new GetRecyclerStatusComposer({}));
-};
-
-/** `activate`: ready again unless the server has closed it. */
-export const activateRecycler = () => {
-    if (systemActive()) recyclerStore.getState().setRecyclerLocalStatus(RECYCLER_STATUS_READY);
 };
 
 /** `releaseAllSlots`: every slotted item goes back to the inventory. */
@@ -336,8 +329,8 @@ export const setRecyclerRoomSessionEnded = () => {
 
 /** `storePrizeTable`: the prize table, each prize with its furni data (`PrizeLevelContainer`). */
 export const storeRecyclerPrizeTable = (levels: readonly IPrizeLevelMessageData[]) => {
-    const { floorItems, wallItems } = systemStore.getState();
-    const furniData = (type: string, id: number) => ((type === 's') ? floorItems[id] : ((type === 'i') ? wallItems[id] : undefined));
+    const lookup = systemStore.getState();
+    const furniData = (type: string, id: number) => getFurnitureDataForProductType(lookup, type, id);
 
     const prizes: RecyclerPrizeLevel[] = levels.map(level => ({
         prizeLevelId: level.prizeLevelId,
@@ -381,6 +374,3 @@ export const recycleSelectedInventoryFurni = () => {
 
     placeObjectAtRecyclerSlot(-1, isInventoryFurniGroupWallItem(group) ? RECYCLER_SLOT_CATEGORY_WALL : RECYCLER_SLOT_CATEGORY_FLOOR, item.typeId, String(item.extra), true);
 };
-
-/** `RecyclerLogic.recyclerDisabled`. */
-export const isRecyclerDisabled = () => !systemActive();

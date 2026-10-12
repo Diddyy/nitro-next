@@ -5,9 +5,7 @@
  * `context/groups`; every function here takes the socket, because the manager is a component and
  * these are its methods.
  *
- * Two things Flash does that the port cannot yet:
- * - `openGroupForum` raises a `groupforum/<id>` link, which no window answers here - the group
- *   forums are not ported, as `FurnitureGuildMenuWidget` also records.
+ * One thing Flash does that the port cannot yet:
  * - the creation wizard's "create a room" link calls `startRoomCreation`, which opens the
  *   navigator's room-creation view; that view is not ported either, so the link is not offered.
  *
@@ -18,9 +16,9 @@
 import { ClubLevelEnum } from '@nitrodevco/nitro-api';
 import {
     AddAdminRightsToMemberComposer, ApproveMembershipRequestComposer, CreateGuildComposer, DeactivateGuildComposer,
-    EventLogComposer, GetGuildCreationInfoComposer, GetGuildEditInfoComposer, GetGuildEditorDataComposer, GetGuildMembersComposer, GetHabboGroupDetailsComposer,
+    EventLogComposer, GetGuildEditInfoComposer, GetGuildEditorDataComposer, GetGuildMembersComposer, GetHabboGroupDetailsComposer,
     GetMemberGuildItemCountComposer, GUILD_MEMBER_SEARCH_MEMBERS, IMemberData, isGuildMemberAdmin, isGuildMemberBlocked, isGuildMemberMember, isGuildMemberOwner,
-    JoinHabboGroupComposer, KickMemberComposer, NewNavigatorSearchComposer, RejectMembershipRequestComposer, RemoveAdminRightsFromMemberComposer,
+    JoinHabboGroupComposer, KickMemberComposer, RejectMembershipRequestComposer, RemoveAdminRightsFromMemberComposer,
     UnblockGroupMemberComposer, UpdateGuildBadgeComposer, UpdateGuildColorsComposer, UpdateGuildIdentityComposer, UpdateGuildSettingsComposer,
 } from '@nitrodevco/nitro-packets';
 
@@ -31,17 +29,14 @@ import {
     limitGroupMemberPage,
 } from '#base/context/groups';
 import { navigatorStore } from '#base/context/navigator';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 import { ClientGates, hasClientGate, userStore } from '#base/context/user';
 
 import { openClubCenter } from './catalogClubCommands';
 import { openClientLink } from './clientLinkCommands';
-import { goToRoom } from './navigatorCommands';
-import { openProfile } from './roomUserCommands';
+import { goToRoom, performNavigatorSearch } from './navigatorCommands';
 
 type Send = WebSocketConnection['send'];
-
-const t = (key: string, defaultValue?: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, defaultValue, replacements);
 
 /** `GROUPS_TRACKING_CATEGORY` - every group action logs against the same category. */
 const GROUPS_TRACKING_CATEGORY = 'HabboGroups';
@@ -88,24 +83,18 @@ export const goToGroupBaseRoom = (send: Send, groupId: number, roomId: number) =
  * turns into the new navigator's `performSearch("groups")`.
  */
 export const showGroupBases = (send: Send) => {
-    const { setFilterType, setSearchFilter, setIsSearching } = navigatorStore.getState();
+    const { setFilterType, setSearchFilter } = navigatorStore.getState();
 
     setFilterType('group');
     setSearchFilter('');
-    setIsSearching(true);
 
-    send(new NewNavigatorSearchComposer({ searchCodeOriginal: 'groups', filteringData: '' }));
-
-    systemStore.getState().showWindow('navigator');
+    performNavigatorSearch(send, 'groups');
 };
 
 /** `GroupDetailsCtrl.onBuyFurni` -> `openCatalog(CATALOG_PAGE_GROUP_FURNITURE)`. */
 export const openGroupFurniCatalog = () => systemStore.getState().showWindow('catalog', { pageName: 'guild_custom_furni' });
 
-/**
- * `HabboGroupsManager.openGroupForum`: a `groupforum/<id>` link. Nothing answers it yet - the
- * group forums are not ported - so the link is raised and logged as any unknown one is.
- */
+/** `HabboGroupsManager.openGroupForum`: a `groupforum/<id>` link, which `GroupForumController` answers. */
 export const openGroupForum = (send: Send, groupId: number) => openClientLink(send, `groupforum/${groupId}`);
 
 /** `GroupDetailsCtrl.onDeleteGuild` + `onDeleteGuildConfirmation`. */
@@ -256,18 +245,12 @@ export const blockGroupMember = (send: Send, member: IMemberData) => {
     requestGroupMemberKick(send, members.groupId, member.userId, true);
 };
 
-/** `GuildMembersWindowCtrl.onBg`: a row opens that user's extended profile. */
-export const showGroupMemberProfile = (send: Send, userId: number) => openProfile(send, userId);
-
 /** `HabboGroupsManager.requestGuildEditorData` - asked for once a session, whichever window needs it. */
 export const requestGuildEditorData = (send: Send) => {
     if (groupStore.getState().editorData) return;
 
     send(new GetGuildEditorDataComposer({}));
 };
-
-/** The creation wizard - `GuildMembershipsController.onCreateGroup` and the catalogue's buy-guild widget. */
-export const startGroupCreation = (send: Send) => send(new GetGuildCreationInfoComposer({}));
 
 /** `GroupDetailsCtrl.onManageGuild` / `GroupRoomInfoCtrl.onManage`. */
 export const openGroupManagement = (send: Send, groupId: number) => send(new GetGuildEditInfoComposer({ groupId }));

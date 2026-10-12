@@ -13,8 +13,10 @@
  * is attached to no window in the AS3 client nor in Sulake's JavaScript one, so the page name
  * (`vipPurchasePageName`) is never remembered there - only forgotten and read, as here.
  *
- * `doNotCloseAfterVipPurchase` is not carried: the flag only keeps `hideMainWindow` from closing
- * the catalogue once, and nothing in the port hides the catalogue while a club purchase is pending.
+ * `doNotCloseAfterVipPurchase` (the club buy confirmation's select) is not carried: it sets its flag
+ * to `vipPurchasePageName != null`, which is always false with the page name never remembered, and
+ * the flag only keeps the next `hideMainWindow` (the close button, furni placement) from closing the
+ * catalogue once.
  * `HabboCatalog.onHabboClubExtendOffer` first runs `init()` on a catalogue that was never opened;
  * the port builds the catalogue when its window opens (`CatalogComponent`), so the offer is shown
  * without it.
@@ -25,7 +27,7 @@ import { StoreApi } from 'zustand';
 
 import { CatalogStore, CLUB_CENTER_DATA_UPDATE_INTERVAL, CLUB_OFFERS_SOURCE_CLUB_CENTER, ClubBuyOfferData } from '#base/context/catalog';
 import { WebSocketConnection } from '#base/context/communication';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { clubBuyOfferAsPurchasableOffer, configReader } from '#base/utils';
 
@@ -37,8 +39,6 @@ import { openClientLink } from './clientLinkCommands';
 
 type Send = WebSocketConnection['send'];
 type CatalogStoreApi = StoreApi<CatalogStore>;
-
-const t = (key: string, defaultValue?: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, defaultValue, replacements);
 
 /** `getProperty` / `getBoolean` over the current config - see `configReader`. */
 const hotelConfig = () => configReader(systemStore.getState().config);
@@ -64,11 +64,14 @@ const findCatalogNode = (node: ICatalogNode | undefined, match: (node: ICatalogN
  * (`noCreditsConfirmDialogEventProcessor` -> `resetPlacedOfferData`).
  */
 export const showNotEnoughCreditsAlert = () => {
-    systemStore.getState().showConfirm(t('catalog.alert.notenough.title'), t('catalog.alert.notenough.credits.description'), () => {
-        const url = hotelConfig().configString('web.shop.relativeUrl');
+    systemStore.getState().showConfirm(t('catalog.alert.notenough.title'), t('catalog.alert.notenough.credits.description'), () => openCreditsHabblet(), { onClose: () => resetPlacedOfferData() });
+};
 
-        if (url.length) window.open(url, 'habboMain');
-    }, { onClose: () => resetPlacedOfferData() });
+/** `openCreditsHabblet`: the web shop, `web.shop.relativeUrl` (`HabboWebTools.openWebPageAndMinimizeClient`). */
+export const openCreditsHabblet = () => {
+    const url = hotelConfig().configString('web.shop.relativeUrl');
+
+    if (url.length) window.open(url, 'habboMain');
 };
 
 /**

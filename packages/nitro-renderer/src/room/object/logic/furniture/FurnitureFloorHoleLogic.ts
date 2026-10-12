@@ -3,6 +3,10 @@ import { IRoomObjectUpdateMessage, IVector3D, RoomObjectFloorHoleEvent, RoomObje
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-82P§`, the logic `RoomObjectFactory` builds for
+ * `furniture_floor_hole`.
+ */
 export class FurnitureFloorHoleLogic extends FurnitureMultiStateLogic {
     private static STATE_HOLE: number = 0;
 

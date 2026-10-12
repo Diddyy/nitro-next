@@ -1,3 +1,8 @@
+/**
+ * The client's entry point: registers the Pixi classes `@pixi/react` renders, applies the build's
+ * socket URL to the page config, and mounts `Nitro` - the boot - inside the socket's provider on the
+ * page's `#root`. Not a Flash port.
+ */
 import '@pixi/layout';
 
 import { extend } from '@pixi/react';
@@ -31,6 +36,12 @@ declare global {
 }
 
 window.NitroConfig = window.NitroConfig || {};
+
+// A deployment's socket, baked in at build time from `VITE_SOCKET_URL`. `NitroConfig` overrides
+// `nitro-config.json`, so this wins over the file; a page that sets `socket.url` itself keeps it.
+const pageConfig = window.NitroConfig as Record<string, unknown>;
+
+if (import.meta.env.VITE_SOCKET_URL && !pageConfig['socket.url']) pageConfig['socket.url'] = import.meta.env.VITE_SOCKET_URL;
 
 const element = document.getElementById('root');
 

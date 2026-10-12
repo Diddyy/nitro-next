@@ -1,5 +1,6 @@
 import { useFriends } from './useFriends';
 
+/** The user's friends who are online. */
 export const useOnlineFriends = () => {
     const friends = useFriends();
 

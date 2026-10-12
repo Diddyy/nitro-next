@@ -3,7 +3,7 @@ import { RentableSpaceCancelRentComposer, RentableSpaceRentComposer, RentableSpa
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { ClientGates, useClientGate, useOwnUserId, useUserStore } from '#base/context/user';
+import { ClientGates, useClientGate, useOwnCredits, useOwnUserId } from '#base/context/user';
 import { isFurnitureOwnedBy } from '#base/utils';
 import { FurnitureRentableSpaceView } from '#base/views/room-widgets/furniture/FurnitureRentableSpaceView';
 
@@ -19,7 +19,7 @@ export const FurnitureRentableSpaceWidget = () => {
     const ownUserId = useOwnUserId();
     const room = useRoom();
     const cancelsAny = useClientGate(ClientGates.RentCancelAny);
-    const credits = useUserStore(x => x.credits);
+    const credits = useOwnCredits();
     const { closeRoomWidget } = useRoomWidgetActions();
     const { send } = useWebSocketContext();
 

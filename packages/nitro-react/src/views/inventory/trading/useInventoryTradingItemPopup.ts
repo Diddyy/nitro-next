@@ -1,10 +1,11 @@
 /**
- * The two timers `ItemPopupCtrl` runs a hover through - `showDelayed` waits a moment before the
- * popup appears, `hideDelayed` waits a shorter moment before it goes - so dragging the pointer
- * across the nine trade slots does not flash a popup for each one it crosses.
+ * How a trade slot's hover drives `ItemPopupCtrl` - `TradingView.thumbEventProc`: `WME_OVER` on a
+ * filled slot fills the popup and shows it straight away (`updateContent` + `show`), `WME_OUT`
+ * starts `hideDelayed`'s short timer, so moving the pointer from one slot to the next swaps the
+ * popup rather than closing and reopening it. The trade never uses `showDelayed`.
  *
- * The hook keeps whichever slot is showing and its rectangle in screen space; the view turns that
- * into the popup's placement.
+ * The hook keeps whichever slot is showing and its rectangle in screen space - the popup's
+ * `_parent`, which `show` places it beside.
  */
 import { Container as PixiContainer } from 'pixi.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -13,9 +14,8 @@ import { getGlobalRect } from '#base/theme';
 
 import { InventoryTradingItemPopupAnchor } from './InventoryTradingItemPopup';
 
-/** `ItemPopupCtrl`'s display and hide timers. */
-const SHOW_DELAY_MS = 250;
-const HIDE_DELAY_MS = 100;
+/** `ItemPopupCtrl.CLOSE_DELAY_MS`. */
+const CLOSE_DELAY_MS = 100;
 
 /** Which slot the popup is showing for, and where that slot is. */
 export interface InventoryTradingItemPopupTarget<T> {
@@ -25,47 +25,37 @@ export interface InventoryTradingItemPopupTarget<T> {
 
 export const useInventoryTradingItemPopup = <T>() => {
     const [ target, setTarget ] = useState<InventoryTradingItemPopupTarget<T> | undefined>(undefined);
-    const showTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-    const clearTimers = useCallback(() => {
-        if (showTimer.current !== undefined) clearTimeout(showTimer.current);
-
+    const clearTimer = useCallback(() => {
         if (hideTimer.current !== undefined) clearTimeout(hideTimer.current);
 
-        showTimer.current = undefined;
         hideTimer.current = undefined;
     }, []);
 
-    /** `showDelayed`: the node is measured when the timer fires, so a scrolled slot reports where it now is. */
-    const showDelayed = useCallback((item: T, node: PixiContainer | null) => {
-        clearTimers();
-
-        if (!node) return;
-
-        showTimer.current = setTimeout(() => {
-            showTimer.current = undefined;
-            setTarget({ item, anchor: getGlobalRect(node) });
-        }, SHOW_DELAY_MS);
-    }, [ clearTimers ]);
+    /** `updateContent` + `show`: the hide timer reset, the popup beside `node` at once. */
+    const show = useCallback((item: T, node: PixiContainer) => {
+        clearTimer();
+        setTarget({ item, anchor: getGlobalRect(node) });
+    }, [ clearTimer ]);
 
     /** `hideDelayed`. */
     const hideDelayed = useCallback(() => {
-        clearTimers();
+        clearTimer();
 
         hideTimer.current = setTimeout(() => {
             hideTimer.current = undefined;
             setTarget(undefined);
-        }, HIDE_DELAY_MS);
-    }, [ clearTimers ]);
+        }, CLOSE_DELAY_MS);
+    }, [ clearTimer ]);
 
     /** `hide`: straight away, with no timer left running. */
     const hide = useCallback(() => {
-        clearTimers();
+        clearTimer();
         setTarget(undefined);
-    }, [ clearTimers ]);
+    }, [ clearTimer ]);
 
-    useEffect(() => clearTimers, [ clearTimers ]);
+    useEffect(() => clearTimer, [ clearTimer ]);
 
-    return { target, showDelayed, hideDelayed, hide };
+    return { target, show, hideDelayed, hide };
 };

@@ -5,6 +5,7 @@ import {
     IRoomObjectModel,
     IRoomObjectSprite,
     IRoomPlane,
+    IVector3D,
     RoomGeometryScaleType,
     RoomObjectSpriteTypeEnum, RoomObjectVariableEnum, ToInt32, Vector3d } from '@nitrodevco/nitro-api';
 import { Filter, Rectangle, Texture } from 'pixi.js';
@@ -15,21 +16,26 @@ import { RoomPlaneBitmapMaskData } from '../../RoomPlaneBitmapMaskData';
 import { RoomPlaneData } from '../../RoomPlaneData';
 import { RoomPlaneParser } from '../../RoomPlaneParser';
 import { RoomObjectSpriteVisualization } from '../RoomObjectSpriteVisualization';
+import { PlaneTextureCache } from './PlaneTextureCache';
 import { RoomPlane } from './RoomPlane';
 import { RoomVisualizationData } from './RoomVisualizationData';
 
+/**
+ * Port of Flash `RoomVisualization`, the visualization `RoomObjectVisualizationFactory` builds for
+ * `room`.
+ */
 export class RoomVisualization extends RoomObjectSpriteVisualization implements IPlaneVisualization {
-    private static FLOOR_COLOR: number = 0xffffff as const;
-    private static FLOOR_COLOR_LEFT: number = 0xdddddd as const;
-    private static FLOOR_COLOR_RIGHT: number = 0xbbbbbb as const;
-    private static WALL_COLOR_TOP: number = 0xffffff as const;
-    private static WALL_COLOR_SIDE: number = 0xcccccc as const;
-    private static WALL_COLOR_BOTTOM: number = 0x999999 as const;
-    private static WALL_COLOR_BORDER: number = 0x999999 as const;
-    private static LANDSCAPE_COLOR_TOP: number = 0xffffff as const;
-    private static LANDSCAPE_COLOR_SIDE: number = 0xcccccc as const;
-    private static LANDSCAPE_COLOR_BOTTOM: number = 0x999999 as const;
-    private static ROOM_DEPTH_OFFSET: number = 1000 as const;
+    private static FLOOR_COLOR: number = 0xffffff;
+    private static FLOOR_COLOR_LEFT: number = 0xdddddd;
+    private static FLOOR_COLOR_RIGHT: number = 0xbbbbbb;
+    private static WALL_COLOR_TOP: number = 0xffffff;
+    private static WALL_COLOR_SIDE: number = 0xcccccc;
+    private static WALL_COLOR_BOTTOM: number = 0x999999;
+    private static WALL_COLOR_BORDER: number = 0x999999;
+    private static LANDSCAPE_COLOR_TOP: number = 0xffffff;
+    private static LANDSCAPE_COLOR_SIDE: number = 0xcccccc;
+    private static LANDSCAPE_COLOR_BOTTOM: number = 0x999999;
+    private static ROOM_DEPTH_OFFSET: number = 1000;
 
     protected _data: RoomVisualizationData | undefined = undefined;
 
@@ -43,6 +49,12 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
     private _wallThickness: number = NaN;
     private _holeUpdateTime: number = NaN;
     private _planes: RoomPlane[] = [];
+    /** The parser plane each of `_planes` was made from: a long floor plane can be several. */
+    private _planeParserIndexes: number[] = [];
+    /** How many of the parser's planes have been made into `_planes`. */
+    private _parserPlanesCreated = 0;
+    /** Finished textures the room's small floor planes share (`PlaneTextureCache`). */
+    private _planeTextureCache: PlaneTextureCache = new PlaneTextureCache();
     private _visiblePlanes: RoomPlane[] = [];
     private _visiblePlaneSpriteNumbers: number[] = [];
     private _roomScale: RoomGeometryScaleType = RoomGeometryScaleType.None;
@@ -298,6 +310,10 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
             this._highlightPlaneOffsets = [];
         }
 
+        this._planeParserIndexes = [];
+        this._parserPlanesCreated = 0;
+        this._planeTextureCache.dispose();
+
         this._isPlaneSet = false;
         this._assetUpdateCounter = this._assetUpdateCounter + 1;
 
@@ -326,6 +342,45 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         this.createPlanesAndSprites();
     }
 
+    /**
+     * A plane draws into a texture the size of its whole rectangle on screen, (L + R) tiles across
+     * at 32 px and half that high at the largest scale. For a long thin floor plane - the edge
+     * under a 64-tile stair strip, 64 by a quarter tile - that is 2056x1028 pixels for a diagonal
+     * line of them, and a big stepped room ran the GPU out of memory (5.2 GB for a 63x64 ramp).
+     * Past this many pixels a plane that fills less than an eighth of its rectangle is drawn as
+     * pieces along its long side: a tile long when it is a tile wide or less, so the pieces share
+     * their textures (`PlaneTextureCache`), else four times its width. Smaller planes, which is
+     * every plane of an ordinary room, are left whole.
+     */
+    public static PLANE_SPLIT_PIXELS = 1 << 20;
+
+    private static splitFloorPlane(location: IVector3D, leftSide: IVector3D, rightSide: IVector3D): [ IVector3D, IVector3D, IVector3D ][] {
+        const leftLength = leftSide.length;
+        const rightLength = rightSide.length;
+        const span = leftLength + rightLength;
+
+        if ((span * 32 * span * 16) <= RoomVisualization.PLANE_SPLIT_PIXELS) return [ [ location, leftSide, rightSide ] ];
+
+        if ((leftLength * rightLength * 8) >= (span * span)) return [ [ location, leftSide, rightSide ] ];
+
+        const alongLeft = leftLength >= rightLength;
+        const long = alongLeft ? leftSide : rightSide;
+        const longLength = alongLeft ? leftLength : rightLength;
+        const shortLength = alongLeft ? rightLength : leftLength;
+        const pieceLength = (shortLength <= 1) ? 1 : (shortLength * 4);
+        const pieces: [ IVector3D, IVector3D, IVector3D ][] = [];
+
+        for (let start = 0; start < longLength; start += pieceLength) {
+            const length = Math.min(pieceLength, longLength - start);
+            const pieceLocation = Vector3d.sum(location, Vector3d.product(long, start / longLength));
+            const pieceSide = Vector3d.product(long, length / longLength);
+
+            pieces.push(alongLeft ? [ pieceLocation, pieceSide, rightSide ] : [ pieceLocation, leftSide, pieceSide ]);
+        }
+
+        return pieces;
+    }
+
     private createPlanesAndSprites(offset: number = 0): void {
         const maxX = this.getLandscapeWidth();
         const maxY = this.getLandscapeHeight();
@@ -351,32 +406,59 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                 plane = undefined;
 
                 if (planeType === RoomPlaneData.PLANE_FLOOR) {
-                    const _local_15 = location.x + leftSide.x + 0.5;
-                    const _local_16 = location.y + rightSide.y + 0.5;
-                    const textureOffsetX = Math.trunc(_local_15) - _local_15;
-                    const textureOffsetY = Math.trunc(_local_16) - _local_16;
-
-                    plane = new RoomPlane(
-                        this.object.getLocation(),
-                        location,
-                        leftSide,
-                        rightSide,
-                        RoomPlane.TYPE_FLOOR,
-                        true,
-                        secondaryNormals,
-                        randomSeed,
-                        -textureOffsetX,
-                        -textureOffsetY,
-                    );
-
-                    plane.color
+                    const color
                         = _local_14.z !== 0
                             ? RoomVisualization.FLOOR_COLOR
                             : _local_14.x !== 0
                                 ? RoomVisualization.FLOOR_COLOR_RIGHT
                                 : RoomVisualization.FLOOR_COLOR_LEFT;
 
-                    if (this._data) plane.rasterizer = this._data.floorRasterizer;
+                    // Highlighters and masked planes stay whole: both are addressed by the parser's plane.
+                    const pieces: [ IVector3D, IVector3D, IVector3D ][] = (this._roomPlaneParser.isPlaneTemporaryHighlighter(index) || (this._roomPlaneParser.getPlaneMaskCount(index) > 0))
+                        ? [ [ location, leftSide, rightSide ] ]
+                        : RoomVisualization.splitFloorPlane(location, leftSide, rightSide);
+
+                    const createFloorPlane = (pieceLocation: IVector3D, pieceLeftSide: IVector3D, pieceRightSide: IVector3D): RoomPlane => {
+                        const _local_15 = pieceLocation.x + pieceLeftSide.x + 0.5;
+                        const _local_16 = pieceLocation.y + pieceRightSide.y + 0.5;
+                        const textureOffsetX = Math.trunc(_local_15) - _local_15;
+                        const textureOffsetY = Math.trunc(_local_16) - _local_16;
+
+                        const floorPlane = new RoomPlane(
+                            this.object.getLocation(),
+                            pieceLocation,
+                            pieceLeftSide,
+                            pieceRightSide,
+                            RoomPlane.TYPE_FLOOR,
+                            true,
+                            secondaryNormals,
+                            randomSeed,
+                            -textureOffsetX,
+                            -textureOffsetY,
+                        );
+
+                        floorPlane.color = color;
+
+                        if (this._data) floorPlane.rasterizer = this._data.floorRasterizer;
+
+                        floorPlane.sharedTextureCache = this._planeTextureCache;
+
+                        // The pieces of a split plane sort as the whole plane did.
+                        if (pieces.length > 1) floorPlane.setDepthGeometry(location, leftSide, rightSide);
+
+                        return floorPlane;
+                    };
+
+                    for (let piece = 1; piece < pieces.length; piece++) {
+                        const extra = createFloorPlane(...pieces[piece]);
+
+                        if (this._data?.maskManager) extra.maskManager = this._data.maskManager;
+
+                        this._planes.push(extra);
+                        this._planeParserIndexes.push(index);
+                    }
+
+                    plane = createFloorPlane(...pieces[0]);
                 } else if (planeType === RoomPlaneData.PLANE_WALL || planeType === RoomPlaneData.PLANE_BILLBOARD) {
                     plane = new RoomPlane(
                         this.object.getLocation(),
@@ -449,6 +531,7 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
 
                     this._highlightPlaneOffsets[index] = this._planes.length;
                     this._planes.push(plane);
+                    this._planeParserIndexes.push(index);
                 }
             } else {
                 return;
@@ -457,6 +540,7 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
             index++;
         }
 
+        this._parserPlanesCreated = this._roomPlaneParser.planeCount;
         this._isPlaneSet = true;
         this.defineSprites();
     }
@@ -483,7 +567,7 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
             highlightAreaHeight,
         );
 
-        this.createPlanesAndSprites(this._planes.length);
+        this.createPlanesAndSprites(this._parserPlanesCreated);
         this.reset();
     }
 
@@ -510,6 +594,8 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         }
 
         this._planes = this._planes.slice(0, this._planes.length - _local_4);
+        this._planeParserIndexes = this._planeParserIndexes.slice(0, this._planes.length);
+        this._parserPlanesCreated = this._roomPlaneParser.planeCount;
         this.createSprites(this._planes.length);
 
         this.reset();
@@ -523,6 +609,7 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         while (planeIndex < this._planes.length) {
             const plane = this._planes[planeIndex];
             const sprite = this.getSprite(planeIndex);
+            const parserIndex = this._planeParserIndexes[planeIndex] ?? planeIndex;
 
             if (plane && sprite && plane.leftSide && plane.rightSide) {
                 if (plane.type === RoomPlane.TYPE_WALL && (plane.leftSide.length < 1 || plane.rightSide.length < 1)) {
@@ -532,23 +619,23 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                 }
 
                 if (plane.type === RoomPlane.TYPE_WALL) {
-                    sprite.tag = 'plane.wall@' + (planeIndex + 1);
+                    sprite.tag = 'plane.wall@' + (parserIndex + 1);
                 } else if (plane.type === RoomPlane.TYPE_FLOOR) {
-                    sprite.tag = 'plane.floor@' + (planeIndex + 1);
+                    sprite.tag = 'plane.floor@' + (parserIndex + 1);
                 } else {
-                    sprite.tag = 'plane@' + (planeIndex + 1);
+                    sprite.tag = 'plane@' + (parserIndex + 1);
                 }
 
                 sprite.spriteType = RoomObjectSpriteTypeEnum.RoomPlane;
 
-                if (this._roomPlaneParser.isPlaneTemporaryHighlighter(planeIndex)) {
+                if (this._roomPlaneParser.isPlaneTemporaryHighlighter(parserIndex)) {
                     if (this._highlightFilter) sprite.filters = [ this._highlightFilter ];
 
                     sprite.skipMouseHandling = true;
                     plane.extraDepth = -100;
                     plane.isHighlighter = true;
                 } else {
-                    sprite.filters = [];
+                    sprite.filters = RoomVisualization.NO_FILTERS;
                     sprite.skipMouseHandling = false;
                     plane.extraDepth = 0;
                     plane.isHighlighter = false;
@@ -658,12 +745,22 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         return true;
     }
 
+    /**
+     * How long one update may spend drawing plane textures. A large irregular room has hundreds of
+     * planes; drawn in one frame they stall it for seconds (black on a phone). Past the budget the
+     * rest are drawn in the next frames - every plane still takes its geometry each pass, so its
+     * visibility and screen rectangle (and the room's bounds) are right from the first.
+     */
+    private static readonly PLANE_RASTER_BUDGET_MS: number = 12;
+
     protected updatePlanes(
         geometry: IRoomGeometry,
         geometryUpdate: boolean,
         timeSinceStartMs: number,
     ): boolean {
         this._assetUpdateCounter++;
+
+        const rasterStart = performance.now();
 
         if (geometryUpdate) {
             this._visiblePlanes = [];
@@ -693,7 +790,10 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                 if (plane) {
                     sprite.id = plane.uniqueId;
 
-                    if (plane.update(geometry, timeSinceStartMs)) {
+                    // The first plane is always drawn, so a pass always makes progress.
+                    const canRasterize = (performance.now() - rasterStart) < RoomVisualization.PLANE_RASTER_BUDGET_MS;
+
+                    if (plane.update(geometry, timeSinceStartMs, canRasterize)) {
                         if (plane.visible) {
                             depth = plane.relativeDepth + this.floorRelativeDepth + id / 1000;
 
@@ -711,12 +811,13 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
                         updated = true;
                     }
 
-                    if (sprite.visible != (plane.visible && this._typeVisibility[plane.type])) {
+                    // A plane whose texture was drawn for another geometry stays hidden until its own is drawn.
+                    if (sprite.visible != (plane.visible && this._typeVisibility[plane.type] && !plane.textureOutOfPlace)) {
                         sprite.visible = !sprite.visible;
                         updated = true;
                     }
 
-                    if (sprite.visible) {
+                    if (plane.visible && this._typeVisibility[plane.type]) {
                         if (!hasVisiblePlanes) {
                             this._visiblePlanes.push(plane);
                             this._visiblePlaneSpriteNumbers.push(index);
@@ -841,8 +942,14 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
         sprite.name = _arg_3 + '_' + this._assetUpdateCounter;
     }
 
+    /**
+     * The room's screen rectangle, from its planes' geometry rather than their drawn sprites: the
+     * planes are drawn over several frames (`PLANE_RASTER_BUDGET_MS`), and bounds taken from the ones
+     * drawn so far would centre the entry camera on a half-drawn room. Before any plane has its
+     * geometry, the sprites'.
+     */
     public override getBoundingRectangle(): Rectangle {
-        if (!this._boundingRectangle) this._boundingRectangle = super.getBoundingRectangle();
+        if (!this._boundingRectangle) this._boundingRectangle = this.getPlaneBounds() ?? super.getBoundingRectangle();
 
         return new Rectangle(
             this._boundingRectangle.x,
@@ -850,6 +957,24 @@ export class RoomVisualization extends RoomObjectSpriteVisualization implements 
             this._boundingRectangle.width,
             this._boundingRectangle.height,
         );
+    }
+
+    /** The union of the shown planes' screen rectangles, or `undefined` when none has one. */
+    private getPlaneBounds(): Rectangle | undefined {
+        let bounds: Rectangle | undefined = undefined;
+
+        for (const plane of this._planes) {
+            if (!plane || !this._typeVisibility[plane.type]) continue;
+
+            const rectangle = plane.screenBounds;
+
+            if (!rectangle || (rectangle.width <= 0) || (rectangle.height <= 0)) continue;
+
+            if (!bounds) bounds = rectangle;
+            else bounds.enlarge(rectangle);
+        }
+
+        return bounds;
     }
 
     public get planes(): IRoomPlane[] {

@@ -21,6 +21,8 @@ export interface IFurnitureData {
     readonly rentOfferId: number;
     readonly rentCouldBeUsedForBuyout: boolean;
     readonly availableForBuildersClub: boolean;
+    /** Furnidata `bcofferid`: the Builders Club catalogue's offer of it, which its search and the infostand's place more button place (-1 for none). */
+    readonly bcOfferId: number;
     readonly customParams: string;
     readonly specialType: FurnitureSpecialType;
     readonly canStandOn: boolean;

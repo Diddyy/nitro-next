@@ -6,7 +6,7 @@ import { FLASH_TEXT_GUTTER, flashTextCaretRect, FlashTextFieldOverrides, flashTe
 import { useLayoutSize, useOutsideClick } from './hooks';
 import { ColorLayer } from './layer';
 import { ThemeText } from './ThemeText';
-import { DEFAULT_TEXT_STYLE, flashFaceOverride, getPixiTextStyle, resolveFlashStyle, TextStyleKey } from './utils';
+import { DEFAULT_TEXT_STYLE, escapeMarkup, flashFaceOverride, getPixiTextStyle, resolveFlashStyle, TextStyleKey } from './utils';
 
 /** A run of a `TextInput`'s value, `start` to `end` (exclusive), drawn in `color` (`#rrggbb`). */
 export interface TextInputMark {
@@ -14,8 +14,6 @@ export interface TextInputMark {
     end: number;
     color: string;
 }
-
-const escapeMarkup = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** The value as markup with each mark in a `<font color>`; marks are taken in order and may not overlap. */
 const markedValue = (value: string, marks: readonly TextInputMark[]): string => {
@@ -57,6 +55,19 @@ export interface TextInputProps {
     placeholderColor?: string;
     maxLength?: number;
     multiline?: boolean;
+    /**
+     * Whether a multiline field takes line breaks - Enter and pasted ones - which it does unless told
+     * otherwise. A Flash field with `word_wrap` but not `multiline` wraps its text yet stays one
+     * paragraph: Enter is a key its code hears (`onEnter`), not a new line.
+     */
+    lineBreaks?: boolean;
+    /**
+     * Whether a multiline field wraps its lines at the box's width, which it does unless told
+     * otherwise. `false` is a Flash input with `multiline` but no `word_wrap` (the floor plan's
+     * import/export map): every line stays whole, and the text scrolls on both axes to keep the
+     * caret in view, as the `TextField` does.
+     */
+    wordWrap?: boolean;
     /** Masks the value with bullets (the Flash `display_as_password` text field). */
     password?: boolean;
     fontSize?: number;
@@ -207,6 +218,7 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
     outline: 'none',
     resize: 'none',
     overflow: 'hidden',
+    fontSize: '16px',
     zIndex: '-1',
 };
 
@@ -219,15 +231,22 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
  * `ThemeText`, the selection as a highlight, and a blinking caret positioned from real glyph
  * metrics - the Flash text layout wherever `ThemeText` draws the value exactly, canvas text
  * metrics only where it falls back to the browser's own text.
- * A click places the caret at the nearest glyph boundary, and a single-line field scrolls
- * horizontally to keep the caret in view once the text outgrows the box.
+ * A click places the caret at the nearest glyph boundary, and a field scrolls to keep the caret
+ * in view once the text outgrows the box: a single-line or unwrapped one horizontally, a
+ * multiline one vertically.
  *
  * Focus can be controlled from outside (`focused` + `onFocusChange`) - the room chat input
  * grabs focus when the user starts typing anywhere, or when the avatar menu asks it to whisper
  * to someone - and a caller can intercept keys (`onKeyDown`) before the browser edits.
  */
 export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TextInputProps>(
-    ({ value, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
+    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, lineBreaks = true, wordWrap = true, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
+        // The hidden `<textarea>` holds line breaks as `\n` only, and the Flash text layout breaks
+        // lines on `\n` only. A value with Flash's `\r` (the floor plan's map text) would never equal
+        // the native value and would be measured as one long line - the caret and the selection
+        // landed far from the glyphs Pixi drew on separate lines.
+        const value = multiline ? rawValue.replace(/\r\n?/g, '\n') : rawValue;
+        const wraps = multiline && wordWrap;
         const [ internalFocused, setInternalFocused ] = useState(false);
         const [ boxNode, setBoxNode ] = useState<PixiContainer | null>(null);
         const [ selection, setSelection ] = useState({ start: value.length, end: value.length });
@@ -261,6 +280,10 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const setFocused = useCallback((next: boolean) => {
             if (focusedRef.current === next) return;
 
+            // The outside click and the field's own `blur` can both end the focus in one tick, before
+            // a render: the ref answers the second at once, so the change is reported once.
+            focusedRef.current = next;
+
             if (!isControlled) setInternalFocused(next);
 
             onFocusChangeRef.current?.(next);
@@ -268,8 +291,8 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
         useOutsideClick(boxRef, () => setFocused(false), focused);
 
-        // The inner text area follows the box's laid-out width (the box may be inset-sized); works on both render targets.
-        const { width: boxWidth } = useLayoutSize(boxNode);
+        // The inner text area follows the box's laid-out width (the box may be inset-sized).
+        const { width: boxWidth, height: boxHeight } = useLayoutSize(boxNode);
         const innerWidth = Math.max(0, boxWidth - (PADDING_X * 2));
         // How far the caret may run before a single line scrolls: the box less its padding, or
         // with Flash placement the whole field less the gutter the text keeps on its right.
@@ -323,6 +346,15 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                     }
                 }
 
+                // A field that takes no line breaks drops pasted ones.
+                if (multiline && !lineBreaks && /[\r\n]/.test(input.value)) {
+                    const caret = input.selectionEnd ?? input.value.length;
+                    const before = input.value.slice(0, caret).replace(/[\r\n]/g, '').length;
+
+                    input.value = input.value.replace(/[\r\n]/g, '');
+                    input.setSelectionRange(before, before);
+                }
+
                 onChangeRef.current(input.value);
                 readSelection();
             };
@@ -336,7 +368,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                 }
 
                 if (event.key === 'Enter') {
-                    if (multiline && !event.shiftKey) {
+                    if (multiline && lineBreaks && !event.shiftKey) {
                         // Let the textarea insert the newline, within `maxLength`.
                         const limit = maxLengthRef.current;
 
@@ -358,6 +390,9 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             };
 
             const onBlur = () => setFocused(false);
+            const keepFocusOnCanvas = (event: MouseEvent) => {
+                if (document.activeElement === input && event.target instanceof HTMLCanvasElement) event.preventDefault();
+            };
             const onSelectionChange = () => {
                 if (document.activeElement === input) readSelection();
             };
@@ -370,6 +405,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             input.addEventListener('select', readSelection);
             input.addEventListener('blur', onBlur);
             document.addEventListener('selectionchange', onSelectionChange);
+            document.addEventListener('mousedown', keepFocusOnCanvas, true);
             document.body.appendChild(input);
             inputRef.current = input;
 
@@ -382,11 +418,12 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                 input.removeEventListener('select', readSelection);
                 input.removeEventListener('blur', onBlur);
                 document.removeEventListener('selectionchange', onSelectionChange);
+                document.removeEventListener('mousedown', keepFocusOnCanvas, true);
                 input.remove();
 
                 if (inputRef.current === input) inputRef.current = null;
             };
-        }, [ multiline, password, readSelection, setFocused ]);
+        }, [ multiline, lineBreaks, password, readSelection, setFocused ]);
 
         // A read-only field still focuses and selects - `TextField.type` `dynamic` with `selectable`.
         useEffect(() => {
@@ -461,8 +498,8 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             // Only defined overrides: an `undefined` family would replace the base style's font (and break canvas measuring).
             ...(textStyle ? {} : { fontSize }),
             ...((!textStyle && fontFamily) ? { fontFamily } : {}),
-            ...(multiline ? { wordWrap: true, wordWrapWidth: wrapWidth, breakWords: true } : {}),
-        }), [ textColor, textStyle, fontSize, fontFamily, multiline, wrapWidth ]);
+            ...(wraps ? { wordWrap: true, wordWrapWidth: wrapWidth, breakWords: true } : {}),
+        }), [ textColor, textStyle, fontSize, fontFamily, wraps, wrapWidth ]);
         /*
          * The format the value below is actually drawn in. `ThemeText` renders every field
          * exactly - a style it names or `regular` otherwise, with the `font_face` / `font_size`
@@ -490,7 +527,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             index = Math.max(0, Math.min(index, text.length));
 
             // `null` for a character the captured fonts do not carry - ThemeText draws canvas text then, so measure that.
-            const flashRect = flashFormat ? flashTextCaretRect(text, index, flashFormat, { wordWrap: multiline, wrapWidth: multiline ? wrapWidth : undefined, breakWords: multiline }) : null;
+            const flashRect = flashFormat ? flashTextCaretRect(text, index, flashFormat, { wordWrap: wraps, wrapWidth: wraps ? wrapWidth : undefined, breakWords: wraps }) : null;
 
             if (flashRect) return { x: flashRect.x, y: flashRect.y, height: flashRect.height };
 
@@ -521,12 +558,12 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             }
 
             return { x: 0, y: 0, height: metrics.lineHeight };
-        }, [ flashFormat, measureStyle, multiline, wrapWidth ]);
+        }, [ flashFormat, measureStyle, multiline, wraps, wrapWidth ]);
 
         const measureSelection = useCallback((text: string, start: number, end: number): SelectionRect[] => {
             if (start === end) return [];
 
-            const flashRects = flashFormat ? flashTextSelectionRects(text, start, end, flashFormat, { wordWrap: multiline, wrapWidth: multiline ? wrapWidth : undefined, breakWords: multiline }) : null;
+            const flashRects = flashFormat ? flashTextSelectionRects(text, start, end, flashFormat, { wordWrap: wraps, wrapWidth: wraps ? wrapWidth : undefined, breakWords: wraps }) : null;
 
             if (flashRects) return flashRects;
 
@@ -546,7 +583,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             rects.push({ x: 0, y: to.y, width: Math.max(1, to.x), height: lineHeight });
 
             return rects;
-        }, [ flashFormat, measureCaret, multiline, wrapWidth ]);
+        }, [ flashFormat, measureCaret, wraps, wrapWidth ]);
 
         const displayValue = password ? '•'.repeat(value.length) : value;
         const showPlaceholder = !value.length && !focused && !!placeholder;
@@ -557,13 +594,17 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const showSelection = focused || alwaysShowSelection;
         const selectionRects = useMemo(() => (showSelection ? measureSelection(displayValue, Math.min(selectionStart, selectionEnd), Math.max(selectionStart, selectionEnd)) : []), [ showSelection, measureSelection, displayValue, selectionStart, selectionEnd ]);
 
-        // Single-line: slide the text left so the caret stays inside the box.
-        const scrollX = (!multiline && viewWidth > 0 && caret.x > (viewWidth - 1)) ? (caret.x - (viewWidth - 1)) : 0;
+        // Unwrapped: slide the text left so the caret stays inside the box; multiline: slide it up.
+        const scrollX = (!wraps && viewWidth > 0 && caret.x > (viewWidth - 1)) ? (caret.x - (viewWidth - 1)) : 0;
+        const viewHeight = flashPlacement ? Math.max(0, boxHeight - FLASH_TEXT_GUTTER) : boxHeight;
+        const scrollY = (multiline && viewHeight > 0 && (caret.y + caret.height) > viewHeight) ? ((caret.y + caret.height) - viewHeight) : 0;
 
         /** A click lands the caret on the nearest glyph boundary. */
         const onPointerTap = (event: FederatedPointerEvent) => {
             const input = inputRef.current;
             const node = boxRef.current;
+
+            if (input && editable && document.activeElement !== input) input.focus({ preventScroll: true });
 
             setFocused(true);
 
@@ -571,6 +612,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
             const local = event.getLocalPosition(node);
             const targetX = (local.x - paddingX) + scrollX;
+            const targetY = local.y + scrollY;
             const limit = Math.min(value.length, MAX_CLICK_SCAN);
 
             let bestIndex = value.length;
@@ -579,7 +621,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             for (let i = 0; i <= limit; i++) {
                 const geometry = measureCaret(displayValue, i);
 
-                if (multiline && (local.y < geometry.y || local.y > geometry.y + geometry.height)) continue;
+                if (multiline && (targetY < geometry.y || targetY > geometry.y + geometry.height)) continue;
 
                 const distance = Math.abs(geometry.x - targetX);
 
@@ -636,7 +678,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                     </>
                 )}
                 {/* `ThemeText` renders nothing for an empty value, so the line height keeps this box (and the caret) centred. */}
-                <Box layout={{ position: 'relative', flexDirection: 'row', marginLeft: -scrollX, flexShrink: 0, minWidth: 1, minHeight: Math.max(1, caret.height) }}>
+                <Box layout={{ position: 'relative', flexDirection: 'row', marginLeft: -scrollX, marginTop: -scrollY, flexShrink: 0, minWidth: 1, minHeight: Math.max(1, caret.height) }}>
                     {selectionRects.map((rect, index) => (
                         <ColorLayer
                             key={index}

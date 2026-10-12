@@ -1,13 +1,14 @@
 import { RateFlatComposer, SetUIFlagsComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { forwardToRoom, searchRoomTag } from '#base/commands';
+import { forwardToRoom, openClientLink, searchRoomTag } from '#base/commands';
+import { useChatHistoryActions } from '#base/context/chat-history';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
-import { UiFlagEnum, useRoomToolsCollapsed, useUserActions } from '#base/context/user';
+import { UiFlagEnum, useRoomToolsCollapsed, useUserActions, useUserStore } from '#base/context/user';
+import { useWiredStore } from '#base/context/wired';
 import { useRoomZoom } from '#base/hooks';
-import { LayoutImage } from '#base/theme';
 import { RoomShareView } from '#base/views/room-widgets/room-tools/RoomShareView';
 import { ROOM_TOOLS_INFO_MARGIN, roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 import { RoomToolsHistoryView } from '#base/views/room-widgets/room-tools/RoomToolsHistoryView';
@@ -30,11 +31,14 @@ const LIKE_POINTS = 1;
 export const RoomToolsWidget = () => {
     const t = useTranslation();
     const { send } = useWebSocketContext();
+    const { toggleOpen: toggleChatHistory } = useChatHistoryActions();
     const currentRoomInfo = useNavigatorStore(x => x.enteredRoom?.info);
     const roomVisitHistory = useNavigatorStore(x => x.roomVisitHistory);
     const roomVisitIndex = useNavigatorStore(x => x.roomVisitIndex);
     const canRateCurrentRoom = useNavigatorStore(x => x.canRateCurrentRoom);
     const collapsed = useRoomToolsCollapsed();
+    const freeFlowChatDisabled = useUserStore(x => x.freeFlowChatDisabled);
+    const hasWiredAchievements = useWiredStore(x => x.wiredAchievements.length > 0);
     const { setUiFlag } = useUserActions();
     const { stepRoomVisitHistory, setRoomRating } = useNavigatorActions();
     const { toggleWindow } = useWindowActions();
@@ -93,38 +97,37 @@ export const RoomToolsWidget = () => {
     });
     const directLink = `${urlPrefix}/room/${roomId}`;
 
-    const buttons: RoomToolsButton[] = [
+    const buttons: RoomToolsButton[] = [];
+
+    // `RoomToolsWidget.onAchievementsUpdated`: `setAchievementsButton(achievements.length > 0)` on
+    // `WiredEnvironment`'s list; the press opens the achievements on the room's wired ones.
+    if (hasWiredAchievements) buttons.push({
+        key: 'button_achievements',
+        onPress: () => openClientLink(send, 'questengine/achievements/wired_games'),
+    });
+
+    buttons.push(
         {
             key: 'button_settings',
-            icon: LayoutImage('room-ui/roomtools_gear.png'),
-            iconLeft: 3,
-            iconWidth: 25,
-            labelTop: 4,
-            labelKey: 'room.settings.button.text',
-            tooltipKey: 'room.settings.button.tooltip',
             // `RoomToolsWidgetHandler.toggleRoomInfoWindow`.
             onPress: () => toggleWindow('room_info'),
         },
-    ];
+    );
+
+    // `RoomToolsWidget`: `setChatHistoryButton(freeFlowChat != null)` - the history belongs to the free flow chat.
+    if (!freeFlowChatDisabled) buttons.push({
+        key: 'button_chat_history',
+        // `toggleVisibility`.
+        onPress: toggleChatHistory,
+    });
 
     if (canRateCurrentRoom) buttons.push({
         key: 'button_like',
-        icon: LayoutImage('room-ui/roomtools_like.png'),
-        iconLeft: 2,
-        iconWidth: 27,
-        labelTop: 3,
-        labelKey: 'room.like.button.text',
-        tooltipKey: 'room.like.button.tooltip',
         onPress: likeRoom,
     });
 
     buttons.push({
         key: 'button_share',
-        icon: LayoutImage('room-ui/navigation_icon_weblink.png'),
-        iconLeft: 2,
-        iconWidth: 27,
-        labelTop: 3,
-        labelKey: 'navigator.embed.caption',
         onPress: () => {
             // Flash put the snippet on the clipboard as it opened the panel.
             if (!shareOpen) void navigator.clipboard?.writeText(embedCode).catch(() => undefined);

@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarExperienceUpdateMessage`. */
 export class ObjectAvatarExperienceUpdateMessage extends ObjectStateUpdateMessage {
     private _gainedExperience: number;
 

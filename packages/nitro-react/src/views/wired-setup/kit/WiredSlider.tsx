@@ -21,6 +21,7 @@ import { Container, FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
 import { Box, LayoutImage, ThemeImage, useLayoutSize } from '#base/theme';
+import { clampSliderValue } from '#base/wired';
 
 import { useWiredDisabled, wiredDisabledAlpha } from './useWiredDisabled';
 import { useWiredFillLayout } from './useWiredFillLayout';
@@ -50,8 +51,6 @@ interface DragOrigin {
     knobX: number;
     referenceWidth: number;
 }
-
-const clampValue = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
 /** `getSliderPosition`. */
 const knobPosition = (value: number, min: number, max: number, referenceWidth: number): number =>
@@ -95,7 +94,7 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
     }, []);
 
     const referenceWidth = Math.max(0, Math.floor(trackWidth) - template.buttonWidth);
-    const knobX = (dragged && (dragged.value === value)) ? dragged.x : knobPosition(clampValue(value, min, max), min, max, referenceWidth);
+    const knobX = (dragged && (dragged.value === value)) ? dragged.x : knobPosition(clampSliderValue(value, min, max), min, max, referenceWidth);
 
     /** `moveSliderToLeft` / `moveSliderToRight`. */
     const stepBy = (direction: number) => {
@@ -104,7 +103,7 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
         if (step === 0) return;
 
         setDragged(null);
-        onChange(clampValue(value + (direction * step), min, max));
+        onChange(clampSliderValue(value + (direction * step), min, max));
     };
 
     const onKnobPointerDown = (event: FederatedPointerEvent) => {
@@ -123,7 +122,7 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
             const latest = latestRef.current;
             const x = Math.min(origin.referenceWidth, Math.max(0, Math.round(origin.knobX + (moveEvent.clientX - origin.pointerX))));
             const raw = (origin.referenceWidth > 0) ? (((x / origin.referenceWidth) * (latest.max - latest.min)) + latest.min) : latest.min;
-            const next = clampValue(Math.round(raw / latest.step) * latest.step, latest.min, latest.max);
+            const next = clampSliderValue(Math.round(raw / latest.step) * latest.step, latest.min, latest.max);
 
             setDragged({ x, value: next });
 
@@ -162,7 +161,7 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
             >
                 {(trackWidth > 0) && (
                     <ThemeImage
-                        src={LayoutImage(`wired/${template.baseAsset}.png`)}
+                        src={LayoutImage(`habbo-window-manager-com/${template.baseAsset}.png`)}
                         tint={template.baseTint ?? undefined}
                         // `slider_base`: stretched across the slider, drawn at its own height (`stretched_y` false).
                         bitmap={{ stretchedY: false }}
@@ -172,7 +171,7 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
                 )}
                 <Box layout={{ position: 'absolute', left: 0, top: template.movementAreaY, right: 0, height: template.buttonHeight }}>
                     <ThemeImage
-                        src={LayoutImage(`wired/${template.buttonAsset}.png`)}
+                        src={LayoutImage(`habbo-window-manager-com/${template.buttonAsset}.png`)}
                         // `slider_button`: unstretched, the window sized to its bitmap.
                         bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                         cursor={(isDisabled || (step === 0)) ? 'default' : 'pointer'}

@@ -101,6 +101,10 @@ const TiledNineSlice = ({ texture, leftWidth, topHeight, rightWidth, bottomHeigh
     );
 };
 
+/**
+ * A skin drawn as a nine-slice stretched over its parent's box - or, with `repeat`, its centre
+ * tiled along an axis, for a skin whose centre entities are `tiled`.
+ */
 export const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, bottomHeight, tintColor, layout, repeat, ref, alpha, visible }: NineSliceLayerProps) => {
     // A repeating middle piece goes through `TilingSprite`, which needs a texture that is its
     // own source (see `getStandaloneThemeTexture`); the plain `NineSliceSprite` is happy with
@@ -127,6 +131,9 @@ export const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, b
         );
     }
 
+    // Never `undefined`: a prop that goes from a value to `undefined` makes @pixi/react build a bare
+    // `new NineSliceSprite()` to read the default from (`applyProps`' `__defaultremove`), and that
+    // constructor throws without its options - taking the whole stage down with it.
     return (
         <pixiNineSliceSprite
             ref={ref as Ref<never>}
@@ -135,9 +142,9 @@ export const NineSliceLayer = ({ textureKey, leftWidth, topHeight, rightWidth, b
             topHeight={topHeight}
             rightWidth={rightWidth}
             bottomHeight={bottomHeight}
-            tint={tintColor}
-            alpha={alpha}
-            visible={visible}
+            tint={tintColor ?? 0xffffff}
+            alpha={alpha ?? 1}
+            visible={visible ?? true}
             eventMode="none"
             layout={layout ?? FillLayout}
         />

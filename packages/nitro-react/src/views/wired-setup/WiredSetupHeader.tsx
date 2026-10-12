@@ -64,7 +64,7 @@ export const WiredSetupHeader = ({ style, name, holder, buttonText, buttonVisibl
     if (style.isVolter) {
         nameElement = (
             <WiredSimpleList vertical={false}>
-                <WiredStaticBitmap asset={`wired/wired_type_icons_icon_${holder}`} />
+                <WiredStaticBitmap asset={`habbo-window-manager-com/wired_type_icons_icon_${holder}`} />
                 <WiredText
                     text={name}
                     bold

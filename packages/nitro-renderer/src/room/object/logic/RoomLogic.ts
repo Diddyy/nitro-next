@@ -23,6 +23,7 @@ import { RoomPlaneData } from '../RoomPlaneData';
 import { RoomPlaneParser } from '../RoomPlaneParser';
 import { ObjectLogicBase } from './ObjectLogicBase';
 
+/** Port of Flash `RoomLogic`, the logic `RoomObjectFactory` builds for `room`. */
 export class RoomLogic extends ObjectLogicBase {
     private _planeParser: RoomPlaneParser = new RoomPlaneParser();
     private _planeBitmapMaskParser: RoomPlaneBitmapMaskParser = new RoomPlaneBitmapMaskParser();

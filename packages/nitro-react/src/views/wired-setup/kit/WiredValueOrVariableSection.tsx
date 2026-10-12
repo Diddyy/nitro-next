@@ -18,7 +18,8 @@
  *   section greys out; here the definition's `isInputSourceDisabled` reads
  *   `isValueOrVariableSourcePickingDisabled(form.x)` and the dialog follows the form by itself.
  * - `readIntParams` sends `state.value`, `state.option`, `state.picker.target`;
- *   `readVariableIds` sends `state.picker.variableId` (Flash's `finalizeSelection`).
+ *   `readVariableIds` sends `finalizePickerSelection(ctx.roomVariables, state.picker)` (Flash's
+ *   `finalizeSelection`).
  */
 import { IWiredVariable } from '@nitrodevco/nitro-packets';
 

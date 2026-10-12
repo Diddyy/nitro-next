@@ -8,6 +8,7 @@ import { GetAssetManager } from '../../../../assets';
 import { ObjectAdUpdateMessage, ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureLogic } from './FurnitureLogic';
 
+/** Port of Flash `FurnitureRoomBrandingLogic`. */
 export class FurnitureRoomBrandingLogic extends FurnitureLogic {
     public static STATE: string = 'state' as const;
     public static IMAGEURL_KEY: string = 'imageUrl' as const;

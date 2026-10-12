@@ -3,6 +3,12 @@ import { StateCreator } from 'zustand';
 
 import { friendBarAfterFragment, friendBarAfterNotification, friendBarAfterUpdates, FriendBarNotification } from './friendBarOrder';
 
+/**
+ * The friend list as the server sends it - limits, categories, friends and requests - and the
+ * search tab's last results (Flash's `AvatarSearchResults`; which of them were asked to be
+ * friends is `UserSocialSlice.sentFriendRequestIds`, the same record the infostand reads). On the
+ * user store rather than the friend list window's, because the room widgets read it too.
+ */
 type State = {
     userFriendLimit: number;
     normalFriendLimit: number;
@@ -17,13 +23,23 @@ type State = {
     /** `AvatarSearchResults.friends` / `others`: the last `HabboSearchResultMessage`. */
     searchFriends: IMessengerSearchResult[];
     searchOthers: IMessengerSearchResult[];
+    /** `SearchView.refreshList` has run: before the first answer the list holds no rows at all. */
+    searchResultsReceived: boolean;
     /**
-     * `FriendRequestsView._SafeStr_4889` set: the requests tab's list has been built once
+     * `§_-fK§.§_-ku§` set (`friendlist/§_-fK§`, the requests tab): its list has been built once
      * (`fillList`), after which every tab click lets the answered requests go (`tabClicked`).
      * Flash never clears it.
      */
     friendRequestsListShown: boolean;
+    /**
+     * `FriendListTab.newMessageArrived` of the friends and requests tabs: the tab's header drawn
+     * highlighted (`hdr_hilite`) until the tab is opened. Kept while the window is closed.
+     */
+    friendListTabsHighlighted: FriendListHighlightedTabs;
 };
+
+/** The friend list tabs that can be highlighted, by their window param. */
+export type FriendListHighlightedTabs = { friends: boolean; requests: boolean };
 
 type Actions = {
     setFriendLimits: (userFriendLimit: number, normalFriendLimit: number, extendedFriendLimit: number) => void;
@@ -35,10 +51,12 @@ type Actions = {
     replaceFriendRequests: (requests: IFriendRequest[]) => void;
     /** `FriendRequest.state`: an answered request stays in the list, drawn with its outcome, until the tab is clicked. */
     setFriendRequestsState: (requesterIds: number[], state: FriendRequestStateType) => void;
-    /** `FriendRequestsView.tabClicked` -> `clearAndUpdateView(true)`: the answered requests go. */
+    /** `§_-fK§.tabClicked` -> `clearAndUpdateView(true)`: the answered requests go. */
     clearAnsweredFriendRequests: () => void;
-    /** `FriendRequestsView.fillList`: the requests tab has been opened. */
+    /** `§_-fK§.fillList`: the requests tab has been opened. */
     markFriendRequestsListShown: () => void;
+    /** `FriendListTab.setNewMessageArrived`, or `setSelected(true)` clearing it. */
+    setFriendListTabHighlighted: (tab: keyof FriendListHighlightedTabs, highlighted: boolean) => void;
     /** `HabboFriendBarData.makeNotification` for a `FriendNotificationMessage` (see `friendBarAfterNotification`). */
     addFriendBarNotification: (friendId: number, typeCode: number, message: string) => void;
     /** `NewFriendEntityTab.deselect`: the shown-once notifications go once the tab closes. */
@@ -47,13 +65,7 @@ type Actions = {
     setSearchResults: (friends: IMessengerSearchResult[], others: IMessengerSearchResult[]) => void;
 };
 
-/**
- * The friend list as the server sends it - limits, categories, friends and requests - and the
- * search tab's last results (Flash's `AvatarSearchResults`; which of them were asked to be
- * friends is `UserSocialSlice.sentFriendRequestIds`, the same record the infostand reads). On the
- * user store rather than the friend list window's, because the room widgets read it too.
- */
-export const UserFriendsSlice: State = {
+export const UserFriendsSliceInitialState: State = {
     userFriendLimit: 0,
     normalFriendLimit: 0,
     extendedFriendLimit: 0,
@@ -64,16 +76,21 @@ export const UserFriendsSlice: State = {
     friendBarNotifications: {},
     searchFriends: [],
     searchOthers: [],
+    searchResultsReceived: false,
     friendRequestsListShown: false,
+    friendListTabsHighlighted: { friends: false, requests: false },
 };
 
 export type UserFriendsSlice = State & Actions;
 
 export const createUserFriendsSlice: StateCreator<UserFriendsSlice, [], [], UserFriendsSlice> = set => ({
-    ...UserFriendsSlice,
+    ...UserFriendsSliceInitialState,
     setFriendLimits: (userFriendLimit: number, normalFriendLimit: number, extendedFriendLimit: number) => set({ userFriendLimit, normalFriendLimit, extendedFriendLimit }),
     setFriendCategories: (categories: IMessengerCategory[]) => set({ categories }),
-    setSearchResults: (searchFriends: IMessengerSearchResult[], searchOthers: IMessengerSearchResult[]) => set({ searchFriends, searchOthers }),
+    setFriendListTabHighlighted: (tab: keyof FriendListHighlightedTabs, highlighted: boolean) => set(x => ((x.friendListTabsHighlighted[tab] === highlighted)
+        ? x
+        : { friendListTabsHighlighted: { ...x.friendListTabsHighlighted, [tab]: highlighted } })),
+    setSearchResults: (searchFriends: IMessengerSearchResult[], searchOthers: IMessengerSearchResult[]) => set({ searchFriends, searchOthers, searchResultsReceived: true }),
     processFriends: (friends: IMessengerFriend[]) => set((x) => {
         const updates = friends.reduce((acc, data) => ({
             ...acc,

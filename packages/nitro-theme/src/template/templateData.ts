@@ -41,6 +41,21 @@ export interface TemplateParams {
     unnamedBits?: number[];
 }
 
+/**
+ * A window's outer drop shadow - the first `<DropShadowFilter>` of its `<filters>` that is not `inner`,
+ * the one `GraphicContext` draws - with `WindowParser`'s defaults for what the layout leaves out.
+ */
+export interface TemplateDropShadow {
+    distance: number;
+    /** Degrees, Flash's: 45 is down and right. */
+    angle: number;
+    /** `0xRRGGBB`. */
+    color: number;
+    alpha: number;
+    /** `max(blurX, blurY)`, as `GraphicContext` blurs it. */
+    blur: number;
+}
+
 /** One element of a template, as its `<layout>` XML has it. */
 export interface TemplateElement {
     /** The Flash window type (`container`, `text`, `button`, ...). */
@@ -73,11 +88,17 @@ export interface TemplateElement {
     mouseThreshold?: number;
     /** Its `tags` (`#icon`, `#bg`, ...). */
     tags?: string[];
+    /** Its outer drop shadow, from its `<filters>`. */
+    dropShadow?: TemplateDropShadow;
     /** Its `<variables>`, by key. */
     vars: Record<string, TemplateValue>;
     /** A frame's content area, from its edges (`FrameController.margins`): where its children are placed. */
     margins?: readonly [ number, number, number, number ];
     children: TemplateElement[];
+    /** A clone's key (`TemplateItem.key`): which of its list's items it is, across renders. */
+    itemKey?: string;
+    /** A clone its code adds to a list with `addListItem` (`TemplateItem.append`). */
+    appended?: boolean;
 }
 
 export interface Template {
@@ -88,7 +109,7 @@ export interface Template {
     /** The `<window>`'s elements. */
     elements: TemplateElement[];
     /**
-     * The window layouts its composite windows are built from (`WindowFactory`'s element description:
+     * The window layouts its composite windows are built from (the element description `SkinParserUtil` parses:
      * a `scrollable_itemlist_vertical`'s `_ITEMLIST` and `_SCROLLBAR`), by `templateSkinKey` - only
      * those its elements use. The publisher, holding the window manager's library, adds them.
      */
@@ -99,7 +120,7 @@ export interface Template {
 export const templateSkinKey = (tag: string, style: string | undefined) => `${tag}:${style ?? '0'}`;
 
 /**
- * One Flash library's templates, as its `templates-<library>` bundle carries them: by id,
+ * One Flash library's templates, as its bundle (named after the library) carries them: by id,
  * `<library>/<asset>` - the asset the client's code builds the window from
  * (`getAssetByName("purse_xml")` is `habbo-toolbar-com/purse_xml`).
  */

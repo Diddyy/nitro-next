@@ -3,6 +3,10 @@ import { ContextMenuEnum, IAssetData, IRoomObjectUpdateMessage, RoomObjectVariab
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-Y3§`, the friend furni (lovelock) logic the lovelock logics
+ * extend: locked furni open the engraving dialog, unlocked ones ask both owners to confirm.
+ */
 export class FurnitureFriendFurniLogic extends FurnitureMultiStateLogic {
     private static readonly STATE_UNINITIALIZED: number = -1;
     private static readonly STATE_UNLOCKED: number = 0;

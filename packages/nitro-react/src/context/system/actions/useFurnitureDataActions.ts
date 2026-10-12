@@ -1,11 +1,12 @@
+/**
+ * `SystemStore`'s furniture data parsers - the floor and wall item tables and the product data, as
+ * their gamedata files load. Read off the store once: a component using these re-renders for
+ * nothing.
+ */
 import { systemStore } from '../store/SystemStore';
 
 const state = systemStore.getState();
 
-/**
- * Zustand actions are created once and never change, so they are read off the store a single
- * time here rather than subscribed to: a component using these re-renders for nothing.
- */
 const actions = {
     parseFloorItems: state.parseFloorItems,
     parseWallItems: state.parseWallItems,

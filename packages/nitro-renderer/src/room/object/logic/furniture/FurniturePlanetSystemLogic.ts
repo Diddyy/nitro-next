@@ -2,6 +2,10 @@ import { IAssetData, IAssetLogicPlanetSystem, RoomObjectVariableEnum } from '@ni
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash `FurniturePlanetSystemLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_planet_system`.
+ */
 export class FurniturePlanetSystemLogic extends FurnitureLogic {
     public override initialize(asset: IAssetData | undefined): void {
         super.initialize(asset);

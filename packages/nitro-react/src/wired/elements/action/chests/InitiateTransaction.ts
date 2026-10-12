@@ -13,7 +13,7 @@
  */
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { setPickerTarget } from '../../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../../WiredTriggerable';
@@ -62,7 +62,7 @@ export const initiateTransactionAction: WiredElementDefinition<InitiateTransacti
         form.timeoutEnabled ? 1 : 0,
         form.timeout,
     ],
-    readVariableIds: form => [ form.multiplier.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.multiplier.picker) ],
     isInputSourceDisabled: (form, id, sourceType) =>
         (sourceType === WIRED_SOURCE_MERGED) && (id === 0) && isValueOrVariableSourcePickingDisabled(form.multiplier),
     mergedSelections: [ [ 2, 1 ] ],

@@ -45,7 +45,7 @@ export const WiredMiniAssetIconButton = ({ asset, tooltip, selected = false, onP
     const [ hovered, setHovered ] = useState(false);
     const template = style.templates.miniButton;
     const colors = ASSET_COLORS[asset] ?? ASSET_COLORS.furni_picks_1;
-    const src = LayoutImage(`wired/${resolveWiredAssetName(style, asset)}.png`);
+    const src = LayoutImage(`habbo-window-manager-com/${resolveWiredAssetName(style, asset)}.png`);
     const press = () => {
         if (!selected) onPress();
     };

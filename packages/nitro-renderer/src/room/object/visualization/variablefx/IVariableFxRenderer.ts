@@ -1,6 +1,7 @@
 import { VariableFxFrame } from './VariableFxFrame';
 import { VariableFxRendererContext } from './VariableFxRendererContext';
 
+/** Port of Flash's `VariableFxRenderer` interface. */
 export interface IVariableFxRenderer {
     readonly frame: VariableFxFrame;
     /** True while the renderer animates on its own (e.g. the striped bar's moving stripes) and needs ticks regardless of data changes. */

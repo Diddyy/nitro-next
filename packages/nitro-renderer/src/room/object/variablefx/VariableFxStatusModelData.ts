@@ -1,3 +1,4 @@
+/** Port of Flash `VariableFxStatusModelData`. */
 import { IVariableFxStatusModelData, IVariableFxStatusModelEntry } from '@nitrodevco/nitro-api';
 
 export class VariableFxStatusModelEntry implements IVariableFxStatusModelEntry {

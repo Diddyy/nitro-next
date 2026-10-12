@@ -7,4 +7,5 @@ export * from './useRoomFriendRequests';
 export * from './useRoomObjectIdByWebId';
 export * from './useRoomPetCommands';
 export * from './useRoomPetInfo';
+export * from './useRoomUserByObjectId';
 export * from './widget';

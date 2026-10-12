@@ -27,6 +27,10 @@ export interface BubblePointerProps extends ThemeProps<BubblePointerVariant> {
     direction: Direction;
 }
 
+/**
+ * A `bubble_pointer_<direction>` (`BubbleController`'s pointer): the skin for its direction, sized by
+ * its art, which `Bubble` places on its edge.
+ */
 export const BubblePointer: ForwardRefExoticComponent<BubblePointerProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, BubblePointerProps>(
     ({ variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, direction, onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap }, ref) => {
         const { config, handlers, resolvedLayer, resolvedOverlay, resolvedTint } = useThemeVariant<BubblePointerVariant>({

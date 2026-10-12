@@ -2,10 +2,9 @@ import { RoomControllerLevelEnum, RoomObjectVariableEnum, RoomObjectWidgetReques
 import { RemoveItemComposer, SetItemDataComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoom, useRoomStore, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
+import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
+import { parseStickieData } from '#base/utils';
 import { FurnitureStickieView } from '#base/views/room-widgets/furniture/FurnitureStickieView';
-
-import { parseStickieData } from './furnitureWidgetData';
 
 /**
  * The post-it dialog, and the one widget that proves the bridge runs in both directions: a save
@@ -20,8 +19,8 @@ import { parseStickieData } from './furnitureWidgetData';
 export const FurnitureStickieWidget = () => {
     const request = useRoomWidget(RoomObjectWidgetRequestEvent.STICKIE);
     const room = useRoom();
-    const isRoomOwner = useRoomStore(x => x.isRoomOwner);
-    const controllerLevel = useRoomStore(x => x.controllerLevel);
+    const isRoomOwner = useIsRoomOwner();
+    const controllerLevel = useOwnControllerLevel();
     const { closeRoomWidget } = useRoomWidgetActions();
     const { send } = useWebSocketContext();
 

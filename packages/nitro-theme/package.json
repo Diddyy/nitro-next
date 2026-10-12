@@ -13,7 +13,7 @@
         "@nitrodevco/nitro-api": "workspace:*",
         "@nitrodevco/nitro-renderer": "workspace:*",
         "@pixi/layout": "^3.2.1",
-        "@pixi/react": "^8.0.5",
+        "@pixi/react": "patch:@pixi/react@npm%3A8.0.5#~/.yarn/patches/@pixi-react-npm-8.0.5-b9686ce1cd.patch",
         "pixi.js": "^8.18.1",
         "react": "^19.2.6"
     },

@@ -26,6 +26,8 @@ export const ClientGates = {
     AnyRoomController: { node: 'room.control.any', level: SecurityLevelEnum.Moderator },
     /** `HabboCatalog` - the Builders Club catalogue without a membership (security 5). */
     BuildersClubCatalog: { node: 'catalog.builders_club.without_membership', level: SecurityLevelEnum.Moderator },
+    /** `ChatInputWidgetHandler` `:furni` - the furni chooser in any room (security 2); no server node stands behind it. */
+    FurniChooserAnyRoom: { node: null, level: SecurityLevelEnum.Partner },
     /** `GroupDetailsCtrl` - delete any group (security 5). */
     DeleteAnyGroup: { node: 'guild.delete_any', level: SecurityLevelEnum.Moderator },
     /** `BCFloorPlanEditor` / `ImportExportDialog` - save a floor plan without Builders Club (security 4). */
@@ -46,6 +48,8 @@ export const ClientGates = {
     GuildAnyGroup: { node: 'catalog.guild.any_group', level: SecurityLevelEnum.Employee },
     /** `IncomingMessages.onUserRights` `roomPicker` - mark staff picks (security 7). */
     StaffPick: { node: 'navigator.staff_pick', level: SecurityLevelEnum.Community },
+    /** `IncomingMessages.onUserRights` `eventMod` - edit any room's event from its event card (security 5). No server node. */
+    RoomEventModerator: { node: null, level: SecurityLevelEnum.Moderator },
     /** `RoomCreateViewCtrl` / `EnforceCategoryCtrl` - staff-only flat categories (security 7). */
     StaffCategories: { node: 'navigator.category.staff', level: SecurityLevelEnum.Community },
     /** `WiredMenuController` - the wired menu, as the room's owner (security 4). */
@@ -58,6 +62,10 @@ export const ClientGates = {
     RoomSettingsStaff: { node: null, level: SecurityLevelEnum.Employee },
     /** `VariableFxVisualizationSettingsPreset` - the campaign icons (security 4). No server node. */
     VariableFxCampaignIcons: { node: null, level: SecurityLevelEnum.Employee },
+    /** `ChatInputWidgetHandler` - `:kick` / `:mute` left to the server, `:aalert` / `:avisit` without being an ambassador (security 4). No server node. */
+    ChatStaffCommands: { node: null, level: SecurityLevelEnum.Employee },
+    /** `ChatInputWidgetHandler` `:reload` / `:rollback` - any room's wired state (security 5). No server node. */
+    RoomStateAnyRoom: { node: null, level: SecurityLevelEnum.Moderator },
 } as const satisfies Record<string, ClientGate>;
 
 /** Whether a user with these rights passes `gate`: its node when the server sent nodes, its level otherwise. */

@@ -54,6 +54,8 @@ export type TextConfig = {
     clip?: boolean;
     /** The window's `overflow_replace` truncation - see `FlashTextOverflowReplace`. Exact rendering only. */
     overflowReplace?: FlashTextOverflowReplace;
+    /** `TextCropper.crop` to a field this wide: cut with `...` near its right edge. Exact rendering only. */
+    crop?: number;
 } & ThemeLayoutMeta;
 
 /** The resolved config the renderers take: the effect already folded into colour, opacity and offset. */
@@ -113,11 +115,18 @@ const NativeText = ({ text: source, markup, textStyle, textOptions, flashFormat,
     // Markup the exact renderer could not take shows as its text alone.
     const text = useMemo(() => (markup ? parseFlashTextMarkup(source, DEFAULT_FLASH_TEXT_FORMAT).map(run => run.text).join('') : source), [ markup, source ]);
     // The layout's `font_face`/`bold`/`italic` vars again, in the face names Pixi's canvas text
-    // knows - `fontFamily` alone would leave a `bold` var out of the fallback.
-    const style = useMemo(() => getPixiTextStyle(textStyle ?? DEFAULT_TEXT_STYLE, {
-        ...textOptions,
-        ...browserFaceOverride(textStyle ?? DEFAULT_TEXT_STYLE, flashFaceOverride(textOptions?.fontFamily), flashFormat),
-    }), [ textStyle, textOptions, flashFormat ]);
+    // knows - `fontFamily` alone would leave a `bold` var out of the fallback. A family none of the
+    // captured faces covers (the floor plan map's `Courier`) is the very reason for falling back,
+    // so it is kept rather than swapped for the style's own face.
+    const style = useMemo(() => {
+        const face = flashFaceOverride(textOptions?.fontFamily);
+        const keepsFamily = !face && (typeof textOptions?.fontFamily === 'string');
+
+        return getPixiTextStyle(textStyle ?? DEFAULT_TEXT_STYLE, {
+            ...textOptions,
+            ...(keepsFamily ? {} : browserFaceOverride(textStyle ?? DEFAULT_TEXT_STYLE, face, flashFormat)),
+        });
+    }, [ textStyle, textOptions, flashFormat ]);
     const metrics = useMemo(() => (text?.length ? CanvasTextMetrics.measureText(text, style) : undefined), [ text, style ]);
 
     if (!text?.length || !metrics) return null;
@@ -163,7 +172,7 @@ const NativeText = ({ text: source, markup, textStyle, textOptions, flashFormat,
 };
 
 /** What `useFlashTextCanvas` needs from a text's config. */
-const flashTextConfig = (textOptions: TextStyleOptions | undefined, flashFormat: FlashTextFieldOverrides | undefined, markup: boolean | undefined, overflowReplace: FlashTextOverflowReplace | undefined): FlashTextCanvasConfig => ({
+const flashTextConfig = (textOptions: TextStyleOptions | undefined, flashFormat: FlashTextFieldOverrides | undefined, markup: boolean | undefined, overflowReplace: FlashTextOverflowReplace | undefined, crop: number | undefined): FlashTextCanvasConfig => ({
     color: (typeof textOptions?.fill === 'string') ? textOptions.fill : undefined,
     fontSize: (typeof textOptions?.fontSize === 'number') ? textOptions.fontSize : undefined,
     face: flashFaceOverride(textOptions?.fontFamily),
@@ -176,6 +185,7 @@ const flashTextConfig = (textOptions: TextStyleOptions | undefined, flashFormat:
     lineHeight: (typeof textOptions?.lineHeight === 'number') ? textOptions.lineHeight : undefined,
     markup,
     overflowReplace,
+    crop,
 });
 
 /**
@@ -185,8 +195,8 @@ const flashTextConfig = (textOptions: TextStyleOptions | undefined, flashFormat:
  * character they do not carry, so no call site ever goes blank.
  */
 const RenderedText = (props: TextRenderConfig) => {
-    const { text, textStyle, textOptions, flashFormat, layout, verticalAlign, visible, alpha, x, y, markup, clip, overflowReplace, onLink } = props;
-    const rendered = useFlashTextCanvas(text, resolveFlashStyle(textStyle, textOptions), flashTextConfig(textOptions, flashFormat, markup, overflowReplace));
+    const { text, textStyle, textOptions, flashFormat, layout, verticalAlign, visible, alpha, x, y, markup, clip, overflowReplace, crop, onLink } = props;
+    const rendered = useFlashTextCanvas(text, resolveFlashStyle(textStyle, textOptions), flashTextConfig(textOptions, flashFormat, markup, overflowReplace, crop));
 
     if (rendered) {
         return (
@@ -199,6 +209,7 @@ const RenderedText = (props: TextRenderConfig) => {
                 clipWidth={(clip && typeof layout?.width === 'number') ? layout.width : undefined}
                 clipHeight={(clip && typeof layout?.height === 'number') ? layout.height : undefined}
                 clip={clip}
+                clipAlign={(textOptions?.align === 'center' || textOptions?.align === 'right') ? textOptions.align : undefined}
                 onLink={onLink}
                 layout={{ objectPosition: textObjectPosition(textOptions?.align, verticalAlign), ...layout }}
             />

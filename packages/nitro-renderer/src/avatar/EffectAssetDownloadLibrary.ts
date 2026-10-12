@@ -2,6 +2,7 @@ import { AvatarAssetDownloadStatus, IAssetAnimation, IEffectAssetDownloadLibrary
 
 import { GetAssetManager } from '#renderer/assets';
 
+/** Port of Flash `EffectAssetDownloadLibrary`. */
 export class EffectAssetDownloadLibrary implements IEffectAssetDownloadLibrary {
     private _state: AvatarAssetDownloadStatus = AvatarAssetDownloadStatus.NotLoaded;
     private _libraryName: string;
@@ -72,6 +73,18 @@ export class EffectAssetDownloadLibrary implements IEffectAssetDownloadLibrary {
         const collection = GetAssetManager().getCollection(this._libraryName);
 
         if (collection) this._animations = collection.data?.animations ?? [];
+    }
+
+    /**
+     * Unloads the library; the next effect needing it downloads it again. Its animations stay
+     * registered on the structure - they are small, and a reload registers them over themselves.
+     */
+    public purge(): void {
+        if (this._state !== AvatarAssetDownloadStatus.Loaded) return;
+
+        GetAssetManager().removeCollection(this._libraryName);
+
+        this._state = AvatarAssetDownloadStatus.NotLoaded;
     }
 
     public get libraryName(): string {

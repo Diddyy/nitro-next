@@ -3,6 +3,15 @@ import { ReactNode, useCallback, useEffect, useRef } from 'react';
 
 import { Box, BoxLayout, getGlobalRect, LayoutImage, ThemeImage } from '#base/theme';
 
+/**
+ * The two drag bars of the floor plan editor - `BCFloorPlanEditor.colorMapWindowProcedure` and
+ * `wallHeightSliderProcedure`, which are the same gesture over different bars: where along the bar
+ * the pointer is, as a fraction of its width, times the number of steps.
+ *
+ * Flash followed the pointer through the bar's own mouse events; the drag runs on window-level
+ * pointer events here, so it keeps following once the pointer leaves the bar - which is what
+ * `WME_UP_OUTSIDE` was there to cope with.
+ */
 export interface FloorPlanSliderProps {
     /** How many values the bar covers - `HeightMapEditor.LEVELS` for the draw height, `WALL_HEIGHT_LIMIT` for the walls. */
     steps: number;
@@ -22,22 +31,13 @@ export interface FloorPlanSliderProps {
 }
 
 /** `tile_height_slider_track` / `wall_height_slider_track` - both sliders name the same handle bitmap. */
-const TRACK_IMAGE = 'catalog/avatar_editor_avatar_editor_download_icon.png';
+const TRACK_IMAGE = 'habbo-window-manager-com/avatar_editor_avatar_editor_download_icon.png';
 const TRACK_WIDTH = 12;
 const TRACK_HEIGHT = 16;
 
 /** `BCFloorPlanEditor.enableWallHeightControls` dims what it turns off rather than hiding it. */
 const DISABLED_ALPHA = 0.6;
 
-/**
- * The two drag bars of the floor plan editor - `BCFloorPlanEditor.colorMapWindowProcedure` and
- * `wallHeightSliderProcedure`, which are the same gesture over different bars: where along the bar
- * the pointer is, as a fraction of its width, times the number of steps.
- *
- * Flash followed the pointer through the bar's own mouse events; the drag runs on window-level
- * pointer events here, so it keeps following once the pointer leaves the bar - which is what
- * `WME_UP_OUTSIDE` was there to cope with.
- */
 export const FloorPlanSlider = ({ steps, value, onChange, width, height, barLeft, barTop, trackTop, disabled = false, children, layout }: FloorPlanSliderProps) => {
     const onChangeRef = useRef(onChange);
     const barRef = useRef<PixiContainer | null>(null);

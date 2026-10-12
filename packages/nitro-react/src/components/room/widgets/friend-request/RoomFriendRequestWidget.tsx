@@ -4,7 +4,7 @@ import { ReactNode } from 'react';
 
 import { acceptFriendRequest, declineFriendRequest } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoomFriendRequestActions, useRoomFriendRequests, useRoomObjectIdByWebId } from '#base/context/room';
+import { useRoomFriendRequestActions, useRoomFriendRequests, useRoomIsSpectating, useRoomObjectIdByWebId } from '#base/context/room';
 import { RoomFriendRequestView } from '#base/views/room-widgets/friend-request/RoomFriendRequestView';
 
 import { RoomObjectMenuBubble } from '../object-menu/RoomObjectMenuBubble';
@@ -19,13 +19,15 @@ export const RoomFriendRequestWidget = () => {
     const requests = useRoomFriendRequests();
     const { removeRoomFriendRequest } = useRoomFriendRequestActions();
     const { send } = useWebSocketContext();
+    // `RoomUI` creates `RWE_FRIEND_REQUEST` only for a session that is not spectating.
+    const isSpectating = useRoomIsSpectating();
 
-    if (!requests.length) return null;
+    if (!requests.length || isSpectating) return null;
 
     /**
      * `HabboFriendBarData.acceptFriendRequest` / `declineFriendRequest`: the bubble goes, and the
-     * answer is the friend list's (`FriendRequestsView.acceptRequest` / `declineRequest`), limit
-     * check and request state included.
+     * answer is the friend list's (`§_-fK§.acceptRequest` / `declineRequest`, its requests tab),
+     * limit check and request state included.
      */
     const answer = (requestId: number, accept: boolean) => {
         if (accept) acceptFriendRequest(send, requestId);

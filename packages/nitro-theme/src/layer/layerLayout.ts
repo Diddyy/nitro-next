@@ -1,3 +1,8 @@
+/**
+ * How a skin layer is placed in its component's box: by an entity's insets (`insetLayout`), or -
+ * for a layer drawn as one display object standing in for the whole component - with the
+ * component's own ref, alpha and visibility (`LayerNodeProps`, `leafBoxLayout`).
+ */
 import { Container as PixiContainer } from 'pixi.js';
 import { Ref } from 'react';
 

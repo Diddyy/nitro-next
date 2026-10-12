@@ -5,9 +5,9 @@
  * Int params: `[ altitude, comparison ]` - the altitude in hundredths of a tile (0 to 80.00), the
  * comparison `comparison.0` to `.2`.
  */
+import { clampSliderValue } from '../../common/WiredUtil';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';
-import { clampSliderSectionValue } from '../trigger/triggerShared';
 import { SelectorCodes } from './selectorCodes';
 
 /** `createSliderSection("wiredfurni.params.setaltitude", "altitude", new SliderValueHundredth(), 0, 8000, 1)`. */
@@ -24,7 +24,7 @@ export const furniWithAltitudeSelector: WiredElementDefinition<FurniWithAltitude
     holder: 'selector',
     code: SelectorCodes.FURNI_WITH_ALTITUDE,
     createForm: triggerable => ({
-        altitude: clampSliderSectionValue(getWiredInt(triggerable, 0), 0, FURNI_WITH_ALTITUDE_MAX),
+        altitude: clampSliderValue(getWiredInt(triggerable, 0), 0, FURNI_WITH_ALTITUDE_MAX),
         comparison: getWiredInt(triggerable, 1),
     }),
     readIntParams: form => [ form.altitude, form.comparison ],

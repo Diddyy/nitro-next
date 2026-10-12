@@ -100,16 +100,5 @@ export const getCatalogPageImage = (page: CatalogLocalizedPage | undefined, elem
     return undefined;
 };
 
-/** `getColorUintFromText`: text `index` read as a colour (`#rrggbb` or a number), 0 when there is none. */
-export const getCatalogPageColor = (page: CatalogLocalizedPage, index: number) => {
-    const text = page.localization.textDatas[index];
-
-    if (text === undefined) return 0;
-
-    const value = Number(text.replace('#', '0x'));
-
-    return isNaN(value) ? 0 : (value >>> 0);
-};
-
 /** `hasLinks` / `getLinks`: the clickable elements of a layout. */
 export const getCatalogPageLinks = (layoutCode: string): readonly string[] => LAYOUT_LINKS[layoutCode] ?? [];

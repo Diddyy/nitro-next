@@ -1,5 +1,11 @@
 import { StateCreator } from 'zustand';
 
+/**
+ * The furniture stacking height map - Flash's `FurniStackingHeightMap`: tile heights, stacking
+ * blocks and which tiles are room at all, plus the placement validation that reads them. The
+ * room engine reads tile heights off this slice through the reader `RoomStore.setRoom` lends
+ * it.
+ */
 type State = {
     width: number;
     height: number;
@@ -26,12 +32,6 @@ type Actions = {
     ) => boolean;
 };
 
-/**
- * The furniture stacking height map - Flash's `FurniStackingHeightMap`: tile heights, stacking
- * blocks and which tiles are room at all, plus the placement validation that reads them. The
- * room engine reads tile heights off this slice through the reader `RoomStore.setRoom` lends
- * it.
- */
 export const RoomStackingHeightMapSliceInitialState: State = {
     width: 0,
     height: 0,
@@ -42,7 +42,7 @@ export const RoomStackingHeightMapSliceInitialState: State = {
 
 export type RoomStackingHeightMapSlice = State & Actions;
 
-export const createRoomStackingHeightMapSlice: StateCreator<RoomStackingHeightMapSlice, [], [], RoomStackingHeightMapSlice> = (set, get, store) => ({
+export const createRoomStackingHeightMapSlice: StateCreator<RoomStackingHeightMapSlice, [], [], RoomStackingHeightMapSlice> = (set, get) => ({
     ...RoomStackingHeightMapSliceInitialState,
     setHeightMap: (width: number, height: number, heights: number[], stackingBlocked: boolean[], validTiles: boolean[]) => {
         set({ width, height, heights, stackingBlocked, validTiles });

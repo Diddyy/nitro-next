@@ -3,12 +3,13 @@
  * `image` bitmap (`pivot_point` centre, not stretched). By product type:
  *
  * - `s`: the room engine's furniture icon (`getFurnitureIcon`), rendered with the guild's stuff
- *   data when the page sells guild furni (`ItemGridCatalogWidget.loadGraphics`).
+ *   data when the page sells guild furni (`ItemGridCatalogWidget.loadGraphics`). Until it has
+ *   loaded the slot shows the engine's `place_holder` icon, as Flash's does - not an empty cell.
  * - `i`: for the `floor`, `wallpaper` and `landscape` products the catalogue's `th_*` picture
  *   (`setImageFromAsset` with `th_<class>_<extra>`, `th_wall_<extra>`, `th_landscape_<extra>_001`),
  *   any other wall item its engine icon (`getWallItemIcon`).
- * - `e`: the effect's `fx_icon_<id>` (`getPixelEffectIcon`, the inventory's library - here the
- *   `effect-icons` bundle).
+ * - `e`: the effect's `fx_icon_<id>` (`getPixelEffectIcon`, the inventory's library,
+ *   `habbo-inventory-com`).
  * - `h`: the catalogue's `icon_hc` (`getSubscriptionProductIcon`).
  * - `b`: the badge image (`getBadgeImage`), from `badge.asset.url`.
  * - `r`: the bot's head, rendered large and cropped at half size (`ProductGridItem.renderAvatarImage`:
@@ -22,12 +23,12 @@
 import { AvatarGenderType, FurnitureTypeEnum, IProduct, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 
 import { GetChatStyleLibrary } from '#base/chat';
-import { useHabbiconsStore } from '#base/context/habbicons';
+import { useHabbiconPreview } from '#base/context/habbicons';
 import { useConfigValue } from '#base/context/system';
+import { useFurnitureImageTexture } from '#base/hooks';
 import { Region, ThemeImage, useAvatarImageTexture } from '#base/theme';
 
-import { getFurniProductIconUrl, pixelEffectIcon, SUBSCRIPTION_PRODUCT_ICON } from './catalogProductIcons';
-import { useFurnitureImageTexture } from './useFurnitureImageTexture';
+import { getFurniProductIconPlaceholder, getFurniProductIconUrl, pixelEffectIcon, SUBSCRIPTION_PRODUCT_ICON } from './catalogProductIcons';
 
 export interface CatalogProductIconViewProps {
     product: IProduct;
@@ -71,7 +72,7 @@ const GuildFloorIcon = ({ product, guildStuffData, box }: { product: IProduct; g
 };
 
 const HabbiconIcon = ({ habbiconId, box }: { habbiconId: number; box: IconBox }) => {
-    const preview = useHabbiconsStore(state => state.previews[habbiconId]);
+    const preview = useHabbiconPreview(habbiconId);
 
     if (!preview) {
         return (
@@ -163,7 +164,7 @@ export const CatalogProductIconView = ({ product, width = 36, height = 36, guild
                             name="image"
                             src={content}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
-                            showLoadingPlaceholder
+                            showLoadingPlaceholder={getFurniProductIconPlaceholder(product) ?? true}
                             layout={box}
                         />
                     )

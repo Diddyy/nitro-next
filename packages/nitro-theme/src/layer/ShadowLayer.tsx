@@ -2,6 +2,7 @@ import { Texture } from 'pixi.js';
 
 import { getOrBuildTexture, usePixiEffectTexture } from '../hooks/usePixiTexture';
 import { boxBlurAlpha } from '../utils/boxBlur';
+import { parseCssHexColor } from '../utils/cssHexColor';
 import { ThemeSliceEffect } from '../utils/themeSprites';
 import { DropShadowConfig } from '../utils/ThemeVariant';
 import { BackgroundLayerConfig } from './BackgroundLayer';
@@ -34,8 +35,7 @@ export type ShadowLayerProps = DropShadowConfig & {
 const FLASH_DEFAULTS = { distance: 0, angle: 45, color: '#000000', alpha: 1, blur: 0 };
 
 const parseColor = (color: string): [number, number, number] => {
-    const hex = color.replace('#', '');
-    const value = parseInt(hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex, 16);
+    const value = parseCssHexColor(color);
 
     return [ (value >> 16) & 255, (value >> 8) & 255, value & 255 ];
 };

@@ -1,10 +1,9 @@
-/** AS3 AchievementController.show and ensureAchievementsInitialized. */
-import { GetAchievementsComposer, GetBadgePointLimitsComposer } from '@nitrodevco/nitro-packets';
+/** AS3 AchievementController.show, ensureAchievementsInitialized and the category/achievement selection log. */
+import { EventLogComposer, GetAchievementsComposer, GetBadgePointLimitsComposer } from '@nitrodevco/nitro-packets';
 
 import { achievementsStore } from '#base/context/achievements';
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
-import { wiredStore } from '#base/context/wired';
 
 export const requestAchievements = (send: WebSocketConnection['send']) => {
     if (!achievementsStore.getState().request()) return;
@@ -13,13 +12,23 @@ export const requestAchievements = (send: WebSocketConnection['send']) => {
     send(new GetAchievementsComposer({}));
 };
 
+/** `HabboQuestEngine.linkReceived` `achievements[/category]`: `show`, then `selectCategoryInternalLink`. */
 export const openAchievements = (send: WebSocketConnection['send'], category?: string) => {
-    if (category) {
-        const fresh = systemStore.getState().config['achievements.new'];
-
-        achievementsStore.getState().selectCategory(category, typeof fresh === 'string' ? fresh.split(',') : [], wiredStore.getState().wiredAchievements);
-    }
-
+    achievementsStore.getState().show();
     requestAchievements(send);
     systemStore.getState().showWindow('achievements');
+
+    if (category) achievementsStore.getState().selectCategoryLink(category);
+};
+
+/** `onSelectCategory` / `pickCategory`: logs `Category selected`. */
+export const pickAchievementCategory = (send: WebSocketConnection['send'], code: string) => {
+    achievementsStore.getState().pickCategory(code);
+    send(new EventLogComposer({ event: 'Achievements', data: code, action: 'Category selected', extraString: '', extraInt: 0 }));
+};
+
+/** `onSelectAchievement`: logs `Achievement selected`. */
+export const pickAchievement = (send: WebSocketConnection['send'], id: number) => {
+    achievementsStore.getState().selectAchievement(id);
+    send(new EventLogComposer({ event: 'Achievements', data: String(id), action: 'Achievement selected', extraString: '', extraInt: 0 }));
 };

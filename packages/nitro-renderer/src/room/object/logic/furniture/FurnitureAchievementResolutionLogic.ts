@@ -3,6 +3,10 @@ import { IRoomObjectUpdateMessage, RoomObjectBadgeAssetEvent, RoomObjectVariable
 import { ObjectGroupBadgeUpdateMessage, ObjectSelectedMessage } from '../../../messages';
 import { FurnitureBadgeDisplayLogic } from './FurnitureBadgeDisplayLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-Q1V§`, the logic `RoomObjectFactory` builds for
+ * `furniture_achievement_resolution`.
+ */
 export class FurnitureAchievementResolutionLogic extends FurnitureBadgeDisplayLogic {
     public static STATE_RESOLUTION_NOT_STARTED: number = 0;
     public static STATE_RESOLUTION_IN_PROGRESS: number = 1;

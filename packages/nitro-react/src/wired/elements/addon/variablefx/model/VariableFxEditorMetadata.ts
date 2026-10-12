@@ -151,12 +151,6 @@ export const variableFxCategoryUsesSegmentsSelector = (categoryId: number): bool
     return variableFxRendererSupportsSegments(style.defaultRenderer.id);
 });
 
-/** `getColor(id)`. */
-export const getVariableFxColor = (id: number): VariableFxOption => colorOptionById(getTables(), id);
-
-/** `getWidth(id)`. */
-export const getVariableFxWidth = (id: number): VariableFxOption => widthOptionById(getTables(), id);
-
 /** `getRenderer(id)`. */
 export const getVariableFxRenderer = (id: number): VariableFxOption => rendererOptionById(getTables(), id);
 

@@ -12,7 +12,7 @@ const load = (path, dependencies = {}) => {
     const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
     const exports = {};
 
-    runInNewContext(outputText, { exports, performance, require: (name) => {
+    runInNewContext(outputText, { exports, performance, setTimeout, clearTimeout, Date, require: (name) => {
         assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`);
 
         return dependencies[name];
@@ -25,7 +25,7 @@ const { CurrentTimingCodeMessage } = load('nitro-packets/src/incoming/Competitio
 const { GetCurrentTimingCodeComposer } = load('nitro-packets/src/outgoing/Competition/GetCurrentTimingCodeComposer');
 const { SecondsUntilMessage } = load('nitro-packets/src/incoming/Competition/SecondsUntilMessage');
 const { GetSecondsUntilComposer } = load('nitro-packets/src/outgoing/Competition/GetSecondsUntilComposer');
-const widgets = load('nitro-react/src/context/system/store/HotelViewWidgets', { './HotelViewSlice': backgrounds });
+const widgets = load('nitro-react/src/context/system/store/HotelViewWidgets', { './HotelViewSlice': backgrounds, '#base/utils': load('nitro-theme/src/utils/cssHexColor') });
 const config = {
     'image.library.url': 'https://images.example/',
     'landing.view.bgtiming': 'schedule',
@@ -100,14 +100,14 @@ await test('generic widget conf, layout and common settings follow GenericWidget
     assert.equal(widgets.hotelViewTimerTimeStr(widgets.parseHotelViewGenericConf('customtimer,false,0,0,a,b,2026-09-17 15:00')[0]), '2026-09-17 15:00');
     assert.equal(widgets.parseHotelViewGenericConf('').length, 0);
 
-    const layout = widgets.parseHotelViewGenericLayout('bitmap.uri,https://x/p.png;bitmap.x,50;bitmap.y,0;container.height,250');
-
-    assert.equal(layout.bitmapUri, 'https://x/p.png');
-    assert.equal(layout.bitmapX, 50);
-    assert.equal(layout.bitmapY, 0);
-    assert.equal(layout.containerHeight, 250);
-    assert.equal(widgets.parseHotelViewGenericLayout('').containerHeight, 30);
-    assert.equal(widgets.parseHotelViewGenericLayout('container.height,10').containerHeight, 30);
+    // `configureLayout` applies the entries in order, so the parse keeps them as written.
+    assert.deepEqual([ ...widgets.parseHotelViewGenericLayout('bitmap.uri,https://x/p.png;bitmap.x,50;bitmap.y,0;container.height,250') ].map(e => [ e.key, e.value ]), [
+        [ 'bitmap.uri', 'https://x/p.png' ],
+        [ 'bitmap.x', '50' ],
+        [ 'bitmap.y', '0' ],
+        [ 'container.height', '250' ],
+    ]);
+    assert.deepEqual([ ...widgets.parseHotelViewGenericLayout('') ].map(e => [ e.key, e.value ]), [ [ '', '' ] ]);
 
     assert.equal(widgets.isWideHotelViewSlot(3), false);
     assert.equal(widgets.isWideHotelViewSlot(5), false);
@@ -116,6 +116,29 @@ await test('generic widget conf, layout and common settings follow GenericWidget
     assert.deepEqual({ ...widgets.hotelViewCommonSettings({ 'landing.view.common.textcolor': 'ffffff', 'landing.view.common.etchingcolor': '000000', 'landing.view.common.etchingposition': 'top' }) }, { textColor: 0xFFFFFF, etchingColor: 0, etchingPosition: 'top' });
     assert.deepEqual({ ...widgets.hotelViewCommonSettings({}) }, { textColor: null, etchingColor: null, etchingPosition: null });
     assert.deepEqual({ ...widgets.hotelViewPaneWidths({}) }, { left: 500, right: 250 });
+});
+
+const INCOMING = [
+    'CurrentTimingCodeMessage', 'SecondsUntilMessage', 'BonusRareInfoMessage', 'PromoArticlesMessage', 'CommunityGoalProgressMessage', 'CommunityVoteReceivedMessage', 'CatalogPageWithEarliestExpiryMessage',
+    'LimitedOfferAppearingNextMessage',
+];
+const OUTGOING = [
+    'GetCurrentTimingCodeComposer', 'GetSecondsUntilComposer', 'GetBonusRareInfoComposer', 'GetPromoArticlesComposer', 'GetCommunityGoalProgressComposer', 'GetCatalogPageWithEarliestExpiryComposer',
+    'GetLimitedOfferAppearingNextComposer',
+];
+const composer = name => class {
+    constructor(params) {
+        this.params = params;
+    }
+
+    compose() {
+        return [ name, ...Object.values(this.params) ];
+    }
+};
+const loadHandlers = systemStore => load('nitro-react/src/handlers/system/registerHotelViewHandlers', {
+    '@nitrodevco/nitro-packets': { ...Object.fromEntries(INCOMING.map(name => [ name, { name } ])), ...Object.fromEntries(OUTGOING.map(name => [ name, composer(name) ])) },
+    '#base/context/system': { ...backgrounds, ...widgets, systemStore },
+    '../packetSubscriptions': load('nitro-react/src/handlers/packetSubscriptions'),
 });
 
 await test('activation refreshes every slot widget; container slots follow their own schedule', () => {
@@ -144,27 +167,17 @@ await test('activation refreshes every slot widget; container slots follow their
         setHotelViewBonusRare: () => {},
         setHotelViewCommunityGoal: () => {},
         setHotelViewPromoArticles: () => {},
+        setHotelViewBackgroundCode: () => {},
+        setHotelViewCommunityVoted: () => {},
+        setHotelViewExpiringPage: () => {},
+        setHotelViewNextLimited: () => {},
     };
     const systemStore = { getState: () => state, subscribe: (listener) => {
         listeners.add(listener);
 
         return () => listeners.delete(listener);
     } };
-    const composer = name => class {
-        constructor(params) {
-            this.params = params;
-        }
-
-        compose() {
-            return [ name, ...Object.values(this.params) ];
-        }
-    };
-    const incoming = Object.fromEntries([ 'CurrentTimingCodeMessage', 'SecondsUntilMessage', 'BonusRareInfoMessage', 'PromoArticlesMessage', 'CommunityGoalProgressMessage' ].map(name => [ name, { name } ]));
-    const outgoing = Object.fromEntries([ 'GetCurrentTimingCodeComposer', 'GetSecondsUntilComposer', 'GetBonusRareInfoComposer', 'GetPromoArticlesComposer', 'GetCommunityGoalProgressComposer' ].map(name => [ name, composer(name) ]));
-    const { registerHotelViewHandlers } = load('nitro-react/src/handlers/system/registerHotelViewHandlers', {
-        '@nitrodevco/nitro-packets': { ...incoming, ...outgoing },
-        '#base/context/system': { ...backgrounds, ...widgets, systemStore },
-    });
+    const { registerHotelViewHandlers } = loadHandlers(systemStore);
     const receivers = new Map();
     const sent = [];
     const dispose = registerHotelViewHandlers({
@@ -213,4 +226,99 @@ await test('activation refreshes every slot widget; container slots follow their
     assert.equal(listeners.size, 0);
     assert.equal(receivers.size, 0);
     assert.equal(Object.keys(state.hotelViewBackgrounds).length, 0);
+});
+
+await test('the expiring page and next limited rare widgets ask at most every thirty seconds; a fixed widget can take the bottom slot', (t) => {
+    t.mock.timers.enable({ apis: [ 'setTimeout', 'Date' ] });
+
+    const listeners = new Set();
+    const state = {
+        config: {
+            ...config,
+            'landing.view.dynamic.slot.1.widget': 'expiringcatalogpage',
+            'landing.view.dynamic.slot.2.widget': 'nextlimitedrarecountdown',
+            'landing.view.dynamic.slot.6.widget': 'communitygoal',
+        },
+        landingViewVisible: true, hotelViewBackgrounds: {},
+        setHotelViewBackgrounds: () => {},
+        setHotelViewTimingCode: () => {},
+        setHotelViewSecondsUntil: () => {},
+        setHotelViewBonusRare: () => {},
+        setHotelViewCommunityGoal: () => {},
+        setHotelViewPromoArticles: () => {},
+        setHotelViewBackgroundCode: (code) => {
+            state.hotelViewBackgroundCode = code;
+        },
+        setHotelViewCommunityVoted: (voted) => {
+            state.hotelViewCommunityVoted = voted;
+        },
+        setHotelViewExpiringPage: (page) => {
+            state.hotelViewExpiringPage = page;
+        },
+        setHotelViewNextLimited: (offer) => {
+            state.hotelViewNextLimited = offer;
+        },
+    };
+    const systemStore = { getState: () => state, subscribe: (listener) => {
+        listeners.add(listener);
+
+        return () => listeners.delete(listener);
+    } };
+    const { registerHotelViewHandlers } = loadHandlers(systemStore);
+    const receivers = new Map();
+    const sent = [];
+    const dispose = registerHotelViewHandlers({
+        send: packet => sent.push(packet.compose()[0]),
+        subscribe: (packet, listener) => {
+            receivers.set(packet.name, listener);
+
+            return () => receivers.delete(packet.name);
+        },
+    });
+    const receive = (name, data) => receivers.get(name)(data);
+    const reactivate = () => {
+        for (const listener of listeners) listener({ ...state, landingViewVisible: false }, { ...state, landingViewVisible: true });
+        for (const listener of listeners) listener({ ...state, landingViewVisible: true }, { ...state, landingViewVisible: false });
+    };
+
+    // `NextLimitedRareCountdownWidget` asks in `initialize` and again in its first `refresh`; the
+    // bottom slot's community goal asks with the dynamic slots.
+    assert.deepEqual(sent, [
+        'GetCatalogPageWithEarliestExpiryComposer',
+        'GetLimitedOfferAppearingNextComposer',
+        'GetLimitedOfferAppearingNextComposer',
+        'GetCommunityGoalProgressComposer',
+        'GetCurrentTimingCodeComposer',
+    ]);
+    sent.length = 0;
+
+    receive('CatalogPageWithEarliestExpiryMessage', { pageName: 'ler', secondsToExpiry: 90, image: '' });
+    assert.equal(state.hotelViewExpiringPage.pageName, 'ler');
+    receive('CurrentTimingCodeMessage', { schedulingStr: 'schedule', code: 'night' });
+    assert.equal(state.hotelViewBackgroundCode, 'night');
+    receive('CommunityVoteReceivedMessage', { acknowledged: true });
+    assert.equal(state.hotelViewCommunityVoted, true);
+
+    // Within thirty seconds a new activation asks neither again.
+    t.mock.timers.tick(10000);
+    reactivate();
+    assert.ok(!sent.includes('GetCatalogPageWithEarliestExpiryComposer'));
+    assert.ok(!sent.includes('GetLimitedOfferAppearingNextComposer'));
+    sent.length = 0;
+
+    // A second after the countdown it was told runs out, the next one is asked for.
+    receive('LimitedOfferAppearingNextMessage', { appearsInSeconds: 5, pageId: -1, offerId: -1, productClassName: '' });
+    t.mock.timers.tick(5999);
+    assert.deepEqual(sent, []);
+    t.mock.timers.tick(1);
+    assert.deepEqual(sent, [ 'GetLimitedOfferAppearingNextComposer' ]);
+    sent.length = 0;
+
+    t.mock.timers.tick(30000);
+    reactivate();
+    assert.ok(sent.includes('GetCatalogPageWithEarliestExpiryComposer'));
+    assert.ok(sent.includes('GetLimitedOfferAppearingNextComposer'));
+
+    dispose();
+    assert.equal(receivers.size, 0);
 });

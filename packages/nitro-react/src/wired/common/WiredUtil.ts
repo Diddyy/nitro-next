@@ -9,6 +9,9 @@
  * a disabled window is drawn at half its blend and stops taking input, unless tagged
  * `DO_NOT_DISABLE` - is what the wired kit's `disabled` props implement
  * (`WIRED_DISABLED_BLEND`).
+ *
+ * Beside them, the small numeric rules the whole package repeats: AS3's `int(x)` and the slider's
+ * clamp (`SliderWindowControllerNew.setValue`).
  */
 import { ColorConverter } from '@nitrodevco/nitro-api';
 import { IWiredVariable, VariableType } from '@nitrodevco/nitro-packets';
@@ -24,7 +27,14 @@ const INT_MAX = 2147483647;
 const INT_MIN = -2147483648;
 
 /** ActionScript's `int(x)`: `ToInt32`, with `NaN` becoming 0. */
-const toInt = (value: number): number => (value | 0);
+export const toInt = (value: number): number => (value | 0);
+
+/**
+ * `SliderWindowControllerNew.setValue`'s clamp, which every `SliderSection.value = x` goes through:
+ * raised to `min`, then lowered to `max` - so `max` wins should the range be empty. A slider takes
+ * any value and holds it clamped, so a box saved with a value outside it reads back as the nearest end.
+ */
+export const clampSliderValue = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
 /**
  * ActionScript's `Number(string)`: an empty or blank string is 0, anything unparsable is `NaN`.
@@ -81,13 +91,6 @@ export const pushIntAsLong = (params: number[], value: number): void => {
 
 /** The two ints `pushIntAsLong` makes, for a form that builds its array as a literal. */
 export const intAsLong = (value: number): [ number, number ] => [ (value < 0) ? -1 : 0, value ];
-
-/**
- * The reverse of `pushIntAsLong`, which Flash writes inline in each `onEditStart`
- * (`intParams[index + 1]`): the low word of the long whose high word sits at `index`.
- */
-export const intFromLong = (params: readonly number[], highWordIndex: number, fallback = 0): number =>
-    params[highWordIndex + 1] ?? fallback;
 
 /** `Util.variableCompare` - internal variables last, newest id first; the rest by name. */
 export const compareVariables = (a: IWiredVariable, b: IWiredVariable): number => {

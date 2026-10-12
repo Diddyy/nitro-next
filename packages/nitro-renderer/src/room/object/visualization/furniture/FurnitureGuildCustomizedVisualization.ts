@@ -2,6 +2,10 @@ import { IGraphicAsset, IRoomObjectSprite, RoomGeometryScaleType, RoomObjectVari
 
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
+/**
+ * Port of Flash's obfuscated `§_-815§`, the visualization `RoomObjectVisualizationFactory` builds
+ * for `furniture_guild_customized`.
+ */
 export class FurnitureGuildCustomizedVisualization extends AnimatedFurnitureVisualization {
     public static PRIMARY_COLOUR_SPRITE_TAG: string = 'COLOR1' as const;
     public static SECONDARY_COLOUR_SPRITE_TAG: string = 'COLOR2' as const;

@@ -9,6 +9,8 @@ export const PerkCodes = {
     BuilderAtWork: 'BUILDER_AT_WORK',
     /** Room thumbnails, and thumbnail view modes in the navigator. */
     NavigatorRoomThumbnailCamera: 'NAVIGATOR_ROOM_THUMBNAIL_CAMERA',
+    /** The guide tool, and the me menu's guide button (`MeMenuNewController.toggleVisibility`). */
+    UseGuideTool: 'USE_GUIDE_TOOL',
 } as const;
 
 export type PerkCode = typeof PerkCodes[keyof typeof PerkCodes];

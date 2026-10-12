@@ -5,8 +5,14 @@ import { fillLocalizationParameters } from '#base/utils';
 
 import { createHotelViewSlice, HotelViewSlice } from './HotelViewSlice';
 import { createSystemDialogsSlice, SystemDialogsSlice } from './SystemDialogsSlice';
+import { createToolbarTransitionsSlice, ToolbarTransitionsSlice } from './ToolbarTransitionsSlice';
 import { VisibleWindows, WindowName, WindowRegistry } from './WindowRegistry';
 
+/**
+ * The client-wide store: configuration, localizations, furniture and product data, the open
+ * windows and their stacking, the toolbar's widths, the home room and the room session
+ * requests, plus the dialogs, hotel view and toolbar transition slices.
+ */
 type State = {
     config: Record<string, unknown>;
     localizations: Record<string, string>;
@@ -62,6 +68,7 @@ type Actions = {
     hideWindow: (name: WindowName) => void;
     updateWindowParams: <T extends WindowName>(name: T, params: Partial<WindowRegistry[T]>) => void;
     bringWindowToFront: (id: string) => void;
+    releaseWindow: (id: string) => void;
     setLandingViewVisible: (landingViewVisible: boolean) => void;
     setToolbarWidths: (toolbarAreaWidth: number, friendBarWidth: number) => void;
     setHomeRoomId: (homeRoomId: number) => void;
@@ -100,7 +107,7 @@ const initialState: State = {
     roomSessionRequest: undefined,
 };
 
-export type SystemStore = State & Actions & SystemDialogsSlice & HotelViewSlice;
+export type SystemStore = State & Actions & SystemDialogsSlice & HotelViewSlice & ToolbarTransitionsSlice;
 
 export const createSystemStore = () => createStore<SystemStore>()((set, get, store) => ({
     ...initialState,
@@ -163,12 +170,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
     },
     setBadgePointLimits: (limits: Record<string, number>) => set(state => ({ badgePointLimits: { ...state.badgePointLimits, ...limits } })),
     setLocalization: (localizations: Record<string, string>) =>
-        set((state) => {
-            return {
-                localizations: { ...state.localizations, ...localizations },
-                localizationNeedsUpdate: false,
-            };
-        }),
+        set(state => ({ localizations: { ...state.localizations, ...localizations } })),
     setLocalizationForFurniture: (furniture: IFurnitureData[]) => {
         if (!furniture || !furniture.length) return;
 
@@ -197,7 +199,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
             return { localizations };
         });
     },
-    parseFloorItems: (data: IFurnitureType[]) => set((x) => {
+    parseFloorItems: (data: IFurnitureType[]) => set(() => {
         const floorItems: Record<number, IFurnitureData> = {};
 
         for (const furniture of data) {
@@ -245,6 +247,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
                 rentOfferId: furniture.rentofferid,
                 rentCouldBeUsedForBuyout: furniture.rentbuyout,
                 availableForBuildersClub: furniture.bc,
+                bcOfferId: furniture.bcofferid ?? -1,
                 customParams: furniture.customparams ?? '',
                 specialType: furniture.specialtype,
                 canStandOn: furniture.canstandon,
@@ -264,8 +267,9 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
 
         return { floorItems };
     }),
-    parseWallItems: (data: IFurnitureType[]) => set((x) => {
-        const wallItems = { ...x.wallItems };
+    // A reload replaces the table, as `SessionDataManager.refreshFurniData` clears it: a wall item a publish dropped goes.
+    parseWallItems: (data: IFurnitureType[]) => set(() => {
+        const wallItems: Record<number, IFurnitureData> = {};
 
         for (const furniture of data) {
             if (!furniture) continue;
@@ -291,6 +295,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
                 rentOfferId: furniture.rentofferid,
                 rentCouldBeUsedForBuyout: furniture.rentbuyout,
                 availableForBuildersClub: furniture.bc,
+                bcOfferId: furniture.bcofferid ?? -1,
                 customParams: '',
                 specialType: furniture.specialtype,
                 canStandOn: false,
@@ -362,6 +367,13 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
             };
         });
     },
+    releaseWindow: (id: string) => set((state) => {
+        if (!(id in state.zIndexById)) return state;
+
+        const { [id]: _released, ...zIndexById } = state.zIndexById;
+
+        return { zIndexById, ...((state.topId === id) && { topId: undefined }) };
+    }),
     setLandingViewVisible: (landingViewVisible: boolean) => set({ landingViewVisible }),
     setToolbarWidths: (toolbarAreaWidth: number, friendBarWidth: number) => set(x => (((x.toolbarAreaWidth === toolbarAreaWidth) && (x.friendBarWidth === friendBarWidth)) ? x : { toolbarAreaWidth, friendBarWidth })),
     setHomeRoomId: (homeRoomId: number) => set({ homeRoomId }),
@@ -369,6 +381,7 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
     endRoomSession: () => set(x => ({ roomSessionRequest: { type: 'end', roomId: 0, sequence: (x.roomSessionRequest?.sequence ?? 0) + 1 } })),
     ...createSystemDialogsSlice(set, get, store),
     ...createHotelViewSlice(set, get, store),
+    ...createToolbarTransitionsSlice(set, get, store),
 }));
 
 /**

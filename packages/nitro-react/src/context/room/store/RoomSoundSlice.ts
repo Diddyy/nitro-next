@@ -1,6 +1,10 @@
 import { ITraxSongInfoSong } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
+/**
+ * What the room's jukebox is playing and the songs the client has names for - the sound manager's
+ * `roomItemPlaylist` and song cache, which the jukebox and song disk infostands read.
+ */
 export type RoomMusicKind = 'jukebox' | 'sound_machine';
 
 /** The one machine the room plays through - Flash's room playlist controller. */
@@ -10,10 +14,6 @@ export interface RoomMusic {
     playing: boolean;
 }
 
-/**
- * What the room's jukebox is playing and the songs the client has names for - the sound manager's
- * `roomItemPlaylist` and song cache, which the jukebox and song disk infostands read.
- */
 type State = {
     /** -1 while nothing plays. */
     nowPlayingSongId: number;

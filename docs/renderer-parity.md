@@ -1,9 +1,10 @@
 # Room renderer verification
 
-Verify the behavior changed by a renderer PR against the AS3 revision in `production.version`.
-For floor/wall projection and water shore masks, start with `RoomPlane`, `FloorPlane`, `WallPlane`,
-`FurnitureWaterAreaVisualization` and `ShoreMaskCreatorUtility`. Use the official JavaScript client
-as implementation guidance. A passing unit test does not establish whole-client pixel parity.
+Verify the behavior changed by a renderer PR against the AS3 (see
+[Habbo reference code](development.md#habbo-reference-code)). For floor/wall projection and water
+shore masks, start with `RoomPlane`, `FloorRasterizer`, `WallRasterizer` (the port's `FloorPlane` and
+`WallPlane` are their obfuscated plane classes in `rasterizer/basic`), `FurnitureWaterAreaVisualization`
+and `ShoreMaskCreatorUtility`. A passing unit test does not establish whole-client pixel parity.
 
 ## Deterministic checks
 
@@ -19,19 +20,13 @@ reuse, sampling settings, instance isolation and disposal. Keep tests with the b
 
 ## Browser and GPU checks
 
-Use a dedicated Turbo account and a room fixture that contains the affected geometry and furniture.
-Record the client commit, Turbo revision, renderer backend, output resolution and fixture setup.
-Use the WebSocket endpoint configured for that Turbo environment and a Turbo-issued SSO ticket.
+Log in to Turbo as [Nitro and Turbo development](turbo-development.md) describes, in a room fixture
+that contains the affected geometry and furniture. Record the client commit, Turbo revision,
+renderer backend, output resolution and fixture setup.
 
-Browser/GPU runners under `tools/rendering/` and native fixtures under `tools/references/rendering/`
-are optional pending tooling; confirm they exist on the branch before following their README or
-running them. They also require matching client diagnostic instrumentation. If unavailable, report
-that limitation instead of treating an earlier WIP run as proof for the current change.
-
-Where available, `measure-plane-rendering.mjs` and `measure-plane-webgpu.mjs` compare rendering
-primitives, while `check-room-rendering.mjs` exercises room re-entry and scale transitions. Check
-each runner's prerequisites before use. Keep generated reports under ignored `tmp/` and attach
-relevant sanitized results to the PR. Reopen diagnostic pages after changes to imported modules.
+There are no browser/GPU rendering runners on this branch (`tools/rendering/` was WIP tooling); when
+one is added, its README says what it needs. Without one, report the visual check as not run.
+Reopen diagnostic pages after changes to imported modules.
 
 ## Live scene checklist
 
@@ -53,7 +48,6 @@ settings. Keep reviewed expected-output fixtures separate from generated measure
 regenerate a baseline merely to make a failing check pass. Reproduction against a retained fixture
 and recapturing that fixture are different checks.
 
-Report the exact checks run, mismatch counts/tolerances, unavailable backends and untested cases.
-Do not carry historical room IDs, local account details or results from a mixed WIP into a new PR
-as current evidence. Bitmap export/photo behavior, other material families and large-room performance
-need their own checks when affected. Rerun relevant checks on the extracted PR candidate.
+Beyond the reporting [AGENTS.md](../AGENTS.md) asks for, give mismatch counts/tolerances and the
+backends that were unavailable. Bitmap export/photo behavior, other material families and
+large-room performance need their own checks when affected.

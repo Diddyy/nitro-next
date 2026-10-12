@@ -24,6 +24,8 @@ export interface HabbiconAssets {
     previews: Record<number, Texture>;
     lockedPreviews: Record<number, Texture>;
     collectionIcons: Record<number, Texture>;
+    /** `getOutlinedCollectionIconBitmap`: each set's icon in a 2 px white outline, for the chat bar's habbicon button. */
+    outlinedCollectionIcons: Record<number, Texture>;
 }
 
 type State = HabbiconAssets & {
@@ -47,6 +49,7 @@ export const HabbiconAssetsSliceInitialState: State = {
     previews: {},
     lockedPreviews: {},
     collectionIcons: {},
+    outlinedCollectionIcons: {},
 };
 
 export type HabbiconAssetsSlice = State & Actions;

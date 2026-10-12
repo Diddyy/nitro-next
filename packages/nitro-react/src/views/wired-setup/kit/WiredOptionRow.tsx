@@ -78,7 +78,7 @@ export const WiredOptionRow = ({ control, spacing, yOffset, label, icon, extra, 
                         <WiredFlow direction="row">
                             {!!icon && (
                                 <WiredStaticBitmap
-                                    asset={`wired/${resolveWiredAssetName(style, icon)}`}
+                                    asset={`habbo-window-manager-com/${resolveWiredAssetName(style, icon)}`}
                                     layout={{ marginTop: contentOffset }}
                                 />
                             )}

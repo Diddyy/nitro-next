@@ -10,7 +10,7 @@
  * `[ payment variable, reward variable ]`. A part that is off, or given as a typed value, opens
  * on no variable; one that is off, or given as a variable, on the value 1.
  */
-import { setPickerTarget } from '../../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, type WiredElementContext, type WiredElementDefinition } from '../../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables, type WiredTriggerable } from '../../../WiredTriggerable';
@@ -69,7 +69,7 @@ export const customContractAddon: WiredElementDefinition<CustomContractAddonForm
         reward: readPart(triggerable, ctx, 5, 1),
     }),
     readIntParams: form => [ ...writePart(form.payment), ...writePart(form.reward) ],
-    readVariableIds: form => [ form.payment.amount.picker.variableId, form.reward.amount.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.payment.amount.picker), finalizePickerSelection(ctx.roomVariables, form.reward.amount.picker) ],
     widthModifier: 1.2,
     isInputSourceDisabled: (form, id, sourceType) => {
         if ((id !== 0) && (id !== 1)) return false;

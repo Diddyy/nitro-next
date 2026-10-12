@@ -7,6 +7,9 @@ export interface LayoutSize {
 }
 
 const readSize = (node: PixiContainer | null): LayoutSize => {
+    // A destroyed node's `scale` is null, so its `width`/`height` getters would throw.
+    if (!node || node.destroyed) return { width: 0, height: 0 };
+
     const computed = node?.layout?.computedLayout;
 
     return {
@@ -33,7 +36,7 @@ export const useLayoutEvent = (node: PixiContainer | null, handler: () => void):
     });
 
     useEffect(() => {
-        if (!node) return;
+        if (!node || node.destroyed) return;
 
         const listener = () => handlerRef.current();
 

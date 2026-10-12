@@ -2,10 +2,12 @@
  * Reception state: the background art `WidgetContainerLayout.setBackgroundGraphics` chose, and
  * what the reception's widgets were told by the server - the timing code each scheduled slot
  * shows (`WidgetContainerWidget.onTimingCode`), the countdowns `CustomTimerElementHandler` asked
- * for, the bonus rare (`BonusRarePromoWidget`), the promo articles and the community goal.
- * Retained while a room is open, like the Flash window. `MovingBackgroundObjects` is not ported.
+ * for, the bonus rare (`BonusRarePromoWidget`), the promo articles and the one shown, the community goal and whether
+ * the user's vote on it was taken (`CommunityVoteReceivedEvent`), the catalogue page that expires
+ * first (`ExpiringCatalogPageWidget`) and the next limited rare (`NextLimitedRareCountdownWidget`).
+ * Retained while a room is open, like the Flash window.
  */
-import { BonusRareInfoMessageType, CommunityGoalProgressMessageType, PromoArticleData } from '@nitrodevco/nitro-packets';
+import { BonusRareInfoMessageType, CatalogPageWithEarliestExpiryMessageType, CommunityGoalProgressMessageType, LimitedOfferAppearingNextMessageType, PromoArticleData } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
 export interface HotelViewBackground {
@@ -21,21 +23,48 @@ export interface HotelViewSecondsUntil {
     receivedAt: number;
 }
 
+/** A countdown packet's data, with when it arrived (`performance.now()`) so the countdown runs on from it. */
+export type HotelViewTimed<T> = T & { receivedAt: number };
+
 export interface HotelViewSlice {
     hotelViewBackgrounds: HotelViewBackgrounds;
+    /**
+     * The code the background schedule (`landing.view.bgtiming`) last answered, `undefined` until it
+     * has - `MovingBackgroundObjects.timingCode`, which picks the moving objects' variables.
+     */
+    hotelViewBackgroundCode: string | undefined;
     /** The last timing code per scheduling string - a container slot shows the widget its code names. */
     hotelViewTimingCodes: Record<string, string>;
     hotelViewSecondsUntil: Record<string, HotelViewSecondsUntil>;
     hotelViewBonusRare: BonusRareInfoMessageType | undefined;
     hotelViewCommunityGoal: CommunityGoalProgressMessageType | undefined;
     hotelViewPromoArticles: PromoArticleData[];
+    /** `PromoArticleWidget`'s current article, which it keeps between visits to the reception. */
+    hotelViewPromoArticleIndex: number;
+    /** `CommunityVoteReceivedEvent` with `acknowledged`: the vote buttons stay hidden. */
+    hotelViewCommunityVoted: boolean;
+    hotelViewExpiringPage: HotelViewTimed<CatalogPageWithEarliestExpiryMessageType> | undefined;
+    hotelViewNextLimited: HotelViewTimed<LimitedOfferAppearingNextMessageType> | undefined;
     setHotelViewBackgrounds: (backgrounds: HotelViewBackgrounds) => void;
     setHotelViewTimingCode: (schedulingStr: string, code: string) => void;
     setHotelViewSecondsUntil: (timeStr: string, value: HotelViewSecondsUntil) => void;
     setHotelViewBonusRare: (info: BonusRareInfoMessageType) => void;
     setHotelViewCommunityGoal: (goal: CommunityGoalProgressMessageType) => void;
     setHotelViewPromoArticles: (articles: PromoArticleData[]) => void;
+    setHotelViewPromoArticleIndex: (index: number) => void;
+    setHotelViewBackgroundCode: (code: string) => void;
+    setHotelViewCommunityVoted: (voted: boolean) => void;
+    setHotelViewExpiringPage: (page: HotelViewTimed<CatalogPageWithEarliestExpiryMessageType>) => void;
+    setHotelViewNextLimited: (offer: HotelViewTimed<LimitedOfferAppearingNextMessageType>) => void;
 }
+
+/** `PromoArticleData.linkType`: a web page, an in-client link, or no link (the button is hidden). */
+export const PROMO_ARTICLE_LINK_WEB = 0;
+export const PROMO_ARTICLE_LINK_CLIENT = 1;
+export const PROMO_ARTICLE_LINK_NONE = 2;
+
+/** `setArticleContent`: the button shows unless the article has no link, or a web link with no page. */
+export const promoArticleHasLink = (article: PromoArticleData) => !((article.linkType === PROMO_ARTICLE_LINK_NONE) || ((article.linkType === PROMO_ARTICLE_LINK_WEB) && (article.linkContent === '')));
 
 /** `CoreConfigurationManager` property interpolation for external reception images. */
 export const hotelViewProperty = (config: Record<string, unknown>, key: string, fallback = ''): string => {
@@ -81,15 +110,25 @@ export const applyHotelViewTiming = (previous: HotelViewBackgrounds, config: Rec
 
 export const createHotelViewSlice: StateCreator<HotelViewSlice, [], [], HotelViewSlice> = set => ({
     hotelViewBackgrounds: {},
+    hotelViewBackgroundCode: undefined,
     hotelViewTimingCodes: {},
     hotelViewSecondsUntil: {},
     hotelViewBonusRare: undefined,
     hotelViewCommunityGoal: undefined,
     hotelViewPromoArticles: [],
+    hotelViewPromoArticleIndex: 0,
+    hotelViewCommunityVoted: false,
+    hotelViewExpiringPage: undefined,
+    hotelViewNextLimited: undefined,
     setHotelViewBackgrounds: hotelViewBackgrounds => set({ hotelViewBackgrounds }),
     setHotelViewTimingCode: (schedulingStr, code) => set(state => ({ hotelViewTimingCodes: { ...state.hotelViewTimingCodes, [schedulingStr]: code } })),
     setHotelViewSecondsUntil: (timeStr, value) => set(state => ({ hotelViewSecondsUntil: { ...state.hotelViewSecondsUntil, [timeStr]: value } })),
     setHotelViewBonusRare: hotelViewBonusRare => set({ hotelViewBonusRare }),
     setHotelViewCommunityGoal: hotelViewCommunityGoal => set({ hotelViewCommunityGoal }),
     setHotelViewPromoArticles: hotelViewPromoArticles => set({ hotelViewPromoArticles }),
+    setHotelViewPromoArticleIndex: hotelViewPromoArticleIndex => set({ hotelViewPromoArticleIndex }),
+    setHotelViewBackgroundCode: hotelViewBackgroundCode => set({ hotelViewBackgroundCode }),
+    setHotelViewCommunityVoted: hotelViewCommunityVoted => set({ hotelViewCommunityVoted }),
+    setHotelViewExpiringPage: hotelViewExpiringPage => set({ hotelViewExpiringPage }),
+    setHotelViewNextLimited: hotelViewNextLimited => set({ hotelViewNextLimited }),
 });

@@ -1,4 +1,4 @@
-﻿import { IVector3D, Vector3d } from '@nitrodevco/nitro-api';
+import { IVector3D, Vector3d } from '@nitrodevco/nitro-api';
 import { Point, PointData } from 'pixi.js';
 
 import { RoomFloorHole } from './RoomFloorHole';
@@ -6,6 +6,7 @@ import { RoomMapData } from './RoomMapData';
 import { RoomPlaneData } from './RoomPlaneData';
 import { RoomWallData } from './RoomWallData';
 
+/** Port of Flash `RoomPlaneParser`. */
 export class RoomPlaneParser {
     public static TILE_BLOCKED: number = -110;
     public static TILE_HOLE: number = -100;

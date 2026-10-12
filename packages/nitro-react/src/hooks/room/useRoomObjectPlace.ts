@@ -1,25 +1,24 @@
-import { IRoomObjectController, NitroLogger, RoomEngineObjectEvent, RoomEngineObjectPlacedEvent, RoomEngineObjectPlacedOnUserEvent, RoomObjectCategoryEnum, RoomObjectMouseEvent, RoomObjectPlacementSource, RoomObjectTileMouseEvent, RoomObjectUserType, RoomObjectVariableEnum, RoomObjectWallMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
-import { PlaceObjectComposer } from '@nitrodevco/nitro-packets';
+import { IRoomObjectController, RoomEngineObjectEvent, RoomEngineObjectPlacedEvent, RoomEngineObjectPlacedOnUserEvent, RoomObjectCategoryEnum, RoomObjectMouseEvent, RoomObjectPlacementSource, RoomObjectTileMouseEvent, RoomObjectUserType, RoomObjectVariableEnum, RoomObjectWallMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
+import { PlaceBotComposer, PlaceObjectComposer, PlacePetComposer, PlacePostItComposer } from '@nitrodevco/nitro-packets';
 import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomObjectPlacementSource, useRoomSelectedObject, useRoomSelectedObjectActions } from '#base/context/room';
+import { setObjectAlphaMultiplier } from '#base/utils';
 
 import { useRoomObjectMove } from './useRoomObjectMove';
 import { useRoomObjectSelect } from './useRoomObjectSelect';
-import { useRoomObjectValidation } from './useRoomObjectValidation';
 
 /**
- * Placing an object from the inventory or the catalogue - `RoomObjectEventHandler.placeObject`
+ * Placing an object from the inventory, the catalogue or the infostand - `RoomObjectEventHandler.placeObject`
  * and `handleObjectPlace`: a ghost of the object follows the mouse, and a click where it fits
- * sends the placement.
+ * places it - the inventory's sent from here, the others by whoever started them, on `REOE_PLACED`.
  */
 export const useRoomObjectPlace = () => {
     const room = useRoom();
     const selectedObject = useRoomSelectedObject();
     const objectPlacementSource = useRoomObjectPlacementSource();
     const { setSelectedObject, setPlacedObject } = useRoomSelectedObjectActions();
-    const { setObjectAlphaMultiplier } = useRoomObjectValidation();
     const { resetSelectedObject } = useRoomObjectSelect();
     const { handleFurnitureMove, handleWallItemMove } = useRoomObjectMove();
     const { send } = useWebSocketContext();
@@ -56,15 +55,16 @@ export const useRoomObjectPlace = () => {
 
             if (objectId < 0 && category === RoomObjectCategoryEnum.Unit) objectId = -objectId;
 
-            if (objectPlacementSource !== RoomObjectPlacementSource.CATALOG) {
+            // Only the inventory's placements are sent here: the catalogue and the infostand send their own when they hear `REOE_PLACED`.
+            if (objectPlacementSource === RoomObjectPlacementSource.INVENTORY) {
                 if (category === RoomObjectCategoryEnum.Unit) {
                     if (Number(selectedObject.typeId) === Number(RoomObjectUserType.Pet)) {
-                        NitroLogger.sendPacket(`new PetPlaceComposer(${selectedObject.objectId}, Math.trunc(${x}), Math.trunc(${y}))`);
+                        send(new PlacePetComposer({ petId: objectId, x: Math.trunc(x), y: Math.trunc(y) }));
                     } else if (Number(selectedObject.typeId) === Number(RoomObjectUserType.RentableBot)) {
-                        NitroLogger.sendPacket(`new BotPlaceComposer(${selectedObject.objectId}, Math.trunc(${x}), Math.trunc(${y}))`);
+                        send(new PlaceBotComposer({ botId: objectId, x: Math.trunc(x), y: Math.trunc(y) }));
                     }
                 } else if (roomObject.model.getValue<string>(RoomObjectVariableEnum.FurnitureIsStickie) !== undefined) {
-                    NitroLogger.sendPacket('new FurniturePostItPlaceComposer(objectId, wallLocation)');
+                    send(new PlacePostItComposer({ itemId: objectId, wallLocation }));
                 } else {
                     send(new PlaceObjectComposer({
                         itemId: objectId, category, wallLocation, x: Math.trunc(x), y: Math.trunc(y), rotation: direction,

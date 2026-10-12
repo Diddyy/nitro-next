@@ -4,6 +4,10 @@ import { GetTickerTime } from '../../../../utils';
 import { ObjectDataUpdateMessage, ObjectGroupBadgeUpdateMessage, ObjectSelectedMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash `FurnitureGuildCustomizedLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_guild_customized`.
+ */
 export class FurnitureGuildCustomizedLogic extends FurnitureMultiStateLogic {
     public static GROUPID_KEY: number = 1;
     public static BADGE_KEY: number = 2;

@@ -16,14 +16,21 @@ import { StateCreator } from 'zustand';
 type State = {
     /** `isObjectMoverRequested`'s inventory twin: a placement of ours is out and the window is hidden for it. */
     inventoryMoverRequested: boolean;
+    /**
+     * `FurniModel._-aO` (`§_SafeStr_8620§`): the strip id of the furni the furni page put into the mover,
+     * or -1 for a page that does not continue (pets, bots) or when none is out.
+     */
+    inventoryMoverItemId: number;
 };
 
 type Actions = {
     setInventoryMoverRequested: (requested: boolean) => void;
+    setInventoryMoverItemId: (itemId: number) => void;
 };
 
 export const InventoryPlacementSliceInitialState: State = {
     inventoryMoverRequested: false,
+    inventoryMoverItemId: -1,
 };
 
 export type InventoryPlacementSlice = State & Actions;
@@ -31,4 +38,5 @@ export type InventoryPlacementSlice = State & Actions;
 export const createInventoryPlacementSlice: StateCreator<InventoryPlacementSlice, [], [], InventoryPlacementSlice> = set => ({
     ...InventoryPlacementSliceInitialState,
     setInventoryMoverRequested: inventoryMoverRequested => set({ inventoryMoverRequested }),
+    setInventoryMoverItemId: inventoryMoverItemId => set({ inventoryMoverItemId }),
 });

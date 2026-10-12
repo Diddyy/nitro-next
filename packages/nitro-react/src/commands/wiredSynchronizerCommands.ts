@@ -140,7 +140,3 @@ export const getAllWiredVariables = (send: Send, listener: WiredVariablesListene
 
     return false;
 };
-
-/** `getAllVariables` as a promise, for callers that have nothing to cancel. */
-export const requestAllWiredVariables = (send: Send, forceRefresh: boolean = true, knownHash: number = 0): Promise<IWiredVariable[]> =>
-    new Promise(resolve => getAllWiredVariables(send, resolve, forceRefresh, knownHash));

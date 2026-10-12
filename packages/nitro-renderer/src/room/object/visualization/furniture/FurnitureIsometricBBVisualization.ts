@@ -6,6 +6,10 @@ import { TextureUtils } from '../../../../utils';
 import { FurnitureRoomBillboardVisualization } from './FurnitureRoomBillboardVisualization';
 import { FurnitureRoomBrandingVisualization } from './FurnitureRoomBrandingVisualization';
 
+/**
+ * Nitro's own (`furniture_isometric_bb`, a `known.FACTORY_EXTENSIONS` type): a billboard whose
+ * image is skewed onto the wall or floor by direction.
+ */
 export class FurnitureIsometricBBVisualization extends FurnitureRoomBillboardVisualization {
     private _needsTransform: boolean = true;
 

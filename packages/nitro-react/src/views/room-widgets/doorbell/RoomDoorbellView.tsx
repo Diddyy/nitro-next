@@ -1,5 +1,15 @@
-import { useTranslation } from '#base/context/system';
-import { Frame, Icon, Region, ScrollArea, ThemeText } from '#base/theme';
+/**
+ * Who is ringing at the door - Flash `DoorbellView`, on `habbo-room-ui-com`'s `doorbell` layout
+ * (`createMainWindow`), opened where the layout places it (95, 55). `update` refills `user_list` with
+ * one `doorbell_list_entry` per caller (`createListItem`): `user_name` the caller, the even rows white
+ * (`color = 0xFFFFFFFF`) over the entry's own `0xEEEEEE`, and `accept` / `deny` answering for that
+ * caller (`onButtonClicked`). The frame's `close` tag turns everyone away (`onClose` -> `denyAll`), which
+ * the widget does. Only rooms you may answer for ever fill it, and it is gone again as soon as the last
+ * caller has been let in or turned away (`hide`).
+ *
+ * The accept and deny regions carry no tooltip: the layout gives them none and `DoorbellView` sets none.
+ */
+import { TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 export interface RoomDoorbellViewProps {
     /** Everyone waiting at the door, in the order they rang. */
@@ -10,103 +20,36 @@ export interface RoomDoorbellViewProps {
     onClose: () => void;
 }
 
-/** `doorbell_list_entry` - one row per caller, striped by position. */
-const ENTRY_HEIGHT = 20;
+const DOORBELL_TEMPLATE = 'habbo-room-ui-com/doorbell';
+const ENTRY_TEMPLATE = 'habbo-room-ui-com/doorbell_list_entry';
 
-/**
- * Who is ringing at the door, on the `doorbell` layout (249x165, frame style 3, margins
- * 6/25/6/7) that `DoorbellView.createMainWindow` builds, one `doorbell_list_entry` per caller. Only rooms you may answer for
- * ever fill it, and it is gone again as soon as the last caller has been let in or turned away.
- *
- * The accept and deny buttons carry no tooltip: `doorbell_list_entry` gives the two regions no
- * caption or tooltip and `DoorbellView` sets none, so Flash showed only the icons.
- */
+/** `createListItem`: an even row's `color`. */
+const EVEN_ROW_COLOR = 0xffffffff;
+
+/** The layout's frame position: `buildFromXML` puts the window on the desktop there. */
+const LAYOUT_POSITION = { x: 95, y: 55 };
+
 export const RoomDoorbellView = ({ users, onAccept, onDeny, onClose }: RoomDoorbellViewProps) => {
-    const t = useTranslation();
+    const entryTemplate = useTemplate(ENTRY_TEMPLATE);
+
+    if (!entryTemplate) return null;
+
+    const items: TemplateItem[] = users.map((username, index) => ({
+        key: username,
+        from: entryTemplate,
+        bindings: {
+            '': (index % 2 === 0) ? { color: EVEN_ROW_COLOR } : {},
+            user_name: { caption: username },
+            accept: { onPointerTap: () => onAccept(username) },
+            deny: { onPointerTap: () => onDeny(username) },
+        },
+    }));
 
     return (
-        <Frame
-            variant="3"
-            id="room-doorbell"
-            caption={t('widgets.doorbell.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={onClose}
-            defaultPosition={{ x: 140, y: 110 }}
-            rememberPosition={false}
-            resizeDirection="none"
-            margins={[ 6, 25, 6, 7 ]}
-            layout={{ position: 'absolute', width: 249, height: 165 }}
-        >
-            <ThemeText
-                text={t('widgets.doorbell.info')}
-                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12, wordWrap: true, wordWrapWidth: 211 }}
-                flashFormat={{ antiAliasType: 'advanced' }}
-                clip
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, right: 12, top: 13, height: 32 }}
-            />
-            <Region
-                name="user_list_container"
-                backgroundColor="#eaece8"
-                layout={{ position: 'absolute', left: 10, width: 217, top: 48, height: 82 }}
-            >
-                <ScrollArea
-                    orientation="vertical"
-                    variant="0"
-                    // The layout's own `scrollbar` window at x 200: it stays, disabled, while the list fits.
-                    hideDisabledScrollbar={false}
-                    layout={{ position: 'absolute', left: 0, width: 217, top: 0, bottom: 0 }}
-                    // `user_list` at 0,0 200x82 and the layout's `scrollbar` beside it at 200,0 17x82.
-                    viewportLayout={{ position: 'absolute', left: 0, top: 0, width: 200, height: 82 }}
-                    scrollbarLayout={{ position: 'absolute', left: 200, top: 0, width: 17, height: 82 }}
-                    contentLayout={{ position: 'relative', width: '100%', flexDirection: 'column' }}
-                >
-                    {users.map((username, index) => (
-                        <Region
-                            key={username}
-                            name={username}
-                            // The rows alternate, the odd ones showing the list's own background.
-                            backgroundColor={(index % 2 === 0) ? '#ffffff' : '#eeeeee'}
-                            layout={{ width: '100%', height: ENTRY_HEIGHT, flexShrink: 0 }}
-                        >
-                            <ThemeText
-                                text={username}
-                                textOptions={{ fontFamily: 'Ubuntu', fontSize: 12 }}
-                                flashFormat={{ antiAliasType: 'advanced' }}
-                                name="user_name"
-                                verticalAlign="top"
-                                // `auto_size="left"`: the 58px field grows with the name.
-                                layout={{ position: 'absolute', left: 3, width: 58, alignSelf: 'center', marginTop: -0.5, marginBottom: 0.5, height: 17 }}
-                            />
-                            <Region
-                                name="accept"
-                                onPointerTap={() => onAccept(username)}
-                                cursor="pointer"
-                                layout={{ position: 'absolute', left: 155, width: 18, top: 4, height: 15 }}
-                            >
-                                <Icon
-                                    variant="8"
-                                    tintColor="#00bb00"
-                                    layout={{ position: 'absolute', left: 0, width: 18, top: 0, height: 15 }}
-                                />
-                            </Region>
-                            <Region
-                                name="deny"
-                                onPointerTap={() => onDeny(username)}
-                                cursor="pointer"
-                                layout={{ position: 'absolute', left: 180, width: 15, top: 4, height: 13 }}
-                            >
-                                <Icon
-                                    variant="9"
-                                    tintColor="#ff0000"
-                                    layout={{ position: 'absolute', left: 0, width: 15, top: 0, height: 13 }}
-                                />
-                            </Region>
-                        </Region>
-                    ))}
-                </ScrollArea>
-            </Region>
-        </Frame>
+        <TemplateWindow
+            id={DOORBELL_TEMPLATE}
+            frame={{ id: 'room-doorbell', defaultPosition: LAYOUT_POSITION, rememberPosition: false, onClose }}
+            bindings={{ user_list: { items } }}
+        />
     );
 };

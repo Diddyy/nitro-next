@@ -3,6 +3,10 @@ import { AdvancedMap, IAdvancedMap, IParticleSystem, RoomGeometryScaleType, Room
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 import { FurnitureParticleSystem } from './FurnitureParticleSystem';
 
+/**
+ * Port of Flash `FurnitureFireworksVisualization`, the visualization
+ * `RoomObjectVisualizationFactory` builds for `furniture_fireworks`.
+ */
 export class FurnitureFireworksVisualization extends AnimatedFurnitureVisualization {
     private _particleSystems: IAdvancedMap<number, FurnitureParticleSystem> | undefined = undefined;
     private _currentParticleSystem: FurnitureParticleSystem | undefined = undefined;

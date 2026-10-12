@@ -2,6 +2,7 @@ import { VariableFxConfigData } from '../../VariableFxConfigData';
 import { IVariableFxPrebake, VariableFxPrebakeCache } from '../../VariableFxPrebakeCache';
 import { LevelBadgePainter } from './LevelBadgePainter';
 
+/** Port of Flash `LevelWithProgressConfigPrebake`. */
 export class LevelWithProgressConfigPrebake implements IVariableFxPrebake {
     public disposed: boolean = false;
 

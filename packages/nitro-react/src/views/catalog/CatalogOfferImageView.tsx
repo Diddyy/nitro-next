@@ -3,13 +3,11 @@ import { AvatarGenderType, FurnitureTypeEnum, IObjectData, IPurchasableOffer, Ro
 import { GetChatStyleLibrary } from '#base/chat';
 import { habbiconPreviewAssetName } from '#base/commands';
 import { PetImageRequest } from '#base/context/catalog';
-import { useCatalogOfferProduct } from '#base/hooks';
+import { useCatalogOfferActions, useFurnitureImageTexture, usePetImageTexture } from '#base/hooks';
 import { LayoutImage, ThemeImage, useAvatarImageTexture } from '#base/theme';
 import { PRODUCT_IMAGES } from '#base/utils';
 
 import { pixelEffectIcon, SUBSCRIPTION_PRODUCT_ICON } from './catalogProductIcons';
-import { useFurnitureImageTexture } from './useFurnitureImageTexture';
-import { usePetImageTexture } from './usePetImageTexture';
 
 /**
  * The `PRODUCT_IMAGES` pictures the client ships, by picture name. Flash draws a listed offer's
@@ -19,7 +17,7 @@ import { usePetImageTexture } from './usePetImageTexture';
  * product.
  */
 const SHIPPED_PRODUCT_IMAGES: Record<string, string> = {
-    snowwar_tokens_10: LayoutImage('catalog/snowwar_tokens_10.png'),
+    snowwar_tokens_10: LayoutImage('habbo-catalog-com/snowwar_tokens_10.png'),
 };
 
 export interface CatalogOfferImageViewProps {
@@ -42,7 +40,9 @@ export interface CatalogOfferImageViewProps {
  * actions, so the furni shows its default state and the bot stands.
  */
 export const CatalogOfferImageView = ({ offer, previewImage }: CatalogOfferImageViewProps) => {
-    const product = useCatalogOfferProduct(offer);
+    const { getOfferProduct } = useCatalogOfferActions();
+    // `ProductContainer.firstProduct`: the one product the offer is about.
+    const product = getOfferProduct(offer);
     const shippedImage = SHIPPED_PRODUCT_IMAGES[PRODUCT_IMAGES[offer.localizationId] ?? ''];
     const productType = product?.productType;
     const isFurni = !shippedImage && !previewImage && ((productType === FurnitureTypeEnum.Floor) || (productType === FurnitureTypeEnum.Wall));

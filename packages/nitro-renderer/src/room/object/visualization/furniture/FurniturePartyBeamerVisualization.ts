@@ -3,6 +3,10 @@ import { Point } from 'pixi.js';
 
 import { AnimatedFurnitureVisualization } from './AnimatedFurnitureVisualization';
 
+/**
+ * Port of Flash `FurniturePartyBeamerVisualization`, the visualization
+ * `RoomObjectVisualizationFactory` builds for `furniture_party_beamer`.
+ */
 export class FurniturePartyBeamerVisualization extends AnimatedFurnitureVisualization {
     private static UPDATE_INTERVAL: number = 2;
     private static AREA_DIAMETER_SMALL: number = 15;

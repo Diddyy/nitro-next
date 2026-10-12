@@ -1,8 +1,13 @@
+/**
+ * The theme's sheet as a canvas source: every sprite's rect in it, and the standalone copies cut
+ * out of it on demand (`getThemeSliceCanvas`) - a plain slice for a tiling sprite, or a drop
+ * shadow - each made once and kept.
+ */
 import { boxBlurAlpha } from './boxBlur';
 
 /**
- * One theme asset's rect inside the packed sheet the `theme` bundle carries (`theme.png`, which Nitro
- * Studio packs from the client release's skins).
+ * One theme asset's rect inside the packed sheet the window manager library's bundle carries
+ * (`theme.png`, which Nitro Studio packs from the client release's skins).
  */
 export interface ThemeSprite {
     /** The texture key (`themeTextureKeys`). */
@@ -14,8 +19,6 @@ export interface ThemeSprite {
 }
 
 interface ThemeAtlas {
-    width: number;
-    height: number;
     /** The decoded sheet, for slicing a sprite onto a canvas - the `ImageBitmap` the bundle decoded to. */
     image: CanvasImageSource;
 }
@@ -25,8 +28,8 @@ const sprites = new Map<string, ThemeSprite>();
 
 /**
  * Standalone copies sliced out of the atlas on demand, each made once and kept for the session:
- * a plain slice (Pixi's TilingSprite cannot repeat a sub-rect of a sheet), a solid-colour
- * silhouette (the sprite's alpha shape in one colour) and a drop shadow (a blurred silhouette).
+ * a plain slice (Pixi's TilingSprite cannot repeat a sub-rect of a sheet) and a drop shadow (the
+ * sprite's alpha shape in one colour, blurred).
  * Keyed by theme key + effect so nothing is ever rendered to a canvas twice.
  */
 const sliceCanvases = new Map<string, HTMLCanvasElement>();
@@ -43,7 +46,6 @@ export const themeTextureKeys = (spriteNames: string[], aliases: Record<string, 
     ...Object.entries(aliases),
 ];
 
-/** Registers the sheet and every sprite rect it holds. Called once by `preloadThemeAssets`. */
 /** Forgets the sheet, its sprites and every slice cut from them, for art loaded again (`resetThemeArtCaches`). */
 export const resetThemeSprites = (): void => {
     atlas = undefined;
@@ -51,7 +53,8 @@ export const resetThemeSprites = (): void => {
     sliceCanvases.clear();
 };
 
-export const registerThemeAtlas = (sheet: { image: CanvasImageSource; width: number; height: number }, frames: Record<string, { frame: { x: number; y: number; w: number; h: number } }>, aliases: Record<string, string>): void => {
+/** Registers the sheet and every sprite rect it holds. Called once by `preloadThemeAssets`. */
+export const registerThemeAtlas = (sheet: ThemeAtlas, frames: Record<string, { frame: { x: number; y: number; w: number; h: number } }>, aliases: Record<string, string>): void => {
     atlas = sheet;
 
     for (const [ key, asset ] of themeTextureKeys(Object.keys(frames), aliases)) {
@@ -61,10 +64,9 @@ export const registerThemeAtlas = (sheet: { image: CanvasImageSource; width: num
     }
 };
 
+/** What a slice is cut out as: the sprite as it is, or its drop shadow. */
 export type ThemeSliceEffect
     = | { kind: 'plain' }
-        | { kind: 'tint'; color: string }
-        | { kind: 'silhouette'; color: string }
         /**
          * A Flash `DropShadowFilter` of the sprite: its silhouette in `color` at `alpha`,
          * box-blurred `blurX` x `blurY` wide (quality 1), on a canvas padded `pad` on every side
@@ -72,13 +74,10 @@ export type ThemeSliceEffect
          */
         | { kind: 'shadow'; color: string; alpha: number; blurX: number; blurY: number; pad: number };
 
-export const themeSliceEffectId = (effect: ThemeSliceEffect): string => {
-    switch (effect.kind) {
-        case 'plain': return 'plain';
-        case 'shadow': return `shadow:${effect.color}:${effect.alpha}:${effect.blurX}:${effect.blurY}:${effect.pad}`;
-        default: return `${effect.kind}:${effect.color}`;
-    }
-};
+/** An effect's part of a slice's cache key. */
+export const themeSliceEffectId = (effect: ThemeSliceEffect): string => ((effect.kind === 'shadow')
+    ? `shadow:${effect.color}:${effect.alpha}:${effect.blurX}:${effect.blurY}:${effect.pad}`
+    : 'plain');
 
 /**
  * Closes a partly painted skin downwards: every empty row below the last painted one repeats
@@ -122,15 +121,15 @@ const extendLastPaintedRow = (ctx: CanvasRenderingContext2D, canvasWidth: number
 };
 
 /** The rect of the sheet a slice occupies - `ThemeSprite` without its key. */
-export type SliceRect = Pick<ThemeSprite, 'x' | 'y' | 'width' | 'height'>;
+type SliceRect = Pick<ThemeSprite, 'x' | 'y' | 'width' | 'height'>;
 
 /**
  * Draws `slices` of `source`, stacked on one another at the first one's size, onto a fresh
- * canvas with `effect` applied - the one recolour routine every atlas slice and effect texture
- * shares. All but the shadow pass a single rect; a shadow passes every sheet the skin is drawn
+ * canvas with `effect` applied - the one routine every atlas slice and effect texture shares.
+ * A plain slice passes a single rect; a shadow passes every sheet the skin is drawn
  * from, so the silhouette it blurs is the whole window's shape (see `getThemeSliceCanvas`).
  */
-export const renderSliceEffect = (source: CanvasImageSource, slices: readonly SliceRect[], effect: ThemeSliceEffect): HTMLCanvasElement | undefined => {
+const renderSliceEffect = (source: CanvasImageSource, slices: readonly SliceRect[], effect: ThemeSliceEffect): HTMLCanvasElement | undefined => {
     const [ first ] = slices;
 
     if (!first) return undefined;
@@ -146,29 +145,17 @@ export const renderSliceEffect = (source: CanvasImageSource, slices: readonly Sl
 
     if (!ctx) return undefined;
 
-    const drawSlices = () => {
-        for (const slice of slices) ctx.drawImage(source, slice.x, slice.y, slice.width, slice.height, pad, pad, slice.width, slice.height);
-    };
+    for (const slice of slices) ctx.drawImage(source, slice.x, slice.y, slice.width, slice.height, pad, pad, slice.width, slice.height);
 
-    drawSlices();
+    if (effect.kind === 'shadow') {
+        // Before the silhouette is taken, so the window's body casts a shadow too.
+        extendLastPaintedRow(ctx, canvas.width, canvas.height, pad);
 
-    // Before the silhouette is taken, so the window's body casts a shadow too.
-    if (effect.kind === 'shadow') extendLastPaintedRow(ctx, canvas.width, canvas.height, pad);
-
-    if (effect.kind === 'tint') {
-        // Multiply the colour in, then clip back to the art's own alpha shape.
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.fillStyle = effect.color;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.globalCompositeOperation = 'destination-in';
-        drawSlices();
-    } else if (effect.kind === 'silhouette' || effect.kind === 'shadow') {
+        // The silhouette, in the shadow's colour, faded and blurred.
         ctx.globalCompositeOperation = 'source-in';
         ctx.fillStyle = effect.color;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
 
-    if (effect.kind === 'shadow') {
         const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const { data } = image;
 
@@ -184,7 +171,7 @@ export const renderSliceEffect = (source: CanvasImageSource, slices: readonly Sl
 };
 
 /**
- * A canvas holding one theme sprite cut out of the atlas, optionally recoloured. Synchronous
+ * A canvas holding one theme sprite cut out of the atlas, or its shadow. Synchronous
  * (the atlas is already decoded), so a first render never flashes without its chrome.
  *
  * Several keys are drawn over one another at the first one's size, for a skin whose shape is

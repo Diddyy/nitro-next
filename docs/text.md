@@ -1,14 +1,14 @@
 # Text
 
 All UI text goes through `ThemeText` (and `TextInput`) with a `textStyle` key, and
-`theme/font/flash-text` draws it exactly as the Flash client did.
+`nitro-theme`'s `src/font/flash-text` draws it exactly as the Flash client did.
 
 **A style is named the way the client names it** - `u_regular`, `il_button`, `id_heading_1`. That
 one spelling is the key of `HABBO_TEXT_STYLES`, the `textStyle` prop a view passes, and the value a
-layout's `text_style` var carries. `TEXT_STYLES` in `theme/utils/textStyles.ts` is derived from
-`HABBO_TEXT_STYLES` rather than listed beside it (it only adds the browser-text face each style
-falls back to), so a style added to the generated table is a theme style the moment it lands. There
-is no second `text-style-*` spelling any more.
+layout's `text_style` var carries. `TEXT_STYLES` in `nitro-theme/src/utils/textStyles.ts` is
+derived from `HABBO_TEXT_STYLES` rather than listed beside it (it only adds the browser-text face
+each style falls back to), so a style added to the generated table is a theme style the moment it
+lands. There is no second `text-style-*` spelling any more.
 
 **A text's format is its style plus the `TextField` vars its layout declares over it**, the way
 `TextController.setTextFormatting` layers them. Three of those vars have Pixi equivalents and ride
@@ -20,8 +20,8 @@ still Flash-exact - it does **not** drop the text to the browser's canvas, which
 `fontSize: 11` room-tools label the only blurry text on the bar. Only a face none of the captured
 fonts covers still falls back.
 
-Three things about those vars that are easy to get wrong, and that `generate-layout-views.ts`
-encodes:
+Three things about those vars that are easy to get wrong, and that the theme's template code
+encodes (`themeDefaultTextStyle` in `utils/textStyles.ts`, used by `template/measureTemplateText.ts`):
 
 - **A text with no `text_style` var is not `regular`.** The window's `style` id picks a theme, and
   `ThemeManager`'s three real themes each default `text_style` differently: Volter (ids 0-2)
@@ -41,26 +41,28 @@ encodes:
   `advanced` + `subpixel` has no exact rendering - Sulake's own build throws on it - so those texts
   draw in canvas text, here and in the client this renderer came from.
 
-`UbuntuThick` is a fourth embedded face (`UbuntuThick-Bold.ttf`) that 39 layout texts name and the
-port has captured neither an AIR bundle nor a `.ttf` for. The generator emits the var and prints
-the face at the end of a run rather than dropping it, so the gap stays visible.
-
+`UbuntuThick` is a fourth embedded face that about forty layout texts name. The client's window
+manager bundle carries it (`ubuntuThick_bold_air51.json`, `ubuntuThick_bold.ttf` in
+`scripts/habbo-js-resources/habbo-window-manager-com`), but the port ships neither, so a template
+text naming it passes the face through as `fontFamily`, which no shipped font covers, and draws in
+browser text.
 
 - `flash-text/air32/` is a port of Sulake's bit-exact re-implementation of Adobe AIR's text
   rasterizer. Its arithmetic is deliberately literal: every `Math.fround`, every rounding helper
   and the order of operations reproduce 32-bit float behaviour. Do not "simplify" it; a change
-  there is only safe if the rendered pixels stay identical: run
-  `node scripts/flash-text-golden/run-check-ts.mjs` from `packages/nitro-react`, which hashes 7,832
-  renders against the original renderer's output (`scripts/` is git-ignored, so the harness and
-  the original in `scripts/flash-text-renderer` are local only). That original is the rasterizer
-  `flash-js/runtime/` carries, extracted - so when a text question outgrows the port, read it
-  there in its own context.
+  there is only safe if the rendered pixels stay identical to the original's. The original is the
+  rasterizer Habbo's JavaScript port carries: `scripts/habbo-js/runtime/Air32NativeTextRenderer.js`
+  and the AIR text helpers in `scripts/habbo-js/vendor/vendor.js` - so when a text question
+  outgrows the port, read it there in its own context.
 - `habboTextStyles.ts` is generated from the client's `styles.css` by
-  `scripts/generate-habbo-text-styles.ts`. Regenerate it, never edit it; it is the whole list of
+  `packages/nitro-react/scripts/generate-habbo-text-styles.ts`, from
+  `scripts/habbo-js-resources/habbo-window-manager-com/text_styles_css.txt`. Regenerate it, never edit it; it is the whole list of
   theme styles, so a style it gains is one a view can name that day and one it loses is a
   `textStyle` that stops typechecking - never a hand-written font beside it.
 - Fonts are captured bundles in `public/assets/fonts/*.air51.json`, shipped in `fonts.nitro` and
-  registered once at boot by `preloadFlashFonts()`. They cover printable ASCII. A string with any
+  registered once at boot by `preloadFlashFonts()`. They cover printable ASCII; typographic quotes,
+  dashes, the acute accent used as an apostrophe and the no-break space are drawn as their ASCII
+  look-alikes (`GLYPH_STAND_INS` in `FlashTextRenderer.ts`, one character for one). A string with any
   other character - or a raw `fontFamily`/`fontSize` override - falls back to the browser's text
   in the same `.ttf` faces, so never assume a text is a Flash bitmap. Those faces are
   `font-faces.nitro`, added to `document.fonts` from the archive's own bytes by
@@ -84,7 +86,7 @@ at the first `=`, `\n` is a line break):
 2. `gamedata.urls.externalTexts` - the hotel's texts, which override the first.
 
 Both come from Nitro Studio (`packages/nitro-studio`): the hotel's texts from its Habbo
-import, the default localizations from the client release (Changes, From Habbo, Client data);
+import, the default localizations from the client release (Workspace > Habbo, client data);
 a text that is wrong or cut off is fixed there, never patched in the client. Use Flash's
 key and Flash's parameter names (`t('infostand.text.badges_rank', '', { rank: '#3' })` fills
 `%rank%`). A key that neither file has and no Flash class or layout names is one the port made up:

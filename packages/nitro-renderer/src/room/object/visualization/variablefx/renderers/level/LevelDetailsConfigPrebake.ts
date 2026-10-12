@@ -10,6 +10,7 @@ const BACKGROUND_SLICE_LEFT_WIDTH = 29;
 const BACKGROUND_SLICE_RIGHT_WIDTH = 6;
 const MAX_SHARED_BACKGROUND_PREBAKE_DIGITS = 5;
 
+/** Port of Flash `LevelDetailsConfigPrebake`. */
 export class LevelDetailsConfigPrebake implements IVariableFxPrebake {
     public disposed: boolean = false;
     public numberPainter: LevelDetailsNumberPainter | undefined;

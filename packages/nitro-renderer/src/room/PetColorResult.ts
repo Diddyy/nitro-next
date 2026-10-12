@@ -1,5 +1,6 @@
 import { IPetColorResult } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `PetColorResult`. */
 export class PetColorResult implements IPetColorResult {
     private static COLOR_TAGS: string[] = [
         'Null',

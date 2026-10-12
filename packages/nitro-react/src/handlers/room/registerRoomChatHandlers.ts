@@ -1,11 +1,19 @@
 import { RoomChatTypeEnum, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
-import { ChatMessage, FloodControlMessage, HandItemReceivedMessage, IChatLink, PetRespectNotificationEventMessage, PetSupplementedNotificationEventMessage, RemainingMutePeriodMessage, RespectNotificationMessage, RoomChatSettingsMessage, ShoutMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
+import { ChatMessage, CloseConnectionMessage, FloodControlMessage, GetGuestRoomResultMessage, HandItemReceivedMessage, IChatLink, PetRespectNotificationEventMessage, PetSupplementedNotificationEventMessage, RemainingMutePeriodMessage, RespectNotificationMessage, RoomChatSettingsMessage, RoomEntryInfoMessage, ShoutMessage, SpecialSystemChatMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
 
-import { createChatBubbleId } from '#base/chat';
+import { createChatBubbleId, GetChatStyleLibrary } from '#base/chat';
+import { ChatHistoryIgnoreTarget, chatHistoryStore } from '#base/context/chat-history';
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
+import { userStore } from '#base/context/user';
 
 import { on, subscribeAll } from '../packetSubscriptions';
+
+/** `ChatBubbleFactory.isSystemNotificationChat`: the chat types 3-10 and 12. */
+const SYSTEM_NOTIFICATION_CHAT_TYPES: ReadonlySet<RoomChatTypeEnum> = new Set([
+    RoomChatTypeEnum.Respect, RoomChatTypeEnum.PetRespect, RoomChatTypeEnum.HandItem, RoomChatTypeEnum.PetTreat, RoomChatTypeEnum.PetRevive,
+    RoomChatTypeEnum.PetRebreed, RoomChatTypeEnum.PetSpeed, RoomChatTypeEnum.MuteRemaining, RoomChatTypeEnum.SpecialSystem,
+]);
 
 /** `SystemChatStyleEnum.GENERIC` - the anonymous grey bubble every system notice uses. */
 const GENERIC_CHAT_STYLE = 1;
@@ -45,7 +53,7 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
 
         lastAddedChatMs = now;
 
-        addChatBubble({
+        const bubble = {
             id: createChatBubbleId(),
             roomId: room.roomId,
             objectId,
@@ -56,7 +64,21 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
             userLocation: roomObject?.getLocation(),
             timestamp: now + chatFakeMsIncrementor,
             extraParam,
-        });
+        };
+
+        // `ChatBubbleFactory.getHistoryLineEntry` draws the line from who spoke it then: a user's
+        // name and figure are kept with it, as the history outlives the room's user list.
+        const speaker = roomStore.getState().usersByRoomObjectId[objectId];
+
+        // `canIgnore`: a user's line, not your own, in a style that is not a notification, of a
+        // chat type that is not a system notice.
+        const ignore: ChatHistoryIgnoreTarget | undefined = (speaker && (speaker.userType === RoomObjectUserType.User) && (speaker.webID > 0)
+            && (speaker.webID !== userStore.getState().userId) && !GetChatStyleLibrary().getStyle(styleId)?.isNotification && !SYSTEM_NOTIFICATION_CHAT_TYPES.has(chatType))
+            ? { webId: speaker.webID, userName: speaker.name }
+            : undefined;
+
+        chatHistoryStore.getState().insertChat((speaker?.userType === RoomObjectUserType.User) ? { ...bubble, forcedUserName: speaker.name, forcedFigure: speaker.figure } : bubble, ignore);
+        addChatBubble(bubble);
     };
 
     const addSpokenChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[]) => {
@@ -70,6 +92,13 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
     };
 
     return subscribeAll(subscribe, [
+        // `HabboFreeFlowChat.onRoomEnter` / `onGuestRoomData`: the first room data after an entry is the history's room change line.
+        on(RoomEntryInfoMessage, () => chatHistoryStore.getState().resetRoomChange()),
+
+        on(GetGuestRoomResultMessage, data => chatHistoryStore.getState().insertRoomChange(data.roomInfo.name)),
+
+        on(CloseConnectionMessage, () => chatHistoryStore.getState().reset()),
+
         on(ChatMessage, (data) => {
             addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Speak, data.styleId, data.links);
         }),
@@ -84,6 +113,16 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
 
         on(HandItemReceivedMessage, (data) => {
             addChat(data.giverUserId, '', RoomChatTypeEnum.HandItem, GENERIC_CHAT_STYLE, [], data.handItemType);
+        }),
+
+        /*
+         * `RoomChatHandler.onSpecialSystemChat`: a notice from the user at that room index, with no
+         * text of its own - `ChatBubbleFactory.applySpecialChatContent` decides what it says.
+         */
+        on(SpecialSystemChatMessage, (data) => {
+            if (!roomStore.getState().usersByRoomObjectId[data.userIndex]) return;
+
+            addChat(data.userIndex, '', RoomChatTypeEnum.SpecialSystem, GENERIC_CHAT_STYLE, [], data.specialSystemType);
         }),
 
         on(RespectNotificationMessage, (data) => {

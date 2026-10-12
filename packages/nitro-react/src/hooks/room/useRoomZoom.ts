@@ -3,7 +3,7 @@ import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Ticker } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
-import { useRoom } from '#base/context/room';
+import { getRoom } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
 
 import { useRoomEventDispatcher } from './useRoomEventDispatcher';
@@ -42,14 +42,16 @@ const toLevel = (scale: number) => Math.log(scale) / Math.LN2;
  * to it; answering it here as well would turn the canvas straight back.
  */
 export const useRoomZoom = () => {
-    const room = useRoom();
     const enabled = useConfigValue<boolean>('zoom.enabled') === true;
     const [ scale, setScale ] = useState(DEFAULT_SCALE);
     const targetRef = useRef<number | undefined>(undefined);
 
+    // The room is read when the frame runs, never captured (see `getRoom`): on the first room entered
+    // after a load the step was left holding a room that had already been disposed, which has no
+    // canvas, so the buttons counted up and the room never moved.
     useEffect(() => {
         const step = (ticker: Ticker) => {
-            const canvas = room?.canvas;
+            const canvas = getRoom()?.canvas;
             const target = targetRef.current;
 
             if (!canvas || (target === undefined)) return;
@@ -77,7 +79,7 @@ export const useRoomZoom = () => {
         return () => {
             GetTicker().remove(step);
         };
-    }, [ room ]);
+    }, []);
 
     const zoomTo = (next: number) => {
         if (!enabled || (next === scale)) return;

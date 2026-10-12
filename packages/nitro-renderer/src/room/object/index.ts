@@ -98,6 +98,8 @@ export * from './visualization/avatar/additions/FloatingHeartAddition';
 export * from './visualization/avatar/additions/FloatingIdleZAddition';
 export * from './visualization/avatar/additions/GameClickTargetAddition';
 export * from './visualization/avatar/additions/GuideStatusBubbleAddition';
+export * from './visualization/avatar/additions/HabbiconAssetManager';
+export * from './visualization/avatar/additions/HabbiconBubble';
 export * from './visualization/avatar/additions/IAvatarAddition';
 export * from './visualization/avatar/additions/IExpressionAddition';
 export * from './visualization/avatar/additions/MutedBubbleAddition';

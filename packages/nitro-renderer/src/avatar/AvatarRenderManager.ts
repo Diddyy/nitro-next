@@ -11,6 +11,7 @@ import { EffectAssetDownloadManager } from './EffectAssetDownloadManager';
 import { FigureDataContainer } from './FigureDataContainer';
 import { PlaceHolderAvatarImage } from './PlaceHolderAvatarImage';
 
+/** Port of Flash `AvatarRenderManager`. */
 export class AvatarRenderManager implements IAvatarRenderManager {
     private static DEFAULT_FIGURE: string = 'hd-99999-99999';
 
@@ -36,7 +37,7 @@ export class AvatarRenderManager implements IAvatarRenderManager {
     }
 
     /**
-     * Starts from the hotel's avatar data (`LoadAvatarData`, `avatar.data.url`): the tables Flash's
+     * Starts from the hotel's avatar data (`LoadAvatarData`, the avatar render library's bundle): the tables Flash's
      * render library carried, then the hotel's actions over the built-in set and its animations -
      * Flash's `initActions` then `updateActions`.
      */
@@ -133,6 +134,14 @@ export class AvatarRenderManager implements IAvatarRenderManager {
 
     public async downloadAvatarEffectAsync(effectId: number): Promise<void> {
         await this._effectAssetDownloadManager.downloadAvatarEffectAsync(effectId);
+    }
+
+    public getUndrawableFigureParts(figure: string): string[] {
+        return this._avatarAssetDownloadManager.getUndrawableParts(new AvatarFigureContainer(figure));
+    }
+
+    public isAvatarEffectLoaded(effect: number | string): boolean {
+        return this._effectAssetDownloadManager.isAvatarEffectLoaded(effect.toString());
     }
 
     public getFigureClubLevel(container: IAvatarFigureContainer, gender: AvatarGenderType, searchParts: string[] = []): number {
@@ -233,8 +242,31 @@ export class AvatarRenderManager implements IAvatarRenderManager {
         }
     }
 
+    /**
+     * Unloads the clothing and effect libraries no live avatar image needs. The placeholder and
+     * blocked figures are kept too: those images are not registered, and redraw from their libraries.
+     */
     public purgeAssets(): void {
-        this._avatarAssetDownloadManager.purge();
+        const figures: IAvatarFigureContainer[] = [];
+        const effects = new Set<number>();
+
+        for (const image of [ ...this._activeImages ]) {
+            if (image.disposed) {
+                this._activeImages.delete(image);
+
+                continue;
+            }
+
+            figures.push(image.getFigure());
+
+            if (image.effectIdInUse > -1) effects.add(image.effectIdInUse);
+        }
+
+        if (this._placeHolderFigure) figures.push(this._placeHolderFigure);
+        if (this._blockedFigure) figures.push(this._blockedFigure);
+
+        this._avatarAssetDownloadManager.purge(figures);
+        this._effectAssetDownloadManager.purge(effects);
     }
 
     public get effectMap(): Map<string, IEffectAssetDownloadLibrary[]> | undefined {

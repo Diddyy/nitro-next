@@ -3,6 +3,7 @@ import { IAnimation, IAnimationLayerData, IAnimationManager, IAssetAnimation } f
 import { AvatarStructure } from '../AvatarStructure';
 import { Animation } from './Animation';
 
+/** Port of Flash `AnimationManager`. */
 export class AnimationManager implements IAnimationManager {
     private _animations: Map<string, IAnimation> = new Map();
 

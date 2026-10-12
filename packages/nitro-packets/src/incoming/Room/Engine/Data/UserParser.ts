@@ -5,6 +5,9 @@ import { IRoomAvatarBot } from './IRoomAvatarBot';
 import { IRoomAvatarRentableBot } from './IRoomAvatarRentableBot';
 import { convertSwimFigure } from './SwimFigureUtils';
 
+/** `UsersMessageParser`'s figure for a plain bot whose own has a `/` in it. */
+const DEFAULT_BOT_FIGURE = 'hr-100-.hd-180-1.ch-876-66.lg-270-94.sh-300-64';
+
 export const UserParser = (wrapper: IMessageDataWrapper): IRoomAvatar => {
     let avatar = {
         webId: wrapper.readInt(),
@@ -59,7 +62,10 @@ export const UserParser = (wrapper: IMessageDataWrapper): IRoomAvatar => {
             break;
         }
         case RoomObjectUserType.Bot: {
-            const data = {} as IRoomAvatarBot;
+            // `UsersMessageParser`: a plain bot sends no sex - it is "M" - and a figure with a `/` in it is replaced by the default.
+            const data: IRoomAvatarBot = { gender: 'M' };
+
+            if (avatar.figure.indexOf('/') !== -1) avatar.figure = DEFAULT_BOT_FIGURE;
 
             avatar = { ...avatar, ...data };
             break;

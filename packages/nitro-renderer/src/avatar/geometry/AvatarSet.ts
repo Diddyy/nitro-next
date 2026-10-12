@@ -1,5 +1,6 @@
-﻿import { AvatarBodyPartType, AvatarSetType, IAssetAvatarSet } from '@nitrodevco/nitro-api';
+import { AvatarBodyPartType, AvatarSetType, IAssetAvatarSet } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `AvatarSet`. */
 export class AvatarSet {
     private readonly _id: AvatarSetType;
     private readonly _isMain: boolean;

@@ -5,17 +5,17 @@ import { BoxLayout, Region } from '#base/theme';
 
 import { GroupBadgePartImage } from './GroupBadgePartImage';
 
+/**
+ * The badge being edited - `habbo-groups-com/badge_editor`'s `guild_badge`, whose five `layer_<n>`
+ * images `BadgeEditorCtrl.updatePreviewImage` fills one at a time. Layer 0 draws from `baseParts`,
+ * the rest from `layerParts`, and a layer with no part drawn is simply left out.
+ */
 export interface GroupBadgePreviewProps {
     layers: BadgeLayerOptions[];
     editorData: IGuildEditorData | undefined;
     layout?: BoxLayout;
 }
 
-/**
- * The badge being edited - `badge_editor`'s `guild_badge`, whose five `layer_<n>` images
- * `BadgeEditorCtrl.updatePreviewImage` fills one at a time. Layer 0 draws from `baseParts`, the
- * rest from `layerParts`, and a layer with no part drawn is simply left out.
- */
 export const GroupBadgePreview = ({ layers, editorData, layout }: GroupBadgePreviewProps) => (
     <Region layout={{ width: BADGE_IMAGE_WIDTH, height: BADGE_IMAGE_HEIGHT, overflow: 'hidden', ...layout }}>
         {layers.map((options) => {

@@ -18,6 +18,9 @@
             "#renderer/utils": [
                 "./src/utils/index.ts"
             ],
+            "#api/*": [
+                "../nitro-api/src/*"
+            ],
         }
     },
     "references": [

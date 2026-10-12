@@ -12,9 +12,9 @@
  * - `HabbiconShopData`, `HabbiconInfo`: the shop's sets, one shop habbicon.
  * - `RoomUseHabbicon`: Flash dispatches `hce_room_use_habbicon`, and `RoomUI.onRoomUseHabbicon`
  *   plays the habbicon over the user (`updateObjectUserAction(..., "figure_habbicon", id)`); that
- *   listener is folded in here. The avatar logic writes the `figure_habbicon*` variables and spins
- *   the spinning duck, but nothing draws the habbicon yet: `HabbiconBubble` (the avatar
- *   visualization's stacked addition) is not ported - see `AvatarVisualization.ADDITION_ID_HABBICON_BUBBLE`.
+ *   listener is folded in here. The avatar logic writes the `figure_habbicon*` variables, spins
+ *   the spinning duck, and the avatar visualization draws the habbicon as its stacked
+ *   `HabbiconBubble` addition.
  * - `PurchaseOK` / `PurchaseError` / `PurchaseNotAllowed`: after a buy or claim of the
  *   controller's own (`_pendingPurchaseRefresh`), an OK closes the purchase confirmation and asks
  *   for the shop data again; a failure lets the confirmation be pressed again after its delay.

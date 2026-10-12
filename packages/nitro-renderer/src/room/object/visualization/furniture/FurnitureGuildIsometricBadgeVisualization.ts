@@ -4,6 +4,10 @@ import { Matrix, Sprite, Texture } from 'pixi.js';
 import { TextureUtils } from '../../../../utils';
 import { IsometricImageFurniVisualization } from './IsometricImageFurniVisualization';
 
+/**
+ * Port of Flash's obfuscated `§_-W2u§`, the visualization `RoomObjectVisualizationFactory` builds
+ * for `furniture_guild_isometric_badge`.
+ */
 export class FurnitureGuildIsometricBadgeVisualization extends IsometricImageFurniVisualization {
     public static PRIMARY_COLOUR_SPRITE_TAG: string = 'COLOR1' as const;
     public static SECONDARY_COLOUR_SPRITE_TAG: string = 'COLOR2' as const;
@@ -75,35 +79,6 @@ export class FurnitureGuildIsometricBadgeVisualization extends IsometricImageFur
         sprite.y = 0;
 
         return TextureUtils.generateTexture(sprite);
-
-        /* const renderTexture = RenderTexture.create({
-            width: asset.width,
-            height: asset.height
-        });
-
-        PixiApplicationProxy.instance.renderer.render(sprite, {
-            renderTexture,
-            clear: true,
-        });
-
-        return renderTexture; */
-
-        /* const sprite = new NitroSprite(texture);
-
-        const renderTexture = RenderTexture.create({
-            width: (asset.width + matrix.tx),
-            height: (asset.height + matrix.ty)
-        });
-
-        sprite.position.set(0)
-
-        PixiApplicationProxy.instance.renderer.render(sprite, {
-            renderTexture,
-            clear: true,
-            transform: matrix
-        });
-
-        return renderTexture; */
     }
 
     protected override getLayerColor(scale: RoomGeometryScaleType, layerId: number, colorId: number): number {

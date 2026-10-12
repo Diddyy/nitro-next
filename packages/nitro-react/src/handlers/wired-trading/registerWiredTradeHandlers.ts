@@ -6,7 +6,7 @@
  * `onWiredTradeItemsUpdate` built the inventory's group items from both sides of the offer;
  * the list is kept as the server sent it and grouped where it is shown.
  *
- * The reference server (turbo-cloud) sends none of the wired trade packets; this follows Flash.
+ * This follows Flash; Turbo implements the wired trade packets against it.
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { WiredTradeCancelledMessage, WiredTradeCompletedMessage, WiredTradeInitiateMessage, WiredTradeItemsUpdateMessage } from '@nitrodevco/nitro-packets';
@@ -35,6 +35,8 @@ export const registerWiredTradeHandlers = ({ send, subscribe }: WebSocketConnect
             if (data.overridePreviousTrade) closeWiredTrade(send, false);
 
             initiateTrade(requirement, data.showRequirementsImmediate, data.overridePreviousTrade, data.timeoutSeconds, performance.now());
+            // `toggleInventorySubPage("wired_trading")`: the inventory opens on its furni page, the trade docked under it.
+            systemStore.getState().showWindow('inventory', { tab: 'furni' });
         }),
 
         on(WiredTradeItemsUpdateMessage, data => setTradeItems(data.tradingItems, data.canAccept, data.extra)),

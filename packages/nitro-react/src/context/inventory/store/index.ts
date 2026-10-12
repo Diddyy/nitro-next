@@ -8,6 +8,7 @@ export * from './InventoryMarketplaceSlice';
 export * from './InventoryPetsSlice';
 export * from './InventoryPlacementSlice';
 export * from './InventoryRecyclerSlice';
+export * from './inventorySelection';
 export * from './InventoryStore';
 export * from './InventoryTradingSlice';
 export * from './InventoryUnseenSlice';

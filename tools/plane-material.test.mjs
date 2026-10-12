@@ -41,6 +41,8 @@ const makeCanvasMocks = () => {
         clearPlaneCanvas() {},
         releasePlaneCanvas() {},
         fillPlaneCanvas() {},
+        // The real one defers the copies to one render pass; the order they are made in is what counts here.
+        batchPlaneCanvas: (canvas, draw) => draw(),
         copyToPlaneCanvas(destination, source, x, y, frame) {
             operations.push({ destination, source, x, y, frame });
         },

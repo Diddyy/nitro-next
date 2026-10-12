@@ -21,6 +21,7 @@ import {
 } from '../../messages';
 import { MovingObjectLogic } from './MovingObjectLogic';
 
+/** Port of Flash `PetLogic`, the logic `RoomObjectFactory` builds for `pet`. */
 export class PetLogic extends MovingObjectLogic {
     private _selected: boolean = false;
     private _reportedLocation: IVector3D = new Vector3d();
@@ -35,6 +36,8 @@ export class PetLogic extends MovingObjectLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [
             RoomObjectMouseEvent.CLICK,
+            RoomObjectMouseEvent.MOUSE_ENTER,
+            RoomObjectMouseEvent.MOUSE_LEAVE,
             RoomObjectMoveEvent.POSITION_CHANGED,
         ]);
     }
@@ -169,9 +172,10 @@ export class PetLogic extends MovingObjectLogic {
     public override mouseEvent(event: IRoomSpriteMouseEvent, geometry: IRoomGeometry | undefined): void {
         if (!event || !geometry) return;
 
-        let eventType = event.type;
+        // Only these are passed on; any other sprite event goes no further than the logic.
+        let eventType: string | undefined = undefined;
 
-        switch (eventType) {
+        switch (event.type) {
             case MouseEventType.MOUSE_CLICK:
                 eventType = RoomObjectMouseEvent.CLICK;
                 break;
@@ -179,9 +183,11 @@ export class PetLogic extends MovingObjectLogic {
                 break;
             case MouseEventType.ROLL_OVER:
                 this.setVariableFxHolderHovered(true);
+                eventType = RoomObjectMouseEvent.MOUSE_ENTER;
                 break;
             case MouseEventType.ROLL_OUT:
                 this.setVariableFxHolderHovered(false);
+                eventType = RoomObjectMouseEvent.MOUSE_LEAVE;
                 break;
             case MouseEventType.MOUSE_DOWN: {
                 const petType = this.object.model.getValue<number>(RoomObjectVariableEnum.PetType);
@@ -202,6 +208,8 @@ export class PetLogic extends MovingObjectLogic {
                 break;
             }
         }
+
+        if (!eventType) return;
 
         this.handleRoomObjectEvent(
             new RoomObjectMouseEvent(

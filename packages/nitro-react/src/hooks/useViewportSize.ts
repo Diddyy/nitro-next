@@ -1,3 +1,8 @@
+/**
+ * The window's size, for layout that depends on it - what Flash read off `desktop.width` and
+ * `desktop.height`. Reading `window.innerWidth` during render is impure; this is the same value
+ * behind a subscription, so a component re-renders on resize and nowhere else.
+ */
 import { useSyncExternalStore } from 'react';
 
 export interface ViewportSize {
@@ -29,9 +34,4 @@ const subscribe = (onChange: () => void) => {
     };
 };
 
-/**
- * The window's size, for layout that depends on it - what Flash read off `desktop.width` and
- * `desktop.height`. Reading `window.innerWidth` during render is impure; this is the same value
- * behind a subscription, so a component re-renders on resize and nowhere else.
- */
 export const useViewportSize = () => useSyncExternalStore(subscribe, () => size);

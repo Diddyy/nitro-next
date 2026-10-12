@@ -29,13 +29,13 @@ import { WiredBitmapView } from '#base/views/wired-setup/kit/WiredBitmapView';
 import { WiredCheckboxGroup } from '#base/views/wired-setup/kit/WiredCheckboxGroup';
 import { WiredContainerButton } from '#base/views/wired-setup/kit/WiredContainerButton';
 import { WiredDropdown } from '#base/views/wired-setup/kit/WiredDropdown';
+import { WiredFooter } from '#base/views/wired-setup/kit/WiredFooter';
 import { WiredSection } from '#base/views/wired-setup/kit/WiredSection';
 import { WiredSimpleList } from '#base/views/wired-setup/kit/WiredSimpleList';
 import { WiredStaticBitmap } from '#base/views/wired-setup/kit/WiredStaticBitmap';
 import { WiredText } from '#base/views/wired-setup/kit/WiredText';
 import { WiredTextArea } from '#base/views/wired-setup/kit/WiredTextArea';
 import { WiredTextInput } from '#base/views/wired-setup/kit/WiredTextInput';
-import { WiredTradingFooter } from '#base/views/wired-trading/common/WiredTradingFooter';
 import { WiredTradingFrame } from '#base/views/wired-trading/common/WiredTradingFrame';
 import { UBUNTU_WIRED_STYLE } from '#base/wired';
 
@@ -242,10 +242,10 @@ export const WiredChestSettingsView = ({ request, data, onClose }: WiredChestSet
                                     </WiredSimpleList>
                                 </WiredAlignCenter>
                             </WiredContainerButton>
-                            {form.wiredEnabled && <WiredStaticBitmap asset="catalog/icon_checkmark_small" />}
+                            {form.wiredEnabled && <WiredStaticBitmap asset="habbo-window-manager-com/icon_checkmark_small" />}
                         </WiredSimpleList>
                     </WiredSection>,
-                    <WiredTradingFooter
+                    <WiredFooter
                         key="footer"
                         onSave={() => save(form)}
                         onCancel={onClose}

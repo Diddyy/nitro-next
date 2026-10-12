@@ -21,6 +21,19 @@ export class IsometricImageFurniVisualization extends AnimatedFurnitureVisualiza
     private _thumbnailChanged: boolean = false;
     protected _hasOutline: boolean = false;
 
+    /**
+     * The thumbnails are rendered per object into the type's shared collection, which outlives the
+     * object (every photo of a room shares it): left there, each one stayed until the type was purged.
+     */
+    public override dispose(): void {
+        if (this.asset) {
+            if (this._thumbnailAssetNameNormal) this.asset.disposeAsset(this._thumbnailAssetNameNormal);
+            if (this._thumbnailAssetNameSmall) this.asset.disposeAsset(this._thumbnailAssetNameSmall);
+        }
+
+        super.dispose();
+    }
+
     public get hasThumbnailImage(): boolean {
         return !(this._thumbnailImageNormal == null);
     }

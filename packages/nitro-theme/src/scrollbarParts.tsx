@@ -1,3 +1,9 @@
+/**
+ * The parts a scrollbar is built from. Each Flash window type (`scrollbar_slider_button_up`,
+ * `scrollbar_slider_track_vertical`, ...) is its own theme component with its own variants, but the
+ * two orientations and four arrows draw the same way - so each kind is made here once and bound to
+ * its cascade key in its own module.
+ */
 import { Container as PixiContainer } from 'pixi.js';
 import { forwardRef, ForwardRefExoticComponent, ReactNode, RefAttributes } from 'react';
 
@@ -9,13 +15,6 @@ import { ThemeImage } from './ThemeImage';
 import { expandSides } from './utils/expandSides';
 import { ThemeProps, ThemeWithStatesVariant } from './utils/ThemeVariant';
 import { wrapTextChildren } from './utils/wrapTextChildren';
-
-/*
- * The parts a scrollbar is built from. Each Flash window type (`scrollbar_slider_button_up`,
- * `scrollbar_slider_track_vertical`, ...) is its own theme component with its own variants, but the
- * two orientations and four arrows draw the same way - so each kind is made here once and bound to
- * its cascade key in its own module.
- */
 
 export interface ScrollbarPartProps extends ThemeProps<ThemeWithStatesVariant> {
     /** The scrollbar is disabled (its content fits): the part draws its `disabled` art and takes no input. */

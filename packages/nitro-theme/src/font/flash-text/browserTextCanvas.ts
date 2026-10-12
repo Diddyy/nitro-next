@@ -5,6 +5,7 @@
  * the client's fonts (registered from `font-faces.nitro`, see `flashFonts.ts`), so a bubble
  * keeps its layout either way.
  */
+import { toCssHexColor } from '../../utils/cssHexColor';
 import { FLASH_TEXT_GUTTER, FlashTextBlockOptions, FlashTextRun, layoutFlashTextLines } from './flashTextBlock';
 import { FlashTextCanvas } from './flashTextCanvas';
 import { FlashTextFormat } from './flashTextFormat';
@@ -13,8 +14,6 @@ import { FlashTextRenderer } from './FlashTextRenderer';
 let measureContext: CanvasRenderingContext2D | null | undefined;
 
 const cssFont = (format: FlashTextFormat): string => `${format.italic ? 'italic ' : ''}${format.bold ? 'bold ' : ''}${format.fontSize}px "${format.fontFamily}", sans-serif`;
-
-const cssColor = (color: number): string => `#${(color & 0xFFFFFF).toString(16).padStart(6, '0')}`;
 
 const measureBrowserText = (text: string, format: FlashTextFormat): number | null => {
     measureContext ??= document.createElement('canvas').getContext('2d');
@@ -65,7 +64,7 @@ export const renderBrowserTextCanvas = (runs: readonly FlashTextRun[], options: 
             const x = lineX + Math.round(segment.x);
 
             context.font = cssFont(segment.format);
-            context.fillStyle = cssColor(segment.format.color);
+            context.fillStyle = toCssHexColor(segment.format.color);
             context.fillText(segment.text, x, lineY);
 
             if (segment.format.underline) context.fillRect(x, lineY + 1, Math.ceil(segment.width), 1);

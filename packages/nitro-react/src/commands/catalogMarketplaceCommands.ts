@@ -23,11 +23,18 @@ import { isMarketplaceOwnCategoryClearable, isMarketplacePosterItem, MARKETPLACE
 type Send = WebSocketConnection['send'];
 type CatalogStoreApi = StoreApi<CatalogStore>;
 
-/** `MarketPlaceLogic.requestOffers`: the search is kept for `refreshOffers`, then sent. */
+/**
+ * `MarketPlaceLogic.requestOffers`: the search is kept for `refreshOffers`, then sent. Returns the
+ * offer list's serial as it stood when the search went out, so a view can wait for a newer list.
+ */
 export const requestMarketplaceOffers = (send: Send, store: CatalogStoreApi, minPrice: number, maxPrice: number, searchString: string, sortType: number, combineUniques: boolean = true) => {
-    store.getState().setMarketplaceSearch({ minPrice, maxPrice, searchString, sortType, combineUniques });
+    const { marketplaceOffersSerial, setMarketplaceSearch } = store.getState();
+
+    setMarketplaceSearch({ minPrice, maxPrice, searchString, sortType, combineUniques });
 
     send(new GetMarketplaceOffersComposer({ minPrice, maxPrice, searchString, sortType, combineUniques }));
+
+    return marketplaceOffersSerial;
 };
 
 /** `MarketPlaceLogic.refreshOffers`: the last search again. */
@@ -37,11 +44,18 @@ export const refreshMarketplaceOffers = (send: Send, store: CatalogStoreApi) => 
     requestMarketplaceOffers(send, store, minPrice, maxPrice, searchString, sortType, combineUniques);
 };
 
-/** `MarketPlaceLogic.requestOwnItems`: the own offers of one category. */
+/**
+ * `MarketPlaceLogic.requestOwnItems`: the own offers of one category. Returns the own list's serial
+ * as it stood when the request went out, so a view can wait for a newer list.
+ */
 export const requestMarketplaceOwnItems = (send: Send, store: CatalogStoreApi, category: number = MARKETPLACE_OWN_CATEGORY_OPEN) => {
-    store.getState().setMarketplaceOwnOffersCategory(category);
+    const { marketplaceOwnOffersSerial, setMarketplaceOwnOffersCategory } = store.getState();
+
+    setMarketplaceOwnOffersCategory(category);
 
     send(new GetMarketplaceOwnOffersComposer({ category }));
+
+    return marketplaceOwnOffersSerial;
 };
 
 /** `MarketPlaceLogic.requestItemStats`: which furni the answer is for is kept, and a poster sends its poster id. */
@@ -101,6 +115,3 @@ export const clearMarketplaceOwnHistory = (send: Send, store: CatalogStoreApi, c
 
     send(new ClearMarketplaceOwnHistoryComposer({ category }));
 };
-
-/** `MarketPlaceLogic.isAccountSafetyLocked`. */
-export const isMarketplaceAccountSafetyLocked = () => userStore.getState().accountSafetyLocked;

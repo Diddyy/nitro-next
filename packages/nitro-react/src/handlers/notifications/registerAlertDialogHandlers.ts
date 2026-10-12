@@ -11,7 +11,7 @@
  *   it calls `IHabboHelp.showHabboWay` in Flash; the Habbo Way window (`HabboWayController` on
  *   `habbo_way`, and the quiz it leads to) is one of the help windows the port has not got, so
  *   here the close does nothing more. The `notification.feed.enabled` feed item is not made either:
- *   the notification feed is not ported (and the hotel sets the key false).
+ *   no Flash path creates the notification feed (and the hotel sets the key false).
  * - `handleModeratorMessage`: the same alert for a moderator's message, whose close never leads
  *   to the Habbo Way; also only while `notification.items.enabled`.
  * - `handleUserBannedMessage`: the same alert for a ban, with no url, whatever the config says.
@@ -62,8 +62,8 @@ export const registerAlertDialogHandlers = ({ subscribe }: WebSocketConnection) 
             linkTitle: localize('mod.alert.link'),
             // `SimpleAlertDialog`: `param6 = interpolate(param6)`.
             linkUrl: systemStore.getState().interpolate(url),
-            // `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('window-manager/illumina_alert_illustrations_frank_neutral.png')`.
-            illustration: 'window-manager-illumina_alert_illustrations_frank_neutral',
+            // `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('habbo-window-manager-com/illumina_alert_illustrations_frank_neutral.png')`.
+            illustration: 'habbo-window-manager-com-illumina_alert_illustrations_frank_neutral',
         });
     };
 

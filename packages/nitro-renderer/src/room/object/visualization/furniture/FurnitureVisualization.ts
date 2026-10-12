@@ -10,6 +10,10 @@ import { IVariableFxVisualizationHost, IVariableFxVisualizationRoomData } from '
 import { VariableFxStatusReconciler } from '../variablefx/VariableFxStatusReconciler';
 import { FurnitureVisualizationData } from './FurnitureVisualizationData';
 
+/**
+ * Port of Flash `FurnitureVisualization`, the visualization `RoomObjectVisualizationFactory`
+ * builds for `furniture_static`.
+ */
 export class FurnitureVisualization extends RoomObjectSpriteVisualization implements IVariableFxVisualizationHost {
     protected static DEPTH_MULTIPLIER: number = Math.sqrt(0.5);
 
@@ -21,7 +25,6 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
     private static VARIABLE_FX_STACK_LAYER: number = 0;
     private static VARIABLE_FX_STACK_GAP: number = 4;
     private static VARIABLE_FX_MANAGER_UPDATE_ID_UNSET: number = -2;
-    private static NO_FILTERS: Filter[] = [];
 
     protected _data: FurnitureVisualizationData | undefined = undefined;
     protected _type: string | undefined = undefined;
@@ -719,7 +722,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
         sprite.alphaTolerance = AlphaTolerance.MATCH_NOTHING;
         sprite.clickHandling = false;
         sprite.skipMouseHandling = true;
-        sprite.filters = [];
+        sprite.filters = FurnitureVisualization.NO_FILTERS;
         sprite.spriteType = RoomObjectSpriteTypeEnum.Default;
         sprite.varyingDepth = false;
     }

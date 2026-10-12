@@ -11,7 +11,7 @@
  */
 import { type IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { createVariablePickerState, getPickerSelectedVariable, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import { normalizeWiredVariableName } from '../../common/WiredVariableSections';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -48,5 +48,5 @@ export const variableCapturerAddon: WiredElementDefinition<VariableCapturerAddon
     },
     readIntParams: form => [ form.textMode ? 1 : 0 ],
     readStringParam: form => form.name,
-    readVariableIds: form => [ form.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
 };

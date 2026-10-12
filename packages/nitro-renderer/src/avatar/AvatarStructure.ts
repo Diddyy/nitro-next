@@ -1,4 +1,4 @@
-import { AvatarBodyPartType, AvatarDirectionAngle, AvatarFigurePartType, AvatarGenderType, AvatarGeometryType, AvatarScaleType, AvatarSetType, IActionDefinition, IActiveActionData, IAnimation, IAnimationLayerData, IAssetAnimation, IAssetAvatarActionData, IAssetAvatarAnimation, IAssetAvatarBodyPartItem, IAssetAvatarGeometryConfig, IAssetAvatarPartSetItem, IAssetAvatarPartSets, IAvatarCanvas, IAvatarFigureContainer, IAvatarImage, IAvatarStructure, IFigureData, IFigurePartSet, IPartColor, IStructureData } from '@nitrodevco/nitro-api';
+import { AvatarActionType, AvatarBodyPartType, AvatarDirectionAngle, AvatarFigurePartType, AvatarGenderType, AvatarGeometryType, AvatarScaleType, AvatarSetType, IActionDefinition, IActiveActionData, IAnimation, IAnimationLayerData, IAssetAnimation, IAssetAvatarActionData, IAssetAvatarAnimation, IAssetAvatarBodyPartItem, IAssetAvatarGeometryConfig, IAssetAvatarPartSetItem, IAssetAvatarPartSets, IAvatarCanvas, IAvatarFigureContainer, IAvatarImage, IAvatarStructure, IFigureData, IFigurePartSet, IPartColor, IStructureData } from '@nitrodevco/nitro-api';
 import { Point } from 'pixi.js';
 
 import { ActionDefinition, AvatarActionManager } from './actions';
@@ -7,6 +7,7 @@ import { AvatarImagePartContainer } from './AvatarImagePartContainer';
 import { AvatarModelGeometry } from './geometry';
 import { AnimationAction, AvatarAnimationData, FigureSetData, PartSetsData } from './structure';
 
+/** Port of Flash `AvatarStructure`. */
 export class AvatarStructure implements IAvatarStructure {
     private _geometry: AvatarModelGeometry | undefined = undefined;
     private _figureData: FigureSetData = new FigureSetData();
@@ -390,7 +391,7 @@ export class AvatarStructure implements IAvatarStructure {
 
     /** The CarryItem parameter ids: every item id the client can hold. */
     public getItemIds(): string[] {
-        const definition = this._actionManager.getActionDefinition('CarryItem');
+        const definition = this._actionManager.getActionDefinition(AvatarActionType.CarryItem);
 
         if (!definition) return [];
 
@@ -403,10 +404,6 @@ export class AvatarStructure implements IAvatarStructure {
 
     public get figureData(): IStructureData {
         return this._figureData;
-    }
-
-    public get partData(): PartSetsData {
-        return this._partSetsData;
     }
 
     public get animationManager(): AnimationManager {

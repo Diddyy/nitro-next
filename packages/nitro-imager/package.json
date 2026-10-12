@@ -1,0 +1,25 @@
+{
+    "name": "@nitrodevco/nitro-imager",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "node build.ts",
+        "start": "node --enable-source-maps dist/main.js",
+        "dev": "tsx watch src/main.ts",
+        "test": "tsx --test test/*.test.ts"
+    },
+    "dependencies": {
+        "@hono/node-server": "^2.1.4",
+        "@napi-rs/canvas": "^1.0.11",
+        "@nitrodevco/nitro-api": "workspace:*",
+        "@nitrodevco/nitro-renderer": "workspace:*",
+        "gifenc": "^1.0.3",
+        "hono": "^4.13.13",
+        "pixi.js": "^8.18.1"
+    },
+    "devDependencies": {
+        "esbuild": "^0.28.2",
+        "tsx": "^4.23.15",
+        "typescript": "^5.9.3"
+    }
+}

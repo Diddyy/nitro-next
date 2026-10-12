@@ -1,14 +1,8 @@
 /**
- * What several trigger confs (and the selectors that build the same widgets) share: the clamp a
- * `SliderSection.value = x` applies in `onEditStart`, and the team radio `ScoreAchieved` and
- * `selectors/UsersInTeam` both build.
+ * What several trigger confs (and the selectors that build the same widgets) share: the team radio
+ * `ScoreAchieved` and `selectors/UsersInTeam` both build. The clamp a `SliderSection.value = x`
+ * applies in `onEditStart` is `clampSliderValue` in `wired/common/WiredUtil`.
  */
-
-/**
- * `SliderSection.value = x` -> `SliderWindowControllerNew.setValue`, which clamps to the slider's
- * range - so a box saved with a value outside it reads back as the nearest end.
- */
-export const clampSliderSectionValue = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
 /**
  * `createRadioGroup([ RadioButtonParam(0, l("team.any"), null, null, true), RadioButtonParam(1, l("team.1")), ... ], null, 2)` -

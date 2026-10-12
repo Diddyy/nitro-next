@@ -24,10 +24,10 @@ import {
 import { useViewportSize } from '#base/hooks';
 import { WiredCheckboxGroup } from '#base/views/wired-setup/kit/WiredCheckboxGroup';
 import { WiredDropdown } from '#base/views/wired-setup/kit/WiredDropdown';
+import { WiredFooter } from '#base/views/wired-setup/kit/WiredFooter';
 import { WiredSection } from '#base/views/wired-setup/kit/WiredSection';
 import { WiredSimpleList } from '#base/views/wired-setup/kit/WiredSimpleList';
 import { WiredUsageInfoSection } from '#base/views/wired-setup/kit/WiredUsageInfoSection';
-import { WiredTradingFooter } from '#base/views/wired-trading/common/WiredTradingFooter';
 import { WiredTradingFrame } from '#base/views/wired-trading/common/WiredTradingFrame';
 import { UBUNTU_WIRED_STYLE } from '#base/wired';
 
@@ -148,7 +148,7 @@ export const WiredChestNotificationSettingsView = ({ request, data, onClose }: W
                         />
                     </WiredSection>
                 </WiredSection>,
-                <WiredTradingFooter
+                <WiredFooter
                     key="footer"
                     onSave={onSave}
                     onCancel={onClose}

@@ -15,7 +15,7 @@
 import type { IWiredVariable } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
-import { findVariableById, isCheckboxMaskBitSet, setCheckboxMaskBit, VARIABLE_FX_SHOW_DURATION_MAX, VARIABLE_FX_SHOW_DURATION_MIN, VariableFxAudience, VariableFxState, variableValueWithString, WIRED_SOURCE_USER, WiredDropdownOption, WiredElementContext } from '#base/wired';
+import { findVariableById, isCheckboxMaskBitSet, isVariableFxVariableAudience, setCheckboxMaskBit, VARIABLE_FX_SHOW_DURATION_MAX, VARIABLE_FX_SHOW_DURATION_MIN, VariableFxAudience, VariableFxState, variableValueWithString, WIRED_SOURCE_USER, WiredDropdownOption, WiredElementContext } from '#base/wired';
 
 import { WiredCheckboxGroup } from '../../../../kit/WiredCheckboxGroup';
 import { WiredNamedDropdown } from '../../../../kit/WiredNamedDropdown';
@@ -29,9 +29,6 @@ import { VariableFxAudienceVariablePopup } from './VariableFxAudienceVariablePop
 
 /** The update mask checkboxes (`update_mask.1` to `.4`, ids 0 to 3). */
 const UPDATE_MASK_IDS = [ 0, 1, 2, 3 ];
-
-const isVariableAudience = (visibility: number): boolean =>
-    (visibility === VariableFxAudience.HAS_VARIABLE) || (visibility === VariableFxAudience.HAS_VARIABLE_VALUE);
 
 /** `variableAudienceOptionText`. */
 const variableAudienceOptionText = (state: VariableFxState, variables: readonly IWiredVariable[] | undefined, ctx: WiredElementContext): string => {
@@ -130,7 +127,7 @@ export const VariableFxVisibilitySettings = ({ state, variables, ctx, onChange, 
                     options={createAudienceOptions(state, variables, ctx)}
                     selected={state.visibility}
                     onSelect={(visibility) => {
-                        if (isVariableAudience(visibility)) setPopupOpen(true);
+                        if (isVariableFxVariableAudience(visibility)) setPopupOpen(true);
                         else onChange({ visibility });
                     }}
                     caption=""

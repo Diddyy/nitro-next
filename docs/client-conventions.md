@@ -1,37 +1,52 @@
 # Client code conventions
 
 Read the relevant sections when changing `packages/nitro-react` code. Paths below are relative
-to that package. These conventions also apply when reviewing the affected code. For Nitro Studio
-UI, follow that application's own conventions; the client's Pixi-only rule does not apply to it.
+to that package, except `scripts/drift/`, the local (git-ignored) drift checks at the repository
+root - see [Staying in step](staying-in-step.md). These conventions also apply when reviewing the
+affected code. For Nitro Studio UI, follow that application's own conventions; the client's
+Pixi-only rule does not apply to it.
 
 ```
 src/
+  index.tsx     Mounts `Nitro`, the boot: the config first, then the gamedata beside the
+                renderer's bundles behind `NitroView`'s loading screen, the connection last.
+                `MainView` registers the packet handlers and mounts the windows and the room.
   commands/     Plain functions that send packets and write stores - `<feature>Commands.ts`.
-  context/      Zustand stores, one feature per directory.
+  context/      Zustand stores, one feature per directory. `context/communication` is the one
+                React context that is not a store: the socket, read with `useWebSocketContext()`
+                for `send`.
   handlers/     Incoming packet listeners, registered once per connection.
   hooks/        React hooks. `hooks/room` is the room engine's event side.
   components/   Wiring: mounts, permissions, callbacks; renders a view.
-  views/        Presentation, one window or widget per directory.
-  theme/        The Pixi UI kit (Frame, Box, Button, ThemeText, ...). Do not add feature code here.
+  views/        Presentation, one window or widget per directory; `views/shared` holds what
+                several windows draw (product icons, badge images, grid overlays).
+  theme/        `#base/theme`: re-exports the Pixi UI kit from `packages/nitro-theme` (Frame, Box,
+                Button, ThemeText, ...), configures it for the client (`themeHost.ts`) and adds
+                what only the client has (`TemplateWindow`, `useTemplate`, the room stage under
+                the UI). Do not add feature code here or in `nitro-theme`.
                 Everything renders through Pixi - there is no DOM render target, and no component
                 has a DOM twin. React DOM mounts one thing: the canvas `PixiApplicationRoot` owns.
   chat/         Chat bubble models.
+  wired/        Wired element definitions - see [Wired](wired.md).
+  sound/        The sound manager.
   utils/        Pure helpers.
 ```
 
-Every `index.ts` under `context/<feature>`, `hooks`, `handlers`, `commands`, `components`, `utils`
-and `chat` is generated: run `node scripts/generate-barrels.ts` (`yarn generate-barrels`) from `packages/nitro-react` after adding,
-moving or deleting a file there, and never edit one by hand. `theme/index.ts` is curated by hand
-and `views/` has no barrels - views are imported by path.
+Every `index.ts` under `context/<feature>`, `hooks`, `handlers`, `commands`, `components`, `utils`,
+`chat`, `wired` and `sound` is generated: run `node scripts/generate-barrels.ts`
+(`yarn generate-barrels`) from `packages/nitro-react` after adding, moving or deleting a file
+there, and never edit one by hand. `theme/index.ts` is curated by hand and `views/` has no
+barrels - views are imported by path.
 
 ### Every file
 
 - `.ts` unless the file contains JSX. Selector hooks, action hooks, stores, commands and most
   hooks are `.ts`.
-- A docblock at the top saying what the module is and, for a port, which Flash class it
-  ports. A reader should not need to open a second file to learn what the first one is for.
-- No `eslint-disable`. The two that exist each carry a reason; do not add a third
-  without one, and prefer restructuring.
+- A docblock saying what the module is and, for a port, which Flash class it ports: on line 1,
+  above the imports, or - where the file is one component, class or hook - on that export.
+  A reader should not need to open a second file to
+  learn what the first one is for.
+- No `eslint-disable`. `nitro-react` has none; restructure instead of adding one.
 - No `TODO`. Do the thing, or say in the docblock what is missing and why, so the gap is
   documented rather than deferred.
 - No copy-paste stubs and no dead code: a file nothing imports, or a slice that duplicates
@@ -42,30 +57,34 @@ Lint enforces the style: 4-space indent, single quotes, `[ a, b ]` array spacing
 on multiline, `simple-import-sort` with `#base/*` as its own group. Run `eslint --fix` for the
 mechanical fixes rather than hand-formatting.
 
-The React Compiler is on. Never add `eslint-disable react-hooks/*`. When a rule fires, restructure:
+The React Compiler is on. When a `react-hooks` rule fires, restructure:
 no impure calls at render time (`performance.now()`, `Math.random()`, `new Date()` - use
 `useSyncExternalStore` or a hook such as `useSecondsClock`), no `setState` synchronously inside an
 effect to "sync" props (adjust during render instead, as `RoomBotSkillConfigurationWidget` does with
 `loadedFor`), no reading `.current` during render.
 
 Imports go through the aliases: `#base/context/<feature>` (never `#base/context`),
-`#base/commands`, `#base/handlers`, `#base/hooks`, `#base/theme`, `#base/utils`,
-`#base/views/...` and `#base/components/...` by path.
+`#base/commands`, `#base/handlers`, `#base/hooks`, `#base/components`, `#base/theme`,
+`#base/utils`, and `#base/views/...` by path.
 
 ### Stores (`context/<feature>`)
 
-- **App-wide singletons**: `roomStore`, `userStore`, `systemStore`, `navigatorStore`,
-  `avatarEditorStore`, `notificationStore`, `inventoryStore`, `wiredStore`, `wiredTradingStore`.
-  Read in React with `useXStore(x => x.field)`, one field per call - never select an object
+- **App-wide singletons**: every store except catalog and friends (`roomStore`, `userStore`,
+  `systemStore`, `navigatorStore`, `inventoryStore`, `wiredStore`, ...). Read in React with `useXStore(x => x.field)`, one field per call - never select an object
   literal. Outside React use `xStore.getState()`.
-- **Window-scoped stores** (catalog, friends) keep a provider and are read with
-  `useXStore(selector)` inside it; `useXStoreApi()` gives the raw store to handlers. Prefer a
-  singleton: a window that should remember what it held when it reopens (the avatar editor's
-  wardrobe) cannot do so from a store that is created with the window.
-- Each store is composed of slices: `context/room/store/RoomBotsSlice.ts` exports a `State`, an
-  `Actions` type, `XSliceInitialState` and `createXSlice`. `RoomStore.setRoom` resets every slice
-  from its initial state, so put per-room data in a room slice and it is cleared for free.
-- **Actions** are exposed by `context/<feature>/actions/useXActions.tsx`, which reads them off the
+- **Provider stores** (catalog, friends) are read with `useXStore(selector)` inside their
+  provider; `useXStoreApi()` gives the raw store to handlers. The catalog has one store per
+  catalogue type (`getCatalogStore`), made the first time it is asked for and kept for the
+  session, and its provider only hands it out. The friend list's store is created with its
+  window. Prefer a singleton: a window that should remember what it held when it reopens (the
+  avatar editor's wardrobe) cannot do so from a store that is created with the window.
+- A store that holds more than one concern is composed of slices:
+  `context/room/store/RoomBotsSlice.ts` declares its `State` and `Actions` types and exports
+  `XSlice` (the two combined), `XSliceInitialState` and `createXSlice`. `RoomStore.setRoom` resets
+  every slice from its initial state, so put per-room data in a room slice and it is cleared for
+  free. A single-concern store (`messengerStore`, `questsStore`) declares its state and actions
+  in one file.
+- **Actions** are exposed by `context/<feature>/actions/useXActions.ts`, which reads them off the
   store once and returns a constant object. Components take actions from there, not from a
   selector, so an action user never re-renders.
 - **Selectors** with a name live in `context/<feature>/selectors/`, one hook per file, grouped
@@ -81,7 +100,9 @@ Imports go through the aliases: `#base/context/<feature>` (never `#base/context`
 ### Packet handlers (`handlers/`)
 
 One file per Flash message handler, named `register<Feature>Handlers.ts`, in the directory of the
-store it mainly writes (`handlers/room`, `handlers/user`, `handlers/navigator`). The shape:
+store it mainly writes (`handlers/room`, `handlers/user`, `handlers/navigator`). The shape
+(illustrative - `registerRoomInfostandHandlers` itself is simpler), with `on` and `subscribeAll`
+from `handlers/packetSubscriptions.ts`:
 
 ```ts
 /**
@@ -115,17 +136,17 @@ Rules:
 - The handler that consumes an answer is the one that sends the request
   (`on(UserObjectMessage, () => send(new GetIgnoredUsersComposer({})))`).
 - Register the file in `handlers/registerHandlers.ts` (the barrel is generated). Only a handler
-  whose store is created with a window registers from that window, with `useRegisterHandlers`.
+  that writes a provider store registers from that store's window, with `useRegisterHandlers`
+  (the catalogue's, from `CatalogComponent` and `CatalogBuildersClubComponent`, each for its
+  own store).
 - Something that is not a packet listener (a store subscription bridging into the renderer)
-  still returns its unsubscribe and is named for what it does, not `*Handlers`.
+  still returns its unsubscribe and is named `bridge<What>` for what it does
+  (`bridgeRecyclerRoomSession`), not `*Handlers`.
 - No React in `handlers/`. If a listener needs a value React owns, the value belongs in a store.
 - A registered incoming packet nobody subscribes to is a feature that silently does nothing: the
-  packet arrives, is parsed and is dropped. `scripts/drift/handlers.py` holds every entry of
-  `GetIncomingPackets.ts` against the subscription sites and against the Flash component that
-  handles the same message id, so a parser with no listener is either wired up or listed in
-  `known.HANDLERS_UNHANDLED` with what it waits for - the window, store or manager that is
-  missing, never a blanket "not ported yet". Finishing a packet in `nitro-packets` is half the
-  job; the other half is the listener, or the entry saying why there is none.
+  packet arrives, is parsed and is dropped. Finishing a packet in `nitro-packets` is half the job;
+  the other half is the listener, or a `known.HANDLERS_UNHANDLED` entry naming what it waits for
+  (`handlers.py` checks it; see [Staying in step](staying-in-step.md)).
 
 ### Hooks (`hooks/`)
 
@@ -133,6 +154,10 @@ Rules:
   subscribed with `useRoomEventDispatcher(TYPE, handler)`; the hook keeps the latest handler in a
   ref, so pass a fresh closure and do not memoise it. Hooks that handle those events are named
   `useRoom<Thing>Handler`; the `Handler` suffix means engine events here, packets in `handlers/`.
+  Those for the room objects' own events (`useRoomEventHandler`, `useRoomWidgetRequestHandler`,
+  `useRoomFurnitureActionHandler`, ...) return `handle*` functions instead, and
+  `components/room/RoomEventHandler.ts` - Flash's `RoomObjectEventHandler` - is the one place
+  that subscribes them.
 - A hook that just binds a command to the socket or fixes one argument of a generic hook is not
   worth a file. Call `goToRoom(send, id)` or `useWindowVisibility('catalog')` at the use site.
 - Hooks that derive a view model (`useRoomUserData` -> `AvatarInfo`) return one typed object with
@@ -148,20 +173,23 @@ Rules:
 Two shapes, by what is being built:
 
 - **Room widgets** (`components/room/widgets/<widget>/<Name>Widget.tsx` +
-  `views/room-widgets/<widget>/<Name>View.tsx`): the component is mounted by `RoomWidgets`,
-  reads stores, hooks and the socket, works out permissions and callbacks, and renders the view
+  `views/room-widgets/<widget>/<Name>View.tsx`): the component is mounted by `RoomWidgets` - a
+  furniture widget through `components/room/widgets/furniture/furnitureWidgetRegistry.ts`, keyed
+  by the `RoomObjectWidgetRequestEvent` that opens it - reads stores, hooks and the socket, works out permissions and callbacks, and renders the view
   with props. The view is props and theme components. The Flash gating rule lives in the
   component, with the Flash method named in a comment.
 - **Windows** (`views/<window>/<Name>View.tsx`, mounted by `components/<window>/<Name>Component.tsx`):
-  the component decides visibility (and holds the provider for a window-scoped store); the view
-  owns its wiring, the way `NavigatorView` and `CatalogView` do.
+  the component decides visibility (and holds the provider for a provider store); the view
+  owns its wiring, the way `NavigatorView` and `CatalogView` do. A catalogue page draws the
+  widgets its layout names through `views/catalog/page/CatalogPageRegistry.ts` and
+  `views/catalog/page/widgets/*WidgetView.tsx`.
 
 In either shape a view may read stores through selector and action hooks, translate with
 `useTranslation`, and send packets through `commands`; it never calls `xStore.getState()` and
 never registers packet handlers.
 
 Naming: `*Widget` for a room widget's component, `*Component` for a window's mount, `*View` for
-a view. Sub-views of a window (`FriendListTab`, `AvatarEditorWardrobe`) carry the window's name as
+a view. Sub-views of a window (`FriendListFace`, `AvatarEditorWardrobe`) carry the window's name as
 a prefix. Nothing carries a `Pixi` or `Dom` suffix: the client renders with Pixi only, and a name
 like `BoxPixi` used to mean it had a DOM twin. `Pixi` in a name is the library
 (`PixiApplicationRoot`, `usePixiTexture`, the `Container as PixiContainer` alias), never a target.
@@ -200,7 +228,7 @@ like `BoxPixi` used to mean it had a DOM twin. `Pixi` in a name is the library
 - A drop menu is the theme's `Dropmenu`: `caption`, `options` (each with its own `onSelect`,
   `keepOpen` for an entry that lists more). It opens Flash's expanded view over itself, fits it on
   the screen and scrolls it (`placeExpandedDropmenu`), and closes on a pick or an outside press.
-  Wrap it for a feature (`WiredDropdown`, `WiredMenuDropmenu`); do not build another list popup.
+  Wrap it for a feature (`WiredDropdown`); do not build another list popup.
 - Every `Frame` stays unrendered until its size and position have settled
   (`useRevealWhenSettled`), so a window never flashes small in a corner first. Content that
   keeps changing for a while still shows after 12 frames.

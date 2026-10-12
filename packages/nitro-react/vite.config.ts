@@ -93,6 +93,8 @@ export default defineConfig(({ mode }) => {
     const bundledDev = mode === 'bundled';
 
     return {
+    // The repository root's `.env` - where a host such as Ploi writes the site's environment.
+    envDir: r('../..'),
     experimental: {
         bundledDev,
     },
@@ -125,6 +127,9 @@ export default defineConfig(({ mode }) => {
                     }
                     if (id.includes('/packages/nitro-renderer/')) {
                         return 'nitro-renderer';
+                    }
+                    if (id.includes('/packages/nitro-theme/')) {
+                        return 'nitro-theme';
                     }
                     if (id.includes('node_modules')) {
                         if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) {

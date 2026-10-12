@@ -1,8 +1,9 @@
-﻿import { RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
+import { RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
 import { RoomObjectLocationCacheItem } from './RoomObjectLocationCacheItem';
 import { RoomObjectSortableSpriteCacheItem } from './RoomObjectSortableSpriteCacheItem';
 
+/** Port of Flash `RoomObjectCacheItem`. */
 export class RoomObjectCacheItem {
     private _objectId: number;
     private _location: RoomObjectLocationCacheItem;

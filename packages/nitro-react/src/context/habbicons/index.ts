@@ -2,5 +2,6 @@
 export * from './actions';
 export * from './HabbiconAlbumModel';
 export * from './HabbiconState';
+export * from './selectors';
 export * from './store';
 export * from './useHabbiconsStore';

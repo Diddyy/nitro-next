@@ -1,8 +1,8 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 
-import { getGlobalRect } from '../utils';
-import { clearStoredFrameSize, FrameSize, getStoredFrameSize, setStoredFrameSize } from '../utils/frameSizeStorage';
+import { clamp, getGlobalRect } from '../utils';
+import { clearStoredFrameSize, FrameSize, getStoredFrameSize, setStoredFrameSize } from '../utils/frameStorage';
 
 export type FrameResizeDirection = 'x' | 'y' | 'all' | 'none';
 
@@ -35,18 +35,13 @@ const DRAG_THRESHOLD = 4;
 const DOUBLE_TAP_DELAY = 300;
 const DOUBLE_TAP_DISTANCE = 24;
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
 const distance = (x: number, y: number, toX: number, toY: number) => Math.hypot(x - toX, y - toY);
 
 /**
- * Pixi port of hooks/ui/useFrameResize.ts. Pixi's FederatedPointerEvent has no setPointerCapture (confirmed absent from
- * pixi.js's FederatedEvent types), so unlike the original DOM hook this drives the whole
- * gesture off window-level pointermove/pointerup listeners (the same technique
- * useFrameDrag.ts uses) instead of per-element pointer capture, in both render targets - kept
- * that way here for consistency even though DOM's `setPointerCapture` would work fine on its
- * own. There's also no CSS `min-width`/`min-height` to read via getComputedStyle, so the
- * minimum size is passed in explicitly by the caller (Frame, per variant) instead.
+ * A frame's scaler drag (Flash's `WindowMouseScaler`): the size the user gives the frame, kept per
+ * frame `id` (`frameStorage`). Pixi's `FederatedPointerEvent` has no pointer capture, so the
+ * gesture runs on window-level `pointermove` / `pointerup` listeners, as `useFrameDrag` does. The
+ * limits are the caller's (`Frame`, from its layout and variant).
  */
 export const useFrameResize = (
     id: string | undefined,

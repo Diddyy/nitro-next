@@ -99,7 +99,7 @@ await test('object bounds and anchors follow the signed display transform with p
         }
     }
 });
-const hookSource = readFileSync(new URL('../packages/nitro-react/src/hooks/room/useRoomCamera.tsx', import.meta.url), 'utf8');
+const hookSource = readFileSync(new URL('../packages/nitro-react/src/hooks/room/useRoomCamera.ts', import.meta.url), 'utf8');
 const hookFixture = (enabled = true) => {
     let ref;
     const listeners = {};

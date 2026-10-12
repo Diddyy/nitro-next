@@ -1,12 +1,3 @@
-import { RoomThicknessType } from '@nitrodevco/nitro-api';
-import { BuildersClubSubscriptionStatusMessage, FloorHeightMapMessage, RoomEntryTileMessage, RoomOccupiedTilesMessage, RoomVisualizationSettingsMessage } from '@nitrodevco/nitro-packets';
-
-import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
-import { userStore } from '#base/context/user';
-
-import { on, subscribeAll } from '../packetSubscriptions';
-
 /**
  * What the floor plan editor listens to - the message half of `BCFloorPlanEditor`.
  *
@@ -19,6 +10,14 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * Builder's Club subscription is the account's and lands in the user store, where the editor's
  * countdown finds it again the next time it opens.
  */
+import { RoomThicknessType } from '@nitrodevco/nitro-api';
+import { BuildersClubSubscriptionStatusMessage, FloorHeightMapMessage, RoomEntryTileMessage, RoomOccupiedTilesMessage, RoomVisualizationSettingsMessage } from '@nitrodevco/nitro-packets';
+
+import { WebSocketConnection } from '#base/context/communication';
+import { roomStore } from '#base/context/room';
+import { userStore } from '#base/context/user';
+
+import { on, subscribeAll } from '../packetSubscriptions';
 
 /**
  * `BCFloorPlanEditor.getThicknessSelectionIndex`, as the setting rather than the dropmenu's index.

@@ -2,6 +2,10 @@ import { IRoomGeometry, IRoomSpriteMouseEvent, MouseEventType, RoomObjectStateCh
 
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-PO§`, the logic `RoomObjectFactory` builds for
+ * `furniture_counter_clock`.
+ */
 export class FurnitureCounterClockLogic extends FurnitureLogic {
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [ RoomObjectStateChangedEvent.STATE_CHANGE ]);

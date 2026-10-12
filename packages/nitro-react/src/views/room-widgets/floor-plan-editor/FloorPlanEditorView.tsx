@@ -11,7 +11,7 @@ import {
 } from '#base/theme';
 import {
     FLOOR_PLAN_DRAW_MODES, FLOOR_PLAN_LEVELS, FLOOR_PLAN_ZOOM_LARGE, FLOOR_PLAN_ZOOM_NORMAL,
-    FloorPlanDrawMode, floorPlanHeightColors, FloorPlanModel, FloorPlanTile,
+    FloorPlanDrawMode, floorPlanHeightColors, FloorPlanModel, FloorPlanTile, toCssHexColor,
 } from '#base/utils';
 
 import { FloorPlanHeightMapView } from './FloorPlanHeightMapView';
@@ -19,6 +19,25 @@ import { FloorPlanImportExportView } from './FloorPlanImportExportView';
 import { FloorPlanPreviewView } from './FloorPlanPreviewView';
 import { FloorPlanSlider } from './FloorPlanSlider';
 
+/**
+ * The floor plan editor - `BCFloorPlanEditor`, on the `habbo-window-manager-com/floor_plan_editor_bc`
+ * layout (662x600, frame style 3, margins 0/33/0/0), whose parts this view places by hand rather
+ * than through `TemplateWindow` (see docs/feature-gaps.md). The map on the left is drawn on with
+ * the five tools above it; the panel on the right holds the door direction, the two thickness
+ * menus, the fixed wall height and the isometric preview.
+ *
+ * Controls the port leaves out, and why:
+ *
+ * - `refresh`, beside the preview, is `visible="false"` in the layout: Flash rebuilt the preview
+ *   on a two-second timer and this was the manual nudge for it. The preview here follows the map
+ *   directly, so there is nothing for it to do and it stays hidden, as the client leaves it.
+ * - `mouse_capturer`, the invisible region over the whole scrolling view, is how Flash kept
+ *   receiving mouse moves once a drag left the map. `useRoomFloorPlanDrawing` listens on the
+ *   window instead, which covers the same case without a second interactive layer.
+ *
+ * `BCFloorPlanEditor.WALL_HEIGHT_LIMIT` steps the wall height slider, and the number beside it is
+ * the step plus one - the client counts walls from one and sends them from zero.
+ */
 export interface FloorPlanEditorViewProps {
     model: FloorPlanModel;
     /** The map as text, for the import/export dialog to open on. */
@@ -44,25 +63,6 @@ export interface FloorPlanEditorViewProps {
     onClose: () => void;
 }
 
-/**
- * The floor plan editor - `BCFloorPlanEditor`, on the `floor_plan_editor_bc` layout (662x600, frame
- * style 3, margins 0/33/0/0; read from the decompiled client, as the bundles do not carry it). The
- * map on the left is drawn on with the five tools above it; the panel on the right holds the door
- * direction, the two thickness menus, the fixed wall height and the isometric preview.
- *
- * Controls the port leaves out, and why:
- *
- * - `refresh`, beside the preview, is `visible="false"` in the layout: Flash rebuilt the preview
- *   on a two-second timer and this was the manual nudge for it. The preview here follows the map
- *   directly, so there is nothing for it to do and it stays hidden, as the client leaves it.
- * - `mouse_capturer`, the invisible region over the whole scrolling view, is how Flash kept
- *   receiving mouse moves once a drag left the map. `useRoomFloorPlanDrawing` listens on the
- *   window instead, which covers the same case without a second interactive layer.
- *
- * `BCFloorPlanEditor.WALL_HEIGHT_LIMIT` steps the wall height slider, and the number beside it is
- * the step plus one - the client counts walls from one and sends them from zero.
- */
-
 /** `AvatarImageWidget.FIGURE_DEFAULT` - the figure the empty `avatar_image` widget draws. */
 const GHOST_FIGURE = 'hd-180-1.ch-210-66.lg-270-82.sh-290-81';
 
@@ -76,11 +76,11 @@ const THICKNESSES: { thickness: RoomThicknessType; suffix: string }[] = [
 
 /** The five tool buttons, in `BCFloorPlanEditor._drawModes` order, with the layout's own bitmaps. */
 const DRAW_MODE_IMAGES: Record<FloorPlanDrawMode, string> = {
-    add_tile: 'window-manager/floor_plan_editor_add_tile.png',
-    remove_tile: 'window-manager/floor_plan_editor_remove_tile.png',
-    increase_height: 'window-manager/floor_plan_editor_raise_tile.png',
-    decrease_height: 'window-manager/floor_plan_editor_sink_tile.png',
-    set_enter_tile: 'window-manager/floor_plan_editor_enter_tile.png',
+    add_tile: 'habbo-window-manager-com/floor_plan_editor_add_tile.png',
+    remove_tile: 'habbo-window-manager-com/floor_plan_editor_remove_tile.png',
+    increase_height: 'habbo-window-manager-com/floor_plan_editor_raise_tile.png',
+    decrease_height: 'habbo-window-manager-com/floor_plan_editor_sink_tile.png',
+    set_enter_tile: 'habbo-window-manager-com/floor_plan_editor_enter_tile.png',
 };
 
 /** Each tool's `static_bitmap` in its button: the layout nudges them a pixel or four apart. */
@@ -164,7 +164,7 @@ export const FloorPlanEditorView = ({
                         layout={{ position: 'absolute', left: 3, right: 3, top: 2, height: 45 }}
                     >
                         <ThemeImage
-                            src={LayoutImage('window-manager/floor_plan_editor_logo.png')}
+                            src={LayoutImage('habbo-window-manager-com/floor_plan_editor_logo.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', fitSizeToContents: true }}
                             layout={{ position: 'absolute', left: 9, width: 38, top: 5, height: 38 }}
                         />
@@ -215,12 +215,12 @@ export const FloorPlanEditorView = ({
                                 </ContainerButton>
                             ))}
                             <ThemeImage
-                                src={LayoutImage('friend-bar/landing_view_reception_horizontal.png')}
+                                src={LayoutImage('habbo-window-manager-com/landing_view_reception_horizontal.png')}
                                 bitmap={{ stretchedX: false }}
                                 layout={{ position: 'absolute', left: 122, top: 0, width: 2, height: 42 }}
                             />
                             <ThemeImage
-                                src={LayoutImage('friend-bar/landing_view_reception_horizontal.png')}
+                                src={LayoutImage('habbo-window-manager-com/landing_view_reception_horizontal.png')}
                                 bitmap={{ stretchedX: false }}
                                 layout={{ position: 'absolute', left: 256, top: 0, width: 2, height: 42 }}
                             />
@@ -253,7 +253,7 @@ export const FloorPlanEditorView = ({
                                 {heightColors.map((color, level) => (
                                     <Shape
                                         key={level}
-                                        color={`#${color.toString(16).padStart(6, '0')}`}
+                                        color={toCssHexColor(color)}
                                         layout={{ position: 'absolute', left: Math.round((level * COLORMAP_WIDTH) / FLOOR_PLAN_LEVELS), top: 0, width: Math.ceil(COLORMAP_WIDTH / FLOOR_PLAN_LEVELS), height: COLORMAP_HEIGHT }}
                                     />
                                 ))}
@@ -287,7 +287,7 @@ export const FloorPlanEditorView = ({
                         layout={{ position: 'absolute', left: 12, width: 20, bottom: 22, height: 26 }}
                     >
                         <ThemeImage
-                            src={LayoutImage('shared/roomtools_magnifier.png')}
+                            src={LayoutImage('habbo-window-manager-com/roomtools_magnifier.png')}
                             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
                             layout={{ position: 'absolute', left: -4, width: 30, top: -3, height: 30 }}
                         />
@@ -343,7 +343,7 @@ export const FloorPlanEditorView = ({
                         </ContainerButton>
                     </Region>
                     <ThemeImage
-                        src={LayoutImage('friend-bar/landing_view_reception_horizontal.png')}
+                        src={LayoutImage('habbo-window-manager-com/landing_view_reception_horizontal.png')}
                         bitmap={{ stretchedX: false }}
                         layout={{ position: 'absolute', left: 142, top: 3, width: 3, height: 97 }}
                     />
@@ -420,7 +420,7 @@ export const FloorPlanEditorView = ({
                         >
                             <ThemeImage
                                 name="wall_height_slider"
-                                src={LayoutImage('toolbar/icons_toolbar_divider.png')}
+                                src={LayoutImage('habbo-window-manager-com/icons_toolbar_divider.png')}
                                 bitmap={{ stretchedY: false, pivot: 'center left' }}
                                 layout={{ position: 'absolute', left: 0, top: 0, width: 111, height: 30 }}
                             />

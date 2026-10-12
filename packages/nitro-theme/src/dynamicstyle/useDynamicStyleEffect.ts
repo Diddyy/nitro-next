@@ -23,7 +23,7 @@ export const useDynamicStyleEffect = (role: DynamicStyleRole | undefined): Dynam
 
 /**
  * The props an effect puts on a `Box`/sprite: the position nudge (Pixi adds the container's own
- * position on top of the layout's, DOM translates), the alpha and the multiply tint. Only
+ * position on top of the layout's), the alpha and the multiply tint. Only
  * defined fields are included so a container without an effect keeps its defaults.
  */
 export const dynamicStyleBoxProps = (effect: DynamicStyleEffect | undefined, alpha?: number): { x?: number; y?: number; alpha?: number; tint?: string } => {

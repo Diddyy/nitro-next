@@ -1,112 +1,148 @@
 /** Session-owned achievement browser state, porting AS3 AchievementController. */
-import type { IAchievement, IAchievementLevelUpData } from '@nitrodevco/nitro-packets';
+import type { IAchievement } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
-import { achievementCategories, achievementVisibleInRoom } from './achievementModel';
+import { type AchievementCategory, buildCategories, updateCategories, withMaxProgress } from './achievementModel';
 
 interface AchievementsState {
+    /** `GetAchievementsComposer` was sent this session. */
     requested: boolean;
-    loaded: boolean;
-    achievements: IAchievement[];
+    /** `_categories != null`: the list arrived and is never rebuilt. */
+    categories: AchievementCategory[] | undefined;
+    /** `_SafeStr_9181`: `show` ran before the list arrived. */
+    openRequested: boolean;
+    /** `_pendingCategorySelect`. */
+    pendingCategory: string | undefined;
+    /** `_category` (empty before a category is picked). */
     category: string;
+    /** `_achievement`. */
     selectedId: number | undefined;
-    unseen: number[];
+    /** `_SafeStr_9182`: the achievements updated while not selected, by id. */
+    unseen: IAchievement[];
     score: number;
-    presented: string[];
-    congratulations: IAchievementLevelUpData[];
+    /** `_SafeStr_9180`: the next level shown once the two second transition ends. */
     pending: IAchievement | undefined;
 }
 
 interface AchievementsActions {
     reset: () => void;
     request: () => boolean;
-    setList: (achievements: IAchievement[], category: string, newCodes?: string[], roomCodes?: string[]) => void;
-    update: (achievement: IAchievement, visible: boolean, skipped: string[]) => boolean;
-    finishTransition: () => void;
-    selectCategory: (category: string, newCodes?: string[], roomCodes?: string[]) => void;
+    show: () => void;
+    setList: (achievements: IAchievement[], defaultCategory: string, newCodes?: string[]) => void;
+    selectCategoryLink: (code: string) => void;
+    pickCategory: (code: string) => void;
     selectAchievement: (id: number) => void;
+    back: () => void;
+    update: (achievement: IAchievement) => boolean;
+    finishTransition: () => void;
     close: () => void;
     setScore: (score: number) => void;
-    present: (data: IAchievementLevelUpData) => boolean;
-    dismissCongratulations: () => void;
 }
 
 const initialState: AchievementsState = {
-    requested: false, loaded: false, achievements: [], category: '', selectedId: undefined,
-    unseen: [], score: 0, presented: [], congratulations: [], pending: undefined,
+    requested: false, categories: undefined, openRequested: false, pendingCategory: undefined,
+    category: '', selectedId: undefined, unseen: [], score: 0, pending: undefined,
 };
 
-export const createAchievementsStore = () => createStore<AchievementsState & AchievementsActions>()((set, get) => ({
-    ...initialState,
-    reset: () => set(initialState),
-    request: () => {
-        if (get().requested || get().loaded) return false;
+export const selectedAchievement = (state: AchievementsState) => state.categories
+    ?.find(entry => entry.code === state.category)?.achievements.find(entry => entry.achievementId === state.selectedId);
 
-        set({ requested: true });
+export const createAchievementsStore = () => createStore<AchievementsState & AchievementsActions>()((set, get) => {
+    // `pickCategory`: the first achievement of the category is selected.
+    const pick = (categories: AchievementCategory[], code: string) => {
+        const category = categories.find(entry => entry.code === code);
+
+        if (!category) return false;
+
+        set({ category: category.code, selectedId: category.achievements[0]?.achievementId });
 
         return true;
-    },
-    setList: (achievements, category, newCodes = [], roomCodes = []) => {
-        const categories = achievementCategories(achievements, newCodes);
-        const preferred = get().category || category;
-        const selected = categories.find(entry => entry.code === preferred) ?? categories[0];
+    };
 
-        set({ loaded: true, achievements, category: selected?.code ?? '', selectedId: selected?.achievements.find(entry => achievementVisibleInRoom(entry, roomCodes))?.achievementId });
-    },
-    update: (achievement, visible, skipped) => {
-        const state = get();
-        const old = state.achievements.find(entry => entry.achievementId === achievement.achievementId);
-        const selected = visible && state.selectedId === achievement.achievementId;
-        const latest = state.pending?.achievementId === achievement.achievementId ? state.pending : old;
+    return {
+        ...initialState,
+        reset: () => set(initialState),
+        request: () => {
+            if (get().requested || get().categories) return false;
 
-        if (latest && (achievement.level < latest.level || (achievement.level === latest.level && achievement.field_EX < latest.field_EX))) return false;
-        const unseen = !selected && !skipped.some(code => code && achievement.badgeId.includes(code))
-            ? Array.from(new Set([ ...state.unseen, achievement.achievementId ]))
-            : state.unseen;
-
-        if (state.pending?.achievementId === achievement.achievementId) {
-            set({ pending: achievement, unseen });
-
-            return false;
-        }
-
-        if (selected && old && achievement.level > old.level) {
-            set({ unseen, pending: achievement, achievements: state.achievements.map(entry => entry === old ? { ...old, field_EX: old.field_V1O } : entry) });
+            set({ requested: true });
 
             return true;
-        }
+        },
+        // `AchievementController.show` before the list: remember that the window was asked for.
+        show: () => {
+            if (!get().categories) set({ openRequested: true });
+        },
+        // `AchievementController.onAchievements`.
+        setList: (achievements, defaultCategory, newCodes = []) => {
+            const state = get();
+            const categories = state.categories ?? buildCategories(achievements, newCodes);
 
-        set({ unseen, achievements: old ? state.achievements.map(entry => entry.achievementId === achievement.achievementId ? achievement : entry) : [ ...state.achievements, achievement ] });
+            if (!state.categories) set({ categories });
 
-        return false;
-    },
-    finishTransition: () => {
-        const { pending, achievements } = get();
+            if (!state.openRequested) return;
 
-        if (pending) set({ pending: undefined, achievements: achievements.map(entry => entry.achievementId === pending.achievementId ? pending : entry) });
-    },
-    selectCategory: (category, newCodes = [], roomCodes = []) => {
-        get().finishTransition();
-        const selected = achievementCategories(get().achievements, newCodes).find(entry => entry.code === category);
+            set({ openRequested: false });
 
-        set({ category, selectedId: selected?.achievements.find(entry => achievementVisibleInRoom(entry, roomCodes))?.achievementId });
-    },
-    selectAchievement: selectedId => set({ selectedId }),
-    close: () => {
-        get().finishTransition();
-        set({ unseen: [] });
-    },
-    setScore: score => set({ score }),
-    present: (data) => {
-        const key = `${data.achievementID}:${data.level}`;
+            if (pick(categories, state.pendingCategory ?? defaultCategory)) set({ pendingCategory: undefined });
+        },
+        // `selectCategoryInternalLink`.
+        selectCategoryLink: (code) => {
+            const { categories } = get();
 
-        if (get().presented.includes(key)) return false;
+            if (!categories || !pick(categories, code)) set({ pendingCategory: code });
+        },
+        pickCategory: (code) => {
+            const { categories } = get();
 
-        set({ presented: [ ...get().presented, key ], congratulations: data.showDialogToUser ? [ ...get().congratulations, data ] : get().congratulations });
+            if (categories) pick(categories, code);
+        },
+        selectAchievement: selectedId => set({ selectedId }),
+        // `onBack`: the category's unseen entries are cleared and the overview returns.
+        back: () => {
+            const { category, unseen } = get();
 
-        return true;
-    },
-    dismissCongratulations: () => set({ congratulations: get().congratulations.slice(1) }),
-}));
+            set({ unseen: category ? unseen.filter(entry => entry.category !== category) : unseen, category: '', selectedId: undefined });
+        },
+        // `onAchievement`; true when the two second transition timer starts.
+        update: (achievement) => {
+            const state = get();
+
+            if (!state.categories) return false;
+
+            const current = selectedAchievement(state);
+            const selected = !!current && current.achievementId === achievement.achievementId;
+            const unseen = !selected && !state.unseen.some(entry => entry.achievementId === achievement.achievementId)
+                ? [ ...state.unseen, achievement ]
+                : state.unseen;
+
+            if (selected && achievement.level > current.level) {
+                const running = !!state.pending;
+
+                set({
+                    unseen, pending: achievement,
+                    categories: updateCategories(state.categories, withMaxProgress(current)),
+                });
+
+                return !running;
+            }
+
+            set({ unseen, categories: updateCategories(state.categories, achievement) });
+
+            return false;
+        },
+        // `switchIntoPendingLevel`.
+        finishTransition: () => {
+            const { pending, categories } = get();
+
+            if (!pending || !categories) return;
+
+            set({ pending: undefined, selectedId: pending.achievementId, categories: updateCategories(categories, pending) });
+        },
+        // `close`: only the unseen dictionary is replaced; the selection and transition stay.
+        close: () => set({ unseen: [] }),
+        setScore: score => set({ score }),
+    };
+});
 
 export const achievementsStore = createAchievementsStore();

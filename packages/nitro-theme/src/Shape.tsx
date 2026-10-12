@@ -3,7 +3,7 @@ import { forwardRef, useEffect, useMemo, useState } from 'react';
 
 import { Box, BoxLayout } from './Box';
 import { textureFromCanvas, useLayoutSize } from './hooks';
-import { deriveHsvLayerColor, ThemeLayoutMeta } from './utils';
+import { deriveHsvLayerColor, ThemeLayoutMeta, toCssHexColor } from './utils';
 import { destroyOwnedTexture } from './utils/destroyOwnedTexture';
 import { flashColorFromString, rasterizeShape, ShapeKind } from './utils/shapeRaster';
 
@@ -43,7 +43,7 @@ export const Shape = forwardRef<PixiContainer, ShapeProps>(({
     const width = Math.round((typeof layout?.width === 'number') ? layout.width : measured.width);
     const height = Math.round((typeof layout?.height === 'number') ? layout.height : measured.height);
     const fill = flashColorFromString(color, 0xFFFFFFFF);
-    const stroke = strokeHsvShade ? flashColorFromString(deriveHsvLayerColor(`#${(fill & 0xFFFFFF).toString(16).padStart(6, '0')}`, strokeHsvShade), 0xFF000000) : flashColorFromString(strokeColor, 0xFF000000);
+    const stroke = strokeHsvShade ? flashColorFromString(deriveHsvLayerColor(toCssHexColor(fill), strokeHsvShade), 0xFF000000) : flashColorFromString(strokeColor, 0xFF000000);
 
     const texture = useMemo(() => {
         const canvas = rasterizeShape({ shape, width, height, color: fill, strokeColor: stroke, strokeThickness, radius });

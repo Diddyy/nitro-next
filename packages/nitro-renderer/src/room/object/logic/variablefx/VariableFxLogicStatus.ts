@@ -1,3 +1,4 @@
+/** Port of Flash `VariableFxLogicStatus`. */
 export class VariableFxLogicStatus {
     public extra: Map<string, string>;
     public createdAt: number;

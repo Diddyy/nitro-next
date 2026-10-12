@@ -1,156 +1,103 @@
+/**
+ * The furniture context menu bubble, drawn from its Flash template: `generic_usable_menu`
+ * (`GenericUsableFurnitureContextMenuView.updateWindow`) or `guild_furni_menu`
+ * (`GuildFurnitureContextMenuView.updateWindow`) - the same window, a title over the `buttons` list
+ * and the `minimize` region, differing in their rows. The list sizes itself to its shown rows
+ * (`resize_on_item_update`) and the `border` and bubble follow it, as the layout says.
+ *
+ * What the code does to it is `ButtonMenuView`'s, through `useButtonMenu`: each row the menu offers
+ * is shown and pressable (`showButton(key, true)`), every other row of the layout hidden
+ * (`showButton(key, false)` - the guild menu's `join` for a member, `open_forum` without a forum),
+ * and a row's `button` turns blue under the pointer (`buttonEventProc`). The title is set once the
+ * window is built (`furni_name` / `name`'s caption). On the guild menu `profile_link` has
+ * `infostand.profile.link.tooltip` at a 100 ms delay, its `name` turns 0x91C2FF under the pointer
+ * (`buttonEventProc`) and a press on it opens the group. Minimizing swaps the window for
+ * `minimized_menu` (`ContextInfoView.getMinimizedView`, `useMinimizedMenu`).
+ *
+ * The tooltip delay is not carried: a template binding has no delay, so the theme's default applies.
+ */
 import { useState } from 'react';
 
-import { Bubble, ContainerButton, Icon, Region, ThemeText } from '#base/theme';
+import { TemplateBindings, TemplateWindow } from '#base/theme';
 
-/** One `action` row of the menu's `buttons` list. */
+import { useButtonMenu, useMinimizedMenu } from '../object-menu/useButtonMenu';
+
+/** One row of the menu's `buttons` list, by its name in the layout. */
 export interface FurnitureMenuButton {
     key: string;
     label: string;
     onPointerTap: () => void;
 }
 
+/** The layouts the furniture menus are built from. */
+export type FurnitureMenuLayout = 'generic_usable_menu' | 'guild_furni_menu';
+
 export interface FurnitureMenuBubbleProps {
-    /** The caption of the menu's title text (`furni_name`, or `name` on the guild menu). */
+    menu: FurnitureMenuLayout;
+    /** The title's caption (`furni_name`, or `name` on the guild menu), already translated. */
     title: string;
-    /** `profile_link`'s tooltip on the guild menu; the other menus' title region has none. */
+    /** `profile_link`'s tooltip on the guild menu. */
     titleTooltip?: string;
-    /** `profile_link` on the guild menu opens the group; the other menus' title is not clickable. */
+    /** `profile_link` on the guild menu opens the group; the generic menu's title is not clickable. */
     onTitleTap?: () => void;
+    /** The rows offered, each with its label already translated; the layout's other rows are hidden. */
     buttons: FurnitureMenuButton[];
-    /**
-     * How far below the list's foot the layout puts `minimize`: 1 in `generic_usable_menu`
-     * (list 28-54, `minimize` at 55), 0 in `guild_furni_menu` (list 28-108, `minimize` at 108).
-     */
-    minimizeGap: number;
 }
 
-/** `ContextInfoView.onMinimizeHover`: the icon is 0xFF48A4CD under the pointer, white otherwise. */
-const MINIMIZE_HOVER_TINT = '#48a4cd';
-const MINIMIZE_TINT = '#ffffff';
+/** Each layout's rows, in its `buttons` list. */
+const MENU_ROWS: Record<FurnitureMenuLayout, readonly string[]> = {
+    generic_usable_menu: [ 'use' ],
+    guild_furni_menu: [ 'join', 'home_room', 'open_forum' ],
+};
 
-/** A `buttons` row: 26 high, 1px apart (`spacing`). */
-const ROW_HEIGHT = 26;
-const ROW_SPACING = 1;
+/** Each layout's title text. */
+const TITLE_TEXT: Record<FurnitureMenuLayout, string> = {
+    generic_usable_menu: 'furni_name',
+    guild_furni_menu: 'name',
+};
 
-/**
- * The furniture context menu bubble of `generic_usable_menu` and `guild_furni_menu` - the two
- * layouts are the same window (115 wide, a 107 wide `border` container 4px in) and differ only in
- * their rows. The `buttons` item list (at 2, 28) sizes itself to its visible rows
- * (`resize_on_item_update`), and the `border` and the bubble follow it
- * (`reflect_resize_to_parent`), with `minimize` moving down with the list's foot: with the list at
- * `26n + (n - 1)`, the border is `list + 50` high, the bubble `list + 60` and `minimize` sits
- * `minimizeGap` below the list.
- *
- * The title is an `auto_size="left"` text centred in its 107px region (`relative_horizontal_scale_center`).
- * Each row is a 101x26 container clipping its 107x35 `container_button` drawn at (-3, -4), whose
- * label is centred at (3, 9).
- *
- * Minimizing swaps the whole window for `minimized_menu` (`ContextInfoView.getMinimizedView`): a
- * 45x35 bubble whose `minimize` region carries the icon set's style 6 arrow; the arrow of either
- * view is tinted while the pointer is over its region (`onMinimizeHover`).
- */
-export const FurnitureMenuBubble = ({ title, titleTooltip, onTitleTap, buttons, minimizeGap }: FurnitureMenuBubbleProps) => {
-    const [ minimized, setMinimized ] = useState<boolean>(false);
-    const [ hovered, setHovered ] = useState<boolean>(false);
+/** `buttonEventProc`: `profile_link`'s `name` is 0x91C2FF (9552639) under the pointer, white otherwise. */
+const PROFILE_LINK_HOVER_COLOR = 0x91c2ff;
+const PROFILE_LINK_COLOR = 0xffffff;
 
-    const minimizeTint = hovered ? MINIMIZE_HOVER_TINT : MINIMIZE_TINT;
+export const FurnitureMenuBubble = ({ menu, title, titleTooltip, onTitleTap, buttons }: FurnitureMenuBubbleProps) => {
+    const { showButton } = useButtonMenu();
+    const { minimizedView, bindings: minimizeBindings } = useMinimizedMenu();
+    const [ titleHovered, setTitleHovered ] = useState(false);
 
-    const toggle = () => {
-        setHovered(false);
-        setMinimized(!minimized);
+    if (minimizedView) return minimizedView;
+
+    const isGuild = (menu === 'guild_furni_menu');
+
+    const bindings: TemplateBindings = {
+        ...minimizeBindings,
+        [TITLE_TEXT[menu]]: {
+            caption: title,
+            setCaptionAfterBuild: true,
+            ...(isGuild && { color: titleHovered ? PROFILE_LINK_HOVER_COLOR : PROFILE_LINK_COLOR }),
+        },
     };
 
-    if (minimized) {
-        return (
-            <Bubble
-                variant="0"
-                tintColor="#6e6b67"
-                margins={[ 4, 4, 4, 4 ]}
-                layout={{ width: 45, height: 35 }}
-            >
-                <Region
-                    cursor="pointer"
-                    onPointerTap={toggle}
-                    onPointerOver={() => setHovered(true)}
-                    onPointerOut={() => setHovered(false)}
-                    layout={{ position: 'absolute', left: 0, top: 0, width: 38, height: 30 }}
-                >
-                    <Icon
-                        variant="6"
-                        tintColor={minimizeTint}
-                        layout={{ position: 'absolute', left: 14, top: 11, width: 15, height: 15 }}
-                    />
-                </Region>
-            </Bubble>
-        );
+    if (isGuild) {
+        bindings.profile_link = {
+            tooltip: titleTooltip,
+            onPointerTap: onTitleTap,
+            onPointerOver: () => setTitleHovered(true),
+            onPointerOut: () => setTitleHovered(false),
+        };
     }
 
-    const listHeight = buttons.length ? ((buttons.length * ROW_HEIGHT) + ((buttons.length - 1) * ROW_SPACING)) : 0;
+    for (const row of MENU_ROWS[menu]) {
+        const button = buttons.find(each => each.key === row);
+
+        if (button) showButton(bindings, row, button.onPointerTap, { caption: button.label });
+        else bindings[row] = { visible: false };
+    }
 
     return (
-        <Bubble
-            variant="0"
-            tintColor="#6e6b67"
-            margins={[ 4, 4, 4, 4 ]}
-            layout={{ width: 115, height: listHeight + 60 }}
-        >
-            <Region layout={{ position: 'absolute', left: 0, top: 0, width: 107, height: listHeight + 50 }}>
-                <Region
-                    tooltip={titleTooltip}
-                    tooltipDelay={titleTooltip ? 100 : undefined}
-                    cursor={onTitleTap ? 'pointer' : undefined}
-                    onPointerTap={onTitleTap}
-                    layout={{ position: 'absolute', left: 0, top: 7, width: 107, height: 16, flexDirection: 'row', justifyContent: 'center' }}
-                >
-                    <ThemeText
-                        text={title}
-                        textStyle="u_bold"
-                        textOptions={{ fill: '#ffffff', fontSize: 11 }}
-                        verticalAlign="top"
-                        layout={{ height: 16 }}
-                    />
-                </Region>
-                <Region
-                    backgroundColor="#000000"
-                    layout={{ position: 'absolute', left: 2, top: 27, width: 103, height: 1 }}
-                />
-                <Region layout={{ position: 'absolute', left: 2, top: 28, width: 103, height: listHeight, flexDirection: 'column', gap: ROW_SPACING }}>
-                    {buttons.map(button => (
-                        <Region
-                            key={button.key}
-                            layout={{ width: 101, height: ROW_HEIGHT, marginLeft: 1, flexShrink: 0, overflow: 'hidden' }}
-                        >
-                            <ContainerButton
-                                variant="3"
-                                tintColor="#2d2a27"
-                                onPointerTap={button.onPointerTap}
-                                layout={{ position: 'absolute', left: -3, top: -4, width: 107, height: 35 }}
-                            >
-                                <ThemeText
-                                    text={button.label}
-                                    textStyle="u_regular"
-                                    textOptions={{ fill: '#ffffff', fontSize: 11, align: 'center' }}
-                                    verticalAlign="top"
-                                    layout={{ position: 'absolute', left: 3, top: 9, width: 101, height: 16 }}
-                                />
-                            </ContainerButton>
-                        </Region>
-                    ))}
-                </Region>
-                <Region
-                    cursor="pointer"
-                    onPointerTap={toggle}
-                    onPointerOver={() => setHovered(true)}
-                    onPointerOut={() => setHovered(false)}
-                    layout={{ position: 'absolute', left: 4, top: 28 + listHeight + minimizeGap, width: 100, height: 18 }}
-                >
-                    <Icon
-                        variant="7"
-                        tintColor={minimizeTint}
-                        layout={{ position: 'absolute', left: 45, top: 7, width: 13, height: 10 }}
-                    />
-                </Region>
-            </Region>
-        </Bubble>
+        <TemplateWindow
+            id={`habbo-room-ui-com/${menu}`}
+            bindings={bindings}
+        />
     );
 };

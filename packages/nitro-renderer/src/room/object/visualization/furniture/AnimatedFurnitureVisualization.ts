@@ -4,6 +4,10 @@ import { AnimationData, AnimationFrame, AnimationStateData } from '../data';
 import { AnimatedFurnitureVisualizationData } from './AnimatedFurnitureVisualizationData';
 import { FurnitureVisualization } from './FurnitureVisualization';
 
+/**
+ * Port of Flash `AnimatedFurnitureVisualization`, the visualization
+ * `RoomObjectVisualizationFactory` builds for `furniture_animated`.
+ */
 export class AnimatedFurnitureVisualization extends FurnitureVisualization {
     public static override TYPE: string = RoomObjectVisualizationType.FURNITURE_ANIMATED;
     public static DEFAULT_ANIMATION_ID: number = 0;

@@ -1,11 +1,12 @@
+/**
+ * `UserStore`'s account actions - rights, tags, noobness, pet respects, chat and UI preferences,
+ * chat styles and the Builder's Club subscription - and the effect last worn
+ * (`UserEffectsSlice`). Read off the store once: a component using these re-renders for nothing.
+ */
 import { userStore } from '../store/UserStore';
 
 const state = userStore.getState();
 
-/**
- * Zustand actions are created once and never change, so they are read off the store a single
- * time here rather than subscribed to: a component using these re-renders for nothing.
- */
 const actions = {
     setTags: state.setTags,
     setRights: state.setRights,
@@ -26,6 +27,7 @@ const actions = {
     setPurchasableChatStyleOwned: state.setPurchasableChatStyleOwned,
     setBuildersClubSubscription: state.setBuildersClubSubscription,
     decreaseBuildersClubSecondsLeft: state.decreaseBuildersClubSecondsLeft,
+    setLastWornEffect: state.setLastWornEffect,
 };
 
 export const useUserActions = () => actions;

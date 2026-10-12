@@ -1,12 +1,12 @@
 /**
  * The renderer, and what it shows while the client loads - `HabboAir`'s part in the Flash client.
  *
- * As soon as the renderer is up, the loading screen's art (`loading-screen`) and the fonts its texts
- * are set in come first, and `HabboLoadingScreen` goes up; the photos it picks from
- * (`loading-screen-photos`) follow beside the rest, and the photo appears when they land. Then the
- * preloaded bundles, the fonts, the theme, the chat styles and the room engine load together, and
- * once they and the gamedata are in, the connection opens. The client replaces the screen when the
- * connection is authenticated, as `HabboAir.unk_f3c5a3` disposes it when the core runs.
+ * As soon as the renderer is up, the loading screen's art (`loading-screen`, the frame and the
+ * photos it picks from) and the fonts its texts are set in come first, and `HabboLoadingScreen`
+ * goes up. Then the preloaded bundles, the fonts, the theme, the chat styles and the room engine
+ * load together, and once they and the gamedata are in, the connection opens. The client replaces
+ * the screen when the connection is authenticated, as `HabboAir.unk_f3c5a3` disposes it when the
+ * core runs - and the screen's bundle is unloaded with it, its textures freed on the GPU.
  *
  * The percentage is `HabboAir.updateProgressBar`'s: it starts at 60% - what the AIR shell had
  * already loaded - and the rest is shared out over the steps done, here the config, the three
@@ -23,7 +23,7 @@ import { useEffect, useState } from 'react';
 import { preloadChatStyles } from '#base/chat';
 import { useWebSocketContext } from '#base/context/communication';
 import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, WindowLayer } from '#base/theme';
-import { loadAssetBundle, preloadAssetBundles } from '#base/utils';
+import { loadAssetBundle, preloadAssetBundles, unloadAssetBundle } from '#base/utils';
 
 import { MainView } from './MainView';
 import { LoadingScreenView } from './views/loading-screen/LoadingScreenView';
@@ -66,7 +66,6 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
     const [ isEngineReady, setIsEngineReady ] = useState(false);
     const [ setupDone, setSetupDone ] = useState(0);
     const [ splash, setSplash ] = useState<{ photo: number; seed: number } | null>(null);
-    const [ photoReady, setPhotoReady ] = useState(false);
     const [ error, setError ] = useState<string | undefined>(undefined);
     const [ hasShownClient, setHasShownClient ] = useState(false);
     const { isAuthenticated, isDisconnected, connect } = useWebSocketContext();
@@ -92,8 +91,6 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
                 await Promise.all([ loadAssetBundle('loading-screen'), preloadFlashFonts() ]);
 
                 setSplash({ photo: 1 + Math.floor(Math.random() * SPLASH_PHOTOS), seed: Math.random() });
-
-                void loadAssetBundle('loading-screen-photos').then(setPhotoReady);
 
                 await Promise.all([
                     // Every bundle the config's preload list names. The three below each wait on
@@ -126,6 +123,11 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
     if (isReady && !hasShownClient) setHasShownClient(true);
 
     const showClient = isReady || hasShownClient;
+
+    // The screen never comes back once the client is up, so nothing draws its art any more.
+    useEffect(() => {
+        if (showClient) unloadAssetBundle('loading-screen');
+    }, [ showClient ]);
     const stepsDone = 1 + dataLoaded + setupDone + (isAuthenticated ? 1 : 0);
     const stepsTotal = 1 + dataTotal + SETUP_STEPS + 1;
     const progress = Math.min(1, INITIAL_PROGRESS + ((stepsDone / stepsTotal) * (1 - INITIAL_PROGRESS)));
@@ -139,7 +141,6 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
                     error={error}
                     photo={splash.photo}
                     seed={splash.seed}
-                    photoReady={photoReady}
                 />
             )}
             {!showClient && isDisconnected && (

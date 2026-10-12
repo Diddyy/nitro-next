@@ -1,11 +1,12 @@
+/**
+ * The navigator store's actions. Zustand actions are created once and never change, so they are
+ * read off the store a single time here rather than subscribed to: a component using these
+ * re-renders for nothing.
+ */
 import { navigatorStore } from '../store/NavigatorStore';
 
 const state = navigatorStore.getState();
 
-/**
- * Zustand actions are created once and never change, so they are read off the store a single
- * time here rather than subscribed to: a component using these re-renders for nothing.
- */
 const actions = {
     setTopLevelContexts: state.setTopLevelContexts,
     setTopLevelContext: state.setTopLevelContext,
@@ -35,6 +36,11 @@ const actions = {
     recordRoomVisit: state.recordRoomVisit,
     renameRoomVisit: state.renameRoomVisit,
     stepRoomVisitHistory: state.stepRoomVisitHistory,
+    setWindowGeometry: state.setWindowGeometry,
+    setRoomEventInfoExpanded: state.setRoomEventInfoExpanded,
+    setRoomEventSettingsVisible: state.setRoomEventSettingsVisible,
+    setEnforceCategorySelectionType: state.setEnforceCategorySelectionType,
+    setRoomFilterSelectedIndex: state.setRoomFilterSelectedIndex,
 };
 
 export const useNavigatorActions = () => actions;

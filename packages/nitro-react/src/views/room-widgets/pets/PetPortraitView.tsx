@@ -3,6 +3,11 @@ import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { useChatPetFace } from '#base/hooks';
 import { Box } from '#base/theme';
 
+/**
+ * A pet drawn into a box the way the breeding dialogs fill their `preview_image` bitmaps
+ * (`ConfirmPetBreedingView.updatePreviewImage` and its siblings): the 64-scale image copied in at
+ * its own size, centred, and cut at the box - never scaled to fit.
+ */
 export interface PetPortraitViewProps {
     figure: string;
     posture?: string;
@@ -12,11 +17,6 @@ export interface PetPortraitViewProps {
     direction?: number;
 }
 
-/**
- * A pet drawn into a box the way the breeding dialogs fill their `preview_image` bitmaps
- * (`ConfirmPetBreedingView.updatePreviewImage` and its siblings): the 64-scale image copied in at
- * its own size, centred, and cut at the box - never scaled to fit.
- */
 export const PetPortraitView = ({ figure, posture, width, height, direction = 2 }: PetPortraitViewProps) => {
     const { texture } = useChatPetFace(figure, posture, { scale: RoomGeometryScaleType.ZoomedIn, direction });
 

@@ -1,3 +1,7 @@
+/**
+ * The room view's colorizer - `RoomDesktop`'s `colorizer_wrapper`: a `multiply` rectangle over the
+ * room stage, faded to a dimmer's colour, that lives as long as the room does.
+ */
 import { ColorTransitioner, GetRenderer, GetRoomStage, GetTicker, GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { Graphics } from 'pixi.js';
 

@@ -4,6 +4,7 @@ import { AnimationData } from './AnimationData';
 import { AnimationFrame } from './AnimationFrame';
 import { SizeData } from './SizeData';
 
+/** Port of Flash `AnimationSizeData`. */
 export class AnimationSizeData extends SizeData {
     private _animations: Map<number, AnimationData>;
     private _animationIds: number[];

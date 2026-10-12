@@ -2,6 +2,11 @@ import { IRoomUserData, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { IHabboUserBadge, IRelationshipStatusInfo } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
+/**
+ * The users, pets and bots in the room - what `UserDataManager` keeps for a room session - by
+ * room object id and by server id, with the badges and relationships asked for when one is
+ * selected.
+ */
 type State = {
     usersByRoomObjectId: Record<number, IRoomUserData>;
     /**

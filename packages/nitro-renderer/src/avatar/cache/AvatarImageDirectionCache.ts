@@ -1,6 +1,7 @@
 import { AvatarImageBodyPartContainer } from '../AvatarImageBodyPartContainer';
 import { AvatarImagePartContainer } from '../AvatarImagePartContainer';
 
+/** Port of Flash `AvatarImageDirectionCache`. */
 export class AvatarImageDirectionCache {
     private static KEY_SEPARATOR: string = '/';
     private static NO_FRAMES_KEY: string = '-';

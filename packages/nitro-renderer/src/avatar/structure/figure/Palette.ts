@@ -2,6 +2,7 @@ import { IFigureDataPalette, IPalette, IPartColor } from '@nitrodevco/nitro-api'
 
 import { PartColor } from './PartColor';
 
+/** Port of Flash `Palette`. */
 export class Palette implements IPalette {
     private _id: number;
     private _colors: Map<number, IPartColor> = new Map();

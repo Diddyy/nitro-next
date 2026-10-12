@@ -7,6 +7,14 @@ import {
     floorPlanHeightColors, FloorPlanModel, floorPlanOccupiedHeightColors, FloorPlanTile,
 } from '#base/utils';
 
+/**
+ * The map you draw on - `HeightMapEditor.updateView`. Flash composited one `BitmapData` out of a
+ * tinted clone of the tile bitmap per height; here each tile is a sprite of the one shared texture
+ * with that height's colour as its `tint`, which is the same multiply without a cache of clones.
+ *
+ * The sprites carry no layout of their own and sit at the positions the picture worked out, so the
+ * layout engine has one node to measure however many thousand tiles the map holds.
+ */
 export interface FloorPlanHeightMapViewProps {
     model: FloorPlanModel;
     /** `FLOOR_PLAN_ZOOM_NORMAL` or `FLOOR_PLAN_ZOOM_LARGE` - the magnifier under the map switches between them. */
@@ -17,14 +25,6 @@ export interface FloorPlanHeightMapViewProps {
     onPointerDown: (event: FederatedPointerEvent) => void;
 }
 
-/**
- * The map you draw on - `HeightMapEditor.updateView`. Flash composited one `BitmapData` out of a
- * tinted clone of the tile bitmap per height; here each tile is a sprite of the one shared texture
- * with that height's colour as its `tint`, which is the same multiply without a cache of clones.
- *
- * The sprites carry no layout of their own and sit at the positions the picture worked out, so the
- * layout engine has one node to measure however many thousand tiles the map holds.
- */
 export const FloorPlanHeightMapView = ({ model, zoom, entryPoint, attachHeightMap, onPointerDown }: FloorPlanHeightMapViewProps) => {
     const tileImages = FLOOR_PLAN_TILE_IMAGES[(zoom === FLOOR_PLAN_ZOOM_LARGE) ? FLOOR_PLAN_ZOOM_LARGE : FLOOR_PLAN_ZOOM_NORMAL];
     const baseTexture = useTextureFromUrl(LayoutImage(tileImages.base));

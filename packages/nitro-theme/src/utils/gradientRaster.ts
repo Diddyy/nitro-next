@@ -22,7 +22,7 @@ export type GradientMode = 'linear' | 'radial';
 export type GradientDirection = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 
 /** `GradientSkinRenderer.angleForDirection`. */
-export const gradientAngleForDirection = (direction: GradientDirection | undefined): number => {
+const gradientAngleForDirection = (direction: GradientDirection | undefined): number => {
     switch (direction) {
         case 'right': return 0;
         case 'left': return Math.PI;

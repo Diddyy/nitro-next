@@ -1,5 +1,18 @@
-import { useTranslation } from '#base/context/system';
-import { Button, Frame, ThemeText } from '#base/theme';
+/**
+ * Where you are in the line into a full room - Flash `RoomQueueWidget`, on `habbo-room-ui-com`'s
+ * `room_queue` layout (`createWindow`), opened where the layout places it (47, 33). `showInterface`
+ * sets `info_text` to the line's position text - `room.queue[.spectator].position[.hc]`, with the
+ * position registered as its `%position%` (`onQueueStatus`). The frame's `close` tag and
+ * `cancel_button` both leave the line (`exitQueue`); leaving the line is leaving the room.
+ *
+ * The layout's `spectator_info` and `change_button` are `visible="false"` and Flash's widget never
+ * shows them; the port shows `spectator_info` in the spectator line and `change_button` (`changeQueue`)
+ * when the server offers another line. Their layout rects overlap `cancel_button` (and `change_button`
+ * lies below the frame), so while either is up `arrange` stacks them as the port always has - the
+ * cancel button centred at the bottom, the change button under it in a frame grown to 176; with neither,
+ * every control is at the layout's pixels.
+ */
+import { TemplateWindow, TemplateWindows } from '#base/theme';
 
 export interface RoomQueueViewProps {
     /** How many are ahead, plus you. */
@@ -15,77 +28,61 @@ export interface RoomQueueViewProps {
     onExit: () => void;
 }
 
-/**
- * Where you are in the line into a full room, on the `room_queue` layout (229x118, frame style 3,
- * margins 6/25/6/5) that `RoomQueueWidget.createWindow` builds. Closing it is leaving: Flash
- * wired the close button to the same exit as the button under it.
- *
- * The layout's `spectator_info` and `change_button` are `visible="false"` and Flash's widget never
- * shows them; the port shows them for the spectator line and when the server offers another line.
- * Their rects in the layout overlap `cancel_button` (and `change_button` sits below the frame), so
- * while either is up the view keeps the port's own stacking (and grows the frame for the change
- * button); with neither, every control is at the layout's pixels.
- */
-export const RoomQueueView = ({ position, spectator, clubQueue, canChangeQueue, onChangeQueue, onExit }: RoomQueueViewProps) => {
-    const t = useTranslation();
+const QUEUE_TEMPLATE = 'habbo-room-ui-com/room_queue';
 
+/** The layout's frame position: `buildFromXML` puts the window on the desktop there. */
+const LAYOUT_POSITION = { x: 47, y: 33 };
+
+/** The port's frame height with `change_button` under `cancel_button`. */
+const CHANGE_FRAME_HEIGHT = 176;
+
+/** The gap the port keeps under `cancel_button` for `change_button`. */
+const CHANGE_ROW_HEIGHT = 34;
+
+/** Where the port puts `spectator_info` in the content area (the layout's 21, 68, 266 lie under the cancel button and past the frame). */
+const SPECTATOR_INFO_RECT = [ 14, 58, 200, 29 ] as const;
+
+export const RoomQueueView = ({ position, spectator, clubQueue, canChangeQueue, onChangeQueue, onExit }: RoomQueueViewProps) => {
     const positionKey = spectator
         ? (clubQueue ? 'room.queue.spectator.position.hc' : 'room.queue.spectator.position')
         : (clubQueue ? 'room.queue.position.hc' : 'room.queue.position');
     const stacked = spectator || canChangeQueue;
 
+    const arrange = ({ find }: TemplateWindows) => {
+        if (!stacked) return;
+
+        const content = find('cancel_button')?.parent;
+        const cancel = find('cancel_button');
+
+        if (!content || !cancel) return;
+
+        const centre = (window: { width: number }) => Math.trunc((content.width - window.width) / 2);
+        const change = canChangeQueue ? find('change_button') : undefined;
+
+        cancel.setX(centre(cancel));
+        cancel.setY(content.height - (change ? CHANGE_ROW_HEIGHT : 0) - cancel.height);
+
+        if (change) {
+            change.setX(centre(change));
+            change.setY(content.height - change.height);
+        }
+
+        if (spectator) find('spectator_info')?.setRectangle(...SPECTATOR_INFO_RECT);
+    };
+
     return (
-        <Frame
-            variant="3"
-            id="room-queue"
-            caption={t('room.queue.title')}
-            tintColor="#418db0"
-            dropShadow={{ distance: 4, alpha: 0.35, blur: 4 }}
-            onClose={onExit}
-            defaultPosition={{ x: 160, y: 120 }}
-            rememberPosition={false}
-            resizeDirection="none"
-            margins={[ 6, 25, 6, 5 ]}
-            layout={{ position: 'absolute', width: 229, height: canChangeQueue ? 176 : 118 }}
-        >
-            <ThemeText
-                text={t(positionKey, 'Your position in the queue: %position%', { position: String(position) })}
-                textStyle="u_bold"
-                textOptions={{ wordWrap: true, wordWrapWidth: 213, align: 'center' }}
-                name="info_text"
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 0, width: 217, top: 21, height: 17 }}
-            />
-            {spectator && (
-                <ThemeText
-                    text={t('room.queue.spectator.info')}
-                    textOptions={{ wordWrap: true, wordWrapWidth: 200 }}
-                    flashFormat={{ antiAliasType: 'advanced' }}
-                    name="spectator_info"
-                    verticalAlign="top"
-                    layout={{ position: 'absolute', left: 14, width: 200, top: 58, height: 29 }}
-                />
-            )}
-            <Button
-                variant="3"
-                name="cancel_button"
-                onPointerTap={onExit}
-                layout={stacked
-                    ? { position: 'absolute', alignSelf: 'center', width: 154, bottom: canChangeQueue ? 34 : 0, height: 27 }
-                    : { position: 'absolute', left: 31, width: 154, top: 50, height: 27 }}
-            >
-                {t('room.queue.button.exit')}
-            </Button>
-            {canChangeQueue && (
-                <Button
-                    variant="3"
-                    name="change_button"
-                    onPointerTap={onChangeQueue}
-                    layout={{ position: 'absolute', alignSelf: 'center', width: 178, bottom: 0, height: 26 }}
-                >
-                    {t('room.queue.spectatormode')}
-                </Button>
-            )}
-        </Frame>
+        <TemplateWindow
+            id={QUEUE_TEMPLATE}
+            frame={{ id: 'room-queue', defaultPosition: LAYOUT_POSITION, rememberPosition: false, onClose: onExit }}
+            height={canChangeQueue ? CHANGE_FRAME_HEIGHT : undefined}
+            parameters={{ [positionKey]: { position: String(position) } }}
+            bindings={{
+                info_text: { caption: `\${${positionKey}}` },
+                spectator_info: { visible: spectator },
+                cancel_button: { onPointerTap: onExit },
+                change_button: { visible: canChangeQueue, onPointerTap: onChangeQueue },
+            }}
+            arrange={arrange}
+        />
     );
 };

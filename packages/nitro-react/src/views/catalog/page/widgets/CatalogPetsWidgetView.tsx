@@ -1,22 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { APPROVE_NAME_TYPE_PET, approveName, getSellablePetPalettes, purchaseWillBeGift, showPurchaseConfirmation } from '#base/commands';
+import { getSellablePetPalettes } from '#base/commands';
 import { CatalogSellablePetPalette, CatalogWidgetEventEnum, getCatalogPageText, PetImageRequest, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
-import { useTranslation, useWindowActions } from '#base/context/system';
-import { useCatalogWidgetEvent } from '#base/hooks';
-import { Border, Dropmenu, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
-import { getPetPurchaseParameter, getPetRaceLocalizationKey, getPetTypeIndexFromProduct, parseSellablePetPalettes, PET_AVAILABLE_COLORS, PET_NAME_ERRORS } from '#base/utils';
+import { useConfigData, useTranslation, useWindowActions } from '#base/context/system';
+import { useCatalogWidgetEvent, usePetImageTexture } from '#base/hooks';
+import { ThemeImage, useTemplateLibrary } from '#base/theme';
+import { CATALOG_NEW_PETS_FIRST_TYPE, getPetPurchaseParameter, getPetRaceLocalizationKey, getPetTypeIndexFromProduct, parseSellablePetPalettes, PET_AVAILABLE_COLORS } from '#base/utils';
 
-import { usePetImageTexture } from '../../usePetImageTexture';
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
-import { CatalogProductPriceView } from './CatalogProductPriceView';
-
-/** `petsWidget` is the page for pet types below this; `newPetsWidget` takes the rest. */
-const NEW_PETS_FIRST_TYPE = 8;
-
-/** `name_input_text`'s `max_chars`. */
-const NAME_MAX_CHARS = 15;
+import { CATALOG_LIBRARY } from '../catalogTemplates';
+import { useCatalogWidgetView } from '../catalogWidgetView';
+import { priceBoxItem } from './catalogPrice';
+import { usePetNamePurchase } from './usePetNamePurchase';
 
 /** `getPetImage(type, palette, colour, new Vector3d(90, 0, 0), 64, this)`. */
 const PET_IMAGE_DIRECTION = 90;
@@ -26,16 +22,19 @@ const DEFAULT_PET_COLOR = 0xffffff;
 
 /**
  * The old pet page's widget, the embedded `petsWidget` of `layout_pets.xml` - Flash's
- * `PetsCatalogWidget`, for pet types 0-7 (a page whose first offer is a newer pet is
- * `NewPetsCatalogWidget`'s, and this one's `init()` fails, taking the widgets nested in it along).
+ * `PetsCatalogWidget`, for pet types 0-7. A page whose first offer is a newer pet is
+ * `NewPetsCatalogWidget`'s: this one's `init()` fails and `removeWidgets` takes its container off
+ * the page with the widgets inside it (`removed`).
  *
  * The page sells one pet (the first offer): the user picks a breed in `type_drop_menu` (the
  * product's sellable palettes, asked for through `getSellablePetPalettes` and kept by the
  * catalogue, listed only when there is more than one), a colour in the colour grid (this widget's
  * fixed per-type table, `PET_AVAILABLE_COLORS`, sent as `CatalogWidgetColoursEvent` - the grid's
- * container is `blend="0"`, so the swatches are there to click but not seen), and types a name.
- * `ctlg_teaserimg_1` shows the pet at double size, redrawn on every pick (`updateImage`), with the
- * offer's price box over its bottom right corner.
+ * container is `blend="0"`, which draws into its parent's context, so only its own face is faded
+ * and the swatches show), and types a name into
+ * `name_input_text`. `ctlg_teaserimg_1` shows the pet at double size, centred, redrawn on every
+ * pick (`updateImage`), with the offer's price box against its bottom right corner
+ * (`showPriceOnProduct(offer, _window, box, ctlg_teaserimg_1, -6, false, 6)`).
  *
  * The widget takes the buy button over (`CatalogWidgetPurchaseOverrideEvent`): buying first sends
  * the name for approval (`approveName(name, 1)`), and the answer (`CWE_APPROVE_RESULT`) either
@@ -44,16 +43,15 @@ const DEFAULT_PET_COLOR = 0xffffff;
  * `WIDGETS_INITIALIZED` again (`imageReady`), as Flash does.
  *
  * `ctlg_teaserimg_1` is also a page image slot, which `LocalizationCatalogWidget` fills with the
- * page's catalogue picture when it loads; the pet drawn over it is what the page shows, so the
- * picture is not drawn. The pet preview Flash hands the purchase confirmation
- * (`showPurchaseConfirmation`'s eighth argument) has no counterpart in the port's confirmation,
- * which draws the offer's own image.
+ * page's catalogue picture; `setPreviewImage` clears the bitmap before drawing the pet, so once the
+ * pet is drawn the picture is not. The texts are the page's (`LocalizationCatalogWidget`), set here
+ * too because the layout has a second set in `newPetsWidget`.
  */
-export const CatalogPetsWidgetView = ({ page, children }: CatalogWidgetProps) => {
+export const CatalogPetsWidgetView = ({ page }: CatalogWidgetProps) => {
     const firstOffer = page.offers[0];
     const productCode = firstOffer?.localizationId ?? '';
     const petType = firstOffer ? getPetTypeIndexFromProduct(productCode) : -1;
-    const initialised = !!firstOffer && (petType < NEW_PETS_FIRST_TYPE);
+    const initialised = !!firstOffer && (petType < CATALOG_NEW_PETS_FIRST_TYPE);
     const cachedPalettes = useCatalogStore(x => x.sellablePetPalettes[productCode]);
     const [ availablePalettes, setAvailablePalettes ] = useState<CatalogSellablePetPalette[] | undefined>(() => parseSellablePetPalettes(cachedPalettes, petType));
     const [ paletteIndex, setPaletteIndex ] = useState(0);
@@ -61,11 +59,12 @@ export const CatalogPetsWidgetView = ({ page, children }: CatalogWidgetProps) =>
     const [ name, setName ] = useState('');
     const [ imageRequest, setImageRequest ] = useState<PetImageRequest | undefined>(undefined);
     const [ priceShown, setPriceShown ] = useState(false);
-    const waitingForApproval = useRef(false);
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();
     const { showAlert } = useWindowActions();
     const t = useTranslation();
+    const templates = useTemplateLibrary(CATALOG_LIBRARY);
+    const config = useConfigData();
     const availableColors = PET_AVAILABLE_COLORS[petType] ?? [];
 
     /** `getPetImage`'s request for these picks, or `undefined` when there is no palette to draw. */
@@ -103,24 +102,17 @@ export const CatalogPetsWidgetView = ({ page, children }: CatalogWidgetProps) =>
         return getPetPurchaseParameter(name, availablePalettes[paletteIndex].paletteId, availableColors[colourIndex]);
     };
 
-    /** `onPurchase`: the buy button asks for the name's approval first. */
-    const onPurchase = () => {
-        if (getPurchaseParameters() === '') return;
-
-        waitingForApproval.current = true;
-
-        approveName(send, name, APPROVE_NAME_TYPE_PET);
-    };
-
-    const onPurchaseRef = useRef(onPurchase);
-
-    useEffect(() => {
-        onPurchaseRef.current = onPurchase;
+    const { overridePurchase } = usePetNamePurchase(page, {
+        initialised,
+        name,
+        offer: firstOffer,
+        getPurchaseParameters,
+        getPetImageRequest: () => getPetImageRequest(availablePalettes, paletteIndex, colourIndex),
     });
 
     /** `onWidgetsInitialized`: take the buy button, select the page's pet, send the colours. */
     const onWidgetsInitialized = () => {
-        page.events.dispatchEvent({ type: CatalogWidgetEventEnum.PURCHASE_OVERRIDE, callback: () => onPurchaseRef.current() });
+        overridePurchase();
 
         if (firstOffer) page.events.dispatchEvent({ type: CatalogWidgetEventEnum.SELECT_PRODUCT, offer: firstOffer });
 
@@ -128,14 +120,6 @@ export const CatalogPetsWidgetView = ({ page, children }: CatalogWidgetProps) =>
     };
 
     const petTexture = usePetImageTexture(imageRequest, () => onWidgetsInitialized());
-
-    /** `constructErrorMessage`: the reason's text, or its `.additionalInfo` text when the server said more. */
-    const constructErrorMessage = (reason: string, nameValidationInfo: string) => {
-        const key = `catalog.alert.petname.${reason}`;
-        const additionalInfo = t(`${key}.additionalInfo`, '', { additional_info: nameValidationInfo });
-
-        return (nameValidationInfo.length && additionalInfo.length) ? additionalInfo : t(key);
-    };
 
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.SELECT_PRODUCT, () => {
         if (initialised) updateImage(availablePalettes, paletteIndex, colourIndex);
@@ -150,29 +134,6 @@ export const CatalogPetsWidgetView = ({ page, children }: CatalogWidgetProps) =>
 
         setColourIndex(index);
         updateImage(availablePalettes, paletteIndex, index);
-    });
-
-    useCatalogWidgetEvent(page, CatalogWidgetEventEnum.APPROVE_NAME_RESULT, (event) => {
-        if (!initialised || !waitingForApproval.current) return;
-
-        waitingForApproval.current = false;
-
-        if (event.result !== 0) purchaseWillBeGift(store, false);
-
-        const reason = PET_NAME_ERRORS[event.result];
-
-        if (reason) {
-            showAlert(t('catalog.alert.purchaseerror.title'), constructErrorMessage(reason, event.nameValidationInfo));
-
-            return;
-        }
-
-        const extraParameter = getPurchaseParameters();
-
-        if ((extraParameter === '') || !firstOffer) return;
-
-        // Flash passes `getPetImage()` as the eighth argument: the dialog shows the pet as picked.
-        showPurchaseConfirmation(store, firstOffer, page.pageId, extraParameter, 1, undefined, undefined, getPetImageRequest(availablePalettes, paletteIndex, colourIndex));
     });
 
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.WIDGETS_INITIALIZED, () => {
@@ -194,8 +155,6 @@ export const CatalogPetsWidgetView = ({ page, children }: CatalogWidgetProps) =>
         if (initialised && !cachedPalettes) getSellablePetPalettes(send, store, productCode);
     }, [ page ]);
 
-    if (!initialised) return null;
-
     // `updatePaletteSelections`: the breeds by name, listed only when there is a choice.
     const breeds = (availablePalettes ?? []).map(palette => t(getPetRaceLocalizationKey(petType, palette.breedId), getPetRaceLocalizationKey(petType, palette.breedId)));
 
@@ -206,75 +165,44 @@ export const CatalogPetsWidgetView = ({ page, children }: CatalogWidgetProps) =>
         updateImage(availablePalettes, index, colourIndex);
     };
 
-    return (
-        <Region layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
-            <Region
-                name="ctlg_teaserimg_1"
-                layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 240 }}
-            >
-                {petTexture && (
-                    <ThemeImage
-                        texture={petTexture}
-                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', zoomX: 2, zoomY: 2 }}
-                        layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 240 }}
-                    />
-                )}
-            </Region>
-            {children}
-            <ThemeText
-                name="ctlg_text_1"
-                text={getCatalogPageText(page, 'ctlg_text_1') ?? t('lorem.title')}
-                textStyle="u_small"
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, top: 380 }}
-            />
-            <ThemeText
-                name="ctlg_text_2"
-                text={getCatalogPageText(page, 'ctlg_text_2') ?? t('lorem.title')}
-                textStyle="u_small"
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, top: 225 }}
-            />
-            <ThemeText
-                name="ctlg_text_3"
-                text={getCatalogPageText(page, 'ctlg_text_3') ?? t('lorem.title')}
-                textStyle="u_small"
-                verticalAlign="top"
-                layout={{ position: 'absolute', left: 10, top: 326 }}
-            />
-            <Region layout={{ position: 'absolute', left: 10, width: 340, top: 344, height: 25 }}>
-                <Dropmenu
-                    variant="3"
-                    visible={!availablePalettes || (breeds.length > 1)}
-                    caption={breeds[paletteIndex] ?? ''}
-                    options={breeds.map((breed, index) => ({ key: index, label: breed, selected: (index === paletteIndex), onSelect: () => selectBreed(index) }))}
-                    layout={{ width: 340, height: 25 }}
-                />
-            </Region>
-            <Border
-                variant="4"
-                layout={{ position: 'absolute', left: 10, width: 340, top: 398, height: 25 }}
-            >
-                <TextInput
-                    value={name}
-                    onChange={setName}
-                    maxLength={NAME_MAX_CHARS}
-                    textStyle="u_regular"
-                    flashPlacement
-                    alwaysShowSelection
-                    backgroundColor={null}
-                    focusedBackgroundColor={null}
-                    layout={{ position: 'absolute', left: 4, width: 325, top: 4, height: 17 }}
-                />
-            </Border>
-            {priceShown && firstOffer && !page.isBuilderPage && (
-                <Region layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 240 }}>
-                    <CatalogProductPriceView
-                        offer={firstOffer}
-                        layout={{ right: 6, bottom: 6 }}
-                    />
-                </Region>
-            )}
-        </Region>
-    );
+    const priceBox = (templates && priceShown && firstOffer)
+        ? priceBoxItem(templates, firstOffer, { config, builder: page.isBuilderPage, placement: { reference: 'ctlg_teaserimg_1', dx: -6, top: false, dy: 6 } })
+        : undefined;
+    const pageText = (elementName: string) => {
+        const text = getCatalogPageText(page, elementName);
+
+        return (text === undefined) ? {} : { caption: text };
+    };
+
+    useCatalogWidgetView(initialised
+        ? {
+                bindings: {
+                    '': { added: priceBox ? [ priceBox ] : [] },
+                    ctlg_teaserimg_1: petTexture
+                        ? {
+                                asset: '',
+                                children: (
+                                    <ThemeImage
+                                        texture={petTexture}
+                                        bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center', zoomX: 2, zoomY: 2 }}
+                                        layout={{ position: 'absolute', left: 0, width: 360, top: 0, height: 240 }}
+                                    />
+                                ),
+                            }
+                        : {},
+                    ctlg_text_1: pageText('ctlg_text_1'),
+                    ctlg_text_2: pageText('ctlg_text_2'),
+                    ctlg_text_3: pageText('ctlg_text_3'),
+                    type_drop_menu: {
+                        visible: !availablePalettes || (breeds.length > 1),
+                        options: breeds,
+                        selection: paletteIndex,
+                        onSelect: selectBreed,
+                    },
+                    name_input_text: { caption: name, onChange: setName },
+                },
+            }
+        : { bindings: {}, removed: true });
+
+    return null;
 };

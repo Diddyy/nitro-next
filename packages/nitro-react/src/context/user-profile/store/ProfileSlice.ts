@@ -12,6 +12,8 @@ type Actions = {
     setProfile: (profile: ExtendedProfileMessageType) => void;
     setBadges: (userId: number, badges: IHabboUserBadge[]) => void;
     setRelationships: (userId: number, relationships: IRelationshipStatusInfo[]) => void;
+    /** `ExtendedProfileWindowCtrl.onAddAsFriend`: the shown profile's `isFriendRequestSent`, once the request is out. */
+    markFriendRequestSent: (userId: number) => void;
     clearProfile: () => void;
 };
 
@@ -32,5 +34,6 @@ export const createProfileSlice: StateCreator<ProfileSlice, [], [], ProfileSlice
     })),
     setBadges: (userId, badges) => set(state => (state.profile?.userId === userId ? { badges } : state)),
     setRelationships: (userId, relationships) => set(state => (state.profile?.userId === userId ? { relationships } : state)),
+    markFriendRequestSent: userId => set(state => (state.profile?.userId === userId ? { profile: { ...state.profile, isFriendRequestSent: true } } : state)),
     clearProfile: () => set(ProfileSliceInitialState),
 });

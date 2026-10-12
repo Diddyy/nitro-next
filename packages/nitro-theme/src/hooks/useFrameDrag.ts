@@ -2,8 +2,8 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { themeHost, useThemeWindowZIndex } from '../host';
-import { getGlobalRect } from '../utils';
-import { getStoredFramePosition, setStoredFramePosition } from '../utils/framePositionStorage';
+import { clamp, getGlobalRect } from '../utils';
+import { getStoredFramePosition, setStoredFramePosition } from '../utils/frameStorage';
 import { useLayoutEvent } from './useLayoutEvent';
 import { useRevealWhenSettled } from './useRevealWhenSettled';
 
@@ -25,18 +25,6 @@ type ActiveListeners = {
 
 const MIN_VISIBLE = 40;
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
-/**
- * Pixi port of hooks/ui/useFrameDrag.ts. The drag offset is applied as the container's own `.x`/`.y` -
- * @pixi/layout's ContainerMixin ADDS the yoga-computed position on top of the container's
- * existing `.position` (see updateLocalTransformWithLayout in node_modules/@pixi/layout), the
- * same layering CSS `transform: translate()` gives the DOM version (see Box.tsx's own `x`/`y`
- * handling). Global window pointermove/pointerup listeners (not element-scoped events) drive
- * the drag either way - browser pointer events work the same regardless of which element
- * started them, and Pixi's FederatedPointerEvent mirrors the native PointerEvent fields this
- * hook actually reads (`button`/`pointerId`/`clientX`/`clientY`), so one handler covers both.
- */
 export interface FrameDragOptions {
     /**
      * Where the frame opens, in screen pixels. This is the drag offset's starting value rather
@@ -65,6 +53,13 @@ export interface FrameDragOptions {
     onPositionChange?: (position: { x: number; y: number }) => void;
 }
 
+/**
+ * A frame's place on the desktop: its drag by the header (Flash's `WindowMouseDragger`), its stack
+ * order (raised on mount and on a press), `window.center()`, and the position it reopens at, kept
+ * per frame `id` (`frameStorage`). The offset is applied as the container's own `x`/`y`,
+ * which @pixi/layout adds on top of the position Yoga computes. The drag runs on window-level
+ * `pointermove` / `pointerup` listeners: Pixi's `FederatedPointerEvent` has no pointer capture.
+ */
 export const useFrameDrag = (id: string | undefined, { defaultPosition, remember = true, centered = false, onPositionChange }: FrameDragOptions = {}) => {
     const generatedId = useId();
     const stackId = id ?? generatedId;
@@ -93,11 +88,15 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
         return !latest || !(frameNode instanceof PixiContainer) || ((frameNode.x === latest.dx) && (frameNode.y === latest.dy));
     });
     const zIndex = useThemeWindowZIndex(stackId);
-    const { bringWindowToFront } = themeHost();
+    const { bringWindowToFront, releaseWindow } = themeHost();
 
     useEffect(() => {
         bringWindowToFront(stackId);
-    }, [ stackId, bringWindowToFront ]);
+
+        // A generated id is never seen again once the frame unmounts: without this, every such
+        // frame opened left an entry in the stack for the rest of the session.
+        if (!id) return () => releaseWindow(stackId);
+    }, [ id, stackId, bringWindowToFront, releaseWindow ]);
 
     const stopDragging = useCallback(() => {
         const listeners = activeListenersRef.current;
@@ -148,14 +147,8 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
     const handleHeaderPointerDown = (event: FederatedPointerEvent | PointerEvent) => {
         if (event.button !== 0) return;
 
-        // Pixi's `onPointerDown` JSX prop maps straight onto the legacy `on<type>` property
-        // idiom (see `EventBoundary.notifyTarget` in pixi.js), which fires for every ancestor
-        // along the hit-tested path unconditionally during the capturing sweep - BEFORE the
-        // actual target's own handler ever runs. That means a nested interactive descendant
-        // (CloseButton, with `stopsPropagation`) calling `stopPropagation()` can never
-        // retroactively stop this handler, since it already ran by the time the descendant's own
-        // handler executes. Checking that this container is itself the real hit target is what
-        // correctly excludes a press that landed on such a descendant instead.
+        // Only a press on the header itself drags: one on a button in it (help, menu) is that
+        // button's, as `MouseEventProcessor` gives a press to the window under the pointer.
         if (event instanceof FederatedPointerEvent && event.target !== event.currentTarget) return;
 
         const node = frameRef.current;
@@ -216,11 +209,23 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
         window.addEventListener('pointerup', handleUp);
     };
 
-    const handleActivate = () => {
-        centeringRef.current = false;
+    // A press anywhere in the window raises it, before whatever it lands on handles it - in the
+    // capture phase, so a child that stops the press (a close button, a scrollbar) still raises it.
+    useEffect(() => {
+        if (!frameNode) return;
 
-        bringWindowToFront(stackId);
-    };
+        const activate = () => {
+            centeringRef.current = false;
 
-    return { frameRef, attachFrame, offset, zIndex, revealed, onPointerDown: handleActivate, onHeaderPointerDown: handleHeaderPointerDown };
+            bringWindowToFront(stackId);
+        };
+
+        frameNode.on('pointerdowncapture', activate);
+
+        return () => {
+            frameNode.off('pointerdowncapture', activate);
+        };
+    }, [ frameNode, stackId, bringWindowToFront ]);
+
+    return { frameRef, attachFrame, offset, zIndex, revealed, onHeaderPointerDown: handleHeaderPointerDown };
 };

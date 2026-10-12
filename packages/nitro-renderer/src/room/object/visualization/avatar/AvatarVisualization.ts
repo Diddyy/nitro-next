@@ -28,6 +28,7 @@ import { ExpressionAdditionFactory,
     FloatingIdleZAddition,
     GameClickTargetAddition,
     GuideStatusBubbleAddition,
+    HabbiconBubble,
     IAvatarAddition,
     MutedBubbleAddition,
     NumberBubbleAddition,
@@ -50,7 +51,7 @@ export class AvatarVisualization
     private static AVATAR_OWN_DEPTH_ADJUST: number = 0.001;
     private static AVATAR_SPRITE_LAYING_DEPTH: number = -0.409;
     private static BASE_Y_SCALE: number = 1000;
-    private static ANIMATION_FRAME_UPDATE_INTERVAL: number = 2;
+    public static readonly ANIMATION_FRAME_UPDATE_INTERVAL: number = 2;
     private static SNOWBOARDING_EFFECT: number = 97;
     private static FREEZE_EFFECT: number = 218;
     /** How many effect avatar images `getAvatarImage` keeps before disposing the oldest. */
@@ -65,14 +66,10 @@ export class AvatarVisualization
     private static ADDITION_ID_GAME_CLICK_TARGET: number = 5;
     private static ADDITION_ID_MUTED_BUBBLE: number = 6;
     private static ADDITION_ID_GUIDE_STATUS_BUBBLE: number = 7;
-    /**
-     * The habbicon bubble's addition id. Flash puts a `HabbiconBubble` into the stacked additions
-     * when `figure_habbicon` is set; the port has not ported `HabbiconBubble`, so nothing reads
-     * this yet (`StackedAdditions.LAYER_HABBICON` is its layer).
-     */
-    public static readonly ADDITION_ID_HABBICON_BUBBLE: number = 8;
+    /** The `HabbiconBubble` put into the stacked additions while `figure_habbicon` is set (`StackedAdditions.LAYER_HABBICON`). */
+    private static ADDITION_ID_HABBICON_BUBBLE: number = 8;
     private static ADDITION_ID_STACKED_ADDITIONS: number = 9;
-    private static DEFAULT_CANVAS_OFFSETS: number[] = [ 0, 0, 0 ];
+    public static readonly DEFAULT_CANVAS_OFFSETS: number[] = [ 0, 0, 0 ];
     /** Flash's literal `6710886`: the grey a blocked avatar's placeholder is tinted. */
     private static BLOCKED_AVATAR_COLOR: number = 0x666666;
 
@@ -97,6 +94,8 @@ export class AvatarVisualization
     private _gender: AvatarGenderType = AvatarGenderType.Male;
     private _direction: number = -1;
     private _headDirection: number = -1;
+    /** `figure_habbicon_spin_offset`: the spinning duck's turn, added to the body's and the head's angle. */
+    private _habbiconSpinOffset: number = 0;
     private _posture: AvatarActionStateType = AvatarActionStateType.Stand;
     private _postureParameter: number = 0;
     private _canStandUp: boolean = false;
@@ -153,9 +152,11 @@ export class AvatarVisualization
     public override dispose(): void {
         if (this._disposed) return;
 
-        super.dispose();
+        // AS3 disposes every cached scale/effect image, not just the current one: they are held by
+        // `AvatarRenderManager` until disposed, so skipping them leaked each avatar's render textures.
+        this.resetAvatar();
 
-        if (this._avatarImage) this._avatarImage.dispose();
+        super.dispose();
 
         for (const addition of this._additions.values()) addition.dispose();
 
@@ -290,11 +291,19 @@ export class AvatarVisualization
                 this._updatesUntilFrameUpdate--;
             }
 
-            if (!(this._updatesUntilFrameUpdate <= 0 || (shouldUpdateFrame && (didScaleUpdate || modelUpdated || otherUpdate)))) return;
+            const changed = didScaleUpdate || modelUpdated || otherUpdate;
 
-            this._avatarImage.updateAnimationByFrames(1);
+            if (!(this._updatesUntilFrameUpdate <= 0 || changed)) return;
 
-            this._updatesUntilFrameUpdate = AvatarVisualization.ANIMATION_FRAME_UPDATE_INTERVAL;
+            // Flash runs this whole update on the frame tick, so a posture change and the move
+            // that comes with it land together. Here the object moves every render frame: a
+            // change between ticks redraws now, or a stood-up avatar keeps its sit image at the
+            // new height until the next frame update. Only the tick advances the animation.
+            if (shouldUpdateFrame || this._updatesUntilFrameUpdate <= 0) {
+                this._avatarImage.updateAnimationByFrames(1);
+
+                this._updatesUntilFrameUpdate = AvatarVisualization.ANIMATION_FRAME_UPDATE_INTERVAL;
+            }
 
             let _local_20 = this._avatarImage.getCanvasOffsets();
 
@@ -313,7 +322,7 @@ export class AvatarVisualization
                     // Flash applies one or the other to the avatar bitmap, the hover highlight first.
                     if (highlighted) sprite.filters = AvatarVisualization.getHighlightFilters();
                     else if (this._highlightVariableHolder) sprite.filters = AvatarVisualization.getVariableHolderFilters();
-                    else sprite.filters = [];
+                    else sprite.filters = AvatarVisualization.NO_FILTERS;
                 }
 
                 if (sprite.texture) {
@@ -527,6 +536,11 @@ export class AvatarVisualization
         headDirection = (headDirection % 360 + 360) % 360;
 
         if ((this._posture === AvatarActionStateType.Sit && this._canStandUp) || this._posture === AvatarActionStateType.SnowwarDieBack || this._posture === AvatarActionStateType.SnowwarDieFront) headDirection -= headDirection % 90 - 45;
+
+        if (this._habbiconSpinOffset !== 0) {
+            direction = AvatarVisualization.normalizeDirectionAngle(direction + this._habbiconSpinOffset);
+            headDirection = AvatarVisualization.normalizeDirectionAngle(headDirection + this._habbiconSpinOffset);
+        }
 
         if (direction !== this._angle || _arg_4) {
             didUpdate = true;
@@ -781,6 +795,32 @@ export class AvatarVisualization
 
             needsUpdate = true;
         } else if (gameClickAddition) this.removeAddition(AvatarVisualization.ADDITION_ID_GAME_CLICK_TARGET);
+
+        // A habbicon in the stack, a new one for a new habbicon or a new trigger, none once the logic clears it.
+        const habbiconId = model.getValue<number>(RoomObjectVariableEnum.FigureHabbicon) ?? 0;
+        const habbiconTrigger = model.getValue<number>(RoomObjectVariableEnum.FigureHabbiconTriggerSequence) ?? 0;
+        const habbiconStack = this.getStackedAdditions(habbiconId > 0);
+        const habbicon = habbiconStack?.habbicon;
+
+        if (habbiconId > 0) {
+            if (!habbicon || (habbicon.habbiconId !== habbiconId) || (habbicon.triggerSequence !== habbiconTrigger)) habbiconStack?.setHabbicon(new HabbiconBubble(AvatarVisualization.ADDITION_ID_HABBICON_BUBBLE, habbiconId, habbiconTrigger, this));
+
+            needsUpdate = true;
+        } else if (habbicon) {
+            habbiconStack?.clearHabbicon();
+
+            if (habbiconStack?.isEmpty) this.removeAddition(AvatarVisualization.ADDITION_ID_STACKED_ADDITIONS);
+
+            needsUpdate = true;
+        }
+
+        const habbiconSpinOffset = model.getValue<number>(RoomObjectVariableEnum.FigureHabbiconSpinOffset) ?? 0;
+
+        if (habbiconSpinOffset !== this._habbiconSpinOffset) {
+            this._habbiconSpinOffset = habbiconSpinOffset;
+
+            needsUpdate = true;
+        }
 
         const numberValue = model.getValue<number>(RoomObjectVariableEnum.FigureNumberValue);
 
@@ -1101,6 +1141,27 @@ export class AvatarVisualization
 
     public get direction(): number {
         return this._direction;
+    }
+
+    /** `habbiconFacingDirection`: the way the avatar faces, for mirroring its habbicon - 1, -1 or 0. */
+    public get habbiconFacingDirection(): number {
+        if (!this._avatarImage) return 0;
+
+        return AvatarVisualization.resolveHabbiconFacingDirection(this._avatarImage.getDirection());
+    }
+
+    /** `resolveHabbiconFacingDirection`: directions 0-2 face one way, 4-6 the other, 3 and 7 neither. */
+    private static resolveHabbiconFacingDirection(direction: number): number {
+        const normalized = ((direction % 8) + 8) % 8;
+
+        if (normalized <= 2) return 1;
+        if ((normalized >= 4) && (normalized <= 6)) return -1;
+
+        return 0;
+    }
+
+    private static normalizeDirectionAngle(angle: number): number {
+        return ((angle % 360) + 360) % 360;
     }
 
     public get posture(): AvatarActionStateType {

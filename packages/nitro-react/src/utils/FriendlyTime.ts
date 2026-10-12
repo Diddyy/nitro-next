@@ -1,3 +1,5 @@
+/** Durations as words (`friendlytime.*` keys) - Flash's `FriendlyTime`. */
+
 type Translate = (key: string, fallback?: string, params?: Record<string, string>) => string;
 
 const MINUTE = 60;

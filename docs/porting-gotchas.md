@@ -7,9 +7,10 @@ a new one costs you time. Rules with a longer story live in the other guides in 
 
 - **`display: 'none'` does not hide a theme `Icon`** - it drops the icon's position and draws it at
   the parent's corner. Render it conditionally (`{cond && <Icon ... />}`).
-- **A leaf placed by insets alone stays 1x1** (`left: 0, right: 0, height: 1` on a `ColorLayer`
-  draws one pixel, not a line). State the length too - `width: '100%'` - as `FillLayout` does.
-  `TextInput`'s `border` drew four corner dots in every window that used it until this was fixed.
+- **Insets alone do not size a leaf**: one without a texture stays 1x1 (`left: 0, right: 0,
+  height: 1` on a `ColorLayer` draws one pixel, not a line - `TextInput`'s `border` drew four
+  corner dots in every window), and a textured one keeps its texture's size. State the length too -
+  `width: '100%'` - as `FillLayout` does; see [Client conventions](client-conventions.md).
 - **`Box` lays out in a row by default.** A bubble with an arrow under it needs
   `flexDirection: 'column'`.
 - **Check the component's props before adding diagnostic labels.** Named-control browser
@@ -17,9 +18,21 @@ a new one costs you time. Rules with a longer story live in the other guides in 
 - **A Flash `TextFieldManager` hint is real text**, in the field's normal colour, cleared on focus -
   not a grey `placeholder`. See `NavigatorRoomCreateView`'s name and description fields.
 - **Config booleans go through `useConfigValue<boolean>(key) === true`**, and the key must be in
-  `nitro-config.json`: a missing key is silently `false`.
+  `nitro-config.json` under Flash's name - see the config section of
+  [Client conventions](client-conventions.md).
 - **A table lifted out of a Flash method** lives in `context/<feature>/store/`, not in the view
-  file (fast refresh fails lint), and gets a `scripts/drift/constants.py` entry.
+  file (fast refresh lint warns, and the gates allow no new warnings), and gets a
+  `scripts/drift/constants.py` entry.
+- **A template id is its bundle's key, and the libraries name them differently**: some keep the
+  asset's `_xml` suffix (`habbo-friend-bar-com/bonus_rare_promo_xml`), others drop it
+  (`habbo-groups-com/group`). A wrong id draws nothing and logs nothing - check the library's keys.
+- **`Util.disableSection` is the `disableSection` binding**, on the window the AS3 passes it: it
+  disables everything inside and halves the leaves' blend as Flash does (buttons are only disabled).
+  Do not fade by hand with `alpha` as well. A button the code holds down (`state |= 0x10`) is `pressed`.
+- **A skin that vanishes until another window opens** is a `NaN`-sized nine-slice or tiling sprite:
+  `@pixi/layout` scales them by `computed / bounds`, so one laid out at 0 once never recovers.
+  `guardLayoutViewSizes` (theme `utils/layoutViewSizeGuard.ts`) prevents it; dump `getWindowLayer()`
+  sizes before suspecting the art.
 - **A `Frame` opens at its layout's position**: pass `defaultPosition` from the layout's root
   container (the messenger's is (120, 120)); without it the window opens in the top-left corner.
 - **Check the available scrolling API.** `scrollResetKey` resets to the start. Chat auto-scroll
@@ -39,30 +52,24 @@ a new one costs you time. Rules with a longer story live in the other guides in 
 
 ## Servers
 
-- **Use Turbo for development.** Connect to its configured WebSocket endpoint with a Turbo-issued
-  SSO ticket. Validate packet fields against AS3 and Turbo code before changing a parser to fit
-  unexpected data. Fix missing server behavior in Turbo and verify the real receive path.
-- Synthetic packet replay can isolate a client parser or handler, but cannot establish that the
-  server emits the correct packet or that the full interaction works.
+- **Packet replay is not a server check.** Injecting a message isolates a client parser or
+  handler; it does not show that Turbo sends it. See [Nitro and Turbo development](turbo-development.md).
 
 ## Tooling
 
 Local Jev and `live-check` helpers are optional; confirm availability before using these commands.
 
-- **A full `generate-layout-views.ts` run moves and deletes about a dozen committed bitmaps.** Run
-  it, then `git status public/assets`, and keep only what your feature added - including only your
-  own `layout-images.json` entries.
 - **Asset changes need a bundle rebuild.** If the builder or source resources are unavailable,
   obtain the prerequisites before claiming the change works. Do not add a URL fallback for bundled
-  assets to work around a missing local tool. See [development setup](development.md).
+  assets to work around a missing local tool. See [Asset bundles](asset-bundles.md).
 - **Windows:** Python text mode writes CRLF (`newline=''`); global `yarn` may be v1 (`corepack
   yarn`, or `node scripts/...`); Git Bash heredocs break on backticks and `${}` - write a script
   file, or edit with the editor tools.
 - **`jev.mjs invented` on a shared file** (a `register*Handlers.ts`) reads the other listeners as
   invention: pass `file:from-to` for your part.
 - **`live-check inject <Packet> '[values]'`** delivers a server packet through the real parser and
-  listeners (`__nitroInject`, dev builds). Use it to isolate client handling; also verify the corresponding
-  real Turbo exchange.
+  listeners. The client has no injection hook of its own; without `live-check`, write the frame to
+  the socket as [Server gaps](server-gaps.md#checking-a-client-feature-without-the-server) describes.
 - **Tests that load modules in a `vm`**: arrays and objects from the sandbox are another realm, so
   `deepEqual` fails on identical values - spread them (`[ ...items ]`) before comparing.
 - **Find controls by name, not by screenshot**: `live-check find <name>`, `click --name`,
@@ -70,7 +77,9 @@ Local Jev and `live-check` helpers are optional; confirm availability before usi
 
 ## Room camera and display transforms
 
-Source revision: `WIN63-202609091217-117204808`. Recheck after a revision change.
+Source revision: `WIN63-202609091217-117204808`. Recheck after a revision change. The names below are
+Flash's; the port's camera is nitro-react's `useRoomCamera` over nitro-renderer's
+`RoomSpriteCanvas.setTransform`.
 
 - **Read branch getters.** `RoomEngine.useOffsetScrolling` returns literal `true`; the alternative
   geometry-scrolling branch is unreachable in this revision. By contrast, special room effect 2

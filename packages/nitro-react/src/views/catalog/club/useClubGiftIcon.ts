@@ -11,7 +11,7 @@ import { LayoutImage } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
 
 /** `BundleProductContainer`'s icon. */
-const BUNDLE_ICON = LayoutImage('catalog/ctlg_pic_deal_icon_narrow.png');
+const BUNDLE_ICON = LayoutImage('habbo-catalog-com/ctlg_pic_deal_icon_narrow.png');
 
 export const useClubGiftIcon = (offer: IPurchasableOffer) => {
     const product = getOfferProduct(offer);

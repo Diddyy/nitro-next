@@ -1,11 +1,12 @@
+/**
+ * The avatar editor store's actions. Zustand actions are created once and never change, so they are
+ * read off the store a single time here rather than subscribed to: a component using these
+ * re-renders for nothing.
+ */
 import { avatarEditorStore } from '../store';
 
 const state = avatarEditorStore.getState();
 
-/**
- * Zustand actions are created once and never change, so they are read off the store a single
- * time here rather than subscribed to: a component using these re-renders for nothing.
- */
 const actions = {
     setActiveCategory: state.setActiveCategory,
     setActiveSubType: state.setActiveSubType,
@@ -20,6 +21,10 @@ const actions = {
     setFigureSetIds: state.setFigureSetIds,
     setWardrobe: state.setWardrobe,
     setWardrobeSlot: state.setWardrobeSlot,
+    setNftOutfits: state.setNftOutfits,
+    setSelectedNftOutfitId: state.setSelectedNftOutfitId,
+    setNftOutfit: state.setNftOutfit,
+    setNftSelection: state.setNftSelection,
 };
 
 export const useAvatarEditorActions = () => actions;

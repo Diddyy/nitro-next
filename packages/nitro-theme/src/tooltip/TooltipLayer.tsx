@@ -5,22 +5,21 @@ import { Box } from '../Box';
 import { useLayoutSize } from '../hooks/useLayoutEvent';
 import { ThemeText } from '../ThemeText';
 import { Tooltip } from '../Tooltip';
+import { clamp } from '../utils/clamp';
 import { moveTooltip, useTooltipState } from './tooltipStore';
 
 /** `WindowToolTipAgent`'s offset from the pointer. */
 const POINTER_OFFSET = 20;
-/** Above every window (`useWindowZIndex` hands those out from 100 up). */
+/** Above every window (the host's `useWindowZIndex` hands those out from 100 up). */
 const TOOLTIP_Z_INDEX = 100000;
-
-const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
 
 /**
  * The single tooltip window - mount once at the UI root, after everything it should cover.
  * Shows the hovered component's caption (`habbo_window_layout_tooltip`: the `tooltip` skin
  * with a `u_tool_tip` label) 20px right and below the pointer once the delay has passed,
- * follows the pointer while hovered, and stays on screen the way the client's
- * `WINDOW_PARAM_BOUND_TO_PARENT_RECT` kept it inside the stage. The canvas fills the viewport
- * on both render targets, so client coordinates are stage coordinates.
+ * follows the pointer while hovered, and stays on screen the way the `bound_to_parent_rect`
+ * param (`0x20`) `WindowToolTipAgent` creates it with kept it inside the stage. The canvas fills
+ * the viewport, so client coordinates are stage coordinates.
  */
 export const TooltipLayer = () => {
     const { owner, text, x, y, visible } = useTooltipState();

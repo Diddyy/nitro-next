@@ -1,19 +1,19 @@
 /** AS3 AchievementController packet lifecycle and achievement award presentation. */
-import { AchievementEventMessage, AchievementsEventMessage, AchievementsScoreEventMessage, HabboAchievementNotificationMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { AchievementEventMessage, AchievementsEventMessage, AchievementsScoreEventMessage, EventLogComposer, HabboAchievementNotificationMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { requestAchievements } from '#base/commands';
 import { achievementsStore } from '#base/context/achievements';
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 import { notificationStore } from '#base/context/notifications';
+import { roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
-import { wiredStore } from '#base/context/wired';
-import { getBadgeName } from '#base/utils';
+import { getBadgeBaseAndLevel, getBadgeName } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
 export const registerAchievementHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { reset, setList, update, finishTransition, setScore, present } = achievementsStore.getState();
+    const { reset, setList, update, finishTransition, setScore, close } = achievementsStore.getState();
     let transition: ReturnType<typeof setTimeout> | undefined;
     let userId: number | undefined;
 
@@ -42,28 +42,26 @@ export const registerAchievementHandlers = ({ send, subscribe }: WebSocketConnec
         on(AchievementsEventMessage, (data) => {
             const fresh = systemStore.getState().config['achievements.new'];
 
-            setList(data.achievements, data.defaultCategory, typeof fresh === 'string' ? fresh.split(',') : [], wiredStore.getState().wiredAchievements);
+            setList(data.achievements, data.defaultCategory, typeof fresh === 'string' ? fresh.split(',') : []);
         }),
         on(AchievementEventMessage, (data) => {
-            const { config, visibleWindows } = systemStore.getState();
-            const skippedValue = config['toolbar.unseen_notification.skipped_badge_ids'];
-            const skipped = (typeof skippedValue === 'string' ? skippedValue : '').split(',');
-
-            if (update(data.achievement, !!visibleWindows.achievements, skipped)) {
+            if (update(data.achievement)) {
                 clearTransition();
                 transition = setTimeout(finishTransition, 2000);
             }
         }),
         on(AchievementsScoreEventMessage, data => setScore(data.score)),
         on(HabboAchievementNotificationMessage, ({ data }) => {
-            if (!present(data)) return;
+            // `IncomingMessages.onLevelUp`: the level is logged under the badge's base name.
+            send(new EventLogComposer({ event: 'Achievements', data: getBadgeBaseAndLevel(data.badgeCode).base, action: 'Leveled', extraString: '', extraInt: data.level }));
 
-            // One owner for achievement badge changes: directory packets remain authoritative.
-            // The server refreshes the directory when replacing entitlements so independent
-            // grants and worn slots are preserved; a notification alone cannot describe them.
-            const { updateBadge } = inventoryStore.getState();
+            // `HabboInventory.onAchievementReceived`: the level's badge is added and the level it
+            // replaces (`removedBadgeCode`) is removed. The server keeps a single level per
+            // achievement and then republishes the directory and worn slots, which has the last word.
+            const { updateBadge, removeBadge } = inventoryStore.getState();
 
-            updateBadge({ badgeId: data.badgeId, badgeCode: data.badgeCode, ownerCount: data.ownerCount, badgeRarityId: data.badgeRarityId }, inventoryStore.getState().wornBadgeCodes.includes(data.badgeCode));
+            updateBadge({ badgeId: data.badgeId, badgeCode: data.badgeCode, ownerCount: data.ownerCount, badgeRarityId: data.badgeRarityId }, false);
+            removeBadge(data.removedBadgeCode);
 
             const { getLocalizationValue, config } = systemStore.getState();
             const text = getLocalizationValue('notification.new.achievement', '', { achievement_name: getBadgeName(getLocalizationValue, data.badgeCode) });
@@ -74,9 +72,18 @@ export const registerAchievementHandlers = ({ send, subscribe }: WebSocketConnec
         }),
     ]);
 
+    // `IncomingMessages.onRoomExit` closes the achievement window.
+    const unsubscribeRoom = roomStore.subscribe((state, previous) => {
+        if (!previous.room || state.room === previous.room) return;
+
+        close();
+        systemStore.getState().hideWindow('achievements');
+    });
+
     return () => {
         unsubscribe();
         unsubscribeStore();
+        unsubscribeRoom();
         clearTransition();
         reset();
         systemStore.getState().hideWindow('achievements');

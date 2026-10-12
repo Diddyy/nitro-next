@@ -17,7 +17,7 @@ import { RoomEngineObjectEvent, RoomEngineObjectPlacedEvent, RoomEngineObjectPla
 import { useEffect, useRef } from 'react';
 
 import { initPurchaseFromPurchaseWidget, onCatalogVisibilityChanged, onObjectPlacedInRoom, onObjectPlacedOnUser } from '#base/commands';
-import { CatalogWidgetEventEnum, getCatalogWindowName, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
+import { CatalogWidgetEventEnum, getCatalogWindowName, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsWindowVisible } from '#base/context/system';
 
@@ -25,7 +25,7 @@ import { useRoomEventDispatcher } from '../room/useRoomEventDispatcher';
 
 export const useCatalogPurchaseFlow = () => {
     const store = useCatalogStoreApi();
-    const catalogType = useCatalogStore(x => x.catalogType);
+    const catalogType = useCatalogType();
     const activePage = useCatalogStore(x => x.activePage);
     const isVisible = useIsWindowVisible(getCatalogWindowName(catalogType));
     const wasVisible = useRef(isVisible);

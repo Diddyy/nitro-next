@@ -6,6 +6,7 @@ import {
     RoomObjectOperationType,
     Vector3d } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `SelectedRoomObjectData`. */
 export class SelectedRoomObjectData implements ISelectedRoomObjectData {
     private _id: number;
     private _category: RoomObjectCategoryEnum;

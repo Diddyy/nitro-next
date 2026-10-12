@@ -163,7 +163,7 @@ export const WiredVariablePickerExpandedView = ({ x, y, width, borderVariant, pi
                             layout={{ position: 'absolute', right: 8, top: 5, width: 9, height: 9 }}
                         >
                             <ThemeImage
-                                src={LayoutImage('shared/var_picker_cancel_search.png')}
+                                src={LayoutImage('habbo-window-manager-com/var_picker_cancel_search.png')}
                                 bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                                 layout={{ position: 'absolute', left: 0, top: 0 }}
                             />

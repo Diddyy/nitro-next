@@ -609,7 +609,7 @@ function resolveHabboEtching(etchingColor: number | string | null | undefined, e
     };
 }
 
-export function resolveLineMetrics(swfFont: SwfFont, size: number, isNormal: boolean = false, stageQuality: StageQuality = 'high'): LineMetrics {
+function resolveLineMetrics(swfFont: SwfFont, size: number, isNormal: boolean = false, stageQuality: StageQuality = 'high'): LineMetrics {
     const ascent = floorToTwips((swfFont.metrics.ascent * size) / swfFont.emSquare);
     const descent = floorToTwips((swfFont.metrics.descent * size) / swfFont.emSquare);
     const textHeight = ascent + descent;

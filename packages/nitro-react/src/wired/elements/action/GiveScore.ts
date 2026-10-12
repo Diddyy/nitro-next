@@ -7,6 +7,7 @@
  * slider shows that as its last stop, `GIVE_SCORE_UNLIMITED_TIMES`.
  */
 import type { WiredElementDefinition } from '../../WiredElement';
+import { getWiredInt } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
 
 /** `GiveScore.§_-GZ§` - the most times a user can be limited to. */
@@ -28,8 +29,9 @@ export const giveScoreAction: WiredElementDefinition<GiveScoreActionForm> = {
     holder: 'action',
     code: ActionTypeCodes.GIVE_SCORE,
     createForm: (triggerable) => {
-        const points = triggerable.intParams[0];
-        const times = triggerable.intParams[1];
+        // `int(intParams[n])`: a param the box was never saved with reads as 0.
+        const points = getWiredInt(triggerable, 0);
+        const times = getWiredInt(triggerable, 1);
 
         return {
             points: Math.abs(points),

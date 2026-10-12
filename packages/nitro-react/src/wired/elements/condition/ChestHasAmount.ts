@@ -5,7 +5,7 @@
  * Int params: `[ amount, amount option, amount target, operator ]` - the amount 0 to 1000000
  * when typed (option 0) or taken from the variable (option 1, variable ids `[ variable ]`), the
  * target the variable's (merged section 0, furni / users / global / context, type picker drawn by
- * the element) and the operator one of `CONDITION_OPERATORS`. A box using a variable opens with
+ * the element) and the operator one of `WIRED_COMPARISON_OPERATORS`. A box using a variable opens with
  * the amount input at 1; one using the typed amount with no variable (`WiredVariable.§_-i8§`).
  *
  * The merged section pairs the furni selection 1 (the first, 0, is the chests -
@@ -14,7 +14,7 @@
  */
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { setPickerTarget } from '../../common/WiredVariablePickerModel';
+import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -50,7 +50,7 @@ export const chestHasAmountCondition: WiredElementDefinition<ChestHasAmountCondi
         }, ctx);
     },
     readIntParams: form => [ form.amount.value, form.amount.option, form.amount.picker.target, form.operator ],
-    readVariableIds: form => [ form.amount.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.amount.picker) ],
     furniSelectionTitle: () => 'wiredfurni.params.sources.furni.title.chests',
     mergedSelections: [ [ 1, 0 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',

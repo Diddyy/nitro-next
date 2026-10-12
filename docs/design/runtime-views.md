@@ -1,6 +1,11 @@
 # Runtime views and theme packs: design notes
 
-Status: proposal only, nothing built yet. Written 2026-09-25.
+Status: written 2026-09-25 as a proposal; parts are built since. The built-in theme data (layer 1)
+comes from Nitro Studio into `themeRegistry`, and view templates (layer 2) are how windows are drawn:
+Nitro Studio converts each library's Flash layouts with `layoutToTemplate` into the library's
+template bundle, and `TemplateView` / `useTemplate` / `TemplateWindow` render them (see
+[Layout views](../layout-views.md)). Theme packs, runtime overrides and code plugins are not built.
+Names in the proposal below predate the implementation.
 
 ## Goal
 
@@ -18,9 +23,9 @@ The Habbo client never loaded behaviour at runtime. It loaded the *look*:
 
 - A `<layout>` XML is a tree of elements (`type`, `style`, rect, `name`, vars). `WindowParser`
   builds it into windows on demand.
-- Behaviour is compiled AS3 (or its JS conversion). The controller builds the layout, then finds
+- Behaviour is compiled AS3 (`scripts/habbo-as3`, or its JS conversion in `scripts/habbo-js`). The controller builds the layout, then finds
   elements by name and wires them up: `_window.findChildByName("buy_button").addEventListener(...)`.
-  `findChildByName` appears in 557 files under `scripts/flash-js`.
+  `findChildByName` appears in 557 files under `scripts/habbo-js`.
 - So a layout can move, restyle, resize or re-skin anything, but it cannot add a feature. An
   element the controller does not look up by name is decoration.
 
@@ -43,8 +48,8 @@ The client already pays those at runtime. What an interpreted tree does lose:
 - Per-node props merging. This is fine as long as bindings are resolved once per render and not
   per node per frame.
 
-The network cost is a small JSON file per window, zipped into a `.nitro` like `nitro-layouts`
-already is. It is lazy-loaded the same way `lazyBundleForAsset` handles `effect-icons`.
+The network cost is a small JSON file per window, zipped into a `.nitro` like the library template
+bundles now are. It is lazy-loaded the same way `lazyBundleForAsset` pulls in a library's bundle.
 
 **The real risks are elsewhere:**
 
@@ -71,7 +76,8 @@ Three layers, in order of risk and effort. Each layer is useful on its own.
 ### 1. Theme packs: data only, low risk, do this first
 
 The `*_VARIANTS` tables are already data wearing TS syntax: a sheet id, a `windowLayout(...)`
-name, a tint colour, a text style (see `theme/Button.tsx`). Move them to JSON:
+name, a tint colour, a text style. Move them to JSON (now `theme-variants.json`, read through
+`themeRegistry` / `useThemeVariant`):
 
 - The built-in variant tables are generated JSON in the `theme` bundle. (Done: Nitro Studio builds
   it from the client release's window manager library, `server/theme/` there, and nitro-react
@@ -86,16 +92,16 @@ name, a tint colour, a text style (see `theme/Button.tsx`). Move them to JSON:
 ### 2. View templates: look without logic
 
 - **Format:** JSON, not XML. It is the same model as Flash's layout (element type, style,
-  layout box, name, vars), but parsed natively with no XML parser at runtime. The generator
-  (`generate-layout-views.ts`) already turns the Flash XML into this tree before printing TSX.
-  Have it also emit JSON, and the Flash layouts become the first templates for free.
+  layout box, name, vars), but parsed natively with no XML parser at runtime. (Built: Nitro
+  Studio's `layoutToTemplate` turns the Flash XML into this tree, so the Flash layouts are the
+  templates.)
 - **Renderer:** `<TemplateView id="catalog_ubuntu" bind={...} />` walks the tree and maps each
   element type to a theme component (`Frame`, `Button`, `ThemeText`, `Region`, ...). It uses the
   element-description mapping the generator already knows.
 - **Binding:** a hook such as `useTemplate('catalog_ubuntu', slots)` passes named slots in:
   `{ header_title: { text }, buy_button: { onPointerTap, disabled }, item_grid: <CatalogGrid/> }`.
-  Slots can be props or whole React subtrees, so complex parts (grids, room previews,
-  InfiniteGrid) stay in real code, and the template only positions them.
+  Slots can be props or whole React subtrees, so complex parts (grids, room previews) stay in
+  real code, and the template only positions them.
 - **Controllers stay in TS.** A window that supports overrides becomes controller plus default
   template, instead of a hand-written view. This is opt-in, one window at a time. Start with the
   windows hotels actually want to restyle: catalog layouts (already a data-driven,

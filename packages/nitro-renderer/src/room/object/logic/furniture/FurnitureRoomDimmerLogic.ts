@@ -3,6 +3,10 @@ import { IRoomObjectUpdateMessage, RoomObjectDimmerStateUpdateEvent, RoomObjectV
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-31Z§`, the logic `RoomObjectFactory` builds for
+ * `furniture_roomdimmer`.
+ */
 export class FurnitureRoomDimmerLogic extends FurnitureLogic {
     private _roomColorUpdated: boolean = false;
 

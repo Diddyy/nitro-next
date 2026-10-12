@@ -1,10 +1,11 @@
-﻿import { AvatarBodyPartType, AvatarFigurePartType, IAssetAvatarBodyPart, IAssetAvatarBodyPartItem, IAvatarImage } from '@nitrodevco/nitro-api';
+import { AvatarBodyPartType, AvatarFigurePartType, IAssetAvatarBodyPart, IAssetAvatarBodyPartItem, IAvatarImage } from '@nitrodevco/nitro-api';
 
 import { GeometryItem } from './GeometryItem';
 import { Matrix4x4 } from './Matrix4x4';
 import { Node3D } from './Node3D';
 import { Vector3D } from './Vector3D';
 
+/** Port of Flash `GeometryBodyPart`. */
 export class GeometryBodyPart extends Node3D {
     private _id: AvatarBodyPartType;
     private _radius: number;

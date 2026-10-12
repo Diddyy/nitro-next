@@ -6,15 +6,12 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorStore } from '#base/context/navigator';
 import { RoomSettingsErrorField, RoomSettingsFormError, useRoomSettingsFormActions, useRoomStore } from '#base/context/room';
 import { useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
-import { ClientGates, useClientGate, useFriends, useOwnHasClub, useUserStore } from '#base/context/user';
-import { RoomSettingsView } from '#base/views/room-widgets/room-settings/RoomSettingsView';
+import { ClientGates, useAccountSafetyLocked, useClientGate, useFriends, useOwnHasClub } from '#base/context/user';
+import { ROOM_SETTINGS_TAB_ACCESS, ROOM_SETTINGS_TAB_RIGHTS, RoomSettingsView } from '#base/views/room-widgets/room-settings/RoomSettingsView';
 
 /** The first tab, which the window always opens on. */
 const FIRST_TAB = 1;
 
-/** The two tabs that need a list from the server before they can show anything. */
-const TAB_ACCESS = 2;
-const TAB_RIGHTS = 3;
 const TAB_CLUB_AND_CHAT = 4;
 const TAB_MODERATION = 5;
 
@@ -50,7 +47,7 @@ const visitorStepsFor = (hasClub: boolean): number[] => {
 
 /** `onRoomSettingsSaveError` / `save`: the tab of the field a refusal is shown on (`switchToTab`). */
 const tabForField = (field: RoomSettingsErrorField): number => {
-    if ((field === 'password') || (field === 'passwordConfirm')) return TAB_ACCESS;
+    if ((field === 'password') || (field === 'passwordConfirm')) return ROOM_SETTINGS_TAB_ACCESS;
     if ((field === 'idleSleepTimeout') || (field === 'idleAutokickTimeout')) return TAB_CLUB_AND_CHAT;
 
     return FIRST_TAB;
@@ -89,7 +86,7 @@ export const RoomSettingsWidget = () => {
     const friends = useFriends();
     const hasClub = useOwnHasClub();
     const isStaff = useClientGate(ClientGates.RoomSettingsStaff);
-    const accountSafetyLocked = useUserStore(x => x.accountSafetyLocked);
+    const accountSafetyLocked = useAccountSafetyLocked();
     const homeRoomId = useHomeRoomId();
     const { hideWindow, showAlert, showConfirm } = useWindowActions();
     const t = useTranslation();
@@ -123,7 +120,7 @@ export const RoomSettingsWidget = () => {
     useEffect(() => {
         if (!isVisible || !roomId) return;
 
-        if (tab === TAB_RIGHTS) send(new GetFlatControllersComposer({ roomId }));
+        if (tab === ROOM_SETTINGS_TAB_RIGHTS) send(new GetFlatControllersComposer({ roomId }));
         if (tab === TAB_MODERATION) send(new GetBannedUsersFromRoomComposer({ roomId }));
     }, [ isVisible, roomId, tab, send ]);
 

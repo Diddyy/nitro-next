@@ -1,21 +1,18 @@
 import { RoomGeometryScaleType, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectPlacementSource, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
 import { RemovePetFromFlatComposer } from '@nitrodevco/nitro-packets';
 import { GetRoomEngine, PetFigureData } from '@nitrodevco/nitro-renderer';
-import { useEffect, useEffectEvent } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { initializeRoomObjectInsert, removeInventoryUnseenFurniCounter } from '#base/commands';
+import { initializeRoomObjectInsert, placeInventoryPetToRoom, removeInventoryUnseenFurniCounter, removeInventoryUnseenPetCounter } from '#base/commands';
 import { useCatalogGiftReceiverActions } from '#base/context/catalog-purchase';
 import { useWebSocketContext } from '#base/context/communication';
 import { INVENTORY_FURNI_CATEGORY_POSTER, useInventoryStore } from '#base/context/inventory';
 import { useRoomStore, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
-import { useRoomEventDispatcher, useRoomObjectModify, useRoomObjectSelect } from '#base/hooks';
+import { useFurnitureImageTexture, usePetImageTexture, useRoomEventDispatcher, useRoomObjectModify, useRoomObjectSelect } from '#base/hooks';
 import { LayoutImage } from '#base/theme';
-import { useFurnitureImageTexture } from '#base/views/catalog/useFurnitureImageTexture';
-import { usePetImageTexture } from '#base/views/catalog/usePetImageTexture';
+import { PRESENT_OPENED_WIDGET, PresentOpenedData } from '#base/utils';
 import { FurniturePresentOpenedIcon, FurniturePresentOpenedView } from '#base/views/room-widgets/furniture/FurniturePresentOpenedView';
-
-import { PRESENT_OPENED_WIDGET, PresentOpenedData } from './furnitureWidgetData';
 
 /** `FurniturePresentWidgetHandler`'s furni class names a wall item can change the room with. */
 const SPACES_CLASS_NAMES = [ 'floor', 'landscape', 'wallpaper' ];
@@ -43,17 +40,18 @@ const ROOM_PLANE_CATEGORIES = [ 2, 3, 4 ];
  *   `webID`, anything else as floor furni.
  * - Keep closes. Place sends the inventory's floor item `-placedItemId` or wall item
  *   `placedItemId` to the room's object mover (`HabboInventory.requestSelectedFurniToMover`, never
- *   for a wallpaper, floor or landscape category). Put in inventory picks the pet up
+ *   for a wallpaper, floor or landscape category), or places the pet as the inventory's pets page
+ *   does (`placePetToRoom`: the owner drags it in, anyone else sends it where pets are allowed), and
+ *   the pet is no longer new (`removeUnseenPetCounter`). The owner's drag opens the inventory once
+ *   the pet is down, though it was not open before: `PetsModel.onObjectPlaced` shows the view after
+ *   any placement `placePetToRoom` started. Put in inventory picks the pet up
  *   (`pickUpPet`) or the floor furni (`OBJECT_PICKUP`). All three close the card.
  * - `give_gift_button` (`onGiveGiftOpened` -> `openGiftShop`): the sender becomes the catalogue's
  *   gift receiver and the `gift_shop` page opens.
  *
  *   A furni that goes to the mover is no longer new (`removeUnseenFurniCounter(placedItemId)`).
  *
- * Not carried out: placing a pet (`placePetToRoom`, then `removeUnseenPetCounter`) - the room's pet
- * placement is not ported here, so the card closes and the pet stays in the inventory. The pet
- * render is always at the 64 scale, where Flash draws type 15 at 32: `usePetImageTexture` takes
- * no scale.
+ * The pet is rendered at the 64 scale, type 15 at 32 (`FurniturePresentWidgetHandler`).
  */
 export const FurniturePresentOpenedWidget = () => {
     const request = useRoomWidget<PresentOpenedData>(PRESENT_OPENED_WIDGET);
@@ -87,11 +85,12 @@ export const FurniturePresentOpenedWidget = () => {
     const isSpacesItem = !!wallFurniData && SPACES_CLASS_NAMES.includes(wallFurniData.className);
     const isClubItem = contents?.itemType === 'h';
     const petFigure = (contents && (contents.itemType !== 'i') && !isClubItem && (contents.placedItemType === 'p') && contents.petFigureString.length) ? new PetFigureData(contents.petFigureString) : undefined;
-    const petTexture = usePetImageTexture(petFigure && { typeId: petFigure.typeId, paletteId: petFigure.paletteId, color: petFigure.color, direction: 90, customParts: petFigure.customParts });
+    const petTexture = usePetImageTexture(petFigure && { typeId: petFigure.typeId, paletteId: petFigure.paletteId, color: petFigure.color, direction: 90, customParts: petFigure.customParts, scale: (petFigure.typeId === 15) ? RoomGeometryScaleType.ZoomedOut : RoomGeometryScaleType.ZoomedIn });
     const furniImage = useFurnitureImageTexture((contents && (contents.itemType !== 'i') && !isClubItem && !petFigure) ? floorFurniData?.className : undefined, floorFurniData?.colorIndex ?? 0, 2, RoomGeometryScaleType.ZoomedIn, 0);
 
-    // `selectGiftedObject`, once the contents are in.
-    const selectGiftedObject = useEffectEvent(() => {
+    // `selectGiftedObject`, once the contents are in. Called through a ref holding the latest render's
+    // (React's `useEffectEvent` throws under the Pixi reconciler), so it sees the room's current users.
+    const selectGiftedObject = () => {
         if (!contents || (contents.placedItemId <= 0) || !contents.placedInRoom) return;
 
         if (contents.placedItemType !== 'p') {
@@ -103,10 +102,15 @@ export const FurniturePresentOpenedWidget = () => {
         const unit = Object.entries(usersByRoomObjectId).find(([ , user ]) => user.webID === contents.placedItemId);
 
         if (unit) selectObject(Number(unit[0]), RoomObjectCategoryEnum.Unit);
+    };
+    const selectGiftedObjectRef = useRef(selectGiftedObject);
+
+    useEffect(() => {
+        selectGiftedObjectRef.current = selectGiftedObject;
     });
 
     useEffect(() => {
-        if (contents) selectGiftedObject();
+        if (contents) selectGiftedObjectRef.current();
     }, [ contents ]);
 
     if (!request || !data || !contents) return null;
@@ -122,7 +126,7 @@ export const FurniturePresentOpenedWidget = () => {
 
             if (isSpacesItem) {
                 name = t(`inventory.furni.item.${wallFurniData.className}.name`);
-                icon = { src: LayoutImage(`room-ui/packagecard_icon_${wallFurniData.className}.png`) };
+                icon = { src: LayoutImage(`habbo-room-ui-com/packagecard_icon_${wallFurniData.className}.png`) };
             } else if (wallFurniData.className === 'poster') {
                 // `int(productCode.replace("poster", ""))`: 0 for anything that is not a number.
                 const posterId = contents.productCode.startsWith('poster') ? String(Math.trunc(Number(contents.productCode.replace('poster', ''))) || 0) : undefined;
@@ -138,7 +142,7 @@ export const FurniturePresentOpenedWidget = () => {
         }
         case 'h':
             name = t('widget.furni.present.hc');
-            icon = { src: LayoutImage('room-ui/packagecard_icon_hc.png') };
+            icon = { src: LayoutImage('habbo-room-ui-com/packagecard_icon_hc.png') };
             break;
         default:
             name = productName ?? ((contents.itemType === 's') ? (floorFurniData?.localizedName ?? '') : '');
@@ -175,6 +179,10 @@ export const FurniturePresentOpenedWidget = () => {
 
                     break;
                 }
+                case 'p':
+                    // `placePetToRoom(placedItemId, false)`, then `removeUnseenPetCounter` when it started.
+                    if (placeInventoryPetToRoom(send, contents.placedItemId)) removeInventoryUnseenPetCounter(send, contents.placedItemId);
+                    break;
             }
         }
 

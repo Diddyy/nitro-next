@@ -1,3 +1,7 @@
+/**
+ * The last `maxSize` numbers added, overwriting the oldest, with their maximum and minimum -
+ * Flash's `FixedSizeStack`, which smooths a context bubble's height over recent frames.
+ */
 export class FixedSizeStack {
     private _data: number[] = [];
     private _index = 0;

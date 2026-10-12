@@ -12,6 +12,10 @@ import {
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash `FurnitureJukeboxLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_jukebox`.
+ */
 export class FurnitureJukeboxLogic extends FurnitureMultiStateLogic {
     private _disposeEventsAllowed: boolean = false;
     private _isInitialized: boolean = false;

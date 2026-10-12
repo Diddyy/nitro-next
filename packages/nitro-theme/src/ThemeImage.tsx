@@ -12,8 +12,8 @@ import { compose, cursorForHandlers, DynamicStyleRole, FlashBitmapVars, insetStr
 
 export interface ImageProps extends ThemeLayoutMeta {
     /**
-     * A bundled bitmap's asset name (`LayoutImage('room-ui/roomtools_gear.png')` ->
-     * `room-ui-roomtools_gear`) or an arbitrary image URL (an avatar render, a room thumbnail,
+     * A bundled bitmap's asset name (`LayoutImage('habbo-window-manager-com/roomtools_gear.png')`
+     * -> `habbo-window-manager-com-roomtools_gear`) or an arbitrary image URL (an avatar render, a room thumbnail,
      * a badge). Ignored when `textureKey` is set.
      */
     src?: string | undefined;
@@ -22,7 +22,7 @@ export interface ImageProps extends ThemeLayoutMeta {
     /**
      * A texture the caller already holds (an avatar or furni render) - Pixi draws it directly,
      * so the render is never read back into a base64 URL. Takes precedence over `textureKey`
-     * and `src`. DOM has no way to show a texture and ignores it: pass `src` there.
+     * and `src`.
      */
     texture?: Texture;
     /** Crop a sub-region out of the image (a shared spritesheet) instead of showing it whole. */
@@ -82,10 +82,8 @@ export interface ImageProps extends ThemeLayoutMeta {
     eventMode?: EventMode;
     cursor?: string;
     /**
-     * Typed as taking Pixi's own event (accepting a caller who needs it, e.g. to
-     * `.stopPropagation()`) - a plain zero-arg callback is still assignable here, and the DOM
-     * branch passes through to the real PointerEvent/MouseEvent at runtime regardless of this
-     * declared type, same cross-target cast Box.tsx's own handler props already rely on.
+     * Typed as taking Pixi's own event (for a caller who needs it, e.g. to `.stopPropagation()`) -
+     * a plain zero-arg callback is still assignable here.
      */
     onPointerOver?: (event: FederatedPointerEvent) => void;
     onPointerOut?: (event: FederatedPointerEvent) => void;
@@ -95,10 +93,12 @@ export interface ImageProps extends ThemeLayoutMeta {
     onPointerTap?: (event: FederatedPointerEvent) => void;
     /**
      * Falls back to `loading.icon.url` while `src` is resolving/erroring, instead of rendering
-     * nothing. Only meaningful for whole-image (no `frame`) use - for a cropped chrome sprite a
-     * generic loading icon squeezed into that frame's size would look broken.
+     * nothing - or, given as a string, to that texture (an asset key or a url): a furniture icon
+     * waits on the room content loader's `place_holder` icon, as Flash's `getFurnitureIcon` does.
+     * Only meaningful for whole-image (no `frame`) use - for a cropped chrome sprite a generic
+     * loading icon squeezed into that frame's size would look broken.
      */
-    showLoadingPlaceholder?: boolean;
+    showLoadingPlaceholder?: boolean | string;
     /**
      * Sizes/positions the sprite's own box. A box larger than the image does not stretch it
      * (unless `width`/`height` ask for that): the image sits centred at its own size inside,
@@ -140,7 +140,8 @@ export const ThemeImage = forwardRef<PixiContainer, ImageProps>(({
     const baseTexture = ownTexture ?? themeTexture ?? urlTexture;
 
     const loadingIconUrl = useThemeConfigValue<string>('loading.icon.url') ?? '';
-    const loadingTexture = useTextureFromUrl(showLoadingPlaceholder && !frame && !baseTexture ? (loadingIconUrl || undefined) : undefined);
+    const placeholderUrl = (typeof showLoadingPlaceholder === 'string') ? showLoadingPlaceholder : loadingIconUrl;
+    const loadingTexture = useTextureFromUrl(showLoadingPlaceholder && !frame && !baseTexture ? (placeholderUrl || undefined) : undefined);
     const effect = useDynamicStyleEffect(dynamicRole);
 
     const resolvedBaseTexture = baseTexture ?? loadingTexture;

@@ -16,7 +16,7 @@
  * rentable bot infostands' buttons.
  */
 import type { IWiredErrorLogsError, IWiredTransactionLogList } from '@nitrodevco/nitro-packets';
-import { GetExtendedProfileComposer, LockAllChestsComposer, ProgressTreasureHuntComposer, WiredClearErrorLogsComposer, WiredGetErrorLogsComposer, WiredGetRoomSettingsComposer, WiredGetRoomStatsComposer, WiredSetRoomSettingsComposer, WiredTransactionGetRoomLogsComposer, WiredTransactionLogListType, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
+import { LockAllChestsComposer, ProgressTreasureHuntComposer, WiredClearErrorLogsComposer, WiredGetErrorLogsComposer, WiredGetRoomSettingsComposer, WiredGetRoomStatsComposer, WiredSetRoomSettingsComposer, WiredTransactionGetRoomLogsComposer, WiredTransactionLogListType, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
@@ -338,6 +338,3 @@ export const lockAllWiredChests = (send: Send) => {
 
 /** `onViewInDetailClick` - the room's transaction log, in the transaction log window. */
 export const viewWiredChestsLogsInDetail = (send: Send) => send(new WiredTransactionGetRoomLogsComposer({ pageSize: TRANSACTIONS_PAGE_SIZE, page: 1 }));
-
-/** `TransactionPreviewTableObject.onClickUsername` and the other name links of the menu's tables: the user's profile. */
-export const openWiredUserProfile = (send: Send, userId: number) => send(new GetExtendedProfileComposer({ userId, openProfile: true }));

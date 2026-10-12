@@ -1,5 +1,6 @@
 import { AvatarFigurePartType, IAvatarFigureContainer } from '@nitrodevco/nitro-api';
 
+/** Port of Flash `AvatarFigureContainer`. */
 export class AvatarFigureContainer implements IAvatarFigureContainer {
     private _parts: Map<AvatarFigurePartType, { type: AvatarFigurePartType; setId: number; colorIds: number[] }> = new Map();
 

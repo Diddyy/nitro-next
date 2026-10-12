@@ -16,7 +16,7 @@ works independently. Use each developer's own checkout locations; no shared abso
 | Protocol revision | `production.version` in the loaded client configuration | Registered `IRevision.Revision`; session selected by `ClientHelloMessageHandler` |
 | Connection | `socket.url` | `serverOptions:WebSocketServer:listeners` and any configured proxy/TLS endpoint |
 | Authentication | `sso` URL query parameter sent by `SSOTicketComposer` | `SSOTicketMessageHandler` and `AuthenticationService` |
-| Gamedata and assets | Loaded config URLs, asset bundles and furniture definitions | Development hotel's definitions, catalog and room models; coordinated through Nitro Studio |
+| Gamedata and assets | Loaded config URLs, asset bundles and furniture definitions | Development hotel's definitions, catalog and room models |
 | Test state | Dedicated account, room and fixture | The same account and room in the configured development database |
 
 The inspected revision is `WIN63-202609091217-117204808`, implemented under
@@ -48,14 +48,8 @@ The bash equivalent is `DOTNET_ENVIRONMENT=Development dotnet run --project Turb
 Use the project-scoped command; the solution may include other projects that are not needed for
 core server work. Check startup logs for the loaded configuration and registered revision.
 
-In another terminal, from the Nitro root:
-
-```sh
-corepack yarn install
-corepack yarn workspace @nitrodevco/nitro-react dev
-```
-
-Open Vite's printed URL. Point the loaded Nitro `socket.url` at Turbo's WebSocket listener, not its
+In another terminal, start the client as in [Development setup](development.md) and open Vite's
+printed URL. Point the loaded Nitro `socket.url` at Turbo's WebSocket listener, not its
 TCP or Orleans gateway port. Use the browser-reachable hostname and port; a listener bind address
 such as `0.0.0.0` is not the URL to give the client. Match `ws`/`wss` to the configured endpoint.
 Keep developer-specific endpoint changes out of unrelated feature PRs.
@@ -85,7 +79,8 @@ For each changed exchange, record the header, ordered field types, array counts,
 units, trigger and expected state transition. AS3 decides the behavior; compare both sides before
 changing a parser to tolerate unexpected server data. A registered packet with no consumer is still
 an incomplete feature. Check permissions, configuration gates and failure responses as well as the
-successful path. See [packet conventions](packets.md).
+successful path. See [packet conventions](packets.md). [Server gaps](server-gaps.md) lists the
+exchanges the client implements that Turbo does not answer yet (`node tools/server-gaps.mjs`).
 
 Keep Turbo handlers focused on orchestration. Domain/grain code owns runtime state and persistence;
 do not update database rows directly to bypass grain-owned state. Keep client-specific display logic
@@ -103,7 +98,9 @@ and the client never asks. An extension's packets are taken only once the server
 so a server using the same headers for something else cannot feed them in. Turbo's
 `docs/client-capabilities.md` owns the wire format.
 
-`permission.nodes` is the one extension so far: Turbo sends the user's client-facing permission
+Two extensions so far. `chat.commands.v2` gives the chat input Turbo's command tree and its
+suggestions (`TurboCommandTreeMessage` 30002, `TurboCommandSuggestComposer` 30003,
+`TurboCommandSuggestionsMessage` 30004, into `UserChatCommandsSlice`). `permission.nodes`: Turbo sends the user's client-facing permission
 nodes (`TurboPermissionNodesMessage`, 30001) after `UserRights` and on every change, into
 `userStore.permissionNodes`. Every security-level check goes through a `ClientGates` entry
 (`src/context/user/gates/ClientGate.ts`) and `useClientGate` / `hasClientGate`: the gate asks its

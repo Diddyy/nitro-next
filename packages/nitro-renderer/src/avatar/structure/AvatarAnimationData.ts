@@ -2,6 +2,10 @@ import { IActionDefinition, IAssetAvatarAnimation, IFigureSetData } from '@nitro
 
 import { AnimationAction } from './animation';
 
+/**
+ * Port of Flash `AnimationData` (the avatar's, `com.sulake.habbo.avatar.structure`): the
+ * animations of the actions, by action id.
+ */
 export class AvatarAnimationData implements IFigureSetData {
     private _actions: Map<string, AnimationAction> = new Map();
 

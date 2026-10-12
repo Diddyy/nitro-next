@@ -1,11 +1,12 @@
+/**
+ * `WiredSetupSlice`'s actions - the wired box being edited, as `UserDefinedRoomEventsCtrl` kept it:
+ * opening and closing it, its form, update mode, position and pending listeners. Read off the store
+ * once: a component using these re-renders for nothing.
+ */
 import { wiredStore } from '../store/WiredStore';
 
 const state = wiredStore.getState();
 
-/**
- * Zustand actions are created once and never change, so they are read off the store a single
- * time here rather than subscribed to: a component using these re-renders for nothing.
- */
 const actions = {
     openSetup: state.openSetup,
     closeSetup: state.closeSetup,

@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarSleepUpdateMessage`. */
 export class ObjectAvatarSleepUpdateMessage extends ObjectStateUpdateMessage {
     private _isSleeping: boolean;
 

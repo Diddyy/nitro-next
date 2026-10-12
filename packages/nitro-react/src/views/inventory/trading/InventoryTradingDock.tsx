@@ -1,39 +1,46 @@
 /**
  * The trade docked in `inventory_xml`'s `subContentArea` - what Flash's `InventoryMainView` does
- * with `TradingModel.getWindowContainer` while a trade is open, plus the two lifecycle rules the
- * model attaches to the window:
+ * with `TradingModel.getWindowContainer` while a trade is open: the full `inventory_trading_xml`
+ * dialog, or the `inventory_trading_minimized_xml` strip while it is minimised, at 0,0 of the area.
+ * The model also attaches two lifecycle rules to the window:
  *
  * - leaving the furni page minimises the trade rather than ending it (`TradingModel.categorySwitch`),
  *   which is why the dock watches the active tab rather than the view doing it;
  * - unmounting the window is `closingInventoryView`, which closes the trade unless a web3 trade is
  *   waiting on its confirmation.
  *
- * How tall it is, and how much `InventoryView` grows the frame by, is `inventoryTradingLayout`'s
- * - the same `getLowestPoint` the view lays itself out to, so the two can never disagree.
+ * How tall it is - and so how much the inventory window grows by - is `inventoryTradingLayout`'s,
+ * the same `getLowestPoint` the dialog's `arrange` takes its height from.
+ *
+ * Without a user trade, a running wired trade docks here instead (`WiredTradingModel.getWindowContainer`,
+ * `inventory_trading_wired_xml`): the inventory going cancels it (`WiredTradingModel.closingInventoryView`
+ * -> `close(true, true)`). Leaving the furni page does nothing to it (`categorySwitch` is empty);
+ * the other tabs are disabled while it runs anyway.
  */
 import { useEffect } from 'react';
 
-import { onInventoryClosedDuringTrade, onInventoryTabChangedDuringTrade } from '#base/commands';
+import { closeWiredTrade, onInventoryClosedDuringTrade, onInventoryTabChangedDuringTrade } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryStore } from '#base/context/inventory';
-import { Region } from '#base/theme';
+import { useWiredTradingStore } from '#base/context/wired-trading';
+import { Box } from '#base/theme';
+import { WiredTradeView } from '#base/views/wired-trading/trade/WiredTradeView';
 
-import { getInventoryTradingHeight, INVENTORY_TRADING_MINIMIZED_HEIGHT, INVENTORY_TRADING_WIDTH, useInventoryTradingSections } from './inventoryTradingLayout';
+import { INVENTORY_TRADING_WIDTH, useInventoryTradingDockHeight } from './inventoryTradingLayout';
 import { InventoryTradingMinimizedView } from './InventoryTradingMinimizedView';
 import { InventoryTradingView } from './InventoryTradingView';
 
 interface InventoryTradingDockProps {
     /** The inventory's selected tab - a trade only survives on the furni page. */
     activeTab: string;
-    /** Where `subContentArea` starts, so the dock sits exactly under `top_content`. */
-    top: number;
 }
 
-export const InventoryTradingDock = ({ activeTab, top }: InventoryTradingDockProps) => {
+export const InventoryTradingDock = ({ activeTab }: InventoryTradingDockProps) => {
     const { send } = useWebSocketContext();
     const tradingActive = useInventoryStore(x => x.tradingActive);
     const tradingMinimized = useInventoryStore(x => x.tradingMinimized);
-    const { showSilver, showHighlight } = useInventoryTradingSections();
+    const wiredTradeRunning = useWiredTradingStore(x => x.tradeRunning);
+    const height = useInventoryTradingDockHeight();
 
     // `TradingModel.categorySwitch`: the trade does not survive the user leaving the furni page.
     useEffect(() => {
@@ -41,15 +48,24 @@ export const InventoryTradingDock = ({ activeTab, top }: InventoryTradingDockPro
     }, [ activeTab ]);
 
     // `closingInventoryView`, on the window going rather than on a packet.
-    useEffect(() => () => onInventoryClosedDuringTrade(send), [ send ]);
+    useEffect(() => () => {
+        onInventoryClosedDuringTrade(send);
+        closeWiredTrade(send, true);
+    }, [ send ]);
 
-    if (!tradingActive) return null;
+    if (!tradingActive) {
+        if (!wiredTradeRunning) return null;
 
-    const height = tradingMinimized ? INVENTORY_TRADING_MINIMIZED_HEIGHT : getInventoryTradingHeight(showSilver, showHighlight);
+        return (
+            <Box layout={{ position: 'absolute', left: 0, top: 0, width: INVENTORY_TRADING_WIDTH, height }}>
+                <WiredTradeView />
+            </Box>
+        );
+    }
 
     return (
-        <Region layout={{ position: 'absolute', left: 0, top, width: INVENTORY_TRADING_WIDTH, height }}>
+        <Box layout={{ position: 'absolute', left: 0, top: 0, width: INVENTORY_TRADING_WIDTH, height }}>
             {tradingMinimized ? <InventoryTradingMinimizedView /> : <InventoryTradingView />}
-        </Region>
+        </Box>
     );
 };

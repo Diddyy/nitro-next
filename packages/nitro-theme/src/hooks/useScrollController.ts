@@ -2,6 +2,7 @@ import { Container as PixiContainer, FederatedPointerEvent, FederatedWheelEvent 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ScrollControllerOptions } from '../scroll';
+import { clamp } from '../utils/clamp';
 import { useLayoutEvent } from './useLayoutEvent';
 
 export interface ScrollController {
@@ -21,32 +22,30 @@ export interface ScrollController {
     stepForward: () => void;
     /** Jumps to an absolute offset (clamped to the scrollable range); `scrollTo(0)` is "back to the start". */
     scrollTo: (offset: number) => void;
+    /** Jumps to `ratio` (0 to 1) of the scrollable range as it is laid out now. */
+    scrollToRatio: (ratio: number) => void;
 }
 
 const DEFAULT_STEP = 24;
 const DEFAULT_MIN_THUMB_SIZE = 17;
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
 const computedSize = (node: PixiContainer | null, axis: 'width' | 'height'): number => {
-    if (!node) return 0;
+    // A destroyed node can still be held in state until React clears its ref; its `scale` is
+    // null by then, so the `width`/`height` getters would throw.
+    if (!node || node.destroyed) return 0;
 
     return node.layout?.computedLayout?.[axis] ?? node[axis] ?? 0;
 };
 
 /**
- * Pixi-native port of hooks/ui/useScrollbarController.ts. DOM's version leans on native
- * browser scroll (a hidden `overflow-y-auto` viewport with `scrollTop`/`scrollHeight`/
- * `ResizeObserver`/the native `scroll` event) driving a fully custom-skinned scrollbar UI -
- * Pixi has none of that, so this owns the scroll position itself (`scrollOffset`, applied by
- * the caller as the content container's own `y`/`x`, on top of its layout position - the same
- * composition technique useFrameDrag.ts's drag offset already relies on) and re-measures
- * viewport/content/track sizes from @pixi/layout's `layout` event (`useLayoutEvent`, the Pixi
- * stand-in for a ResizeObserver) plus offset changes, instead of a `scroll` event + observer,
- * reading `.layout.computedLayout` the same way useFrameDrag.ts/useFrameResize.ts do. Thumb
- * dragging uses window-level pointermove/pointerup (Pixi's FederatedPointerEvent has no
- * setPointerCapture, confirmed absent from pixi.js's event types), the same technique
- * useFrameDrag.ts uses for the identical reason.
+ * The scroll state of one axis of a scrollable area (Flash's `ScrollBarController` and the
+ * scrollable list it drives): the offset, the lift's size and place, and the wheel, track, lift and
+ * arrow input. Pixi has no native scrolling, so this owns the offset (`scrollOffset`, which the
+ * caller applies as the content container's own `x`/`y`, on top of its layout position) and
+ * re-measures the viewport, content and track from @pixi/layout's `layout` event
+ * (`useLayoutEvent`) and on every offset change. A lift drag runs on window-level `pointermove` /
+ * `pointerup` listeners, as `useFrameDrag`'s does: Pixi's `FederatedPointerEvent` has no pointer
+ * capture.
  *
  * IMPORTANT for call sites: assign `viewportRef`/`contentRef`/`trackRef` to a JSX `ref` prop
  * via an inline arrow (`ref={node => controller.trackRef(node)}`), never as a direct member
@@ -137,6 +136,17 @@ export const useScrollController = ({
         measure();
     }, [ measure, scrollOffset ]);
 
+    // The range as the boxes are laid out now: a layout can settle after the last `layout` event
+    // `measure` heard (a template list's content box resized in the same pass as its items), so a
+    // scroll clamps to the live sizes rather than to the last measured range - which would leave
+    // the end of the content out of reach.
+    const liveScrollMax = useCallback(() => {
+        const clientSize = computedSize(viewportNode, sizeAxis);
+        const scrollSize = computedSize(contentNode, sizeAxis);
+
+        return (viewportNode && contentNode) ? Math.max(0, scrollSize - clientSize) : metricsRef.current.scrollMax;
+    }, [ viewportNode, contentNode, sizeAxis ]);
+
     const stopDragging = useCallback(() => {
         const listeners = activeListenersRef.current;
         if (listeners) {
@@ -154,7 +164,7 @@ export const useScrollController = ({
         if (!delta) return;
 
         event.stopPropagation();
-        setScrollOffset(clamp(scrollOffsetRef.current + delta, 0, metricsRef.current.scrollMax));
+        setScrollOffset(clamp(scrollOffsetRef.current + delta, 0, liveScrollMax()));
     };
 
     const onThumbPointerDown = (event: FederatedPointerEvent) => {
@@ -164,7 +174,7 @@ export const useScrollController = ({
             pointer: isVertical ? event.clientY : event.clientX,
             scroll: scrollOffsetRef.current,
             availableTrack: Math.max(0, computedSize(trackNode, sizeAxis) - metricsRef.current.thumbSize),
-            scrollMax: metricsRef.current.scrollMax,
+            scrollMax: liveScrollMax(),
         };
 
         const handleMove = (moveEvent: PointerEvent) => {
@@ -189,7 +199,8 @@ export const useScrollController = ({
         const trackGlobal = trackNode.getGlobalPosition();
         const clickPos = (isVertical ? event.global.y : event.global.x) - (isVertical ? trackGlobal.y : trackGlobal.x);
         const clientSize = computedSize(viewportNode, sizeAxis);
-        const { thumbOffset, thumbSize, scrollMax } = metricsRef.current;
+        const { thumbOffset, thumbSize } = metricsRef.current;
+        const scrollMax = liveScrollMax();
 
         const direction = clickPos < thumbOffset ? -1 : clickPos > thumbOffset + thumbSize ? 1 : 0;
         if (direction === 0) return;
@@ -197,17 +208,20 @@ export const useScrollController = ({
         setScrollOffset(clamp(scrollOffsetRef.current + direction * clientSize, 0, scrollMax));
     };
 
-    const stepBackward = () => setScrollOffset(clamp(scrollOffsetRef.current - step, 0, metricsRef.current.scrollMax));
-    const stepForward = () => setScrollOffset(clamp(scrollOffsetRef.current + step, 0, metricsRef.current.scrollMax));
+    const stepBackward = () => setScrollOffset(clamp(scrollOffsetRef.current - step, 0, liveScrollMax()));
+    const stepForward = () => setScrollOffset(clamp(scrollOffsetRef.current + step, 0, liveScrollMax()));
 
     const scrollTo = useCallback((offset: number) => {
-        const next = clamp(offset, 0, metricsRef.current.scrollMax);
+        const next = clamp(offset, 0, liveScrollMax());
 
         // Written through to the ref as well so a wheel/step in the same frame builds on the new
         // position rather than the one the effect hasn't synced yet.
         scrollOffsetRef.current = next;
         setScrollOffset(next);
-    }, []);
+    }, [ liveScrollMax ]);
+
+    /** Scrolls to `ratio` (0 to 1) of the scroll range as it is now laid out. */
+    const scrollToRatio = useCallback((ratio: number) => scrollTo(ratio * liveScrollMax()), [ scrollTo, liveScrollMax ]);
 
     return {
         viewportRef: setViewportNode,
@@ -225,5 +239,6 @@ export const useScrollController = ({
         stepBackward,
         stepForward,
         scrollTo,
+        scrollToRatio,
     };
 };

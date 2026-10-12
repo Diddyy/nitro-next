@@ -1,3 +1,4 @@
+/** Port of Flash `VariableFxClipRect`. */
 export class VariableFxClipRect {
     constructor(
         public x: number = 0,

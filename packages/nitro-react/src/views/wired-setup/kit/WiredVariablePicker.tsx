@@ -12,7 +12,7 @@
  * Read as the row's y instead, the popup rides 20px up and the closed field ends up inside it.
  *
  * It is controlled: the selection lives in a `WiredVariablePickerState` in the element's form
- * (`createVariablePickerState` is Flash's `init`, `state.variableId` its `finalizeSelection`,
+ * (`createVariablePickerState` is Flash's `init`, `finalizePickerSelection` its `finalizeSelection`,
  * `setPickerTarget` its `variableTarget` setter) and `onChange` hands back the next state
  * together with the variable, the way Flash calls the element's selection callback. What Flash
  * resolves lazily - text that was typed but never confirmed - is resolved when the popup closes:

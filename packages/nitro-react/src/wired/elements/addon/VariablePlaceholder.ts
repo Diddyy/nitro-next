@@ -17,7 +17,7 @@
 import { type IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { flatVariableName } from '../../common/WiredUtil';
-import { createVariablePickerState, getPickerSelectedVariable, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
+import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import { normalizeWiredVariableName } from '../../common/WiredVariableSections';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
@@ -85,7 +85,7 @@ export const variablePlaceholderAddon: WiredElementDefinition<VariablePlaceholde
     },
     readIntParams: form => [ form.showMultiple ? 1 : 0, form.picker.target, form.textMode ? 1 : 0 ],
     readStringParam: writeWiredPlaceholderAddonString,
-    readVariableIds: form => [ form.picker.variableId ],
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables',
     mergedSelections: [ [ 0, 0 ] ],
     getMergedType: form => form.picker.target,

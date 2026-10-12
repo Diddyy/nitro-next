@@ -36,7 +36,7 @@ import { minimizeTargetedOffer, purchaseTargetedOfferCredits, showTargetedOfferC
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { checkTargetedOfferPurseBalance, TargetedOffer, useTargetedOfferActions, useTargetedOfferStore } from '#base/context/targeted-offers';
-import { useUserStore } from '#base/context/user';
+import { useOwnCredits, useUserStore } from '#base/context/user';
 import { getTargetedOfferTimeLeft } from '#base/utils';
 
 import { useTargetedOfferLocalization } from './useTargetedOfferLocalization';
@@ -83,7 +83,7 @@ export const useTargetedOfferDialog = (offer: TargetedOffer): TargetedOfferDialo
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const getLocalization = useTargetedOfferLocalization(offer);
-    const credits = useUserStore(x => x.credits);
+    const credits = useOwnCredits();
     const activityPoints = useUserStore(x => x.activityPoints);
     const quantity = useTargetedOfferStore(x => x.quantity);
     const { setQuantity } = useTargetedOfferActions();

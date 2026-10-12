@@ -20,8 +20,9 @@ import { FurnitureTypeEnum, ICatalogNode, IPurchasableOffer } from '@nitrodevco/
 import { CatalogIndexMessage, CatalogPageMessage, CatalogPublishedMessage, NotEnoughBalanceMessage, ProductOfferEventMessage, PurchaseErrorMessage, PurchaseNotAllowedMessage, PurchaseOKMessage } from '@nitrodevco/nitro-packets';
 import { StoreApi } from 'zustand';
 
-import { disposePurchaseDialog, resetPlacedOfferData, showCatalogPage, showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert } from '#base/commands';
+import { createTransitionFromNode, disposePurchaseDialog, resetPlacedOfferData, showCatalogPage, showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert } from '#base/commands';
 import { CatalogStore, CatalogWidgetEventEnum, getCatalogWindowName, isActiveCatalogType } from '#base/context/catalog';
+import { catalogPurchaseStore } from '#base/context/catalog-purchase';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { systemStore } from '#base/context/system';
@@ -136,14 +137,23 @@ export const registerCatalogHandlers = (store: StoreApi<CatalogStore>, { subscri
         }),
 
         /**
-         * `onPurchaseOK`: the dialog's raffle ends (`ltdRaffleEnded`) and the dialog closes. Flash
-         * first flies the product picture to the inventory icon (`createTransitionToIcon`, the
-         * me menu's for an effect) unless the purchase was a gift or a drop into the room, and
-         * tells its listeners (`CatalogFurniPurchaseEvent`); the port's toolbar has no icon
-         * transition and nothing listens for the event, so neither happens here.
+         * `onPurchaseOK`: unless the purchase was a drop into the room (the object mover
+         * `requestSelectedItemToMover` asked for is still out) or a gift (`isGiftPurchase`, a receiver named in the gift window), the
+         * dialog's product picture (`getIconWrapper`) flies to the inventory icon - the me menu's
+         * for an effect (`productType == "e"`) - with `createTransitionToIcon`; then the raffle ends
+         * (`ltdRaffleEnded`) and the dialog closes. Flash also tells its listeners
+         * (`CatalogFurniPurchaseEvent`); nothing in the port listens for that, so it is not sent.
          */
         on(PurchaseOKMessage, () => {
-            if (!store.getState().activePurchase) return;
+            const { activePurchase, purchaseDialogView, purchaseIconNode } = store.getState();
+
+            if (!activePurchase) return;
+
+            if (!catalogPurchaseStore.getState().isObjectMoverRequested && (purchaseDialogView !== 'gift') && purchaseIconNode) {
+                const isEffect = (getOfferProduct(activePurchase.offer)?.productType === FurnitureTypeEnum.Effect);
+
+                createTransitionFromNode(isEffect ? 'HTIE_ICON_MEMENU' : 'HTIE_ICON_INVENTORY', purchaseIconNode);
+            }
 
             setLtdRaffleRunning(false);
             setActivePurchase(undefined);

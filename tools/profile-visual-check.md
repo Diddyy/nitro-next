@@ -19,8 +19,8 @@ Start Nitro, authenticate against your development server, then use **Me → My 
 the real profile, badge and relationship packets through the registered handlers.
 The profile is available without entering a room.
 
-Keep `renderer.color.space` at `srgb` for Flash comparisons. The previous
-`display-p3` configuration changes the appearance of the same RGB artwork.
+Leave `renderer.color.space` empty (sRGB) for Flash comparisons; only `display-p3` changes it, and
+that configuration changes the appearance of the same RGB artwork.
 Refresh the page after changing it; the renderer reads it at startup.
 
 ## Repeatable visual states
@@ -98,7 +98,7 @@ require a server implementing those flows and appropriate test accounts.
 
 The contribution preserves the repository's badge host and socket configuration.
 Any development server address, ticket or badge host override belongs in the local
-launch URL, never in the PR. The `srgb` renderer default is an intentional shared
+launch URL, never in the PR. The sRGB renderer default is an intentional shared
 rendering correction: the supplied skin bitmap RGB values are sRGB; interpreting
 those values as Display P3 changes their appearance. It affects all windows, not
 only profiles. Inspect existing windows as well when reviewing that change.

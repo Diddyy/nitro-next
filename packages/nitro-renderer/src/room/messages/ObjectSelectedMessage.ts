@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectSelectedMessage`. */
 export class ObjectSelectedMessage extends ObjectStateUpdateMessage {
     private _selected: boolean;
 

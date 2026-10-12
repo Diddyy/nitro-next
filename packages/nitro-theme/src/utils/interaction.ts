@@ -1,4 +1,8 @@
-import { EventMode, FederatedPointerEvent } from 'pixi.js';
+/**
+ * How the theme's components take the pointer: the handler props they share, when a container
+ * becomes a hit target (`resolveEventMode`, `attachBoxHitArea`), and the cursor it shows.
+ */
+import { Container, EventMode, FederatedPointerEvent } from 'pixi.js';
 
 /**
  * Every pointer callback in this package is typed to receive Pixi's own event object - a
@@ -20,13 +24,32 @@ export interface PointerHandlerProps {
 }
 
 /**
+ * Detection-only shape for the handlers `hasAnyPointerHandler` / `resolveEventMode` test - looser
+ * than `PointerHandlerProps` (any single-argument function, plus `null`) because `<Box>`/
+ * `<ThemeImage>` feed it straight from Pixi's own generated JSX prop types for
+ * `pixiContainer`/`pixiSprite` (a union that also covers e.g. `FederatedWheelEvent` handlers,
+ * and allows explicit `null`). Only "is a real handler present" is asked, never a call, so the
+ * parameter is `never`: every one-argument function is assignable to it.
+ */
+type PointerHandlerLike = ((event: never) => void) | null | undefined;
+
+interface PointerHandlerDetection {
+    onPointerOver?: PointerHandlerLike;
+    onPointerOut?: PointerHandlerLike;
+    onPointerDown?: PointerHandlerLike;
+    onPointerUp?: PointerHandlerLike;
+    onPointerUpOutside?: PointerHandlerLike;
+    onPointerTap?: PointerHandlerLike;
+}
+
+/**
  * True once at least one real pointer handler is present. Shared by `useInteractionState`
  * (skip creating hover/press-tracking handlers and forcing `eventMode` when a component has
  * neither an internal need nor a caller-supplied handler for any of the six events) and by
  * components that need to know "is this actually interactive" before deciding other props
  * (e.g. a `cursor` value).
  */
-export const hasAnyPointerHandler = (handlers: PointerHandlerProps): boolean => !!(
+export const hasAnyPointerHandler = (handlers: PointerHandlerDetection): boolean => !!(
     handlers.onPointerOver || handlers.onPointerOut || handlers.onPointerDown
     || handlers.onPointerUp || handlers.onPointerUpOutside || handlers.onPointerTap
 );
@@ -49,32 +72,6 @@ export const compose = (a: PointerHandler | undefined, b: PointerHandler | undef
 };
 
 /**
- * Detection-only shape for `resolveEventMode`'s incoming handlers - deliberately looser than
- * `PointerHandlerProps` (any single-argument function, plus `null`) because `<Box>`/
- * `<ThemeImage>` feed it straight from Pixi's own generated JSX prop types for
- * `pixiContainer`/`pixiSprite` (a union that also covers e.g. `FederatedWheelEvent` handlers,
- * and allows explicit `null`). This is only ever used to test "is a real handler present", so
- * the exact parameter type of each handler doesn't matter - only `PointerHandlerProps` (the
- * hook/component-facing API) needs the precise `PointerHandler` signature.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see docblock above: only truthiness is checked, never called, so the parameter type is deliberately erased.
-type PointerHandlerLike = ((event: any) => void) | null | undefined;
-
-interface PointerHandlerDetection {
-    onPointerOver?: PointerHandlerLike;
-    onPointerOut?: PointerHandlerLike;
-    onPointerDown?: PointerHandlerLike;
-    onPointerUp?: PointerHandlerLike;
-    onPointerUpOutside?: PointerHandlerLike;
-    onPointerTap?: PointerHandlerLike;
-}
-
-const hasPointerHandler = (handlers: PointerHandlerDetection): boolean => !!(
-    handlers.onPointerOver || handlers.onPointerOut || handlers.onPointerDown
-    || handlers.onPointerUp || handlers.onPointerUpOutside || handlers.onPointerTap
-);
-
-/**
  * Pixi's own default `eventMode` ('passive') already lets a container's *children* stay
  * interactive while the container itself isn't a hit target - exactly what every purely
  * structural `<Box>` (the overwhelming majority) wants, so nothing needs to hardcode it. A
@@ -82,10 +79,10 @@ const hasPointerHandler = (handlers: PointerHandlerDetection): boolean => !!(
  * pointer handlers - detected here rather than requiring every call site to also pass
  * `eventMode="static"` alongside them, the way most of this package used to. An explicit
  * `eventMode` always wins over this (a caller can still force `'none'` even with handlers
- * attached - see AccordionTrigger.tsx's `alwaysOpen` case - or opt into `'dynamic'`).
+ * attached, or opt into `'dynamic'`).
  */
 export const resolveEventMode = (explicit: EventMode | undefined, handlers: PointerHandlerDetection): EventMode | undefined =>
-    explicit ?? (hasPointerHandler(handlers) ? 'static' : undefined);
+    explicit ?? (hasAnyPointerHandler(handlers) ? 'static' : undefined);
 
 /**
  * True once the element is given the one handler that means "clicking here does something":
@@ -100,7 +97,7 @@ export const resolveEventMode = (explicit: EventMode | undefined, handlers: Poin
  */
 export const hasClickHandler = (handlers: PointerHandlerDetection): boolean => !!handlers.onPointerTap;
 
-/** A hit target in either renderer: the modes Pixi tests against, and the ones DOM maps to `pointer-events: auto`. */
+/** A hit target: the event modes Pixi's `EventBoundary` tests against. */
 export const isHitTarget = (eventMode: EventMode | undefined): boolean => eventMode === 'static' || eventMode === 'dynamic';
 
 /**
@@ -118,4 +115,23 @@ export const cursorForHandlers = (eventMode: EventMode | undefined, handlers: Po
     if (hasClickHandler(handlers)) return 'pointer';
 
     return isHitTarget(eventMode) ? 'default' : undefined;
+};
+
+/**
+ * A hit area that follows a container's laid-out box. Pixi tests a `static` / `dynamic` container
+ * against its own `hitArea` (or, absent one, `containsPoint`), and a plain container has no shape
+ * of its own: without this it is hit only where a child is. `contains` reads the box's computed
+ * size on every test, so it stays right as the box resizes with no effect keeping a rectangle in
+ * sync. Set once; a container that already has a `hitArea` keeps its own.
+ */
+export const attachBoxHitArea = (node: Container): void => {
+    if (node.hitArea) return;
+
+    node.hitArea = {
+        contains: (x: number, y: number) => {
+            const computed = node.layout?.computedLayout;
+
+            return (x >= 0) && (x <= (computed?.width ?? node.width)) && (y >= 0) && (y <= (computed?.height ?? node.height));
+        },
+    };
 };

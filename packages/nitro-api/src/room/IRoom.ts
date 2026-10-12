@@ -69,6 +69,11 @@ export interface IRoom {
         realRoomObject?: boolean,
         sizeZ?: number,
     ): boolean;
+    /**
+     * Builds furniture waiting in the room's queues until `startTime` is `budgetMs` old (checked
+     * every four pieces), floor items first; true when the budget ran out.
+     */
+    createPendingFurniture(startTime: number, budgetMs: number): boolean;
     addFurnitureFloorByTypeName(
         objectId: number,
         typeName: string,
@@ -157,8 +162,8 @@ export interface IRoom {
     updateRoomObjectUserGesture(objectId: number, gestureId: number): boolean;
     updateRoomObjectUserPetGesture(objectId: number, gesture: string): boolean;
     updateRoomObjectUserPosture(objectId: number, type: string, parameter?: string): boolean;
-    removeRoomObjectFloor(objectId: number, isOwner?: boolean): void;
-    removeRoomObjectWall(objectId: number, isOwner?: boolean): void;
+    removeRoomObjectFloor(objectId: number): void;
+    removeRoomObjectWall(objectId: number): void;
     removeRoomObjectUser(objectId: number): void;
     getRoomObjectScreenLocation(objectId: number, category: RoomObjectCategoryEnum): PointData | undefined;
     getRoomObjectImage(objectId: number, category: RoomObjectCategoryEnum, direction: IVector3D, scale: RoomGeometryScaleType): Promise<ImageLike | undefined>;

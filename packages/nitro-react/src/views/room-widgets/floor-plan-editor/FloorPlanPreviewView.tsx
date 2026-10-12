@@ -4,11 +4,6 @@ import { useMemo } from 'react';
 import { Box, LayoutImage, useTextureFromUrl } from '#base/theme';
 import { buildFloorPlanPreview, FLOOR_PLAN_PREVIEW_TILE_IMAGES, FloorPlanModel, FloorPlanTile } from '#base/utils';
 
-export interface FloorPlanPreviewViewProps {
-    model: FloorPlanModel;
-    entryPoint: FloorPlanTile | null;
-}
-
 /**
  * The isometric preview beside the map - `FloorPlanPreviewer.updatePreview`. Each tile picks one
  * of seventeen bitmaps by which of its corners a neighbour one level up covers, so a raised tile
@@ -19,10 +14,15 @@ export interface FloorPlanPreviewViewProps {
  * is derived from the rows, so a drawn tile shows up in the same render that drew it, and neither
  * the timer nor the button has anything left to do.
  */
+export interface FloorPlanPreviewViewProps {
+    model: FloorPlanModel;
+    entryPoint: FloorPlanTile | null;
+}
+
 /**
  * The seventeen bitmaps, resolved once. A hook may not be called in a loop, and one hook per drawn
- * tile would be thousands of them, so the list is written out - it is a fixed table, and the
- * builder above indexes straight into it.
+ * tile would be thousands of them, so the list is written out - it is a fixed table, and
+ * `buildFloorPlanPreview` (`#base/utils`) indexes straight into it.
  */
 const usePreviewTileTextures = (): (Texture | undefined)[] => [
     useTextureFromUrl(LayoutImage(FLOOR_PLAN_PREVIEW_TILE_IMAGES[0])),

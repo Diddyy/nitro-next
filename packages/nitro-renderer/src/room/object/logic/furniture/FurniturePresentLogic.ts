@@ -9,6 +9,10 @@ import {
 import { ObjectDataUpdateMessage, ObjectModelDataUpdateMessage } from '../../../messages';
 import { FurnitureLogic } from './FurnitureLogic';
 
+/**
+ * Port of Flash `FurniturePresentLogic`, the logic `RoomObjectFactory` builds for
+ * `furniture_present`.
+ */
 export class FurniturePresentLogic extends FurnitureLogic {
     private static MESSAGE: string = 'MESSAGE';
     private static PRODUCT_CODE: string = 'PRODUCT_CODE';

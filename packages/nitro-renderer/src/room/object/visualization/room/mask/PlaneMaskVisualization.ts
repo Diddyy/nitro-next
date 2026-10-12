@@ -2,6 +2,7 @@ import { IGraphicAsset, IVector3D } from '@nitrodevco/nitro-api';
 
 import { PlaneMaskBitmap } from './PlaneMaskBitmap';
 
+/** Port of Flash `PlaneMaskVisualization`. */
 export class PlaneMaskVisualization {
     public static MIN_NORMAL_COORDINATE_VALUE: number = -1;
     public static MAX_NORMAL_COORDINATE_VALUE: number = 1;

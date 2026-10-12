@@ -5,6 +5,7 @@ const state = profileStore.getState();
 
 const actions = {
     clearProfile: state.clearProfile,
+    markFriendRequestSent: state.markFriendRequestSent,
     setBadges: state.setBadges,
     setProfile: state.setProfile,
     setRelationships: state.setRelationships,

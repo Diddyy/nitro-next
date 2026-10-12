@@ -1,10 +1,21 @@
-import { SetRenderer } from '@nitrodevco/nitro-renderer';
+/**
+ * The one Pixi application the UI and the app's own stage (the client's room) share: it owns the
+ * canvas React DOM mounts, starts the renderer (`SetRenderer`, Flash's blend modes, the configured
+ * colour space) and lays the UI's render group out over the whole screen.
+ */
+// The blend modes Pixi draws as filters - Flash's `subtract` and `invert` (`utils/flashBlendMode.ts`).
+import 'pixi.js/advanced-blend-modes';
+
+import { SetRenderer, TextureUtils } from '@nitrodevco/nitro-renderer';
 import { Application } from '@pixi/react';
 import { Application as PixiApplication, RendererType, WebGLRenderer } from 'pixi.js';
 import { ReactNode, useCallback, useRef } from 'react';
 
 import { useThemeConfigValue } from './host';
+import { setAdvancedBlendModes } from './utils/flashBlendMode';
 import { GetPixelRatio } from './utils/GetPixelRatio';
+import { guardLayoutViewSizes } from './utils/layoutViewSizeGuard';
+import { gateLayoutWalk } from './utils/layoutWalkGate';
 
 /** `renderer.color.space` in nitro-config.json: the port's own key - Flash drew in sRGB and had no such setting. */
 const COLOR_SPACE_KEY = 'renderer.color.space';
@@ -66,6 +77,9 @@ interface PixiApplicationRootProps {
     children?: ReactNode;
 }
 
+/** The UI's render group: the whole stage, which is the screen's size (`applyScreenLayout`). */
+const UI_LAYOUT = { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' } as const;
+
 /** The client's canvas: the whole window, under everything else on the page. */
 const FULL_WINDOW_CANVAS = 'position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; image-rendering: pixelated;';
 
@@ -79,12 +93,19 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
         readyRef.current = true;
 
         app.canvas.style = canvasStyle;
+        // Replacing the style dropped the `touch-action: none` Pixi's EventSystem set on the canvas:
+        // without it a finger dragged across the canvas is the browser's pan or zoom, which cancels
+        // the pointer a few pixels in and leaves the room (or any drag) stuck.
+        app.canvas.style.touchAction = 'none';
 
         SetRenderer(app.renderer);
+        setAdvancedBlendModes(app.renderer);
         applyCanvasColorSpace(app, colorSpace);
 
         onInit?.(app);
         app.stage.sortableChildren = false;
+        // Its sprites draw pooled and owned textures; one destroyed must not stay in a cached batch.
+        TextureUtils.watchBatches(app.stage);
 
         const applyScreenLayout = () => {
             app.stage.layout = {
@@ -96,6 +117,10 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
 
         applyScreenLayout();
         app.renderer.on('resize', applyScreenLayout);
+        // The stage's layout walk runs only after something in its layout changed.
+        gateLayoutWalk(app.renderer, app.stage);
+        // A nine-slice or tiling sprite once laid out at 0 would stay `NaN` sized.
+        guardLayoutViewSizes();
 
         onReady();
     }, [ onReady, onInit, colorSpace, canvasStyle ]);
@@ -112,7 +137,18 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
             preserveDrawingBuffer={false}
             sharedTicker
         >
-            {children}
+            {/* The UI is a render group of its own: what changes in the room under it (sprites
+                added, hidden, re-textured every frame) rebuilds only the stage's instructions, and
+                a window opening or a text changing rebuilds only the UI's - each keeps its batches
+                while the other changes. It fills the stage, so the UI lays out against the screen
+                as it did on the stage itself. */}
+            <pixiContainer
+                label="ui"
+                isRenderGroup
+                layout={UI_LAYOUT}
+            >
+                {children}
+            </pixiContainer>
         </Application>
     );
 };

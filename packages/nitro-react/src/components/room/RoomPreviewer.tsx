@@ -35,9 +35,9 @@ const useReadyCallback = (api: RoomPreviewerApi, onReady?: (api: RoomPreviewerAp
     }, [ api.room ]);
 };
 
-export const RoomPreviewer = forwardRef<RoomPreviewerHandle, RoomPreviewerProps>(({ roomId = RoomId.TEMP_ROOM_CATALOG, transparent = true, scale, showWalls, showFloor, onPointerTap, layout, onReady }, ref) => {
+export const RoomPreviewer = forwardRef<RoomPreviewerHandle, RoomPreviewerProps>(({ roomId = RoomId.TEMP_ROOM_CATALOG, transparent = true, scale, showWalls, showFloor, anchor, onPointerTap, layout, onReady }, ref) => {
     const containerRef = useRef<PixiContainer | null>(null);
-    const api = useRoomPreviewer(roomId, containerRef, { transparent, scale, showWalls, showFloor });
+    const api = useRoomPreviewer(roomId, containerRef, { transparent, scale, showWalls, showFloor, anchor });
 
     useImperativeHandle(ref, () => api, [ api ]);
     useReadyCallback(api, onReady);

@@ -14,9 +14,8 @@ const CompositeLayerPieceSprite = ({ piece, tintColor }: { piece: CompositeLayer
 
     // A piece axis with neither inset set used to fall back to the static position - which
     // happens to be the top-left corner only while the container keeps its default flex-start
-    // alignment. Generated layouts now legitimately set `justifyContent: 'center'` on a themed
-    // component's box to centre an inset-less ported child (see generate-layout-views.ts), and
-    // that would silently re-centre any chrome piece relying on the fallback too. Pinning the
+    // alignment. A layout can legitimately set `justifyContent: 'center'` on a themed
+    // component's box to centre an inset-less child, and that would silently re-centre any chrome piece relying on the fallback too. Pinning the
     // start inset explicitly keeps every piece anchored where it always rendered, whatever
     // alignment the box declares.
     const left = piece.left ?? (piece.right === undefined && !piece.alignSelf ? 0 : undefined);
@@ -32,6 +31,11 @@ const CompositeLayerPieceSprite = ({ piece, tintColor }: { piece: CompositeLayer
     );
 };
 
+/**
+ * A skin that is not one clean nine-slice grid, drawn as every one of its entities: each a sprite
+ * pinned, stretched or centred by the insets Nitro Studio derives from its `BitmapSkinRenderer`
+ * scale mode.
+ */
 export const CompositeLayer = ({ pieces, tintColor }: {
     pieces: CompositeLayerPieceProps[];
     tintColor?: string;

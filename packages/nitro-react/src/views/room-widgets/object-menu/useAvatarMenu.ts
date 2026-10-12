@@ -1,13 +1,15 @@
 import { ISimpleRoomObjectData, RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { useState } from 'react';
 
-import { ambassadorAlert, banUser, giveRights, ignoreUser, kickUser, muteUser, openClientLink, openProfile, passCarryItem, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_NONE, RELATIONSHIP_SMILE, replenishRespect, respectUser, sendFriendRequest, setRelationship, startTrading, takeRights, unignoreUser, unmuteUser, whisperUser } from '#base/commands';
+import { ambassadorAlert, askForAFriend, banUser, giveRights, ignoreUser, kickUser, muteUser, openClientLink, openProfile, passCarryItem, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_NONE, RELATIONSHIP_SMILE, replenishRespect, respectUser, setRelationship, startTrading, takeRights, unignoreUser, unmuteUser, whisperUser } from '#base/commands';
+import { reportUser } from '#base/commands/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useOwnRoomObjectId, useRoomIsPlayingGame, useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { useOwnIsAmbassador, useUserStore } from '#base/context/user';
+import { useAccountSafetyLocked, useOwnIsAmbassador, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { TRADE_REASON_ROOM, TRADE_REASON_SHUTDOWN, useRoomUserData } from '#base/hooks';
+import { isHandItem } from '#base/utils';
 
 /** `AvatarMenuView` modes. */
 export const MODE_ACTIONS = 1;
@@ -16,9 +18,6 @@ export const MODE_BAN = 4;
 export const MODE_MUTE = 5;
 export const MODE_RELATIONSHIP = 6;
 export const MODE_AMBASSADOR = 7;
-
-/** A carried item id at or above this is not something that can be handed on. */
-const MAX_CARRY_ITEM = 999999;
 
 /** The relationship grid's statuses, in the layout's cell order. */
 export const RELATIONSHIPS = [ RELATIONSHIP_HEART, RELATIONSHIP_SMILE, RELATIONSHIP_BOBBA ];
@@ -42,7 +41,7 @@ export type MenuButton = {
 /**
  * What `AvatarMenuView` shows over another user and what each button does: its modes, every row's
  * `updateButtons` condition and action, the trade button's tooltip. `undefined` while the user has
- * no data or a game is being played. Both the hand-placed view and the template's read it.
+ * no data or a game is being played. `InfoBubbleAvatarView` draws it on the menu's template.
  */
 export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => void) => {
     const { objectId } = objectData;
@@ -51,7 +50,7 @@ export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => 
     const [ mode, setMode ] = useState(MODE_ACTIONS);
     const respectLeft = useUserStore(x => x.respectLeft);
     const respectReplenishesLeft = useUserStore(x => x.respectReplenishesLeft ?? 0);
-    const accountSafetyLocked = useUserStore(x => x.accountSafetyLocked);
+    const accountSafetyLocked = useAccountSafetyLocked();
     const isAmbassador = useOwnIsAmbassador();
     const isPlayingGame = useRoomIsPlayingGame();
     const citizenshipTrack = useConfigValue<boolean>('talent.track.citizenship.enabled') ?? false;
@@ -61,6 +60,7 @@ export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => 
     const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
     const replenishCost = useConfigValue<number>('respect.replenish_cost_duckets') ?? 50;
     const showWiredInspect = useWiredShowInspectButton();
+    const reportShown = useConfigValue<boolean>('infostand.report.show') === true;
     const t = useTranslation();
     const { send } = useWebSocketContext();
 
@@ -78,7 +78,7 @@ export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => 
     const buttons: Record<number, MenuButton[]> = {
         [MODE_ACTIONS]: [
             action('open_profile', t('infostand.button.open_profile'), isBlocked, () => openProfile(send, webId)),
-            action('friend', t('infostand.button.friend'), info.canBeAskedAsFriend && !isBlocked, () => sendFriendRequest(send, webId, info.name)),
+            action('friend', t('infostand.button.friend'), info.canBeAskedAsFriend && !isBlocked, () => askForAFriend(send, webId, info.name)),
             action('trade', t('infostand.button.trade'), citizenshipTrack || (!accountSafetyLocked && info.canTrade && !isBlocked), () => startTrading(send, objectId)),
             action('whisper', t('infostand.button.whisper'), !isBlocked, () => whisperUser(info.name)),
             // Each respect keeps the menu up while there is another to give.
@@ -87,8 +87,10 @@ export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => 
             action('relationship', t('infostand.link.relationship'), relationshipsEnabled && info.isFriend && !isBlocked, toMode(MODE_RELATIONSHIP), true),
             action('unignore', t('infostand.button.unignore'), info.isIgnored && !isBlocked, () => unignoreUser(send, webId)),
             action('ignore', t('infostand.button.ignore'), !info.isIgnored && !isBlocked, () => ignoreUser(send, webId)),
+            // `RWUAM_REPORT_CFH_OTHER`: `HabboHelp.reportUser`, the report flow on this user's chat lines.
+            action('report', t('infostand.button.report'), reportShown && !isBlocked, () => reportUser(webId)),
             action('moderate', t('infostand.link.moderate'), canModerate, toMode(MODE_MODERATE), true),
-            action('pass_handitem', t('avatar.widget.pass_hand_item'), handItemGiveEnabled && (ownCarryItem > 0) && (ownCarryItem < MAX_CARRY_ITEM), () => passCarryItem(send, webId)),
+            action('pass_handitem', t('avatar.widget.pass_hand_item'), handItemGiveEnabled && isHandItem(ownCarryItem), () => passCarryItem(send, webId)),
             action('ambassador', t('infostand.link.ambassador'), isAmbassador, toMode(MODE_AMBASSADOR), true),
             // `RWUAM_WIRED_INSPECT`: the wired menu's inspection of this user.
             action('wired_inspect', t('infostand.button.wired_inspect'), showWiredInspect, () => openClientLink(send, `wiredmenu/open/inspection/1/${objectId}`)),

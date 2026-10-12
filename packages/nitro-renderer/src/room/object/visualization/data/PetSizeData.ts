@@ -2,6 +2,7 @@ import { IAssetGesture, IAssetPosture } from '@nitrodevco/nitro-api';
 
 import { AnimationSizeData } from './AnimationSizeData';
 
+/** Port of Flash `PetAnimationSizeData`. */
 export class PetSizeData extends AnimationSizeData {
     public static DEFAULT: number = -1;
 

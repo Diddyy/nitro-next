@@ -1,3 +1,8 @@
+/**
+ * What `InfoStandWidgetHandler.processWidgetMessage` did with each `RWUAM_*` message: the avatar
+ * menus and the infostand both act on people through these, so a button does the same thing
+ * wherever it sits. Each takes the user's server id unless it says otherwise.
+ */
 import { AmbassadorAlertComposer, AssignRightsComposer, BanUserWithDurationComposer, DropCarryItemComposer, GetExtendedProfileComposer, GetRelationshipStatusInfoComposer, GetSelectedBadgesComposer, IgnoreUserComposer, KickUserComposer, MuteUserComposer, OpenTradingComposer, PassCarryItemComposer, RemoveRightsComposer, ReplenishRespectComposer, RequestFriendComposer, RespectUserComposer, SetRelationshipStatusComposer, UnignoreUserComposer, UnmuteUserComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
@@ -23,12 +28,6 @@ const DEFAULT_REPLENISH_COST = 50;
 const DUCKETS = 0;
 
 const roomId = () => roomStore.getState().room?.roomId ?? 0;
-
-/*
- * What `InfoStandWidgetHandler.processWidgetMessage` did with each `RWUAM_*` message: the avatar
- * menus and the infostand both act on people through these, so a button does the same thing
- * wherever it sits. Each takes the user's server id unless it says otherwise.
- */
 
 /** Everything the infostand shows about a user that the room does not already carry. */
 export const requestUserDetails = (send: Send, webId: number) => {

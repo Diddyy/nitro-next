@@ -10,7 +10,7 @@ import { systemStore } from '#base/context/system';
 
 /**
  * `DisconnectReasonEvent`'s constants, by value. The AS3 names are obfuscated; these are the
- * names Sulake's JS conversion keeps (`flash-js/.../handshake/DisconnectReasonEvent.js`).
+ * names Sulake's JS conversion keeps (`habbo-js/.../handshake/DisconnectReasonEvent.js`).
  */
 const DISCONNECT_REASON_NAMES: Record<number, string> = {
     [-3]: 'DISCONNECTED',
@@ -108,3 +108,10 @@ export const showConnectionClosed = (reason: number, reasonName = '') => {
 
     showAlert(title, message, { modal: true });
 };
+
+/**
+ * `HabboToolbar.reboot` (the purse's `logout_button`): `CoreComponentContext.reboot` stops the core
+ * and the AIR client's `onCoreReboot` exits with code 1 for its launcher to start it again. The
+ * hosted client starts again by loading its page again.
+ */
+export const rebootClient = () => window.location.reload();

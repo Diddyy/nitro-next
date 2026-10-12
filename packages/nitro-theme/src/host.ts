@@ -10,8 +10,8 @@ import { useSyncExternalStore } from 'react';
 
 export interface ThemeHost {
     /**
-     * Fetches an asset bundle into the renderer's `AssetManager` by its name (`theme`, `fonts`,
-     * `font-faces`), or joins the fetch in flight; `false` when the app serves no such bundle.
+     * Fetches an asset bundle into the renderer's `AssetManager` by its name
+     * (`habbo-window-manager-com`, `fonts`, `font-faces`), or joins the fetch in flight; `false` when the app serves no such bundle.
      */
     loadAssetBundle: (name: string) => Promise<boolean>;
     /** The bundle, not loaded up front, an asset of that name belongs to - fetched the first time it is asked for. */
@@ -22,6 +22,8 @@ export interface ThemeHost {
     useWindowZIndex: (id: string) => number;
     /** Raises a window over the others. */
     bringWindowToFront: (id: string) => void;
+    /** Forgets a window that is gone for good (a frame with a generated id), so the stack does not keep it. */
+    releaseWindow: (id: string) => void;
 }
 
 /* ---------------------------------------------------------------- the theme's own window stack */
@@ -46,6 +48,9 @@ const DEFAULT_HOST: ThemeHost = {
         zIndexes.set(id, ++top);
 
         for (const listener of listeners) listener();
+    },
+    releaseWindow: (id) => {
+        zIndexes.delete(id);
     },
 };
 

@@ -102,14 +102,14 @@ export const dispatchBuilderSubscriptionUpdated = (store: CatalogStoreApi) => {
  * rights below group admin (`roomControllerLevel < 3`) refuse; and once the membership has run
  * out (a trial), the room must have no other users in it but moderators.
  */
-export const getBuilderFurniPlaceableStatus = (store: CatalogStoreApi): number => {
+export const getBuilderFurniPlaceableStatus = (store: CatalogStoreApi, now: number = performance.now()): number => {
     const { isRoomOwner, isGuildRoom, controllerLevel, ownRoomIndex, usersByRoomObjectId } = roomStore.getState();
 
     if (!isRoomOwner && isGuildRoom && (systemStore.getState().config['builders.club.furniture.placement.group.room.enabled'] !== true)) return BUILDER_FURNI_PLACEABLE_STATUS_GUILD_ROOM;
 
     if (Number(controllerLevel) < Number(RoomControllerLevelEnum.GuildAdmin)) return BUILDER_FURNI_PLACEABLE_STATUS_NOT_ROOM_OWNER_OR_GROUP_ADMIN;
 
-    if (getBuilderSecondsLeft(store, performance.now()) <= 0) {
+    if (getBuilderSecondsLeft(store, now) <= 0) {
         for (const user of Object.values(usersByRoomObjectId)) {
             if ((Number(user.userType) === Number(RoomObjectUserType.User)) && (user.objectId !== ownRoomIndex) && !user.isModerator) return BUILDER_FURNI_PLACEABLE_STATUS_VISITORS_IN_ROOM;
         }
@@ -117,6 +117,9 @@ export const getBuilderFurniPlaceableStatus = (store: CatalogStoreApi): number =
 
     return BUILDER_FURNI_PLACEABLE_STATUS_OKAY;
 };
+
+/** `canPlaceWithBC`: the room lets the user place builders club furni now - the infostand's place more button. */
+export const canPlaceWithBuildersClub = (store: CatalogStoreApi, now: number = performance.now()): boolean => (getBuilderFurniPlaceableStatus(store, now) === BUILDER_FURNI_PLACEABLE_STATUS_OKAY);
 
 /** `getBuilderFurniPlaceableStatusForOffer`: no offer, the furni limit, no room, then the room's own checks. */
 export const getBuilderFurniPlaceableStatusForOffer = (store: CatalogStoreApi, offer: IPurchasableOffer | undefined): number => {

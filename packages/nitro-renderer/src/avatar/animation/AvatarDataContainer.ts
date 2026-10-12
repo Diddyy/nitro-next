@@ -4,6 +4,7 @@ import { AdjustmentFilter } from 'pixi-filters';
 
 import { PaletteMapFilter, PaletteMapFilterMode } from '#renderer/utils';
 
+/** Port of Flash `AvatarDataContainer`. */
 export class AvatarDataContainer implements IAvatarDataContainer {
     private _ink: number;
     private _bg: number;

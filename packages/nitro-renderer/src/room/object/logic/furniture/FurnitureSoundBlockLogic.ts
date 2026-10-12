@@ -3,6 +3,10 @@ import { IAssetData, IRoomObjectUpdateMessage, RoomObjectSamplePlaybackEvent, Ro
 import { ObjectDataUpdateMessage } from '../../../messages';
 import { FurnitureMultiStateLogic } from './FurnitureMultiStateLogic';
 
+/**
+ * Port of Flash's obfuscated `§_-I1Z§`, the logic `RoomObjectFactory` builds for
+ * `furniture_soundblock`.
+ */
 export class FurnitureSoundBlockLogic extends FurnitureMultiStateLogic {
     private static HIGHEST_SEMITONE: number = 12;
     private static LOWEST_SEMITONE: number = -12;

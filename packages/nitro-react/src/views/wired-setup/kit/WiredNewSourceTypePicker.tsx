@@ -90,7 +90,7 @@ export const WiredNewSourceTypePicker = ({ options, selected, onSelect, disabled
                         layout={{ width, height: template.height, flexShrink: 0 }}
                     >
                         <ThemeImage
-                            src={LayoutImage(`wired/${template.assetPrefix}${name}.png`)}
+                            src={LayoutImage(`${template.assetPrefix}${name}.png`)}
                             // `type_image` / `type_icon_bitmap`: unstretched, the window sized to its bitmap.
                             bitmap={{ stretchedX: false, stretchedY: false, fitSizeToContents: true }}
                             dynamicRole="icon"

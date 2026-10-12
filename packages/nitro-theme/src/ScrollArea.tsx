@@ -5,7 +5,7 @@ import { Box, BoxLayout } from './Box';
 import { useScrollController } from './hooks';
 import { ScrollbarHorizontal } from './ScrollbarHorizontal';
 import { ScrollbarVertical } from './ScrollbarVertical';
-import { ScrollViewport } from './utils';
+import { FillLayout, ScrollViewport } from './utils';
 
 type ScrollAreaOrientation = 'vertical' | 'horizontal' | 'both';
 
@@ -33,6 +33,17 @@ export interface ScrollAreaProps {
      * been laid out and the end is the new one.
      */
     scrollEndKey?: unknown;
+    /**
+     * Where the vertical scroll goes, 0 (top) to 1 (bottom) of its range - Flash's `scrollV` on a
+     * scrollable list. Applied whenever it changes, two frames on, as `scrollEndKey` is, so content
+     * set with it has been laid out.
+     */
+    scrollV?: number;
+    /**
+     * The vertical scroll offset, whenever it changes - for a list that mounts only the rows in
+     * view (nitro-react's `TableView`, Flash `TableView.manageRowViews`).
+     */
+    onScrollChange?: (offset: number) => void;
     layout?: BoxLayout;
     viewportLayout?: BoxLayout;
     /**
@@ -46,26 +57,24 @@ export interface ScrollAreaProps {
 }
 
 /**
- * Pixi port of theme/ScrollArea.tsx - top-level composition of a masked scrollable viewport
- * plus one or two themed scrollbars. Owns the `useScrollController` instance(s) itself and
- * hands their computed pieces down as plain props to `ScrollViewport`/`ScrollbarVertical`/
- * `ScrollbarHorizontal` - see ScrollbarVertical.tsx's docblock for why DOM's shared-`RefObject`
- * composition doesn't translate to Pixi and the controller has to be lifted here instead of
- * living inside the scrollbar components.
+ * A masked scrollable viewport with one or two themed scrollbars beside it - what a
+ * `scrollable_itemlist` / `scrollable_itemgrid` and a list with a layout's own `scrollbar_*` window
+ * draw as. Owns the `useScrollController` instance(s) and hands their computed pieces down as plain
+ * props to `ScrollViewport` and the scrollbars (see `createScrollbar` for why the controller lives
+ * here, not in the scrollbar).
  */
 export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
     (
-        { orientation = 'vertical', variant, defaultVariant, tintColor, step, minThumbSize, reachThreshold, onReachStart, onReachEnd, scrollResetKey, scrollEndKey, hideDisabledScrollbar = true, layout, viewportLayout, scrollbarLayout, contentLayout, children },
+        { orientation = 'vertical', variant, defaultVariant, tintColor, step, minThumbSize, reachThreshold, onReachStart, onReachEnd, scrollResetKey, scrollEndKey, scrollV, onScrollChange, hideDisabledScrollbar = true, layout, viewportLayout, scrollbarLayout, contentLayout, children },
         ref,
     ) => {
         const showVertical = orientation === 'vertical' || orientation === 'both';
         const showHorizontal = orientation === 'horizontal' || orientation === 'both';
         const isBoth = orientation === 'both';
 
-        // DOM only forwards reachThreshold/onReachStart/onReachEnd to a scrollbar when a
-        // single axis is active - with 'both' shown it's ambiguous which axis "start"/"end"
-        // refers to, so DOM (and this port) drop them rather than guess. Preserved verbatim
-        // from theme/ScrollArea.tsx.
+        // reachThreshold/onReachStart/onReachEnd apply only while a single axis scrolls - with
+        // 'both' it is ambiguous which axis "start"/"end" refers to, so they are dropped rather
+        // than guessed.
         const vertical = useScrollController({
             orientation: 'vertical',
             step,
@@ -91,6 +100,12 @@ export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
             horizontalScrollTo(0);
         }, [ scrollResetKey, verticalScrollTo, horizontalScrollTo ]);
 
+        const verticalOffset = vertical.scrollOffset;
+
+        useEffect(() => {
+            onScrollChange?.(verticalOffset);
+        }, [ verticalOffset, onScrollChange ]);
+
         useEffect(() => {
             if (scrollEndKey === undefined) return;
 
@@ -105,17 +120,28 @@ export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
             };
         }, [ scrollEndKey, verticalScrollTo ]);
 
+        const verticalScrollToRatio = vertical.scrollToRatio;
+
+        useEffect(() => {
+            if (scrollV === undefined) return;
+
+            let second = 0;
+            const first = requestAnimationFrame(() => {
+                second = requestAnimationFrame(() => verticalScrollToRatio(scrollV));
+            });
+
+            return () => {
+                cancelAnimationFrame(first);
+                cancelAnimationFrame(second);
+            };
+        }, [ scrollV, verticalScrollToRatio ]);
+
         // Only used by the 'both' branch below - kept unconditional since hooks can't be
         // called conditionally.
         const [ maskNode, setMaskNode ] = useState<PixiGraphics | null>(null);
 
-        // DOM's content wrapper is always `relative w-full` regardless of orientation - a plain
-        // block div, whose children stack vertically by default with no flex involved. Yoga has
-        // no block-layout mode (its own default flex-direction is 'row', not a vertical stack),
-        // so `flexDirection: 'column'` here is what actually reproduces DOM's default stacking
-        // behavior - callers scrolling a single wide row (horizontal orientation) override via
-        // `contentLayout`, the same way DOM callers would give their children their own
-        // `flex flex-row` wrapper.
+        // The children stack top to bottom whatever the orientation (Yoga's own default is a
+        // row); a caller scrolling a single wide row passes its own `contentLayout`.
         const resolvedContentLayout: BoxLayout = contentLayout ?? { position: 'relative', width: '100%', flexDirection: 'column', gap: 2 };
 
         return (
@@ -141,7 +167,7 @@ export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
                                 <pixiGraphics
                                     ref={setMaskNode}
                                     eventMode="none"
-                                    layout={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+                                    layout={FillLayout}
                                     draw={(g) => { g.clear().rect(0, 0, 1, 1).fill(0xFFFFFF); }}
                                 />
                                 <pixiContainer
@@ -163,7 +189,7 @@ export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
                                 contentRef={showVertical ? vertical.contentRef : horizontal.contentRef}
                                 onWheel={showVertical ? vertical.onWheel : horizontal.onWheel}
                                 scrollOffset={showVertical ? vertical.scrollOffset : horizontal.scrollOffset}
-                                orientation={showVertical ? 'vertical' : 'horizontal'}
+                                vertical={showVertical}
                                 layout={{ flex: 1, minWidth: 0, minHeight: 0, ...viewportLayout }}
                                 contentLayout={resolvedContentLayout}
                             >

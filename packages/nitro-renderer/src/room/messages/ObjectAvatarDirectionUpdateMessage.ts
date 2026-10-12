@@ -2,6 +2,7 @@ import { IVector3D } from '@nitrodevco/nitro-api';
 
 import { RoomObjectUpdateMessage } from './RoomObjectUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarDirectionUpdateMessage`. */
 export class ObjectAvatarDirectionUpdateMessage extends RoomObjectUpdateMessage {
     private _headDirction: number;
 

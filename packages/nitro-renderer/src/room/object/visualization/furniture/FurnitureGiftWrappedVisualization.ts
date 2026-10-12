@@ -2,6 +2,10 @@ import { IRoomGeometry, RoomGeometryScaleType, RoomObjectVariableEnum } from '@n
 
 import { FurnitureVisualization } from './FurnitureVisualization';
 
+/**
+ * Port of Flash `FurnitureGiftWrappedVisualization`, the visualization
+ * `RoomObjectVisualizationFactory` builds for `furniture_gift_wrapped`.
+ */
 export class FurnitureGiftWrappedVisualization extends FurnitureVisualization {
     private _packetType: number = 0;
     private _ribbonType: number = 0;

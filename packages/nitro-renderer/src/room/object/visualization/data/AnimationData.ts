@@ -8,6 +8,7 @@ import { AnimationFrame } from './AnimationFrame';
 import { AnimationLayerData } from './AnimationLayerData';
 import { DirectionalOffsetData } from './DirectionalOffsetData';
 
+/** Port of Flash `AnimationData` (the room's, not the avatar's). */
 export class AnimationData {
     private static TRANSITION_TO_ANIMATION_OFFSET: number = 1000000;
     private static TRANSITION_FROM_ANIMATION_OFFSET: number = 2000000;

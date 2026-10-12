@@ -1,4 +1,5 @@
 import { useUserStore } from '../../useUserStore';
+import { useFriends } from './useFriends';
 
 /**
  * The friends the friend bar shows, in its order - `HabboFriendBarData.getFriendAt`: the online
@@ -7,7 +8,7 @@ import { useUserStore } from '../../useUserStore';
  */
 export const useFriendBarFriends = () => {
     const ids = useUserStore(x => x.friendBarIds);
-    const friends = useUserStore(x => x.friends);
+    const friends = useFriends();
 
     return ids.map(id => friends[id]).filter(friend => !!friend && (friend.playerId > 0));
 };

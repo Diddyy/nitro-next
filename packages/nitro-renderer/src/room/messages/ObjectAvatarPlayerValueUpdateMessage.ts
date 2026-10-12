@@ -1,5 +1,6 @@
 import { ObjectStateUpdateMessage } from './ObjectStateUpdateMessage';
 
+/** Port of Flash `RoomObjectAvatarPlayerValueUpdateMessage`. */
 export class ObjectAvatarPlayerValueUpdateMessage extends ObjectStateUpdateMessage {
     private _value: number;
 

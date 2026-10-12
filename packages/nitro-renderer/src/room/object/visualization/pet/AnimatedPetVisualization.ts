@@ -7,6 +7,10 @@ import { AnimatedFurnitureVisualization, FurnitureVisualizationData } from '../f
 import { AnimatedPetVisualizationData } from './AnimatedPetVisualizationData';
 import { ExperienceData } from './ExperienceData';
 
+/**
+ * Port of Flash `AnimatedPetVisualization`, the visualization `RoomObjectVisualizationFactory`
+ * builds for `pet_animated`.
+ */
 export class AnimatedPetVisualization extends AnimatedFurnitureVisualization {
     public static override TYPE: string = RoomObjectVisualizationType.PET_ANIMATED;
 
@@ -64,6 +68,9 @@ export class AnimatedPetVisualization extends AnimatedFurnitureVisualization {
 
     public override dispose(): void {
         super.dispose();
+
+        this._experienceData?.dispose();
+        this._experienceData = undefined;
 
         if (this._animationStates) {
             while (this._animationStates.length) {

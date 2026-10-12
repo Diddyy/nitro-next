@@ -3,7 +3,9 @@
  * offers them beside the server's (`mergeChatCommands`): the chat modes `RoomChatInputView`
  * reads off the line (`:whisper name`, `:shout`, `:speak`, by their localized names) and the
  * wired commands `runWiredChatCommand` handles, which only a user the wired menu opens for is
- * offered (`ClientGates.WiredMenu`).
+ * offered (`ClientGates.WiredMenu`), and the room commands `runRoomChatCommand` handles - the
+ * choosers for everyone, the furni management ones for rights (`roomLevel` 1) and `:ejectpets` for
+ * the owner (4); each still checks its own rights when it runs.
  */
 import { ITurboCommand, ITurboCommandParameter, TurboCommandParameterKind, TurboCommandSuggestType } from '@nitrodevco/nitro-packets';
 
@@ -19,13 +21,13 @@ const message: ITurboCommandParameter = {
     members: [],
 };
 
-const clientCommand = (name: string, description: string, parameters: ITurboCommandParameter[] = [], aliases: string[] = []): ITurboCommand => ({
+const clientCommand = (name: string, description: string, parameters: ITurboCommandParameter[] = [], aliases: string[] = [], roomLevel: number = -1): ITurboCommand => ({
     name,
     aliases,
     category: CATEGORY,
     description,
     usage: [ `:${name}`, ...parameters.map(x => (x.optional ? `[${x.name}]` : `<${x.name}>`)) ].join(' '),
-    roomLevel: -1,
+    roomLevel,
     operator: false,
     parameters,
 });
@@ -43,6 +45,13 @@ export interface ChatInputClientCommandTexts {
     inspection: string;
     playTest: string;
     wiredReset: string;
+    userChooser: string;
+    furniChooser: string;
+    pickAll: string;
+    pickAllBuildersClub: string;
+    resetScores: string;
+    ejectAll: string;
+    ejectPets: string;
 }
 
 export const chatInputClientCommands = (texts: ChatInputClientCommandTexts, wired: boolean): ITurboCommand[] => {
@@ -53,6 +62,13 @@ export const chatInputClientCommands = (texts: ChatInputClientCommandTexts, wire
         ]),
         clientCommand(texts.shoutMode.slice(1), texts.shout, [ message ]),
         clientCommand(texts.speakMode.slice(1), texts.speak, [ message ]),
+        clientCommand('chooser', texts.userChooser),
+        clientCommand('furni', texts.furniChooser),
+        clientCommand('pickall', texts.pickAll, [], [], 1),
+        clientCommand('pickallbc', texts.pickAllBuildersClub, [], [], 1),
+        clientCommand('resetscores', texts.resetScores, [], [], 1),
+        clientCommand('ejectall', texts.ejectAll, [], [], 1),
+        clientCommand('ejectpets', texts.ejectPets, [], [], 4),
     ];
 
     if (wired) {

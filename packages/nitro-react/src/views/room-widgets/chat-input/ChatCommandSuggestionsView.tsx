@@ -1,4 +1,4 @@
-import { FloatingPopup, Region } from '#base/theme';
+import { escapeMarkup, FloatingPopup, Region } from '#base/theme';
 import { IChatCommandSuggestion } from '#base/utils';
 import { CatalogGiftSuggestionListItemView } from '#base/views/catalog/purchase/CatalogGiftSuggestionListItemView';
 
@@ -26,18 +26,16 @@ export interface ChatCommandSuggestionsViewProps {
     onClose: () => void;
 }
 
-const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
 /**
  * The row's text with its bold run, as `updateSuggestions` sets it with `setTextFormat(bold, start,
  * end)`, and what a command does after it in grey; `clip` cuts what the row cannot hold.
  */
 const markupOf = ({ label, boldStart, boldEnd, detail }: IChatCommandSuggestion) => {
     const text = (boldEnd > boldStart)
-        ? `${escape(label.slice(0, boldStart))}<b>${escape(label.slice(boldStart, boldEnd))}</b>${escape(label.slice(boldEnd))}`
-        : escape(label);
+        ? `${escapeMarkup(label.slice(0, boldStart))}<b>${escapeMarkup(label.slice(boldStart, boldEnd))}</b>${escapeMarkup(label.slice(boldEnd))}`
+        : escapeMarkup(label);
 
-    return detail.length ? `${text}${DETAIL_GAP}<font color="${DETAIL_COLOR}">${escape(detail)}</font>` : text;
+    return detail.length ? `${text}${DETAIL_GAP}<font color="${DETAIL_COLOR}">${escapeMarkup(detail)}</font>` : text;
 };
 
 /**

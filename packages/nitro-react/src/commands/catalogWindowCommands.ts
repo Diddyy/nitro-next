@@ -7,7 +7,7 @@
  *
  * The rest of `toggleCatalog` happens where its state is: the window asks for its index the first
  * time it opens (`CatalogComponent`), opens its front page (`useCatalogPageRequest`) and refreshes
- * the builder status (`CatalogHeaderView`).
+ * the builder status (`CatalogView`).
  */
 import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
 

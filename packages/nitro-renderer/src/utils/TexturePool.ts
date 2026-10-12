@@ -5,6 +5,10 @@ import { ExtendedSprite } from './ExtendedSprite';
 import { GetTicker } from './GetTicker';
 import { TextureUtils } from './TextureUtils';
 
+/**
+ * Nitro's own pool of render textures by size, so the many short-lived renders (avatar heads, part
+ * thumbnails) reuse GPU memory; idle textures are destroyed by `startAutoCleanup`.
+ */
 export class TexturePool {
     private static _texturePool: Record<number, Record<number, RenderTexture[]>> = {};
     private static _totalTextures: number = 0;
@@ -27,6 +31,7 @@ export class TexturePool {
             if (this._framesSinceCheck >= this._checkInterval) {
                 this._framesSinceCheck = 0;
                 this.cleanUpTextures();
+                TextureUtils.pruneBatchBindGroups();
             }
         };
 
@@ -58,8 +63,11 @@ export class TexturePool {
                 const style = texture.source.style;
                 const scaleMode = TextureSource.defaultOptions.scaleMode ?? 'linear';
 
-                style.scaleMode = scaleMode;
-                style.update();
+                // Only when it differs: `update` notifies every batch bind group still subscribed to the style.
+                if ((style.magFilter !== scaleMode) || (style.minFilter !== scaleMode) || (style.mipmapFilter !== scaleMode)) {
+                    style.scaleMode = scaleMode;
+                    style.update();
+                }
 
                 return texture;
             }

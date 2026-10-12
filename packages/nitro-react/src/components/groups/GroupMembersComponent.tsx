@@ -9,7 +9,7 @@
  */
 import { useEffect } from 'react';
 
-import { applyGroupMemberAction, blockGroupMember, removeGroupMember, searchGroupMembers, showGroupMemberProfile, stepGroupMemberPage } from '#base/commands';
+import { applyGroupMemberAction, blockGroupMember, openProfile, removeGroupMember, searchGroupMembers, stepGroupMemberPage } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupActions, useGroupStore } from '#base/context/groups';
 import { useConfigValue } from '#base/context/system';
@@ -55,7 +55,7 @@ export const GroupMembersComponent = () => {
             }}
             onSearchType={searchType => searchGroupMembers(send, 0, undefined, searchType)}
             onPage={pageIndex => stepGroupMemberPage(send, pageIndex)}
-            onProfile={member => showGroupMemberProfile(send, member.userId)}
+            onProfile={member => openProfile(send, member.userId)}
             onAction={member => applyGroupMemberAction(send, member)}
             onRemove={member => removeGroupMember(send, member)}
             onBlock={member => blockGroupMember(send, member)}
