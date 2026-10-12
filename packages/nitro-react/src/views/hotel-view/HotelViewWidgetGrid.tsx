@@ -16,8 +16,9 @@
  *   the content overflows, down to 10 (`setVerticalSpacing`); between the columns it shrinks by
  *   however much narrower the list is, down to 10 (`setHorizontalSpacing`);
  * - the column container is cut to the taller column (`contractCenterContainer`). The list's
- *   `resize_on_item_update` passes that change on to its own height, and the list clips what it
- *   holds, so in a short window the bottom row is cut off at the list's end, as in Flash.
+ *   `resize_on_item_update` passes that change on to its own height, which the next `resizeTo`
+ *   gives back; the list clips what it holds, so in a short window the bottom row is cut off at the
+ *   list's end, as in Flash.
  *
  * A slot is occupied when its widget has a container - here, when the type is one the port draws
  * (`PORTED_LANDING_VIEW_WIDGETS`); a slot naming any other type stays empty, where Flash would have
@@ -161,7 +162,9 @@ export const useHotelViewWidgetGrid = (templates: Readonly<Record<string, Templa
         }
 
         // `resizeTo`.
-        list.setHeight(Math.max(LIST_MIN_HEIGHT, Math.min(listHeight, LIST_HEIGHT)));
+        const height = Math.max(LIST_MIN_HEIGHT, Math.min(listHeight, LIST_HEIGHT));
+
+        list.setHeight(height);
         list.setWidth(Math.min(listWidth, LIST_WIDTH));
 
         // `applyVerticalSize`: `clearEmptySlotsForSpace`.
@@ -217,6 +220,12 @@ export const useHotelViewWidgetGrid = (templates: Readonly<Record<string, Templa
         const narrowedBy = LIST_WIDTH - list.width;
 
         columns.setSpacing((narrowedBy > (COLUMN_SPACING_MAX - COLUMN_SPACING_MIN)) ? COLUMN_SPACING_MIN : Math.min(COLUMN_SPACING_MAX, COLUMN_SPACING_MAX - narrowedBy));
+
+        // The list's `resize_on_item_update` has passed each change of its content on to its height -
+        // the column container contracted from the layout's 682, the spacings reset - which the next
+        // `resizeTo` (every desktop resize) gives back first. This layout is built afresh each time,
+        // so it is given back here.
+        list.setHeight(height);
     };
 
     return { item, arrange };
