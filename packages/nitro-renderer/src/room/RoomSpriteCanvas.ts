@@ -357,6 +357,10 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         if (!this._geometry || time === this._renderTimestamp) return;
 
+        // RotatingRoomSpriteCanvas.render: the rotating and shaking room effects move the geometry
+        // before each frame is drawn. Once per frame, so a re-entrant render(-1) does not step them twice.
+        this.doMagic();
+
         this.updateZoomSampling();
 
         if (this._width !== this._renderedWidth || this._height !== this._renderedHeight) update = true;

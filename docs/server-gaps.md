@@ -10,7 +10,7 @@ This is the opposite of [Feature gaps](feature-gaps.md), which lists what the cl
 ported. A feature can be in both lists: the server's half here, the client's there.
 
 As of client revision `WIN63-202609091217-117204808` and Turbo revision `Revision20260909`:
-36 packets sent and 104 listened to. Update the list when a gap is closed on either side.
+36 packets sent and 102 listened to. Update the list when a gap is closed on either side.
 
 ## How the list is made
 
@@ -60,7 +60,7 @@ nothing sends it.
 |---|---|---|
 | Room: spectators | `YouAreSpectator`, `YouAreNotSpectator` | never sent |
 | Room: chat | `SpecialSystemChat` | no serializer |
-| Room: furniture | `ObjectRemoveConfirm` (its primitive and serializer are empty), `UseObject`, `SpecialRoomEffect`, `GamePlayerValue` | never sent |
+| Room: furniture | `UseObject`, `GamePlayerValue` | never sent |
 | Room: polls and quizzes | `PollOffer`, `PollContents`, `PollError`, `Question`, `QuestionAnswered`, `QuestionFinished` | never sent |
 | Room: mystery boxes | `ShowMysteryBoxWait`, `CancelMysteryBoxWait`, `GotMysteryBoxPrize` | never sent |
 | Room: crafting | `CraftableProducts`, `CraftingRecipe`, `CraftingRecipesAvailable`, `CraftingResult` | never sent |
