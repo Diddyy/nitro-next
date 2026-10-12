@@ -3,19 +3,20 @@
  * (variables whose creation or update time can be read; merged section 0's type selector in its
  * header), the `variables.compare_value` section (creation / last update, the one the selected
  * variable cannot read greyed out - `updateAgeOptions`), the `comparison_selection` section
- * (`comparison.0` and `.2`) and the `variables.time_selection` section: the named
- * `variables.duration` input, 5px, and the unit dropdown (`variables.duration.0` to `.7`).
+ * (`comparison.0` and `.2`) and the `variables.time_selection` section: the duration, 5px, and
+ * the unit dropdown (`variables.duration.0` to `.7`). Since WIN63-202610121624 the duration is a
+ * value or a variable (merged section 1); Flash embeds the unified input in the row
+ * (`createValueOrVariableSection(1, ..., null, ..., false, 0)`), which is not ported yet, so the
+ * value-or-variable section stands above the unit row.
  */
 import { setWiredMergedSourceType } from '#base/commands';
 import { conditionMergedSourceOptions, getPickerSelectedVariable, getWiredRoomVariables, VARIABLE_AGE_TIME_UNITS, variableAgeCondition, variableAgeConditionFilter, VariableAgeConditionForm, variableAgeDisabledCompareValues, WIRED_INT_MAX, WIRED_INT_MIN, WiredElementView } from '#base/wired';
 
 import { WiredChooseVariableSection } from '../../kit/WiredChooseVariableSection';
 import { WiredDropdown } from '../../kit/WiredDropdown';
-import { WiredNamedNumberInput } from '../../kit/WiredNamedNumberInput';
 import { WiredRadioGroup } from '../../kit/WiredRadioGroup';
 import { WiredSection } from '../../kit/WiredSection';
-import { WiredSimpleList } from '../../kit/WiredSimpleList';
-import { WiredSpacing } from '../../kit/WiredSpacing';
+import { WiredValueOrVariableSection } from '../../kit/WiredValueOrVariableSection';
 import { ConditionComparisonSection } from './shared/ConditionComparisonSection';
 
 const COMPARISONS = [ 0, 2 ];
@@ -51,29 +52,24 @@ export const VariableAgeView: WiredElementView<VariableAgeConditionForm> = ({ fo
                 selected={form.comparison}
                 onSelect={comparison => setForm({ comparison })}
             />
-            <WiredSection title="${wiredfurni.params.variables.time_selection}">
-                <WiredSimpleList
-                    vertical={false}
-                    centerVertically
-                >
-                    <WiredNamedNumberInput
-                        name="${wiredfurni.params.variables.duration}"
-                        value={form.duration}
-                        onChange={duration => setForm({ duration })}
-                        min={WIRED_INT_MIN}
-                        max={WIRED_INT_MAX}
-                    />
-                    <WiredSpacing
-                        vertical={false}
-                        size={5}
-                    />
-                    <WiredDropdown
-                        options={TIME_UNIT_OPTIONS}
-                        selected={form.timeUnit}
-                        onSelect={timeUnit => setForm({ timeUnit })}
-                        caption=""
-                    />
-                </WiredSimpleList>
+            <WiredValueOrVariableSection
+                title="${wiredfurni.params.variables.time_selection}"
+                sourceTypeOptions={conditionMergedSourceOptions(variableAgeCondition, form, 1, ctx)}
+                min={WIRED_INT_MIN}
+                max={WIRED_INT_MAX}
+                state={form.duration}
+                onChange={duration => setForm({ duration })}
+                onSourceTypeSelect={sourceType => setWiredMergedSourceType(1, sourceType)}
+                variables={variables}
+                roomId={ctx.roomId}
+            />
+            <WiredSection title="${wiredfurni.params.variables.duration}">
+                <WiredDropdown
+                    options={TIME_UNIT_OPTIONS}
+                    selected={form.timeUnit}
+                    onSelect={timeUnit => setForm({ timeUnit })}
+                    caption=""
+                />
             </WiredSection>
         </>
     );

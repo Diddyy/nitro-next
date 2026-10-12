@@ -8,7 +8,8 @@
  * `[ sourceType, visibility, showMode, updateMask, showOnMouseHover, showDuration, styleId, colorId,
  * widthId, rendererId, defaultMin (long: 10, 11), defaultMax (long: 12, 13), overrideMinEnabled,
  * overrideMaxEnabled, overrideMinTarget, overrideMaxTarget, audienceValue (long: 18, 19), segments ]`
- * and at 21 the subclass's extra int. `readIntParams` reads each long's low word only (11, 13, 19),
+ * and at 21 the subclass's extra int (0 for a class without one), then since WIN63-202610121624 at
+ * 22 the order in the fx stack (`variablefx/_-j10.writeIntParams`). `readIntParams` reads each long's low word only (11, 13, 19),
  * as Flash does. Variable ids: `[ override min, override max, audience ]`.
  *
  * The dialog is 1.45 times as wide (`widthModifier`) and has a furni / user source type selector in
@@ -75,7 +76,7 @@ export const variableFxOverrideSourceTypes = (sourceType: number): readonly numb
     (sourceType === WIRED_SOURCE_FURNI) ? [ WIRED_SOURCE_FURNI, VariableExtraSourceTypes.GLOBAL_SOURCE ] : [ WIRED_SOURCE_USER, VariableExtraSourceTypes.GLOBAL_SOURCE ];
 
 /** `VariableFxVariableOverrideRowPreset.variableSelectionFilter`. */
-export const variableFxOverrideFilter = (variable: IWiredVariable): boolean => variable.hasValue;
+export const variableFxOverrideFilter = (variable: IWiredVariable): boolean => variable.hasValue && !variable.requiresExecutionContext;
 
 /** `VariableFxVariableOverrideRowPreset.init(variables, state)`. */
 const initOverrideRow = (variables: readonly IWiredVariable[] | undefined, state: VariableFxState, kind: number): VariableFxOverrideRow => {
@@ -209,6 +210,7 @@ const readIntParams = (params: number[], state: VariableFxState, options: Variab
         overrideMaxTarget: int(17),
         audienceVariableValue: int(19),
         segments: int(20),
+        stackOrder: int(22),
     };
 
     if (options.extraIntParam === 'subRendererId') next.subRendererId = int(21);
@@ -242,7 +244,10 @@ const writeIntParams = (state: VariableFxState, options: VariableFxAddonOptions)
     params.push(state.segments);
 
     if (options.extraIntParam === 'subRendererId') params.push(state.subRendererId);
-    if (options.extraIntParam === 'iconAlignment') params.push(state.iconAlignment);
+    else if (options.extraIntParam === 'iconAlignment') params.push(state.iconAlignment);
+    else params.push(0);
+
+    params.push(state.stackOrder);
 
     return params;
 };

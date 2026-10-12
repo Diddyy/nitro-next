@@ -18,7 +18,7 @@ import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { intAsLong } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, setPickerTarget, WiredVariableFilter, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { createValueOrVariableState, isValueOrVariableOnSameHolder, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
@@ -52,6 +52,8 @@ export const variableValueCondition: WiredElementDefinition<VariableValueConditi
                 getWiredInt(triggerable, 5),
                 option,
                 (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? getWiredInt(triggerable, 4) : 0,
+                // WIN63-202610121624: "same holder", read as optional.
+                (triggerable.intParams.length > 6) && (getWiredInt(triggerable, 6) !== 0),
             ),
         }, ctx);
     },
@@ -61,6 +63,7 @@ export const variableValueCondition: WiredElementDefinition<VariableValueConditi
         form.reference.option,
         ...intAsLong(form.reference.value),
         form.reference.picker.target,
+        isValueOrVariableOnSameHolder(form.reference, form.picker.target) ? 1 : 0,
     ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker), finalizePickerSelection(ctx.roomVariables, form.reference.picker) ],
     mergedSelections: [ [ 0, 0 ], [ 1, 1 ] ],
@@ -71,7 +74,7 @@ export const variableValueCondition: WiredElementDefinition<VariableValueConditi
         : { ...form, reference: { ...form.reference, picker: setPickerTarget(form.reference.picker, sourceType) } }),
     getCustomSourcesForMergedType: () => [ Number(VariableExtraSourceTypes.GLOBAL_SOURCE), Number(VariableExtraSourceTypes.CONTEXT_SOURCE) ],
     hasCustomTypePicker: () => true,
-    isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && isValueOrVariableSourcePickingDisabled(form.reference),
+    isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && (isValueOrVariableSourcePickingDisabled(form.reference) || isValueOrVariableOnSameHolder(form.reference, form.picker.target)),
     advancedAlwaysVisible: true,
     forceHidePickFurniInstructions: true,
 };

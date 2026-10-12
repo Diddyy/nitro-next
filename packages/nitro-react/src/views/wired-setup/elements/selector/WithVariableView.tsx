@@ -66,6 +66,7 @@ export const WithVariableView: WiredElementView<WithVariableSelectorForm> = ({ f
                     onSourceTypeSelect={sourceType => setWiredMergedSourceType(REFERENCE_MERGED_ID, sourceType)}
                     variables={variables}
                     roomId={ctx.roomId}
+                    sameHolderTarget={form.picker.target}
                 />
             </WiredDisabled>
         </>

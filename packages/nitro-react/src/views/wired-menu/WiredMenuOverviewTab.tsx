@@ -34,7 +34,7 @@ interface PropertyRow {
 }
 
 interface TextRow {
-    value: number;
+    value: number | string;
     text: string;
 }
 
@@ -89,6 +89,9 @@ export const WiredMenuOverviewTab = () => {
     const hasTexts = !!connector;
     const textKeys = connector ? [ ...connector.keys() ].sort((a, b) => a - b) : [];
     const texts: TextRow[] = (connector && (textKeys.length <= MAX_TEXT_CONNECTIONS)) ? textKeys.map(value => ({ value, text: connector.get(value) ?? '' })) : [];
+
+    // WIN63-202610121624: the fallback goes last, under the key `_`.
+    if (connector && (selected?.textConnectorFallback !== undefined)) texts.push({ value: '_', text: selected.textConnectorFallback });
 
     const listColumns: TableColumn[] = [ { id: 'variable', title: '', widthFactor: 1, alignment: 'left' } ];
     const propertyColumns: TableColumn[] = [

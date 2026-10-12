@@ -38,9 +38,11 @@ export interface WiredChooseVariableSectionProps {
     /** `wiredContext.roomVariablesList.variables` (`getWiredRoomVariables`). */
     variables: readonly IWiredVariable[] | null | undefined;
     roomId: number;
+    /** `section.disabled` - the whole section greyed out. */
+    disabled?: boolean;
 }
 
-export const WiredChooseVariableSection = ({ title = '${wiredfurni.params.variables.variable_selection}', sourceTypeOptions, onSourceTypeSelect, filter, state, onChange, variables, roomId }: WiredChooseVariableSectionProps) => {
+export const WiredChooseVariableSection = ({ title = '${wiredfurni.params.variables.variable_selection}', sourceTypeOptions, onSourceTypeSelect, filter, state, onChange, variables, roomId, disabled }: WiredChooseVariableSectionProps) => {
     const selectSourceType = onSourceTypeSelect ?? ((sourceType: number) => {
         const next = setPickerTarget(state, sourceType);
 
@@ -50,6 +52,7 @@ export const WiredChooseVariableSection = ({ title = '${wiredfurni.params.variab
     return (
         <WiredSection
             title={title}
+            disabled={disabled}
             sourceTypeSelector={sourceTypeOptions ? { options: sourceTypeOptions, selected: state.target, onSelect: selectSourceType } : undefined}
         >
             <WiredVariablePicker

@@ -44,6 +44,7 @@ export const VariableValueView: WiredElementView<VariableValueConditionForm> = (
                 onSourceTypeSelect={sourceType => setWiredMergedSourceType(1, sourceType)}
                 variables={variables}
                 roomId={ctx.roomId}
+                sameHolderTarget={form.picker.target}
             />
         </>
     );

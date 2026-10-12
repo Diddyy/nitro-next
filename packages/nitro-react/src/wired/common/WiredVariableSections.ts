@@ -18,7 +18,28 @@ export interface WiredValueOrVariableState {
     option: number;
     value: number;
     picker: WiredVariablePickerState;
+    /**
+     * `§_-J1T§` (WIN63-202610121624) - the "same holder" checkbox
+     * (`wiredfurni.params.variables.reference_value.same_holder`): read the reference variable on
+     * each furni or user the box acts on. Only boxes built with it (`param9`) show it.
+     */
+    sameHolder?: boolean;
 }
+
+/** `WiredInputSourcePicker.§_-F1K§` / `USER_SOURCE` - the targets a "same holder" reference can follow. */
+const SAME_HOLDER_TARGETS = [ 0, 1 ];
+
+/**
+ * `ValueOrVariableSection.referenceVariableOnTarget` - the box reads its reference on the same
+ * holder: the variable option, the checkbox ticked, and the reference on the box's own target
+ * (`primaryTarget`), which must be furni or users (`isPrimaryTargetEligible`).
+ */
+export const isValueOrVariableOnSameHolder = (state: WiredValueOrVariableState, primaryTarget: number): boolean =>
+    (state.option === VALUE_OR_VARIABLE_OPTION_VARIABLE) && !!state.sameHolder && SAME_HOLDER_TARGETS.includes(primaryTarget) && (state.picker.target === primaryTarget);
+
+/** Whether the "same holder" checkbox can be ticked: the reference is on the box's own furni or user target. */
+export const isValueOrVariableSameHolderEligible = (state: WiredValueOrVariableState, primaryTarget: number): boolean =>
+    SAME_HOLDER_TARGETS.includes(primaryTarget) && (state.picker.target === primaryTarget);
 
 /** `ValueOrVariableSection.variableSelectionFilter` - only variables with a value can be referenced. */
 export const valueOrVariableFilter = (variable: IWiredVariable): boolean => variable.hasValue;
@@ -28,8 +49,8 @@ export const valueOrVariableFilter = (variable: IWiredVariable): boolean => vari
  * selector shows `target`; pass it through `resolveSourceTypeSelection` first when the box can
  * hold a target the section does not offer.
  */
-export const createValueOrVariableState = (variables: readonly IWiredVariable[] | null | undefined, variableId: string, target: number, option: number, value: number): WiredValueOrVariableState =>
-    ({ option, value, picker: createVariablePickerState(variables, variableId, target) });
+export const createValueOrVariableState = (variables: readonly IWiredVariable[] | null | undefined, variableId: string, target: number, option: number, value: number, sameHolder: boolean = false): WiredValueOrVariableState =>
+    ({ option, value, picker: createVariablePickerState(variables, variableId, target), sameHolder });
 
 /** `ValueOrVariableSection.isSourcePickingDisabled` - the merged input source only matters for a variable. */
 export const isValueOrVariableSourcePickingDisabled = (state: WiredValueOrVariableState): boolean => (state.option === VALUE_OR_VARIABLE_OPTION_VALUE);

@@ -23,12 +23,14 @@
  */
 import { IWiredVariable } from '@nitrodevco/nitro-packets';
 
-import { VALUE_OR_VARIABLE_OPTION_VALUE, VALUE_OR_VARIABLE_OPTION_VARIABLE, valueOrVariableFilter, WiredValueOrVariableState } from '#base/wired';
+import { isValueOrVariableSameHolderEligible, VALUE_OR_VARIABLE_OPTION_VALUE, VALUE_OR_VARIABLE_OPTION_VARIABLE, valueOrVariableFilter, WiredValueOrVariableState } from '#base/wired';
 
 import { WiredAlignRight } from './WiredAlignRight';
+import { WiredCheckboxOption } from './WiredCheckboxOption';
 import { WiredNumberInput } from './WiredNumberInput';
 import { WiredRadioGroup } from './WiredRadioGroup';
 import { WiredSection } from './WiredSection';
+import { WiredSimpleList } from './WiredSimpleList';
 import { WiredSourceTypeSelector } from './WiredSourceTypeSelector';
 import { WiredVariablePicker } from './WiredVariablePicker';
 
@@ -50,51 +52,74 @@ export interface WiredValueOrVariableSectionProps {
     /** `wiredContext.roomVariablesList.variables` (`getWiredRoomVariables`). */
     variables: readonly IWiredVariable[] | null | undefined;
     roomId: number;
+    /**
+     * `param9` with the box's own target (`primaryTarget`): shows the "same holder" checkbox
+     * under the picker (WIN63-202610121624). Flash keeps it in the section's variable popup; the
+     * unified input with its popup (`ValueOrVariableInputPreset` / `ValueOrVariablePopupPreset`)
+     * is not ported yet, so it sits in this section's variable option.
+     */
+    sameHolderTarget?: number;
 }
 
-export const WiredValueOrVariableSection = ({ title, sourceTypeOptions, min, max, state, onChange, onSourceTypeSelect, variables, roomId }: WiredValueOrVariableSectionProps) => (
-    <WiredSection title={title}>
-        <WiredRadioGroup
-            selected={state.option}
-            onSelect={option => onChange({ ...state, option })}
-            options={[
-                {
-                    id: VALUE_OR_VARIABLE_OPTION_VALUE,
-                    label: '${wiredfurni.params.variables.reference_value.set_value}',
-                    extra: (
-                        <WiredNumberInput
-                            value={state.value}
-                            onChange={value => onChange({ ...state, value })}
-                            min={min}
-                            max={max}
-                            width={VALUE_INPUT_WIDTH}
-                            nonDecimalNotations={true}
-                        />
-                    ),
-                },
-                {
-                    id: VALUE_OR_VARIABLE_OPTION_VARIABLE,
-                    label: '${wiredfurni.params.variables.reference_value.from_variable}',
-                    extra: (
-                        <WiredAlignRight>
-                            <WiredSourceTypeSelector
-                                options={sourceTypeOptions}
-                                selected={state.picker.target}
-                                onSelect={onSourceTypeSelect}
-                            />
-                        </WiredAlignRight>
-                    ),
-                    extraUnder: (
-                        <WiredVariablePicker
-                            variables={variables}
-                            state={state.picker}
-                            onChange={(picker, variable) => onChange({ ...state, picker }, variable)}
-                            filter={valueOrVariableFilter}
-                            roomId={roomId}
-                        />
-                    ),
-                },
-            ]}
+export const WiredValueOrVariableSection = ({ title, sourceTypeOptions, min, max, state, onChange, onSourceTypeSelect, variables, roomId, sameHolderTarget }: WiredValueOrVariableSectionProps) => {
+    const picker = (
+        <WiredVariablePicker
+            variables={variables}
+            state={state.picker}
+            onChange={(next, variable) => onChange({ ...state, picker: next }, variable)}
+            filter={valueOrVariableFilter}
+            roomId={roomId}
         />
-    </WiredSection>
-);
+    );
+
+    return (
+        <WiredSection title={title}>
+            <WiredRadioGroup
+                selected={state.option}
+                onSelect={option => onChange({ ...state, option })}
+                options={[
+                    {
+                        id: VALUE_OR_VARIABLE_OPTION_VALUE,
+                        label: '${wiredfurni.params.variables.reference_value.set_value}',
+                        extra: (
+                            <WiredNumberInput
+                                value={state.value}
+                                onChange={value => onChange({ ...state, value })}
+                                min={min}
+                                max={max}
+                                width={VALUE_INPUT_WIDTH}
+                                nonDecimalNotations={true}
+                            />
+                        ),
+                    },
+                    {
+                        id: VALUE_OR_VARIABLE_OPTION_VARIABLE,
+                        label: '${wiredfurni.params.variables.reference_value.from_variable}',
+                        extra: (
+                            <WiredAlignRight>
+                                <WiredSourceTypeSelector
+                                    options={sourceTypeOptions}
+                                    selected={state.picker.target}
+                                    onSelect={onSourceTypeSelect}
+                                />
+                            </WiredAlignRight>
+                        ),
+                        extraUnder: (sameHolderTarget === undefined)
+                            ? picker
+                            : (
+                                    <WiredSimpleList>
+                                        {picker}
+                                        <WiredCheckboxOption
+                                            label="${wiredfurni.params.variables.reference_value.same_holder}"
+                                            selected={!!state.sameHolder}
+                                            onToggle={sameHolder => onChange({ ...state, sameHolder })}
+                                            disabled={!isValueOrVariableSameHolderEligible(state, sameHolderTarget)}
+                                        />
+                                    </WiredSimpleList>
+                                ),
+                    },
+                ]}
+            />
+        </WiredSection>
+    );
+};

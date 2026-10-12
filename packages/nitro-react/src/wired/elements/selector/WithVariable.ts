@@ -21,7 +21,7 @@ import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 import { resolveSourceTypeSelection } from '../../common/sourceTypeColors';
 import { intAsLong } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, setPickerTarget, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { createValueOrVariableState, isValueOrVariableOnSameHolder, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, WiredElementContext, WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
@@ -92,7 +92,7 @@ export const createWithVariableSelector = (code: number, variableSource: number)
             variableHasValue: !!variable && variable.hasValue,
             selectByValue,
             comparison: getWiredInt(triggerable, 0),
-            reference: createValueOrVariableState(variables, referenceId, resolveSourceTypeSelection(withVariableReferenceSourceOptions(target, ctx), target), option, value),
+            reference: createValueOrVariableState(variables, referenceId, resolveSourceTypeSelection(withVariableReferenceSourceOptions(target, ctx), target), option, value, (triggerable.intParams.length > 5) && (getWiredInt(triggerable, 5) !== 0)),
         };
     },
     readIntParams: form => [
@@ -100,10 +100,14 @@ export const createWithVariableSelector = (code: number, variableSource: number)
         form.selectByValue ? (form.reference.option + 1) : 0,
         ...intAsLong(form.reference.value),
         form.reference.picker.target,
+        // WIN63-202610121624: "same holder" - the reference read on each holder itself.
+        (form.selectByValue && isValueOrVariableOnSameHolder(form.reference, variableSource)) ? 1 : 0,
     ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker), finalizePickerSelection(ctx.roomVariables, form.reference.picker) ],
     isInputSourceDisabled: (form, id, sourceType) => {
         if ((sourceType !== WIRED_SOURCE_MERGED) || (id !== REFERENCE_MERGED_ID)) return false;
+
+        if (isValueOrVariableOnSameHolder(form.reference, variableSource)) return true;
 
         return !form.variableHasValue || !form.selectByValue || isValueOrVariableSourcePickingDisabled(form.reference);
     },
