@@ -1,16 +1,19 @@
 /**
- * `actiontypes/Chat.buildInputs` - the usage info (folded), the message
- * (`TextAreaParam(40, -1, 8, -1, 200)`: 40 high, at most 8 lines and 200 characters), and three
+ * `actiontypes/Chat.buildInputs` (WIN63-202610121624 `_-01l`) - the usage info (folded), the
+ * message editor (`createMessageEditor(TextAreaParam(40, -1, 8, -1, 400), ...)`: 40 high, at most
+ * 8 lines and 400 characters; it previews the picked style and width as a talk), and three
  * folded sections: who sees it (the selected users or everyone), the bubble style
  * (`NOTIFICATION_STYLES`, each captioned `wiredfurni.params.show_message.style_selection.<id>`)
  * and the bubble width.
  */
+import { RoomChatTypeEnum } from '@nitrodevco/nitro-api';
+
 import { CHAT_MESSAGE_MAX_LENGTH, CHAT_NOTIFICATION_STYLES, ChatActionForm, WiredElementView } from '#base/wired';
 
 import { WiredDropdown } from '../../kit/WiredDropdown';
+import { WiredMessageEditor } from '../../kit/WiredMessageEditor';
 import { WiredRadioGroup } from '../../kit/WiredRadioGroup';
 import { WiredSection } from '../../kit/WiredSection';
-import { WiredTextArea } from '../../kit/WiredTextArea';
 import { WiredUsageInfoSection } from '../../kit/WiredUsageInfoSection';
 import { WiredBubbleWidthSection } from './shared/WiredBubbleWidthSection';
 
@@ -27,12 +30,14 @@ export const ChatView: WiredElementView<ChatActionForm> = ({ form, setForm }) =>
             collapsed
         />
         <WiredSection title="${wiredfurni.params.message}">
-            <WiredTextArea
+            <WiredMessageEditor
                 value={form.message}
                 onChange={message => setForm({ message })}
                 height={MESSAGE_HEIGHT}
                 maxLines={MESSAGE_MAX_LINES}
                 maxCharacters={CHAT_MESSAGE_MAX_LENGTH}
+                placeholderNames={form.placeholderNames}
+                preview={{ styleId: form.style, bubbleWidth: form.bubbleWidth, chatType: RoomChatTypeEnum.Speak }}
             />
         </WiredSection>
         <WiredSection

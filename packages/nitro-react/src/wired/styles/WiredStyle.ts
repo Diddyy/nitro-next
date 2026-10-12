@@ -219,6 +219,64 @@ export interface WiredStyleBorderTemplate {
     color: string | null;
 }
 
+/** A rectangle of a template, as its XML gives it. */
+export interface WiredStyleRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+/** One of the message editor toolbar's format buttons: a `container_button` around a one-letter `text`. */
+export interface WiredStyleMessageEditorFormatButton extends WiredStyleRect {
+    variant: string;
+    label: WiredStyleRect & { caption: string };
+}
+
+/**
+ * WIN63-202610121624 `message_editor_toolbar`, `message_editor_palette` and
+ * `message_editor_preview` (`IlluminaWiredStyle.createMessageEditor*`; every other style throws
+ * "Message editor is not supported for wired style").
+ */
+export interface WiredStyleMessageEditorTemplate {
+    toolbar: {
+        width: number;
+        height: number;
+        /** `dynamic_style` of the four format buttons. */
+        dynamicStyle: DynamicStyleName;
+        bold: WiredStyleMessageEditorFormatButton;
+        italic: WiredStyleMessageEditorFormatButton;
+        underline: WiredStyleMessageEditorFormatButton;
+        color: WiredStyleMessageEditorFormatButton;
+        /** The 1px splitters after bold and italic: a dark line over a light pixel. */
+        separators: number[];
+        separatorColor: string;
+        separatorShadowColor: string;
+        /** `align_button` / `placeholder_button`: `button` style 102, `il_button` text. */
+        buttonVariant: string;
+        buttonHeight: number;
+        alignButton: WiredStyleRect;
+        placeholderButton: WiredStyleRect;
+        counter: WiredStyleRect;
+        textStyle: TextStyleKey;
+    };
+    palette: {
+        variant: string;
+        color: string;
+        padding: number;
+        swatchWidth: number;
+        swatchHeight: number;
+        swatchVariant: string;
+        spacing: number;
+    };
+    preview: {
+        width: number;
+        height: number;
+        title: WiredStyleRect;
+        area: WiredStyleRect;
+    };
+}
+
 export interface WiredStyleTemplates {
     ruler: { height: number; lines: WiredStyleRulerLine[] };
     /** `ruler_view_vertical` (ubuntu only; the other styles have no such template and draw `verticalSplitterColor`). */
@@ -245,6 +303,8 @@ export interface WiredStyleTemplates {
     border: WiredStyleBorderTemplate;
     /** `container_button` - `createContainerButton`. Only ubuntu's template has one. */
     containerButton: { variant: string };
+    /** The message editor's parts; only illumina's template has them. */
+    messageEditor?: WiredStyleMessageEditorTemplate;
 }
 
 export interface WiredStyle {

@@ -69,9 +69,20 @@ export interface WiredInputFieldProps {
     /** `updateInvalidState` - the invalid number message; shown when the template has `warning_display`. */
     warning?: string | null;
     disabled?: boolean;
+    /** The field's selection, for a preset that edits around it (`TextAreaPreset.insertText` / `wrapSelection`). */
+    selection?: WiredInputFieldSelection;
 }
 
-export const WiredInputField = ({ value, onChange, fieldWidth, height, multiline = false, maxCharacters = 0, placeholder, placeholderMode = 'overflow', editable = true, tooltip, charLimitWarning = false, warning = null, disabled = false }: WiredInputFieldProps) => {
+/** A controlled selection: where the user's selection is reported, and one to apply after an edit. */
+export interface WiredInputFieldSelection {
+    onChange: (start: number, end: number) => void;
+    /** `TextField.setSelection` after an edit made from outside; bump `requestId` to apply it again. */
+    after?: { start: number; end: number; requestId: number } | null;
+    focused?: boolean;
+    onFocusChange?: (focused: boolean) => void;
+}
+
+export const WiredInputField = ({ value, onChange, fieldWidth, height, multiline = false, maxCharacters = 0, placeholder, placeholderMode = 'overflow', editable = true, tooltip, charLimitWarning = false, warning = null, disabled = false, selection }: WiredInputFieldProps) => {
     const style = useWiredStyle();
     const template = style.templates.input;
     const caption = useWiredCaption();
@@ -144,6 +155,12 @@ export const WiredInputField = ({ value, onChange, fieldWidth, height, multiline
                             <TextInput
                                 value={value}
                                 onChange={onChange}
+                                onSelectionChange={selection?.onChange}
+                                selectionAfterChange={selection?.after?.start}
+                                selectionEndAfterChange={selection?.after?.end}
+                                selectionRequestId={selection?.after?.requestId}
+                                focused={selection?.focused}
+                                onFocusChange={selection?.onFocusChange}
                                 multiline={multiline}
                                 maxLength={(maxCharacters > 0) ? maxCharacters : undefined}
                                 textStyle={template.textStyle}

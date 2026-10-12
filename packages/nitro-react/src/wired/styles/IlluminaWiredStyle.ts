@@ -105,5 +105,27 @@ export const ILLUMINA_WIRED_STYLE: WiredStyle = {
         innerBorder: null,
         border: { variant: '105', color: '#dadada' },
         containerButton: { variant: '102' },
+        // WIN63-202610121624 `wired_style_illumina` lines 311-435.
+        messageEditor: {
+            toolbar: {
+                width: 368, height: 19, dynamicStyle: 'button',
+                bold: { x: 0, y: 0, width: 17, height: 19, variant: '104', label: { x: 3, y: 1, width: 11, height: 16, caption: 'B' } },
+                italic: { x: 18, y: 0, width: 14, height: 19, variant: '106', label: { x: 2, y: 1, width: 10, height: 16, caption: 'I' } },
+                underline: { x: 33, y: 0, width: 17, height: 19, variant: '105', label: { x: 3, y: 1, width: 11, height: 16, caption: 'U' } },
+                color: { x: 54, y: 0, width: 19, height: 19, variant: '103', label: { x: 4, y: 1, width: 11, height: 14, caption: 'A' } },
+                separators: [ 17, 32 ], separatorColor: '#919191', separatorShadowColor: '#f2f2f2',
+                buttonVariant: '102', buttonHeight: 19,
+                alignButton: { x: 56, y: 0, width: 45, height: 19 },
+                placeholderButton: { x: 106, y: 0, width: 105, height: 19 },
+                counter: { x: 308, y: 1, width: 60, height: 16 },
+                textStyle: 'il_regular',
+            },
+            palette: { variant: '105', color: '#e2e2e2', padding: 4, swatchWidth: 13, swatchHeight: 14, swatchVariant: '105', spacing: 3 },
+            preview: {
+                width: 434, height: 90,
+                title: { x: 0, y: 0, width: 434, height: 16 },
+                area: { x: 0, y: 21, width: 434, height: 69 },
+            },
+        },
     },
 };
