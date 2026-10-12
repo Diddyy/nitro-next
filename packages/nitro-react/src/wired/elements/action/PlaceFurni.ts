@@ -83,6 +83,8 @@ export const placeFurniAction: WiredElementDefinition<PlaceFurniActionForm> = {
     hasStateSnapshot: true,
     forceHidePickFurniInstructions: true,
     widthModifier: 1.2,
+    // WIN63-202610121624 `_-cz.allowScrolling`.
+    allowScrolling: true,
     createForm: (triggerable, ctx) => {
         const variables = getWiredRoomVariables(triggerable);
         const offsets = [ getWiredInt(triggerable, 3), getWiredInt(triggerable, 4), getWiredInt(triggerable, 5) ];

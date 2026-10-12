@@ -125,7 +125,8 @@ export const projectileAddon: WiredElementDefinition<ProjectileAddonForm> = {
     ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.animationTime.picker), finalizePickerSelection(ctx.roomVariables, form.distance.picker) ],
     widthModifier: 1.3,
-    allowScrolling: false,
+    // WIN63-202610121624 `_-52p.allowScrolling`.
+    allowScrolling: true,
     furniSelectionTitle: () => 'wiredfurni.params.sources.furni.title.projectile',
     userSelectionTitle: () => 'wiredfurni.params.sources.users.title.shooter',
     mergedSelectionTitle: id => ((id === 0) ? 'wiredfurni.params.sources.merged.title.variable_time_per_tile' : 'wiredfurni.params.sources.merged.title.variable_animation_distance'),

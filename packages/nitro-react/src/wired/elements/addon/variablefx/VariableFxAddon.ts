@@ -276,6 +276,8 @@ const createVariableFxForm = (triggerable: WiredTriggerable, options: VariableFx
 /** One `§_-416§` subclass. */
 export const createVariableFxAddon = (options: VariableFxAddonOptions): WiredElementDefinition<VariableFxForm> => ({
     holder: 'addon',
+    // WIN63-202610121624 `variablefx/_-j10.allowScrolling`.
+    allowScrolling: true,
     code: options.code,
     widthModifier: VARIABLE_FX_WIDTH_MODIFIER,
     createForm: triggerable => createVariableFxForm(triggerable, options),
