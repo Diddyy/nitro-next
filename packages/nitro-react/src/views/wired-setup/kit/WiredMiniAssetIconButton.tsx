@@ -6,8 +6,9 @@
  * tinted, while selected). It is the pair of "furni picks" toggles of the input source sections.
  *
  * The highlight colour belongs to the asset: `furni_picks_1` is the yellow pick, `furni_picks_2`
- * the blue one; Flash throws for any other asset and so nothing else is mapped. A press on the
- * selected button does nothing (`iconClicked`).
+ * the blue one, any other asset (the delay modes' `delay_standard` / `delay_precise`) white
+ * (`selectedColor` / `hoverColor`'s last branch). A press on the selected button does nothing
+ * (`iconClicked`).
  */
 import { useState } from 'react';
 
@@ -20,7 +21,7 @@ import { wiredPressedLayer } from './wiredPressedLayers';
 import { useWiredStyle } from './WiredStyleContext';
 
 export interface WiredMiniAssetIconButtonProps {
-    /** The asset's short name - `furni_picks_1` or `furni_picks_2`. */
+    /** The asset's short name - `furni_picks_1`, `furni_picks_2`, `delay_standard`, ... */
     asset: string;
     /** A literal or `${key}`. */
     tooltip?: string;
@@ -35,6 +36,9 @@ const ASSET_COLORS: Record<string, { selected: number; hovered: number }> = {
     furni_picks_2: { selected: 0x434980, hovered: 0x333861 },
 };
 
+/** `selectedColor` / `COLOR_NEUTRAL_HOVERED` - every other asset. */
+const NEUTRAL_COLORS = { selected: 0xFFFFFF, hovered: 0xFFFFFF };
+
 /** `VolterMiniAssetIconButtonPreset.COLOR_INACTIVE`. */
 const VOLTER_INACTIVE = 0x222222;
 
@@ -44,7 +48,7 @@ export const WiredMiniAssetIconButton = ({ asset, tooltip, selected = false, onP
     const isDisabled = useWiredDisabled(disabled);
     const [ hovered, setHovered ] = useState(false);
     const template = style.templates.miniButton;
-    const colors = ASSET_COLORS[asset] ?? ASSET_COLORS.furni_picks_1;
+    const colors = ASSET_COLORS[asset] ?? NEUTRAL_COLORS;
     const src = LayoutImage(`habbo-window-manager-com/${resolveWiredAssetName(style, asset)}.png`);
     const press = () => {
         if (!selected) onPress();

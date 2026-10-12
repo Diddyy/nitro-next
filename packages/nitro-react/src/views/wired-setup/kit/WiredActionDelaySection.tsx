@@ -9,15 +9,16 @@
  * mode. The mode itself is local, as Flash's dropdown is: a precise delay of 0 is saved as 0 and
  * opens as standard again.
  *
- * Flash puts the mode in a `MiniIconDropdownPreset` (the `delay_standard` / `delay_precise` icon,
- * 90px dropdown); those two icons are not in the client's wired assets yet, so the dropdown itself
- * sits in the header.
+ * The mode is a `MiniIconDropdownPreset` in the header: the `delay_standard` / `delay_precise`
+ * mini icon over a 90px dropdown (`createMiniIconDropdownPreset(..., "delay_standard", "")`).
+ * Each mode keeps its own slider, as Flash's two do: switching shows the other slider's value,
+ * 0 until it was moved, and the saved delay is the shown slider's (`encodedDelay`).
  */
 import { useState } from 'react';
 
 import { SLIDER_CONVERTER_PRECISE_DELAY, SLIDER_CONVERTER_PULSES } from '#base/wired';
 
-import { WiredDropdown } from './WiredDropdown';
+import { WiredMiniIconDropdown } from './WiredMiniIconDropdown';
 import { WiredNumberInput } from './WiredNumberInput';
 import { WiredSection } from './WiredSection';
 import { WiredSlider } from './WiredSlider';
@@ -34,6 +35,10 @@ const PRECISE_MAX = 1200;
 /** The milliseconds of one precise step (`encodedDelay = -(steps * 50)`). */
 const PRECISE_STEP_MS = 50;
 
+/** `MODE_STANDARD_ASSET` / `MODE_PRECISE_ASSET`. */
+const MODE_STANDARD_ASSET = 'delay_standard';
+const MODE_PRECISE_ASSET = 'delay_precise';
+
 /** `DELAY_INPUT_WIDTH` / `MODE_DROPDOWN_WIDTH`. */
 const DELAY_INPUT_WIDTH = 40;
 const MODE_DROPDOWN_WIDTH = 90;
@@ -46,18 +51,22 @@ export interface WiredActionDelaySectionProps {
 export const WiredActionDelaySection = ({ value, onChange }: WiredActionDelaySectionProps) => {
     const style = useWiredStyle();
     const [ mode, setMode ] = useState(value < 0 ? MODE_PRECISE : MODE_STANDARD);
+    // The two sliders (`encodedDelay` setter: the one the value belongs to takes it, the other 0).
+    const [ sliders, setSliders ] = useState(() => ({ standard: Math.max(0, value), precise: (value < 0) ? Math.abs(value) / PRECISE_STEP_MS : 0 }));
     const precise = mode === MODE_PRECISE;
     const converter = precise ? SLIDER_CONVERTER_PRECISE_DELAY : SLIDER_CONVERTER_PULSES;
     const max = precise ? PRECISE_MAX : STANDARD_MAX;
-    // What the active slider holds; the other mode's slider starts at 0 (`encodedDelay` setter).
-    const active = precise ? ((value < 0) ? Math.abs(value) / PRECISE_STEP_MS : 0) : Math.max(0, value);
-    const encode = (next: number) => onChange(precise ? -(next * PRECISE_STEP_MS) : next);
+    const active = precise ? sliders.precise : sliders.standard;
+    const encode = (next: number) => {
+        setSliders(current => (precise ? { ...current, precise: next } : { ...current, standard: next }));
+        onChange(precise ? -(next * PRECISE_STEP_MS) : next);
+    };
 
     const selectMode = (next: number) => {
         if (next === mode) return;
 
         setMode(next);
-        onChange(0);
+        onChange((next === MODE_PRECISE) ? -(sliders.precise * PRECISE_STEP_MS) : sliders.standard);
     };
 
     return (
@@ -76,7 +85,7 @@ export const WiredActionDelaySection = ({ value, onChange }: WiredActionDelaySec
                 />
             )}
             headerOptions={(
-                <WiredDropdown
+                <WiredMiniIconDropdown
                     options={[
                         { id: MODE_STANDARD, label: '${wiredfurni.params.delay.mode.standard}' },
                         { id: MODE_PRECISE, label: '${wiredfurni.params.delay.mode.precise}' },
@@ -84,6 +93,7 @@ export const WiredActionDelaySection = ({ value, onChange }: WiredActionDelaySec
                     selected={mode}
                     onSelect={selectMode}
                     width={MODE_DROPDOWN_WIDTH}
+                    asset={precise ? MODE_PRECISE_ASSET : MODE_STANDARD_ASSET}
                 />
             )}
         >
