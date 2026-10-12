@@ -86,14 +86,15 @@ export class StackedAdditionStack {
         return this._texture;
     }
 
-    public add(addition: IStackedAddition, layer: number, createdAt: number = 0, configId: number = 0, variableId: string = ''): void {
+    public add(addition: IStackedAddition, layer: number, createdAt: number = 0, configId: number = 0, variableId: string = '', stackOrder: number = 0): void {
         for (const entry of this._entries) {
             if (entry.addition !== addition) continue;
 
             const resolvedVariableId = variableId ?? '';
 
-            if (entry.layer !== layer || entry.createdAt !== createdAt || entry.configId !== configId || entry.variableId !== resolvedVariableId) {
+            if (entry.layer !== layer || entry.stackOrder !== stackOrder || entry.createdAt !== createdAt || entry.configId !== configId || entry.variableId !== resolvedVariableId) {
                 entry.layer = layer;
+                entry.stackOrder = stackOrder;
                 entry.createdAt = createdAt;
                 entry.configId = configId;
                 entry.variableId = resolvedVariableId;
@@ -109,7 +110,7 @@ export class StackedAdditionStack {
 
         addition.isPartOfStack = true;
 
-        this._entries.push(new StackedAdditionEntry(addition, layer, createdAt, configId, variableId));
+        this._entries.push(new StackedAdditionEntry(addition, layer, createdAt, configId, variableId, stackOrder));
         this._layoutDirty = true;
         this._sortDirty = true;
         this._requiresAnimationTick = true;
@@ -360,6 +361,8 @@ export class StackedAdditionStack {
     private sortEntries(): void {
         this._entries.sort((a, b) => {
             if (a.layer !== b.layer) return a.layer < b.layer ? -1 : 1;
+            // WIN63-202610121624 `sortEntries`: a higher "Order in FX stack" comes first.
+            if (a.stackOrder !== b.stackOrder) return a.stackOrder > b.stackOrder ? -1 : 1;
             if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
             if (a.configId !== b.configId) return a.configId < b.configId ? -1 : 1;
 

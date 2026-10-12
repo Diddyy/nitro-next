@@ -36,7 +36,7 @@ export class VariableFxStatusReconciler {
                         changed = true;
                     }
 
-                    stack.add(addition, layer, entry.createdAt, configId, variableId);
+                    stack.add(addition, layer, entry.createdAt, configId, variableId, manager.getConfig(configId)?.stackOrder ?? 0);
 
                     if (addition.show(entry, time)) changed = true;
 
