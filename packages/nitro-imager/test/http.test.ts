@@ -151,6 +151,7 @@ void describe('createApp', () => {
         },
         cache: new ImageCache(1024 * 1024),
         avatarFrameDelay: 80,
+        roomObjectFrameDelay: 41,
     });
 
     void it('serves an avatar at /avatar and /avatarimage, here and under /habbo-imaging, drawing it once', async () => {

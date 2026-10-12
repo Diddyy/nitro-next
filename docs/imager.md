@@ -1,8 +1,9 @@
 # Imager
 
-`packages/nitro-imager` draws avatars and group badges on the server and serves them over HTTP,
-for the pages and clients that show a figure or a group without a room: the client's group
-windows, infostand and navigator (`badge.asset.group.url`, `group.badge.url`), and a hotel's site.
+`packages/nitro-imager` draws avatars, pets, furniture and group badges on the server and serves
+them over HTTP, for the pages and clients that show a figure, a pet, an item or a group without a
+room: the client's group windows, infostand and navigator (`badge.asset.group.url`,
+`group.badge.url`), and a hotel's site.
 
 ```sh
 cp packages/nitro-imager/.env.example packages/nitro-imager/.env   # then set the urls
@@ -20,9 +21,11 @@ To run it on a server managed by Ploi, see [Running the imager on Ploi](imager-p
 | Request | Draws |
 |---|---|
 | `GET /avatar?figure=...` (or `/avatarimage`) | an avatar; Habbo's `avatarimage` parameters (`gender`, `size` s/n/l, `direction`, `head_direction`, `action`, `gesture`, `headonly`, `img_format`) plus `dance`, `effect`, `frame` and `animate` (an animated gif at the room's 82 ms a frame) |
+| `GET /pet?figure=...` (or `type=`) | a pet from its figure string (`type palette colour [parts]`) or its type, palette and `color`; `posture`, `gesture`, `size`, `direction`, `head_direction`, `headonly`, `frame`, `animate` (at the room's 41 ms a step), `img_format` |
+| `GET /furni?name=...` (or `id=`, `wall=1`) | a furniture item from its furnidata class name (`rare_dragonlamp*4`) or id; `state`, `size`, `direction`, `frame`, `animate`, `img_format` |
 | `GET /badge/<code>.gif` or `.png` | a group badge from its code |
-| `GET /health` | whether it is up, what it caches, and which badge table it draws with |
-| `GET /` (or `/habbo-imaging/`) | an index page: every request and parameter with its values and default, examples drawn live, and a form to try a figure or badge code (`renderIndexPage`, which lists the action and gesture names from `parseAvatarRequest`'s own tables) |
+| `GET /health` | whether it is up, what it caches, which badge table it draws with, and how many pet types and furnidata items it has |
+| `GET /` (or `/habbo-imaging/`) | an index page: every request and parameter with its values and default, examples drawn live, and a form to try a figure, pet, furniture or badge code (`renderIndexPage`, which lists the action and gesture names from `parseAvatarRequest`'s own tables) |
 
 Everything it loads from - the three bundle locations, the figure map, figure data, effect map
 and badge part images - is a url or a path on the server, mixed as suits the deployment
@@ -59,9 +62,38 @@ native library's, and must run before the renderer is imported (`main.ts` import
 The canvas renderer has no shader filters: an effect that recolours the avatar through
 `AvatarDataContainer`'s filters draws without the recolour.
 
+## Pets and furniture
+
+A pet or furniture item is a room object of the room engine's temporary room - the room
+`RoomEngine.getGenericRoomObjectTexture` draws the client's own pet and item previews in - made,
+given its values and drawn by its own visualization (`AnimatedPetVisualization`,
+`FurnitureVisualization` and its kinds) at the room's full scale (`drawRoomObject`). The imager
+makes the object itself rather than asking the engine for a texture, as that call sets no gesture
+and gives no frame of an animation but the first. The room content loader loads the libraries:
+pets from `asset.bundles.pets` by the names in `renderer.petTypes` (`IMAGER_PET_BUNDLE_URL`,
+`IMAGER_PET_TYPES`), furniture from `asset.bundles.furni` by the furnidata it is handed as the
+client's `loadFurnitureData` hands it (`IMAGER_FURNITURE_BUNDLE_URL`, `IMAGER_FURNIDATA_URL`, read
+again every `IMAGER_FURNIDATA_REFRESH_SECONDS`). Either is off when its settings are not there,
+and its section of the index page says so.
+
+- A pet's `posture`, `gesture` and `palette` are checked against its library's own (its
+  visualization's postures and gestures, its palettes); one it does not have is a 400 listing
+  what it has. Unset, the posture is the library's default.
+- A frame is the visualization's visible sprites back to front, placed as
+  `RoomObjectSpriteVisualization.buildImageContainer` places them; `drawFrames` puts every frame
+  on one canvas, as the avatars are drawn. An animation steps the object one room update (41 ms) at
+  a time and keeps the shortest loop its frames repeat in, up to 64 frames (`loopLength`).
+- The frames are drawn before the object is removed: removing it drops its library's last
+  reference, and the library then lets go of the palette textures a pet was drawn with.
+- An additive sprite (ink 33: a lamp's glow, an effect's light) is art on black. In the room it is
+  added over what is behind; on a transparent image `lighter` would add its alpha too and draw a
+  black box, so `drawFrames` draws a copy whose alpha is its brightness - the colour it adds is the
+  same, black adds nothing, and over the object it still adds what the room adds. Avatar effects
+  draw their ink-33 sprites the same way.
+
 ## What is kept, and for how long
 
-Two things grow with the requests a long-running imager answers, and both are bounded:
+What grows with the requests a long-running imager answers is bounded:
 
 - **Encoded images** (`ImageCache`): at most `IMAGER_CACHE_MB`, the least recently used dropped first.
 - **Avatar asset libraries**: every figure loads its clothing's, and the avatar render manager
@@ -72,6 +104,11 @@ Two things grow with the requests a long-running imager answers, and both are bo
   it yet. Mandatory libraries (`hh_human_body`, `hh_human_item`, the dances) stay. This is what
   sets the imager's footprint: soaked with 2,400 random figures at 300, resident memory levelled
   off around 800 MB with the heap at 70-140 MB. `/health` reports both, and the library count.
+
+- **Pet and furniture libraries**: the room content loader's own `purge` runs every 60 s, as the
+  client's purge trigger runs it, and releases every library no object has referenced for 20 s
+  (`RoomContentLoader.PURGE_IDLE_MS`). An object holds its library only while it is drawn, so an
+  item not asked for again is unloaded within a minute and fetched again when it is.
 
 Each avatar's own caches go with it: it is disposed once its frames are drawn.
 

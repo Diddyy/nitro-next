@@ -94,6 +94,11 @@ IMAGER_FIGUREMAP_URL=https://cdn.example.com/gamedata/FigureMap.json
 IMAGER_FIGUREDATA_URL=https://hotel.example.com/gamedata/figuredata_json/0
 IMAGER_EFFECTMAP_URL=https://cdn.example.com/gamedata/EffectMap.json
 
+IMAGER_PET_BUNDLE_URL=https://cdn.example.com/bundled/pet/%libname%.nitro
+IMAGER_FURNITURE_BUNDLE_URL=https://cdn.example.com/bundled/furniture/%libname%.nitro
+IMAGER_FURNIDATA_URL=https://hotel.example.com/gamedata/furnidata_json/0
+IMAGER_FURNIDATA_REFRESH_SECONDS=600
+
 IMAGER_BADGE_PART_URL=https://images.habbo.com/c_images/Badgeparts/
 IMAGER_BADGE_PARTS=https://hotel.example.com/gamedata/badgeparts_json/0
 IMAGER_BADGE_PARTS_REFRESH_SECONDS=300
@@ -107,6 +112,10 @@ IMAGER_BADGE_PARTS_REFRESH_SECONDS=300
   `effectmap.url`).
 - `IMAGER_BADGE_PARTS` is Turbo's `badgeparts_json` gamedata file, so a colour staff retune
   reaches the badges. Leave it out to draw with the table the package ships.
+- Pets and furniture are optional: leave their lines out and `/pet` and `/furni` answer that they
+  are not set up. Their addresses are the client's `asset.bundles.pets`, `asset.bundles.furni` and
+  `furnituredata.url`. A hotel whose `renderer.petTypes` differs from the client's default list sets
+  it as `IMAGER_PET_TYPES`, comma separated, in the same order.
 
 ### Bundles already on this server
 

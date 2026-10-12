@@ -27,6 +27,20 @@ export interface ImagerConfig {
         /** Empty: effects are not drawn. */
         effectMapUrl: string;
     };
+    pet: {
+        /** `asset.bundles.pets`, `%libname%` the pet type's library. Empty: pets are not drawn. */
+        bundleUrl: string;
+        /** `renderer.petTypes`: each pet type's library name, at the index the hotel numbers the type by. */
+        types: string[];
+    };
+    furniture: {
+        /** `asset.bundles.furni`, `%libname%` the furniture's library. Empty, or no furnidata: furniture is not drawn. */
+        bundleUrl: string;
+        /** `furnituredata.url`: the hotel's furnidata (Turbo's `/gamedata/furnidata_json/0`), or a file. */
+        dataUrl: string;
+        /** How often, in seconds, furnidata read from a url is read again, so new furniture is drawn; 0 never. */
+        dataRefreshSeconds: number;
+    };
     badge: {
         /** `image.library.badgepart.url`: where `badgepart_<file>.png` is found. */
         partImageUrl: string;
@@ -39,6 +53,17 @@ export interface ImagerConfig {
         partsRefreshSeconds: number;
     };
 }
+
+/**
+ * The client's `renderer.petTypes`, as the hotel's client configuration has them: a pet's type is
+ * its index here (`gnome` is in it twice, as types 26 and 27).
+ */
+export const DEFAULT_PET_TYPES = [
+    'dog', 'cat', 'croco', 'terrier', 'bear', 'pig', 'lion', 'rhino', 'spider', 'turtle', 'chicken', 'frog', 'dragon',
+    'monster', 'monkey', 'horse', 'monsterplant', 'bunnyeaster', 'bunnyevil', 'bunnydepressed', 'bunnylove', 'pigeongood',
+    'pigeonevil', 'demonmonkey', 'bearbaby', 'terrierbaby', 'gnome', 'gnome', 'kittenbaby', 'puppybaby', 'pigletbaby',
+    'haloompa', 'fools', 'pterosaur', 'velociraptor', 'cow', 'dragondog',
+];
 
 /** The table the package ships: the parts and colours the hotel's badge codes are built from. */
 export const DEFAULT_BADGE_PARTS = fileURLToPath(new URL('../data/badge-parts.json', import.meta.url));
@@ -85,6 +110,15 @@ export const readImagerConfig = (env: NodeJS.ProcessEnv): ImagerConfig => {
             figureMapUrl: address(required('IMAGER_FIGUREMAP_URL'), 'file'),
             figureDataUrl: address(required('IMAGER_FIGUREDATA_URL'), 'file'),
             effectMapUrl: address(optional('IMAGER_EFFECTMAP_URL'), 'file'),
+        },
+        pet: {
+            bundleUrl: address(optional('IMAGER_PET_BUNDLE_URL'), 'bundle'),
+            types: optional('IMAGER_PET_TYPES') ? optional('IMAGER_PET_TYPES').split(',').map(type => type.trim().toLowerCase()) : DEFAULT_PET_TYPES,
+        },
+        furniture: {
+            bundleUrl: address(optional('IMAGER_FURNITURE_BUNDLE_URL'), 'bundle'),
+            dataUrl: address(optional('IMAGER_FURNIDATA_URL'), 'file'),
+            dataRefreshSeconds: readInteger(optional('IMAGER_FURNIDATA_REFRESH_SECONDS'), 600),
         },
         badge: {
             partImageUrl: address(required('IMAGER_BADGE_PART_URL'), 'folder'),

@@ -1,11 +1,11 @@
 import { Canvas } from '@napi-rs/canvas';
 import { AvatarActionStateType, AvatarScaleType, AvatarSetType, IAvatarImage, IEffectMapLibrary, IFigureData, IFigureMapLibrary, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { AvatarAssetDownloadManager, AvatarVisualization, GetAssetManager, GetAvatarRenderManager, GetRenderer, LoadAvatarData, PrepareRenderer, RoomObjectSpriteVisualization } from '@nitrodevco/nitro-renderer';
-import { Container, Rectangle, Sprite, Texture } from 'pixi.js';
+import { Texture } from 'pixi.js';
 
 import { ImagerConfig } from '../config';
-import { AvatarImageSize, AvatarRenderRequest } from './avatarRequest';
-import { halveImage } from './halveImage';
+import { drawFrames, PlacedSprite } from '../output/drawFrames';
+import { AvatarRenderRequest } from './avatarRequest';
 
 const MANDATORY_TIMEOUT = 60_000;
 
@@ -18,13 +18,8 @@ export const AVATAR_FRAME_MS = AvatarVisualization.ANIMATION_FRAME_UPDATE_INTERV
 /** The most frames an animated image has, whatever the actions add up to. */
 const MAX_ANIMATION_FRAMES = 64;
 
-/** One sprite of a frame, where the room would draw it relative to the avatar's tile. */
-interface PlacedSprite {
-    texture: Texture;
-    x: number;
-    y: number;
-    flipH: boolean;
-    additive: boolean;
+/** One sprite of an avatar's frame. */
+interface AvatarSprite extends PlacedSprite {
     /** The room's `relativeDepth`: the higher, the further back. */
     depth: number;
     /** The avatar's own image rather than an effect's sprite. */
@@ -48,9 +43,8 @@ const PURGE_CHECK_INTERVAL = 30_000;
  * A frame is laid out as `AvatarVisualization` lays an avatar out in the room: the avatar's own
  * image at its canvas offsets, and an effect's extra sprites (the ones `getSprites` lists besides
  * `avatar`) placed by their direction offsets and layer data, behind or in front by their z, with
- * ink 33 drawn additively. The image is the union of every sprite of every frame, rounded out to
- * even pixels, so an avatar with no effect is its avatar canvas and an animation keeps one size
- * throughout. Every
+ * ink 33 drawn additively. The image is the union of every sprite of every frame (`drawFrames`),
+ * so an avatar with no effect is its avatar canvas and an animation keeps one size throughout. Every
  * size is drawn from the large assets at the room's full scale; `s` is that image halved
  * afterwards, as the client's zoomed-out room is (`RoomDownsampleFilter`), effect sprites and all.
  *
@@ -174,7 +168,7 @@ export class AvatarImager {
             setUpAvatar(avatar, request, effect);
 
             const frameCount = request.animate ? Math.min(MAX_ANIMATION_FRAMES, Math.max(1, avatar.getTotalFrameCount())) : 1;
-            const frames: PlacedSprite[][] = [];
+            const frames: AvatarSprite[][] = [];
 
             if (request.frame > 0) avatar.updateAnimationByFrames(request.frame);
 
@@ -218,13 +212,13 @@ const setUpAvatar = (avatar: IAvatarImage, request: AvatarRenderRequest, effect:
  * One frame's sprites, placed as `AvatarVisualization.update` places them, back to front. A
  * head alone is the head's own cropped image, as the client's head widgets show it.
  */
-const placeFrame = (avatar: IAvatarImage, headOnly: boolean): PlacedSprite[] => {
+const placeFrame = (avatar: IAvatarImage, headOnly: boolean): AvatarSprite[] => {
     const scale = RoomGeometryScaleType.ZoomedIn;
 
     if (headOnly) {
         const head = avatar.getCroppedImage(AvatarSetType.Head, false);
 
-        return head ? [ { texture: head, x: 0, y: 0, flipH: false, additive: false, depth: 0, isAvatar: true } ] : [];
+        return head ? [ { texture: head, x: 0, y: 0, flipH: false, depth: 0, isAvatar: true } ] : [];
     }
 
     const image = avatar.getImage(AvatarSetType.Full, false);
@@ -235,12 +229,11 @@ const placeFrame = (avatar: IAvatarImage, headOnly: boolean): PlacedSprite[] => 
 
     if (!canvasOffsets || (canvasOffsets.length < 3)) canvasOffsets = AvatarVisualization.DEFAULT_CANVAS_OFFSETS;
 
-    const sprites: PlacedSprite[] = [ {
+    const sprites: AvatarSprite[] = [ {
         texture: image,
         x: (-1 * scale) / 2 + canvasOffsets[0] - (image.width - scale) / 2,
         y: -image.height + scale / 4 + canvasOffsets[1],
         flipH: false,
-        additive: false,
         depth: canvasOffsets[2],
         isAvatar: true,
     } ];
@@ -276,7 +269,7 @@ const placeFrame = (avatar: IAvatarImage, headOnly: boolean): PlacedSprite[] => 
             x: asset.offsetX - scale / 2 + offsetX,
             y: asset.offsetY + offsetY,
             flipH: asset.flipH,
-            additive: data.ink === 33,
+            blendMode: (data.ink === 33) ? 'add' : undefined,
             depth: -0.001 * totalSprites * data.getDirectionOffsetZ(direction),
             isAvatar: false,
         });
@@ -284,66 +277,6 @@ const placeFrame = (avatar: IAvatarImage, headOnly: boolean): PlacedSprite[] => 
 
     // Stable: sprites at one depth keep the order the avatar lists them in.
     return sprites.sort((a, b) => b.depth - a.depth);
-};
-
-/**
- * The frames on one canvas size - the union of every sprite of every frame - at `size`: `n` as
- * drawn, `l` doubled, `s` halved. The bounds are kept to even pixels about the avatar's tile, so
- * the halving averages the same 2x2 blocks the client's zoomed-out room does.
- */
-const drawFrames = (frames: PlacedSprite[][], size: AvatarImageSize): Canvas[] => {
-    let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
-
-    for (const sprite of frames.flat()) {
-        const x = sprite.flipH ? (sprite.x - sprite.texture.width) : sprite.x;
-
-        left = Math.min(left, x);
-        top = Math.min(top, sprite.y);
-        right = Math.max(right, x + sprite.texture.width);
-        bottom = Math.max(bottom, sprite.y + sprite.texture.height);
-    }
-
-    if (!Number.isFinite(left)) throw new Error('The avatar drew nothing');
-
-    left = Math.floor(left / 2) * 2;
-    top = Math.floor(top / 2) * 2;
-
-    const bounds = new Rectangle(left, top, Math.ceil((right - left) / 2) * 2, Math.ceil((bottom - top) / 2) * 2);
-    const zoom = (size === 'l') ? 2 : 1;
-
-    return frames.map((sprites) => {
-        const container = new Container();
-
-        // Fills the bounds, so a frame whose sprites cover less of them is still the full size.
-        const frame = new Sprite(Texture.EMPTY);
-
-        frame.position.set(bounds.x, bounds.y);
-        frame.setSize(bounds.width, bounds.height);
-        container.addChild(frame);
-
-        for (const placed of sprites) {
-            const sprite = new Sprite(placed.texture);
-
-            sprite.position.set(placed.x, placed.y);
-
-            if (placed.flipH) sprite.scale.x = -1;
-            if (placed.additive) sprite.blendMode = 'add';
-
-            container.addChild(sprite);
-        }
-
-        if (zoom !== 1) container.scale.set(zoom);
-
-        const canvas = GetRenderer().extract.canvas({
-            target: container,
-            frame: new Rectangle(bounds.x * zoom, bounds.y * zoom, bounds.width * zoom, bounds.height * zoom),
-            antialias: false,
-        }) as unknown as Canvas;
-
-        container.destroy({ children: true });
-
-        return (size === 's') ? halveImage(canvas) : canvas;
-    });
 };
 
 /** A copy of a render texture's pixels the avatar can draw its next frame over. */
