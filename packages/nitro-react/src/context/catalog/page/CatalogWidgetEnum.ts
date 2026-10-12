@@ -34,6 +34,7 @@ export const CatalogWidgetEnum = {
     PET_PREVIEW: 'petPreviewWidget',
     PRODUCT_VIEW: 'productViewWidget',
     PURCHASE: 'purchaseWidget',
+    RECOLORABLE_FURNITURE: 'recolorableFurnitureWidget',
     RECYCLER: 'recyclerWidget',
     RECYCLER_PRIZES: 'recyclerPrizesWidget',
     REDEEM_ITEM_CODE: 'redeemItemCodeWidget',

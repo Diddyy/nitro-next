@@ -5,9 +5,11 @@ import { test } from 'node:test';
 import ts from 'typescript';
 
 // Transpiled rather than imported as `.ts`, as turbo-command-packets.test.mjs does; each module
-// imports only types, so nothing is left to resolve.
-const load = async (path) => {
-    const source = readFileSync(new URL(`../packages/${path}.ts`, import.meta.url), 'utf8');
+// imports only types, or a class replaced below by a stand-in, so nothing is left to resolve.
+const load = async (path, inline = {}) => {
+    let source = readFileSync(new URL(`../packages/${path}.ts`, import.meta.url), 'utf8');
+
+    for (const [ line, body ] of Object.entries(inline)) source = source.replace(line, body);
 
     const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } });
 
@@ -27,7 +29,9 @@ const wrapperOf = (values) => {
 
 const { FurniRecolorUpdateMessage } = await load('nitro-packets/src/incoming/Room/Engine/FurniRecolorUpdateMessage');
 const { RecolorFurnitureComposer } = await load('nitro-packets/src/outgoing/Room/Furniture/RecolorFurnitureComposer');
-const { getRecolorableColors } = await load('nitro-react/src/utils/recolorablePalette');
+// `MapDataType.setData` / `getValue` as nitro-api's: a map of strings.
+const mapDataType = 'class MapDataType { setData(data) { this.data = { ...data }; } getValue(key) { return this.data[key]; } }';
+const { getRecolorableColors, recolorableExtraParam, createRecolorableStuffData } = await load('nitro-react/src/utils/recolorablePalette', { "import { MapDataType } from '@nitrodevco/nitro-api';": mapDataType });
 
 await test('FurniRecolorUpdate reads each entry as furni ids then three shorts (_-X2a / RecolorUpdateData)', () => {
     const wrapper = wrapperOf([ 2, 2, 10, 11, 255, 54, 0, 1, 12, 18, 52, 86 ]);
@@ -56,4 +60,9 @@ await test('a class takes its palette from palette_to_furni, else the default on
     assert.deepEqual(getRecolorableColors(configString, 'bc_block_0_recolorable'), [ 0xff3600, 0x123456, 0xffffff ]);
     assert.deepEqual(getRecolorableColors(configString, 'bc_alpha1_b_recolorable'), [ 0x00ffcc ]);
     assert.deepEqual(getRecolorableColors(() => '', 'bc_block_0_recolorable'), []);
+});
+
+await test('the catalogue palette colour is placed as r,g,b with state 0 (RecolorableFurnitureCatalogWidget)', () => {
+    assert.equal(recolorableExtraParam(0xff3600), '255,54,0');
+    assert.deepEqual(createRecolorableStuffData('255,54,0').data, { state: '0', r: '255', g: '54', b: '0' });
 });

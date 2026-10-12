@@ -127,6 +127,16 @@ export class CatalogPage implements IActivePage {
         }
     }
 
+    /**
+     * `product.extraParam = ...` (`RecolorableFurnitureCatalogWidget.applyColor`): the parameter an
+     * offer's product is placed or bought with. Replaced, not written to, as the limited items left.
+     */
+    public setProductExtraParam(offer: IPurchasableOffer, extraParam: string): void {
+        const index = offer.products.indexOf(getOfferProduct(offer)!);
+
+        if (index >= 0) offer.products[index] = { ...offer.products[index], extraParam };
+    }
+
     public dispose(): void {
         this._itemGrid = undefined;
         this.events.dispose();

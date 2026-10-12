@@ -36,7 +36,7 @@ import { CatalogPlacedObjectPurchaseData, catalogPurchaseStore, ICatalogDragAndD
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, getRoomPatterns, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
-import { getOfferProduct, setObjectAlphaMultiplier } from '#base/utils';
+import { createRecolorableStuffData, getOfferProduct, RECOLORABLE_FURNITURE_LAYOUT, setObjectAlphaMultiplier } from '#base/utils';
 
 import { BUILDER_FURNI_PLACEABLE_STATUS_OKAY, getBuilderFurniPlaceableStatusForOffer } from './catalogBuildersClubCommands';
 
@@ -214,7 +214,10 @@ export const requestSelectedItemToMover = (store: CatalogStoreApi, receiver: ICa
             return;
     }
 
-    if (!initializeRoomObjectInsert(RoomObjectPlacementSource.CATALOG, -offer.offerId, category, product.classId, product.extraParam || undefined)) return;
+    // A recolorable page's offer is placed showing the colour it is placed with (`createStuffData`).
+    const stuffData = (offer.page?.layoutCode === RECOLORABLE_FURNITURE_LAYOUT) ? createRecolorableStuffData(product.extraParam) : undefined;
+
+    if (!initializeRoomObjectInsert(RoomObjectPlacementSource.CATALOG, -offer.offerId, category, product.classId, product.extraParam || undefined, stuffData)) return;
 
     const { setOfferInFurniPlacing, setIsObjectMoverRequested, setCatalogStore } = catalogPurchaseStore.getState();
 

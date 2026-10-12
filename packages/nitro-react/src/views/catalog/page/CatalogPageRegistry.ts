@@ -56,6 +56,7 @@ import { CatalogPetPreviewWidgetView } from './widgets/CatalogPetPreviewWidgetVi
 import { CatalogPetsWidgetView } from './widgets/CatalogPetsWidgetView';
 import { CatalogProductViewWidgetView } from './widgets/CatalogProductViewWidgetView';
 import { CatalogPurchaseWidgetView } from './widgets/CatalogPurchaseWidgetView';
+import { CatalogRecolorableFurnitureWidgetView } from './widgets/CatalogRecolorableFurnitureWidgetView';
 import { CatalogRecyclerPrizesWidgetView } from './widgets/CatalogRecyclerPrizesWidgetView';
 import { CatalogRecyclerWidgetView } from './widgets/CatalogRecyclerWidgetView';
 import { CatalogRedeemItemCodeWidgetView } from './widgets/CatalogRedeemItemCodeWidgetView';
@@ -126,4 +127,5 @@ export const CATALOG_WIDGET_VIEWS: Partial<Record<CatalogWidgetId, ComponentType
     [CatalogWidgetEnum.MARKET_PLACE_OWN_ITEMS]: CatalogMarketPlaceOwnItemsWidgetView,
     [CatalogWidgetEnum.RECYCLER]: CatalogRecyclerWidgetView,
     [CatalogWidgetEnum.RECYCLER_PRIZES]: CatalogRecyclerPrizesWidgetView,
+    [CatalogWidgetEnum.RECOLORABLE_FURNITURE]: CatalogRecolorableFurnitureWidgetView,
 };
