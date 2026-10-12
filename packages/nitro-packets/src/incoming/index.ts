@@ -683,6 +683,8 @@ export * from './Turbo/TurboCommandSuggestionsMessage';
 export * from './Turbo/TurboCommandTreeMessage';
 export * from './Turbo/TurboPermissionNodesMessage';
 export * from './Turbo/TurboServerCapabilitiesMessage';
+export * from './Turbo/TurboStarterRoomCameraMessage';
+export * from './Turbo/TurboStarterRoomPictureResultMessage';
 export * from './Userclassification/UserClassificationMessage';
 export * from './Userdefinedroomevents/Data/AllVariablesInRoomParser';
 export * from './Userdefinedroomevents/Data/IAllVariablesInRoom';

@@ -15,6 +15,8 @@ const actions = {
     chooseGender: state.chooseGender,
     clickPart: state.clickPart,
     selectColor: state.selectColor,
+    setStarterRoomCameraStatus: state.setStarterRoomCameraStatus,
+    closeStarterRoomCamera: state.closeStarterRoomCamera,
 };
 
 export const useOnboardingActions = () => actions;

@@ -12,6 +12,8 @@
  *   name box only takes when it is for the name it holds.
  * - `editor`: the look editor (`onBoardingHcSteps/AvatarEditor`), made when the flow is first drawn
  *   - the figure data has to be there for its grid - and kept while the flow runs.
+ * - `starterRoomCamera`: not Flash's - Turbo's starter room camera (`starter.rooms`), opened by the
+ *   server for the room the user is in, while it is up.
  */
 import { createStore } from 'zustand';
 
@@ -22,6 +24,15 @@ export const ONBOARDING_ACTION_NAME_CHANGE = 0;
 export const ONBOARDING_ACTION_ROOM_SELECT = 1;
 
 export type OnboardingStep = 'name' | 'room';
+
+/** Turbo's extension the starter room camera comes with (`TurboStarterRoomCameraMessage`). */
+export const TURBO_STARTER_ROOMS_CAPABILITY = 'starter.rooms';
+
+export interface StarterRoomCamera {
+    roomId: number;
+    /** `taking` once the picture is sent; `failed` when the server could not draw it. */
+    status: 'open' | 'taking' | 'failed';
+}
 
 export interface OnboardingNameCheck {
     resultCode: number;
@@ -34,6 +45,7 @@ type State = {
     step: OnboardingStep;
     nameCheck: OnboardingNameCheck | undefined;
     editor: OnboardingEditorState | undefined;
+    starterRoomCamera: StarterRoomCamera | undefined;
 };
 
 type Actions = {
@@ -48,6 +60,9 @@ type Actions = {
     chooseGender: (gender: OnboardingGender) => void;
     clickPart: (category: string, part: string) => void;
     selectColor: (category: string, colorId: string) => void;
+    openStarterRoomCamera: (roomId: number) => void;
+    setStarterRoomCameraStatus: (status: StarterRoomCamera['status']) => void;
+    closeStarterRoomCamera: () => void;
     /** `onNewUserReceptionFinished`: the flow is done for this session. */
     finish: () => void;
 };
@@ -60,12 +75,14 @@ const INITIAL: State = {
     step: 'name',
     nameCheck: undefined,
     editor: undefined,
+    starterRoomCamera: undefined,
 };
 
 export const createOnboardingStore = () => createStore<OnboardingStore>()(set => ({
     ...INITIAL,
     setLoginActions: loginActions => set({
         ...INITIAL,
+        starterRoomCamera: undefined,
         loginActions,
         step: loginActions.includes(ONBOARDING_ACTION_NAME_CHANGE) ? 'name' : 'room',
     }),
@@ -77,6 +94,9 @@ export const createOnboardingStore = () => createStore<OnboardingStore>()(set =>
     clickPart: (category, part) => set(x => (x.editor ? { editor: clickOnboardingPart(x.editor, category, part) } : x)),
     selectColor: (category, colorId) => set(x => (x.editor ? { editor: selectOnboardingColor(x.editor, category, colorId) } : x)),
     finish: () => set({ finished: true, loginActions: [], editor: undefined }),
+    openStarterRoomCamera: roomId => set({ starterRoomCamera: { roomId, status: 'open' } }),
+    setStarterRoomCameraStatus: status => set(x => (x.starterRoomCamera ? { starterRoomCamera: { ...x.starterRoomCamera, status } } : x)),
+    closeStarterRoomCamera: () => set({ starterRoomCamera: undefined }),
 }));
 
 export const onboardingStore = createOnboardingStore();
