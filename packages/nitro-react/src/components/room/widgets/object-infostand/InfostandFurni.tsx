@@ -17,11 +17,12 @@ import { useEffect } from 'react';
 import { openClientLink, openGroupInfo, openProfile, openRentConfirmationWindow, requestGroupDetails, requestInfostandItemToMover, toggleCatalog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
-import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomStore } from '#base/context/room';
+import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomStore, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useCanPlaceWithBuildersClub, useRoomFurnitureData, useRoomObjectInteraction, useRoomObjectModify, useSecondsClock } from '#base/hooks';
+import { FURNITURE_RECOLOR_WIDGET } from '#base/utils';
 import { InfostandFurniDetails, InfostandFurniVariant, InfostandFurniView } from '#base/views/room-widgets/object-infostand/InfostandFurniView';
 
 type InfostandFurniProps = {
@@ -70,6 +71,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const canPlaceWithBuildersClub = useCanPlaceWithBuildersClub();
     const { modifyRoomObject } = useRoomObjectModify();
     const { changeItemState } = useRoomObjectInteraction();
+    const { openRoomWidget } = useRoomWidgetActions();
     const { showWindow, hideWindow, showConfirm } = useWindowActions();
     const t = useTranslation();
     const { send } = useWebSocketContext();
@@ -128,6 +130,14 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
 
         if (furniData.isStickie) pickupMode = PICKUP_NONE;
     }
+
+    // A recolorable floor furni's colour (`furniture_recolorable_color`); undefined for any other furni.
+    const recolorableColor = (category === RoomObjectCategoryEnum.Floor) ? roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureRecolorableColor) : undefined;
+    const isRecolorable = (recolorableColor !== undefined) && !isNaN(recolorableColor);
+    // `update`: the recolor button, outside play test mode, for a room owner or controller.
+    const canRecolor = isRecolorable && !playTestMode && (hasRights || isRoomOwner || isAnyRoomController);
+    // `InfoStandWidget`'s place more: a recolorable is placed again in its own colour, `r,g,b`.
+    const placeMoreParam = isRecolorable ? [ (recolorableColor >> 16) & 0xff, (recolorableColor >> 8) & 0xff, recolorableColor & 0xff ].join(',') : extraParam;
 
     // `RWFAM_WIRED_INSPECT`: a floor item by its id, a wall item by its negative id.
     const wiredInspectId = (category === RoomObjectCategoryEnum.Floor) ? objectId : ((category === RoomObjectCategoryEnum.Wall) ? -objectId : undefined);
@@ -190,8 +200,10 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
             canUse={canUse}
             canWiredInspect={!playTestMode && showWiredInspectButton}
             pickupMode={pickupMode}
-            // `update`: `button_list.visible = move || rotate || pickupMode != 0 || use` - rotate only ever with move.
-            buttonsVisible={canMove || (pickupMode !== PICKUP_NONE) || canUse}
+            // `update`: `button_list.visible = move || rotate || pickupMode != 0 || use || recolor` - rotate only ever with move.
+            canRecolor={canRecolor}
+            onRecolor={() => openRoomWidget({ type: FURNITURE_RECOLOR_WIDGET, objectId, category, objectType: roomObject.type })}
+            buttonsVisible={canMove || (pickupMode !== PICKUP_NONE) || canUse || canRecolor}
             canSaveBranding={canSaveBranding}
             onMove={() => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_MOVE)}
             onRotate={() => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_ROTATE_POSITIVE)}
@@ -219,7 +231,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
             onRent={() => showWindow('catalog', { offerId: furniData.furnitureData?.rentOfferId })}
             onExtend={() => furniData.furnitureData && openRentConfirmationWindow(send, furniData.furnitureData, false, objectId)}
             onBuyout={() => furniData.furnitureData && openRentConfirmationWindow(send, furniData.furnitureData, true, objectId)}
-            onPlaceMore={() => requestInfostandItemToMover({ bcOfferId, category, classId: furnitureData?.id ?? 0, extraParam })}
+            onPlaceMore={() => requestInfostandItemToMover({ bcOfferId, category, classId: furnitureData?.id ?? 0, extraParam: placeMoreParam })}
             onOpenOwner={() => {
                 // `onOwnerRegion`: a builders club furni opens that catalogue - at its offer while it still has one.
                 if (ownerKind === 'builders_club') {

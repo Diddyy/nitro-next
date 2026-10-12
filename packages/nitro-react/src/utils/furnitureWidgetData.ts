@@ -159,3 +159,20 @@ export interface PresentOpenedData {
     /** Nothing until the server has answered the open. */
     contents?: PresentOpenedMessageType;
 }
+
+/**
+ * The recolor window (`FurnitureRecolorController`) is opened by the infostand's recolor button,
+ * not by a furni asking for it, so it has no `RoomObjectWidgetRequestEvent` of its own; this is
+ * the key it lives under.
+ */
+export const FURNITURE_RECOLOR_WIDGET = 'FURNITURE_RECOLOR';
+
+/**
+ * What `FurnitureRecolorController` keeps between Apply and the server's answer: the colour it
+ * sent (`_pendingColor`), and a count the room's `FurniRecolorUpdate` handler moves on when an
+ * update confirms it, so the window reads the furni's colour and the room's colours again.
+ */
+export interface FurnitureRecolorData {
+    pendingColor?: number;
+    confirmed?: number;
+}

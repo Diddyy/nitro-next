@@ -573,6 +573,7 @@ export * from './Room/Engine/Data/UserUpdateParser';
 export * from './Room/Engine/Data/WallItemParser';
 export * from './Room/Engine/FavoriteMembershipUpdateMessage';
 export * from './Room/Engine/FloorHeightMapMessage';
+export * from './Room/Engine/FurniRecolorUpdateMessage';
 export * from './Room/Engine/FurnitureAliasesMessage';
 export * from './Room/Engine/HeightMapMessage';
 export * from './Room/Engine/HeightMapUpdateMessage';

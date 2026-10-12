@@ -48,6 +48,7 @@ export * from './FurniturePurchasableClothingLogic';
 export * from './FurniturePushableLogic';
 export * from './FurnitureRandomStateLogic';
 export * from './FurnitureRandomTeleportLogic';
+export * from './FurnitureRecolorableLogic';
 export * from './FurnitureRentableSpaceLogic';
 export * from './FurnitureRoomBackgroundColorLogic';
 export * from './FurnitureRoomBackgroundLogic';

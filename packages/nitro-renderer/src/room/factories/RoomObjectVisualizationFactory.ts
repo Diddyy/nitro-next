@@ -32,6 +32,7 @@ import { AnimatedFurnitureVisualization,
     FurniturePlanetSystemVisualization,
     FurniturePosterVisualization,
     FurnitureQueueTileVisualization,
+    FurnitureRecolorableVisualization,
     FurnitureResettingAnimatedVisualization,
     FurnitureRoomBackgroundVisualization,
     FurnitureRoomBillboardVisualization,
@@ -146,6 +147,9 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
             case RoomObjectVisualizationType.FURNITURE_MANNEQUIN:
                 visualization = FurnitureMannequinVisualization;
                 break;
+            case RoomObjectVisualizationType.FURNITURE_RECOLORABLE:
+                visualization = FurnitureRecolorableVisualization;
+                break;
             case RoomObjectVisualizationType.FURNITURE_PARTY_BEAMER:
                 visualization = FurniturePartyBeamerVisualization;
                 break;
@@ -240,6 +244,7 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
             case RoomObjectVisualizationType.FURNITURE_GIFT_WRAPPED_FIREWORKS:
             case RoomObjectVisualizationType.FURNITURE_GUILD_CUSTOMIZED:
             case RoomObjectVisualizationType.FURNITURE_GUILD_ISOMETRIC_BADGE:
+            case RoomObjectVisualizationType.FURNITURE_RECOLORABLE:
             case RoomObjectVisualizationType.FURNITURE_VOTE_COUNTER:
             case RoomObjectVisualizationType.FURNITURE_VOTE_MAJORITY:
             case RoomObjectVisualizationType.FURNITURE_SOUNDBLOCK:

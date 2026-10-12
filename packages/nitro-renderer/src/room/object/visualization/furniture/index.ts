@@ -27,6 +27,7 @@ export * from './FurniturePlanetSystemVisualization';
 export * from './FurniturePlanetSystemVisualizationPlanetObject';
 export * from './FurniturePosterVisualization';
 export * from './FurnitureQueueTileVisualization';
+export * from './FurnitureRecolorableVisualization';
 export * from './FurnitureResettingAnimatedVisualization';
 export * from './FurnitureRoomBackgroundVisualization';
 export * from './FurnitureRoomBillboardVisualization';

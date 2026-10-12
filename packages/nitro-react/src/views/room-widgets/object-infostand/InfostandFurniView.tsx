@@ -92,6 +92,9 @@ export interface InfostandFurniViewProps {
     canWiredInspect: boolean;
     pickupMode: number;
     canSaveBranding: boolean;
+    /** The `recolor` button (WIN63-202610121624): a recolorable floor furni, for a room owner or controller. */
+    canRecolor: boolean;
+    onRecolor: () => void;
     /** `button_list.visible`: what `update` works out from the buttons it shows. */
     buttonsVisible: boolean;
     onMove: () => void;
@@ -130,7 +133,7 @@ export interface InfostandFurniViewProps {
  * description; neither does this. The `rarity_item_overlay_widget` (`rarity_item_overlay_preview`)
  * is not drawn: the theme has no such widget, and its container stays hidden.
  */
-export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWiredInspect, pickupMode, canSaveBranding, buttonsVisible, onMove, onRotate, onPickup, onUse, onWiredInspect, onPlaceMore, onBuy, onRent, onExtend, onBuyout, onOpenOwner, onOpenGroup, onSaveBranding, onSetCustomVariables, onClose }: InfostandFurniViewProps) => {
+export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWiredInspect, canRecolor, onRecolor, pickupMode, canSaveBranding, buttonsVisible, onMove, onRotate, onPickup, onUse, onWiredInspect, onPlaceMore, onBuy, onRent, onExtend, onBuyout, onOpenOwner, onOpenGroup, onSaveBranding, onSetCustomVariables, onClose }: InfostandFurniViewProps) => {
     const t = useTranslation();
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const { texture, height } = useFurnitureImageTexture(details.className, details.colorIndex, 2, RoomGeometryScaleType.ZoomedIn);
@@ -272,6 +275,9 @@ export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWir
         save_branding_configuration: { visible: canSaveBranding && hasBranding, onPointerTap: () => onSaveBranding(brandingValues) },
         use: { visible: canUse, onPointerTap: onUse },
         wired_inspect: { visible: canWiredInspect, onPointerTap: onWiredInspect },
+        recolor: { visible: canRecolor, onPointerTap: onRecolor },
+        // Furniture labels and regions are not released yet (their furni and messages ship unused).
+        label_settings: { visible: false },
         // The crackable's hits, and the jukebox's and the song disk's track (`set trackName` / `set authorName`).
         hits_remaining: { visible: !!details.crackable, caption: details.crackable ? t('infostand.crackable_furni.hits_remaining', '', { hits: String(details.crackable.hits), target: String(details.crackable.target) }) : '' },
         now_playing_text: { caption: t(details.jukebox?.playing ? 'infostand.jukebox.text.now.playing' : 'infostand.jukebox.text.not.playing') },

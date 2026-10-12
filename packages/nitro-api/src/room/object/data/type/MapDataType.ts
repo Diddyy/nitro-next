@@ -52,6 +52,11 @@ export class MapDataType extends ObjectDataBase {
         return false;
     }
 
+    /** Replaces the map, as Flash's `new MapStuffData(map)` builds one from a map it has. */
+    public setData(data: Record<string, string>): void {
+        this._data = { ...data };
+    }
+
     public getValue(key: string): string {
         return this._data[key];
     }

@@ -1,11 +1,12 @@
-import { AvatarActionStateType, IRoom, IVector3D, LegacyDataType, RoomObjectCategoryEnum, RoomObjectVariableEnum, SlideAvatarMoveType, Vector3d } from '@nitrodevco/nitro-api';
-import { DiceValueMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveConfirmMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, PickupObjectComposer, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
+import { AvatarActionStateType, IRoom, IRoomWidgetRequest, IVector3D, LegacyDataType, RoomObjectCategoryEnum, RoomObjectVariableEnum, SlideAvatarMoveType, Vector3d } from '@nitrodevco/nitro-api';
+import { DiceValueMessage, FurniRecolorUpdateMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveConfirmMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, PickupObjectComposer, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
 import { GetRoomContentLoader, LegacyWallGeometry, ObjectMoveUpdateMessage } from '@nitrodevco/nitro-renderer';
 
 import { createPickupTransition } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
-import { getRoom } from '#base/context/room';
+import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
+import { FURNITURE_RECOLOR_WIDGET, FurnitureRecolorData } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -106,6 +107,27 @@ export const registerRoomFurnitureHandlers = ({ subscribe, send }: WebSocketConn
             if (!room) return;
 
             room.updateRoomObjectFloor(data.objectId, undefined, undefined, data.stuffData.state, data.stuffData);
+        }),
+
+        // `onFurniRecolorUpdate`: each entry's colour goes into the map data of the furni it names.
+        on(FurniRecolorUpdateMessage, (data) => {
+            const room = getRoom();
+
+            if (!room) return;
+
+            for (const { objectIds, red, green, blue } of data.updates) room.updateFurnitureColor(objectIds, red, green, blue);
+
+            // `FurnitureRecolorController.onFurniRecolorUpdate`: the update that names the open
+            // window's furni with the colour it sent ends the wait, and the window reads again.
+            const { openWidgets, mergeRoomWidgetData } = roomStore.getState();
+            const recolor = openWidgets[FURNITURE_RECOLOR_WIDGET] as IRoomWidgetRequest<FurnitureRecolorData> | undefined;
+            const pendingColor = recolor?.data?.pendingColor;
+
+            if (!recolor || (pendingColor === undefined)) return;
+
+            const confirmed = data.updates.some(({ objectIds, red, green, blue }) => ((((red << 16) | (green << 8) | blue) >>> 0) === pendingColor) && objectIds.includes(recolor.objectId));
+
+            if (confirmed) mergeRoomWidgetData<FurnitureRecolorData>(FURNITURE_RECOLOR_WIDGET, previous => ({ pendingColor: undefined, confirmed: (previous.confirmed ?? 0) + 1 }));
         }),
 
         on(FurnitureAliasesMessage, (data) => {

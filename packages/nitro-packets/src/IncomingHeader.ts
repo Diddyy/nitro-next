@@ -153,6 +153,7 @@ export class IncomingHeader {
     public static FurniListMessage = 1049;
     public static FurniListRemoveMessage = 2422;
     public static FurniListRemoveMultipleMessage = 3270;
+    public static FurniRecolorUpdateMessage = 7201;
     public static FurniRentOrBuyoutOfferMessage = 1921;
     public static FurnitureAliasesMessage = 2576;
     public static Game2AccountGameStatusMessage = 1173;
