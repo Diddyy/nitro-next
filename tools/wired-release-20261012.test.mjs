@@ -146,6 +146,14 @@ await test('VariableAge writes the duration option and target at [6] and [7] and
     assert.deepEqual(roundTrip(variableAgeCondition, [ FURNI, 0, 0, 0, 30, 1 ], [ level.variableId ]).ints, [ FURNI, 0, 0, 0, 30, 1, 0, FURNI ]);
 });
 
+await test('an empty variable slot is sent as "n", as the official client does', () => {
+    // Official client capture (WIN63-202610121709): Variable Age with nothing picked ["n","n"];
+    // a value-mode Change Variable [variable, "n"].
+    assert.deepEqual(roundTrip(variableAgeCondition, [ USER, 0, 0, 0, 0, 1, 0, -10 ], []).ids, [ 'n', 'n' ]);
+    assert.deepEqual(roundTrip(changeVariableAction, [ FURNI, 0, 0, 0, 0, -10, 0 ], [ level.variableId ]).ids, [ level.variableId, 'n' ]);
+    assert.deepEqual(roundTrip(variableUpdateTrigger, [ 1, 1, 0, 7, -1, 1 ], []).ids, [ 'n' ]);
+});
+
 await test('VariableUpdate writes the selection mode at [5] and reads the origins and mode as optional', () => {
     assert.deepEqual(roundTrip(variableUpdateTrigger, [ 0, 1, 0, 0, -1, 1 ], [ level.variableId ]).ints, [ 0, 1, 0, 0, -1, 1 ]);
     // Four params (saved before origins existed): every origin, one variable.
