@@ -5,8 +5,9 @@ import { runInNewContext } from 'node:vm';
 
 import ts from 'typescript';
 
-// `VariablePickerPreset.finalizeSelection` (`selected?.variableId`): a box's `readVariableIds`
-// sends a picked variable only while the room's list still has it.
+// `VariablePickerPreset.finalizeSelection`: a box's `readVariableIds` sends a picked variable only
+// while the room's list still has it, and `WiredVariable.§_-7h§` ("n") otherwise - the p-code's
+// null branch, and what the official client sends (Variable Age ["n","n"], WIN63-202610121709).
 
 const packets = new URL('../packages/nitro-packets/src/', import.meta.url);
 const cache = new Map();
@@ -102,7 +103,8 @@ await test('finalizePickerSelection sends only a variable the list still has', (
     const picker = createVariablePickerState(before, deleted.variableId, FURNI);
 
     assert.equal(finalizePickerSelection(before, picker), deleted.variableId);
-    assert.equal(finalizePickerSelection(after, picker), '');
+    assert.equal(finalizePickerSelection(after, picker), 'n');
+    assert.equal(finalizePickerSelection(before, createVariablePickerState(before, '', FURNI)), 'n');
     assert.equal(finalizePickerSelection(after, createVariablePickerState(before, kept.variableId, FURNI)), kept.variableId);
     // No list to check against: the id `init` kept is passed through.
     assert.equal(finalizePickerSelection(undefined, createVariablePickerState(undefined, 'n', FURNI)), 'n');
@@ -113,7 +115,7 @@ await test('GIVE_VARIABLE drops a deleted variable and sends "n" for a typed ini
     const form = giveVariableAction.createForm(triggerable([ FURNI, 0, 0, 0 ], [ deleted.variableId ]), context(before));
 
     assert.deepEqual(read(giveVariableAction, form, before), [ deleted.variableId, 'n' ]);
-    assert.deepEqual(read(giveVariableAction, form, after), [ '', 'n' ]);
+    assert.deepEqual(read(giveVariableAction, form, after), [ 'n', 'n' ]);
 
     const keptForm = giveVariableAction.createForm(triggerable([ FURNI, 0, 0, 0 ], [ kept.variableId ]), context(before));
 
@@ -125,7 +127,7 @@ await test('a picker and a value-or-variable section (CHANGE_VARIABLE) are final
     const form = changeVariableAction.createForm(triggerable([ FURNI, 0, 1, 0, 0, FURNI ], [ kept.variableId, deleted.variableId ]), context(before));
 
     assert.deepEqual(read(changeVariableAction, form, before), [ kept.variableId, deleted.variableId ]);
-    assert.deepEqual(read(changeVariableAction, form, after), [ kept.variableId, '' ]);
+    assert.deepEqual(read(changeVariableAction, form, after), [ kept.variableId, 'n' ]);
 });
 
 await test('PLACE_FURNI keeps WiredVariable.§_-i8§ for an unused picker and finalizes a used one', () => {
@@ -134,6 +136,6 @@ await test('PLACE_FURNI keeps WiredVariable.§_-i8§ for an unused picker and fi
     const idle = placeFurniAction.createForm(triggerable([ 0, 0, 0, 0, 0, 0, 0, 0, 0, FURNI ], [ deleted.variableId, 'n' ]), context(before));
 
     assert.deepEqual(read(placeFurniAction, spawning, before), [ deleted.variableId, 'n' ]);
-    assert.deepEqual(read(placeFurniAction, spawning, after), [ '', 'n' ]);
+    assert.deepEqual(read(placeFurniAction, spawning, after), [ 'n', 'n' ]);
     assert.deepEqual(read(placeFurniAction, idle, after), [ 'n', 'n' ]);
 });

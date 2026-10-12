@@ -276,22 +276,25 @@ export const setPickerTarget = (state: WiredVariablePickerState, target: number)
 export const getPickerSelectedVariable = (variables: readonly IWiredVariable[] | null | undefined, state: WiredVariablePickerState): IWiredVariable | null =>
     (state.variableId === '') ? null : findPickerVariableById(filterPickerVariables(variables, state.target, state.initialVariableId), state.variableId);
 
+/** `WiredVariable.§_-7h§` - the variable id a box sends for "no variable". */
+export const WIRED_VARIABLE_ID_NONE = 'n';
+
 /**
- * `VariablePickerPreset.finalizeSelection` without its side effect - the id an element's
- * `readVariableIds` returns for a picker (`selected?.variableId`): the selection if the room's
- * list still has it for the picker's target, otherwise `''` (Flash's `null`, which
- * `EvaWireFormat.encode` would skip, leaving the packet one string short of its count - the port
- * writes the empty string instead). Elements pass `ctx.roomVariables`, the list their pickers were
- * `init`ed with. Where Flash sends `WiredVariable.§_-i8§` (`WIRED_VARIABLE_ID_NONE`, `'n'`) instead
- * of asking the picker (`PlaceFurni`'s unused pickers), the element names it. Without a variables
- * list the id is passed through, as `createVariablePickerState` keeps it. The side effect -
- * recording the variable in the recent tab - is `rememberPickedVariables`, which
+ * `VariablePickerPreset.finalizeSelection` (and `ValueOrVariablePopupPreset`'s) without its side
+ * effect - the id an element's `readVariableIds` returns for a picker: the selection if the room's
+ * list still has it for the picker's target, otherwise `WiredVariable.§_-7h§`, `'n'` (the p-code
+ * returns it for a null selection; the decompiled `selected?.variableId` hides that). The official
+ * client sends `"n"` for every empty slot: Variable Age `["n","n"]`, a value-mode Give or Change
+ * Variable `["303135","n"]` (official client capture, WIN63-202610121709). Elements pass
+ * `ctx.roomVariables`, the list their pickers were `init`ed with. Without a variables list the id is
+ * passed through, as `createVariablePickerState` keeps it, and an empty one is `'n'` too. The side
+ * effect - recording the variable in the recent tab - is `rememberPickedVariables`, which
  * `commands/wiredCommands.ts` runs when it reads the form.
  */
 export const finalizePickerSelection = (variables: readonly IWiredVariable[] | null | undefined, state: WiredVariablePickerState): string => {
-    if (!variables) return state.variableId;
+    if (!variables) return (state.variableId === '') ? WIRED_VARIABLE_ID_NONE : state.variableId;
 
-    return getPickerSelectedVariable(variables, state)?.variableId ?? '';
+    return getPickerSelectedVariable(variables, state)?.variableId ?? WIRED_VARIABLE_ID_NONE;
 };
 
 /** `VariableNodeListView.MAX_HEIGHT` / `SCROLLBAR_WIDTH`, and the layout's row height and list padding. */

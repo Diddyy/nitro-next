@@ -15,8 +15,7 @@ import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 import { resolveSourceTypeSelection } from '../../common/sourceTypeColors';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_USER, type WiredElementContext } from '../../WiredElement';
 
-/** `WiredVariable.§_-i8§` - the variable id a box sends for "no variable" where Flash names it explicitly. */
-export const WIRED_VARIABLE_ID_NONE = 'n';
+export { WIRED_VARIABLE_ID_NONE } from '../../common/WiredVariablePickerModel';
 
 /** `getCustomSourcesForMergedType` of a variable reference: the global and the context variables. */
 export const VARIABLE_REFERENCE_CUSTOM_SOURCES: number[] = [ Number(VariableExtraSourceTypes.GLOBAL_SOURCE), Number(VariableExtraSourceTypes.CONTEXT_SOURCE) ];
