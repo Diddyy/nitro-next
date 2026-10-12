@@ -9,4 +9,5 @@ export enum WiredFurniActionEnum {
     ReferenceVariables = 4, // _-ya
     RulesetVariables = 5, // _-Z1N
     ReferencePlaceholders = 6, // _-r1t
+    TextPlaceholders = 7, // _-62y._-x1N (WIN63-202610121624)
 }

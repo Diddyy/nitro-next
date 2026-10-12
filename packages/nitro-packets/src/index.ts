@@ -707,6 +707,7 @@ export * from './incoming/Userdefinedroomevents/Data/ISharedGlobalPlaceholder';
 export * from './incoming/Userdefinedroomevents/Data/ISharedGlobalPlaceholderList';
 export * from './incoming/Userdefinedroomevents/Data/ISharedVariable';
 export * from './incoming/Userdefinedroomevents/Data/ISharedVariableList';
+export * from './incoming/Userdefinedroomevents/Data/ITextPlaceholders';
 export * from './incoming/Userdefinedroomevents/Data/IVariableInfoAndHolders';
 export * from './incoming/Userdefinedroomevents/Data/IVariableInfoAndValue';
 export * from './incoming/Userdefinedroomevents/Data/IVariableList';
@@ -726,6 +727,7 @@ export * from './incoming/Userdefinedroomevents/Data/SharedGlobalPlaceholderList
 export * from './incoming/Userdefinedroomevents/Data/SharedGlobalPlaceholderParser';
 export * from './incoming/Userdefinedroomevents/Data/SharedVariableListParser';
 export * from './incoming/Userdefinedroomevents/Data/SharedVariableParser';
+export * from './incoming/Userdefinedroomevents/Data/TextPlaceholdersParser';
 export * from './incoming/Userdefinedroomevents/Data/VariableFxConfigUpdateDataParser';
 export * from './incoming/Userdefinedroomevents/Data/VariableFxStatusRemoveDataParser';
 export * from './incoming/Userdefinedroomevents/Data/VariableFxStatusUpdateDataParser';
