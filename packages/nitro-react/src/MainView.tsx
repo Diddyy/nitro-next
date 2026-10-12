@@ -18,6 +18,7 @@ import { HelpComponent } from './components/help';
 import { HotelViewComponent } from './components/hotel-view';
 import { MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
+import { OnboardingComponent } from './components/onboarding';
 import { QuestsComponent, QuestTrackerComponent } from './components/quests';
 import { RoomEffectsWidget } from './components/room/widgets/effects/RoomEffectsWidget';
 import { RoomSettingsWidget } from './components/room/widgets/room-settings';
@@ -194,6 +195,10 @@ export const MainView = () => {
                     <TooltipLayer />
                 </ViewErrorBoundaries>
             </WindowLayer>
+            {/* `HabboLandingView`'s new user flow: over the whole client while it runs. */}
+            <ViewErrorBoundaries>
+                <OnboardingComponent />
+            </ViewErrorBoundaries>
         </>
     );
 };
