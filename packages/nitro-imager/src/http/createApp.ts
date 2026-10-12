@@ -5,6 +5,7 @@ import { AvatarRenderRequest, AvatarRequestError, avatarRequestKey, ImageFormat,
 import { GroupBadgeRender } from '../badge/GroupBadgeImager';
 import { CONTENT_TYPES, encodeImage } from '../output/encodeImage';
 import { DrawnImage, ImageCache } from './ImageCache';
+import { renderIndexPage } from './indexPage';
 
 /** What draws the avatars: `AvatarImager`, or a stand-in in a test. */
 export interface AvatarRenderer {
@@ -37,6 +38,9 @@ const BADGE_CACHE_CONTROL = 'public, max-age=3600';
 /** An image missing part of what was asked for: drawn again next time, by a browser or proxy too. */
 const INCOMPLETE_CACHE_CONTROL = 'no-store';
 
+/** The index page changes only with a new build of the imager. */
+const INDEX_CACHE_CONTROL = 'public, max-age=300';
+
 /** `<code>.gif` / `.png`: five six-character layer tokens at most, with room for a typed-in code's slack. */
 const BADGE_FILE = /^([a-zA-Z0-9]{1,64})\.(gif|png)$/;
 
@@ -47,6 +51,7 @@ const BADGE_FILE = /^([a-zA-Z0-9]{1,64})\.(gif|png)$/;
  *   `/avatarimage`, the name Habbo's imager gives it
  * - `GET /badge/<code>.gif` (or `.png`) - a group badge, as `badge.asset.group.url` names it
  * - `GET /health` - whether it is up, and what it holds
+ * - `GET /` - a page listing all of these and their parameters (`renderIndexPage`)
  *
  * The images sit at the root, for an imager on a subdomain of its own
  * (`habbo-imaging.example.com/avatar`), and under `/habbo-imaging/` as well, the path Habbo's own
@@ -101,7 +106,14 @@ export const createApp = (services: ImagerServices): Hono => {
         return sendImage(c, drawn, format, BADGE_CACHE_CONTROL);
     };
 
+    const indexPage = renderIndexPage(services.avatarFrameDelay);
+
     for (const prefix of [ '', '/habbo-imaging' ]) {
+        app.get(`${prefix}/`, (c) => {
+            c.header('Cache-Control', INDEX_CACHE_CONTROL);
+
+            return c.html(indexPage);
+        });
         app.get(`${prefix}/avatar`, avatar);
         app.get(`${prefix}/avatarimage`, avatar);
         app.get(`${prefix}/badge/:file`, badge);

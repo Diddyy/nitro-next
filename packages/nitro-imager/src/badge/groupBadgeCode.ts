@@ -17,7 +17,7 @@ export const BADGE_TOKEN_LENGTH = 6;
 const SYMBOL_ALT_OFFSET = 100;
 
 /** One base and four symbols, what the editor makes. */
-const MAX_BADGE_LAYERS = 5;
+export const MAX_BADGE_LAYERS = 5;
 
 const TOKEN = /^([bst])(\d\d)(\d\d)(\d)$/;
 

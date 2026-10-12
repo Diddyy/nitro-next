@@ -22,6 +22,7 @@ To run it on a server managed by Ploi, see [Running the imager on Ploi](imager-p
 | `GET /avatar?figure=...` (or `/avatarimage`) | an avatar; Habbo's `avatarimage` parameters (`gender`, `size` s/n/l, `direction`, `head_direction`, `action`, `gesture`, `headonly`, `img_format`) plus `dance`, `effect`, `frame` and `animate` (an animated gif at the room's 82 ms a frame) |
 | `GET /badge/<code>.gif` or `.png` | a group badge from its code |
 | `GET /health` | whether it is up, what it caches, and which badge table it draws with |
+| `GET /` (or `/habbo-imaging/`) | an index page: every request and parameter with its values and default, examples drawn live, and a form to try a figure or badge code (`renderIndexPage`, which lists the action and gesture names from `parseAvatarRequest`'s own tables) |
 
 Everything it loads from - the three bundle locations, the figure map, figure data, effect map
 and badge part images - is a url or a path on the server, mixed as suits the deployment

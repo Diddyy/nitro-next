@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { AvatarActionStateType, AvatarGenderType } from '@nitrodevco/nitro-api';
 
-import { AvatarRenderRequest, AvatarRequestError, parseAvatarRequest } from '../src/avatar/avatarRequest';
+import { AVATAR_REQUEST_TOKENS, AvatarRenderRequest, AvatarRequestError, parseAvatarRequest } from '../src/avatar/avatarRequest';
 import { createApp } from '../src/http/createApp';
 import { ImageCache } from '../src/http/ImageCache';
 import { encodeImage } from '../src/output/encodeImage';
@@ -200,5 +200,21 @@ void describe('createApp', () => {
         assert.equal((await app.request('/badge/b01010s99010.gif')).headers.get('cache-control'), 'no-store');
         assert.equal((await app.request('/badge/s99990.gif')).status, 404);
         assert.equal((await app.request('/badge/b01010.jpg')).status, 400);
+    });
+
+    void it('lists every request, parameter and accepted name on its index page, here and under /habbo-imaging', async () => {
+        for (const path of [ '/', '/habbo-imaging/' ]) {
+            const response = await app.request(path);
+            const page = await response.text();
+
+            assert.equal(response.status, 200);
+            assert.match(response.headers.get('content-type') ?? '', /text\/html/);
+
+            for (const name of [ 'figure', 'gender', 'size', 'direction', 'head_direction', 'headonly', 'action', 'gesture', 'dance', 'effect', 'frame_num', 'animate', 'img_format', '/badge/', '/health' ]) {
+                assert.ok(page.includes(name), `${path} names ${name}`);
+            }
+
+            for (const token of Object.values(AVATAR_REQUEST_TOKENS).flat()) assert.ok(page.includes(`<code>${token}</code>`), `${path} lists ${token}`);
+        }
     });
 });

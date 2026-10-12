@@ -73,8 +73,19 @@ const GESTURES: Record<string, AvatarRequestAction | undefined> = {
 /** A figure string: `type-set[-colour[-colour]]` parts joined by dots. */
 const FIGURE = /^[a-z]{2}-\d+(-\d+)*(\.[a-z]{2}-\d+(-\d+)*)*$/;
 
-const MAX_FIGURE_LENGTH = 512;
-const MAX_FRAME = 1000;
+export const MAX_FIGURE_LENGTH = 512;
+export const MAX_FRAME = 1000;
+export const MAX_ITEM_ID = 9999;
+export const MAX_EFFECT_ID = 99999;
+export const MAX_DANCE = 4;
+
+/** The names `action` and `gesture` take, for the index page to list what is read here. */
+export const AVATAR_REQUEST_TOKENS = {
+    postures: Object.keys(POSTURES),
+    parameterActions: Object.keys(PARAMETER_ACTIONS),
+    expressions: Object.keys(EXPRESSIONS),
+    gestures: Object.keys(GESTURES),
+} as const;
 
 export class AvatarRequestError extends Error {}
 
@@ -111,7 +122,7 @@ export const parseAvatarRequest = (query: Record<string, string | undefined>): A
         if (POSTURES[name] && (value === undefined)) {
             posture = POSTURES[name];
         } else if (PARAMETER_ACTIONS[name]) {
-            actions.push({ action: PARAMETER_ACTIONS[name], parameter: readInteger(value, name, 0, 9999, 0) });
+            actions.push({ action: PARAMETER_ACTIONS[name], parameter: readInteger(value, name, 0, MAX_ITEM_ID, 0) });
         } else if (EXPRESSIONS[name] && (value === undefined)) {
             actions.push({ action: EXPRESSIONS[name] });
         } else {
@@ -125,7 +136,7 @@ export const parseAvatarRequest = (query: Record<string, string | undefined>): A
 
     if (GESTURES[gesture]) actions.push(GESTURES[gesture]);
 
-    const dance = readInteger(query.dance, 'dance', 0, 4, 0);
+    const dance = readInteger(query.dance, 'dance', 0, MAX_DANCE, 0);
 
     if (dance > 0) actions.push({ action: AvatarActionStateType.Dance, parameter: dance });
 
@@ -147,7 +158,7 @@ export const parseAvatarRequest = (query: Record<string, string | undefined>): A
         headOnly: readFlag(query.headonly),
         posture,
         actions,
-        effect: readInteger(query.effect, 'effect', 0, 99999, 0),
+        effect: readInteger(query.effect, 'effect', 0, MAX_EFFECT_ID, 0),
         frame: readInteger(query.frame ?? query.frame_num, 'frame', 0, MAX_FRAME, 0),
         animate,
         format,
