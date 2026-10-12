@@ -43,6 +43,7 @@ export const ProgressAchievementView: WiredElementView<ProgressAchievementAction
             </WiredSection>
             <WiredValueOrVariableSection
                 title="${wiredfurni.params.progress_achievement.score}"
+                mergedId={SCORE_MERGED_ID}
                 sourceTypeOptions={variableReferenceSourceOptions(ctx, form.score.picker.target)}
                 min={0}
                 max={PROGRESS_ACHIEVEMENT_SCORE_MAX}

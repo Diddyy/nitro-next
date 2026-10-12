@@ -23,6 +23,7 @@ export const ChestHasAmountView: WiredElementView<ChestHasAmountConditionForm> =
         </WiredSection>
         <WiredValueOrVariableSection
             title="${wiredfurni.params.chest_compare_amount}"
+            mergedId={0}
             sourceTypeOptions={conditionMergedSourceOptions(chestHasAmountCondition, form, 0, ctx)}
             min={0}
             max={CHEST_HAS_AMOUNT_MAX}

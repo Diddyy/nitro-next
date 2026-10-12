@@ -123,6 +123,7 @@ export const PlaceFurniView: WiredElementView<PlaceFurniActionForm> = ({ form, s
                                 <WiredDisabled disabled={isPlaceFurniSpawnValueDisabled(form)}>
                                     <WiredValueOrVariableSection
                                         title="${wiredfurni.params.place_furni.spawn_with_value}"
+                                        mergedId={PLACE_FURNI_MERGED_VALUE}
                                         sourceTypeOptions={variableReferenceSourceOptions(ctx, form.spawnValue.picker.target)}
                                         min={PLACE_FURNI_SPAWN_VALUE_MIN}
                                         max={PLACE_FURNI_SPAWN_VALUE_MAX}

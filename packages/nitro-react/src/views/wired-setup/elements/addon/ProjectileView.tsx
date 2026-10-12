@@ -139,6 +139,7 @@ export const ProjectileView: WiredElementView<ProjectileAddonForm> = ({ form, se
                     <WiredDisabled disabled={form.distanceMode === 0}>
                         <WiredValueOrVariableSection
                             title="${wiredfurni.params.projectile.animation_trajectory.distance_selection}"
+                            mergedId={1}
                             sourceTypeOptions={variableReferenceSourceOptions(ctx, getWiredInt(triggerable, 17))}
                             min={PROJECTILE_DISTANCE_MIN}
                             max={PROJECTILE_DISTANCE_MAX}
@@ -164,6 +165,7 @@ export const ProjectileView: WiredElementView<ProjectileAddonForm> = ({ form, se
                             <WiredSimpleList>
                                 <WiredValueOrVariableSection
                                     title="${wiredfurni.params.projectile.time_per_tile}"
+                                    mergedId={0}
                                     sourceTypeOptions={variableReferenceSourceOptions(ctx, getWiredInt(triggerable, 5))}
                                     min={PROJECTILE_TIME_MIN}
                                     max={PROJECTILE_TIME_MAX}

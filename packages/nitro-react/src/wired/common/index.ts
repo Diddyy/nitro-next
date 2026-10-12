@@ -13,6 +13,7 @@ export * from './SpiralUtils';
 export * from './SubVariableParam';
 export * from './textInputLimit';
 export * from './textRestrict';
+export * from './wiredFormValidation';
 export * from './WiredRewardRow';
 export * from './WiredUserAction';
 export * from './WiredUtil';

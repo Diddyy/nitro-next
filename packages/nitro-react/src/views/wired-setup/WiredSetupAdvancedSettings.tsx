@@ -33,6 +33,8 @@ export interface WiredSetupAdvancedSettingsProps {
     onStepInputSource: (baseSourceType: number, id: number, forward: boolean) => void;
     onSelectMergedSourceType: (id: number, sourceType: number) => void;
     onSelectFurniPicks: (picks: number) => void;
+    /** The merged sources a preset claimed (`IInputSourceClaimOwner`): drawn by it, not here. */
+    claimedMergedIds?: ReadonlySet<number>;
 }
 
 /** `getQuantifierKey`. */
@@ -46,7 +48,7 @@ const getQuantifierKey = (quantifierType: number, invert: boolean): string => {
     return `wiredfurni.params.quantifier.${kind}${invert ? '.neg.' : '.'}`;
 };
 
-export const WiredSetupAdvancedSettings = ({ style, edit, ctx, expanded, activeFurniPicks, onToggleExpanded, onSelectQuantifier, onStepInputSource, onSelectMergedSourceType, onSelectFurniPicks }: WiredSetupAdvancedSettingsProps) => {
+export const WiredSetupAdvancedSettings = ({ style, edit, ctx, expanded, activeFurniPicks, onToggleExpanded, onSelectQuantifier, onStepInputSource, onSelectMergedSourceType, onSelectFurniPicks, claimedMergedIds }: WiredSetupAdvancedSettingsProps) => {
     const { triggerable, definition, form } = edit;
     const conf = triggerable.inputSourcesConf;
     const alwaysVisible = definition.advancedAlwaysVisible ?? false;
@@ -101,6 +103,9 @@ export const WiredSetupAdvancedSettings = ({ style, edit, ctx, expanded, activeF
     }
 
     for (let id = 0; id < mergedSelections.length; id++) {
+        // `findInputSourceClaimOwner`: a claimed source's control is attached to its owner instead.
+        if (claimedMergedIds?.has(id)) continue;
+
         const options = (definition.hasCustomTypePicker?.(id) ?? false) ? undefined : getMergedSourceOptions(definition, form, id, ctx);
 
         sections.push(sourceSection(WIRED_SOURCE_MERGED, id, definition.mergedSelectionTitle?.(id) ?? 'wiredfurni.params.sources.merged.title', options));

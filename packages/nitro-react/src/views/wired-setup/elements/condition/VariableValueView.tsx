@@ -36,6 +36,7 @@ export const VariableValueView: WiredElementView<VariableValueConditionForm> = (
             </WiredSection>
             <WiredValueOrVariableSection
                 title="${wiredfurni.params.variables.reference_value}"
+                mergedId={1}
                 sourceTypeOptions={conditionMergedSourceOptions(variableValueCondition, form, 1, ctx)}
                 min={WIRED_INT_MIN}
                 max={WIRED_INT_MAX}

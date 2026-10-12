@@ -10,6 +10,7 @@ import { WiredValueOrVariableSection } from '../../kit/WiredValueOrVariableSecti
 export const JumpStrengthView: WiredElementView<JumpStrengthAddonForm> = ({ form, setForm, triggerable, ctx }) => (
     <WiredValueOrVariableSection
         title="${wiredfurni.params.jump_strength}"
+        mergedId={0}
         sourceTypeOptions={variableReferenceSourceOptions(ctx, getWiredInt(triggerable, 2))}
         min={JUMP_STRENGTH_MIN}
         max={JUMP_STRENGTH_MAX}

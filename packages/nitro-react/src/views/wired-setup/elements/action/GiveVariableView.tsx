@@ -48,6 +48,7 @@ export const GiveVariableView: WiredElementView<GiveVariableActionForm> = ({ for
             <WiredDisabled disabled={form.valueDisabled}>
                 <WiredValueOrVariableSection
                     title="${wiredfurni.params.variables.value_settings.initial_value}"
+                    mergedId={1}
                     sourceTypeOptions={getMergedSourceOptions(giveVariableAction, form, 1, ctx)}
                     min={WIRED_INT_MIN}
                     max={WIRED_INT_MAX}

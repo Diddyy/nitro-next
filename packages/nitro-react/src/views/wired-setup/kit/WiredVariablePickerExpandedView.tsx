@@ -5,12 +5,15 @@
  * (`VariableNodeView.initSublist`). It is mounted while the picker is open, so the hover state
  * goes with it, as Flash disposes the lists in `onHide`.
  *
+ * A picker opened as another preset's popup (WIN63-202610121624 `configureExternalPopup`, the
+ * value-or-variable input's) puts that preset's `header` list above the tabs (`mainContainer.addListItemAt(header, 0)`).
+ *
  * The keyboard handling is `NewVariablePicker.onKeyUp`: Enter takes the variable whose name was
  * typed, nothing for an empty field, and otherwise the first hit of the search tab; Escape
  * closes.
  */
 import { IWiredVariable } from '@nitrodevco/nitro-packets';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
 import { Border, Box, GlobalRect, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
@@ -46,9 +49,11 @@ export interface WiredVariablePickerExpandedViewProps {
     /** `NewVariablePicker.select` - a row, Enter or the clear button chose a variable (or none). */
     onSelect: (variable: IWiredVariable | null, keepOpen: boolean) => void;
     onEscape: () => void;
+    /** `configureExternalPopup`'s header list, as wide as the picker. */
+    header?: ReactNode;
 }
 
-export const WiredVariablePickerExpandedView = ({ x, y, width, borderVariant, pickerVariables, history, filter, query, tabId, onQueryChange, onTabChange, onSelect, onEscape }: WiredVariablePickerExpandedViewProps) => {
+export const WiredVariablePickerExpandedView = ({ x, y, width, borderVariant, pickerVariables, history, filter, query, tabId, onQueryChange, onTabChange, onSelect, onEscape, header }: WiredVariablePickerExpandedViewProps) => {
     const t = useTranslation();
     const [ openPath, setOpenPath ] = useState<OpenNode[]>([]);
 
@@ -105,6 +110,11 @@ export const WiredVariablePickerExpandedView = ({ x, y, width, borderVariant, pi
                 variant={borderVariant}
                 layout={{ width, flexDirection: 'column' }}
             >
+                {header && (
+                    <Box layout={{ width, flexDirection: 'column' }}>
+                        {header}
+                    </Box>
+                )}
                 {/* `button_list` at x 1 and its buttons at y 1, clear of the border's ring; the search row overlaps their last pixel as it does in the layout. */}
                 <Box layout={{ flexDirection: 'row', height: 20, marginLeft: 1, marginTop: 1 }}>
                     {VARIABLE_PICKER_TABS.map((tab, index) => (

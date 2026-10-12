@@ -66,6 +66,8 @@ export interface WiredSectionProps {
     bordered?: boolean;
     /** `splitterVisible`. Default `true`. */
     splitterVisible?: boolean;
+    /** `SectionParam.titleTextColor` - a CSS colour; the style's text colour when absent. */
+    titleColor?: string | null;
     /** `WiredUIPreset.visible`. Default `true`. */
     visible?: boolean;
     /**
@@ -87,7 +89,7 @@ export const WiredSection = ({ visible = true, splitterVisible = true, keepsFirs
     </WiredFrameListItem>
 );
 
-const WiredSectionBody = ({ title, children, collapsible = false, defaultCollapsed = false, disabled = false, sourceTypeSelector, headerOptions, headerOptionLeft, titleYOffset = 0, bordered = false, splitterVisible = true }: Omit<WiredSectionProps, 'visible' | 'keepsFirstSplitter'>) => {
+const WiredSectionBody = ({ title, children, collapsible = false, defaultCollapsed = false, disabled = false, sourceTypeSelector, headerOptions, headerOptionLeft, titleYOffset = 0, bordered = false, splitterVisible = true, titleColor }: Omit<WiredSectionProps, 'visible' | 'keepsFirstSplitter'>) => {
     const style = useWiredStyle();
     const fillLayout = useWiredFillLayout();
     const [ expanded, setExpanded ] = useState(!(collapsible && defaultCollapsed));
@@ -137,6 +139,7 @@ const WiredSectionBody = ({ title, children, collapsible = false, defaultCollaps
                                 <WiredText
                                     text={title}
                                     bold
+                                    color={titleColor ?? undefined}
                                     mode={hasLeftOption ? 'stretch' : 'multiline'}
                                     layout={(titleYOffset > 0) ? { marginTop: titleYOffset } : undefined}
                                 />
