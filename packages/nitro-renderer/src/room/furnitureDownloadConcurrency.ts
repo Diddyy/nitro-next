@@ -20,12 +20,14 @@ export const LOW_END_FURNITURE_DOWNLOADS = 4;
 /**
  * A desktop. Measured on a 59-type room over a ~180ms round trip: a download takes about 180ms
  * and decoding it about 2ms, so the time is spent waiting on the network and the slots are what
- * limit it. Each slot holds one sheet in memory while it is decoded, which a desktop has room for.
+ * limit it. Measured again on 400 pieces of 90 types from a cold CDN (~330ms a download): 8 slots
+ * showed the room in 4.0s, 16 in 1.7s and 32 in 1.0s, with the origin answering no slower at 32.
+ * Each slot holds one sheet in memory while it is decoded, which a desktop has room for.
  */
-export const DEFAULT_FURNITURE_DOWNLOADS = 8;
+export const DEFAULT_FURNITURE_DOWNLOADS = 32;
 
 /** No setting goes past this: past it a room is only asking the origin for more than it can answer. */
-export const MAX_FURNITURE_DOWNLOADS = 16;
+export const MAX_FURNITURE_DOWNLOADS = 64;
 
 /**
  * How many furniture downloads run at once. A hotel can set `furniture.download.concurrency` to

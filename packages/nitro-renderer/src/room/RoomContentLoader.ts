@@ -429,7 +429,7 @@ export class RoomContentLoader implements IRoomContentLoader {
 
     /**
      * How many furniture downloads run at once: the hotel's `furniture.download.concurrency` if it
-     * sets one, else 8 on a desktop and 4 where memory is short (`furnitureDownloadConcurrency`).
+     * sets one, else 32 on a desktop and 4 where memory is short (`furnitureDownloadConcurrency`).
      * Chosen once, when the first download is queued, since a device does not change under a page.
      */
     public get maxConcurrentDownloads(): number {
