@@ -396,6 +396,7 @@ export class OutgoingHeader {
     public static PurchaseVipMembershipExtensionComposer = 628;
     public static QuitComposer = 3929;
     public static RateFlatComposer = 1617;
+    public static RecolorFurnitureComposer = 7200;
     public static RecycleItemsComposer = 2026;
     public static RedeemMarketplaceOfferCreditsComposer = 1296;
     public static RedeemVoucherComposer = 547;

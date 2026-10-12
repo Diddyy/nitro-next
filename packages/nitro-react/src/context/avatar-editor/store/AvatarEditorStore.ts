@@ -34,6 +34,8 @@ type State = {
     wardrobeVisible: boolean;
     /** `NftAvatarsModel.nftAvatars`: the user's NFT outfits (`UserNftWardrobeMessage`). */
     nftOutfits: INftWardrobeItem[];
+    /** `HotLooksModel`: the hotel's hot looks (`HotLooksMessage`), each with its gender (`M` / `F`). */
+    hotLooks: AvatarEditorWardrobeOutfit[];
     /** `HabboAvatarEditor._setNftOutfit`: the NFT outfit picked in the editor, which a save wears. */
     selectedNftOutfitId: string | null;
     /** `HabboAvatarEditor.setNftOutfit`: the look before the NFT outfit was picked, put back away from the NFT tab (`loadRollbackFigure`). */
@@ -65,6 +67,7 @@ type Actions = {
     setWardrobe: (wardrobe: AvatarEditorWardrobeOutfit[]) => void;
     setWardrobeSlot: (index: number, outfit: AvatarEditorWardrobeOutfit) => void;
     setNftOutfits: (nftOutfits: INftWardrobeItem[]) => void;
+    setHotLooks: (hotLooks: AvatarEditorWardrobeOutfit[]) => void;
     setSelectedNftOutfitId: (selectedNftOutfitId: string | null) => void;
     /** `HabboAvatarEditor.setNftOutfit`: picks the outfit and keeps the current look to roll back to. */
     setNftOutfit: (id: string) => void;
@@ -93,6 +96,7 @@ const initialState: State = {
     wardrobe: [],
     wardrobeVisible: true,
     nftOutfits: [],
+    hotLooks: [],
     selectedNftOutfitId: null,
     nftRollbackFigure: '',
     nftRollbackGender: '',
@@ -165,6 +169,7 @@ export const createAvatarEditorStore = () => createStore<AvatarEditorStore>()((s
     setFigureSetIds: (figureSetIds, boundFurnitureNames) => set({ figureSetIds, boundFurnitureNames }),
     setWardrobe: wardrobe => set({ wardrobe }),
     setNftOutfits: nftOutfits => set({ nftOutfits }),
+    setHotLooks: hotLooks => set({ hotLooks }),
     setSelectedNftOutfitId: selectedNftOutfitId => set({ selectedNftOutfitId }),
     setNftOutfit: id => set(state => ({ selectedNftOutfitId: id, nftRollbackFigure: state.figure, nftRollbackGender: state.gender })),
     setNftSelection: (nftCurrentTokenId, nftFallbackFigure, nftFallbackGender) => set(state => ({

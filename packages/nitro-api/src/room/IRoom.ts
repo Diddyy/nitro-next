@@ -119,6 +119,7 @@ export interface IRoom {
         data?: IObjectData,
         extra?: number,
     ): boolean;
+    updateFurnitureColor(objectIds: number[], red: number, green: number, blue: number): void;
     updateRoomObjectWall(
         objectId: number,
         location: IVector3D | undefined,

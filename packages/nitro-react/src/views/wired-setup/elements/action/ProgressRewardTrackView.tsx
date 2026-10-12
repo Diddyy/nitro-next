@@ -46,6 +46,7 @@ export const ProgressRewardTrackView: WiredElementView<ProgressRewardTrackAction
         </WiredSection>
         <WiredValueOrVariableSection
             title="${wiredfurni.params.reward_track.score}"
+            mergedId={SCORE_MERGED_ID}
             sourceTypeOptions={variableReferenceSourceOptions(ctx, form.score.picker.target)}
             min={PROGRESS_REWARD_TRACK_SCORE_MIN}
             max={PROGRESS_REWARD_TRACK_SCORE_MAX}

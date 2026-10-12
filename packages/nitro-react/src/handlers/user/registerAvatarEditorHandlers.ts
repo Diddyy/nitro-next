@@ -1,5 +1,5 @@
 import { AvatarEditorCategory } from '@nitrodevco/nitro-api';
-import { FigureSetIdsEventMessage, UserNftWardrobeMessage, UserNftWardrobeSelectionMessage, WardrobeMessage } from '@nitrodevco/nitro-packets';
+import { FigureSetIdsEventMessage, HotLooksMessage, UserNftWardrobeMessage, UserNftWardrobeSelectionMessage, WardrobeMessage } from '@nitrodevco/nitro-packets';
 
 import { avatarEditorStore, AvatarEditorWardrobeOutfit, DEFAULT_WARDROBE_SLOTS, normalizeGender, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { WebSocketConnection } from '#base/context/communication';
@@ -15,7 +15,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * window opens.
  */
 export const registerAvatarEditorHandlers = ({ subscribe }: WebSocketConnection) => {
-    const { setFigureSetIds, setWardrobe, setNftOutfits } = avatarEditorStore.getState();
+    const { setFigureSetIds, setWardrobe, setNftOutfits, setHotLooks } = avatarEditorStore.getState();
 
     return subscribeAll(subscribe, [
         on(FigureSetIdsEventMessage, (data) => {
@@ -36,6 +36,9 @@ export const registerAvatarEditorHandlers = ({ subscribe }: WebSocketConnection)
         }),
 
         on(UserNftWardrobeMessage, data => setNftOutfits(data.nftAvatars)),
+
+        // `HotLooksModel.onHotLooksMessage`: each look filed under its gender.
+        on(HotLooksMessage, data => setHotLooks(data.hotLooks.map(look => ({ figure: look.figureString, gender: normalizeGender(look.gender) })))),
 
         // `HabboAvatarEditor.onUserNftWardrobeMessage`: with an NFT outfit worn, the editor shows the
         // fallback look on every tab but the NFT one (`loadFallbackFigure`, only for a look that is not empty).

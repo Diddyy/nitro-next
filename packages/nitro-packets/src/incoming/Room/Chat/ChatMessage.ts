@@ -14,6 +14,10 @@ export type ChatMessageType = {
     receiverRoomIndex: number;
     /** A bubble width the server forces for this line; 0 leaves it to the user's setting. */
     chatBubbleWidthOverride: number;
+    /** The bubble shows no `name: ` prefix (a bot box with "hide bot name"); false when not sent. */
+    hideUsername: boolean;
+    /** Where the bubble appears instead of over the speaker, when the server says (`Point`). */
+    location: { x: number; y: number } | null;
 };
 
 /** Mirrors the Flash `RoomUserChatMessageParser`: user index, text, gesture, style, links, tracking id. */
@@ -28,10 +32,15 @@ export class ChatMessage implements IIncomingPacket<ChatMessageType> {
             trackingId: wrapper.readInt(),
             receiverRoomIndex: -1,
             chatBubbleWidthOverride: 0,
+            hideUsername: false,
+            location: null,
         };
 
         if (wrapper.bytesAvailable) packet.receiverRoomIndex = wrapper.readInt();
         if (wrapper.bytesAvailable) packet.chatBubbleWidthOverride = wrapper.readInt();
+        // WIN63-202610121624 `ChatMessageParser.parse`: two more trailing fields, each only if bytes remain.
+        if (wrapper.bytesAvailable) packet.hideUsername = wrapper.readBoolean();
+        if (wrapper.bytesAvailable) packet.location = { x: wrapper.readInt(), y: wrapper.readInt() };
 
         return packet;
     }

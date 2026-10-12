@@ -43,7 +43,7 @@
  * empty page and `effectParamsContainer` stays hidden.
  */
 import { AvatarEditorCategory, AvatarFigurePartType, AvatarGenderType, RoomId } from '@nitrodevco/nitro-api';
-import { GetSelectedNftWardrobeOutfitComposer, GetUserNftWardrobeComposer, GetWardrobeComposer, INftWardrobeItem, SaveUserNftWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
+import { GetHotLooksComposer, GetSelectedNftWardrobeOutfitComposer, GetUserNftWardrobeComposer, GetWardrobeComposer, INftWardrobeItem, SaveUserNftWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useMemo, useState } from 'react';
 
 import { hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
@@ -60,6 +60,9 @@ import { AvatarEditorPartImage } from './AvatarEditorPartImage';
 import { AvatarEditorWardrobe } from './AvatarEditorWardrobe';
 
 const LIBRARY = 'habbo-avatar-editor-com';
+
+/** `HotLooksModel.MAXIMUM_HOT_LOOKS`. */
+const HOT_LOOKS_AMOUNT = 20;
 
 /** `AvatarEditorView._allCategories` in `mainTabs`' order; effects and misc each behind a setting. */
 const CATEGORIES: readonly { category: AvatarEditorCategory; setting?: string }[] = [
@@ -101,8 +104,9 @@ const OUTFIT_HEIGHT = 60;
 const OUTFIT_DIRECTION = 4;
 
 /** An NFT outfit's look in its `Outfit`'s `bitmap`. */
-const NftOutfitImage = ({ outfit, zoom }: { outfit: INftWardrobeItem; zoom: boolean }) => {
-    const avatar = useAvatarImageTexture(outfit.figureString, normalizeGender(outfit.gender), { direction: OUTFIT_DIRECTION, scale: zoom ? 0.5 : 1 });
+/** `OutfitView`'s `bitmap`: an NFT outfit's or a hot look's avatar. */
+const OutfitImage = ({ figure, gender, zoom }: { figure: string; gender: AvatarGenderType; zoom: boolean }) => {
+    const avatar = useAvatarImageTexture(figure, gender, { direction: OUTFIT_DIRECTION, scale: zoom ? 0.5 : 1 });
 
     if (!avatar.texture) return null;
 
@@ -237,6 +241,7 @@ export const AvatarEditor = () => {
     const activeSetType = activeSubType[activeCategory];
     const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setSelectedNftOutfitId, setNftOutfit, setNftSelection } = useAvatarEditorActions();
     const nftOutfits = useAvatarEditorStore(x => x.nftOutfits);
+    const hotLooks = useAvatarEditorStore(x => x.hotLooks);
     const selectedNftOutfitId = useAvatarEditorStore(x => x.selectedNftOutfitId);
     const nftCurrentTokenId = useAvatarEditorStore(x => x.nftCurrentTokenId);
     const nftFallbackFigure = useAvatarEditorStore(x => x.nftFallbackFigure);
@@ -411,6 +416,8 @@ export const AvatarEditor = () => {
     useEffect(() => {
         send(new GetSelectedNftWardrobeOutfitComposer({}));
         send(new GetUserNftWardrobeComposer({}));
+        // `HotLooksModel.requestHotLooks`, as its category is made: `MAXIMUM_HOT_LOOKS`.
+        send(new GetHotLooksComposer({ amount: HOT_LOOKS_AMOUNT }));
     }, []);
 
     /** `NftAvatarsModel.selectNftAvatar`: an outfit with a look is put on, remembered for the save and named. */
@@ -512,8 +519,9 @@ export const AvatarEditor = () => {
                         outfit_gradient: { visible: gradient !== 0, color: active ? activeGradient : gradient },
                         bitmap: {
                             children: (
-                                <NftOutfitImage
-                                    outfit={outfit}
+                                <OutfitImage
+                                    figure={outfit.figureString}
+                                    gender={normalizeGender(outfit.gender)}
                                     zoom={zoom}
                                 />
                             ),
@@ -521,6 +529,27 @@ export const AvatarEditor = () => {
                     },
                 };
             })
+        : [];
+
+    // `HotLooksView.update`: the looks of the gender being edited, each an `Outfit` whose button is
+    // enabled for a real look (`OutfitView`); a press puts the look on (`HotLooksModel.selectHotLook`).
+    const hotLookItems: TemplateItem[] = outfitTemplate
+        ? hotLooks.filter(look => look && (look.gender === gender)).map((look, index) => ({
+                key: String(index),
+                from: outfitTemplate,
+                bindings: {
+                    '': { onPointerTap: () => look?.figure && loadFigure(look.figure, look.gender) },
+                    button: { disabled: !look?.figure },
+                    outfit_gradient: { visible: false },
+                    bitmap: { children: look?.figure && (
+                        <OutfitImage
+                            figure={look.figure}
+                            gender={look.gender}
+                            zoom={zoom}
+                        />
+                    ) },
+                },
+            }))
         : [];
 
     const viewBindings: TemplateBindings = {
@@ -557,6 +586,7 @@ export const AvatarEditor = () => {
 
         // `NftAvatarsView.update` - the grid, not the tab of the same name.
         'nfts_content/nfts': { items: nftItems },
+        'hotlooks_content/hotlooks': { items: hotLookItems },
 
         effectParamsContainer: { visible: false },
         // `NftWardrobeParamView.updateView`: the contract's name (`null` for one it does not know) and the outfit's id.

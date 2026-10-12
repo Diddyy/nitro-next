@@ -54,6 +54,8 @@ export interface VariableFxState {
     overrideMinTarget: number;
     overrideMaxTarget: number;
     segments: number;
+    /** `stackOrder` (WIN63-202610121624) - "Order in FX stack"; higher values draw lower in the object's stack. */
+    stackOrder: number;
     subRendererId: number;
     /** `§_-N1C§` - `VariableFxIconAlignment`. */
     iconAlignment: number;
@@ -84,6 +86,7 @@ export const createVariableFxState = (categoryId: number): VariableFxState => ({
     overrideMinTarget: 0,
     overrideMaxTarget: 0,
     segments: 0,
+    stackOrder: 0,
     subRendererId: 0,
     iconAlignment: 0,
     icon: '',

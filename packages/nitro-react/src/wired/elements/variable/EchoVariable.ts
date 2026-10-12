@@ -3,13 +3,14 @@
  * another one under a new name: same target, availability and flags as its source.
  *
  * String param: the variable name. Variable ids: `[ source variable ]`. The source is picked with a
- * choose variable section (furni, user, global or context variables; the variables made by
- * variable furni - `VariableType.UNKNOWN_0`, Flash `§_-ck§.§_-513§` - are not offered). Picking a
+ * choose variable section (furni, user, global or context variables; since WIN63-202610121624
+ * any variable that does not require an execution context, the ones made by variable furni
+ * included - Wired Faculty 12/10/2026: "Select a user created variable in the Echo variable"). Picking a
  * source fills the name with the source's flat name (`Util.flatVariableName`) while the name is
  * empty or still the previous source's flat name. The created variable's target
  * (`variableType()`) is the picker's.
  */
-import { IWiredVariable, VariableExtraSourceTypes, VariableType } from '@nitrodevco/nitro-packets';
+import { IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { flatVariableName } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
@@ -21,8 +22,8 @@ import { createVariableElementForm, readVariableName, WiredVariableElementDefini
 /** `createChooseVariableSection(-1, [ §_-Y2L§, USER_SOURCE, GLOBAL_SOURCE, CONTEXT_SOURCE ], ...)`. */
 export const ECHO_VARIABLE_SOURCE_TYPES: readonly number[] = [ WIRED_SOURCE_FURNI, WIRED_SOURCE_USER, VariableExtraSourceTypes.GLOBAL_SOURCE, VariableExtraSourceTypes.CONTEXT_SOURCE ];
 
-/** `§_-b2m§.variableSelectionFilter`. */
-export const echoVariableFilter = (variable: IWiredVariable): boolean => Number(variable.variableType) !== Number(VariableType.UNKNOWN_0);
+/** `EchoVariable.variableSelectionFilter`. */
+export const echoVariableFilter = (variable: IWiredVariable): boolean => !variable.requiresExecutionContext;
 
 export interface EchoVariableForm extends WiredVariableElementForm {
     picker: WiredVariablePickerState;

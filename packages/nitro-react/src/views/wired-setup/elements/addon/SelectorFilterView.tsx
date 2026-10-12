@@ -11,6 +11,7 @@ import { WiredValueOrVariableSection } from '../../kit/WiredValueOrVariableSecti
 export const SelectorFilterView: WiredElementView<SelectorFilterAddonForm> = ({ form, setForm, triggerable, ctx }) => (
     <WiredValueOrVariableSection
         title="${wiredfurni.params.setfilter}"
+        mergedId={0}
         sourceTypeOptions={variableReferenceSourceOptions(ctx, getWiredInt(triggerable, 2))}
         min={SELECTOR_FILTER_MIN}
         max={SELECTOR_FILTER_MAX}

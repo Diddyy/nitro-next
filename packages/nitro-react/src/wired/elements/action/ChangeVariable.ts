@@ -4,17 +4,19 @@
  * operand.
  *
  * Int params: `[ target, operator, operand option, operand value as a long (high, low),
- * operand variable target ]` - the target is merged section 0's type, the operator one of
- * `CHANGE_VARIABLE_OPERATORS`, the operand option `ValueOrVariableSection`'s radio (sent as 0 for
- * an operator without an operand), and the operand target merged section 1's type. Variable ids:
- * `[ the variable, the operand variable ]`.
+ * operand variable target, same holder ]` - the target is merged section 0's type, the operator
+ * one of `CHANGE_VARIABLE_OPERATORS`, the operand option `ValueOrVariableSection`'s radio (sent as
+ * 0 for an operator without an operand), the operand target merged section 1's type, and since
+ * WIN63-202610121624 1 when the operand variable is read on each target itself
+ * (`referenceVariableOnTarget`; read as optional). Variable ids: `[ the variable, the operand
+ * variable ]`.
  */
 import { IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { type WiredDropdownOption } from '../../common/expandableDropdown';
 import { intAsLong } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { createValueOrVariableState, isValueOrVariableOnSameHolder, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
@@ -64,7 +66,7 @@ export const changeVariableAction: WiredElementDefinition<ChangeVariableActionFo
         return {
             picker: createVariablePickerState(variables, triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 0)),
             operator: getWiredInt(triggerable, 1),
-            reference: createValueOrVariableState(variables, referenceId, getWiredInt(triggerable, 5), option, value),
+            reference: createValueOrVariableState(variables, referenceId, getWiredInt(triggerable, 5), option, value, (triggerable.intParams.length > 6) && (getWiredInt(triggerable, 6) !== 0)),
         };
     },
     readIntParams: form => [
@@ -73,10 +75,11 @@ export const changeVariableAction: WiredElementDefinition<ChangeVariableActionFo
         changeVariableRequiresOperand(form) ? form.reference.option : 0,
         ...intAsLong(form.reference.value),
         form.reference.picker.target,
+        (changeVariableRequiresOperand(form) && isValueOrVariableOnSameHolder(form.reference, form.picker.target)) ? 1 : 0,
     ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker), finalizePickerSelection(ctx.roomVariables, form.reference.picker) ],
     isInputSourceDisabled: (form, id, sourceType) =>
-        (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && (isValueOrVariableSourcePickingDisabled(form.reference) || !changeVariableRequiresOperand(form)),
+        (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && (isValueOrVariableSourcePickingDisabled(form.reference) || !changeVariableRequiresOperand(form) || isValueOrVariableOnSameHolder(form.reference, form.picker.target)),
     mergedSelections: [ [ 0, 0 ], [ 1, 1 ] ],
     mergedSelectionTitle: id => ((id === 0) ? 'wiredfurni.params.sources.merged.title.variables_destination' : 'wiredfurni.params.sources.merged.title.variables_reference'),
     getMergedType: (form, id) => ((id === 0) ? form.picker.target : form.reference.picker.target),

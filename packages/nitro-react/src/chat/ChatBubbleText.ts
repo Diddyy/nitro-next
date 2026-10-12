@@ -1,5 +1,7 @@
-import { HABBO_TEXT_STYLES, normalizeFlashTextFormat, parseFlashTextMarkup, renderBrowserTextCanvas, renderFlashTextCanvas } from '@nitrodevco/nitro-theme/flash-text';
+import { FlashTextFormat, FlashTextRenderer, HABBO_TEXT_STYLES, layoutFlashTextLines, measureBrowserText, normalizeFlashTextFormat, parseFlashTextMarkup, renderBrowserTextCanvas, renderFlashTextCanvas } from '@nitrodevco/nitro-theme/flash-text';
 import { Texture } from 'pixi.js';
+
+import { ChatTabMeasureLayout, layoutChatTabs } from './ChatTabLayout';
 
 /**
  * A chat bubble's text: escaping a message for the bubble's markup as `HabboFreeFlowChat.fixHtml`
@@ -22,6 +24,19 @@ export const escapeChatMarkup = (text: string): string => text
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
+/** The unwrapped layout `ChatTabLayout.calculateLayout` measures cells in: exact where it can be, else the browser's. */
+const measureChatTabCells = (format: FlashTextFormat): ChatTabMeasureLayout => (markup) => {
+    const runs = parseFlashTextMarkup(markup, format);
+    const exact = (text: string, runFormat: FlashTextFormat) => FlashTextRenderer.measure(text, runFormat);
+    const lines = layoutFlashTextLines(runs, {}, exact);
+
+    if (lines) return { lines, measure: exact };
+
+    const browserLines = layoutFlashTextLines(runs, {}, measureBrowserText);
+
+    return browserLines ? { lines: browserLines, measure: measureBrowserText } : null;
+};
+
 /**
  * Rasterises a bubble's html-ish text (`<b>name: </b>message`, `<i>...</i>`, `<font color>`,
  * `<u>`) through the Flash text renderer, the same one every other piece of Habbo text in this
@@ -30,14 +45,16 @@ export const escapeChatMarkup = (text: string): string => text
  * width. A message with a character the captured fonts do not carry is drawn with the browser's
  * canvas text in the same layout instead.
  */
-export const renderChatBubbleText = (markup: string, fontFace: string, fontSize: number, color: number, wrapWidth: number): ChatBubbleTextRender | undefined => {
+export const renderChatBubbleText = (markup: string, fontFace: string, fontSize: number, color: number, wrapWidth: number, tableTabs: boolean = false, fontSizeScale: number = 1): ChatBubbleTextRender | undefined => {
     if (!markup.length) return undefined;
 
     // `u_chat_speak` is the client's own Ubuntu 12 chat style (kerning, sharpness, thickness);
     // the bubble style's face and size override it where a style asks for something else.
     const format = normalizeFlashTextFormat({ ...HABBO_TEXT_STYLES.u_chat_speak, fontFamily: fontFace, fontSize, color });
-    const runs = parseFlashTextMarkup(markup, format);
-    const options = { wordWrap: true, wrapWidth: Math.max(1, Math.floor(wrapWidth)), breakWords: true };
+    // `ChatTabLayout.apply`: `[a]` columns get tab stops; without them the text is drawn as it is.
+    const tabs = tableTabs ? layoutChatTabs(markup, fontSizeScale, measureChatTabCells(format)) : null;
+    const runs = parseFlashTextMarkup(tabs?.markup ?? markup, format);
+    const options = { wordWrap: true, wrapWidth: Math.max(1, Math.floor(wrapWidth)), breakWords: true, tabStops: tabs?.tabStops };
     const rendered = renderFlashTextCanvas(runs, format, options) ?? renderBrowserTextCanvas(runs, options);
 
     if (!rendered) return undefined;

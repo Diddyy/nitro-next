@@ -108,15 +108,16 @@ await test('finalizePickerSelection sends only a variable the list still has', (
     assert.equal(finalizePickerSelection(undefined, createVariablePickerState(undefined, 'n', FURNI)), 'n');
 });
 
-await test('a single picker (GIVE_VARIABLE) drops a deleted variable', () => {
+// WIN63-202610121624 `GiveVariable.readVariableIdsFromForm`: `[ picker, option == 1 ? reference : WiredVariable.§_-7h§ ]`.
+await test('GIVE_VARIABLE drops a deleted variable and sends "n" for a typed initial value', () => {
     const form = giveVariableAction.createForm(triggerable([ FURNI, 0, 0, 0 ], [ deleted.variableId ]), context(before));
 
-    assert.deepEqual(read(giveVariableAction, form, before), [ deleted.variableId ]);
-    assert.deepEqual(read(giveVariableAction, form, after), [ '' ]);
+    assert.deepEqual(read(giveVariableAction, form, before), [ deleted.variableId, 'n' ]);
+    assert.deepEqual(read(giveVariableAction, form, after), [ '', 'n' ]);
 
     const keptForm = giveVariableAction.createForm(triggerable([ FURNI, 0, 0, 0 ], [ kept.variableId ]), context(before));
 
-    assert.deepEqual(read(giveVariableAction, keptForm, after), [ kept.variableId ]);
+    assert.deepEqual(read(giveVariableAction, keptForm, after), [ kept.variableId, 'n' ]);
 });
 
 await test('a picker and a value-or-variable section (CHANGE_VARIABLE) are finalized one by one', () => {

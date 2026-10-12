@@ -28,6 +28,7 @@ export const InitiateTransactionView: WiredElementView<InitiateTransactionAction
         <WiredDisabled disabled={form.mode === CONTRACT_MODE_NO_MULTIPLIER}>
             <WiredValueOrVariableSection
                 title={(form.mode === CONTRACT_MODE_MULTIPLIER_2) ? '${wiredfurni.params.contract.multiplier_selection2}' : '${wiredfurni.params.contract.multiplier_selection}'}
+                mergedId={0}
                 sourceTypeOptions={getMergedSourceOptions(initiateTransactionAction, form, 0, ctx)}
                 min={1}
                 max={CONTRACT_MULTIPLIER_MAX}

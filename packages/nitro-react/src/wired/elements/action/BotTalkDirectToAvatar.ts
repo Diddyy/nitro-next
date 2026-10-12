@@ -2,8 +2,9 @@
  * `actiontypes/BotTalkDirectToAvatar` (`wf_act_bot_talk_to_avatar`), a bot action (`§_-P1d§`) -
  * makes the bot named in the box whisper or talk to the selected users.
  *
- * String param: `<bot name>\t<message>`, as `BotTalk`'s. Int params: `[ mode, bubble width ]` -
- * 1 whispers, 0 talks; the width is -1 (the room's default) to 2.
+ * String param: `<bot name>\t<message>`, as `BotTalk`'s. Int params: `[ mode, bubble width, hide
+ * bot name ]` - 1 whispers, 0 talks; the width is -1 (the room's default) to 2; the third as
+ * `BotTalk`'s (WIN63-202610121624, `actiontypes/_-7V`).
  */
 import type { WiredElementDefinition } from '../../WiredElement';
 import { ActionTypeCodes } from './actionCodes';

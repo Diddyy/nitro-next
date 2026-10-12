@@ -40,6 +40,7 @@ export const GiveFromChestSections = ({ definition, form, setForm, triggerable, 
         <WiredDisabled disabled={form.rewardingMode === GIVE_FROM_CHEST_MODE_ALL}>
             <WiredValueOrVariableSection
                 title="${wiredfurni.params.amount_to_give}"
+                mergedId={0}
                 sourceTypeOptions={getMergedSourceOptions(definition, form, 0, ctx)}
                 min={1}
                 max={WIRED_INT_MAX}

@@ -8,7 +8,8 @@
  * 3. `createSelectorOptions` - a selector's "filter" and "invert" checkboxes;
  * 4. `createFurniPicks` - the "pick furni" caption with its `[count/limit]`, while room clicks
  *    pick furni and the instructions are not hidden;
- * 5. `createDelaySection` - an action's delay slider, 0 to 20 pulses;
+ * 5. `createDelaySection` - an action's delay (`ActionDelaySection` since WIN63-202610121624:
+ *    standard 0 to 120 pulses or precise 0 to 1200 steps of 0.05 s, saved negative);
  * 6. `createAdvancedSections` - the quantifier and the input sources, in advanced mode;
  * 7. `createFooter` - "ready" and "cancel".
  *
@@ -40,7 +41,7 @@
  * `restorePositionAndActivate`); it is mounted per edit, so a paste or a reset starts it afresh.
  */
 import { Container } from 'pixi.js';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useCallback, useState } from 'react';
 
 import { applyWiredSnapshot, clearWiredStuffPicks, closeWiredSetup, copyWiredToClipboard, eraseWiredFromExistence, isWiredStuffSelectionMode, openClientLink, openWiredApiDocs, pasteWiredFromClipboard, resetWiredToDefault, saveWired, saveWiredWithoutClosing, setWiredMergedSourceType, stepWiredInputSource, viewWiredLogs, viewWiredVariableInMenu } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
@@ -48,24 +49,23 @@ import { useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredHasWritePermission, useWiredMenuEnabled, useWiredSetupActions, useWiredStore, wiredClipboardKey, WiredSetupSession } from '#base/context/wired';
 import { useWiredActiveStyle, useWiredElementContext } from '#base/hooks';
 import { Border, Box, Frame, ScrollArea, useLayoutSize } from '#base/theme';
-import { ActionTypeCodes, hasWiredAdvancedSettings, hidesPickFurniInstructions, SLIDER_CONVERTER_PULSES } from '#base/wired';
+import { ActionTypeCodes, getInputSourceState, hasWiredAdvancedSettings, hidesPickFurniInstructions, isDualFurniPickingMode, WIRED_SOURCE_MERGED } from '#base/wired';
 
+import { WiredActionDelaySection } from './kit/WiredActionDelaySection';
 import { WiredCheckboxGroup } from './kit/WiredCheckboxGroup';
 import { WiredFooter } from './kit/WiredFooter';
 import { WiredFrameList } from './kit/WiredFrameList';
 import { WiredFrameListItem } from './kit/WiredFrameListItem';
+import { WiredClaimedInputSource, WiredInputSourceClaimReactContext, WiredInputSourceClaims } from './kit/wiredKitContexts';
 import { WiredSection } from './kit/WiredSection';
-import { WiredSliderSection } from './kit/WiredSliderSection';
 import { WiredSpacer } from './kit/WiredSpacer';
 import { WiredStyleProvider } from './kit/WiredStyleContext';
 import { WiredText } from './kit/WiredText';
 import { WiredSetupAdvancedSettings } from './WiredSetupAdvancedSettings';
 import { WiredSetupBanner } from './WiredSetupBanner';
 import { WiredSetupHeader, WiredSetupHeaderSourceTypeSelector } from './WiredSetupHeader';
+import { WiredSetupInputSourceControl, WiredSetupInputSourcePicks } from './WiredSetupInputSourceSection';
 import { WiredSetupQuickMenu, WiredSetupQuickMenuItem } from './WiredSetupQuickMenu';
-
-/** `createDelaySection`: `createSliderSection("wiredfurni.params.delay", "seconds", CONVERTER_PULSES, 0, 20, 1, false)`. */
-const DELAY_MAX_PULSES = 20;
 
 /** `InnerBorderFramePreset`'s padding around the inner border's content. */
 const INNER_BORDER_PADDING = { left: 9, top: 8, right: 9, bottom: 8 };
@@ -128,6 +128,47 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
     const contentWidth = width - frame.marginLeft - frame.marginRight;
     const edit = { triggerable, definition, form, stuffIds1, stuffIds2 };
 
+    // `_inputSourceClaimOwners`: the merged sources a preset draws in its own popup (WIN63-202610121624).
+    const [ claimedMergedIds, setClaimedMergedIds ] = useState<ReadonlySet<number>>(() => new Set());
+    const claim = useCallback((id: number) => {
+        setClaimedMergedIds(current => (current.has(id) ? current : new Set([ ...current, id ])));
+
+        return () => setClaimedMergedIds((current) => {
+            if (!current.has(id)) return current;
+
+            const next = new Set(current);
+
+            next.delete(id);
+
+            return next;
+        });
+    }, []);
+    const claims: WiredInputSourceClaims = {
+        claim,
+        render: (id): WiredClaimedInputSource => {
+            const state = getInputSourceState(edit, WIRED_SOURCE_MERGED, id, key => ctx.localize(key));
+
+            return {
+                headerOptions: isDualFurniPickingMode(triggerable.inputSourcesConf) && (
+                    <WiredSetupInputSourcePicks
+                        stuffPickingSpecialMode={state.stuffPickingSpecialMode}
+                        activeFurniPicks={activeFurniPicks}
+                        onSelectFurniPicks={picks => patchSetup({ activeFurniPicks: picks })}
+                    />
+                ),
+                control: (
+                    <WiredSetupInputSourceControl
+                        style={style}
+                        text={state.text}
+                        buttonsDisabled={state.buttonsDisabled}
+                        onStep={forward => stepWiredInputSource(WIRED_SOURCE_MERGED, id, forward)}
+                    />
+                ),
+                disabled: state.disabled,
+            };
+        },
+    };
+
     // `createHeader`'s button mode, the later classes winning; `onEditStartUpdateCommonUI` shows "view in menu" only for a named variable.
     let buttonText: string | undefined;
     let buttonVisible = true;
@@ -186,12 +227,14 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
     const elements = (
         <>
             {View && (
-                <View
-                    form={form}
-                    setForm={update => setSetupForm(update)}
-                    triggerable={triggerable}
-                    ctx={ctx}
-                />
+                <WiredInputSourceClaimReactContext.Provider value={claims}>
+                    <View
+                        form={form}
+                        setForm={update => setSetupForm(update)}
+                        triggerable={triggerable}
+                        ctx={ctx}
+                    />
+                </WiredInputSourceClaimReactContext.Provider>
             )}
             {(triggerable.holder === 'selector') && (
                 <WiredSection title="${wiredfurni.params.selector_options_selector}">
@@ -213,16 +256,10 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
                 </WiredSection>
             )}
             {(triggerable.holder === 'action') && (definition.allowDelaying ?? true) && (
-                <WiredSliderSection
-                    titleKey="wiredfurni.params.delay"
-                    unitKey="seconds"
-                    converter={SLIDER_CONVERTER_PULSES}
-                    min={0}
-                    max={DELAY_MAX_PULSES}
-                    step={1}
+                <WiredActionDelaySection
+                    key={triggerable.id}
                     value={triggerable.delayInPulses}
                     onChange={delayInPulses => patchSetupTriggerable({ delayInPulses })}
-                    showInput={false}
                 />
             )}
             {hasWiredAdvancedSettings(triggerable) && (
@@ -240,6 +277,7 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
                             onStepInputSource={stepWiredInputSource}
                             onSelectMergedSourceType={setWiredMergedSourceType}
                             onSelectFurniPicks={picks => patchSetup({ activeFurniPicks: picks })}
+                            claimedMergedIds={claimedMergedIds}
                         />
                     )}
                 </WiredFrameListItem>

@@ -40,66 +40,85 @@ export interface WiredSetupInputSourceSectionProps {
     onSelectFurniPicks: (picks: number) => void;
 }
 
+/** `InputSourceControlPreset.dualPickHeaderOptions` - the "furni picks" button matching the source, in dual picking mode. */
+export const WiredSetupInputSourcePicks = ({ stuffPickingSpecialMode, activeFurniPicks, onSelectFurniPicks }: { stuffPickingSpecialMode: number; activeFurniPicks: number; onSelectFurniPicks: (picks: number) => void }) => (
+    <>
+        {(stuffPickingSpecialMode === WIRED_STUFF_PICKING_MODE_1) && (
+            <WiredMiniAssetIconButton
+                asset="furni_picks_1"
+                tooltip="${wiredfurni.params.furni_picking.tooltip}"
+                selected={activeFurniPicks === 1}
+                onPress={() => onSelectFurniPicks(1)}
+            />
+        )}
+        {(stuffPickingSpecialMode === WIRED_STUFF_PICKING_MODE_2) && (
+            <WiredMiniAssetIconButton
+                asset="furni_picks_2"
+                tooltip="${wiredfurni.params.furni_picking.tooltip}"
+                selected={activeFurniPicks === 2}
+                onPress={() => onSelectFurniPicks(2)}
+            />
+        )}
+    </>
+);
+
+/** `InputSourceControlPreset` - the source's name between its two arrows (`WiredInputSourcePicker`). */
+export const WiredSetupInputSourceControl = ({ style, text, buttonsDisabled, onStep }: { style: WiredStyle; text: string; buttonsDisabled: boolean; onStep: (forward: boolean) => void }) => (
+    <WiredPaddedContainer
+        left={style.LRContainerMargin}
+        top={style.LRContainerTopBottomPadding}
+        right={style.LRContainerMargin}
+        bottom={style.LRContainerTopBottomPadding}
+    >
+        <WiredSimpleList
+            vertical={false}
+            centerVertically
+            spacing={style.LRContainerSpacing}
+            minHeight={style.inputSourceListMinHeight}
+        >
+            <WiredIconButton
+                icon="left"
+                disabled={buttonsDisabled}
+                onPress={() => onStep(false)}
+            />
+            <WiredText
+                text={text}
+                align="center"
+            />
+            <WiredIconButton
+                icon="right"
+                disabled={buttonsDisabled}
+                onPress={() => onStep(true)}
+            />
+        </WiredSimpleList>
+    </WiredPaddedContainer>
+);
+
 export const WiredSetupInputSourceSection = ({ style, edit, title, baseSourceType, id, sourceOptions, dualFurniPickingMode, activeFurniPicks, localize, onStep, onSelectSourceType, onSelectFurniPicks }: WiredSetupInputSourceSectionProps) => {
     const state = getInputSourceState(edit, baseSourceType, id, localize);
     const mergedType = edit.definition.getMergedType?.(edit.form, id) ?? 0;
-
-    const headerOptions = dualFurniPickingMode && (
-        <>
-            {(state.stuffPickingSpecialMode === WIRED_STUFF_PICKING_MODE_1) && (
-                <WiredMiniAssetIconButton
-                    asset="furni_picks_1"
-                    tooltip="${wiredfurni.params.furni_picking.tooltip}"
-                    selected={activeFurniPicks === 1}
-                    onPress={() => onSelectFurniPicks(1)}
-                />
-            )}
-            {(state.stuffPickingSpecialMode === WIRED_STUFF_PICKING_MODE_2) && (
-                <WiredMiniAssetIconButton
-                    asset="furni_picks_2"
-                    tooltip="${wiredfurni.params.furni_picking.tooltip}"
-                    selected={activeFurniPicks === 2}
-                    onPress={() => onSelectFurniPicks(2)}
-                />
-            )}
-        </>
-    );
 
     return (
         <WiredSection
             title={title}
             disabled={state.disabled}
             sourceTypeSelector={((baseSourceType === WIRED_SOURCE_MERGED) && sourceOptions) ? { options: sourceOptions, selected: mergedType, onSelect: onSelectSourceType } : undefined}
-            headerOptions={headerOptions || undefined}
+            headerOptions={dualFurniPickingMode
+                ? (
+                        <WiredSetupInputSourcePicks
+                            stuffPickingSpecialMode={state.stuffPickingSpecialMode}
+                            activeFurniPicks={activeFurniPicks}
+                            onSelectFurniPicks={onSelectFurniPicks}
+                        />
+                    )
+                : undefined}
         >
-            <WiredPaddedContainer
-                left={style.LRContainerMargin}
-                top={style.LRContainerTopBottomPadding}
-                right={style.LRContainerMargin}
-                bottom={style.LRContainerTopBottomPadding}
-            >
-                <WiredSimpleList
-                    vertical={false}
-                    centerVertically
-                    spacing={style.LRContainerSpacing}
-                    minHeight={style.inputSourceListMinHeight}
-                >
-                    <WiredIconButton
-                        icon="left"
-                        disabled={state.buttonsDisabled}
-                        onPress={() => onStep(false)}
-                    />
-                    <WiredText
-                        text={state.text}
-                        align="center"
-                    />
-                    <WiredIconButton
-                        icon="right"
-                        disabled={state.buttonsDisabled}
-                        onPress={() => onStep(true)}
-                    />
-                </WiredSimpleList>
-            </WiredPaddedContainer>
+            <WiredSetupInputSourceControl
+                style={style}
+                text={state.text}
+                buttonsDisabled={state.buttonsDisabled}
+                onStep={onStep}
+            />
         </WiredSection>
     );
 };

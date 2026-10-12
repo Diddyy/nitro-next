@@ -39,7 +39,7 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
 
     const findUser = (webId: number, userType: RoomObjectUserType) => roomStore.getState().getUserByWebId(webId, userType);
 
-    const addChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[] = [], extraParam: number = 0) => {
+    const addChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[] = [], extraParam: number = 0, hideUsername: boolean = false) => {
         const room = getRoom();
 
         if (!room || (objectId < 0)) return;
@@ -64,6 +64,7 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
             userLocation: roomObject?.getLocation(),
             timestamp: now + chatFakeMsIncrementor,
             extraParam,
+            hideUsername,
         };
 
         // `ChatBubbleFactory.getHistoryLineEntry` draws the line from who spoke it then: a user's
@@ -81,34 +82,41 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
         addChatBubble(bubble);
     };
 
-    const addSpokenChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[]) => {
+    const addSpokenChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[], hideUsername: boolean) => {
         const room = getRoom();
 
         if (!room) return;
 
         room.updateRoomObjectUserAction(objectId, RoomObjectVariableEnum.FigureTalk, text.split(' ').length);
 
-        addChat(objectId, text, chatType, styleId, links);
+        addChat(objectId, text, chatType, styleId, links, 0, hideUsername);
     };
 
     return subscribeAll(subscribe, [
         // `HabboFreeFlowChat.onRoomEnter` / `onGuestRoomData`: the first room data after an entry is the history's room change line.
         on(RoomEntryInfoMessage, () => chatHistoryStore.getState().resetRoomChange()),
 
-        on(GetGuestRoomResultMessage, data => chatHistoryStore.getState().insertRoomChange(data.roomInfo.name)),
+        // `HabboFreeFlowChat.onGuestRoomData`: the room change goes in the history, and the room's
+        // chat settings come with the entry answer - Habbo sends no RoomChatSettings on entering
+        // (only the entry answer: the same message answers room info for other rooms).
+        on(GetGuestRoomResultMessage, (data) => {
+            chatHistoryStore.getState().insertRoomChange(data.roomInfo.name);
+
+            if (data.chat && data.enterRoom) setChatSettings(data.chat);
+        }),
 
         on(CloseConnectionMessage, () => chatHistoryStore.getState().reset()),
 
         on(ChatMessage, (data) => {
-            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Speak, data.styleId, data.links);
+            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Speak, data.styleId, data.links, data.hideUsername);
         }),
 
         on(ShoutMessage, (data) => {
-            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Shout, data.styleId, data.links);
+            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Shout, data.styleId, data.links, data.hideUsername);
         }),
 
         on(WhisperMessage, (data) => {
-            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Whisper, data.styleId, data.links);
+            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Whisper, data.styleId, data.links, data.hideUsername);
         }),
 
         on(HandItemReceivedMessage, (data) => {

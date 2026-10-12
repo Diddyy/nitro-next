@@ -41,6 +41,7 @@ export const CATALOG_LAYOUT_WIDGETS = {
     pets: [ W.PETS, W.ADDON_BADGE_VIEW, W.COLOUR_GRID, W.PURCHASE, W.NEW_PETS, W.COLOUR_GRID, W.PURCHASE, W.ADDON_BADGE_VIEW ],
     pets2: [],
     pets3: [],
+    recolorable_furniture: [ W.PRODUCT_VIEW, W.ITEM_GRID, W.RECOLORABLE_FURNITURE, W.BUILDER ],
     recycler: [ W.RECYCLER ],
     recycler_info: [],
     recycler_prizes: [ W.SPECIAL_INFO, W.RECYCLER_PRIZES ],

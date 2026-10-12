@@ -10,6 +10,8 @@ export class StackedAdditionEntry {
     public y: AnimatedScalar = new AnimatedScalar(0.003, 0.35, 0.01, 0.004);
     public layer: number;
     public createdAt: number;
+    /** WIN63-202610121624: a Variable FX config's `stackOrder`; higher sorts first within a layer. */
+    public stackOrder: number;
     public configId: number;
     public variableId: string;
     public contributesToLayout: boolean = true;
@@ -17,9 +19,10 @@ export class StackedAdditionEntry {
     private _initialized: boolean = false;
     private _targetY: number = 0;
 
-    constructor(addition: IStackedAddition, layer: number, createdAt: number = 0, configId: number = 0, variableId: string = '') {
+    constructor(addition: IStackedAddition, layer: number, createdAt: number = 0, configId: number = 0, variableId: string = '', stackOrder: number = 0) {
         this.addition = addition;
         this.layer = layer;
+        this.stackOrder = stackOrder;
         this.createdAt = createdAt;
         this.configId = configId;
         this.variableId = variableId ?? '';

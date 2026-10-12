@@ -410,6 +410,7 @@ export * from './Room/Furniture/OpenMysteryTrophyComposer';
 export * from './Room/Furniture/OpenPetPackageComposer';
 export * from './Room/Furniture/PlacePostItComposer';
 export * from './Room/Furniture/PresentOpenComposer';
+export * from './Room/Furniture/RecolorFurnitureComposer';
 export * from './Room/Furniture/RentableSpaceCancelRentComposer';
 export * from './Room/Furniture/RentableSpaceRentComposer';
 export * from './Room/Furniture/RentableSpaceStatusComposer';

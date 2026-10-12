@@ -22,7 +22,7 @@ import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { getWiredElementMemory, getWiredHasWritePermission, getWiredMenuEnabled, WIRED_FURNI_PICKS_1, WIRED_UPDATE_MODE_NORMAL, WIRED_UPDATE_MODE_SAVE_INTO_OTHER, WIRED_UPDATE_MODE_SAVE_WITHOUT_CLOSING, WiredClipboardEntry, wiredClipboardKey, WiredSetupSession, wiredStore } from '#base/context/wired';
 import { configReader, openWebPage } from '#base/utils';
-import { allowFurniSelection, forcesFurniSelection, getWiredRoomVariables, isDualFurniPickingMode, rememberPickedVariables, stepInputSource, switchMergedSourceType, usingCustomInputSources, WIRED_QUANTIFIER_NONE, WiredElementContext, WiredHolderKey, WiredTriggerable } from '#base/wired';
+import { allowFurniSelection, forcesFurniSelection, getWiredFormValidationError, getWiredRoomVariables, isDualFurniPickingMode, rememberPickedVariables, stepInputSource, switchMergedSourceType, usingCustomInputSources, WIRED_QUANTIFIER_NONE, WiredElementContext, WiredHolderKey, WiredTriggerable } from '#base/wired';
 import { getWiredElementByCode } from '#base/wired/WiredElementRegistry';
 
 import { openClientLink } from './clientLinkCommands';
@@ -316,6 +316,17 @@ export const copyWiredToClipboard = () => {
 
     if (!setup) return;
 
+    // `copyToClipboard` refuses a form `validateForm` rejects, with the same alert.
+    const error = getWiredFormValidationError() ?? setup.entry.definition.validate?.(setup.form, getWiredElementContext(setup.triggerable)) ?? null;
+
+    if (error !== null) {
+        const { showAlert, interpolate } = systemStore.getState();
+
+        showAlert(interpolate('${wiredfurni.error.title}'), interpolate(error));
+
+        return;
+    }
+
     const { triggerable, entry: { definition } } = setup;
 
     setClipboardEntry(wiredClipboardKey(definition.holder, definition.code), {
@@ -371,7 +382,8 @@ export const updateWired = (send: Send, updateMode: number = WIRED_UPDATE_MODE_N
 
     const { triggerable, entry: { definition }, form } = setup;
     const ctx = getWiredElementContext(triggerable);
-    const error = definition.validate?.(form, ctx) ?? null;
+    // `validateForm`: the form's validation sources first (WIN63-202610121624), then the element.
+    const error = getWiredFormValidationError() ?? definition.validate?.(form, ctx) ?? null;
 
     if (error !== null) {
         const { showAlert, interpolate } = systemStore.getState();

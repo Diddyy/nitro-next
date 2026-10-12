@@ -17,7 +17,7 @@
  */
 import { applyTextRestrict, normalizeTextAreaText } from '#base/wired';
 
-import { WiredInputField } from './WiredInputField';
+import { WiredInputField, WiredInputFieldSelection } from './WiredInputField';
 
 export interface WiredTextAreaProps {
     value: string;
@@ -39,9 +39,11 @@ export interface WiredTextAreaProps {
     /** `tooltip` - a literal or `${key}`. */
     tooltip?: string;
     disabled?: boolean;
+    /** The message editor's hold on the selection (`insertText`, `wrapSelection`, `focus`). */
+    selection?: WiredInputFieldSelection;
 }
 
-export const WiredTextArea = ({ value, onChange, height, width = -1, maxCharacters = 1000, maxLines = -1, placeholder, restrict = null, editable = true, tooltip, disabled = false }: WiredTextAreaProps) => (
+export const WiredTextArea = ({ value, onChange, height, width = -1, maxCharacters = 1000, maxLines = -1, placeholder, restrict = null, editable = true, tooltip, disabled = false, selection }: WiredTextAreaProps) => (
     <WiredInputField
         value={value}
         onChange={(text) => {
@@ -61,5 +63,6 @@ export const WiredTextArea = ({ value, onChange, height, width = -1, maxCharacte
         tooltip={tooltip}
         charLimitWarning
         disabled={disabled}
+        selection={selection}
     />
 );

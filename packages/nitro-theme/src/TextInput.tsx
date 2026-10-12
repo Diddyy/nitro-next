@@ -50,6 +50,8 @@ export interface TextInputProps {
     onChange: (value: string) => void;
     onSelectionChange?: (start: number, end: number) => void;
     selectionAfterChange?: number | null;
+    /** With `selectionAfterChange`, the end of a range to select instead of a caret (`TextField.setSelection(begin, end)`). */
+    selectionEndAfterChange?: number | null;
     selectionRequestId?: number;
     /** Enter pressed (single-line, or Shift+Enter in multiline). The keyboard event is passed so a caller can read `shiftKey` (the chat input shouts on Shift+Enter). */
     onEnter?: (event: KeyboardEvent) => void;
@@ -259,7 +261,7 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
  * to someone - and a caller can intercept keys (`onKeyDown`) before the browser edits.
  */
 export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TextInputProps>(
-    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, lineBreaks = true, wordWrap = true, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat, scroll }, ref) => {
+    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionEndAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, lineBreaks = true, wordWrap = true, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat, scroll }, ref) => {
         // The hidden `<textarea>` holds line breaks as `\n` only, and the Flash text layout breaks
         // lines on `\n` only. A value with Flash's `\r` (the floor plan's map text) would never equal
         // the native value and would be measured as one long line - the caret and the selection
@@ -467,10 +469,13 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
             if (!input) return;
 
+            const clamp = (index: number) => Math.max(0, Math.min(index, value.length));
+            const rangeEnd = (caret: number) => ((selectionEndAfterChange == null) ? caret : Math.max(caret, clamp(selectionEndAfterChange)));
+
             if (input.value === value) {
                 if (selectionAfterChange != null) {
-                    const caret = Math.max(0, Math.min(selectionAfterChange, value.length));
-                    input.setSelectionRange(caret, caret);
+                    const caret = clamp(selectionAfterChange);
+                    input.setSelectionRange(caret, rangeEnd(caret));
                     readSelection();
                 }
 
@@ -478,10 +483,10 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             }
 
             input.value = value;
-            const caret = (selectionAfterChange == null) ? value.length : Math.max(0, Math.min(selectionAfterChange, value.length));
-            input.setSelectionRange(caret, caret);
+            const caret = (selectionAfterChange == null) ? value.length : clamp(selectionAfterChange);
+            input.setSelectionRange(caret, rangeEnd(caret));
             readSelection();
-        }, [ value, readSelection, selectionAfterChange, selectionRequestId ]);
+        }, [ value, readSelection, selectionAfterChange, selectionEndAfterChange, selectionRequestId ]);
 
         useEffect(() => {
             const input = inputRef.current;

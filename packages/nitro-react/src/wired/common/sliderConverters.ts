@@ -25,6 +25,25 @@ export const SLIDER_CONVERTER_ECHO: WiredSliderConverter = {
     endsWithFive: false,
 };
 
+/**
+ * `slider_converter.§_-Cw§` (`ActionDelaySection.CONVERTER_PRECISE_DELAY`, WIN63-202610121624) -
+ * steps of 0.05 s shown as seconds: `38.8`, `0.05`, `2`.
+ */
+export const SLIDER_CONVERTER_PRECISE_DELAY: WiredSliderConverter = {
+    toIntParam: text => Math.round(Number(text) * 20),
+    toText: (value) => {
+        const ms = value * 50;
+        const seconds = toInt(ms / 1000);
+        const rest = ms % 1000;
+
+        if (rest === 0) return String(seconds);
+
+        return `${seconds}.${((rest % 100) === 0) ? String(rest / 100) : (((rest < 100) ? '0' : '') + String(rest / 10))}`;
+    },
+    precision: 2,
+    endsWithFive: true,
+};
+
 /** `SliderValuePulses` (`SliderSection.CONVERTER_PULSES`) - half second pulses shown as seconds. */
 export const SLIDER_CONVERTER_PULSES: WiredSliderConverter = {
     toIntParam: text => Math.round(Number(text) * 2),

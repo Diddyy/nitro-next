@@ -8,4 +8,5 @@ export * from './ChatMarkup';
 export * from './ChatStyle';
 export * from './ChatStyleDefinitions';
 export * from './ChatStyleLibrary';
+export * from './ChatTabLayout';
 export * from './simulation';

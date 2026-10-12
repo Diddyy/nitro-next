@@ -24,6 +24,7 @@ export * from './FurniturePlaylistEditorWidget';
 export * from './FurniturePresentOpenedWidget';
 export * from './FurniturePresentWidget';
 export * from './FurniturePurchasableClothingWidget';
+export * from './FurnitureRecolorWidget';
 export * from './FurnitureRentableSpaceWidget';
 export * from './FurnitureRoomLinkWidget';
 export * from './FurnitureSpamWallPostItWidget';

@@ -25,6 +25,7 @@ export class RoomObjectVisualizationType {
     public static FURNITURE_STICKIE = 'furniture_stickie';
     public static FURNITURE_MANNEQUIN = 'furniture_mannequin';
     public static FURNITURE_GUILD_CUSTOMIZED = 'furniture_guild_customized';
+    public static FURNITURE_RECOLORABLE = 'furniture_recolorable';
     public static FURNITURE_GUILD_ISOMETRIC_BADGE = 'furniture_guild_isometric_badge';
     public static FURNITURE_VOTE_COUNTER = 'furniture_vote_counter';
     public static FURNITURE_VOTE_MAJORITY = 'furniture_vote_majority';

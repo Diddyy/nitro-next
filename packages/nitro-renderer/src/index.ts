@@ -166,6 +166,7 @@ export * from './room/object/logic/furniture/FurniturePurchasableClothingLogic';
 export * from './room/object/logic/furniture/FurniturePushableLogic';
 export * from './room/object/logic/furniture/FurnitureRandomStateLogic';
 export * from './room/object/logic/furniture/FurnitureRandomTeleportLogic';
+export * from './room/object/logic/furniture/FurnitureRecolorableLogic';
 export * from './room/object/logic/furniture/FurnitureRentableSpaceLogic';
 export * from './room/object/logic/furniture/FurnitureRoomBackgroundColorLogic';
 export * from './room/object/logic/furniture/FurnitureRoomBackgroundLogic';
@@ -269,6 +270,7 @@ export * from './room/object/visualization/furniture/FurniturePlanetSystemVisual
 export * from './room/object/visualization/furniture/FurniturePlanetSystemVisualizationPlanetObject';
 export * from './room/object/visualization/furniture/FurniturePosterVisualization';
 export * from './room/object/visualization/furniture/FurnitureQueueTileVisualization';
+export * from './room/object/visualization/furniture/FurnitureRecolorableVisualization';
 export * from './room/object/visualization/furniture/FurnitureResettingAnimatedVisualization';
 export * from './room/object/visualization/furniture/FurnitureRoomBackgroundVisualization';
 export * from './room/object/visualization/furniture/FurnitureRoomBillboardVisualization';

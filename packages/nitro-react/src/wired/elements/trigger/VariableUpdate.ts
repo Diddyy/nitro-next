@@ -8,7 +8,10 @@
  * Int params: `[ created, changed, deleted, change mask, origin mask ]` - the three option flags
  * (0/1), the "changed" option's sub-options as a bit mask (ids 0 to 2), and the change origins as
  * a bit mask (ids 0 to 3), sent as -1 when every origin that is not disabled is checked
- * (`CheckboxGroupPreset.isAllSelected`).
+ * (`CheckboxGroupPreset.isAllSelected`), and since WIN63-202610121624 the variable selection mode
+ * (`variables.trigger_mode`: 0 the picked variable, 1 the variable boxes picked as furni, which
+ * greys the variable section out; `forceFurniSelection` is always on). The origins and the mode
+ * read as optional: -1 and 0 when a box saved before them stops short.
  *
  * `onChangeVariable` enables the options by what the selected variable allows; the disabled
  * state feeds `isAllSelected`, so the form keeps the selected variable
@@ -39,7 +42,11 @@ export const VARIABLE_UPDATE_ORIGIN_INFO_IDS = [ 2, 3 ];
 const ALL_ORIGINS = -1;
 
 /** `variableSelectionFilter`. */
-export const variableUpdateFilter = (variable: IWiredVariable): boolean => variable.canInterceptChanges;
+export const variableUpdateFilter = (variable: IWiredVariable): boolean => variable.canInterceptChanges && !variable.requiresExecutionContext;
+
+/** `SINGLE_VARIABLE_MODE` / `PICKED_VARIABLE_BOXES_MODE`. */
+export const VARIABLE_UPDATE_SINGLE_VARIABLE_MODE = 0;
+export const VARIABLE_UPDATE_PICKED_VARIABLE_BOXES_MODE = 1;
 
 export interface VariableUpdateTriggerForm {
     picker: WiredVariablePickerState;
@@ -51,6 +58,8 @@ export interface VariableUpdateTriggerForm {
     changeMask: number;
     /** `_changeOriginGroup.mask`. */
     originMask: number;
+    /** `_variableSelectionMode.selected`. */
+    mode: number;
 }
 
 /** `onChangeVariable` - which of the three options are disabled for the variable. */
@@ -84,7 +93,7 @@ export const variableUpdateTrigger: WiredElementDefinition<VariableUpdateTrigger
         const found = findVariableById(variables, variableId);
         const target = resolveSourceTypeSelection(VARIABLE_UPDATE_SOURCE_TYPES, found ? Number(found.variableTarget) : WIRED_SOURCE_USER);
         const picker = createVariablePickerState(variables, variableId, target);
-        const originMask = getWiredInt(triggerable, 4);
+        const originMask = (triggerable.intParams.length > 4) ? getWiredInt(triggerable, 4) : ALL_ORIGINS;
 
         return {
             picker,
@@ -93,6 +102,7 @@ export const variableUpdateTrigger: WiredElementDefinition<VariableUpdateTrigger
             changeMask: getWiredInt(triggerable, 3) & 0b111,
             // `mask = -1` checks every box.
             originMask: originMask & 0b1111,
+            mode: ((triggerable.intParams.length > 5) && (getWiredInt(triggerable, 5) !== 0)) ? VARIABLE_UPDATE_PICKED_VARIABLE_BOXES_MODE : VARIABLE_UPDATE_SINGLE_VARIABLE_MODE,
         };
     },
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
@@ -104,6 +114,8 @@ export const variableUpdateTrigger: WiredElementDefinition<VariableUpdateTrigger
             ...form.options.map(selected => (selected ? 1 : 0)),
             form.changeMask,
             allSelected ? ALL_ORIGINS : form.originMask,
+            (form.mode === VARIABLE_UPDATE_PICKED_VARIABLE_BOXES_MODE) ? 1 : 0,
         ];
     },
+    forceFurniSelection: () => true,
 };

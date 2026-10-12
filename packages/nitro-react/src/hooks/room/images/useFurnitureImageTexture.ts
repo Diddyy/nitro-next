@@ -5,7 +5,7 @@
  * `textureReady` once it can render, so the image fills in rather than staying blank. The
  * textures' life cycle is `useOwnedEngineTexture`'s.
  */
-import { IObjectData, RoomGeometryScaleType, StringDataType, Vector3d } from '@nitrodevco/nitro-api';
+import { IObjectData, MapDataType, RoomGeometryScaleType, StringDataType, Vector3d } from '@nitrodevco/nitro-api';
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 
@@ -28,8 +28,10 @@ export const useFurnitureImageTexture = (
      * `[ '0', guildId, badgeCode, color1, color2 ]`); without it the engine's legacy data is used.
      */
     stringStuffData?: readonly string[],
+    /** A `MapStuffData` to render the furni with (the recolor window's previews pass `r`, `g`, `b`). */
+    mapStuffData?: Readonly<Record<string, string>>,
 ): FurnitureImageTexture => {
-    const stuffDataKey = stringStuffData ? JSON.stringify(stringStuffData) : undefined;
+    const stuffDataKey = stringStuffData ? JSON.stringify(stringStuffData) : (mapStuffData ? JSON.stringify(mapStuffData) : undefined);
     const key = type ? JSON.stringify([ type, colorIndex, direction, scale, extra, stuffDataKey ]) : undefined;
 
     const texture = useOwnedEngineTexture(key, (listener) => {
@@ -39,6 +41,11 @@ export const useFurnitureImageTexture = (
             const data = new StringDataType();
 
             data.setValue([ ...stringStuffData ]);
+            objectData = data;
+        } else if (mapStuffData) {
+            const data = new MapDataType();
+
+            data.setData({ ...mapStuffData });
             objectData = data;
         }
 

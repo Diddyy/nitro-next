@@ -133,6 +133,7 @@ import {
     FurniListEventMessage,
     FurniListInvalidateEventMessage,
     FurniListRemoveEventMessage,
+    FurniRecolorUpdateMessage,
     FurniRentOrBuyoutOfferMessage,
     FurnitureAliasesMessage,
     Game2AccountGameStatusMessage,
@@ -187,6 +188,7 @@ import {
     HasClaimedProductResponseMessage,
     HeightMapMessage,
     HeightMapUpdateMessage,
+    HotLooksMessage,
     IdentityAccountsMessage,
     IgnoredUsersMessage,
     IgnoreResultMessage,
@@ -511,6 +513,9 @@ import { IncomingHeader } from './IncomingHeader';
 
 export const GetIncomingPackets = () => {
     return {
+        // Avatar editor
+        [IncomingHeader.HotLooksMessage]: HotLooksMessage,
+
         // Advertisement
         [IncomingHeader.InterstitialMessage]: InterstitialMessage,
         [IncomingHeader.RoomAdErrorMessage]: RoomAdErrorEventMessage,
@@ -767,6 +772,7 @@ export const GetIncomingPackets = () => {
         [IncomingHeader.ObjectRemoveConfirmMessage]: ObjectRemoveConfirmMessage,
         [IncomingHeader.ObjectRemoveMessage]: ObjectRemoveMessage,
         [IncomingHeader.ObjectRemoveMultipleMessage]: ObjectRemoveMultipleMessage,
+        [IncomingHeader.FurniRecolorUpdateMessage]: FurniRecolorUpdateMessage,
         [IncomingHeader.ObjectsDataUpdateMessage]: ObjectsDataUpdateMessage,
         [IncomingHeader.ObjectsMessage]: ObjectsMessage,
         [IncomingHeader.ObjectUpdateMessage]: ObjectUpdateMessage,

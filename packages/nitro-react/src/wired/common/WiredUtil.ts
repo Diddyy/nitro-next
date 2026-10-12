@@ -49,9 +49,36 @@ export const flatVariableName = (variable: IWiredVariable): string =>
 /** `Util.splitName`. */
 export const splitVariableName = (variable: IWiredVariable): string[] => variable.variableName.split('.');
 
-/** `Util.getConnectedText` - the text a variable connects to a value, if it has a text connector. */
-export const getConnectedText = (variable: IWiredVariable, value: number): string | null =>
-    variable.textConnector?.get(value) ?? null;
+/**
+ * `Util.getPackedVariableText` (WIN63-202610121624) - a packed variable shown as its parts: the
+ * internal `@position` (`x << 8 | y`) and `@occupation` (`x << 16 | y << 8 | r`), and the smart
+ * `~recolorable_furni.color.rgb` / `.hsl`. Only for a variable with a text connector, as in Flash.
+ */
+export const getPackedVariableText = (variable: IWiredVariable, value: number): string | null => {
+    if (!variable.textConnector) return null;
+
+    if ((Number(variable.variableType) === Number(VariableType.INTERNAL)) && (value >= 0)) {
+        if ((variable.variableName === '@position') && (value <= 65535)) return `x: ${value >> 8}, y: ${value & 0xFF}`;
+
+        if ((variable.variableName === '@occupation') && (value <= 16777215)) return `x: ${value >> 16}, y: ${(value >> 8) & 0xFF}, r: ${value & 0xFF}`;
+    } else if ((Number(variable.variableType) === Number(VariableType.UNKNOWN_3)) && (value >= 0) && (value <= 16777215)) {
+        if (variable.variableName === '~recolorable_furni.color.rgb') return `#${value.toString(16).toUpperCase().padStart(6, '0')}`;
+
+        if (variable.variableName === '~recolorable_furni.color.hsl') return `hsl(${value >> 16},${(value >> 8) & 0xFF},${value & 0xFF})`;
+    }
+
+    return null;
+};
+
+/**
+ * `Util.getConnectedText` - the text a variable connects to a value, if it has a text connector:
+ * a packed variable's parts, the value's own label, else the connector's fallback (`_=` line).
+ */
+export const getConnectedText = (variable: IWiredVariable, value: number): string | null => {
+    if (!variable.textConnector) return null;
+
+    return getPackedVariableText(variable, value) ?? variable.textConnector.get(value) ?? variable.textConnectorFallback ?? null;
+};
 
 /**
  * `Util.variableValueWithString` - `null` for a variable without a value, `Hidden` for the two

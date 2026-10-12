@@ -45,7 +45,15 @@ export interface FlashTextLayoutOptions {
     wrapWidth?: number;
     /** Breaks a word wider than `wrapWidth` between characters instead of letting it overflow. */
     breakWords?: boolean;
+    /**
+     * `TextFormat.tabStops`: a tab advances to the first of these x positions (px from the line's
+     * left edge) past the text before it. A tab with no stop left takes no width.
+     */
+    tabStops?: readonly number[];
 }
+
+/** A tab character: laid out as a gap up to the next tab stop, never drawn. */
+export const FLASH_TEXT_TAB = '\t';
 
 export interface FlashTextBlockOptions extends FlashTextLayoutOptions {
     align?: 'left' | 'center' | 'right';
@@ -104,9 +112,20 @@ export const layoutFlashTextLines = (runs: readonly FlashTextRun[], options: Fla
         let x = 0;
 
         for (let from = start; from < end;) {
+            if (text[from] === FLASH_TEXT_TAB) {
+                const stop = options.tabStops?.find(position => (position > x));
+                const width = (stop === undefined) ? 0 : (stop - x);
+
+                segments.push({ text: FLASH_TEXT_TAB, format: runs[runIndexes[from]].format, x, width });
+                x += width;
+                from++;
+
+                continue;
+            }
+
             let to = from + 1;
 
-            while (to < end && runIndexes[to] === runIndexes[from]) to++;
+            while (to < end && runIndexes[to] === runIndexes[from] && text[to] !== FLASH_TEXT_TAB) to++;
 
             const piece = text.slice(from, to);
             const width = measureCached(piece, runIndexes[from]);
@@ -291,7 +310,7 @@ export const renderTextBlock = (content: string | readonly FlashTextRun[], forma
         const renderedSegments: { segment: FlashTextSegment; rendered: NativeRenderResult }[] = [];
 
         for (const segment of line.segments) {
-            if (!segment.text.length) continue;
+            if (!segment.text.length || (segment.text === FLASH_TEXT_TAB)) continue;
 
             const rendered = FlashTextRenderer.render(segment.text, segment.format);
 

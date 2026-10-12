@@ -58,6 +58,7 @@ export const WithVariableView: WiredElementView<WithVariableSelectorForm> = ({ f
             <WiredDisabled disabled={!valueSelectionEnabled}>
                 <WiredValueOrVariableSection
                     title="${wiredfurni.params.variables.reference_value}"
+                    mergedId={REFERENCE_MERGED_ID}
                     sourceTypeOptions={sourceTypeOptions}
                     min={WITH_VARIABLE_VALUE_MIN}
                     max={WITH_VARIABLE_VALUE_MAX}
@@ -66,6 +67,7 @@ export const WithVariableView: WiredElementView<WithVariableSelectorForm> = ({ f
                     onSourceTypeSelect={sourceType => setWiredMergedSourceType(REFERENCE_MERGED_ID, sourceType)}
                     variables={variables}
                     roomId={ctx.roomId}
+                    sameHolderTarget={form.picker.target}
                 />
             </WiredDisabled>
         </>

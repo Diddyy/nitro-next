@@ -50,6 +50,7 @@ export const CustomContractView: WiredElementView<CustomContractAddonForm> = ({ 
                                 <WiredSpacer height={style.sectionSpacing} />
                                 <WiredValueOrVariableSection
                                     title="${wiredfurni.params.custom_contract.amount_selection}"
+                                    mergedId={mergedId}
                                     sourceTypeOptions={variableReferenceSourceOptions(ctx, getWiredInt(triggerable, (mergedId * 5) + 4))}
                                     min={CUSTOM_CONTRACT_AMOUNT_MIN}
                                     max={CUSTOM_CONTRACT_AMOUNT_MAX}

@@ -14,8 +14,10 @@ import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { intAsLong } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, setPickerTarget, WiredVariableFilter, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
-import type { WiredElementDefinition } from '../../WiredElement';
+import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, VALUE_OR_VARIABLE_OPTION_VARIABLE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
+import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { ConditionCodes } from './conditionCodes';
 import { resolveConditionMergedTypes } from './conditionShared';
 
@@ -27,7 +29,11 @@ export interface VariableAgeConditionForm {
     picker: WiredVariablePickerState;
     comparison: number;
     compareValue: number;
-    duration: number;
+    /**
+     * The duration (WIN63-202610121624 `ValueOrVariableSection`, merged section 1: a value or a
+     * variable - Wired Faculty 12/10/2026: "Variable Age can use timeout from a variable").
+     */
+    duration: WiredValueOrVariableState;
     timeUnit: number;
 }
 
@@ -50,25 +56,35 @@ export const variableAgeDisabledCompareValues = (variable: { canReadCreationTime
 export const variableAgeCondition: WiredElementDefinition<VariableAgeConditionForm> = {
     holder: 'condition',
     code: ConditionCodes.VARIABLE_AGE,
-    createForm: (triggerable, ctx) => resolveConditionMergedTypes(variableAgeCondition, {
-        picker: createVariablePickerState(getWiredRoomVariables(triggerable), triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 0)),
-        comparison: getWiredInt(triggerable, 1),
-        compareValue: getWiredInt(triggerable, 2),
-        duration: getWiredInt(triggerable, 4),
-        timeUnit: getWiredInt(triggerable, 5),
-    }, ctx),
+    createForm: (triggerable, ctx) => {
+        const variables = getWiredRoomVariables(triggerable);
+        const option = (getWiredInt(triggerable, 6) === VALUE_OR_VARIABLE_OPTION_VARIABLE) ? VALUE_OR_VARIABLE_OPTION_VARIABLE : VALUE_OR_VARIABLE_OPTION_VALUE;
+
+        return resolveConditionMergedTypes(variableAgeCondition, {
+            picker: createVariablePickerState(variables, triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 0)),
+            comparison: getWiredInt(triggerable, 1),
+            compareValue: getWiredInt(triggerable, 2),
+            duration: createValueOrVariableState(variables, (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? WIRED_VARIABLE_ID_NONE : (triggerable.variableIds[1] ?? ''), getWiredInt(triggerable, 7), option, getWiredInt(triggerable, 4)),
+            timeUnit: getWiredInt(triggerable, 5),
+        }, ctx);
+    },
     readIntParams: form => [
         form.picker.target,
         form.comparison,
         form.compareValue,
-        ...intAsLong(form.duration),
+        ...intAsLong(form.duration.value),
         form.timeUnit,
+        form.duration.option,
+        form.duration.picker.target,
     ],
-    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
-    mergedSelections: [ [ 0, 0 ] ],
-    mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables',
-    getMergedType: form => form.picker.target,
-    setMergedType: (form, _id, sourceType) => ({ ...form, picker: setPickerTarget(form.picker, sourceType) }),
+    readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker), finalizePickerSelection(ctx.roomVariables, form.duration.picker) ],
+    mergedSelections: [ [ 0, 0 ], [ 1, 1 ] ],
+    mergedSelectionTitle: id => ((id === 0) ? 'wiredfurni.params.sources.merged.title.variables' : 'wiredfurni.params.sources.merged.title.variables_reference'),
+    getMergedType: (form, id) => ((id === 0) ? form.picker.target : form.duration.picker.target),
+    setMergedType: (form, id, sourceType) => ((id === 0)
+        ? { ...form, picker: setPickerTarget(form.picker, sourceType) }
+        : { ...form, duration: { ...form.duration, picker: setPickerTarget(form.duration.picker, sourceType) } }),
+    isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && isValueOrVariableSourcePickingDisabled(form.duration),
     getCustomSourcesForMergedType: () => [ Number(VariableExtraSourceTypes.GLOBAL_SOURCE), Number(VariableExtraSourceTypes.CONTEXT_SOURCE) ],
     hasCustomTypePicker: () => true,
     advancedAlwaysVisible: true,

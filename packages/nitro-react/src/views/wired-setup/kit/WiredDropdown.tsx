@@ -45,9 +45,13 @@ export interface WiredDropdownProps {
     /** `staticWidth`. Default -1: fills. */
     width?: number;
     disabled?: boolean;
+    /** The closed menu shown; `MiniIconDropdownPreset` keeps it hidden and opens only its list. Default `true`. */
+    visible?: boolean;
+    /** `requestOpen` - a new value opens the list, as the preset's code opens it. */
+    openRequest?: number;
 }
 
-export const WiredDropdown = ({ options, selected, onSelect, caption = '', showMoreLabel = '', width = -1, disabled = false }: WiredDropdownProps) => {
+export const WiredDropdown = ({ options, selected, onSelect, caption = '', showMoreLabel = '', width = -1, disabled = false, visible = true, openRequest }: WiredDropdownProps) => {
     const style = useWiredStyle();
     const template = style.templates.dropdown;
     const resolve = useWiredCaption();
@@ -83,6 +87,8 @@ export const WiredDropdown = ({ options, selected, onSelect, caption = '', showM
                 disabled={isDisabled}
                 itemHeight={ITEM_HEIGHT}
                 onOpenChange={open => !open && setExpanded(false)}
+                visible={visible}
+                openRequest={openRequest}
                 layout={{ flexGrow: 1, height: template.height }}
             />
         </Box>

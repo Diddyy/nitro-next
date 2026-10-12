@@ -14,14 +14,17 @@ export interface ConditionComparisonSectionProps {
     onSelect: (comparison: number) => void;
     /** The radio's ids, `comparison.<id>` each. Default 0, 1 and 2. */
     ids?: readonly number[];
+    /** The radio's column count (`createRadioGroup(..., null, columns)`). Default 1. */
+    columns?: number;
 }
 
-export const ConditionComparisonSection = ({ selected, onSelect, ids = CONDITION_COMPARISON_IDS }: ConditionComparisonSectionProps) => (
+export const ConditionComparisonSection = ({ selected, onSelect, ids = CONDITION_COMPARISON_IDS, columns = 1 }: ConditionComparisonSectionProps) => (
     <WiredSection title="${wiredfurni.params.comparison_selection}">
         <WiredRadioGroup
             options={ids.map(id => ({ id, label: `\${wiredfurni.params.comparison.${id}}` }))}
             selected={selected}
             onSelect={onSelect}
+            columns={columns}
         />
     </WiredSection>
 );

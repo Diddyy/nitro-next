@@ -35,6 +35,7 @@ export const VariableFilterView: WiredElementView<VariableFilterAddonForm> = ({ 
             </WiredSection>
             <WiredValueOrVariableSection
                 title="${wiredfurni.params.setfilter}"
+                mergedId={0}
                 sourceTypeOptions={variableReferenceSourceOptions(ctx, getWiredInt(triggerable, 3))}
                 min={VARIABLE_FILTER_MIN}
                 max={VARIABLE_FILTER_MAX}

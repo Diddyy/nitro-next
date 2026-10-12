@@ -29,6 +29,7 @@ import {
     IVariableFxStatusRemoveData,
     IVariableFxStatusUpdateData,
     IVector3D, LegacyDataType,
+    MapDataType,
     ObjectDataFlagsEnum,
     RoomBackgroundColorEvent,
     RoomContentLoadedEvent,
@@ -1203,6 +1204,28 @@ export class Room implements IRoom {
         object.processUpdateMessage(new ObjectDataUpdateMessage(state, data, extra));
 
         return true;
+    }
+
+    /**
+     * `RoomEngine.updateFurnitureColor` (`FurniRecolorUpdate`): writes the channels into each
+     * furni's map data, as strings, and hands the map back to the furni with its state and its
+     * unique serial, as a recolorable's logic reads them.
+     */
+    public updateFurnitureColor(objectIds: number[], red: number, green: number, blue: number): void {
+        for (const objectId of objectIds) {
+            const object = this.getRoomObject(objectId, RoomObjectCategoryEnum.Floor);
+
+            if (!object) continue;
+
+            const stuffData = new MapDataType();
+
+            stuffData.initializeFromRoomObjectModel(object.model);
+            stuffData.data['r'] = String(red);
+            stuffData.data['g'] = String(green);
+            stuffData.data['b'] = String(blue);
+
+            this.updateRoomObjectFloor(objectId, undefined, undefined, object.getState(0), stuffData);
+        }
     }
 
     public updateRoomObjectWall(

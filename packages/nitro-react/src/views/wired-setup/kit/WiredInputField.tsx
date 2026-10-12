@@ -17,6 +17,8 @@
  * A field that is not `editable` shows its text the way the Flash field does with
  * `editable = false`: the same text, no caret.
  */
+import { ReactNode } from 'react';
+
 import { Border, Box, Shape, TextInput, ThemeText } from '#base/theme';
 import { showsCharLimitWarning } from '#base/wired';
 
@@ -24,6 +26,7 @@ import { useWiredCaption } from './useWiredCaption';
 import { useWiredDisabled, wiredDisabledAlpha } from './useWiredDisabled';
 import { useWiredTextFormat } from './useWiredTextFormat';
 import { WiredFlashLabel } from './WiredFlashLabel';
+import { WiredFloatingOverlay } from './WiredFloatingOverlay';
 import { WiredInputFrame } from './WiredInputFrame';
 import { useWiredStyle } from './WiredStyleContext';
 import { WiredText } from './WiredText';
@@ -69,9 +72,26 @@ export interface WiredInputFieldProps {
     /** `updateInvalidState` - the invalid number message; shown when the template has `warning_display`. */
     warning?: string | null;
     disabled?: boolean;
+    /** The field's selection, for a preset that edits around it (`TextAreaPreset.insertText` / `wrapSelection`). */
+    selection?: WiredInputFieldSelection;
+    /**
+     * Drawn at the frame's right edge over its full height, the field ending `trailingWidth` before
+     * it - `ValueOrVariableInputPreset`'s icons (`value_or_variable_input_icons`, `layoutInput`).
+     */
+    trailing?: ReactNode;
+    trailingWidth?: number;
 }
 
-export const WiredInputField = ({ value, onChange, fieldWidth, height, multiline = false, maxCharacters = 0, placeholder, placeholderMode = 'overflow', editable = true, tooltip, charLimitWarning = false, warning = null, disabled = false }: WiredInputFieldProps) => {
+/** A controlled selection: where the user's selection is reported, and one to apply after an edit. */
+export interface WiredInputFieldSelection {
+    onChange: (start: number, end: number) => void;
+    /** `TextField.setSelection` after an edit made from outside; bump `requestId` to apply it again. */
+    after?: { start: number; end: number; requestId: number } | null;
+    focused?: boolean;
+    onFocusChange?: (focused: boolean) => void;
+}
+
+export const WiredInputField = ({ value, onChange, fieldWidth, height, multiline = false, maxCharacters = 0, placeholder, placeholderMode = 'overflow', editable = true, tooltip, charLimitWarning = false, warning = null, disabled = false, selection, trailing, trailingWidth = 0 }: WiredInputFieldProps) => {
     const style = useWiredStyle();
     const template = style.templates.input;
     const caption = useWiredCaption();
@@ -81,30 +101,33 @@ export const WiredInputField = ({ value, onChange, fieldWidth, height, multiline
 
     const showsError = template.hasWarningDisplay && !!warning;
 
+    // Over the window rather than in it: the bubble is often wider than the dialog, which clips its content.
     const errorOverlay = showsError
         ? (
-                <Box
-                    eventMode="none"
-                    layout={{ position: 'absolute', left: 0, right: 0, top: ERROR_TOP, height: ERROR_HEIGHT - ERROR_TOP, flexDirection: 'column', alignItems: 'center' }}
-                >
-                    <Border
-                        variant="0"
-                        layout={{ flexDirection: 'row', height: ERROR_HEIGHT, paddingLeft: ERROR_PADDING_LEFT, paddingRight: ERROR_PADDING_RIGHT, paddingTop: ERROR_TEXT_TOP }}
+                <WiredFloatingOverlay>
+                    <Box
+                        eventMode="none"
+                        layout={{ position: 'absolute', left: 0, right: 0, top: ERROR_TOP, height: ERROR_HEIGHT - ERROR_TOP, flexDirection: 'column', alignItems: 'center' }}
                     >
-                        <ThemeText
-                            text={warning}
-                            textStyle="il_regular"
-                        />
-                    </Border>
-                    <Box layout={{ position: 'absolute', top: ERROR_TIP_TOP - ERROR_TOP, width: ERROR_TIP_WIDTH, height: ERROR_TIP_HEIGHT, overflow: 'hidden' }}>
-                        <Shape
-                            shape="rhombus"
-                            strokeColor="#5a5a5a"
-                            strokeThickness={ERROR_TIP_STROKE}
-                            layout={{ position: 'absolute', left: -7, top: -15, width: 21, height: 20 }}
-                        />
+                        <Border
+                            variant="0"
+                            layout={{ flexDirection: 'row', height: ERROR_HEIGHT, paddingLeft: ERROR_PADDING_LEFT, paddingRight: ERROR_PADDING_RIGHT, paddingTop: ERROR_TEXT_TOP }}
+                        >
+                            <ThemeText
+                                text={warning}
+                                textStyle="il_regular"
+                            />
+                        </Border>
+                        <Box layout={{ position: 'absolute', top: ERROR_TIP_TOP - ERROR_TOP, width: ERROR_TIP_WIDTH, height: ERROR_TIP_HEIGHT, overflow: 'hidden' }}>
+                            <Shape
+                                shape="rhombus"
+                                strokeColor="#5a5a5a"
+                                strokeThickness={ERROR_TIP_STROKE}
+                                layout={{ position: 'absolute', left: -7, top: -15, width: 21, height: 20 }}
+                            />
+                        </Box>
                     </Box>
-                </Box>
+                </WiredFloatingOverlay>
             )
         : undefined;
 
@@ -133,17 +156,32 @@ export const WiredInputField = ({ value, onChange, fieldWidth, height, multiline
             alpha={wiredDisabledAlpha(isDisabled)}
             tooltip={tooltip ? caption(tooltip) : undefined}
             invalid={showsError}
-            overlay={overlay ?? errorOverlay}
+            overlay={(
+                <>
+                    {overlay ?? errorOverlay}
+                    {trailing && (
+                        <Box layout={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: trailingWidth, flexDirection: 'row' }}>
+                            {trailing}
+                        </Box>
+                    )}
+                </>
+            )}
         >
             {editable
                 ? (
                         <Box
                             eventMode={isDisabled ? 'none' : 'auto'}
-                            layout={{ flexGrow: 1, flexShrink: 1, minWidth: 0, height: '100%' }}
+                            layout={{ flexGrow: 1, flexShrink: 1, minWidth: 0, height: '100%', marginRight: trailingWidth }}
                         >
                             <TextInput
                                 value={value}
                                 onChange={onChange}
+                                onSelectionChange={selection?.onChange}
+                                selectionAfterChange={selection?.after?.start}
+                                selectionEndAfterChange={selection?.after?.end}
+                                selectionRequestId={selection?.after?.requestId}
+                                focused={selection?.focused}
+                                onFocusChange={selection?.onFocusChange}
                                 multiline={multiline}
                                 maxLength={(maxCharacters > 0) ? maxCharacters : undefined}
                                 textStyle={template.textStyle}

@@ -93,4 +93,6 @@ export const customContractAddon: WiredElementDefinition<CustomContractAddonForm
     forceHidePickFurniInstructions: true,
     getCustomSourcesForMergedType: () => VARIABLE_REFERENCE_CUSTOM_SOURCES,
     hasCustomTypePicker: () => true,
+    // WIN63-202610121624 `_-s7.allowScrolling`.
+    allowScrolling: true,
 };
