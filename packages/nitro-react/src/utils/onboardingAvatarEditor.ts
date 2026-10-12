@@ -11,12 +11,12 @@
  *   (`gridClick`). Whether it is "worn" is whether its part id is worn in any category.
  * - A colour keeps a second layer (`25`) only when the worn part was once shown in a grid while
  *   its category had two colours (`§_-X1x§`, filled by `updateGrids`).
- * - The dice picks one of the hard-coded figures, never the last (`Math.random() * (length - 1)`),
+ * - The dice picks one of its figures, never the last (`Math.random() * (length - 1)`),
  *   and rolls again when it would change only one part (`setRandomFigure`). After a roll the hair
  *   category is the one being edited, and its button is pressed twice, which leaves the hair on.
  * - The colour chosen per category (`_selectedColors`) is shared by both genders.
  */
-import { AvatarGenderType, IPartColor } from '@nitrodevco/nitro-api';
+import { AvatarGenderType, GetConfigValue, IPartColor } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
 
 /** `CATEGORIES`: the grid's rows. */
@@ -31,7 +31,7 @@ const MAX_COLORS = 16;
 /** `getFigure`: a part's second colour. */
 const SECOND_COLOR = '25';
 
-/** `RANDOM_MALE_FIGURES`. */
+/** `RANDOM_MALE_FIGURES`: the dice's looks for a boy when `new.user.flow.figures.male` names none. */
 const RANDOM_MALE_FIGURES = [
     'hr-891-34.hd-209-10.ch-255-71.lg-280-81', 'hr-893-42.hd-209-19.ch-230-80.lg-3290-82.sh-906-64', 'hr-889-34.hd-200-1.ch-3030-73.lg-3023-88.sh-300-64',
     'hr-145-42.hd-185-1.ch-230-66.lg-270-82.sh-290-81', 'hr-110-38.hd-190-1.ch-3030-85.lg-275-84.sh-290-74', 'hr-891-42.hd-190-14.ch-230-64.lg-3290-64.sh-906-64',
@@ -44,7 +44,7 @@ const RANDOM_MALE_FIGURES = [
     'hr-891-34.hd-207-14.ch-230-81.lg-270-76.sh-290-80',
 ];
 
-/** `RANDOM_FEMALE_FIGURES`. */
+/** `RANDOM_FEMALE_FIGURES`, for `new.user.flow.figures.female`. */
 const RANDOM_FEMALE_FIGURES = [
     'hr-891-40.hd-627-1371.ch-665-66.lg-700-82.sh-3068-68-25', 'hr-515-48.hd-628-1.ch-635-73.lg-695-81.sh-735-83', 'hr-891-35.hd-625-8.ch-685-73.lg-715-73.sh-907-73',
     'hr-837-45.hd-627-14.ch-670-76.lg-695-71.sh-907-73', 'hr-892-48.hd-605-14.ch-685-64.lg-700-72.sh-906-64', 'hr-893-32.hd-628-20.ch-823-76.lg-710-82.sh-735-76',
@@ -56,6 +56,9 @@ const RANDOM_FEMALE_FIGURES = [
     'hr-893-48.hd-605-1371.ch-665-74.lg-700-72.sh-725-74', 'hr-515-35.hd-625-10.ch-665-72.lg-695-72.sh-906-64', 'hr-837-35.hd-628-1.ch-635-81.lg-710-75.sh-735-81',
     'hr-893-44.hd-628-30.ch-670-76.lg-715-76.sh-907-76',
 ];
+
+/** How often the dice rolls again for a look that changed too little before it settles. */
+const MAX_ROLLS = 20;
 
 /** `RandomAvatarCloudsAnimation.§_-hQ§`: how far the clouds drift up (or down) a tick. */
 const CLOUD_DRIFTS = [ -9, -8, -5, -3, 3, 5, 8, 9 ];
@@ -194,16 +197,31 @@ export const clickOnboardingPart = (state: OnboardingEditorState, category: stri
     });
 };
 
-/** `getRandomFigureData`: never the list's last figure, as Flash's arithmetic has it. */
-const randomFigureData = (gender: OnboardingGender): string => {
-    const figures = (gender === AvatarGenderType.Male) ? RANDOM_MALE_FIGURES : RANDOM_FEMALE_FIGURES;
+/**
+ * The looks the dice rolls: Flash's two lists are fixed in the client, so a hotel's own go in its
+ * configuration - `new.user.flow.figures.male` / `.female`, figures separated by commas (or a list).
+ */
+const onboardingFigures = (gender: OnboardingGender): string[] => {
+    const key = (gender === AvatarGenderType.Male) ? 'new.user.flow.figures.male' : 'new.user.flow.figures.female';
+    const value = GetConfigValue<string | string[]>(key);
+    const figures = (Array.isArray(value) ? value : (value ?? '').split(',')).map(figure => figure.trim()).filter(figure => figure.length);
 
-    return figures[Math.floor(Math.random() * (figures.length - 1))];
+    if (figures.length) return figures;
+
+    return (gender === AvatarGenderType.Male) ? RANDOM_MALE_FIGURES : RANDOM_FEMALE_FIGURES;
+};
+
+/** `getRandomFigureData`: never the list's last figure, as Flash's arithmetic has it - unless it is the only one. */
+const randomFigureData = (gender: OnboardingGender): string => {
+    const figures = onboardingFigures(gender);
+
+    return figures[Math.floor(Math.random() * Math.max(1, figures.length - 1))];
 };
 
 /** `setRandomFigure`. */
 export const rollOnboardingFigure = (state: OnboardingEditorState): OnboardingEditorState => {
-    for (;;) {
+    // Flash rolls until the look changes; a hotel offering one or two looks would never get there.
+    for (let attempt = 0; ; attempt++) {
         const sets = randomFigureData(state.gender).split('.');
         const previous = state.figures[state.gender]?.parts ?? {};
         const figure: OnboardingFigure = { parts: { ...previous }, colors: { ...(state.figures[state.gender]?.colors ?? {}) } };
@@ -230,7 +248,7 @@ export const rollOnboardingFigure = (state: OnboardingEditorState): OnboardingEd
             next = clickOnboardingPart(clickOnboardingPart(next, 'hr', hair), 'hr', hair);
         }
 
-        if (unchanged < (sets.length - 1)) {
+        if ((unchanged < (sets.length - 1)) || (attempt >= MAX_ROLLS)) {
             return {
                 ...next,
                 rolls: state.rolls + 1,

@@ -4,7 +4,8 @@
  *
  * - the hint in Ubuntu 24 `0x7ECAEE`, wrapped at 500, at 25,-70;
  * - one round picture per room type of `new.user.flow.roomTypes` ("10,11,12"), from
- *   `https://images.habbo.com/c_images/nux/nux_room_<type>_round.png`, 280 apart with 30 before
+ *   `https://images.habbo.com/c_images/nux/nux_room_<type>_round.png` - fixed in Flash, the hotel's
+ *   `new.user.flow.room.image.url` here, `%type%` the type - 280 apart with 30 before
  *   each, 10 down; a press on one picks it (`onRoomClick`), and the tick sits on the picked one's
  *   bottom left corner (`chooseRoom`);
  * - under the pictures, 20 down, a 640x100 balloon (`0x0F324E`) with the room's name
@@ -22,8 +23,8 @@ import { Box, loadTexture, ThemeImage } from '#base/theme';
 
 import { HITCH_TEXT_BODY_COLOUR, OnboardingBalloon, OnboardingGreenButton, OnboardingImage, OnboardingText } from './OnboardingWidgets';
 
-/** `RoomPicker.galleryUrl`. */
-const GALLERY_URL = 'https://images.habbo.com/c_images/nux/';
+/** `RoomPicker.galleryUrl` + `nux_room_<type>_round.png`, when the hotel names no other picture. */
+const DEFAULT_ROOM_IMAGE_URL = 'https://images.habbo.com/c_images/nux/nux_room_%type%_round.png';
 
 /** `fetchThumbnails`' fallback for `new.user.flow.roomTypes`. */
 const DEFAULT_ROOM_TYPES = '10,11,12';
@@ -41,16 +42,16 @@ const TEXT_WIDTH = 260;
 const SELECT = { x: 725, y: 360 };
 const HINT = { x: 25, y: -70, width: 500 };
 
-const roomImageUrl = (type: string) => `${GALLERY_URL}nux_room_${type}_round.png`;
+const roomImageUrl = (template: string, type: string) => template.replaceAll('%type%', type);
 
 /** A picture, loaded like any url texture; `onPick` on a press. */
-const OnboardingRoomImage = ({ type, index, onPick }: { type: string; index: number; onPick: () => void }) => (
+const OnboardingRoomImage = ({ url, index, onPick }: { url: string; index: number; onPick: () => void }) => (
     <Box
         cursor="pointer"
         layout={{ position: 'absolute', left: ((index + 1) * IMAGE_SPACE) + (index * IMAGE_WIDTH), top: IMAGE_Y }}
         onPointerTap={onPick}
     >
-        <ThemeImage src={roomImageUrl(type)} />
+        <ThemeImage src={url} />
     </Box>
 );
 
@@ -61,6 +62,7 @@ interface OnboardingRoomPickerViewProps {
 export const OnboardingRoomPickerView = ({ onSelect }: OnboardingRoomPickerViewProps) => {
     const t = useTranslation();
     const roomTypesValue = useConfigValue<string>('new.user.flow.roomTypes') ?? DEFAULT_ROOM_TYPES;
+    const imageUrl = useConfigValue<string>('new.user.flow.room.image.url') || DEFAULT_ROOM_IMAGE_URL;
     const roomTypes = roomTypesValue.split(',');
     const [ picked, setPicked ] = useState(0);
     const [ loadedTypes, setLoadedTypes ] = useState<string | undefined>(undefined);
@@ -70,14 +72,14 @@ export const OnboardingRoomPickerView = ({ onSelect }: OnboardingRoomPickerViewP
     useEffect(() => {
         let cancelled = false;
 
-        void Promise.all(roomTypesValue.split(',').map(type => loadTexture(roomImageUrl(type)))).then(() => {
+        void Promise.all(roomTypesValue.split(',').map(type => loadTexture(roomImageUrl(imageUrl, type)))).then(() => {
             if (!cancelled) setLoadedTypes(roomTypesValue);
         });
 
         return () => {
             cancelled = true;
         };
-    }, [ roomTypesValue ]);
+    }, [ roomTypesValue, imageUrl ]);
     const type = roomTypes[picked];
     const pickedX = ((picked + 1) * IMAGE_SPACE) + (picked * IMAGE_WIDTH);
     const below = IMAGE_Y + IMAGE_HEIGHT;
@@ -95,7 +97,7 @@ export const OnboardingRoomPickerView = ({ onSelect }: OnboardingRoomPickerViewP
             {roomTypes.map((roomType, index) => (
                 <OnboardingRoomImage
                     key={roomType}
-                    type={roomType}
+                    url={roomImageUrl(imageUrl, roomType)}
                     index={index}
                     onPick={() => setPicked(index)}
                 />

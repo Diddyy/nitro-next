@@ -36,7 +36,7 @@ answer yet.
 | Talent track and the daily quest | Talent track levels, and the hotel view's `dailyquest` widget. The quest list, details, tracker and completed dialog are ported (`views/quests`), community goals are the hotel view's; the achievement browser, score and standard award packets are implemented - see [achievement client](achievements.md). | `Quest`, `Talent` |
 | Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. Nothing calls `buySnowWarTokensOffer` (`commands/gameTokensCommands.ts`); the catalogue's game token offers are bought through `purchaseGameTokensOffer`. | `Game` |
 | Campaign calendar | The advent calendar and its doors, and the seasonal daily offer that shares it. | `Campaign`, `Catalog` |
-| New user experience | The gift offer and the tutorial script. The new user flow - look, name and starter room (`OnBoardingHcFlow`) - is ported (`views/onboarding`); Turbo has starter room `10` only, so the client offers `new.user.flow.roomTypes` `10` until `11` and `12` are recorded. | `Nux` |
+| New user experience | The gift offer and the tutorial script. The new user flow - look, name and starter room (`OnBoardingHcFlow`) - is ported (`views/onboarding`); the room types, their pictures (`new.user.flow.room.image.url`) and the dice's looks (`new.user.flow.figures.male` / `.female`) are configuration - see Turbo's `docs/onboarding.md`. | `Nux` |
 | Room competitions | Submitting, voting, forwarding to competition rooms. | `Competition`, `Navigator` |
 | NFT wardrobe | Silver (`GetSilverComposer`). Saved NFT outfits, their selection and the avatar editor's `nfts` tab are ported. | `Nft` |
 | Name change | `AvatarEditorNameChangeView` and the in-room name change (`AvatarEditor`). | `Avatar` |
