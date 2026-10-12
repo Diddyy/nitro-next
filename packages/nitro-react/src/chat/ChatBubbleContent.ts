@@ -11,7 +11,7 @@ import { toCssHexColor } from '#base/utils';
 
 import { ChatBubbleData } from './ChatBubbleData';
 import { escapeChatMarkup } from './ChatBubbleText';
-import { applyChatColourToChat, applyChatMarkupToElements } from './ChatMarkup';
+import { applyChatColourToChat, applyChatMarkupToElements, escapeChatTableTabMarker, hasChatTableTabMarkup } from './ChatMarkup';
 import { IChatStyle } from './ChatStyle';
 
 export type ChatLocalizer = (key: string, defaultValue?: string, replacements?: Record<string, string>) => string;
@@ -72,41 +72,48 @@ export interface ChatBubbleMarkup {
     markup: string;
     /** Italic (respects, hand items ...) text is drawn at 60% alpha. */
     alpha: number;
+    /** `ChatItem.tableTabMarkupEnabled`: a notification style's text with `[a]` columns, for `ChatTabLayout`. */
+    tableTabs: boolean;
 }
 
 /**
  * `HabboFreeFlowChat.fixHtml` then `PooledChatBubble.recreate`'s html: angle brackets and
  * numeric entities escaped unless the style allows html, `[b]`/`[red]` markup for notification
- * styles, the `@colour@` prefix, then the `<b>name: </b>` prefix, bold shouts, italic system
- * lines and links in place of `{n}`.
+ * styles, the `@colour@` prefix, then the `<b>name: </b>` prefix (left out when the line hides its
+ * speaker's name - `ChatItem.hideUsername`), bold shouts, italic system lines and links in place of `{n}`.
  */
-export const buildChatBubbleMarkup = (text: string, userName: string, chatType: RoomChatTypeEnum, style: IChatStyle, links: IChatLink[]): ChatBubbleMarkup => {
+export const buildChatBubbleMarkup = (text: string, userName: string, chatType: RoomChatTypeEnum, style: IChatStyle, links: IChatLink[], hideUsername: boolean = false): ChatBubbleMarkup => {
     if (!style.allowHTML) {
         text = escapeChatMarkup(text);
         // Flash's second pattern is `&#x[0-9]+;` - hex digits past 9 survive it.
         text = text.replace(/&#[0-9]+;/g, '').replace(/&#x[0-9]+;/g, '');
     }
 
-    if (style.isNotification) text = applyChatMarkupToElements(text, style.textColor);
+    const tableTabs = style.isNotification && hasChatTableTabMarkup(text);
+
+    if (style.isNotification) text = applyChatMarkupToElements(text, style.textColor, tableTabs);
 
     text = applyChatColourToChat(text, style.textColor);
 
     const isSpeak = (chatType === RoomChatTypeEnum.Speak);
     const isShout = (chatType === RoomChatTypeEnum.Shout);
     const isItalic = (!isSpeak && !isShout && !style.isAnonymous);
+    const showName = !style.isAnonymous && !hideUsername;
+    const name = tableTabs ? escapeChatTableTabMarker(userName) : userName;
 
-    let markup = (isItalic ? '<i>' : '') + (style.isAnonymous ? '' : `<b>${userName}: </b>`);
+    let markup = (isItalic ? '<i>' : '') + (showName ? `<b>${name}: </b>` : '');
 
     markup += (isShout ? '<b>' : '') + text + (isShout ? '</b>' : '');
     markup += (isItalic ? '</i>' : '');
 
     for (let i = 0; i < links.length; i++) {
-        const anchor = `<font color="${toCssHexColor(style.linkColor)}"><u>${links[i].url}</u></font>`;
+        const url = tableTabs ? escapeChatTableTabMarker(links[i].url) : links[i].url;
+        const anchor = `<font color="${toCssHexColor(style.linkColor)}"><u>${url}</u></font>`;
 
         markup = markup.replace(`{${i}}`, anchor);
     }
 
-    return { markup, alpha: isItalic ? 0.6 : 1 };
+    return { markup, alpha: isItalic ? 0.6 : 1, tableTabs };
 };
 
 export interface ChatBubbleLayout {

@@ -56,11 +56,11 @@ export const useChatBubbleVisual = (data: ChatBubbleData, maxWidth: number) => {
     const color = data.forcedColor ?? (isPet ? pet.color : head.chestColor) ?? 0xffffff;
 
     const text = useMemo(() => resolveChatBubbleText(data, userName, t), [ data, userName, t ]);
-    const content = useMemo(() => (style ? buildChatBubbleMarkup(text, userName, data.chatType, style, data.links ?? EMPTY_LINKS) : undefined), [ style, text, userName, data.chatType, data.links ]);
+    const content = useMemo(() => (style ? buildChatBubbleMarkup(text, userName, data.chatType, style, data.links ?? EMPTY_LINKS, data.hideUsername) : undefined), [ style, text, userName, data.chatType, data.links, data.hideUsername ]);
 
     const margins = style?.textFieldMargins;
     const wrapWidth = margins ? ((maxWidth - margins.x) - margins.width) : maxWidth;
-    const render = useChatBubbleText(content?.markup ?? '', style?.fontFace ?? 'Ubuntu', scaleChatFontSize(style?.fontSize, fontSizeScale), style?.textColor ?? 0, wrapWidth);
+    const render = useChatBubbleText(content?.markup ?? '', style?.fontFace ?? 'Ubuntu', scaleChatFontSize(style?.fontSize, fontSizeScale), style?.textColor ?? 0, wrapWidth, content?.tableTabs, fontSizeScale);
 
     const layout = useMemo(() => (style
         ? computeChatBubbleLayout({
