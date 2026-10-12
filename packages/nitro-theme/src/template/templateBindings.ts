@@ -169,6 +169,12 @@ export interface TemplateBinding {
      */
     scrollV?: number;
     /**
+     * A list's `IScrollableWindow.scrollH`, 0 at the left to 1 at the right, for a list a layout's own
+     * horizontal scrollbar scrolls - what code sets through the scrollbar (`IScrollbarWindow.scrollH`
+     * passes it to its `scrollable`, `BCFloorPlanEditor.centerScrollableViews`). Applied as `scrollV` is.
+     */
+    scrollH?: number;
+    /**
      * A scrollable list scrolled to its end whenever this changes, once its items are laid out - code
      * that sets `scrollV = 1` after each item it appends (`MainView.recordChatEntry`).
      */
@@ -541,6 +547,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && sameHeaderButton(a.headerHelp, b.headerHelp)
         && a.autoHideScrollBar === b.autoHideScrollBar
         && a.scrollV === b.scrollV
+        && a.scrollH === b.scrollH
         && a.scrollEndKey === b.scrollEndKey
         && a.scrollResetKey === b.scrollResetKey
         && a.spacing === b.spacing

@@ -471,8 +471,19 @@ await test('without a name it scrolls its parent when that scrolls, else the par
     assert.equal(links.get(sibling), parentList);
 });
 
-await test('a scrollbar whose target is a text is linked to nothing (a text is not scrolled yet)', () => {
-    const text = element('input', [ 0, 0, 100, 100 ], { name: 'data' });
+await test('a scrollbar scrolls the text field it names (floor_plan_export_import\'s data)', () => {
+    const field = element('input', [ 0, 1, 347, 266 ], { name: 'data', vars: { multiline: true } });
+    const border = element('border', [ 8, 12, 348, 269 ], { children: [ field ] });
+    const vertical = element('scrollbar_vertical', [ 356, 12, 17, 268 ], { vars: { scrollable: 'data' } });
+    const horizontal = element('scrollbar_horizontal', [ 8, 280, 349, 18 ], { vars: { scrollable: 'data' } });
+    const links = linkTemplateScrollbars([ element('frame', [ 0, 0, 379, 374 ], { children: [ border, vertical, horizontal ] }) ]);
+
+    assert.equal(links.get(vertical), field);
+    assert.equal(links.get(horizontal), field);
+});
+
+await test('a scrollbar whose target is a text that is not a field is linked to nothing (it is not scrolled yet)', () => {
+    const text = element('text', [ 0, 0, 100, 100 ], { name: 'data' });
     const bar = element('scrollbar_vertical', [ 100, 0, 18, 100 ], { vars: { scrollable: 'data' } });
     const list = element('itemlist', [ 0, 0, 100, 100 ]);
 

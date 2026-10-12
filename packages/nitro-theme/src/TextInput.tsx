@@ -1,9 +1,10 @@
-import { CanvasTextMetrics, Container as PixiContainer, FederatedPointerEvent, TextStyleOptions } from 'pixi.js';
+import { CanvasTextMetrics, Container as PixiContainer, FederatedPointerEvent, FederatedWheelEvent, TextStyleOptions } from 'pixi.js';
 import { forwardRef, ForwardRefExoticComponent, RefAttributes, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Box, BoxLayout } from './Box';
 import { FLASH_TEXT_GUTTER, flashTextCaretRect, FlashTextFieldOverrides, flashTextSelectionRects, HABBO_TEXT_STYLES, resolveFlashTextFormat } from './font/flash-text';
 import { useLayoutSize, useOutsideClick } from './hooks';
+import type { ScrollController } from './hooks/useScrollController';
 import { ColorLayer } from './layer';
 import { ThemeText } from './ThemeText';
 import { DEFAULT_TEXT_STYLE, escapeMarkup, flashFaceOverride, getPixiTextStyle, resolveFlashStyle, TextStyleKey } from './utils';
@@ -32,6 +33,17 @@ const markedValue = (value: string, marks: readonly TextInputMark[]): string => 
 
     return markup + escapeMarkup(value.slice(at));
 };
+
+/**
+ * The scroll a field shares with scrollbars outside it - a Flash layout's own scrollbars, whose
+ * `IScrollableWindow` the `TextController` is - one controller per axis they scroll.
+ */
+export interface TextInputScroll {
+    vertical?: ScrollController;
+    horizontal?: ScrollController;
+    /** `TextField.mouseWheelEnabled`: the wheel over the field scrolls it. */
+    wheel?: boolean;
+}
 
 export interface TextInputProps {
     value: string;
@@ -122,6 +134,13 @@ export interface TextInputProps {
      * centring and no padding of the box's own. Off, a single line is centred with 2px padding.
      */
     flashPlacement?: boolean;
+    /**
+     * Scrollbars that scroll the field: on each axis it scrolls, the field's scroll is the
+     * controller's - its box the viewport, its text the content - rather than worked out from the
+     * caret, so a scrollbar can move the text. While focused it still scrolls just far enough to
+     * keep the caret in view, as a `TextField` does; a value set from outside leaves it where it is.
+     */
+    scroll?: TextInputScroll;
 }
 
 interface RestrictRule {
@@ -201,7 +220,7 @@ const PADDING_X = 2;
 /** `alwaysShowSelection`'s colour while the field is not focused - Sulake's `TextField` draws `#888888` at 35%. */
 const UNFOCUSED_SELECTION_COLOR = '#888888';
 const UNFOCUSED_SELECTION_ALPHA = 0.35;
-/** Caret placement on click scans prefix widths; a huge value would make that scan noticeable, so it's capped. */
+/** Caret placement on click scans the prefix widths of the line under the pointer; a huge line would make that scan noticeable, so it's capped. */
 const MAX_CLICK_SCAN = 500;
 
 const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
@@ -240,7 +259,7 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
  * to someone - and a caller can intercept keys (`onKeyDown`) before the browser edits.
  */
 export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TextInputProps>(
-    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, lineBreaks = true, wordWrap = true, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat }, ref) => {
+    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, lineBreaks = true, wordWrap = true, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat, scroll }, ref) => {
         // The hidden `<textarea>` holds line breaks as `\n` only, and the Flash text layout breaks
         // lines on `\n` only. A value with Flash's `\r` (the floor plan's map text) would never equal
         // the native value and would be measured as one long line - the caret and the selection
@@ -595,9 +614,77 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const selectionRects = useMemo(() => (showSelection ? measureSelection(displayValue, Math.min(selectionStart, selectionEnd), Math.max(selectionStart, selectionEnd)) : []), [ showSelection, measureSelection, displayValue, selectionStart, selectionEnd ]);
 
         // Unwrapped: slide the text left so the caret stays inside the box; multiline: slide it up.
-        const scrollX = (!wraps && viewWidth > 0 && caret.x > (viewWidth - 1)) ? (caret.x - (viewWidth - 1)) : 0;
+        // An axis a scrollbar scrolls takes its controller's offset instead.
         const viewHeight = flashPlacement ? Math.max(0, boxHeight - FLASH_TEXT_GUTTER) : boxHeight;
-        const scrollY = (multiline && viewHeight > 0 && (caret.y + caret.height) > viewHeight) ? ((caret.y + caret.height) - viewHeight) : 0;
+        const scrollHorizontal = scroll?.horizontal;
+        const scrollVertical = scroll?.vertical;
+        const scrollX = scrollHorizontal ? scrollHorizontal.scrollOffset : ((!wraps && viewWidth > 0 && caret.x > (viewWidth - 1)) ? (caret.x - (viewWidth - 1)) : 0);
+        const scrollY = scrollVertical ? scrollVertical.scrollOffset : ((multiline && viewHeight > 0 && (caret.y + caret.height) > viewHeight) ? ((caret.y + caret.height) - viewHeight) : 0);
+        const scrollRef = useRef({ scrollHorizontal, scrollVertical, viewWidth, viewHeight });
+
+        useEffect(() => {
+            scrollRef.current = { scrollHorizontal, scrollVertical, viewWidth, viewHeight };
+        });
+
+        // A controlled axis follows the caret while the field is focused, by as little as keeps it in
+        // view. Two frames on, so the range it clamps to has the edit that moved the caret laid out (as
+        // `ScrollArea`'s `scrollV` waits). Not
+        // for the focus itself: the caret read as the field takes it is the one it had, which a click
+        // then moves - following it would scroll to where the field last left off.
+        const followFocusedRef = useRef(false);
+
+        useEffect(() => {
+            const gainedFocus = focused && !followFocusedRef.current;
+
+            followFocusedRef.current = focused;
+
+            if (!focused || gainedFocus) return;
+
+            let second = 0;
+            const first = requestAnimationFrame(() => (second = requestAnimationFrame(() => {
+                const { scrollHorizontal: horizontal, scrollVertical: vertical, viewWidth: width, viewHeight: height } = scrollRef.current;
+
+                if (horizontal && (width > 0)) {
+                    const offset = horizontal.scrollOffset;
+
+                    if (caret.x < offset) horizontal.scrollTo(caret.x);
+                    else if (caret.x > (offset + width - 1)) horizontal.scrollTo(caret.x - (width - 1));
+                }
+
+                if (vertical && (height > 0)) {
+                    const offset = vertical.scrollOffset;
+
+                    if (caret.y < offset) vertical.scrollTo(caret.y);
+                    else if ((caret.y + caret.height) > (offset + height)) vertical.scrollTo((caret.y + caret.height) - height);
+                }
+            })));
+
+            return () => {
+                cancelAnimationFrame(first);
+                cancelAnimationFrame(second);
+            };
+        }, [ focused, caret ]);
+
+        // The box is the scrolled viewport and the text box the content; stable, so a render does not
+        // hand the controllers `null` and the node again.
+        const horizontalViewportRef = scrollHorizontal?.viewportRef;
+        const verticalViewportRef = scrollVertical?.viewportRef;
+        const horizontalContentRef = scrollHorizontal?.contentRef;
+        const verticalContentRef = scrollVertical?.contentRef;
+        const attachBox = useCallback((node: PixiContainer | null) => {
+            boxRef.current = node;
+            setBoxNode(node);
+            horizontalViewportRef?.(node);
+            verticalViewportRef?.(node);
+            if (typeof ref === 'function') ref(node);
+            else if (ref) ref.current = node;
+        }, [ ref, horizontalViewportRef, verticalViewportRef ]);
+        const attachContent = useCallback((node: PixiContainer | null) => {
+            horizontalContentRef?.(node);
+            verticalContentRef?.(node);
+        }, [ horizontalContentRef, verticalContentRef ]);
+
+        const onWheel = scroll?.wheel ? (event: FederatedWheelEvent) => (scrollVertical ?? scrollHorizontal)?.onWheel(event) : undefined;
 
         /** A click lands the caret on the nearest glyph boundary. */
         const onPointerTap = (event: FederatedPointerEvent) => {
@@ -613,15 +700,34 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             const local = event.getLocalPosition(node);
             const targetX = (local.x - paddingX) + scrollX;
             const targetY = local.y + scrollY;
-            const limit = Math.min(value.length, MAX_CLICK_SCAN);
+
+            /** The first index whose caret satisfies `test` - the caret's line only moves down as the index grows. */
+            const firstIndex = (test: (geometry: CaretGeometry) => boolean) => {
+                let low = 0;
+                let high = value.length;
+
+                while (low < high) {
+                    const middle = (low + high) >> 1;
+
+                    if (test(measureCaret(displayValue, middle))) high = middle;
+                    else low = middle + 1;
+                }
+
+                return low;
+            };
+
+            // The line under the pointer - the last one when the pointer is below the text - from its first index.
+            const lineY = multiline ? measureCaret(displayValue, firstIndex(geometry => (geometry.y + geometry.height) > targetY)).y : 0;
+            const lineStart = multiline ? firstIndex(geometry => geometry.y >= lineY) : 0;
+            const limit = Math.min(value.length, lineStart + MAX_CLICK_SCAN);
 
             let bestIndex = value.length;
             let bestDistance = Number.POSITIVE_INFINITY;
 
-            for (let i = 0; i <= limit; i++) {
+            for (let i = lineStart; i <= limit; i++) {
                 const geometry = measureCaret(displayValue, i);
 
-                if (multiline && (targetY < geometry.y || targetY > geometry.y + geometry.height)) continue;
+                if (multiline && (geometry.y !== lineY)) break;
 
                 const distance = Math.abs(geometry.x - targetX);
 
@@ -644,14 +750,10 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
         return (
             <Box
-                ref={(node) => {
-                    boxRef.current = node;
-                    setBoxNode(node);
-                    if (typeof ref === 'function') ref(node);
-                    else if (ref) ref.current = node;
-                }}
+                ref={attachBox}
                 cursor="text"
                 onPointerTap={onPointerTap}
+                onWheel={onWheel}
                 // Yoga defaults to a row, so the vertical axis is the cross axis: `alignItems` centres a single line.
                 layout={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: (multiline || flashPlacement) ? 'flex-start' : 'center', paddingLeft: paddingX, paddingRight: paddingX, overflow: 'hidden', ...layout }}
             >
@@ -678,7 +780,10 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                     </>
                 )}
                 {/* `ThemeText` renders nothing for an empty value, so the line height keeps this box (and the caret) centred. */}
-                <Box layout={{ position: 'relative', flexDirection: 'row', marginLeft: -scrollX, marginTop: -scrollY, flexShrink: 0, minWidth: 1, minHeight: Math.max(1, caret.height) }}>
+                <Box
+                    ref={attachContent}
+                    layout={{ position: 'relative', flexDirection: 'row', marginLeft: -scrollX, marginTop: -scrollY, flexShrink: 0, minWidth: 1, minHeight: Math.max(1, caret.height) }}
+                >
                     {selectionRects.map((rect, index) => (
                         <ColorLayer
                             key={index}

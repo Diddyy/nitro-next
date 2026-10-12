@@ -84,10 +84,8 @@ tab, as raw JSON. Where each widget stands:
 ## Views not yet drawn from their Flash template
 
 Every window whose Flash layout is in the bundles draws from it through `TemplateWindow` (see
-[Layout views](layout-views.md)), except the floor plan editor: `floor_plan_editor_bc` and
-`floor_plan_export_import` are in `habbo-window-manager-com`, but `FloorPlanEditorView` places
-their parts by hand. A view counts here when it draws theme components and loads no template
-although a layout for it exists in `scripts/habbo-js-resources`.
+[Layout views](layout-views.md)). A view counts here when it draws theme components and loads no
+template although a layout for it exists in `scripts/habbo-js-resources`.
 
 The chat bar is drawn from `chatinput_window_new` but keeps the client's own text field in
 `chat_input`'s place, for the command completion the port adds to it.

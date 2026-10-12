@@ -1,11 +1,11 @@
 import { Texture } from 'pixi.js';
-import { useMemo } from 'react';
 
 import { Box, LayoutImage, useTextureFromUrl } from '#base/theme';
-import { buildFloorPlanPreview, FLOOR_PLAN_PREVIEW_TILE_IMAGES, FloorPlanModel, FloorPlanTile } from '#base/utils';
+import { FLOOR_PLAN_PREVIEW_TILE_IMAGES, FloorPlanPicture, FloorPlanPreviewTile } from '#base/utils';
 
 /**
- * The isometric preview beside the map - `FloorPlanPreviewer.updatePreview`. Each tile picks one
+ * The isometric preview beside the map - `FloorPlanPreviewer.updatePreview`, drawn into
+ * `preview_bitmap` at its `pivot_point` (`center`). Each tile picks one
  * of seventeen bitmaps by which of its corners a neighbour one level up covers, so a raised tile
  * draws its own walls.
  *
@@ -15,8 +15,7 @@ import { buildFloorPlanPreview, FLOOR_PLAN_PREVIEW_TILE_IMAGES, FloorPlanModel, 
  * the timer nor the button has anything left to do.
  */
 export interface FloorPlanPreviewViewProps {
-    model: FloorPlanModel;
-    entryPoint: FloorPlanTile | null;
+    picture: FloorPlanPicture<FloorPlanPreviewTile>;
 }
 
 /**
@@ -44,31 +43,36 @@ const usePreviewTileTextures = (): (Texture | undefined)[] => [
     useTextureFromUrl(LayoutImage(FLOOR_PLAN_PREVIEW_TILE_IMAGES[16])),
 ];
 
-export const FloorPlanPreviewView = ({ model, entryPoint }: FloorPlanPreviewViewProps) => {
-    const picture = useMemo(() => buildFloorPlanPreview(model, entryPoint), [ model, entryPoint ]);
+export const FloorPlanPreviewView = ({ picture }: FloorPlanPreviewViewProps) => {
     const textures = usePreviewTileTextures();
 
     return (
         <Box
-            label="preview_bitmap"
-            layout={{ width: picture.width, height: picture.height, flexShrink: 0 }}
+            eventMode="none"
+            layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
         >
-            {picture.tiles.map((tile, index) => {
-                const texture = textures[tile.type];
+            <Box
+                label="preview_picture"
+                eventMode="none"
+                layout={{ width: picture.width, height: picture.height, flexShrink: 0 }}
+            >
+                {picture.tiles.map((tile, index) => {
+                    const texture = textures[tile.type];
 
-                if (!texture) return null;
+                    if (!texture) return null;
 
-                return (
-                    <pixiSprite
-                        key={index}
-                        texture={texture}
-                        x={tile.screenX}
-                        y={tile.screenY}
-                        roundPixels
-                        eventMode="none"
-                    />
-                );
-            })}
+                    return (
+                        <pixiSprite
+                            key={index}
+                            texture={texture}
+                            x={tile.screenX}
+                            y={tile.screenY}
+                            roundPixels
+                            eventMode="none"
+                        />
+                    );
+                })}
+            </Box>
         </Box>
     );
 };

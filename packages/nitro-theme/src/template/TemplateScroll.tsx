@@ -14,7 +14,7 @@ import { Container as PixiContainer, Graphics as PixiGraphics } from 'pixi.js';
 import { ReactNode, useCallback, useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'react';
 
 import { Box, BoxLayout } from '../Box';
-import { useScrollController } from '../hooks/useScrollController';
+import { ScrollController, useScrollController } from '../hooks/useScrollController';
 import { ScrollbarHorizontal } from '../ScrollbarHorizontal';
 import { ScrollbarVertical } from '../ScrollbarVertical';
 import type { TemplateElement } from './templateData';
@@ -32,16 +32,42 @@ interface TemplateScrollTargetProps {
     alpha: number;
     /** What the element draws of its own, under its items. */
     face: ReactNode;
+    /** Where its code puts the scroll, 0 to 1 of each axis' range (`scrollV` / `scrollH`), applied each time it changes. */
+    scrollV?: number;
+    scrollH?: number;
     children: ReactNode;
 }
 
+/**
+ * Scrolls to `ratio` of the range each time it changes, two frames on - once the items bound with it
+ * are laid out, as `ScrollArea`'s `scrollV` waits.
+ */
+const useScrollRatio = (scrollToRatio: (ratio: number) => void, ratio: number | undefined) => {
+    useEffect(() => {
+        if (ratio === undefined) return;
+
+        let second = 0;
+        const first = requestAnimationFrame(() => {
+            second = requestAnimationFrame(() => scrollToRatio(ratio));
+        });
+
+        return () => {
+            cancelAnimationFrame(first);
+            cancelAnimationFrame(second);
+        };
+    }, [ ratio, scrollToRatio ]);
+};
+
 /** The scrolled list: its items in a viewport the size of its rect, offset by its scroll. */
-export const TemplateScrollTarget = ({ element, rect, content, axes, store, layout, alpha, face, children }: TemplateScrollTargetProps) => {
+export const TemplateScrollTarget = ({ element, rect, content, axes, store, layout, alpha, face, scrollV, scrollH, children }: TemplateScrollTargetProps) => {
     const vertical = useScrollController({ orientation: 'vertical' });
     const horizontal = useScrollController({ orientation: 'horizontal' });
     const [ maskNode, setMaskNode ] = useState<PixiGraphics | null>(null);
     const scrollsVertically = axes.has('vertical');
     const scrollsHorizontally = axes.has('horizontal');
+
+    useScrollRatio(vertical.scrollToRatio, scrollsVertically ? scrollV : undefined);
+    useScrollRatio(horizontal.scrollToRatio, scrollsHorizontally ? scrollH : undefined);
 
     useLayoutEffect(() => {
         store.publish(element, {
@@ -87,13 +113,59 @@ export const TemplateScrollTarget = ({ element, rect, content, axes, store, layo
                     roundPixels
                     x={scrollsHorizontally ? -horizontal.scrollOffset : 0}
                     y={scrollsVertically ? -vertical.scrollOffset : 0}
-                    layout={{ position: 'relative', width: content.width, height: content.height }}
+                    // Not shrunk to the viewport along its row: content wider than the list is what scrolls horizontally.
+                    layout={{ position: 'relative', width: content.width, height: content.height, flexShrink: 0 }}
                 >
                     {children}
                 </pixiContainer>
             </pixiContainer>
         </Box>
     );
+};
+
+/** The scroll a text field shares with its layout's scrollbars, one controller per axis they scroll. */
+export interface TemplateFieldScroll {
+    vertical?: ScrollController;
+    horizontal?: ScrollController;
+}
+
+interface TemplateScrollFieldProps {
+    element: TemplateElement;
+    axes: ReadonlySet<TemplateScrollAxis>;
+    store: TemplateScrollStore;
+    scrollV?: number;
+    scrollH?: number;
+    /** The field, drawn with the scroll it is to follow. */
+    children: (scroll: TemplateFieldScroll) => ReactNode;
+}
+
+/**
+ * A text field a layout's scrollbar scrolls (`TextController` as the scrollbar's `IScrollableWindow`):
+ * the field scrolls its own text - its viewport is its box, its content its text - by the controllers
+ * this holds and publishes, so the scrollbar and the field move one scroll.
+ */
+export const TemplateScrollField = ({ element, axes, store, scrollV, scrollH, children }: TemplateScrollFieldProps) => {
+    const vertical = useScrollController({ orientation: 'vertical' });
+    const horizontal = useScrollController({ orientation: 'horizontal' });
+    const scrollsVertically = axes.has('vertical');
+    const scrollsHorizontally = axes.has('horizontal');
+
+    useScrollRatio(vertical.scrollToRatio, scrollsVertically ? scrollV : undefined);
+    useScrollRatio(horizontal.scrollToRatio, scrollsHorizontally ? scrollH : undefined);
+
+    useLayoutEffect(() => {
+        store.publish(element, {
+            vertical: scrollsVertically ? vertical : undefined,
+            horizontal: scrollsHorizontally ? horizontal : undefined,
+        });
+    });
+
+    useEffect(() => () => store.publish(element, undefined), [ store, element ]);
+
+    return children({
+        vertical: scrollsVertically ? vertical : undefined,
+        horizontal: scrollsHorizontally ? horizontal : undefined,
+    });
 };
 
 interface TemplateScrollbarProps {

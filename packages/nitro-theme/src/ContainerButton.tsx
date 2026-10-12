@@ -13,6 +13,8 @@ export type ContainerButtonVariant = ThemeVariant | ThemeWithStatesVariant;
 export interface ContainerButtonProps extends ThemeProps<ContainerButtonVariant> {
     disabled?: boolean;
     selected?: boolean;
+    /** Held pressed whatever the pointer does (`useThemeVariant`'s `pressed`). */
+    pressed?: boolean;
     children?: ReactNode;
 }
 
@@ -26,11 +28,11 @@ export interface ContainerButtonProps extends ThemeProps<ContainerButtonVariant>
  */
 export const ContainerButton: ForwardRefExoticComponent<ContainerButtonProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, ContainerButtonProps>(
     ({
-        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, dynamicStyle, disabled, selected, children,
+        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, dynamicStyle, disabled, selected, pressed, children,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
         const { ownCascade, config, state, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<ContainerButtonVariant>({
-            cascadeKey: 'containerButton', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled, selected, interactive: !!dynamicStyle,
+            cascadeKey: 'containerButton', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, disabled, selected, pressed, interactive: !!dynamicStyle,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
         const hostEffect = useHostDynamicStyleEffect(dynamicStyle, state);

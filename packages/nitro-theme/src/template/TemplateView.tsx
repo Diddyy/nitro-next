@@ -57,7 +57,7 @@ import { isMarkupTemplateText, measureTemplateText, templateFontSize, templateTe
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
 import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect, templateTextMargins, templateUsesParentGraphics } from './templateLayout';
-import { TemplateScrollbar, TemplateScrollTarget } from './TemplateScroll';
+import { TemplateFieldScroll, TemplateScrollbar, TemplateScrollField, TemplateScrollTarget } from './TemplateScroll';
 import { TemplateScrollAxis, TemplateScrollStore } from './templateScrollStore';
 
 export type { Template, TemplateElement } from './templateData';
@@ -361,6 +361,25 @@ interface ScrollLinks {
  * elements - when clones come or go - which `Context` does not.
  */
 const ScrollLinksContext = createContext<ScrollLinks>({ scrollbars: new Map(), scrollAxes: new Map(), scrollTargets: new Set() });
+
+/** A text field, with the scroll it shares with the layout's scrollbars when any scroll it (`TemplateScrollField`). */
+const TemplateScrolledField = ({ element, store, scrollV, scrollH, children }: { element: TemplateElement; store: TemplateScrollStore; scrollV?: number; scrollH?: number; children: (scroll?: TemplateFieldScroll) => ReactNode }) => {
+    const axes = useContext(ScrollLinksContext).scrollAxes.get(element);
+
+    if (!axes) return children(undefined);
+
+    return (
+        <TemplateScrollField
+            element={element}
+            axes={axes}
+            store={store}
+            scrollV={scrollV}
+            scrollH={scrollH}
+        >
+            {children}
+        </TemplateScrollField>
+    );
+};
 
 /** Whether nothing in a window's subtree is a display object of its own: all of it draws into its parent's graphic context. */
 const drawsIntoParentOnly = (element: TemplateElement): boolean => templateUsesParentGraphics(element) && element.children.every(drawsIntoParentOnly);
@@ -874,7 +893,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
             ? flashColor(binding.backgroundColor)
             : ((binding?.background ?? element.background) ? (flashColor(element.color) ?? { hex: '#ffffff', alpha: 1 }) : undefined);
 
-        return (
+        const field = (scroll?: TemplateFieldScroll) => (
             <TextInput
                 value={caption}
                 onChange={text => binding?.onChange?.(text)}
@@ -887,8 +906,11 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 // `TextFieldController`'s `max_chars`, `word_wrap` / `multiline`, `display_as_password` and `always_show_selection`.
                 maxLength={maxChars}
                 multiline={flashBool(element.vars.multiline) || flashBool(element.vars.word_wrap) || undefined}
-                // `word_wrap` alone wraps the text; only `multiline` takes Enter as a new line.
+                // `word_wrap` alone wraps the text; only `multiline` takes Enter as a new line. A
+                // `multiline` field without `word_wrap` keeps each line whole (`TextField.wordWrap` is
+                // false until the layout sets it) - the floor plan's rows in `floor_plan_export_import`.
                 lineBreaks={flashBool(element.vars.multiline)}
+                wordWrap={flashBool(element.vars.word_wrap)}
                 password={(element.tag === 'password') || flashBool(element.vars.display_as_password) || undefined}
                 alwaysShowSelection={flashBool(element.vars.always_show_selection) || undefined}
                 // Focus the code gives or takes (`ITextFieldWindow.focus()`); left alone, the user's.
@@ -905,8 +927,21 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 focusedBackgroundColor={fill?.hex ?? null}
                 // `TextController`'s `border`: the `TextField`'s one-pixel border, in `border_color` (black by default).
                 border={flashBool(element.vars.border) ? (flashColor(element.vars.border_color)?.hex ?? '#000000') : undefined}
+                // The layout's scrollbars on the field, and `mouse_wheel_enabled` (`TextField.mouseWheelEnabled`, on by default).
+                scroll={scroll && { ...scroll, wheel: element.vars.mouse_wheel_enabled === undefined || flashBool(element.vars.mouse_wheel_enabled) }}
                 layout={FILL}
             />
+        );
+
+        return (
+            <TemplateScrolledField
+                element={element}
+                store={context.scroll}
+                scrollV={binding?.scrollV}
+                scrollH={binding?.scrollH}
+            >
+                {field}
+            </TemplateScrolledField>
         );
     }
 
@@ -1060,6 +1095,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 tooltip={tooltipOf(element, context, binding)}
                 tooltipDelay={binding?.tooltipDelay}
                 disabled={binding?.disabled || binding?.disableSection}
+                pressed={binding?.pressed}
                 onPointerTap={binding?.onPointerTap}
                 layout={FILL}
             >
@@ -1549,6 +1585,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 layout={rectOf(rect, flow)}
                 alpha={alpha}
                 face={fade(faceOf(element, rect, context, binding))}
+                scrollV={binding?.scrollV}
+                scrollH={binding?.scrollH}
             >
                 {children}
             </TemplateScrollTarget>

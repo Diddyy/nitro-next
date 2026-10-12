@@ -13,7 +13,7 @@
  * to the theme's components, except a frame's content area, which children are placed in.
  *
  * Not yet: a text's layout while its caption is still empty, and a standalone scrollbar scrolling a
- * text.
+ * text that is not a field.
  *
  * Kept free of runtime imports so it runs under Node as it stands.
  */
@@ -1654,6 +1654,9 @@ const ITEM_LIST_TAGS = new Set([ 'itemlist', 'itemlist_vertical', 'itemlist_hori
 /** Every `IScrollableWindow`: the item lists and grids, the scrollable lists, and the texts (`ITextWindow`). */
 const SCROLLABLE_WINDOW_TAGS = new Set([ ...ITEM_LIST_TAGS, ...SCROLLABLE_TAGS, 'text', 'input', 'html', 'formatted_text' ]);
 
+/** The texts a layout's own scrollbar scrolls: a text field, which scrolls its own text (`TextInput`'s `scroll`). */
+const SCROLLED_TEXT_TAGS = new Set([ 'input' ]);
+
 /** A layout's own scrollbars (`ScrollBarController`). */
 export const TEMPLATE_SCROLLBAR_TAGS: Readonly<Record<string, 'vertical' | 'horizontal'>> = {
     scrollbar_vertical: 'vertical',
@@ -1664,8 +1667,8 @@ export const TEMPLATE_SCROLLBAR_TAGS: Readonly<Record<string, 'vertical' | 'hori
  * Each standalone scrollbar's target, as `ScrollBarController.resolveScrollTarget` finds it: the window
  * its `scrollable` var names - an ancestor of that name, else one under its parent
  * (`findChildByName`) - else its parent, when that scrolls, else the parent's first child that does.
- * Only an item list or grid is kept as a target: a text is not scrolled yet, and its scrollbar is
- * linked to nothing.
+ * An item list or grid, or a text field (`input`: `TextController` is an `IScrollableWindow`), is kept
+ * as a target; a text that is not a field is not scrolled yet, and its scrollbar is linked to nothing.
  */
 export const linkTemplateScrollbars = (elements: readonly TemplateElement[]): Map<TemplateElement, TemplateElement> => {
     const links = new Map<TemplateElement, TemplateElement>();
@@ -1688,7 +1691,7 @@ export const linkTemplateScrollbars = (elements: readonly TemplateElement[]): Ma
             const scrollable = element.vars.scrollable;
             const target = resolve(typeof scrollable === 'string' ? scrollable : undefined, ancestors);
 
-            if (target && ITEM_LIST_TAGS.has(target.tag)) links.set(element, target);
+            if (target && (ITEM_LIST_TAGS.has(target.tag) || SCROLLED_TEXT_TAGS.has(target.tag))) links.set(element, target);
         }
 
         ancestors.push(element);
