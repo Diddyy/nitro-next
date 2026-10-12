@@ -15,6 +15,7 @@ export * from './messenger';
 export * from './navigator';
 export * from './notifications';
 export * from './offer-center';
+export * from './onboarding';
 export * from './quests';
 export * from './room';
 export * from './special-items';

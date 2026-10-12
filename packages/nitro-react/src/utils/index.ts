@@ -31,6 +31,7 @@ export * from './localizationData';
 export * from './localizationParameters';
 export * from './marketplace';
 export * from './monsterPlantPosture';
+export * from './onboardingAvatarEditor';
 export * from './openWebPage';
 export * from './petTypeFromFigure';
 export * from './renderRoomMessage';

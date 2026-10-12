@@ -417,6 +417,8 @@ import {
     TurboCommandTreeMessage,
     TurboPermissionNodesMessage,
     TurboServerCapabilitiesMessage,
+    TurboStarterRoomCameraMessage,
+    TurboStarterRoomPictureResultMessage,
     UniqueMachineIdMessage,
     UnreadForumsCountMessage,
     UnseenItemsMessage,
@@ -1040,5 +1042,7 @@ export const GetIncomingPackets = () => {
         [IncomingHeader.TurboPermissionNodesMessage]: TurboPermissionNodesMessage,
         [IncomingHeader.TurboCommandTreeMessage]: TurboCommandTreeMessage,
         [IncomingHeader.TurboCommandSuggestionsMessage]: TurboCommandSuggestionsMessage,
+        [IncomingHeader.TurboStarterRoomCameraMessage]: TurboStarterRoomCameraMessage,
+        [IncomingHeader.TurboStarterRoomPictureResultMessage]: TurboStarterRoomPictureResultMessage,
     } as Record<number, IncomingPacketConstructor>;
 };

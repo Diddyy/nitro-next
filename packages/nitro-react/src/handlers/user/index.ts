@@ -4,6 +4,7 @@ export * from './registerAvatarEffectsHandlers';
 export * from './registerChatCommandHandlers';
 export * from './registerFriendBarHandlers';
 export * from './registerMessengerHandlers';
+export * from './registerOnboardingHandlers';
 export * from './registerUserInfoHandlers';
 export * from './registerUserSocialHandlers';
 export * from './registerWalletHandlers';

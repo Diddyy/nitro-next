@@ -14,7 +14,8 @@ const EMPTY: AvatarImageTexture = { texture: undefined, width: 0, height: 0 };
 
 interface AvatarRenderRequest {
     figure: string;
-    gender: AvatarGenderType;
+    /** Undefined draws the figure as given, without the gender's mandatory parts filled in (Flash's `null`). */
+    gender: AvatarGenderType | undefined;
     headOnly: boolean;
     cropped: boolean;
     direction: number;
@@ -128,7 +129,7 @@ const subscribeRender = (request: AvatarRenderRequest, onChange: () => void) => 
  */
 export const useAvatarImageTexture = (
     figure: string | undefined,
-    gender: AvatarGenderType,
+    gender: AvatarGenderType | undefined,
     { headOnly = false, cropped = false, direction = 0, scale = 1 }: { headOnly?: boolean; cropped?: boolean; direction?: number; scale?: number } = {},
 ): AvatarImageTexture => {
     const subscribe = (onChange: () => void) => (figure ? subscribeRender({ figure, gender, headOnly, cropped, direction, scale }, onChange) : () => {});

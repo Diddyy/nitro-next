@@ -20,3 +20,4 @@ export * from './room-thumbnail-camera';
 export * from './room-tools';
 export * from './RoomWidgets';
 export * from './spectator';
+export * from './starter-room-camera';

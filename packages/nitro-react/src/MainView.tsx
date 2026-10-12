@@ -18,6 +18,7 @@ import { HelpComponent } from './components/help';
 import { HotelViewComponent } from './components/hotel-view';
 import { MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
+import { OnboardingComponent } from './components/onboarding';
 import { QuestsComponent, QuestTrackerComponent } from './components/quests';
 import { RoomEffectsWidget } from './components/room/widgets/effects/RoomEffectsWidget';
 import { RoomSettingsWidget } from './components/room/widgets/room-settings';
@@ -38,6 +39,7 @@ import { NotificationPopupsView } from './views/notifications/NotificationPopups
 import { NotificationsExtensionAnchor } from './views/notifications/NotificationsExtensionAnchor';
 import { NotificationsView } from './views/notifications/NotificationsView';
 import { SafetyLockedNotificationView } from './views/notifications/SafetyLockedNotificationView';
+import { NoobLobbyOfferView } from './views/onboarding/NoobLobbyOfferView';
 import { ActivityPointsView } from './views/purse/ActivityPointsView';
 import { PurseTemplateView } from './views/purse/PurseTemplateView';
 import { RewardTrackPremiumConfirmationView } from './views/reward-track/RewardTrackPremiumConfirmationView';
@@ -169,6 +171,8 @@ export const MainView = () => {
                     {/* `RewardTrackController`'s track window and its premium confirmation: drawn only while shown. */}
                     <RewardTrackView />
                     <RewardTrackPremiumConfirmationView />
+                    {/* `HabboNuxDialogs`' new user lobby offer: drawn only while shown. */}
+                    <NoobLobbyOfferView />
                     <UserProfileComponent />
                     <CollectiblesComponent />
                     <HabbiconsComponent />
@@ -194,6 +198,10 @@ export const MainView = () => {
                     <TooltipLayer />
                 </ViewErrorBoundaries>
             </WindowLayer>
+            {/* `HabboLandingView`'s new user flow: over the whole client while it runs. */}
+            <ViewErrorBoundaries>
+                <OnboardingComponent />
+            </ViewErrorBoundaries>
         </>
     );
 };

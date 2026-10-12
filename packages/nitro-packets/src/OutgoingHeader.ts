@@ -504,6 +504,7 @@ export class OutgoingHeader {
     public static TryPhoneNumberComposer = 3079;
     public static TurboClientCapabilitiesComposer = 30000;
     public static TurboCommandSuggestComposer = 30003;
+    public static TurboStarterRoomPictureComposer = 30006;
     public static UnacceptTradingComposer = 1324;
     public static UnbanUserFromRoomComposer = 3989;
     public static UnblockGroupMemberComposer = 2564;

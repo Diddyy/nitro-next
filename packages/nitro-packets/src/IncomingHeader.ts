@@ -495,6 +495,8 @@ export class IncomingHeader {
     public static TryPhoneNumberResultMessage = 108;
     public static TryVerificationCodeResultMessage = 2956;
     public static TurboCommandSuggestionsMessage = 30004;
+    public static TurboStarterRoomCameraMessage = 30005;
+    public static TurboStarterRoomPictureResultMessage = 30007;
     public static TurboCommandTreeMessage = 30002;
     public static TurboPermissionNodesMessage = 30001;
     public static TurboServerCapabilitiesMessage = 30000;

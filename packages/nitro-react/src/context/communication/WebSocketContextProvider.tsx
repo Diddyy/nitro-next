@@ -12,6 +12,7 @@ import { GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
 import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, showConnectionClosed } from '#base/commands';
+import { onboardingStore } from '#base/context/onboarding';
 import { useCommunicationIncoming, useCommunicationOutgoing } from '#base/hooks/communication';
 
 import { useConfigValue } from '../system';
@@ -367,7 +368,12 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         registerManyIncoming(GetIncomingPackets());
         registerManyOutgoing(GetOutgoingPackets());
 
-        const unsubscribeAuth = subscribe(AuthenticationOKMessage, () => setPhase('awaitingHandlers'));
+        // `HabboCommunicationManager.suggestedLoginActions` is set from this packet, before any
+        // view's handlers are registered: the new user flow reads it when the hotel view comes up.
+        const unsubscribeAuth = subscribe(AuthenticationOKMessage, (data) => {
+            onboardingStore.getState().setLoginActions(data.suggestedLoginActions);
+            setPhase('awaitingHandlers');
+        });
         const unsubscribeDisconnect = subscribe(DisconnectReasonMessage, data => closeConnection(data.reason ?? -1, getDisconnectReasonName(data.reason ?? -1)));
 
         // IncomingMessages.onPing in the SWF replies with an empty PongMessageComposer.

@@ -4,6 +4,7 @@ import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, A
 import { clampChatFontSizeMode } from '#base/chat';
 import { openClientLink } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
+import { TURBO_STARTER_ROOMS_CAPABILITY } from '#base/context/onboarding';
 import { systemStore } from '#base/context/system';
 import { SOUND_VOLUME_SCALE, TURBO_CHAT_COMMANDS_CAPABILITY, TURBO_PERMISSION_NODES_CAPABILITY, userStore } from '#base/context/user';
 import { configReader } from '#base/utils';
@@ -39,7 +40,7 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             send(new GetUserNftChatStylesComposer({}));
             // `HabboSoundManagerFlash10.initComponent`: asks for the sound settings `AccountPreferences` answers.
             send(new GetSoundSettingsComposer({}));
-            if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 }, { name: TURBO_CHAT_COMMANDS_CAPABILITY, version: 1 } ] }));
+            if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 }, { name: TURBO_CHAT_COMMANDS_CAPABILITY, version: 1 }, { name: TURBO_STARTER_ROOMS_CAPABILITY, version: 1 } ] }));
         }),
 
         // A Turbo server that declined `permission.nodes` leaves the gates on the level.
@@ -92,6 +93,12 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             if (data.resultCode !== ChangeUserNameResultMessageCode.NameOk) return;
 
             setName(data.name, false);
+
+            // `NameChangeController.onUserNameChanged`: every name change the server confirms is
+            // announced, the new user flow's included.
+            const { getLocalizationValue, showAlert } = systemStore.getState();
+
+            showAlert(getLocalizationValue('generic.notice', 'Notice'), getLocalizationValue('help.tutorial.name.changed', 'Your Habbo name is now changed to %name%!', { name: data.name }));
         }),
 
         on(UserNameChangedMessage, (data) => {

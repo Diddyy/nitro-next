@@ -28,7 +28,7 @@ import {
 import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
 import { registerSpecialItemsHandlers } from './special-items';
 import { registerFurnitureDataHandlers, registerHotelViewHandlers } from './system';
-import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerChatCommandHandlers, registerFriendBarHandlers, registerMessengerHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
+import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerChatCommandHandlers, registerFriendBarHandlers, registerMessengerHandlers, registerOnboardingHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
 import { registerProfileHandlers } from './user-profile';
 import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
 import { bridgeWiredTradingLifecycle, registerSelfDonationHandlers, registerWiredChestHandlers, registerWiredContractHandlers, registerWiredTradeHandlers, registerWiredTransactionHandlers, registerWiredTransactionNotificationHandlers } from './wired-trading';
@@ -45,6 +45,7 @@ import { bridgeWiredTradingLifecycle, registerSelfDonationHandlers, registerWire
 export const registerHandlers = (socket: WebSocketConnection) => {
     const unsubscribes = [
         registerHotelViewHandlers(socket),
+        registerOnboardingHandlers(socket),
         registerRoomAreaHideHandlers(socket),
         registerRoomBuildersClubHandlers(socket),
         registerRoomChatHandlers(socket),

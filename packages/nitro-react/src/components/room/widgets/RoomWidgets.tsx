@@ -22,6 +22,7 @@ import { RoomInfoWidget } from './room-info/RoomInfoWidget';
 import { RoomThumbnailCameraWidget } from './room-thumbnail-camera/RoomThumbnailCameraWidget';
 import { RoomToolsWidget } from './room-tools/RoomToolsWidget';
 import { RoomSpectatorModeWidget } from './spectator/RoomSpectatorModeWidget';
+import { StarterRoomCameraWidget } from './starter-room-camera/StarterRoomCameraWidget';
 
 /**
  * Every widget mounted over the room canvas while a room is open. Each returns null until it
@@ -42,6 +43,7 @@ export const RoomWidgets = () => {
             <RoomFriendRequestWidget />
             <RoomInfoWidget />
             <RoomThumbnailCameraWidget />
+            <StarterRoomCameraWidget />
             <FloorPlanEditorWidget />
             <RoomBotSkillConfigurationWidget />
             <RoomPetBreedMenuWidget />

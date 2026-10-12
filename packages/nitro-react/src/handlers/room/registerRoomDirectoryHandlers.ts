@@ -1,6 +1,7 @@
 import { AvatarEffectSelectedComposer, CantConnectMessage, CloseConnectionMessage, FlatAccessDeniedMessage, OpenConnectionMessage, RoomReadyMessage } from '@nitrodevco/nitro-packets';
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 
+import { leaveRoomAsNewUser, onRoomSessionForNoobLobbyOffer } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
@@ -58,6 +59,8 @@ export const registerRoomDirectoryHandlers = ({ subscribe, send }: WebSocketConn
 
         systemStore.getState().setLandingViewVisible(false);
         roomStore.getState().setRoom(GetRoomEngine().createRoom(roomId));
+
+        onRoomSessionForNoobLobbyOffer(send, roomId);
     };
 
     // RSE_ENDED: resetCurrentRoom(); disposeRoom(session.roomId); the landing view comes back
@@ -74,6 +77,10 @@ export const registerRoomDirectoryHandlers = ({ subscribe, send }: WebSocketConn
 
         roomStore.getState().setRoom(undefined);
         systemStore.getState().setLandingViewVisible(true);
+
+        onRoomSessionForNoobLobbyOffer(send, undefined);
+        // A new user goes on to a lobby, or home out of one; the hotel view shows until it opens.
+        leaveRoomAsNewUser(send);
     };
 
     // Client-side session start/end requests (goToRoom, the toolbar's hotel view button).
