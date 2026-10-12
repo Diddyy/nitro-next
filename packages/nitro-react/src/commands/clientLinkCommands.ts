@@ -19,6 +19,7 @@ import { openGroupForumLink } from './groupForumCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openMessengerConversation } from './messengerCommands';
 import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './navigatorCommands';
+import { hideNoobLobbyOffer, showNoobLobbyOffer } from './nuxCommands';
 import { toggleQuests } from './questCommands';
 import { openRaidProtectionFromLink } from './raidProtectionCommands';
 import { openRewardTrackLink } from './rewardTrackCommands';
@@ -275,6 +276,15 @@ export const openClientLink = (send: Send, link: string) => {
         // `RewardTrackController.linkReceived`: reward_track/open/<track id>.
         case 'reward_track': {
             openRewardTrackLink(parts);
+
+            return;
+        }
+        // `HabboNuxDialogs.linkReceived`: nux/lobbyoffer/show, any other nux/lobbyoffer hides it.
+        case 'nux': {
+            if (parts[1] !== 'lobbyoffer') break;
+
+            if (parts[2] === 'show') showNoobLobbyOffer(send);
+            else hideNoobLobbyOffer();
 
             return;
         }

@@ -48,6 +48,7 @@ export * from './messengerCommands';
 export * from './navigatorCommands';
 export * from './newFeatureNotificationCommands';
 export * from './notificationCommands';
+export * from './nuxCommands';
 export * from './offerCenterCommands';
 export * from './onboardingCommands';
 export * from './purchasableClothingCommands';

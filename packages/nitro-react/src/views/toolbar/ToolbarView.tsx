@@ -30,7 +30,7 @@
  * (`createTransitionToIcon`), and what bounces as one lands: `Queue(Wait(duration + 8),
  * DropBounce(icon, 400, 12))` lifts it 12 px and lets it fall back with a bounce.
  */
-import { CatalogTypeEnum, RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
+import { CatalogTypeEnum, NoobnessLevelEnum, RoomDoorModeEnum, RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { QuitComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Ticker } from 'pixi.js';
@@ -43,13 +43,15 @@ import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/dail
 import { useGroupStore } from '#base/context/groups';
 import { useInventoryStore, useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
+import { useNavigatorStore } from '#base/context/navigator';
 import { getRewardTrackClaimableCount, useRewardTrackStore } from '#base/context/reward-track';
 import { useOwnRoomObjectId } from '#base/context/room';
 import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
-import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId } from '#base/context/user';
+import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId, useUserStore } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useRoomObjectSelect, useTween, useViewportSize } from '#base/hooks';
 import { Box, Region, Template, TemplateBindings, TemplateElement, TemplateWindow, TemplateWindows, useLayoutEvent, useTemplate } from '#base/theme';
+import { configReader } from '#base/utils';
 import { FriendBarView } from '#base/views/friend-bar/FriendBarView';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
 
@@ -196,6 +198,11 @@ export const ToolbarView = () => {
     const showWiredMenuButton = useWiredShowToolbarMenuButton();
     const cameraLaunchPosition = useConfigValue<string>('camera.launch.ui.position');
     const cameraAllowed = useOwnPerkAllowed(PerkCodes.Camera);
+    // `RoomUI.defineToolbarState`: a new user in a new user lobby gets its `VISIBLE_NOOB` icons.
+    const lobbiesEnabled = useSystemStore(x => configReader(x.config).configBoolean('nux.lobbies.enabled'));
+    const realNoob = useUserStore(x => Number(x.noobnessLevel) === Number(NoobnessLevelEnum.RealNoob));
+    const inNoobRoom = useNavigatorStore(x => Number(x.enteredRoom?.info.doorMode) === Number(RoomDoorModeEnum.NoobLobby));
+    const roomState = (lobbiesEnabled && realNoob && inNoobRoom) ? 'VISIBLE_NOOB' : 'VISIBLE_ROOM';
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const inventoryLastPage = useInventoryStore(x => x.lastPage);
@@ -226,7 +233,7 @@ export const ToolbarView = () => {
 
     /** `setToolbarState` then `checkSize`, for the expanded or the collapsed bar. */
     const layoutOf = (isCollapsed: boolean, toggles: ToolbarToggle[]): ToolbarLayout => {
-        const state = isCollapsed ? 'VISIBLE_COLLAPSED' : (inRoom ? 'VISIBLE_ROOM' : 'VISIBLE_HOTEL');
+        const state = isCollapsed ? 'VISIBLE_COLLAPSED' : (inRoom ? roomState : 'VISIBLE_HOTEL');
         const shows = ({ name, tags }: ToolbarToggle) => {
             if (!tags.includes(state)) return false;
 

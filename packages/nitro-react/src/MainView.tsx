@@ -39,6 +39,7 @@ import { NotificationPopupsView } from './views/notifications/NotificationPopups
 import { NotificationsExtensionAnchor } from './views/notifications/NotificationsExtensionAnchor';
 import { NotificationsView } from './views/notifications/NotificationsView';
 import { SafetyLockedNotificationView } from './views/notifications/SafetyLockedNotificationView';
+import { NoobLobbyOfferView } from './views/onboarding/NoobLobbyOfferView';
 import { ActivityPointsView } from './views/purse/ActivityPointsView';
 import { PurseTemplateView } from './views/purse/PurseTemplateView';
 import { RewardTrackPremiumConfirmationView } from './views/reward-track/RewardTrackPremiumConfirmationView';
@@ -170,6 +171,8 @@ export const MainView = () => {
                     {/* `RewardTrackController`'s track window and its premium confirmation: drawn only while shown. */}
                     <RewardTrackView />
                     <RewardTrackPremiumConfirmationView />
+                    {/* `HabboNuxDialogs`' new user lobby offer: drawn only while shown. */}
+                    <NoobLobbyOfferView />
                     <UserProfileComponent />
                     <CollectiblesComponent />
                     <HabbiconsComponent />

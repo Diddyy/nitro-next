@@ -14,6 +14,8 @@
  *   - the figure data has to be there for its grid - and kept while the flow runs.
  * - `starterRoomCamera`: not Flash's - Turbo's starter room camera (`starter.rooms`), opened by the
  *   server for the room the user is in, while it is up.
+ * - `noobLobbyOffer` (`nux/HabboNuxDialogs`' `NuxNoobRoomOfferView`): "Enter a room to meet other new
+ *   users", up while it is shown.
  */
 import { createStore } from 'zustand';
 
@@ -46,6 +48,7 @@ type State = {
     nameCheck: OnboardingNameCheck | undefined;
     editor: OnboardingEditorState | undefined;
     starterRoomCamera: StarterRoomCamera | undefined;
+    noobLobbyOffer: boolean;
 };
 
 type Actions = {
@@ -63,6 +66,8 @@ type Actions = {
     openStarterRoomCamera: (roomId: number) => void;
     setStarterRoomCameraStatus: (status: StarterRoomCamera['status']) => void;
     closeStarterRoomCamera: () => void;
+    /** `createNoobRoomOfferView` / `destroyNoobRoomOfferView`. */
+    setNoobLobbyOffer: (noobLobbyOffer: boolean) => void;
     /** `onNewUserReceptionFinished`: the flow is done for this session. */
     finish: () => void;
 };
@@ -76,6 +81,7 @@ const INITIAL: State = {
     nameCheck: undefined,
     editor: undefined,
     starterRoomCamera: undefined,
+    noobLobbyOffer: false,
 };
 
 export const createOnboardingStore = () => createStore<OnboardingStore>()(set => ({
@@ -83,6 +89,7 @@ export const createOnboardingStore = () => createStore<OnboardingStore>()(set =>
     setLoginActions: loginActions => set({
         ...INITIAL,
         starterRoomCamera: undefined,
+        noobLobbyOffer: false,
         loginActions,
         step: loginActions.includes(ONBOARDING_ACTION_NAME_CHANGE) ? 'name' : 'room',
     }),
@@ -97,6 +104,7 @@ export const createOnboardingStore = () => createStore<OnboardingStore>()(set =>
     openStarterRoomCamera: roomId => set({ starterRoomCamera: { roomId, status: 'open' } }),
     setStarterRoomCameraStatus: status => set(x => (x.starterRoomCamera ? { starterRoomCamera: { ...x.starterRoomCamera, status } } : x)),
     closeStarterRoomCamera: () => set({ starterRoomCamera: undefined }),
+    setNoobLobbyOffer: noobLobbyOffer => set({ noobLobbyOffer }),
 }));
 
 export const onboardingStore = createOnboardingStore();

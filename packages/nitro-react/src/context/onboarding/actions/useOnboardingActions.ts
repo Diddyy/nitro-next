@@ -17,6 +17,7 @@ const actions = {
     selectColor: state.selectColor,
     setStarterRoomCameraStatus: state.setStarterRoomCameraStatus,
     closeStarterRoomCamera: state.closeStarterRoomCamera,
+    setNoobLobbyOffer: state.setNoobLobbyOffer,
 };
 
 export const useOnboardingActions = () => actions;

@@ -312,6 +312,8 @@
     "notifications.new_feature.type.mega_update": "countdown",
     "notifications.new_feature.type.rewardtrack_intro": "promo",
     "notifications.new_feature.type.wf15": "promo",
+    "nux.lobbies.enabled": false,
+    "nux.noob.lobby.popup.delay": 90,
     "offers.enabled": true,
     "offers.habboclub.enabled": true,
     "offers.sponsorpay.appid": "",
