@@ -95,7 +95,14 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
         // `HabboFreeFlowChat.onRoomEnter` / `onGuestRoomData`: the first room data after an entry is the history's room change line.
         on(RoomEntryInfoMessage, () => chatHistoryStore.getState().resetRoomChange()),
 
-        on(GetGuestRoomResultMessage, data => chatHistoryStore.getState().insertRoomChange(data.roomInfo.name)),
+        // `HabboFreeFlowChat.onGuestRoomData`: the room change goes in the history, and the room's
+        // chat settings come with the entry answer - Habbo sends no RoomChatSettings on entering
+        // (only the entry answer: the same message answers room info for other rooms).
+        on(GetGuestRoomResultMessage, (data) => {
+            chatHistoryStore.getState().insertRoomChange(data.roomInfo.name);
+
+            if (data.chat && data.enterRoom) setChatSettings(data.chat);
+        }),
 
         on(CloseConnectionMessage, () => chatHistoryStore.getState().reset()),
 
