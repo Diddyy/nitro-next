@@ -16,6 +16,7 @@
  */
 import { CheckUserNameResultMessage, SelectInitialRoomMessage, TurboStarterRoomCameraMessage, TurboStarterRoomPictureResultMessage, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
 
+import { onNameChangeChecked } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { onboardingStore } from '#base/context/onboarding';
 
@@ -25,7 +26,11 @@ export const registerOnboardingHandlers = ({ send, subscribe }: WebSocketConnect
     const { setNameCheck, finish, openStarterRoomCamera, setStarterRoomCameraStatus, closeStarterRoomCamera } = onboardingStore.getState();
 
     return subscribeAll(subscribe, [
-        on(CheckUserNameResultMessage, data => setNameCheck({ resultCode: data.resultCode, name: data.name })),
+        on(CheckUserNameResultMessage, (data) => {
+            setNameCheck({ resultCode: data.resultCode, name: data.name });
+            // The own avatar menu's name change, when it is open (`NameChangeController.onCheckUserNameResult`).
+            onNameChangeChecked(data.resultCode, data.name, data.nameSuggestions);
+        }),
 
         on(SelectInitialRoomMessage, (data) => {
             if (data.roomId > 0) send(new UpdateHomeRoomComposer({ roomId: data.roomId }));

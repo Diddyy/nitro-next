@@ -21,9 +21,15 @@
  *
  * Any other tag is dropped and its content kept: `<span>`, `<textformat>`, `<li>`. A `<` that
  * does not open a tag (`<3`) stays text. `<p align>` is not carried: the block has one alignment.
+ *
+ * With a `styleSheet` (`TextField.styleSheet`) a tag's selector and its `class` attribute's selector
+ * format the text inside it (`<h1>`, `<a>`, `<p class="bullet-item">`), and the headings `<h1>` to
+ * `<h6>` are paragraphs as `<p>` is - inferred from the HTML defaults: a habbo page's headings stand
+ * on lines of their own.
  */
 import { FlashTextRun } from './flashTextBlock';
 import { FlashTextFormat } from './flashTextFormat';
+import { FlashTextStyleSheet } from './flashTextStyleSheet';
 
 const TOKEN = /<(\/?)(b|strong|i|em|u|font)\b([^>]*)>|<br\s*\/?>|<(\/?)([a-z][a-z0-9]*)\b[^>]*>|[^<]+|</gi;
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: '\'', nbsp: ' ' };
@@ -54,7 +60,20 @@ export interface FlashTextLink {
 export interface FlashTextMarkupOptions {
     /** The format a `<font face="...">` switches to; the face is ignored when this is absent or returns nothing. */
     resolveFace?: (face: string) => Partial<FlashTextFormat> | undefined;
+    /** The field's style sheet (`parseFlashStyleSheet`): what its tag and class selectors format. */
+    styleSheet?: FlashTextStyleSheet;
 }
+
+const HEADING_TAGS = new Set([ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ]);
+
+/** The format a style sheet gives an element: its tag's selector, then its class's over it. */
+const styleOf = (styleSheet: FlashTextStyleSheet, tag: string, token: string): Partial<FlashTextFormat> | undefined => {
+    const className = attribute(token, 'class')?.trim().toLowerCase();
+    const byTag = styleSheet[tag];
+    const byClass = className ? styleSheet[`.${className}`] : undefined;
+
+    return (byTag || byClass) ? { ...byTag, ...byClass } : undefined;
+};
 
 /** Splits `markup` into runs and its links; an unknown tag's text is kept, the tag itself dropped. */
 export const parseFlashTextMarkupWithLinks = (markup: string, baseFormat: FlashTextFormat, options: FlashTextMarkupOptions = {}): { runs: FlashTextRun[]; links: FlashTextLink[] } => {
@@ -63,6 +82,9 @@ export const parseFlashTextMarkupWithLinks = (markup: string, baseFormat: FlashT
     const stack: FlashTextFormat[] = [ baseFormat ];
     /** The `<a>` elements open around the text being read, innermost last. */
     const openLinks: FlashTextLink[] = [];
+    /** The elements the style sheet formats, open around the text being read: each one's tag and the `stack` depth it pushed from. */
+    const openStyled: { tag: string; depth: number }[] = [];
+    const { styleSheet } = options;
     let length = 0;
     let hasText = false;
     let paragraphEnded = false;
@@ -95,7 +117,22 @@ export const parseFlashTextMarkupWithLinks = (markup: string, baseFormat: FlashT
         const [ token, closing, tag, attributes, otherClosing, otherTag ] = match;
 
         if (otherTag) {
-            if (otherTag.toLowerCase() === 'a') {
+            const otherName = otherTag.toLowerCase();
+
+            if (styleSheet) {
+                if (!otherClosing) {
+                    const style = styleOf(styleSheet, otherName, token);
+
+                    if (style) {
+                        openStyled.push({ tag: otherName, depth: stack.length });
+                        stack.push({ ...stack[stack.length - 1], ...style });
+                    }
+                } else if (openStyled[openStyled.length - 1]?.tag === otherName) {
+                    stack.length = openStyled.pop()!.depth;
+                }
+            }
+
+            if (otherName === 'a') {
                 if (!otherClosing) {
                     openLinks.push({ href: decodeEntities(attribute(token, 'href') ?? ''), start: length, end: length });
                 } else {
@@ -111,7 +148,7 @@ export const parseFlashTextMarkupWithLinks = (markup: string, baseFormat: FlashT
                 continue;
             }
 
-            if (otherTag.toLowerCase() === 'p') {
+            if ((otherName === 'p') || (styleSheet && HEADING_TAGS.has(otherName))) {
                 if (otherClosing) paragraphEnded = hasText;
                 else if (hasText && !paragraphEnded && !runs[runs.length - 1]?.text.endsWith('\n')) paragraphEnded = true;
             }

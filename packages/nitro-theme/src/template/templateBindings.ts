@@ -6,7 +6,7 @@
 import type { FederatedPointerEvent } from 'pixi.js';
 import type { ReactNode } from 'react';
 
-import type { EtchingPosition } from '../font/flash-text';
+import type { EtchingPosition, FlashTextStyleSheet } from '../font/flash-text';
 import type { PivotPoint } from '../utils/flashBitmap';
 import type { Template, TemplateElement } from './templateData';
 import type { LayoutWindow, TemplateRect } from './templateLayout';
@@ -41,6 +41,12 @@ export interface TemplateBinding {
      * `<br>`) whatever the window's type, and never read as a text key.
      */
     htmlText?: string;
+    /**
+     * A markup text's `ITextWindow.styleSheet` (`parseFlashStyleSheet`): the format its tag and class
+     * selectors give the `htmlText` - the habbo pages viewer's `content`. Kept the same object while it
+     * does not change.
+     */
+    styleSheet?: FlashTextStyleSheet;
     /**
      * The window is built with its layout caption and `caption` set once it is built, as code that
      * finds the text after `buildFromXML` does (`InventoryMainView.updateCounter`'s `count`): the
@@ -306,14 +312,20 @@ const findTemplateChildWhere = (children: readonly TemplateElement[], test: (chi
 /**
  * A binding key's element: each `/`-separated name looked up inside the last one's children - a
  * `#TAG` part by its tag (`findChildByTag`), an `@N` part as the N-th child of the last one
- * (`IItemListWindow.getListItemAt(N)`, for the unnamed items a controller reaches by position);
- * `''` the first root.
+ * (`IItemListWindow.getListItemAt(N)`, for the unnamed items a controller reaches by position) - a
+ * leading `@N` the first root's N-th child (`_window.content.getChildAt(N)`); `''` the first root.
  */
 const findByKey = (elements: readonly TemplateElement[], key: string): TemplateElement | undefined => {
     if (key === '') return elements[0];
 
     let scope: readonly TemplateElement[] = elements;
     let found: TemplateElement | undefined;
+
+    // A leading `@N` counts in the window itself, the first root.
+    if (key.startsWith('@')) {
+        found = elements[0];
+        scope = found?.children ?? [];
+    }
 
     for (const name of key.split('/')) {
         if (name.startsWith('#')) found = findTemplateChildByTag(scope, name.slice(1)) ?? findTemplateChildByTag(scope, name);
@@ -529,6 +541,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
     return a.visible === b.visible
         && a.caption === b.caption
         && a.htmlText === b.htmlText
+        && a.styleSheet === b.styleSheet
         && a.setCaptionAfterBuild === b.setCaptionAfterBuild
         && a.tooltip === b.tooltip
         && a.tooltipDelay === b.tooltipDelay

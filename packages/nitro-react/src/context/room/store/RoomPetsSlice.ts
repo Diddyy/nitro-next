@@ -2,6 +2,12 @@ import { IBreedingPetInfo, IPetBreedingResultData, IRarityCategoryData, PetInfoM
 import { StateCreator } from 'zustand';
 
 /** The bubbles offering to breed your monsterplant with each partner it could - one per partner, over that partner. */
+/** `CommandConfiguration`: the pet's commands (`allCommandIds`) and the ones it can do (`isEnabled`). */
+export interface PetCommandSet {
+    all: number[];
+    enabled: number[];
+}
+
 export interface PetBreedMenu {
     petObjectId: number;
     partnerObjectIds: number[];
@@ -51,8 +57,8 @@ type State = {
      * than part of the room's user data.
      */
     petsById: Record<number, PetInfoMessageType>;
-    /** The commands each pet has learned, keyed the same way. */
-    petCommandsById: Record<number, number[]>;
+    /** Each pet's commands (`CommandConfiguration`): all it has, and those it has learned - keyed the same way. */
+    petCommandsById: Record<number, PetCommandSet>;
     breedMenu: PetBreedMenu | undefined;
     plantBreeding: PlantBreedingRequest | undefined;
     /**
@@ -69,7 +75,7 @@ type Actions = {
     setPetInfo: (info: PetInfoMessageType) => void;
     /** Merges a later update into a pet already known; a pet we never asked about is ignored. */
     updatePetInfo: (petId: number, changes: Partial<PetInfoMessageType>) => void;
-    setPetCommands: (petId: number, commands: number[]) => void;
+    setPetCommands: (petId: number, commands: PetCommandSet) => void;
     setBreedMenu: (breedMenu: PetBreedMenu | undefined) => void;
     setPlantBreeding: (plantBreeding: PlantBreedingRequest | undefined) => void;
     /** Closes the plant dialog, but only the one about these two plants. */

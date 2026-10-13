@@ -6,7 +6,7 @@
  */
 import { NativeRenderResult } from './air32/types';
 import { FlashTextFormat, normalizeFlashTextFormat } from './flashTextFormat';
-import { FlashTextRenderer } from './FlashTextRenderer';
+import { FlashTextMetrics, FlashTextRenderer } from './FlashTextRenderer';
 
 /** The index of the next line break (`\n` or `\r`) from `from`, or -1. */
 const nextLineBreak = (text: string, from: number): number => {
@@ -77,6 +77,12 @@ export interface FlashTextBlock {
     /** The laid-out lines, and how far each one is shifted right inside the gutters by `align` - what a hit test reads. */
     lineLayout: FlashTextLine[];
     lineOffsets: number[];
+    /**
+     * Where each line starts below the top gutter, when the lines are not all `lineHeight` apart: a line
+     * whose runs have other metrics than the first run's (`<font size>`, a style sheet's `<h1>`) is as tall
+     * as its own runs make it. Absent when every line is `lineHeight` tall.
+     */
+    lineTops?: number[];
 }
 
 /** The width of `text` in `format`, or `null` when it cannot be measured. */
@@ -282,9 +288,70 @@ const blitPremultiplied = (source: Uint8ClampedArray, sourceWidth: number, sourc
     }
 };
 
+type RenderedLine = { segment: FlashTextSegment; rendered: NativeRenderResult }[];
+
+/** A line's metrics: its tallest runs' ascent and descent, and its baseline below its top. */
+const lineMetricsOf = (line: FlashTextLine, block: FlashTextMetrics): { ascent: number; descent: number; baseline: number } => {
+    const segments = line.segments.filter(segment => segment.text.length && (segment.text !== FLASH_TEXT_TAB));
+    const all = segments.map(segment => FlashTextRenderer.metrics(segment.format) ?? block);
+
+    if (!all.length) return block;
+
+    return { ascent: Math.max(...all.map(x => x.ascent)), descent: Math.max(...all.map(x => x.descent)), baseline: Math.max(...all.map(x => x.baseline)) };
+};
+
+/**
+ * `TextField`'s lines, each as tall as its own runs (ascent + descent + leading), when one has other
+ * metrics than the block's first run: where each starts. `undefined` when every line has the first run's
+ * metrics, which lays the lines `lineHeight` apart as before.
+ */
+const mixedLineTops = (lines: FlashTextLine[], block: FlashTextMetrics, leading: number): number[] | undefined => {
+    const all = lines.map(line => lineMetricsOf(line, block));
+    const advance = (x: { ascent: number; descent: number }) => Math.round(x.ascent + x.descent + leading);
+    const blockAdvance = advance(block);
+
+    // Compared as drawn - whole-pixel advances and baselines - so a bold run's fraction of a pixel less descent changes nothing.
+    if (all.every(x => (advance(x) === blockAdvance) && (Math.round(x.baseline) === Math.round(block.baseline)))) return undefined;
+
+    const tops: number[] = [];
+    let top = 0;
+
+    for (const x of all) {
+        tops.push(top);
+        top += advance(x);
+    }
+
+    return tops;
+};
+
+/** `renderTextBlock` for lines of different heights (`mixedLineTops`): every run of a line on the line's baseline. */
+const renderMixedLines = (lines: FlashTextLine[], renderedLines: RenderedLine[], lineTops: number[], { width, metrics, leading, align, lineHeight, textWidth, gutter }: { width: number; metrics: FlashTextMetrics; leading: number; align: 'left' | 'center' | 'right'; lineHeight: number; textWidth: number; gutter: number }): FlashTextBlock => {
+    const all = lines.map(line => lineMetricsOf(line, metrics));
+    const last = all.length - 1;
+    const textHeight = lineTops[last] + Math.round(all[last].ascent + all[last].descent + leading);
+    const height = Math.max(1, lineTops[last] + Math.ceil(all[last].ascent + all[last].descent) + gutter * 2);
+    const pixels = new Uint8ClampedArray(width * height * 4);
+    const innerWidth = width - gutter * 2;
+    const lineOffsets = lines.map(line => ((align === 'center') ? Math.floor((innerWidth - line.width) / 2) : (align === 'right') ? Math.floor(innerWidth - line.width) : 0));
+
+    renderedLines.forEach((renderedSegments, lineIndex) => {
+        const lineX = lineOffsets[lineIndex];
+
+        for (const { segment, rendered } of renderedSegments) {
+            const own = FlashTextRenderer.metrics(segment.format) ?? metrics;
+            const y = lineTops[lineIndex] + Math.round(all[lineIndex].baseline - own.baseline);
+
+            if (rendered.retainedPixels) blitPremultiplied(rendered.retainedPixels, rendered.width, rendered.height, pixels, width, height, lineX + Math.round(segment.x), y);
+        }
+    });
+
+    return { width, height, pixels, lines: lines.map(line => line.text), lineHeight, baseline: metrics.baseline + gutter, textWidth, textHeight, gutter, lineLayout: lines, lineOffsets, lineTops };
+};
+
 /**
  * Renders plain text, or rich text as runs, into one bitmap. The first run's format (or
- * `format` for plain text) decides the block's line height and baseline. Returns `null` when
+ * `format` for plain text) decides the block's line height and baseline; a line whose runs have other
+ * metrics is as tall as they make it (`mixedLineTops`). Returns `null` when
  * the exact renderer cannot take the text - an uncaptured glyph, a fractional size, letter
  * spacing - and the caller falls back to the browser's own text.
  */
@@ -303,7 +370,7 @@ export const renderTextBlock = (content: string | readonly FlashTextRun[], forma
     const gutter = FLASH_TEXT_GUTTER;
     const lineHeight = options.lineHeight ?? Math.round(metrics.ascent + metrics.descent + (runs[0]?.format ?? blockFormat).leading);
     const textWidth = Math.max(0, ...lines.map(line => line.width));
-    const renderedLines: { segment: FlashTextSegment; rendered: NativeRenderResult }[][] = [];
+    const renderedLines: RenderedLine[] = [];
     let inkWidth = 0;
 
     for (const line of lines) {
@@ -325,6 +392,11 @@ export const renderTextBlock = (content: string | readonly FlashTextRun[], forma
     }
 
     const width = Math.max(1, Math.ceil(options.width ?? Math.max(textWidth + gutter * 2, inkWidth)));
+    const leading = (runs[0]?.format ?? blockFormat).leading;
+    const lineTops = (options.lineHeight === undefined) ? mixedLineTops(lines, metrics, leading) : undefined;
+
+    if (lineTops) return renderMixedLines(lines, renderedLines, lineTops, { width, metrics, leading, align, lineHeight, textWidth, gutter });
+
     const height = Math.max(1, (lines.length - 1) * lineHeight + Math.ceil(metrics.ascent + metrics.descent) + gutter * 2);
     const pixels = new Uint8ClampedArray(width * height * 4);
     const innerWidth = width - gutter * 2;

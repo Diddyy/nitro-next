@@ -12,10 +12,11 @@ import { FlashTextRenderer } from './FlashTextRenderer';
  * point - its line's band, its advance across - or -1 when the point is on none (the gutter, past
  * a line's end, below the last line).
  */
-export const flashTextCharIndexAtPoint = ({ lineLayout, lineOffsets, lineHeight, gutter }: FlashTextCanvas, x: number, y: number): number => {
-    if (y < gutter || lineHeight <= 0) return -1;
+export const flashTextCharIndexAtPoint = ({ lineLayout, lineOffsets, lineHeight, lineTops, textHeight, gutter }: FlashTextCanvas, x: number, y: number): number => {
+    if (y < gutter || lineHeight <= 0 || (lineTops && ((y - gutter) >= textHeight))) return -1;
 
-    const lineIndex = Math.floor((y - gutter) / lineHeight);
+    // Lines of their own heights: the last one starting at or above the point.
+    const lineIndex = lineTops ? lineTops.findLastIndex(top => top <= (y - gutter)) : Math.floor((y - gutter) / lineHeight);
     const line = lineLayout[lineIndex];
 
     if (!line) return -1;

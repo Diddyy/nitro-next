@@ -1654,8 +1654,12 @@ const ITEM_LIST_TAGS = new Set([ 'itemlist', 'itemlist_vertical', 'itemlist_hori
 /** Every `IScrollableWindow`: the item lists and grids, the scrollable lists, and the texts (`ITextWindow`). */
 const SCROLLABLE_WINDOW_TAGS = new Set([ ...ITEM_LIST_TAGS, ...SCROLLABLE_TAGS, 'text', 'input', 'html', 'formatted_text' ]);
 
-/** The texts a layout's own scrollbar scrolls: a text field, which scrolls its own text (`TextInput`'s `scroll`). */
-const SCROLLED_TEXT_TAGS = new Set([ 'input' ]);
+/**
+ * The texts a layout's own scrollbar scrolls: a text field, which scrolls its own text (`TextInput`'s
+ * `scroll`), and an `html` text (`HTMLTextController`: the habbo pages viewer's `content`), drawn as a
+ * viewport over its whole text.
+ */
+const SCROLLED_TEXT_TAGS = new Set([ 'input', 'html' ]);
 
 /** A layout's own scrollbars (`ScrollBarController`). */
 export const TEMPLATE_SCROLLBAR_TAGS: Readonly<Record<string, 'vertical' | 'horizontal'>> = {
@@ -1667,8 +1671,8 @@ export const TEMPLATE_SCROLLBAR_TAGS: Readonly<Record<string, 'vertical' | 'hori
  * Each standalone scrollbar's target, as `ScrollBarController.resolveScrollTarget` finds it: the window
  * its `scrollable` var names - an ancestor of that name, else one under its parent
  * (`findChildByName`) - else its parent, when that scrolls, else the parent's first child that does.
- * An item list or grid, or a text field (`input`: `TextController` is an `IScrollableWindow`), is kept
- * as a target; a text that is not a field is not scrolled yet, and its scrollbar is linked to nothing.
+ * An item list or grid, a text field (`input`: `TextController` is an `IScrollableWindow`) or an `html`
+ * text is kept as a target; any other text is not scrolled yet, and its scrollbar is linked to nothing.
  */
 export const linkTemplateScrollbars = (elements: readonly TemplateElement[]): Map<TemplateElement, TemplateElement> => {
     const links = new Map<TemplateElement, TemplateElement>();

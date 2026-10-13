@@ -999,6 +999,7 @@ export * from './outgoing/FriendList/HabboSearchComposer';
 export * from './outgoing/FriendList/MessengerInitComposer';
 export * from './outgoing/FriendList/RemoveFriendComposer';
 export * from './outgoing/FriendList/RequestFriendComposer';
+export * from './outgoing/FriendList/SendHabbiconComposer';
 export * from './outgoing/FriendList/SendMsgComposer';
 export * from './outgoing/FriendList/SendRoomInviteComposer';
 export * from './outgoing/FriendList/SetRelationshipStatusComposer';

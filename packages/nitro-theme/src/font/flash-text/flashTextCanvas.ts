@@ -33,6 +33,8 @@ export interface FlashTextCanvas {
     /** The block's lines and their `align` shifts, in the canvas's own space - see `flashTextCharIndexAtPoint`. */
     lineLayout: FlashTextLine[];
     lineOffsets: number[];
+    /** Where each line starts when the lines are not all `lineHeight` tall - see `FlashTextBlock.lineTops`. */
+    lineTops?: number[];
     /** The `<a href>` ranges of a markup text (`parseFlashTextMarkupWithLinks`), for `flashTextLinkAtPoint`. */
     links?: FlashTextLink[];
 }
@@ -100,5 +102,5 @@ export const renderFlashTextCanvas = (content: string | readonly FlashTextRun[],
     FlashTextRenderer.unpremultiply(pixels);
     context.putImageData(new ImageData(pixels, width, height), 0, 0);
 
-    return { canvas, width, height, textWidth: block.textWidth, textHeight: block.textHeight, lineHeight: block.lineHeight, baseline: block.baseline, gutter: block.gutter, lineLayout: block.lineLayout, lineOffsets: block.lineOffsets };
+    return { canvas, width, height, textWidth: block.textWidth, textHeight: block.textHeight, lineHeight: block.lineHeight, baseline: block.baseline, gutter: block.gutter, lineLayout: block.lineLayout, lineOffsets: block.lineOffsets, ...(block.lineTops ? { lineTops: block.lineTops } : {}) };
 };

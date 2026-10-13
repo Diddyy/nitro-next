@@ -119,6 +119,18 @@ export type WindowRegistry = {
 
     /** The collectibles hub (`CollectiblesView`), from the me menu or a `collectibles/open` link. */
     collectibles: NoWindowParams;
+
+    /**
+     * The habbo pages viewer (`HabboPagesViewer`) with the last page downloaded - see `openHabboPage`;
+     * `download` counts the downloads, each one scrolling the page back to its top.
+     */
+    habbo_pages: { caption?: string; html?: string; download?: number };
+
+    /** The pet training window (`PetCommandTool`) on a pet, from its owner's menu (`openTrainingView`). */
+    pet_training: { petId?: number; objectId?: number };
+
+    /** The own avatar menu's name change (`NameChangeView`) - see `nameChangeCommands`. */
+    name_change: NoWindowParams;
 };
 
 export type NoWindowParams = Record<string, unknown>;

@@ -33,6 +33,8 @@ import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/Targ
 import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
 import { GroupForumDialogs } from './views/group-forums/GroupForumDialogs';
 import { GroupForumView } from './views/group-forums/GroupForumView';
+import { HabboPagesView } from './views/habbo-pages/HabboPagesView';
+import { NameChangeView } from './views/help/NameChangeView';
 import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
 import { NewFeatureNotificationsView } from './views/notifications/NewFeatureNotificationView';
@@ -49,9 +51,11 @@ import { CameraPhotoLabView } from './views/room-widgets/camera/CameraPhotoLabVi
 import { CameraView } from './views/room-widgets/camera/CameraView';
 import { PhotoPurchaseConfirmationView } from './views/room-widgets/camera/PhotoPurchaseConfirmationView';
 import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInputView';
+import { PetTrainingView } from './views/room-widgets/pet-training/PetTrainingView';
 import { SystemDialogsView } from './views/system/SystemDialogsView';
 import { TemplatePreviewView } from './views/system/TemplatePreviewView';
 import { ViewErrorBoundaries } from './views/system/ViewErrorBoundary';
+import { ClubDiscountPromoView } from './views/toolbar/ClubDiscountPromoView';
 import { ToolbarTransitionsView } from './views/toolbar/ToolbarTransitionsView';
 import { ToolbarView } from './views/toolbar/ToolbarView';
 
@@ -116,6 +120,8 @@ export const MainView = () => {
                         }}
                         >
                             <ActivityPointsView />
+                            {/* `club_promo` (priority 10) docks above the targeted offer (13). */}
+                            <ClubDiscountPromoView />
                             <TargetedOfferMinimizedView />
                             {/* `SingularNotificationController`'s extensions, docked at the end of the column. */}
                             <SafetyLockedNotificationView />
@@ -175,6 +181,12 @@ export const MainView = () => {
                     <RewardTrackPremiumConfirmationView />
                     {/* `HabboNuxDialogs`' new user lobby offer: drawn only while shown. */}
                     <NoobLobbyOfferView />
+                    {/* `HabboPagesViewer`: drawn only while shown. */}
+                    <HabboPagesView />
+                    {/* `PetCommandTool`: drawn only while shown. */}
+                    <PetTrainingView />
+                    {/* `NameChangeView`: drawn only while shown. */}
+                    <NameChangeView />
                     <UserProfileComponent />
                     <CollectiblesComponent />
                     <HabbiconsComponent />

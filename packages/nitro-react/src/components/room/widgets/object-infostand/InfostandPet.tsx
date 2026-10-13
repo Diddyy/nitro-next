@@ -72,6 +72,7 @@ export const InfostandPet = ({ objectData, onClose }: { objectData: ISimpleRoomO
             // `RWUAM_PICKUP_PET`: `RoomSession.pickUpPet`.
             onPickUp={() => send(new RemovePetFromFlatComposer({ petId }))}
             onBuyFood={() => showWindow('catalog', { pageName: 'pet_accessories' })}
+            onTrain={() => showWindow('pet_training', { petId, objectId })}
             // `RWUAM_TREAT_PET`: a respect, which spends none of the viewer's.
             onTreat={() => send(new RespectPetComposer({ petId }))}
             onMove={() => modifyRoomObject(objectId, RoomObjectCategoryEnum.Unit, RoomObjectOperationType.OBJECT_MOVE)}
