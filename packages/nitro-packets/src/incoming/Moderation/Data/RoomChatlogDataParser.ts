@@ -1,7 +1,8 @@
 // Body filled by hand from D:\Habbo\packet-tool\out - the generator has no preserve step, so re-apply after a regeneration.
-import { IMessageDataWrapper, ParseArray } from '@nitrodevco/nitro-api';
+import { IMessageDataWrapper } from '@nitrodevco/nitro-api';
 
 import { CfhChatlogDataDqParser } from './CfhChatlogDataDqParser';
+import { ICfhChatlogDataDq } from './ICfhChatlogDataDq';
 import { IRoomChatlogData } from './IRoomChatlogData';
 
 export const RoomChatlogDataParser = (wrapper: IMessageDataWrapper): IRoomChatlogData => {
@@ -26,6 +27,9 @@ export const RoomChatlogDataParser = (wrapper: IMessageDataWrapper): IRoomChatlo
                 throw new Error(`Unknown data type ${dataType}`);
         }
     }
-    const chatlog = ParseArray(wrapper, CfhChatlogDataDqParser);
+    // The line count is a short (`_-g1M.as:54`), not ParseArray's int.
+    const chatlog: ICfhChatlogDataDq[] = [];
+
+    for (let lines = wrapper.readShort(); lines > 0; lines--) chatlog.push(CfhChatlogDataDqParser(wrapper));
     return { recordType, context, chatlog };
 };

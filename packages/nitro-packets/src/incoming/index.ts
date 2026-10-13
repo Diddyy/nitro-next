@@ -390,6 +390,7 @@ export * from './Moderation/Data/IModeratorRoomInfoRoom';
 export * from './Moderation/Data/IRoomChatlogData';
 export * from './Moderation/Data/IRoomVisitsData';
 export * from './Moderation/Data/IRoomVisitsDatad';
+export * from './Moderation/Data/IssueMessageDataParser';
 export * from './Moderation/Data/IUserChatlogData';
 export * from './Moderation/Data/ModeratorRoomInfoDataParser';
 export * from './Moderation/Data/ModeratorRoomInfoRoomParser';

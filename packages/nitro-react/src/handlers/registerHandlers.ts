@@ -10,6 +10,7 @@ import { registerBadgeLeaderboardHandlers, registerGroupForumHandlers, registerG
 import { registerHabbiconHandlers } from './habbicons';
 import { registerHelpHandlers } from './help';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
+import { registerModerationHandlers } from './moderation';
 import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomQueueHandlers } from './navigator';
 import { registerAlertDialogHandlers, registerNotificationHandlers, registerSingularNotificationHandlers } from './notifications';
 import { bridgeOfferCenter, registerOfferCenterHandlers } from './offer-center';
@@ -171,6 +172,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         // The habbicon controller (`HabbiconController`, a component `HabboCatalog` attaches for the session).
         registerHabbiconHandlers(socket),
         registerHelpHandlers(socket),
+        // `ModerationManager`'s message handler: a moderator's tool.
+        registerModerationHandlers(socket),
         // The collectibles hub (`CollectiblesController`, attached for the session), after the inventory and wallet it reads.
         registerCollectiblesHandlers(socket),
         bridgeCollectiblesInventoryAndPurse(socket),

@@ -16,6 +16,7 @@ import { GroupCreatedComponent, GroupHcRequiredComponent, GroupInfoComponent, Gr
 import { HabbiconsComponent } from './components/habbicons';
 import { HelpComponent } from './components/help';
 import { HotelViewComponent } from './components/hotel-view';
+import { ModerationComponent } from './components/moderation';
 import { MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
 import { OnboardingComponent } from './components/onboarding';
@@ -152,6 +153,7 @@ export const MainView = () => {
                     <QuestsComponent />
                     <SpecialItemsComponent />
                     <HelpComponent />
+                    <ModerationComponent />
                     <GroupInfoComponent />
                     <GroupMembersComponent />
                     <GroupManagementComponent />

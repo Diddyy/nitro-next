@@ -396,6 +396,7 @@ export * from './incoming/Moderation/Data/IModeratorRoomInfoRoom';
 export * from './incoming/Moderation/Data/IRoomChatlogData';
 export * from './incoming/Moderation/Data/IRoomVisitsData';
 export * from './incoming/Moderation/Data/IRoomVisitsDatad';
+export * from './incoming/Moderation/Data/IssueMessageDataParser';
 export * from './incoming/Moderation/Data/IUserChatlogData';
 export * from './incoming/Moderation/Data/ModeratorRoomInfoDataParser';
 export * from './incoming/Moderation/Data/ModeratorRoomInfoRoomParser';
