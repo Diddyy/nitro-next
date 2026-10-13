@@ -38,9 +38,9 @@
  * - `setSideContent`: `wardrobe` toggles the wardrobe (`AvatarEditorWardrobe`) into
  *   `sideContainer`, which takes its width; the content and the frame grow with it.
  *
- * Not ported: `avatar_name_change` (`premium.name.change.enabled`, `AvatarEditorNameChangeView`),
- * the hot looks and effects lists - the port has no data for them, so their headers show over an
- * empty page and `effectParamsContainer` stays hidden.
+ * The effects tab: `useAvatarEditorEffects`.
+ *
+ * Not ported: `avatar_name_change` (`premium.name.change.enabled`, `AvatarEditorNameChangeView`).
  */
 import { AvatarEditorCategory, AvatarFigurePartType, AvatarGenderType, RoomId } from '@nitrodevco/nitro-api';
 import { GetHotLooksComposer, GetSelectedNftWardrobeOutfitComposer, GetUserNftWardrobeComposer, GetWardrobeComposer, INftWardrobeItem, SaveUserNftWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
@@ -58,6 +58,7 @@ import { firstSelectableColorId } from '#base/utils';
 
 import { AvatarEditorPartImage } from './AvatarEditorPartImage';
 import { AvatarEditorWardrobe } from './AvatarEditorWardrobe';
+import { useAvatarEditorEffects } from './useAvatarEditorEffects';
 
 const LIBRARY = 'habbo-avatar-editor-com';
 
@@ -285,6 +286,8 @@ export const AvatarEditor = () => {
     }), [ hide, clubLevel ]);
 
     usePartThumbnailLifetime();
+    // The effects tab is the one shown only while it is enabled (`shownCategory` falls back otherwise).
+    const effectsTab = useAvatarEditorEffects(effectsEnabled && (activeCategory === AvatarEditorCategory.Effects));
 
     const changeGender = (next: AvatarGenderType) => {
         if (next === gender) return;
@@ -371,6 +374,7 @@ export const AvatarEditor = () => {
         // `hasNftOutfit()`: the worn outfit is forgotten until the server answers again.
         if (!clothingChange && (nftCurrentTokenId !== null)) setNftSelection(null);
 
+        effectsTab.save();
         hide();
     };
 
@@ -499,7 +503,9 @@ export const AvatarEditor = () => {
     }).map(({ category }) => category);
     // A category whose tab is gone falls back to the first.
     const shownCategory = categories.includes(activeCategory) ? activeCategory : categories[0];
-    const showGrid = (shownCategory !== AvatarEditorCategory.HotLooks) && (shownCategory !== AvatarEditorCategory.Effects) && (shownCategory !== AvatarEditorCategory.Nfts);
+    // `_effectsGridView` is built on the parts' `grid_container` too.
+    const showGrid = (shownCategory !== AvatarEditorCategory.HotLooks) && (shownCategory !== AvatarEditorCategory.Nfts);
+    const effectsShown = shownCategory === AvatarEditorCategory.Effects;
     // `setSideContent`: the content reaches `sideContainer`'s right edge - the wardrobe's width with it,
     // 1 with nothing in it - so the name banner ends where the frame's right border begins.
     const contentWidth = SIDE_CONTAINER_X + (wardrobeVisible ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
@@ -588,7 +594,7 @@ export const AvatarEditor = () => {
         'nfts_content/nfts': { items: nftItems },
         'hotlooks_content/hotlooks': { items: hotLookItems },
 
-        effectParamsContainer: { visible: false },
+        ...effectsTab.paramBindings,
         // `NftWardrobeParamView.updateView`: the contract's name (`null` for one it does not know) and the outfit's id.
         collectible_avatar_info: { visible: nftInfoOutfit !== null },
         avatar_info_text: nftInfoOutfit
@@ -703,6 +709,14 @@ export const AvatarEditor = () => {
         palette1: { visible: layers > 1, items: paletteItems(1) },
         content_title: { visible: !hasParts },
         content_notification: { visible: !hasParts },
+        // `AvatarEditorGridViewEffects.initFromList` / `showPalettes(0)`.
+        ...(effectsShown && {
+            thumbs: { visible: effectsTab.hasEffects, items: effectsTab.thumbs },
+            palette0: { visible: false },
+            palette1: { visible: false },
+            content_title: { visible: !effectsTab.hasEffects },
+            content_notification: { visible: !effectsTab.hasEffects },
+        }),
         avatarWidget: {
             children: (
                 <RoomPreviewer
