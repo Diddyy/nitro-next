@@ -103,9 +103,9 @@ export const RoomInfoWidget = () => {
             allInRoomMuted={allInRoomMuted}
             // `RoomInfoViewCtrl.refreshButtons`: the floor plan editor needs rights in the room, not ownership.
             canEditFloorPlan={Number(controllerLevel) >= Number(RoomControllerLevelEnum.Guest)}
-            // `HabboNavigator.hasRoomRightsButIsNotOwner`: exactly the rights you were given.
             canManageRaidProtection={raidProtectionEnabled && raidCapabilities.includes(roomId) && canManageRaidProtection(roomId)}
             canReport={roomReportEnabled}
+            // `HabboNavigator.hasRoomRightsButIsNotOwner`: exactly the rights you were given.
             canRemoveRights={!isOwner && (Number(controllerLevel) === Number(RoomControllerLevelEnum.Guest))}
             onOpenOwnerProfile={() => send(new GetExtendedProfileComposer({ userId: currentRoomInfo.ownerId }))}
             onSelectTag={tag => searchRoomTag(send, tag)}

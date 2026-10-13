@@ -50,6 +50,8 @@ export interface IChatFlowHost {
     getCanvasOffset(roomId: number): PointData | undefined;
     /** A room location projected to the screen the way the Flash `getUserScreenLocation` did. */
     getUserScreenLocation(roomId: number, location: IVector3D | undefined): Point;
+    /** Where a room unit is right now (Flash `roomEngine.getRoomObject(roomId, id, 100).getLocation()`), or undefined once it has left. */
+    getUnitLocation(roomId: number, objectId: number): IVector3D | undefined;
     /** A bubble scrolled off the top (or was cleared) and should leave the display list. */
     onBubbleRemoved(bubble: IChatFlowBubble): void;
 }

@@ -8,14 +8,13 @@ import { IChatFlowBubble, IChatFlowHost } from './simulation/IChatFlowBubble';
 /**
  * The movement half of the Flash `PooledChatBubble`, driving a React-rendered bubble's Pixi
  * container by ref. The simulation sets targets through `moveTo`/`setPosition`; each frame
- * `update` eases toward them over 150ms, re-aims the pointer at the speaker every two seconds,
- * and reveals the sprite after its first 150ms so it never flashes at its unrelaxed spot. The
+ * `update` eases toward them over 150ms, re-aims the pointer at the speaker every frame, and reveals the sprite after its first 150ms so it never flashes at its unrelaxed spot. The
  * x it exposes is a "proxy": the sprite's real x adds the room's pan offset (and, in
  * line-by-line mode, clamps to the desktop margins).
  */
 export interface ChatBubbleMotionOptions {
     data: ChatBubbleData;
-    host: Pick<IChatFlowHost, 'stageWidth' | 'getUserScreenLocation'>;
+    host: Pick<IChatFlowHost, 'stageWidth' | 'getUserScreenLocation' | 'getUnitLocation'>;
     /** The rendered bubble's container and pointer sprite - read by ref, never during a React render. */
     container: RefObject<Container | null>;
     pointer: RefObject<Sprite | null>;
@@ -37,8 +36,6 @@ export class ChatBubbleMotion implements IChatFlowBubble {
     private static readonly DESKTOP_MARGIN_RIGHT = 190;
     /** `_Str_6907` */
     private static readonly MOVE_DURATION_MS = 150;
-    /** `_Str_25378` */
-    private static readonly POINTER_UPDATE_INTERVAL_MS = 2000;
 
     private readonly _options: ChatBubbleMotionOptions;
     private _metrics: ChatBubbleMotionMetrics | undefined;
@@ -56,7 +53,6 @@ export class ChatBubbleMotion implements IChatFlowBubble {
     private _roomPanOffsetX: number = 0;
     private _hasHitDesktopMargin: boolean = false;
     private _readyToRecycle: boolean = false;
-    private _timePointerPositionUpdateMs: number = 0;
     private _visible: boolean = false;
 
     constructor(options: ChatBubbleMotionOptions) {
@@ -123,13 +119,26 @@ export class ChatBubbleMotion implements IChatFlowBubble {
         if (flag) this._options.onRecycle();
     }
 
-    /** `_Str_11643` - where the speaker is on screen right now (the stored room location, re-projected). */
+    /** `userScreenPos` - where the speaker stood when they spoke (the stored room location, re-projected). */
     public get userScreenLocation(): Point {
         const { data, host } = this._options;
 
         if (data.forcedScreenLocationX !== undefined) return new Point((host.stageWidth / 2) + data.forcedScreenLocationX, 500);
 
         return host.getUserScreenLocation(data.roomId, data.userLocation);
+    }
+
+    /** `currentUserScreenPos` - where the speaking room unit is now; once it has left, where it stood when it spoke. */
+    private get currentUserScreenLocation(): Point {
+        const { data, host } = this._options;
+
+        if (data.forcedScreenLocationX !== undefined) return this.userScreenLocation;
+
+        const location = host.getUnitLocation(data.roomId, data.objectId);
+
+        if (!location) return this.userScreenLocation;
+
+        return host.getUserScreenLocation(data.roomId, location);
     }
 
     public moveTo(x: number, y: number): void {
@@ -172,18 +181,9 @@ export class ChatBubbleMotion implements IChatFlowBubble {
                 this.proxyX = this._moveTargetX;
                 this.setY(this._moveTargetY);
             }
-
-            // The bubble moved under its pointer: re-aim now rather than at the next two-second
-            // refresh, or the bubble surfaces (after its hidden 150ms) pointing at where it was born.
-            this.updatePointerPosition();
-            this._timePointerPositionUpdateMs = this._timeMs;
         }
 
-        if (this._timeMs > (this._timePointerPositionUpdateMs + ChatBubbleMotion.POINTER_UPDATE_INTERVAL_MS)) {
-            this.updatePointerPosition();
-
-            this._timePointerPositionUpdateMs = this._timeMs;
-        }
+        this.updatePointerPosition();
 
         if ((this._timeMs > ChatBubbleMotion.MOVE_DURATION_MS) && !this._visible) {
             this._visible = true;
@@ -194,14 +194,14 @@ export class ChatBubbleMotion implements IChatFlowBubble {
         }
     }
 
-    /** `repositionPointer` - re-aims the pointer at the speaker, clamped inside the bubble by the style's margins. */
+    /** `repositionPointer` - re-aims the pointer at the speaker as they are now, clamped inside the bubble by the style's margins. */
     public updatePointerPosition(): void {
         const pointer = this._options.pointer.current;
         const metrics = this._metrics;
 
         if (!pointer || !metrics || (metrics.layout.pointerY === undefined)) return;
 
-        const speakerOffsetX = this.userScreenLocation.x - this._x;
+        const speakerOffsetX = this.currentUserScreenLocation.x - this._x;
 
         pointer.x = Math.max(metrics.layout.pointerMarginLeft, Math.min(metrics.layout.width - metrics.layout.pointerMarginRight, speakerOffsetX));
         pointer.y = metrics.layout.height - metrics.pointerOffsetY;

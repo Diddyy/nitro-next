@@ -160,8 +160,6 @@ export const RoomChatInputView = () => {
     const idleTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const lastContentRef = useRef('');
     const valueRef = useRef(value);
-    const focusedRef = useRef(focused);
-    const onChangeRef = useRef<(next: string) => void>(() => undefined);
     /** The style menu closes on any outside pointerdown - including the one that starts a tap on its own button, which must not reopen it. */
     const stylesClosedAtRef = useRef(0);
     const [ habbiconsAnchor, setHabbiconsAnchor ] = useState<GlobalRect | null>(null);
@@ -169,7 +167,6 @@ export const RoomChatInputView = () => {
 
     useEffect(() => {
         valueRef.current = value;
-        focusedRef.current = focused;
     });
 
     const roomUserNames = useMemo(() => Object.values(usersByRoomObjectId).filter(x => x.userType === RoomObjectUserType.User).map(x => x.name), [ usersByRoomObjectId ]);
@@ -331,10 +328,6 @@ export const RoomChatInputView = () => {
         setReplacementCursor(null);
         setValue(next);
     };
-
-    useEffect(() => {
-        onChangeRef.current = onChange;
-    });
 
     /** `ChatStyleSelector.windowProc`: a click on `styles` opens or shuts the menu, aligned to the button. */
     const toggleStyles = (button: GlobalRect) => {
@@ -562,31 +555,6 @@ export const RoomChatInputView = () => {
         setFocused(true);
     });
 
-    // `focus_capturer`: typing anywhere while nothing else has the keyboard starts a message.
-    useEffect(() => {
-        const onWindowKeyDown = (event: KeyboardEvent) => {
-            if (focusedRef.current || isFloodBlocked) return;
-
-            if ((event.key.length !== 1) || event.ctrlKey || event.metaKey || event.altKey) return;
-
-            const active = document.activeElement;
-
-            if (active && ((active.tagName === 'INPUT') || (active.tagName === 'TEXTAREA') || (active as HTMLElement).isContentEditable)) return;
-
-            // Other Pixi text inputs claim their keys with `preventDefault` - let them run first.
-            setTimeout(() => {
-                if (event.defaultPrevented || focusedRef.current) return;
-
-                setFocused(true);
-                onChangeRef.current(valueRef.current.length < MAX_CHARS ? valueRef.current + event.key : valueRef.current);
-            }, 0);
-        };
-
-        window.addEventListener('keydown', onWindowKeyDown);
-
-        return () => window.removeEventListener('keydown', onWindowKeyDown);
-    }, [ isFloodBlocked ]);
-
     useEffect(() => () => clearTimers(), []);
 
     // What only the server knows is asked for once typing pauses; the answer lands in the user store.
@@ -636,6 +604,8 @@ export const RoomChatInputView = () => {
             marks={invalidArguments}
             focused={focused}
             onFocusChange={setFocused}
+            // `chat_input`'s `focus_capturer`: it has the keyboard whenever nothing else does.
+            focusCapturer
             placeholder={t('widgets.chatinput.default')}
             placeholderColor="#777777"
             maxLength={MAX_CHARS}

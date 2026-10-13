@@ -21,6 +21,7 @@ import {
 import { useEffect, useState } from 'react';
 
 import { preloadChatStyles } from '#base/chat';
+import { rebootAfterGpuLoss } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, WindowLayer } from '#base/theme';
 import { loadAssetBundle, preloadAssetBundles, unloadAssetBundle } from '#base/utils';
@@ -133,7 +134,10 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
     const progress = Math.min(1, INITIAL_PROGRESS + ((stepsDone / stepsTotal) * (1 - INITIAL_PROGRESS)));
 
     return (
-        <PixiApplicationRoot onReady={() => setIsRendererReady(true)}>
+        <PixiApplicationRoot
+            onReady={() => setIsRendererReady(true)}
+            onGpuLost={rebootAfterGpuLoss}
+        >
             {showClient && <MainView />}
             {!showClient && !isDisconnected && splash && (
                 <LoadingScreenView

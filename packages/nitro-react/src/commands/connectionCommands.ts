@@ -115,3 +115,30 @@ export const showConnectionClosed = (reason: number, reasonName = '') => {
  * hosted client starts again by loading its page again.
  */
 export const rebootClient = () => window.location.reload();
+
+/** When the client last started again for a lost GPU device (`sessionStorage`, this tab only). */
+const GPU_LOSS_REBOOT_KEY = 'nitro.gpu_loss_reboot';
+
+/** No second start within this long of the last: a device lost again at once would only loop. */
+const GPU_LOSS_REBOOT_INTERVAL_MS = 60000;
+
+/**
+ * The renderer's GPU device or context was lost (`guardGpuLoss`): every render texture is gone - the
+ * room, the avatars, the generated text - even once Pixi has a new one, and the client never draws
+ * them again; the port's own case, Flash drew on the CPU. The client starts again as `rebootClient`
+ * does, and the page's new renderer takes what the browser offers now (WebGPU, else WebGL). Once a
+ * minute at most: a GPU lost again at once would only loop, so the client then stays as it is.
+ */
+export const rebootAfterGpuLoss = () => {
+    try {
+        const last = Number(window.sessionStorage.getItem(GPU_LOSS_REBOOT_KEY) ?? 0);
+
+        if ((Date.now() - last) < GPU_LOSS_REBOOT_INTERVAL_MS) return;
+
+        window.sessionStorage.setItem(GPU_LOSS_REBOOT_KEY, String(Date.now()));
+    } catch {
+        // No session storage: start again without the guard.
+    }
+
+    rebootClient();
+};
