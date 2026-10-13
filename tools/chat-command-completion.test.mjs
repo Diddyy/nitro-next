@@ -120,6 +120,16 @@ await test('with nothing to offer, the usage line says what comes next, the para
     assert.equal(hint.replacement, null);
 });
 
+await test('the usage hint says what the parameter being typed is, as the server describes it', () => {
+    const GIFT = command('gift', [ parameter('who', PLAYER, SERVER), parameter('furni', WORD, SERVER), parameter('note', WORD, NONE, { description: 'The note on the tag, in double quotes: "Enjoy!"' }), parameter('badge', WORD, NONE, { optional: true }), parameter('trusted', BOOLEAN, CLIENT, { optional: true }) ]);
+    const hint = complete(':gift alice throne ', { commands: [ GIFT ] }).suggestions[0];
+
+    assert.equal(hint.label, ':gift <who> <furni> <note> [badge] [trusted]');
+    assert.equal(hint.label.slice(hint.boldStart, hint.boldEnd), '<note>');
+    assert.equal(hint.detail, 'The note on the tag, in double quotes: "Enjoy!"');
+    assert.equal(complete(':boot alice ').suggestions[0].detail, '', 'a parameter the server did not describe adds nothing');
+});
+
 await test('the rest of the line, and past the last parameter, offer nothing', () => {
     assert.deepEqual(complete(':ban alice 7d spamming the lobby').suggestions, []);
     assert.deepEqual(complete(':commands extra').suggestions, []);

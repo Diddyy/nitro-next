@@ -205,13 +205,16 @@ const findCommand = (commands: readonly ITurboCommand[], name: string) => {
     return commands.find(x => (x.name.toLowerCase() === lower) || x.aliases.some(alias => alias.toLowerCase() === lower));
 };
 
-/** The usage line with the parameter at `index` in bold - the hint row. */
+/**
+ * The usage line with the parameter at `index` in bold - the hint row - and what the server says
+ * that parameter is after it, so `:gift <who> <furni> <note>` also says the note goes in quotes.
+ */
 const usageHint = (command: ITurboCommand, index: number, usage = command.usage, parameters = command.parameters): IChatCommandSuggestion => {
     const parameter = parameters[index];
     const token = parameter ? (parameter.optional ? `[${parameter.name}]` : `<${parameter.name}>`) : '';
     const start = token.length ? usage.indexOf(` ${token}`) + 1 : 0;
 
-    return { label: usage, boldStart: start, boldEnd: (start > 0) ? (start + token.length) : 0, detail: '', replacement: null };
+    return { label: usage, boldStart: start, boldEnd: (start > 0) ? (start + token.length) : 0, detail: parameter?.description ?? '', replacement: null };
 };
 
 /** The values the client knows for a parameter, or null when only the server does. */
