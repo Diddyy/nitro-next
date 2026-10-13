@@ -1,25 +1,26 @@
 /**
- * The WIRED labels over the room (WIN63-202610121624 `FurnitureLabelWidget` + `FurnitureLabelView`,
- * desktop widget `RWE_FURNITURE_LABEL`). A furni with a label (its model's `furniture_label_data`)
+ * The WIRED labels over the room (`FurnitureLabelWidget` + `FurnitureLabelView` as of
+ * WIN63-202610131318, desktop widget `RWE_FURNITURE_LABEL`): each bubble is a room-scaled window that
+ * zooms with the room. A furni with a label (its model's `furniture_label_data`)
  * shows it in a bubble above it: while the pointer is over the furni as a faded preview, open after
  * a click on the furni until the next click, and all the time when the label is always open. Its
  * viewer sees it when everyone may, or with the room's wired read permission (`canView`); with the
  * modify permission they may type into an open one, and the text is sent (`SetFurnitureLabelData`)
  * when the bubble closes or loses the focus with a text it has not sent yet (`saveIfChanged`).
  */
-import { FurnitureLabelData, IRoom, RoomEngineFurnitureLabelEvent, RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomRenderedEvent, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
+import { FurnitureLabelData, IRoom, RoomEngineFurnitureLabelEvent, RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
 import { SetFurnitureLabelDataComposer } from '@nitrodevco/nitro-packets';
-import { Container as PixiContainer } from 'pixi.js';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
 import { useWiredHasReadPermission, useWiredHasWritePermission } from '#base/context/wired';
 import { useRoomEventDispatcher } from '#base/hooks';
-import { Box } from '#base/theme';
 import { FurnitureLabelView } from '#base/views/room-widgets/furniture/FurnitureLabelView';
 
-/** `FurnitureLabelView.updatePosition`: the bubble's bottom this far above the furni's top. */
+import { ScaledRoomOverlay } from '../../overlay';
+
+/** `FurnitureLabelView.updatePosition`: the bubble's bottom this many room pixels above the furni's top. */
 const GAP = 4;
 
 /** One label's view: opened by a click, hovered, and the text typed but not yet confirmed by the room. */
@@ -35,54 +36,15 @@ interface LabelViewState {
 const getLabelData = (room: IRoom | undefined, furnitureId: number): FurnitureLabelData | undefined => room?.getRoomObject(furnitureId, RoomObjectCategoryEnum.Floor)?.model.getValue<FurnitureLabelData | undefined>(RoomObjectVariableEnum.FurnitureLabelData);
 
 /**
- * Hidden by alpha, not `visible`: yoga does not measure an invisible node, and an unmeasured bubble
- * could never be placed. A hidden one takes no pointer.
+ * `FurnitureLabelView.updatePosition` (WIN63-202610131318, line 169-171): the bubble at the room's zoom,
+ * centred over the furni with its bottom `4 * scale` above the furni's top; nowhere while the furni has
+ * no place on screen.
  */
-const show = (node: PixiContainer, on: boolean) => {
-    node.alpha = on ? 1 : 0;
-    node.eventMode = on ? 'passive' : 'none';
-};
+const placeOver = (room: IRoom, furnitureId: number) => (width: number, height: number, scale: number) => {
+    const bounds = room.getRoomObjectBoundingRectangle(furnitureId, RoomObjectCategoryEnum.Floor);
+    const location = room.getRoomObjectScreenLocation(furnitureId, RoomObjectCategoryEnum.Floor);
 
-/** One bubble, kept over its furni on every room frame; hidden until the furni has a place on screen. */
-const FurnitureLabelBubble = ({ furnitureId, visible, children }: { furnitureId: number; visible: boolean; children: React.ReactNode }) => {
-    const room = useRoom();
-    const ref = useRef<PixiContainer>(null);
-    const placed = useRef(false);
-
-    const place = () => {
-        const node = ref.current;
-
-        if (!room || !node) return;
-
-        const bounds = room.getRoomObjectBoundingRectangle(furnitureId, RoomObjectCategoryEnum.Floor);
-        const location = room.getRoomObjectScreenLocation(furnitureId, RoomObjectCategoryEnum.Floor);
-        const width = node.layout?.computedLayout.width ?? 0;
-        const height = node.layout?.computedLayout.height ?? 0;
-
-        placed.current = !!bounds && !!location && !!width && !!height;
-
-        if (bounds && location) {
-            node.x = Math.trunc(location.x - (width / 2));
-            node.y = Math.trunc(bounds.top - height - GAP);
-        }
-
-        show(node, placed.current && visible);
-    };
-
-    useRoomEventDispatcher<RoomRenderedEvent>(RoomRenderedEvent.ROOM_RENDERED, place);
-
-    useLayoutEffect(() => {
-        if (ref.current) show(ref.current, placed.current && visible);
-    }, [ visible ]);
-
-    return (
-        <Box
-            ref={ref}
-            layout={{ position: 'absolute', top: 0, left: 0 }}
-        >
-            {children}
-        </Box>
-    );
+    return (bounds && location) ? { x: location.x - (width / 2), y: bounds.top - height - (GAP * scale) } : null;
 };
 
 export const FurnitureLabelWidget = () => {
@@ -193,21 +155,23 @@ export const FurnitureLabelWidget = () => {
                 const interactive = view.open || (data.alwaysOpen && canModify);
 
                 return (
-                    <FurnitureLabelBubble
-                        key={furnitureId}
-                        furnitureId={furnitureId}
-                        visible={shown || view.hovered}
-                    >
-                        <FurnitureLabelView
-                            text={view.draft ?? data.text}
-                            bubbleColor={data.bubbleColor}
-                            shown={shown}
-                            interactive={interactive}
-                            editable={interactive && canModify}
-                            onChange={text => update(furnitureId, current => current && { ...current, draft: text })}
-                            onBlur={() => update(furnitureId, current => current && saveIfChanged(furnitureId, current))}
-                        />
-                    </FurnitureLabelBubble>
+                    // A bubble that is neither open, always open nor hovered is not drawn (`updatePresentation`).
+                    (shown || view.hovered) && (
+                        <ScaledRoomOverlay
+                            key={furnitureId}
+                            place={placeOver(room, furnitureId)}
+                        >
+                            <FurnitureLabelView
+                                text={view.draft ?? data.text}
+                                bubbleColor={data.bubbleColor}
+                                shown={shown}
+                                interactive={interactive}
+                                editable={interactive && canModify}
+                                onChange={text => update(furnitureId, current => current && { ...current, draft: text })}
+                                onBlur={() => update(furnitureId, current => current && saveIfChanged(furnitureId, current))}
+                            />
+                        </ScaledRoomOverlay>
+                    )
                 );
             })}
         </>
