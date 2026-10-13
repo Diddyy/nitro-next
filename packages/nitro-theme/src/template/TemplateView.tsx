@@ -849,6 +849,26 @@ const optionsOf = (element: TemplateElement, binding: TemplateBinding | undefine
     ?? (Array.isArray(element.vars.item_array) ? element.vars.item_array.filter((item): item is string => typeof item === 'string') : undefined);
 
 /**
+ * A face that is only drawn - a border, gradient, shape or plain window's fill - takes no press
+ * unless its window has the input bit, so a press lands on what lies under it. Flash's
+ * `MouseEventProcessor` hands the mouse only to the windows under it with that bit
+ * (`groupParameterFilteredChildrenUnderPoint(point, list, 1)`): the reward track's
+ * `free_tier_cont` border, drawn over its prizes, never takes their clicks. A window whose code
+ * handles the pointer is a `Region`, which takes it over its whole rect either way.
+ */
+const drawnOnly = (element: TemplateElement, face: ReactNode): ReactNode => (element.params?.events?.includes('input')
+    ? face
+    : (
+            <Box
+                pointerTransparent
+                eventMode="none"
+                layout={FILL}
+            >
+                {face}
+            </Box>
+        ));
+
+/**
  * What an element draws of its own, filling its rect, under its children. `content` is the children
  * of a face that holds them itself (`container_button`). A window's `BLEND_<mode>` tag blends what it
  * draws into what is behind it (`flashBlendMode`).
@@ -1000,21 +1020,23 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         case 'border': {
             const fill = (binding?.background ?? element.background) ? flashColor(binding?.color ?? element.color) : undefined;
 
-            return (
-                <>
-                    {fill && (
-                        <Region
-                            backgroundColor={fill.hex}
-                            backgroundAlpha={fill.alpha}
+            return drawnOnly(
+                element, (
+                    <>
+                        {fill && (
+                            <Region
+                                backgroundColor={fill.hex}
+                                backgroundAlpha={fill.alpha}
+                                layout={FILL}
+                            />
+                        )}
+                        <Border
+                            variant={variant}
+                            tintColor={fill ? undefined : tintColor}
                             layout={FILL}
                         />
-                    )}
-                    <Border
-                        variant={variant}
-                        tintColor={fill ? undefined : tintColor}
-                        layout={FILL}
-                    />
-                </>
+                    </>
+                ),
             );
         }
         case 'header': return (
@@ -1226,14 +1248,16 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         case 'gradient': {
             const direction = flashString(element.vars.direction);
 
-            return (
-                <Gradient
-                    color1={flashUint(element.vars.color1)}
-                    color2={flashUint(element.vars.color2)}
-                    mode={element.vars.mode === 'radial' ? 'radial' : 'linear'}
-                    direction={direction && GRADIENT_DIRECTIONS.has(direction as GradientDirection) ? direction as GradientDirection : undefined}
-                    layout={FILL}
-                />
+            return drawnOnly(
+                element, (
+                    <Gradient
+                        color1={flashUint(element.vars.color1)}
+                        color2={flashUint(element.vars.color2)}
+                        mode={element.vars.mode === 'radial' ? 'radial' : 'linear'}
+                        direction={direction && GRADIENT_DIRECTIONS.has(direction as GradientDirection) ? direction as GradientDirection : undefined}
+                        layout={FILL}
+                    />
+                ),
             );
         }
         // `ShapeController`, drawn by `ShapeSkinRenderer`: its `shape`, `radius` and stroke vars in its
@@ -1243,16 +1267,18 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
             const strokeColor = flashUint(element.vars.stroke_color);
             const kind = flashString(element.vars.shape);
 
-            return (
-                <Shape
-                    shape={(kind && SHAPE_KINDS.has(kind)) ? kind as ShapeKind : undefined}
-                    color={(color === undefined) ? undefined : `#${color.toString(16).padStart(8, '0')}`}
-                    strokeColor={(strokeColor === undefined) ? undefined : `#${strokeColor.toString(16).padStart(8, '0')}`}
-                    strokeThickness={Number(element.vars.stroke_thickness ?? 0) || 0}
-                    strokeHsvShade={Number(element.vars.stroke_hsv_shade ?? 0) || 0}
-                    radius={Number(element.vars.radius ?? 0) || 0}
-                    layout={FILL}
-                />
+            return drawnOnly(
+                element, (
+                    <Shape
+                        shape={(kind && SHAPE_KINDS.has(kind)) ? kind as ShapeKind : undefined}
+                        color={(color === undefined) ? undefined : `#${color.toString(16).padStart(8, '0')}`}
+                        strokeColor={(strokeColor === undefined) ? undefined : `#${strokeColor.toString(16).padStart(8, '0')}`}
+                        strokeThickness={Number(element.vars.stroke_thickness ?? 0) || 0}
+                        strokeHsvShade={Number(element.vars.stroke_hsv_shade ?? 0) || 0}
+                        radius={Number(element.vars.radius ?? 0) || 0}
+                        layout={FILL}
+                    />
+                ),
             );
         }
         default: {
@@ -1260,12 +1286,14 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
             const color = (binding?.background ?? element.background) || element.tag === 'background' ? flashColor(binding?.color ?? element.color) : undefined;
 
             return color
-                ? (
-                        <Region
-                            backgroundColor={color.hex}
-                            backgroundAlpha={color.alpha}
-                            layout={FILL}
-                        />
+                ? drawnOnly(
+                        element, (
+                            <Region
+                                backgroundColor={color.hex}
+                                backgroundAlpha={color.alpha}
+                                layout={FILL}
+                            />
+                        ),
                     )
                 : null;
         }
