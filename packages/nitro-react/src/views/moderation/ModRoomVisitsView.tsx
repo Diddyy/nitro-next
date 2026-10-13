@@ -1,4 +1,4 @@
-import { GetRoomVisitsComposer } from '@nitrodevco/nitro-packets';
+import { GetGuestRoomComposer, GetRoomVisitsComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
@@ -17,7 +17,7 @@ const pad = (value: number) => ((value < 10) ? `0${value}` : `${value}`);
  * Flash's `moderation/RoomVisitsCtrl`: the `roomvisits_frame` window, which asks the player's visits
  * (`GetRoomVisitsMessageComposer(userId)`) and shows once they come (`onRoomVisits`: caption "Room
  * visits: name"). Each visit is the list's `visitrow` cloned: the room name (a link to its room tool),
- * the time entered ("hh:mm") and "Enter" (`OpenRoomInSpectatorMode`, not built).
+ * the time entered ("hh:mm") and "Enter" (`OpenRoomInSpectatorMode`: the room, as a forward).
  */
 export const ModRoomVisitsView = ({ userId }: { userId: number }) => {
     const { send } = useWebSocketContext();
@@ -45,7 +45,8 @@ export const ModRoomVisitsView = ({ userId }: { userId: number }) => {
                 '': { color },
                 room_name_txt: { caption: room.roomName, color, onPointerTap: () => showWindow({ kind: 'roomTool', roomId: room.roomId }, key) },
                 time_txt: { caption: `${pad(room.enterHour)}:${pad(room.enterMinute)}` },
-                view_room_txt: { color },
+                // `OpenRoomInSpectatorMode`: "Enter" goes to the room (`ModerationManager.goToRoom`).
+                view_room_txt: { color, onPointerTap: () => send(new GetGuestRoomComposer({ roomId: room.roomId, enterRoom: false, roomForward: true })) },
             },
         };
     });

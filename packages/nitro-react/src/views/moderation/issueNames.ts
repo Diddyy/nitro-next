@@ -1,3 +1,5 @@
+import { systemStore } from '#base/context/system';
+
 /** Flash's `moderation/IssueCategoryNames`: the names the issue browser and handler show. */
 /** `IssueCategoryNames.getSourceName`. */
 export const issueSourceName = (categoryId: number) => {
@@ -20,10 +22,14 @@ export const issueSourceName = (categoryId: number) => {
 };
 
 /**
- * `IssueCategoryNames.getCategoryName`'s fixed names. Flash first shows the topic's `help.cfh.topic.<id>`
- * text when the hotel has one; that lookup is not made here yet.
+ * `IssueCategoryNames.getCategoryName`: the topic's `help.cfh.topic.<id>` text when the hotel has one,
+ * else Flash's fixed names.
  */
 export const issueCategoryName = (topicId: number) => {
+    const text = systemStore.getState().getLocalizationValue(`help.cfh.topic.${topicId}`);
+
+    if (text.length) return text;
+
     const names: Record<number, string> = {
         0: 'Automatic', 101: 'Sex', 102: 'PII', 103: 'Scam', 104: 'Bullying', 105: 'Disruption', 106: 'Other',
         111: 'Sex', 112: 'Scam', 113: 'Disruption', 114: 'Other', 121: 'Sex', 122: 'PII', 123: 'Bullying', 124: 'Other',

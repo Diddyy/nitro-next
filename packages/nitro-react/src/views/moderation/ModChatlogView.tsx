@@ -1,4 +1,4 @@
-import { GetRoomChatlogComposer, GetUserChatlogComposer, IRoomChatlogData } from '@nitrodevco/nitro-packets';
+import { GetGuestRoomComposer, GetRoomChatlogComposer, GetUserChatlogComposer, IRoomChatlogData } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
@@ -21,10 +21,10 @@ const headerCaption = (record: IRoomChatlogData) => {
 
 /**
  * `ChatlogCtrl.populateEvidence`: each record the list's first item cloned as a header ("Room: name" with
- * its "Room tool" button) and its lines the second (`chatline`): time, chatter (a link to their user
- * info; "Bot / pet" for 0) and message, rows in alternating shades. Windows it opens go beside `caller`.
+ * its "Room tool" button, and for a room "View room" when `viewRoom` is given) and its lines the second
+ * (`chatline`): time, chatter (a link to their user info; "Bot / pet" for 0) and message, rows in alternating shades. Windows it opens go beside `caller`.
  */
-export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElement, line: TemplateElement, caller: string) => {
+export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElement, line: TemplateElement, caller: string, viewRoom?: (roomId: number) => void) => {
     const { showWindow } = moderationStore.getState();
     const items: TemplateItem[] = [];
 
@@ -37,7 +37,8 @@ export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElemen
             bindings: {
                 text: { caption: headerCaption(record) },
                 btnHeaderAction: (roomId > 0) ? { caption: 'Room tool', onPointerTap: () => showWindow({ kind: 'roomTool', roomId }, caller) } : { visible: false },
-                btnHeaderAction2: { visible: false },
+                // `OpenRoomInSpectatorMode`: "View room" goes to the room (`ModerationManager.goToRoom`).
+                btnHeaderAction2: ((record.recordType === 1) && (roomId > 0) && viewRoom) ? { caption: 'View room', onPointerTap: () => viewRoom(roomId) } : { visible: false },
             },
         });
 
@@ -86,7 +87,7 @@ export const ModChatlogView = ({ type, id }: { type: number; id: number }) => {
 
     if (!chatlog || !header || !line) return null;
 
-    const items = chatlogItems(chatlog.records, header, line, key);
+    const items = chatlogItems(chatlog.records, header, line, key, roomId => send(new GetGuestRoomComposer({ roomId, enterRoom: false, roomForward: true })));
 
     return (
         <TemplateWindow

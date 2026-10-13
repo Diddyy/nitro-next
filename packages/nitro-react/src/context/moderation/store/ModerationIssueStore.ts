@@ -5,7 +5,7 @@
  * picked (2) by someone, and a closed issue (3) leaves it. The browser lists bundles by tab
  * (`getBundles`): open, mine (picked by me), picked by others.
  */
-import type { IIssueMessageData } from '@nitrodevco/nitro-packets';
+import type { ICfhSanctionTypeData, IIssueMessageData } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 export const ISSUE_STATE_OPEN = 1;
@@ -140,7 +140,23 @@ export interface ModerationIssueStore {
     showBrowser: (open: boolean) => void;
     setBrowserTab: (tab: IssueBundleTab) => void;
     setPreferences: (preferences: { x: number; y: number; width: number; height: number }) => void;
+    /** The issue handlers' `sanction_label` texts, by bundle (`IIssueHandler.showDefaultSanction`). */
+    sanctionTexts: Record<number, string>;
+    /** `IssueManager.updateSanctionData` (:468-511) for an issue: its bundles' handlers, when the player is the reported one. */
+    updateSanctionData: (issueId: number, accountId: number, sanction: ICfhSanctionTypeData) => void;
 }
+
+/** `IssueManager.updateSanctionData`'s text: "NAME 18h", "NAME (avatar) 7 days", then " & " the trade lock and machine ban. */
+export const sanctionText = (sanction: ICfhSanctionTypeData) => {
+    let text = sanction.name + (sanction.avatarOnly ? ' (avatar) ' : ' ');
+
+    text += (sanction.sanctionLengthInHours > 24) ? `${sanction.sanctionLengthInHours / 24} days` : `${sanction.sanctionLengthInHours}h`;
+
+    if (sanction.tradeLockInfo) text += ` & ${sanction.tradeLockInfo}`;
+    if (sanction.machineBanInfo) text += ` & ${sanction.machineBanInfo}`;
+
+    return text;
+};
 
 export const createModerationIssueStore = () => createStore<ModerationIssueStore>((set, get) => {
     const changed = () => set(state => ({
@@ -319,6 +335,18 @@ export const createModerationIssueStore = () => createStore<ModerationIssueStore
         showBrowser: browserOpen => set({ browserOpen }),
         setBrowserTab: browserTab => set({ browserTab }),
         setPreferences: preferences => set({ preferences }),
+        sanctionTexts: {},
+        updateSanctionData: (issueId, accountId, sanction) => {
+            if (issueId <= 0) return;
+
+            const texts = { ...get().sanctionTexts };
+
+            for (const bundle of get().bundles.values()) {
+                if (bundle.issues.has(issueId) && (bundle.reportedUserId === accountId)) texts[bundle.id] = sanctionText(sanction);
+            }
+
+            set({ sanctionTexts: texts });
+        },
     };
 
     return store;

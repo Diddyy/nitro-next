@@ -1,8 +1,10 @@
-import { CloseIssueDefaultActionComposer, CloseIssuesComposer, GetCfhChatlogComposer, GetModeratorUserInfoComposer, ModToolPreferencesComposer } from '@nitrodevco/nitro-packets';
+import { CloseIssueDefaultActionComposer, CloseIssuesComposer, GetCfhChatlogComposer, GetGuestRoomComposer, GetModeratorUserInfoComposer, ModToolPreferencesComposer, ModToolSanctionComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
+import { useHelpStore } from '#base/context/help';
 import { highestPriorityIssue, ISSUE_RESOLUTION_RESOLVED, ISSUE_RESOLUTION_USELESS, issueOpenTime, MOD_CHATLOG_CFH, moderationChatlogKey, moderationIssueStore, useModerationIssueStore, useModerationStore } from '#base/context/moderation';
+import { systemStore } from '#base/context/system';
 import { moderationIssueSends } from '#base/handlers/moderation';
 import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
@@ -24,8 +26,11 @@ const PREFERENCES_DELAY_MS = 5000;
  * (`GetCfhChatlogMessageComposer` -> "Call For Help Evidence"). Close as useless (1) or resolved (3)
  * (`CloseIssuesMessageComposer`), close with the default sanction (`CloseIssueDefaultActionMessageComposer`:
  * the highest priority issue, the rest, -1) or release; then, with "Automatically open next issue"
- * ticked (it starts ticked), the next open bundle is picked (`checkAutoHandling`). The topic menu and
- * the sanction text (`ModToolSanction`) are not built.
+ * ticked (it starts ticked), the next open bundle is picked (`checkAutoHandling`). The topic menu lists
+ * every call for help topic as `help.cfh.topic.<id>` (`initializeTopicDropdown`), on the issue's own
+ * (disabled for 27, "Useless reports"); opening and every topic picked ask the default sanction
+ * (`ModToolSanctionComposer`), shown as `sanction_label` once `CfhSanction` comes. An issue still on
+ * topic 28 ("Auto-triggered") cannot be closed with the sanction ("Topic missing").
  */
 export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     const { send } = useWebSocketContext();
@@ -44,6 +49,24 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     const chatlog = useModerationStore(x => x.chatlogs[moderationChatlogKey(MOD_CHATLOG_CFH, issueId)]);
     const caller = useModerationStore(x => x.userInfos[reporterId]);
     const reported = useModerationStore(x => x.userInfos[reportedId]);
+    const categories = useHelpStore(x => x.callForHelpCategories);
+    const sanctionLabel = useModerationIssueStore(x => x.sanctionTexts[bundleId]);
+    const issueTopic = issue?.reportedCategoryId ?? 0;
+    // `initializeTopicDropdown`: every topic of every category, in order; the issue's own selected.
+    const topicIds = categories.flatMap(category => category.topics.map(topic => topic.id));
+    // `show`: an automatic report (source 3) still on topic 28 starts on topic 1.
+    const autoTriggered = (issue?.categoryId === 3) && (issueTopic === 28);
+    const [ topicSelection, setTopicSelection ] = useState<number | undefined>(undefined);
+    const selectedTopic = topicSelection ?? topicIds.indexOf(autoTriggered ? 1 : issueTopic);
+
+    // `show`: requestSanctionData(bundle, -1), then topic 1 for an automatic report on 28.
+    useEffect(() => {
+        if (!issueId) return;
+
+        send(new ModToolSanctionComposer({ issueId, accountId: -1, topicId: -1 }));
+
+        if (autoTriggered) send(new ModToolSanctionComposer({ issueId, accountId: -1, topicId: 1 }));
+    }, [ send, issueId, autoTriggered ]);
     const [ frame ] = useState(() => ({
         id: `moderation-issue-handler-${bundleId}`,
         defaultPosition: { x: preferences.x, y: preferences.y },
@@ -128,7 +151,7 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
                 caller_user_info: { items: userInfo(caller) },
                 reported_user_info: reportedId ? { items: userInfo(reported) } : { visible: false },
                 reported_user_info_caption: { visible: reportedId > 0 },
-                evidence_list: { items: (chatlog && header && line) ? chatlogItems(chatlog.records, header, line, `issueHandler:${bundleId}`) : [] },
+                evidence_list: { items: (chatlog && header && line) ? chatlogItems(chatlog.records, header, line, `issueHandler:${bundleId}`, roomId => send(new GetGuestRoomComposer({ roomId, enterRoom: false, roomForward: true }))) : [] },
                 handle_next_checkbox: { selected: handleNext, onPointerTap: () => setHandleNext(!handleNext) },
                 close_useless: {
                     onPointerTap: () => {
@@ -144,10 +167,28 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
                 },
                 close_sanction: {
                     onPointerTap: () => {
+                        if (issueTopic === 28) {
+                            systemStore.getState().showSimpleAlert({ caption: 'Topic missing', message: 'You need to select the topic first.' });
+
+                            return;
+                        }
+
                         send(new CloseIssueDefaultActionComposer({ issueId, otherIssueIds: ids.filter(x => x !== issueId), topicId: -1 }));
                         done();
                     },
                 },
+                cfh_topics: (issueTopic === 27)
+                    ? { disabled: true }
+                    : {
+                            options: topicIds.map(id => `\${help.cfh.topic.${id}}`),
+                            selection: (selectedTopic >= 0) ? selectedTopic : undefined,
+                            // `refreshSanctionDataForSelectedTopic`.
+                            onSelect: (index: number) => {
+                                setTopicSelection(index);
+                                send(new ModToolSanctionComposer({ issueId, accountId: -1, topicId: topicIds[index] }));
+                            },
+                        },
+                sanction_label: (sanctionLabel !== undefined) ? { caption: sanctionLabel } : {},
                 release: {
                     onPointerTap: () => {
                         issues.releaseBundle(bundleId, sends);

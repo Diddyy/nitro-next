@@ -4,7 +4,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { bundleHighestPriority, bundleMessageCount, bundleOpenTime, bundlesOfTab, highestPriorityIssue, IssueBundleTab, moderationIssueStore, useModerationIssueStore } from '#base/context/moderation';
 import { useUserStore } from '#base/context/user';
 import { moderationIssueSends } from '#base/handlers/moderation';
-import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
+import { findTemplateChild, LayoutImage, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 import { issueCategoryName, issueSourceName } from './issueNames';
 
@@ -86,6 +86,8 @@ export const ModIssueBrowserView = () => {
                     source: { caption: issueSourceName(issue?.categoryId ?? 0) },
                     category: { caption: issueCategoryName(issue?.reportedCategoryId ?? 0) },
                     target_name: { caption: issue?.reportedUserId ? issue.reportedUserName : '' },
+                    // `IssueListView`: a player's icon when the issue names one, else the room's.
+                    target_icon: { asset: LayoutImage(issue?.reportedUserId ? 'habbo-moderation-com/user_icon.png' : 'habbo-moderation-com/room_icon.png') },
                     time: { caption: bundleOpenTime(bundle, now) },
                     msgs: { caption: String(bundleMessageCount(bundle)) },
                     picker: { caption: bundle.pickerName },
