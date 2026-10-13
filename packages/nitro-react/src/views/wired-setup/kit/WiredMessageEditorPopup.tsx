@@ -184,8 +184,12 @@ export const WiredMessageEditorPopup = ({ template, value, onChange, maxCharacte
                             color={colorIndicator}
                             onPress={() => setPaletteOpen(open => !open)}
                         />
-                        {/* `layoutControls`: "Align" and "Add placeholder" centred together, 5 apart. */}
-                        <Box layout={{ position: 'absolute', left: 0, top: 0, width: contentWidth, height: toolbar.height, flexDirection: 'row', justifyContent: 'center', gap: MESSAGE_EDITOR_REFERENCE_BUTTON_SPACING }}>
+                        {/* `layoutControls`: "Align" and "Add placeholder" centred together, 5 apart. The row spans the
+                            toolbar to centre them, so it lets presses through to B/I/U/A beneath it. */}
+                        <Box
+                            pointerTransparent
+                            layout={{ position: 'absolute', left: 0, top: 0, width: contentWidth, height: toolbar.height, flexDirection: 'row', justifyContent: 'center', gap: MESSAGE_EDITOR_REFERENCE_BUTTON_SPACING }}
+                        >
                             <Button
                                 variant={toolbar.buttonVariant}
                                 textStyle="il_button"
@@ -216,7 +220,10 @@ export const WiredMessageEditorPopup = ({ template, value, onChange, maxCharacte
                                 />
                             </Box>
                         </Box>
-                        <Box layout={{ position: 'absolute', right: 0, top: toolbar.counter.y, width: toolbar.counter.width, height: toolbar.counter.height, alignItems: 'flex-end' }}>
+                        <Box
+                            pointerTransparent
+                            layout={{ position: 'absolute', right: 0, top: toolbar.counter.y, width: toolbar.counter.width, height: toolbar.counter.height, alignItems: 'flex-end' }}
+                        >
                             <ThemeText
                                 text={`${value.length}/${maxCharacters}`}
                                 textStyle={toolbar.textStyle}
