@@ -484,6 +484,7 @@ export * from './Userdefinedroomevents/UpdateSelectorComposer';
 export * from './Userdefinedroomevents/UpdateTriggerComposer';
 export * from './Userdefinedroomevents/UpdateVariableComposer';
 export * from './Userdefinedroomevents/UpdateWiredComposer';
+export * from './Userdefinedroomevents/VariableLeaderboardReplaceSubscriptionComposer';
 export * from './Userdefinedroomevents/WiredClickUserComposer';
 export * from './Userdefinedroomevents/WiredGenerateWebApiKeyComposer';
 export * from './Userdefinedroomevents/Wiredmenu/WiredClearErrorLogsComposer';

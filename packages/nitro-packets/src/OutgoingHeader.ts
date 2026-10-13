@@ -562,6 +562,7 @@ export class OutgoingHeader {
     public static VoteForRoomComposer = 2329;
     public static WhisperComposer = 4;
     public static WiredClearErrorLogsComposer = 3760;
+    public static VariableLeaderboardReplaceSubscriptionComposer = 7550;
     public static WiredClickUserComposer = 1649;
     public static WiredDeleteAllVariableHoldersComposer = 1797;
     public static WiredGenerateWebApiKeyComposer = 2819;

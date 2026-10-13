@@ -4,5 +4,6 @@ export * from './registerWiredEnvironmentHandlers';
 export * from './registerWiredMenuHandlers';
 export * from './registerWiredPermissionsHandlers';
 export * from './registerWiredSetupHandlers';
+export * from './registerWiredVariableLeaderboardHandlers';
 export * from './registerWiredVariablesHandlers';
 export * from './registerWiredWebApiKeyHandlers';

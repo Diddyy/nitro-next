@@ -30,7 +30,7 @@ import { registerSpecialItemsHandlers } from './special-items';
 import { registerFurnitureDataHandlers, registerHotelViewHandlers } from './system';
 import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerChatCommandHandlers, registerFriendBarHandlers, registerMessengerHandlers, registerOnboardingHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
 import { registerProfileHandlers } from './user-profile';
-import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
+import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariableLeaderboardHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
 import { bridgeWiredTradingLifecycle, registerSelfDonationHandlers, registerWiredChestHandlers, registerWiredContractHandlers, registerWiredTradeHandlers, registerWiredTransactionHandlers, registerWiredTransactionNotificationHandlers } from './wired-trading';
 
 /**
@@ -136,6 +136,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         // Wired: the setup dialog, the room's wired environment, the variables cache and the permissions.
         registerWiredSetupHandlers(socket),
         registerWiredEnvironmentHandlers(socket),
+        registerWiredVariableLeaderboardHandlers(socket),
         registerWiredVariablesHandlers(socket),
         registerWiredPermissionsHandlers(socket),
         // The variables web api addon's generated keys.
