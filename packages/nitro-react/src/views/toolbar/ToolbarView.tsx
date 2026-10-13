@@ -37,7 +37,6 @@ import { Container as PixiContainer, Ticker } from 'pixi.js';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
 import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, showQuests, startTakingPhoto, toggleCatalog, toggleNavigator } from '#base/commands';
-import { unseenSkipped, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
 import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
 import { useGroupStore } from '#base/context/groups';
@@ -219,11 +218,8 @@ export const ToolbarView = () => {
     const unseenInventoryCount = useInventoryUnseenTotalCount();
     const unseenMiniMailCount = useMessengerStore(x => x.miniMailUnreadCount);
     const unreadForumsCount = useGroupStore(x => x.unreadForumsCount);
-    const skippedBadges = useConfigValue<string>('toolbar.unseen_notification.skipped_badge_ids');
-    // `broadcastUnseenAchievementsCount`: unseen entries whose badge is not skipped.
     // `UnseenDailyTasksCountUpdateEvent`: the tasks done and not claimed.
     const unseenDailyTasks = useDailyTasksStore(x => getUnseenDailyTasksCount(x.tasks));
-    const unseenAchievements = useAchievementsStore(x => x.unseen.filter(entry => !unseenSkipped(entry.badgeId, skippedBadges === undefined ? [] : skippedBadges.split(','))).length);
     // `UnseenRewardTrackRewardsCountUpdateEvent`: the reward tracks' prizes that can be claimed.
     const claimableRewardTrackPrizes = useRewardTrackStore(x => getRewardTrackClaimableCount(x.tracks));
     const { attachTarget: attachInventoryTarget, lift: inventoryLift } = useToolbarTransitionTarget('HTIE_ICON_INVENTORY');
@@ -320,8 +316,9 @@ export const ToolbarView = () => {
             onPointerTap: iconClick(undefined, 'progression'),
             children: (
                 <UnseenItemCounterView
-                    // `unseenProgMenuCount`: the achievements', the daily tasks' and the reward tracks' claimable prizes (`BottomBarLeft`).
-                    count={unseenAchievements + unseenDailyTasks + claimableRewardTrackPrizes}
+                    // `unseenProgMenuCount`: the daily tasks' and the reward tracks' claimable prizes (`BottomBarLeft`). Its
+                    // achievements share stays 0: `broadcastUnseenAchievementsCount` counts and sends no event.
+                    count={unseenDailyTasks + claimableRewardTrackPrizes}
                     layout={{ position: 'absolute', right: 0, top: 0 }}
                 />
             ),
@@ -467,7 +464,8 @@ export const ToolbarView = () => {
                         { name: 'dailytasks', visible: dailyTasksEnabled, action: () => openClientLink(send, 'dailytasks/open'), unseenCount: unseenDailyTasks },
                         // `onSubMenuItemClick('quests')`: `questEngine.showQuests()`.
                         { name: 'quests', visible: !hideQuests, action: () => showQuests(send) },
-                        { name: 'achievements', visible: true, action: () => openClientLink(send, 'questengine/achievements'), unseenCount: unseenAchievements },
+                        // No count: Habbo never sets `unseenAchievementsCount` (no `UnseenAchievementsCountUpdateEvent` is sent).
+                        { name: 'achievements', visible: true, action: () => openClientLink(send, 'questengine/achievements') },
                         // `onSubMenuItemClick('leaderboards')`: the badge leaderboard's link (`groups/_-ge.getLink(0, -1, 0)`).
                         { name: 'leaderboards', visible: true, action: () => openClientLink(send, 'badge_leaderboard/0/-1/0') },
                         { name: 'introduction', visible: true, action: () => openClientLink(send, 'reward_track/open/introduction'), unseenCount: claimableRewardTrackPrizes },

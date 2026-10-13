@@ -107,12 +107,3 @@ export const achievementVisibleInCategory = (category: string, achievement: IAch
 
     return roomCodes.includes(achievement.code.slice(3));
 };
-
-/** `AchievementController.isSkippedForUnseenBroadcast`: `String.search` treats each entry as a pattern. */
-export const unseenSkipped = (badgeId: string, skipped: string[]) => skipped.some((code) => {
-    try {
-        return badgeId.search(code) !== -1;
-    } catch {
-        return false;
-    }
-});
