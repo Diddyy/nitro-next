@@ -321,7 +321,9 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
     // `FramePreset.createListView` with `ListScrollParams`: the scroll list gets what the screen share leaves after the header and the footer, each with its spacer.
     const maxMiddleHeight = Math.max(0, Math.floor(screenHeight / SCROLL_SCREEN_SHARE) - (Math.ceil(headerSize.height) + style.sectionSpacing) - (Math.ceil(footerSize.height) + style.sectionSpacing));
     // `InnerBorderFramePreset` hands `FramePreset` no `ListScrollParams`, so an inner border dialog never scrolls.
-    const scrolls = !style.useInnerBorder && (definition.allowScrolling ?? false) && (middleSize.height > maxMiddleHeight);
+    // The scroll list is there from the build on, whatever the content's height (`WiredUIBuilder.build`): wrapping the
+    // elements only once they overflow remounts them, and a section that was just expanded folds again.
+    const scrolls = !style.useInnerBorder && (definition.allowScrolling ?? false);
 
     let middleNodes: ReactNode = (
         <Box
@@ -339,7 +341,9 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
         </Box>
     );
 
-    if (scrolls) middleNodes = <ScrollArea layout={{ height: maxMiddleHeight, flexShrink: 0 }}>{middleNodes}</ScrollArea>;
+    // `ScrollListPreset.fixHeight`: as high as the content (`ListScrollParams` minHeight 0), at most the screen share.
+    // Sized by its content until it overflows, so the content is laid out (and measured) before the cap applies.
+    if (scrolls) middleNodes = <ScrollArea layout={{ flex: 0, flexShrink: 0, height: (middleSize.height > maxMiddleHeight) ? maxMiddleHeight : 'auto' }}>{middleNodes}</ScrollArea>;
 
     let body: ReactNode;
 
