@@ -400,6 +400,7 @@
     "room.enter.info.collapse.delay": 5000,
     "room.enter.info.enabled": true,
     "room.ranking.enabled": false,
+    "room.stacking_blocked_mask_bit": 15,
     "room.report.enabled": false,
     "room_ad.duration.minutes": 120,
     "room_ad.maximum_total_time.minutes": 10080,

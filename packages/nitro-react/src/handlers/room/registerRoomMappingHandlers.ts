@@ -1,4 +1,4 @@
-import { RoomObjectVariableEnum, RoomZoomEvent, SpecialRoomEffectType } from '@nitrodevco/nitro-api';
+import { GetConfigValue, RoomObjectVariableEnum, RoomZoomEvent, SpecialRoomEffectType } from '@nitrodevco/nitro-api';
 import { FloorHeightMapMessage, HeightMapMessage, HeightMapMessageType, HeightMapUpdateMessage, RoomEntryTileMessage, RoomPropertyMessage, RoomVisualizationSettingsMessage, SpecialRoomEffectMessage } from '@nitrodevco/nitro-packets';
 import { RoomPlaneParser, RoomRotatingEffect, RoomShakingEffect } from '@nitrodevco/nitro-renderer';
 
@@ -17,9 +17,17 @@ export const registerRoomMappingHandlers = ({ subscribe }: WebSocketConnection) 
     const { setHeightMap, setHeightMapUpdates } = roomStore.getState();
     let entryTile: { x: number; y: number; dir: number } | undefined = undefined;
 
-    const decodeTileHeight = (height: number) => ((height < 0) ? -1 : ((height & 16383) / 0x0100));
-    const decodeIsStackingBlocked = (height: number) => !!(height & 0x4000);
-    const decodeIsRoomTile = (height: number) => height >= 0;
+    // Flash `HeightMapMessageParser`: the stacking-blocked flag is bit `room.stacking_blocked_mask_bit`
+    // (`RoomMessageHandler.onHeightMap` reads it per message, default 14; Habbo's variables set 15), the bits
+    // below it are height x 256, and only -1 means "no tile" - a blocked tile under bit 15 is negative.
+    const stackingBlockedFlag = () => {
+        const bit = GetConfigValue<number>('room.stacking_blocked_mask_bit') ?? 15;
+
+        return 1 << bit;
+    };
+    const decodeTileHeight = (height: number) => ((height === -1) ? -1 : ((height & (stackingBlockedFlag() - 1)) / 0x0100));
+    const decodeIsStackingBlocked = (height: number) => !!(height & stackingBlockedFlag());
+    const decodeIsRoomTile = (height: number) => height !== -1;
 
     const getTileHeight = (data: HeightMapMessageType, x: number, y: number) => {
         if ((x < 0) || (x >= data.width) || (y < 0) || (y >= data.height)) return -1;
