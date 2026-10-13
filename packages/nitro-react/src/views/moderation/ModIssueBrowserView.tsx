@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { bundleHighestPriority, bundleMessageCount, bundleOpenTime, highestPriorityIssue, IssueBundleTab, moderationIssueStore, useModerationIssueStore } from '#base/context/moderation';
+import { bundleHighestPriority, bundleMessageCount, bundleOpenTime, bundlesOfTab, highestPriorityIssue, IssueBundleTab, moderationIssueStore, useModerationIssueStore } from '#base/context/moderation';
 import { useUserStore } from '#base/context/user';
 import { moderationIssueSends } from '#base/handlers/moderation';
 import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
@@ -37,7 +37,7 @@ export const ModIssueBrowserView = () => {
     const { send } = useWebSocketContext();
     const userId = useUserStore(x => x.userId);
     const tab = useModerationIssueStore(x => x.browserTab);
-    useModerationIssueStore(x => x.version);
+    const snapshot = useModerationIssueStore(x => x.snapshot);
     const template = useTemplate(TEMPLATE);
     const [ now, setNow ] = useState(() => performance.now());
     // `createMainFrame`: centred on the desktop.
@@ -71,7 +71,7 @@ export const ModIssueBrowserView = () => {
 
         if (!row || (tab !== name)) continue;
 
-        const bundles = issues.getBundles(name, userId)
+        const bundles = bundlesOfTab(snapshot, name, userId)
             .sort((a, b) => (bundleHighestPriority(a) - bundleHighestPriority(b)) || (a.issueAgeInMilliseconds - b.issueAgeInMilliseconds))
             .slice(0, LIST_LIMIT);
         const items: TemplateItem[] = bundles.map((bundle, index) => {

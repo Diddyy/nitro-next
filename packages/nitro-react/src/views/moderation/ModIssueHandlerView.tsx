@@ -29,8 +29,7 @@ const PREFERENCES_DELAY_MS = 5000;
  */
 export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     const { send } = useWebSocketContext();
-    useModerationIssueStore(x => x.version);
-    const bundle = useModerationIssueStore(x => x.bundles.get(bundleId));
+    const bundle = useModerationIssueStore(x => x.snapshot.find(b => b.id === bundleId));
     const preferences = useModerationIssueStore(x => x.preferences);
     const template = useTemplate(TEMPLATE);
     const evidenceTemplate = useTemplate('habbo-moderation-com/evidence_frame_xml');

@@ -90,14 +90,28 @@ const addToBundle = (bundle: ModerationIssueBundle, issue: ModerationIssue) => {
     bundle.issueAgeInMilliseconds = issue.issueAgeInMilliseconds;
 };
 
+/** `IssueManager.getBundles` (:350-383): open; picked by me; picked by someone else. */
+export const bundlesOfTab = (bundles: readonly ModerationIssueBundle[], tab: IssueBundleTab, userId: number) => bundles.filter((bundle) => {
+    switch (tab) {
+        case 'open_issues': return bundle.state === ISSUE_STATE_OPEN;
+        case 'my_issues': return (bundle.state === ISSUE_STATE_PICKED) && (bundle.pickerUserId === userId);
+        case 'picked_issues': return (bundle.state === ISSUE_STATE_PICKED) && (bundle.pickerUserId !== userId);
+    }
+});
+
 export interface ModerationIssueSends {
     pick: (issueIds: number[], retryEnabled: boolean, retryCount: number, message: string) => void;
     release: (issueIds: number[]) => void;
 }
 
 export interface ModerationIssueStore {
-    /** Bumped on every change, so views redraw (the maps are kept, as `IssueManager`'s are). */
+    /** Bumped on every change (the maps are kept and changed in place, as `IssueManager`'s are). */
     version: number;
+    /**
+     * The bundles as views read them: copied on every change, so a view (and the React Compiler's
+     * memoised values) sees a new value whenever the queue changes, never a map changed under it.
+     */
+    snapshot: readonly ModerationIssueBundle[];
     issues: Map<number, ModerationIssue>;
     bundles: Map<number, ModerationIssueBundle>;
     issueBundle: Map<number, number>;
@@ -129,10 +143,14 @@ export interface ModerationIssueStore {
 }
 
 export const createModerationIssueStore = () => createStore<ModerationIssueStore>((set, get) => {
-    const changed = () => set(state => ({ version: state.version + 1 }));
+    const changed = () => set(state => ({
+        version: state.version + 1,
+        snapshot: [ ...state.bundles.values() ].map(bundle => ({ ...bundle, issues: new Map(bundle.issues) })),
+    }));
 
     const store: ModerationIssueStore = {
         version: 0,
+        snapshot: [],
         issues: new Map(),
         bundles: new Map(),
         issueBundle: new Map(),
@@ -224,13 +242,7 @@ export const createModerationIssueStore = () => createStore<ModerationIssueStore
             changed();
         },
         // `IssueManager.getBundles` (:350-383).
-        getBundles: (tab, userId) => [ ...get().bundles.values() ].filter((bundle) => {
-            switch (tab) {
-                case 'open_issues': return bundle.state === ISSUE_STATE_OPEN;
-                case 'my_issues': return (bundle.state === ISSUE_STATE_PICKED) && (bundle.pickerUserId === userId);
-                case 'picked_issues': return (bundle.state === ISSUE_STATE_PICKED) && (bundle.pickerUserId !== userId);
-            }
-        }),
+        getBundles: (tab, userId) => bundlesOfTab([ ...get().bundles.values() ], tab, userId),
         pickBundle: (bundleId, message, sends, retryEnabled = false, retryCount = 0) => {
             const bundle = get().bundles.get(bundleId);
 
