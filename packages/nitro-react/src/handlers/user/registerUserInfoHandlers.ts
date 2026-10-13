@@ -2,7 +2,7 @@ import { AvatarGenderType, ChangeUserNameResultMessageCode, ClubLevelEnum } from
 import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetDailyTasksComposer, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
-import { openClientLink } from '#base/commands';
+import { onNameChangeChanged, openClientLink } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { TURBO_STARTER_ROOMS_CAPABILITY } from '#base/context/onboarding';
 import { systemStore } from '#base/context/system';
@@ -92,6 +92,9 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
         on(InClientLinkMessage, data => openClientLink(send, data.link)),
 
         on(ChangeUserNameResultMessage, (data) => {
+            // `NameChangeController.onChangeUserNameResult`: the own avatar menu's window closes, or shows why not.
+            onNameChangeChanged(data.resultCode, data.name, data.nameSuggestions);
+
             if (data.resultCode !== ChangeUserNameResultMessageCode.NameOk) return;
 
             setName(data.name, false);

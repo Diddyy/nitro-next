@@ -33,6 +33,7 @@ import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
 import { GroupForumDialogs } from './views/group-forums/GroupForumDialogs';
 import { GroupForumView } from './views/group-forums/GroupForumView';
 import { HabboPagesView } from './views/habbo-pages/HabboPagesView';
+import { NameChangeView } from './views/help/NameChangeView';
 import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
 import { NewFeatureNotificationsView } from './views/notifications/NewFeatureNotificationView';
@@ -182,6 +183,8 @@ export const MainView = () => {
                     <HabboPagesView />
                     {/* `PetCommandTool`: drawn only while shown. */}
                     <PetTrainingView />
+                    {/* `NameChangeView`: drawn only while shown. */}
+                    <NameChangeView />
                     <UserProfileComponent />
                     <CollectiblesComponent />
                     <HabbiconsComponent />

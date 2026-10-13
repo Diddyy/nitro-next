@@ -46,6 +46,7 @@ export * from './inventoryPetsCommands';
 export * from './inventoryTradingCommands';
 export * from './inventoryUnseenCommands';
 export * from './messengerCommands';
+export * from './nameChangeCommands';
 export * from './navigatorCommands';
 export * from './newFeatureNotificationCommands';
 export * from './notificationCommands';

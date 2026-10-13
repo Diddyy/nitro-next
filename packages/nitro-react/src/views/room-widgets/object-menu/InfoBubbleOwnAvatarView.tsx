@@ -2,7 +2,7 @@ import { AvatarActionStateType, AvatarExpressionEnum, ClubLevelEnum, ISimpleRoom
 import { AvatarExpressionComposer, ChangePostureComposer, DanceComposer, SignComposer } from '@nitrodevco/nitro-packets';
 import { ReactNode, useState } from 'react';
 
-import { dropCarryItem, openClientLink, openProfile } from '#base/commands';
+import { dropCarryItem, openClientLink, openProfile, startNameChange } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsRoomOwner, useOwnIsDancing, useRoomSessionActions, useRoomStore } from '#base/context/room';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
@@ -123,6 +123,8 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
 
     const buttons: Record<number, MenuButton[]> = {
         [MODE_NORMAL]: [
+            // `showButton("change_name", allowNameChange)` -> `RWUAM_START_NAME_CHANGE` -> `HabboHelp.startNameChange`.
+            { key: 'change_name', visible: info.allowNameChange, onPress: startNameChange },
             // Decorating is a club feature, and only where you may move furniture.
             { key: 'decorate', visible: hasClub && ((info.myControllerLevel >= RoomControllerLevelEnum.Guest) || isRoomOwner), onPress: () => setIsDecorating(true) },
             { key: 'change_looks', visible: true, onPress: () => showWindow('avatar_editor') },

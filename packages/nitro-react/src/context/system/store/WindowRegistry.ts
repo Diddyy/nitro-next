@@ -128,6 +128,9 @@ export type WindowRegistry = {
 
     /** The pet training window (`PetCommandTool`) on a pet, from its owner's menu (`openTrainingView`). */
     pet_training: { petId?: number; objectId?: number };
+
+    /** The own avatar menu's name change (`NameChangeView`) - see `nameChangeCommands`. */
+    name_change: NoWindowParams;
 };
 
 export type NoWindowParams = Record<string, unknown>;
