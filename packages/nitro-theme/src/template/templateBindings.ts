@@ -6,7 +6,7 @@
 import type { FederatedPointerEvent } from 'pixi.js';
 import type { ReactNode } from 'react';
 
-import type { EtchingPosition } from '../font/flash-text';
+import type { EtchingPosition, FlashTextStyleSheet } from '../font/flash-text';
 import type { PivotPoint } from '../utils/flashBitmap';
 import type { Template, TemplateElement } from './templateData';
 import type { LayoutWindow, TemplateRect } from './templateLayout';
@@ -41,6 +41,12 @@ export interface TemplateBinding {
      * `<br>`) whatever the window's type, and never read as a text key.
      */
     htmlText?: string;
+    /**
+     * A markup text's `ITextWindow.styleSheet` (`parseFlashStyleSheet`): the format its tag and class
+     * selectors give the `htmlText` - the habbo pages viewer's `content`. Kept the same object while it
+     * does not change.
+     */
+    styleSheet?: FlashTextStyleSheet;
     /**
      * The window is built with its layout caption and `caption` set once it is built, as code that
      * finds the text after `buildFromXML` does (`InventoryMainView.updateCounter`'s `count`): the
@@ -529,6 +535,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
     return a.visible === b.visible
         && a.caption === b.caption
         && a.htmlText === b.htmlText
+        && a.styleSheet === b.styleSheet
         && a.setCaptionAfterBuild === b.setCaptionAfterBuild
         && a.tooltip === b.tooltip
         && a.tooltipDelay === b.tooltipDelay

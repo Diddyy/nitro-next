@@ -10,4 +10,5 @@ export * from './flashTextFormat';
 export * from './flashTextHit';
 export * from './flashTextMarkup';
 export * from './FlashTextRenderer';
+export * from './flashTextStyleSheet';
 export * from './habboTextStyles';

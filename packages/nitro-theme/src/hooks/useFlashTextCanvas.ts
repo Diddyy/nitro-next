@@ -1,7 +1,7 @@
 import { Color, TextDropShadow } from 'pixi.js';
 import { useMemo } from 'react';
 
-import { FLASH_TEXT_GUTTER, FlashTextCanvas, FlashTextFace, FlashTextFieldOverrides, FlashTextFormat, FlashTextLayoutOptions, flashTextLineHeight, FlashTextRenderer, FlashTextRun, HABBO_TEXT_STYLES, HabboTextStyleName, layoutFlashTextBlock, parseFlashTextMarkupWithLinks, renderFlashTextCanvas, reportFlashTextFallback, resolveFlashTextFormat } from '../font/flash-text';
+import { FLASH_TEXT_GUTTER, FlashTextCanvas, FlashTextFace, FlashTextFieldOverrides, FlashTextFormat, FlashTextLayoutOptions, flashTextLineHeight, FlashTextRenderer, FlashTextRun, FlashTextStyleSheet, HABBO_TEXT_STYLES, HabboTextStyleName, layoutFlashTextBlock, parseFlashTextMarkupWithLinks, renderFlashTextCanvas, reportFlashTextFallback, resolveFlashTextFormat } from '../font/flash-text';
 import { flashFaceOverride } from '../utils/textStyles';
 
 /**
@@ -36,6 +36,8 @@ export interface FlashTextCanvasConfig {
     lineHeight?: number;
     /** The text is Flash `htmlText` (`parseFlashTextMarkup`), not plain text. */
     markup?: boolean;
+    /** With `markup`: the field's `StyleSheet` (`parseFlashStyleSheet`), kept the same object while it does not change. */
+    styleSheet?: FlashTextStyleSheet;
     overflowReplace?: FlashTextOverflowReplace;
     /** `TextCropper.crop` to a field this wide - see `cropText`. */
     crop?: number;
@@ -180,7 +182,7 @@ const cropText = (text: string, format: FlashTextFormat, width: number): string 
  * text is first truncated the way `TextController.refreshTextImage` does; like Flash's
  * `_field.text = ...`, a truncated markup text loses its tags and renders plain.
  */
-export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | undefined, { color, fontSize, face, field, dropShadow, align, wordWrap, wordWrapWidth, breakWords, lineHeight, markup, overflowReplace, crop }: FlashTextCanvasConfig): FlashTextCanvas | undefined => {
+export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | undefined, { color, fontSize, face, field, dropShadow, align, wordWrap, wordWrapWidth, breakWords, lineHeight, markup, styleSheet, overflowReplace, crop }: FlashTextCanvasConfig): FlashTextCanvas | undefined => {
     // The shadow is compared by value: callers resolve it to a fresh object on every render.
     const shadowAlpha = dropShadow?.alpha;
     const shadowAngle = dropShadow?.angle;
@@ -212,7 +214,7 @@ export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | 
             ? { color: shadowColor, alpha: shadowAlpha ?? 1, offsetX: Math.round(Math.cos(shadowAngle) * shadowDistance), offsetY: Math.round(Math.sin(shadowAngle) * shadowDistance) }
             : undefined;
         const layoutOptions: FlashTextLayoutOptions = { wordWrap, wrapWidth: wordWrap ? wordWrapWidth : undefined, breakWords };
-        const parsed = markup ? parseFlashTextMarkupWithLinks(text, format, { resolveFace: resolveMarkupFace }) : undefined;
+        const parsed = markup ? parseFlashTextMarkupWithLinks(text, format, { resolveFace: resolveMarkupFace, styleSheet }) : undefined;
         let content: string | FlashTextRun[] = parsed ? parsed.runs : text;
 
         if (overflowKey) {
@@ -241,5 +243,5 @@ export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | 
 
         // A truncated text is plain (`_field.text = ...`), so it keeps no links.
         return (parsed?.links.length && (typeof content !== 'string')) ? { ...rendered, links: parsed.links } : rendered;
-    }, [ text, habboKey, color, fontSize, faceFamily, faceBold, faceItalic, fieldKey, overflowKey, crop, markup, align, wordWrap, wordWrapWidth, breakWords, lineHeight, shadowAlpha, shadowAngle, shadowDistance, shadowColor ]);
+    }, [ text, habboKey, color, fontSize, faceFamily, faceBold, faceItalic, fieldKey, overflowKey, crop, markup, styleSheet, align, wordWrap, wordWrapWidth, breakWords, lineHeight, shadowAlpha, shadowAngle, shadowDistance, shadowColor ]);
 };

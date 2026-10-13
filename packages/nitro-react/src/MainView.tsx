@@ -32,6 +32,7 @@ import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/Targ
 import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
 import { GroupForumDialogs } from './views/group-forums/GroupForumDialogs';
 import { GroupForumView } from './views/group-forums/GroupForumView';
+import { HabboPagesView } from './views/habbo-pages/HabboPagesView';
 import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
 import { NewFeatureNotificationsView } from './views/notifications/NewFeatureNotificationView';
@@ -176,6 +177,8 @@ export const MainView = () => {
                     <RewardTrackPremiumConfirmationView />
                     {/* `HabboNuxDialogs`' new user lobby offer: drawn only while shown. */}
                     <NoobLobbyOfferView />
+                    {/* `HabboPagesViewer`: drawn only while shown. */}
+                    <HabboPagesView />
                     <UserProfileComponent />
                     <CollectiblesComponent />
                     <HabbiconsComponent />

@@ -119,6 +119,12 @@ export type WindowRegistry = {
 
     /** The collectibles hub (`CollectiblesView`), from the me menu or a `collectibles/open` link. */
     collectibles: NoWindowParams;
+
+    /**
+     * The habbo pages viewer (`HabboPagesViewer`) with the last page downloaded - see `openHabboPage`;
+     * `download` counts the downloads, each one scrolling the page back to its top.
+     */
+    habbo_pages: { caption?: string; html?: string; download?: number };
 };
 
 export type NoWindowParams = Record<string, unknown>;

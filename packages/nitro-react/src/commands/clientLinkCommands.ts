@@ -17,6 +17,7 @@ import { openDailyTasksLink } from './dailyTasksCommands';
 import { showEarnings } from './earningsCommands';
 import { openGroupForumLink } from './groupForumCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
+import { openHabboPage } from './habboPagesCommands';
 import { openMessengerConversation } from './messengerCommands';
 import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from './navigatorCommands';
 import { hideNoobLobbyOffer, showNoobLobbyOffer } from './nuxCommands';
@@ -334,6 +335,12 @@ export const openClientLink = (send: Send, link: string) => {
         // `HabboFriendBarView.linkReceived`: `friendbar/user/<name>` shows that user's profile (`showProfileByName`).
         case 'friendbar': {
             if ((parts[1] === 'user') && (parts.length > 2)) send(new GetExtendedProfileByNameComposer({ userName: parts[2] }));
+
+            return;
+        }
+        // `HabboPagesViewer.linkReceived`: `habbopages/<page>`, the page being everything after the first `/`.
+        case 'habbopages': {
+            if (parts.length >= 2) openHabboPage(parts.slice(1).join('/'));
 
             return;
         }

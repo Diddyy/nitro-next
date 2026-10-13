@@ -801,7 +801,7 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     // than its window - a centred or right-aligned one, which keeps its window's width
     // (`TextController.refreshTextImage`) - is cut at the window's edges: the effects widget's
     // centred one-line `no_effects` text. Masked only when it overflows, to keep masks few.
-    const clipped = !label && ((autoSize === 'none') || ((measureTemplateText(element, text, wordWrap ? fieldWidth : undefined, markup)?.width ?? 0) > fieldWidth));
+    const clipped = !label && ((autoSize === 'none') || ((measureTemplateText(element, text, wordWrap ? fieldWidth : undefined, markup, binding?.styleSheet)?.width ?? 0) > fieldWidth));
     // `TextController.background`: the `TextField` fills its rect in its `backgroundColor` - the
     // window's colour (`set color`), white when it has none. A label has no field background.
     // A binding's `color` is the text's colour (`textColor` above), so it fills the field only when
@@ -815,32 +815,78 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
                 ? flashColor(binding.backgroundColor)
                 : ((binding?.background ?? element.background) ? (flashColor(binding?.background ? (binding.color ?? element.color) : element.color) ?? { hex: '#ffffff', alpha: 1 }) : undefined);
 
-    const themeText = (
+    const fieldHeight = Math.max(0, rect.height - margins.top - margins.bottom);
+    const textAt = (layout: BoxLayout | undefined, clip: boolean) => (
         <ThemeText
             text={text}
             textStyle={style}
             textOptions={{ fill: color, fontFamily, fontSize: templateFontSize(element), wordWrap: wordWrap || undefined, wordWrapWidth: wordWrap ? templateWrapWidth(fieldWidth) : undefined, align }}
             flashFormat={flash.etchingColor ? { ...flash, etchingPosition: flash.etchingPosition ?? 'bottom' } : flash}
             markup={markup || undefined}
+            styleSheet={binding?.styleSheet}
             onLink={binding?.onLink}
-            clip={clipped || undefined}
+            clip={clip || undefined}
             crop={binding?.crop ? fieldWidth : undefined}
             dynamicRole={dynamicRoleOf(element)}
             verticalAlign="top"
-            layout={{ position: 'absolute', left: margins.left, top: margins.top, width: fieldWidth, height: Math.max(0, rect.height - margins.top - margins.bottom) }}
+            layout={layout}
         />
     );
 
-    if (!background) return themeText;
+    /*
+     * A text a layout's scrollbar scrolls (`TextController` as its `IScrollableWindow`, the habbo pages
+     * viewer's `content`): the field is the viewport and its whole text the content, moved by the
+     * scroll it shares with the scrollbar - and by the wheel (`mouse_wheel_enabled`, on by default).
+     */
+    const fieldOf = (scroll?: TemplateFieldScroll) => {
+        const vertical = scroll?.vertical;
+
+        if (label || !vertical) return textAt({ position: 'absolute', left: margins.left, top: margins.top, width: fieldWidth, height: fieldHeight }, clipped);
+
+        const wheel = element.vars.mouse_wheel_enabled === undefined || flashBool(element.vars.mouse_wheel_enabled);
+
+        return (
+            <Box
+                ref={vertical.viewportRef}
+                // Pixi delivers a wheel only to an interactive container.
+                eventMode={wheel ? 'static' : undefined}
+                onWheel={wheel ? event => vertical.onWheel(event) : undefined}
+                // Yoga lays a row out by default; `flex-start` keeps the content its text's height rather than stretched to the field's.
+                layout={{ position: 'absolute', left: margins.left, top: margins.top, width: fieldWidth, height: fieldHeight, overflow: 'hidden', flexDirection: 'row', alignItems: 'flex-start' }}
+            >
+                <Box
+                    ref={vertical.contentRef}
+                    layout={{ position: 'relative', marginTop: -vertical.scrollOffset, flexShrink: 0, width: fieldWidth }}
+                >
+                    {/* Sized by its own text, as `TextInput`'s content is: the content box is as tall as the whole text. */}
+                    {textAt(undefined, false)}
+                </Box>
+            </Box>
+        );
+    };
+
+    const withBackground = (field: ReactNode) => (background
+        ? (
+                <>
+                    <Region
+                        backgroundColor={background.hex}
+                        layout={FILL}
+                    />
+                    {field}
+                </>
+            )
+        : field);
+
+    if (label) return withBackground(fieldOf());
 
     return (
-        <>
-            <Region
-                backgroundColor={background.hex}
-                layout={FILL}
-            />
-            {themeText}
-        </>
+        <TemplateScrolledField
+            element={element}
+            store={context.scroll}
+            scrollV={binding?.scrollV}
+        >
+            {scroll => withBackground(fieldOf(scroll))}
+        </TemplateScrolledField>
     );
 };
 
@@ -1986,8 +2032,8 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
     const rects = layoutTemplate(elements, {
         captionOf: element => byElement.get(element)?.htmlText ?? localizeCaption(byElement.get(element)?.caption ?? element.caption, context.resolveText),
         builtCaptionOf: element => (byElement.get(element)?.setCaptionAfterBuild ? localizeCaption(element.caption, context.resolveText) : undefined),
-        // A text whose code set its `htmlText` is sized as markup, as it is drawn.
-        measure: (element, text, wrapWidth) => measureTemplateText(element, text, wrapWidth, (byElement.get(element)?.htmlText !== undefined) || isMarkupTemplateText(element)),
+        // A text whose code set its `htmlText` is sized as markup, as it is drawn, in its style sheet.
+        measure: (element, text, wrapWidth) => measureTemplateText(element, text, wrapWidth, (byElement.get(element)?.htmlText !== undefined) || isMarkupTemplateText(element), byElement.get(element)?.styleSheet),
         visibleOf: element => shownBy.get(element) ?? byElement.get(element)?.visible ?? !element.hidden,
         // A clone made from another template - a catalogue widget's view - brings that template's skins.
         skinOf: (element) => {
