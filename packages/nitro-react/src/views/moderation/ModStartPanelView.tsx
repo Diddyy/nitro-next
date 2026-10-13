@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { MOD_CHATLOG_ROOM, moderationFrame, moderationStore, START_PANEL, useModerationStore } from '#base/context/moderation';
+import { MOD_CHATLOG_ROOM, moderationFrame, moderationIssueStore, moderationStore, START_PANEL, useModerationStore } from '#base/context/moderation';
 import { TemplateWindow } from '#base/theme';
 
 /** `StartPanelCtrl.show`'s text colour for a button not usable yet (`6710886`), and `0` once it is. */
@@ -15,8 +15,8 @@ type StartPanelButton = typeof BUTTONS[number];
  * Flash's `moderation/StartPanelCtrl`: the `start_panel` window `ModeratorInit` shows. Room tool and
  * chatlog act on the guest room entered (`guestRoomEntered`; the chatlog only with
  * `chatlogsPermission`, `enableChatlogButton`), and are disabled out of one (`roomExited`); user info
- * opens the user last clicked in a room (`userSelected`: "User info: name"). The ticket queue
- * (`IssueManager.init`) is not built yet. A hovered usable button shows its `mouseover` border.
+ * opens the user last clicked in a room (`userSelected`: "User info: name"); the ticket queue the issue
+ * browser (`IssueManager.init`). A hovered usable button shows its `mouseover` border.
  */
 export const ModStartPanelView = () => {
     const init = useModerationStore(x => x.init);
@@ -38,7 +38,7 @@ export const ModStartPanelView = () => {
         room_tool_but: () => showWindow({ kind: 'roomTool', roomId }, START_PANEL),
         chatlog_but: () => showWindow({ kind: 'chatlog', type: MOD_CHATLOG_ROOM, id: roomId }, START_PANEL),
         userinfo_but: () => selectedUser && showWindow({ kind: 'userInfo', userId: selectedUser.userId }, START_PANEL),
-        ticket_queue_but: () => undefined,
+        ticket_queue_but: () => moderationIssueStore.getState().showBrowser(true),
     };
 
     const bindings: Record<string, object> = Object.fromEntries(BUTTONS.flatMap(name => [

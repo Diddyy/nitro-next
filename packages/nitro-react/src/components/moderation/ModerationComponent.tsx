@@ -1,12 +1,16 @@
 /**
  * Mounts Flash's moderation tool (`ModerationManager`) for a moderator: the start panel once
  * `ModeratorInit` came, and the windows its `WindowTracker` holds - user info, room tool, chatlog
- * send message and mod action - each once per kind and id, the newest on top.
+ * send message, mod action and room visits - each once per kind and id, the newest on top; and the
+ * call for help queue (`IssueManager`): its browser and an issue handler per bundle handled.
  */
-import { moderationWindowKey, useModerationStore } from '#base/context/moderation';
+import { moderationWindowKey, useModerationIssueStore, useModerationStore } from '#base/context/moderation';
 import { ModActionView } from '#base/views/moderation/ModActionView';
 import { ModChatlogView } from '#base/views/moderation/ModChatlogView';
+import { ModIssueBrowserView } from '#base/views/moderation/ModIssueBrowserView';
+import { ModIssueHandlerView } from '#base/views/moderation/ModIssueHandlerView';
 import { ModRoomToolView } from '#base/views/moderation/ModRoomToolView';
+import { ModRoomVisitsView } from '#base/views/moderation/ModRoomVisitsView';
 import { ModSendMessageView } from '#base/views/moderation/ModSendMessageView';
 import { ModStartPanelView } from '#base/views/moderation/ModStartPanelView';
 import { ModUserInfoView } from '#base/views/moderation/ModUserInfoView';
@@ -14,6 +18,8 @@ import { ModUserInfoView } from '#base/views/moderation/ModUserInfoView';
 export const ModerationComponent = () => {
     const hasInit = useModerationStore(x => !!x.init);
     const windows = useModerationStore(x => x.windows);
+    const browserOpen = useModerationIssueStore(x => x.browserOpen);
+    const handlers = useModerationIssueStore(x => x.handlers);
 
     if (!hasInit) return null;
 
@@ -43,6 +49,12 @@ export const ModerationComponent = () => {
                             id={window.id}
                         />
                     );
+                    case 'roomVisits': return (
+                        <ModRoomVisitsView
+                            key={key}
+                            userId={window.userId}
+                        />
+                    );
                     case 'sendMessage': return (
                         <ModSendMessageView
                             key={key}
@@ -59,6 +71,13 @@ export const ModerationComponent = () => {
                     );
                 }
             })}
+            {browserOpen && <ModIssueBrowserView />}
+            {handlers.map(bundleId => (
+                <ModIssueHandlerView
+                    key={bundleId}
+                    bundleId={bundleId}
+                />
+            ))}
         </>
     );
 };

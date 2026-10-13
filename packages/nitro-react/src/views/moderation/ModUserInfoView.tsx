@@ -19,7 +19,7 @@ const formatModerationTime = (seconds: number) => {
 const txt = (value: string | undefined, fallback = '') => ({ caption: value ? value : fallback });
 
 /** `UserInfoCtrl.refresh`'s fields, and `setAlertTxt`'s counts with their "view" link only when there is one. */
-const userInfoBindings = (user: IModeratorUserInfoData | undefined): Record<string, object> => {
+export const userInfoBindings = (user: IModeratorUserInfoData | undefined): Record<string, object> => {
     if (!user) return { fields: { visible: false }, loading_txt: { visible: true } };
 
     const bindings: Record<string, object> = {
@@ -56,8 +56,8 @@ const userInfoBindings = (user: IModeratorUserInfoData | undefined): Record<stri
  * Flash's `moderation/UserInfoFrameCtrl` with its `UserInfoCtrl`: the `user_info_frame` window
  * ("User Info") holding `user_info`, which shows "Loading..." until `ModeratorUserInfo` for the
  * player arrives (`load` asks it). Its buttons open the player's chatlog and the send-message
- * window, and the mod action window (`onModActionButton`), which is off for "No identity". Room
- * visits and the housekeeping links are not built yet.
+ * window, its room visits, and the mod action window (`onModActionButton`), which is off for "No
+ * identity". The housekeeping links are not built yet.
  */
 export const ModUserInfoView = ({ userId }: { userId: number }) => {
     const { send } = useWebSocketContext();
@@ -89,6 +89,7 @@ export const ModUserInfoView = ({ userId }: { userId: number }) => {
                         bindings: {
                             ...userInfoBindings(user),
                             chatlog_but: { onPointerTap: () => user && showWindow({ kind: 'chatlog', type: MOD_CHATLOG_USER, id: user.userId }, key, true) },
+                            roomvisits_but: { onPointerTap: () => user && showWindow({ kind: 'roomVisits', userId: user.userId }, key, true) },
                             message_but: { onPointerTap: () => user && showWindow({ kind: 'sendMessage', userId: user.userId, userName: user.userName }, key, true) },
                             modaction_but: { disabled: user?.primaryEmailAddress === 'No identity', onPointerTap: () => user && (user.primaryEmailAddress !== 'No identity') && showWindow({ kind: 'modAction', userId: user.userId, userName: user.userName }, key, true) },
                         },

@@ -14,19 +14,23 @@
  * - `defaultSanctions` (`IssueManager.updateSanctionData`): a player's default sanction, as the mod
  *   action window labels it, from `CfhSanction` for its account.
  */
-import type { IModeratorRoomInfoData, IModeratorUserInfoData, IRoomChatlogData, ModeratorInitMessageType } from '@nitrodevco/nitro-packets';
+import type { IModeratorRoomInfoData, IModeratorUserInfoData, IRoomChatlogData, IRoomVisitsData, ModeratorInitMessageType } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 /** `ChatlogCtrl`'s types: 4 a room's chatlog, 5 a user's (`ModerationMessageHandler.onRoomChatlog` / `onUserChatlog`). */
 export const MOD_CHATLOG_ROOM = 4;
 export const MOD_CHATLOG_USER = 5;
 
+/** `ChatlogCtrl`'s type 3: a call for help's evidence (`ModerationMessageHandler.onCfhChatlog`). */
+export const MOD_CHATLOG_CFH = 3;
+
 export type ModerationWindow
     = | { kind: 'userInfo'; userId: number }
         | { kind: 'roomTool'; roomId: number }
         | { kind: 'chatlog'; type: number; id: number }
         | { kind: 'sendMessage'; userId: number; userName: string }
-        | { kind: 'modAction'; userId: number; userName: string };
+        | { kind: 'modAction'; userId: number; userName: string }
+        | { kind: 'roomVisits'; userId: number };
 
 /** The start panel's `rects` key, and where its layout puts it (`start_panel.xml`: 120, 64, 170 x 170). */
 export const START_PANEL = 'startPanel';
@@ -39,6 +43,7 @@ const WINDOW_SIZES: Record<ModerationWindow['kind'], { width: number; height: nu
     chatlog: { width: 480, height: 565 },
     sendMessage: { width: 212, height: 168 },
     modAction: { width: 383, height: 295 },
+    roomVisits: { width: 292, height: 224 },
 };
 
 /** `WindowTracker.show`'s gap between a window and its caller. */
@@ -66,6 +71,7 @@ export interface ModerationStore {
     roomInfos: Record<number, IModeratorRoomInfoData>;
     chatlogs: Record<string, ModerationChatlog>;
     defaultSanctions: Record<number, string>;
+    roomVisits: Record<number, IRoomVisitsData>;
     setInit: (init: ModeratorInitMessageType) => void;
     userSelected: (userId: number, userName: string) => void;
     setCurrentRoomId: (roomId: number) => void;
@@ -82,6 +88,7 @@ export interface ModerationStore {
     setRoomInfo: (info: IModeratorRoomInfoData) => void;
     setChatlog: (type: number, id: number, chatlog: ModerationChatlog) => void;
     setDefaultSanction: (userId: number, label: string) => void;
+    setRoomVisits: (visits: IRoomVisitsData) => void;
 }
 
 export const moderationWindowKey = (window: ModerationWindow) => {
@@ -91,6 +98,7 @@ export const moderationWindowKey = (window: ModerationWindow) => {
         case 'chatlog': return `chatlog:${window.type}:${window.id}`;
         case 'sendMessage': return `sendMessage:${window.userId}`;
         case 'modAction': return `modAction:${window.userId}`;
+        case 'roomVisits': return `roomVisits:${window.userId}`;
     }
 };
 
@@ -106,6 +114,7 @@ export const createModerationStore = () => createStore<ModerationStore>(set => (
     roomInfos: {},
     chatlogs: {},
     defaultSanctions: {},
+    roomVisits: {},
     setInit: init => set({ init }),
     userSelected: (userId, userName) => set({ selectedUser: { userId, userName } }),
     setCurrentRoomId: currentRoomId => set({ currentRoomId }),
@@ -138,6 +147,7 @@ export const createModerationStore = () => createStore<ModerationStore>(set => (
     setRoomInfo: info => set(state => ({ roomInfos: { ...state.roomInfos, [info.flatId]: info } })),
     setChatlog: (type, id, chatlog) => set(state => ({ chatlogs: { ...state.chatlogs, [moderationChatlogKey(type, id)]: chatlog } })),
     setDefaultSanction: (userId, label) => set(state => ({ defaultSanctions: { ...state.defaultSanctions, [userId]: label } })),
+    setRoomVisits: visits => set(state => ({ roomVisits: { ...state.roomVisits, [visits.userId]: visits } })),
 }));
 
 export const moderationStore = createModerationStore();

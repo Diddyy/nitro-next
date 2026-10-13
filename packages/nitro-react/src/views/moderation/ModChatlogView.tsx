@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { MOD_CHATLOG_ROOM, moderationChatlogKey, moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
-import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
+import { findTemplateChild, TemplateElement, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 const TEMPLATE = 'habbo-moderation-com/evidence_frame_xml';
 
@@ -17,6 +17,49 @@ const headerCaption = (record: IRoomChatlogData) => {
     if (record.recordType !== 1) return 'Context';
 
     return roomName ? `Room: ${String(roomName)}` : `Room #${String(record.context.get('roomId') ?? 0)}`;
+};
+
+/**
+ * `ChatlogCtrl.populateEvidence`: each record the list's first item cloned as a header ("Room: name" with
+ * its "Room tool" button) and its lines the second (`chatline`): time, chatter (a link to their user
+ * info; "Bot / pet" for 0) and message, rows in alternating shades. Windows it opens go beside `caller`.
+ */
+export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElement, line: TemplateElement, caller: string) => {
+    const { showWindow } = moderationStore.getState();
+    const items: TemplateItem[] = [];
+
+    records.forEach((record, recordIndex) => {
+        const roomId = Number(record.context.get('roomId') ?? 0);
+
+        items.push({
+            key: `h${recordIndex}`,
+            from: header,
+            bindings: {
+                text: { caption: headerCaption(record) },
+                btnHeaderAction: (roomId > 0) ? { caption: 'Room tool', onPointerTap: () => showWindow({ kind: 'roomTool', roomId }, caller) } : { visible: false },
+                btnHeaderAction2: { visible: false },
+            },
+        });
+
+        record.chatlog.forEach((entry, index) => {
+            const color = ROW_COLORS[index % 2];
+
+            items.push({
+                key: `l${recordIndex}:${index}`,
+                from: line,
+                bindings: {
+                    '': { color },
+                    time_txt: { caption: entry.timeStamp },
+                    chatter_txt: (entry.chatterId > 0)
+                        ? { caption: entry.chatterName, underline: true, onPointerTap: () => showWindow({ kind: 'userInfo', userId: entry.chatterId }, caller) }
+                        : { caption: (entry.chatterId === 0) ? 'Bot / pet' : '-', underline: false },
+                    msg_txt: { caption: entry.msg },
+                },
+            });
+        });
+    });
+
+    return items;
 };
 
 /**
@@ -43,39 +86,7 @@ export const ModChatlogView = ({ type, id }: { type: number; id: number }) => {
 
     if (!chatlog || !header || !line) return null;
 
-    const { showWindow } = moderationStore.getState();
-    const items: TemplateItem[] = [];
-
-    chatlog.records.forEach((record, recordIndex) => {
-        const roomId = Number(record.context.get('roomId') ?? 0);
-
-        items.push({
-            key: `h${recordIndex}`,
-            from: header,
-            bindings: {
-                text: { caption: headerCaption(record) },
-                btnHeaderAction: (roomId > 0) ? { caption: 'Room tool', onPointerTap: () => showWindow({ kind: 'roomTool', roomId }, key) } : { visible: false },
-                btnHeaderAction2: { visible: false },
-            },
-        });
-
-        record.chatlog.forEach((entry, index) => {
-            const color = ROW_COLORS[index % 2];
-
-            items.push({
-                key: `l${recordIndex}:${index}`,
-                from: line,
-                bindings: {
-                    '': { color },
-                    time_txt: { caption: entry.timeStamp },
-                    chatter_txt: (entry.chatterId > 0)
-                        ? { caption: entry.chatterName, underline: true, onPointerTap: () => showWindow({ kind: 'userInfo', userId: entry.chatterId }, key) }
-                        : { caption: (entry.chatterId === 0) ? 'Bot / pet' : '-', underline: false },
-                    msg_txt: { caption: entry.msg },
-                },
-            });
-        });
-    });
+    const items = chatlogItems(chatlog.records, header, line, key);
 
     return (
         <TemplateWindow
