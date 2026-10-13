@@ -2,7 +2,7 @@ import { ModMessageComposer } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { moderationStore, useModerationStore } from '#base/context/moderation';
+import { moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
 import { useSystemStore } from '#base/context/system';
 import { TemplateWindow } from '#base/theme';
 
@@ -22,7 +22,7 @@ export const ModSendMessageView = ({ userId, userName }: { userId: number; userN
     // `_placeHolderMessage`: the layout's caption until the input is focused or a template picked.
     const [ text, setText ] = useState<string | undefined>(undefined);
     const close = () => moderationStore.getState().closeWindow({ kind: 'sendMessage', userId, userName });
-    const [ frame ] = useState(() => ({ id: `moderation-send-message-${userId}`, onClose: close }));
+    const [ frame ] = useState(() => moderationFrame(moderationWindowKey({ kind: 'sendMessage', userId, userName }), close));
 
     const sendMessage = () => {
         if (!text) {

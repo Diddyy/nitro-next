@@ -2,8 +2,8 @@ import { GetModeratorUserInfoComposer, IModeratorUserInfoData } from '@nitrodevc
 import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { MOD_CHATLOG_USER, moderationStore, useModerationStore } from '#base/context/moderation';
-import { TemplateWindow } from '#base/theme';
+import { MOD_CHATLOG_USER, moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
+import { TemplateWindow, useTemplate } from '#base/theme';
 
 /** `UserInfoCtrl.formatTime`. */
 const formatModerationTime = (seconds: number) => {
@@ -62,7 +62,9 @@ const userInfoBindings = (user: IModeratorUserInfoData | undefined): Record<stri
 export const ModUserInfoView = ({ userId }: { userId: number }) => {
     const { send } = useWebSocketContext();
     const user = useModerationStore(x => x.userInfos[userId]);
-    const [ frame ] = useState(() => ({ id: `moderation-user-info-${userId}`, onClose: () => moderationStore.getState().closeWindow({ kind: 'userInfo', userId }) }));
+    const userInfoTemplate = useTemplate('habbo-moderation-com/user_info_xml');
+    const key = moderationWindowKey({ kind: 'userInfo', userId });
+    const [ frame ] = useState(() => moderationFrame(key, () => moderationStore.getState().closeWindow({ kind: 'userInfo', userId })));
 
     useEffect(() => {
         send(new GetModeratorUserInfoComposer({ userId }));
@@ -70,24 +72,27 @@ export const ModUserInfoView = ({ userId }: { userId: number }) => {
 
     const { showWindow } = moderationStore.getState();
 
+    // `UserInfoCtrl.prepare`: `user_info` built and added to the frame's content (`_-bg.addChild`); the
+    // frame's layout has no children of its own, so the clone is its one child, laid out in its content area.
+    if (!userInfoTemplate) return null;
+
     return (
         <TemplateWindow
             id="habbo-moderation-com/user_info_frame_xml"
             frame={frame}
             bindings={{
-                '': { caption: 'User Info' },
-                content: {
-                    children: (
-                        <TemplateWindow
-                            id="habbo-moderation-com/user_info_xml"
-                            bindings={{
-                                ...userInfoBindings(user),
-                                chatlog_but: { onPointerTap: () => user && showWindow({ kind: 'chatlog', type: MOD_CHATLOG_USER, id: user.userId }) },
-                                message_but: { onPointerTap: () => user && showWindow({ kind: 'sendMessage', userId: user.userId, userName: user.userName }) },
-                                modaction_but: { disabled: user?.primaryEmailAddress === 'No identity' },
-                            }}
-                        />
-                    ),
+                '': {
+                    caption: 'User Info',
+                    items: [ {
+                        key: 'user_info',
+                        from: userInfoTemplate,
+                        bindings: {
+                            ...userInfoBindings(user),
+                            chatlog_but: { onPointerTap: () => user && showWindow({ kind: 'chatlog', type: MOD_CHATLOG_USER, id: user.userId }, key, true) },
+                            message_but: { onPointerTap: () => user && showWindow({ kind: 'sendMessage', userId: user.userId, userName: user.userName }, key, true) },
+                            modaction_but: { disabled: user?.primaryEmailAddress === 'No identity' },
+                        },
+                    } ],
                 },
             }}
         />

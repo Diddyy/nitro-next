@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { MOD_CHATLOG_ROOM, moderationStore, useModerationStore } from '#base/context/moderation';
+import { MOD_CHATLOG_ROOM, moderationFrame, moderationStore, START_PANEL, useModerationStore } from '#base/context/moderation';
 import { TemplateWindow } from '#base/theme';
 
 /** `StartPanelCtrl.show`'s text colour for a button not usable yet (`6710886`), and `0` once it is. */
@@ -23,7 +23,7 @@ export const ModStartPanelView = () => {
     const roomId = useModerationStore(x => x.currentRoomId);
     const selectedUser = useModerationStore(x => x.selectedUser);
     const [ hovered, setHovered ] = useState<string | undefined>(undefined);
-    const [ frame ] = useState(() => ({ id: 'moderation-start-panel' }));
+    const [ frame ] = useState(() => moderationFrame(START_PANEL));
 
     if (!init) return null;
 
@@ -35,9 +35,9 @@ export const ModStartPanelView = () => {
     };
     const { showWindow } = moderationStore.getState();
     const open: Record<StartPanelButton, () => void> = {
-        room_tool_but: () => showWindow({ kind: 'roomTool', roomId }),
-        chatlog_but: () => showWindow({ kind: 'chatlog', type: MOD_CHATLOG_ROOM, id: roomId }),
-        userinfo_but: () => selectedUser && showWindow({ kind: 'userInfo', userId: selectedUser.userId }),
+        room_tool_but: () => showWindow({ kind: 'roomTool', roomId }, START_PANEL),
+        chatlog_but: () => showWindow({ kind: 'chatlog', type: MOD_CHATLOG_ROOM, id: roomId }, START_PANEL),
+        userinfo_but: () => selectedUser && showWindow({ kind: 'userInfo', userId: selectedUser.userId }, START_PANEL),
         ticket_queue_but: () => undefined,
     };
 

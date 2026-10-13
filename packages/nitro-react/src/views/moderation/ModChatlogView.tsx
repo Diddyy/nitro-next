@@ -2,7 +2,7 @@ import { GetRoomChatlogComposer, GetUserChatlogComposer, IRoomChatlogData } from
 import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { MOD_CHATLOG_ROOM, moderationChatlogKey, moderationStore, useModerationStore } from '#base/context/moderation';
+import { MOD_CHATLOG_ROOM, moderationChatlogKey, moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
 import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 const TEMPLATE = 'habbo-moderation-com/evidence_frame_xml';
@@ -31,7 +31,8 @@ export const ModChatlogView = ({ type, id }: { type: number; id: number }) => {
     const { send } = useWebSocketContext();
     const chatlog = useModerationStore(x => x.chatlogs[moderationChatlogKey(type, id)]);
     const template = useTemplate(TEMPLATE);
-    const [ frame ] = useState(() => ({ id: `moderation-chatlog-${type}-${id}`, onClose: () => moderationStore.getState().closeWindow({ kind: 'chatlog', type, id }) }));
+    const key = moderationWindowKey({ kind: 'chatlog', type, id });
+    const [ frame ] = useState(() => moderationFrame(key, () => moderationStore.getState().closeWindow({ kind: 'chatlog', type, id })));
 
     useEffect(() => {
         send((type === MOD_CHATLOG_ROOM) ? new GetRoomChatlogComposer({ roomType: 0, roomId: id }) : new GetUserChatlogComposer({ userId: id }));
@@ -53,7 +54,7 @@ export const ModChatlogView = ({ type, id }: { type: number; id: number }) => {
             from: header,
             bindings: {
                 text: { caption: headerCaption(record) },
-                btnHeaderAction: (roomId > 0) ? { caption: 'Room tool', onPointerTap: () => showWindow({ kind: 'roomTool', roomId }) } : { visible: false },
+                btnHeaderAction: (roomId > 0) ? { caption: 'Room tool', onPointerTap: () => showWindow({ kind: 'roomTool', roomId }, key) } : { visible: false },
                 btnHeaderAction2: { visible: false },
             },
         });
@@ -68,7 +69,7 @@ export const ModChatlogView = ({ type, id }: { type: number; id: number }) => {
                     '': { color },
                     time_txt: { caption: entry.timeStamp },
                     chatter_txt: (entry.chatterId > 0)
-                        ? { caption: entry.chatterName, underline: true, onPointerTap: () => showWindow({ kind: 'userInfo', userId: entry.chatterId }) }
+                        ? { caption: entry.chatterName, underline: true, onPointerTap: () => showWindow({ kind: 'userInfo', userId: entry.chatterId }, key) }
                         : { caption: (entry.chatterId === 0) ? 'Bot / pet' : '-', underline: false },
                     msg_txt: { caption: entry.msg },
                 },

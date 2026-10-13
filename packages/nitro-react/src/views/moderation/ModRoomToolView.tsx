@@ -2,7 +2,7 @@ import { GetModeratorRoomInfoComposer, ModerateRoomComposer, ModeratorActionComp
 import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { MOD_CHATLOG_ROOM, moderationStore, useModerationStore } from '#base/context/moderation';
+import { MOD_CHATLOG_ROOM, moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
 import { useSystemStore } from '#base/context/system';
 import { TemplateWindow } from '#base/theme';
 
@@ -28,7 +28,8 @@ export const ModRoomToolView = ({ roomId }: { roomId: number }) => {
     const [ text, setText ] = useState<string | undefined>(undefined);
     const [ checks, setChecks ] = useState({ kick: false, lock: false, changeName: false });
     const close = () => moderationStore.getState().closeWindow({ kind: 'roomTool', roomId });
-    const [ frame ] = useState(() => ({ id: `moderation-room-tool-${roomId}`, onClose: close }));
+    const key = moderationWindowKey({ kind: 'roomTool', roomId });
+    const [ frame ] = useState(() => moderationFrame(key, close));
 
     useEffect(() => {
         send(new GetModeratorRoomInfoComposer({ roomId }));
@@ -66,10 +67,10 @@ export const ModRoomToolView = ({ roomId }: { roomId: number }) => {
                 desc: { caption: room.room.desc ?? '' },
                 tags_cont: { visible: room.room.tags.length > 0 },
                 tags_txt: { caption: room.room.tags.join(', ') },
-                owner_name_txt: { caption: room.ownerName, onPointerTap: () => showWindow({ kind: 'userInfo', userId: room.ownerId }) },
+                owner_name_txt: { caption: room.ownerName, onPointerTap: () => showWindow({ kind: 'userInfo', userId: room.ownerId }, key) },
                 owner_in_room_txt: { caption: room.ownerInRoom ? 'Yes' : 'No' },
                 user_count_txt: { caption: String(room.userCount) },
-                chatlog_but: { onPointerTap: () => showWindow({ kind: 'chatlog', type: MOD_CHATLOG_ROOM, id: room.flatId }) },
+                chatlog_but: { onPointerTap: () => showWindow({ kind: 'chatlog', type: MOD_CHATLOG_ROOM, id: room.flatId }, key) },
                 kick_check: { selected: checks.kick, disabled: !init.roomKickPermission, onPointerTap: () => toggle('kick') },
                 lock_check: { selected: checks.lock, onPointerTap: () => toggle('lock') },
                 changename_check: { selected: checks.changeName, onPointerTap: () => toggle('changeName') },
