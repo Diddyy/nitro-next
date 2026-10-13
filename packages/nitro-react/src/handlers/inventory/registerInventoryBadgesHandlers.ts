@@ -12,8 +12,8 @@
  *   list, and on the other occasions it sends the user's badges; one for anyone else is left to the
  *   infostand and the profile.
  * - `BadgeReceived` is `updateBadge(code, false)`: one badge added, or updated and taken off.
- * - Achievement badge notifications are coordinated by `registerAchievementHandlers`; the
- *   refreshed badge directory describes retained independent entitlements and worn slots.
+ * - An achievement level's badge comes with its notification (`onAchievementReceived`, in
+ *   `registerAchievementHandlers`): added unworn, the level it replaces removed.
  * - `BadgePointLimits` is `onBadgePointLimits`: each badge's point limit goes to the localization,
  *   which fills a description's `%limit%` with it (`utils/badgeLocalization`).
  *

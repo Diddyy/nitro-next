@@ -56,8 +56,8 @@ export const registerAchievementHandlers = ({ send, subscribe }: WebSocketConnec
             send(new EventLogComposer({ event: 'Achievements', data: getBadgeBaseAndLevel(data.badgeCode).base, action: 'Leveled', extraString: '', extraInt: data.level }));
 
             // `HabboInventory.onAchievementReceived`: the level's badge is added and the level it
-            // replaces (`removedBadgeCode`) is removed. The server keeps a single level per
-            // achievement and then republishes the directory and worn slots, which has the last word.
+            // replaces (`removedBadgeCode`) is removed. The new badge arrives unworn; when it took
+            // over a worn slot the server tells the worn badges after this message.
             const { updateBadge, removeBadge } = inventoryStore.getState();
 
             updateBadge({ badgeId: data.badgeId, badgeCode: data.badgeCode, ownerCount: data.ownerCount, badgeRarityId: data.badgeRarityId }, false);
