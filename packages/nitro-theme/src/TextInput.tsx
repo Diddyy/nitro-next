@@ -64,6 +64,14 @@ export interface TextInputProps {
     /** Controlled focus - when given, the input is focused exactly when this is true and reports changes through `onFocusChange`. */
     focused?: boolean;
     onFocusChange?: (focused: boolean) => void;
+    /**
+     * `TextFieldController`'s `focus_capturer` var: Flash's `FocusManager` gives the field the
+     * keyboard whenever nothing else has it, so what is typed lands in it as typed - any layout's
+     * letters, AltGr, dead keys, an IME, the emoji panel. Held that way it still shows unfocused
+     * (no caret, the placeholder stays) until a key or an edit arrives; a key that types nothing
+     * (Enter, Backspace, the arrows) does nothing then.
+     */
+    focusCapturer?: boolean;
     /** Shown in `placeholderColor` while the value is empty and the input isn't focused. */
     placeholder?: string;
     placeholderColor?: string;
@@ -229,6 +237,31 @@ const DOUBLE_CLICK_MS = 500;
 /** What a double-click selects around the pointer: a run of letters, digits and `_`. */
 const WORD_CHARACTER = /[\p{L}\p{N}_]/u;
 
+/** Keys that only modify another: they leave a held `focusCapturer` field as it is. */
+const MODIFIER_KEYS = new Set([ 'Shift', 'Control', 'Alt', 'AltGraph', 'Meta', 'CapsLock', 'NumLock', 'Fn' ]);
+
+/**
+ * Whether a key types into a field: one character with no shortcut modifier (Windows reports
+ * AltGr as Ctrl+Alt), or the start of a composed one - a dead key, an IME (`Process`), a
+ * virtual keyboard (`Unidentified`).
+ */
+const typesText = (event: KeyboardEvent): boolean => {
+    if ((event.key === 'Dead') || (event.key === 'Process') || (event.key === 'Unidentified')) return true;
+
+    if (Array.from(event.key).length !== 1) return false;
+
+    if (event.getModifierState('AltGraph') || (event.ctrlKey && event.altKey)) return true;
+
+    return !event.ctrlKey && !event.metaKey && !event.altKey;
+};
+
+/** Nothing on the page has the keyboard - Flash's `stage.focus == null`. */
+const keyboardIsFree = (): boolean => {
+    const active = document.activeElement;
+
+    return !active || (active === document.body) || (active === document.documentElement);
+};
+
 const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
     position: 'fixed',
     left: '0',
@@ -266,7 +299,7 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
  * to someone - and a caller can intercept keys (`onKeyDown`) before the browser edits.
  */
 export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, TextInputProps>(
-    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionEndAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, placeholder, placeholderColor = '#999999', maxLength, multiline = false, lineBreaks = true, wordWrap = true, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat, scroll }, ref) => {
+    ({ value: rawValue, onChange, onSelectionChange, selectionAfterChange, selectionEndAfterChange, selectionRequestId, onEnter, onKeyDown, focused: controlledFocused, onFocusChange, focusCapturer = false, placeholder, placeholderColor = '#999999', maxLength, multiline = false, lineBreaks = true, wordWrap = true, password = false, fontSize = 12, textStyle, fontFamily, textColor = '#000000', backgroundColor = '#ffffff', focusedBackgroundColor = '#eef6ff', selectionColor = '#b4d5fe', caretColor, layout, border, restrict, editable = true, marks, alwaysShowSelection = false, flashPlacement = false, flashFormat: fieldFormat, scroll }, ref) => {
         // The hidden `<textarea>` holds line breaks as `\n` only, and the Flash text layout breaks
         // lines on `\n` only. A value with Flash's `\r` (the floor plan's map text) would never equal
         // the native value and would be measured as one long line - the caret and the selection
@@ -288,6 +321,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const onEnterRef = useRef(onEnter);
         const onKeyDownRef = useRef(onKeyDown);
         const onFocusChangeRef = useRef(onFocusChange);
+        const focusCapturerRef = useRef(focusCapturer);
         const maxLengthRef = useRef(maxLength);
         const restrictTest = useMemo(() => parseFlashRestrict(restrict), [ restrict ]);
         const restrictRef = useRef(restrictTest);
@@ -300,6 +334,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             onEnterRef.current = onEnter;
             onKeyDownRef.current = onKeyDown;
             onFocusChangeRef.current = onFocusChange;
+            focusCapturerRef.current = focusCapturer;
             maxLengthRef.current = maxLength;
             restrictRef.current = restrictTest;
         });
@@ -358,6 +393,9 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                 // An IME composition is filtered once it is committed (`compositionend`).
                 if ((event instanceof InputEvent) && event.isComposing) return;
 
+                // Text that reached a held `focusCapturer` field without a key (the emoji panel).
+                if (!focusedRef.current) setFocused(true);
+
                 const allowed = restrictRef.current;
 
                 if (allowed) {
@@ -386,9 +424,21 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                 onChangeRef.current(input.value);
                 readSelection();
             };
+            const onCompositionStart = () => setFocused(true);
             const onCompositionEnd = () => onInput();
 
             const onKey = (event: KeyboardEvent) => {
+                // A held `focusCapturer` field wakes on a key that types; any other key leaves it alone.
+                if (!focusedRef.current && focusCapturerRef.current) {
+                    if (!typesText(event)) {
+                        if (!MODIFIER_KEYS.has(event.key)) event.preventDefault();
+
+                        return;
+                    }
+
+                    setFocused(true);
+                }
+
                 if (onKeyDownRef.current?.(event)) {
                     event.preventDefault();
 
@@ -426,6 +476,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             };
 
             input.addEventListener('input', onInput);
+            input.addEventListener('compositionstart', onCompositionStart);
             input.addEventListener('compositionend', onCompositionEnd);
             input.addEventListener('keydown', onKey);
             input.addEventListener('keyup', readSelection);
@@ -439,6 +490,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
             return () => {
                 input.removeEventListener('input', onInput);
+                input.removeEventListener('compositionstart', onCompositionStart);
                 input.removeEventListener('compositionend', onCompositionEnd);
                 input.removeEventListener('keydown', onKey);
                 input.removeEventListener('keyup', readSelection);
@@ -515,6 +567,49 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                 input.blur();
             }
         }, [ focused, readSelection ]);
+
+        /*
+         * `focusCapturer` - `FocusManager`: the field takes the keyboard when it is registered and
+         * whenever focus is left with nothing (`activate`, `focusOut`). A touch screen is skipped: its
+         * keyboard would open on every tap. A key that finds the keyboard free anyway still moves it
+         * here before the browser types it, so the key's own text arrives rather than `event.key`.
+         */
+        useEffect(() => {
+            const input = inputRef.current;
+
+            if (!focusCapturer || !editable || !input) return;
+
+            const holds = !window.matchMedia?.('(hover: none)').matches;
+            let timer: ReturnType<typeof setTimeout> | undefined;
+
+            const hold = () => {
+                if (holds && keyboardIsFree()) input.focus({ preventScroll: true });
+            };
+            const onFocusOut = () => {
+                clearTimeout(timer);
+                timer = setTimeout(hold, 0);
+            };
+            const onWindowKeyDown = (event: KeyboardEvent) => {
+                if (event.defaultPrevented || !keyboardIsFree() || !typesText(event)) return;
+
+                input.focus({ preventScroll: true });
+                setFocused(true);
+            };
+
+            hold();
+            window.addEventListener('focus', hold);
+            window.addEventListener('keydown', onWindowKeyDown);
+            document.addEventListener('focusout', onFocusOut);
+
+            return () => {
+                clearTimeout(timer);
+                window.removeEventListener('focus', hold);
+                window.removeEventListener('keydown', onWindowKeyDown);
+                document.removeEventListener('focusout', onFocusOut);
+
+                if ((document.activeElement === input) && !focusedRef.current) input.blur();
+            };
+        }, [ focusCapturer, editable, multiline, lineBreaks, password, setFocused ]);
 
         // The caret blinks while focused and shows solid again right after any edit or caret move.
         useEffect(() => {
