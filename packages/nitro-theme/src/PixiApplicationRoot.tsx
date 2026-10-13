@@ -14,6 +14,7 @@ import { ReactNode, useCallback, useRef } from 'react';
 import { useThemeConfigValue } from './host';
 import { setAdvancedBlendModes } from './utils/flashBlendMode';
 import { GetPixelRatio } from './utils/GetPixelRatio';
+import { guardGpuLoss } from './utils/gpuLossGuard';
 import { guardLayoutViewSizes } from './utils/layoutViewSizeGuard';
 import { gateLayoutWalk } from './utils/layoutWalkGate';
 
@@ -68,6 +69,11 @@ interface PixiApplicationRootProps {
      */
     onInit?: (app: PixiApplication) => void;
     /**
+     * The GPU device or context was lost: what was drawn into textures is gone, even once Pixi has
+     * restored it (`utils/gpuLossGuard.ts`).
+     */
+    onGpuLost?: () => void;
+    /**
      * What the canvas is as big as: the window (the client's), or nothing - the app sizes it itself
      * (`app.renderer.resize`), as a canvas moved between boxes on a page is (Nitro Studio's previews).
      */
@@ -83,7 +89,7 @@ const UI_LAYOUT = { position: 'absolute', left: 0, top: 0, width: '100%', height
 /** The client's canvas: the whole window, under everything else on the page. */
 const FULL_WINDOW_CANVAS = 'position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; image-rendering: pixelated;';
 
-export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvasStyle = FULL_WINDOW_CANVAS, children }: PixiApplicationRootProps) => {
+export const PixiApplicationRoot = ({ onReady, onInit, onGpuLost, resizeTo = window, canvasStyle = FULL_WINDOW_CANVAS, children }: PixiApplicationRootProps) => {
     const readyRef = useRef(false);
     const colorSpace = useThemeConfigValue<string>(COLOR_SPACE_KEY);
 
@@ -101,6 +107,8 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
         SetRenderer(app.renderer);
         setAdvancedBlendModes(app.renderer);
         applyCanvasColorSpace(app, colorSpace);
+        // A lost GPU starts the client again; a lost WebGPU device's frames are skipped until then.
+        guardGpuLoss(app.renderer, onGpuLost);
 
         onInit?.(app);
         app.stage.sortableChildren = false;
@@ -123,7 +131,7 @@ export const PixiApplicationRoot = ({ onReady, onInit, resizeTo = window, canvas
         guardLayoutViewSizes();
 
         onReady();
-    }, [ onReady, onInit, colorSpace, canvasStyle ]);
+    }, [ onReady, onInit, onGpuLost, colorSpace, canvasStyle ]);
 
     return (
         <Application
