@@ -154,7 +154,7 @@ export const registerRoomFurnitureHandlers = ({ subscribe, send }: WebSocketConn
 
             const remove = (room: IRoom) => {
                 createPickupTransition(room, data.objectId, RoomObjectCategoryEnum.Floor, pickerId);
-                room.removeRoomObjectFloor(data.objectId);
+                room.removeRoomObjectFloor(data.objectId, data.byInvisibleFurniManager);
                 room.refreshTileObjectMap();
             };
 
@@ -176,7 +176,7 @@ export const registerRoomFurnitureHandlers = ({ subscribe, send }: WebSocketConn
 
             for (const objectId of data.objectIds) {
                 createPickupTransition(room, objectId, RoomObjectCategoryEnum.Floor, data.pickerId);
-                room.removeRoomObjectFloor(objectId);
+                room.removeRoomObjectFloor(objectId, data.byInvisibleFurniManager);
                 room.refreshTileObjectMap();
             }
         }),

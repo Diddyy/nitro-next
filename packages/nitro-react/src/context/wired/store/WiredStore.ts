@@ -26,6 +26,7 @@ import { createWiredMenuSlice, WiredMenuSlice, WiredMenuSliceInitialState } from
 import { createWiredPreferencesSlice, WiredPreferencesSlice } from './WiredPreferencesSlice';
 import { createWiredRoomLogsSlice, WiredRoomLogsSlice, WiredRoomLogsSliceInitialState } from './WiredRoomLogsSlice';
 import { createWiredSetupSlice, WiredSetupSlice, WiredSetupSliceRoomState } from './WiredSetupSlice';
+import { createWiredVariableLeaderboardSlice, WiredVariableLeaderboardSlice } from './WiredVariableLeaderboardSlice';
 import { createWiredVariableManagementSlice, WiredVariableManagementSlice, WiredVariableManagementSliceInitialState } from './WiredVariableManagementSlice';
 import { createWiredVariablesSlice, WiredVariablesSlice, WiredVariablesSliceInitialState } from './WiredVariablesSlice';
 
@@ -35,7 +36,7 @@ type Actions = {
 };
 
 export type WiredStore = Actions & WiredSetupSlice & WiredElementMemorySlice & WiredClipboardSlice & WiredVariablesSlice & WiredEnvironmentSlice & WiredPreferencesSlice
-    & WiredMenuSlice & WiredMenuInspectionSlice & WiredMenuOverviewSlice & WiredRoomLogsSlice & WiredVariableManagementSlice;
+    & WiredMenuSlice & WiredMenuInspectionSlice & WiredMenuOverviewSlice & WiredRoomLogsSlice & WiredVariableManagementSlice & WiredVariableLeaderboardSlice;
 
 /** A fresh copy of the wired menu's state - its view, its tabs and the windows it opens. */
 const freshWiredMenuState = (): Partial<WiredStore> => structuredClone({
@@ -68,6 +69,8 @@ export const createWiredStore = () => createStore<WiredStore>()((set, get, store
     ...createWiredMenuOverviewSlice(set, get, store),
     ...createWiredRoomLogsSlice(set, get, store),
     ...createWiredVariableManagementSlice(set, get, store),
+    // Kept out of `resetRoom`: `RoomEntryInfo` for the next room resets it (`VariableLeaderboardController.onRoomEntryInfo`).
+    ...createWiredVariableLeaderboardSlice(set, get, store),
 }));
 
 export const wiredStore = createWiredStore();

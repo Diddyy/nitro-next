@@ -168,6 +168,15 @@ export interface PresentOpenedData {
 export const FURNITURE_RECOLOR_WIDGET = 'FURNITURE_RECOLOR';
 
 /**
+ * The WIRED label settings window (`FurnitureLabelSettingsView`), opened by the infostand's
+ * `label_settings` button (`RWFLE_FURNITURE_LABEL_SETTINGS_OPEN`); the key it lives under.
+ */
+export const FURNITURE_LABEL_SETTINGS_WIDGET = 'FURNITURE_LABEL_SETTINGS';
+
+/** `FurnitureLabelSettingsView.COLORS`: the label colours, in the colour menu's order (Blue first, `FurnitureLabelData.DEFAULT_COLOR`). */
+export const FURNITURE_LABEL_COLORS: readonly number[] = [ 4278912, 2651759, 4157508, 8416562, 8409402, 8404554, 6834048, 5592405 ];
+
+/**
  * What `FurnitureRecolorController` keeps between Apply and the server's answer: the colour it
  * sent (`_pendingColor`), and a count the room's `FurniRecolorUpdate` handler moves on when an
  * update confirms it, so the window reads the furni's colour and the room's colours again.

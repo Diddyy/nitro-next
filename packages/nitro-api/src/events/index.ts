@@ -8,6 +8,7 @@ export * from './room/RoomContentLoadedEvent';
 export * from './room/RoomDragEvent';
 export * from './room/RoomDraggedEvent';
 export * from './room/RoomEngineEvent';
+export * from './room/RoomEngineFurnitureLabelEvent';
 export * from './room/RoomEngineObjectEvent';
 export * from './room/RoomEngineObjectPlacedEvent';
 export * from './room/RoomEngineObjectPlacedOnUserEvent';

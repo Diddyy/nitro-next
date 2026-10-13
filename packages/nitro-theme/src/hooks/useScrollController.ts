@@ -93,7 +93,7 @@ export const useScrollController = ({
         onReachEndRef.current = onReachEnd;
     });
 
-    const dragOriginRef = useRef<{ pointer: number; scroll: number; availableTrack: number; scrollMax: number } | null>(null);
+    const dragOriginRef = useRef<{ pointer: number; scroll: number; availableTrack: number; scrollMax: number; scale: number } | null>(null);
     const activeListenersRef = useRef<{ move: (e: PointerEvent) => void; up: (e: PointerEvent) => void } | null>(null);
 
     const measure = useCallback(() => {
@@ -170,11 +170,18 @@ export const useScrollController = ({
     const onThumbPointerDown = (event: FederatedPointerEvent) => {
         event.stopPropagation();
 
+        // A lift inside a scaled window (the room-zoomed `ScaledWindow`, WIN63-202610131318
+        // `beginScrollbarDrag`) follows the pointer in its own pixels: screen pixels over its world
+        // scale. 1 everywhere else.
+        const world = trackNode?.worldTransform;
+        const worldScale = world ? (isVertical ? Math.hypot(world.c, world.d) : Math.hypot(world.a, world.b)) : 1;
+
         dragOriginRef.current = {
             pointer: isVertical ? event.clientY : event.clientX,
             scroll: scrollOffsetRef.current,
             availableTrack: Math.max(0, computedSize(trackNode, sizeAxis) - metricsRef.current.thumbSize),
             scrollMax: liveScrollMax(),
+            scale: (worldScale > 0) ? worldScale : 1,
         };
 
         const handleMove = (moveEvent: PointerEvent) => {
@@ -182,7 +189,7 @@ export const useScrollController = ({
             if (!origin) return;
 
             const pointer = isVertical ? moveEvent.clientY : moveEvent.clientX;
-            const delta = origin.availableTrack > 0 ? ((pointer - origin.pointer) / origin.availableTrack) * origin.scrollMax : 0;
+            const delta = origin.availableTrack > 0 ? (((pointer - origin.pointer) / origin.scale) / origin.availableTrack) * origin.scrollMax : 0;
             setScrollOffset(clamp(origin.scroll + delta, 0, origin.scrollMax));
         };
 

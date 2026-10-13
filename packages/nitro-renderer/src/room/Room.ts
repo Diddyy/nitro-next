@@ -1,5 +1,7 @@
 import {
     EventDispatcher,
+    FurnitureLabelData,
+    FurnitureRegionData,
     FurnitureUsagePolicyEnum,
     GetConfigValue,
     GetObjectDataForFlags,
@@ -34,10 +36,12 @@ import {
     RoomBackgroundColorEvent,
     RoomContentLoadedEvent,
     RoomEngineEvent,
+    RoomEngineFurnitureLabelEvent,
     RoomEngineObjectEvent,
     RoomGeometryScaleType,
     RoomObjectCategoryEnum,
     RoomObjectFurnitureActionEvent,
+    RoomObjectLogicType,
     RoomObjectUserType,
     RoomObjectUserTypeName,
     RoomObjectUserTypeUtils,
@@ -79,6 +83,8 @@ import {
     ObjectAvatarUpdateMessage,
     ObjectAvatarUseObjectUpdateMessage,
     ObjectDataUpdateMessage,
+    ObjectFurnitureLabelUpdateMessage,
+    ObjectFurnitureRegionUpdateMessage,
     ObjectHeightUpdateMessage,
     ObjectItemDataUpdateMessage,
     ObjectMoveUpdateMessage,
@@ -175,6 +181,13 @@ export class Room implements IRoom {
     private _floorStack: Map<number, IRoomFurnitureData> = new Map();
     private _wallStack: Map<number, IRoomFurnitureData> = new Map();
     private _variableFx: VariableFxRoomData = new VariableFxRoomData();
+
+    /**
+     * Flash `BufferedRoomObjectModelDataManager`'s `furniture_label` / `furniture_region` data
+     * (category 10): a label or region for a furni that is not ready yet, or that the invisible furni
+     * manager took away, kept until the furni is ready again (`restoreFurnitureLabelData`).
+     */
+    private _bufferedLabels: Map<number, FurnitureLabelData> = new Map();
 
     constructor(roomId: number) {
         this._roomId = roomId;
@@ -736,6 +749,8 @@ export class Room implements IRoom {
             }
         }
 
+        if (category === RoomObjectCategoryEnum.Floor) this.restoreFurnitureLabelOrRegion(object);
+
         this.dispatchEvent(new RoomEngineObjectEvent(RoomEngineObjectEvent.CONTENT_UPDATED, this._roomId, objectId, category));
 
         // Only an object that is ready goes in, so one made before it has a location does not.
@@ -1228,6 +1243,134 @@ export class Room implements IRoom {
         }
     }
 
+    /**
+     * `RoomEngine.replaceFurnitureLabelsAndRegions` (`FurnitureLabelsAndRegions`, every room
+     * entry): every buffered label goes, every ready furni loses its label or region, then each
+     * entry is applied or buffered. A widget hears of each furni whose label changed.
+     */
+    public replaceFurnitureLabelsAndRegions(entries: FurnitureLabelData[]): void {
+        this._bufferedLabels.clear();
+
+        for (const object of this.getRoomObjectsForCategory(RoomObjectCategoryEnum.Floor)) {
+            if (object.isReady && (this.applyFurnitureLabelOrRegion(object as IRoomObjectController, undefined) === 2)) this.dispatchFurnitureLabelUpdated(object.id);
+        }
+
+        for (const entry of entries) {
+            if (this.applyOrBufferFurnitureLabelOrRegion(entry) === 2) this.dispatchFurnitureLabelUpdated(entry.furnitureId);
+        }
+    }
+
+    /**
+     * `RoomEngine.updateFurnitureLabelsAndRegions` (`FurnitureLabelsAndRegionsUpdate`): each entry
+     * applied or buffered, then each removed furni loses its label or region, buffered or not.
+     */
+    public updateFurnitureLabelsAndRegions(addedOrUpdated: FurnitureLabelData[], removedIds: number[]): void {
+        for (const entry of addedOrUpdated) {
+            if (this.applyOrBufferFurnitureLabelOrRegion(entry) !== 0) this.dispatchFurnitureLabelUpdated(entry.furnitureId);
+        }
+
+        for (const objectId of removedIds) {
+            this._bufferedLabels.delete(objectId);
+
+            const object = this.getReadyFloorObject(objectId);
+
+            if (object && (this.applyFurnitureLabelOrRegion(object, undefined) === 2)) this.dispatchFurnitureLabelUpdated(objectId);
+        }
+    }
+
+    /** `applyOrBufferFurnitureLabelOrRegion`: a furni that is not ready keeps the entry until it is (0). */
+    private applyOrBufferFurnitureLabelOrRegion(entry: FurnitureLabelData): number {
+        const object = this.getReadyFloorObject(entry.furnitureId);
+
+        if (!object) {
+            this._bufferedLabels.set(entry.furnitureId, entry);
+
+            return 0;
+        }
+
+        this._bufferedLabels.delete(entry.furnitureId);
+
+        return this.applyFurnitureLabelOrRegion(object, entry);
+    }
+
+    /**
+     * `applyFurnitureLabelOrRegion`: only a furni whose asset has the `furniture_label` logic takes a
+     * label, and only one with `furniture_region` a region; the other kind is taken off. 2 when the
+     * furni's label changed (the widget reads it again), 1 when a label entry changed nothing it shows,
+     * 0 otherwise. Without an entry the furni loses whatever it had.
+     */
+    private applyFurnitureLabelOrRegion(object: IRoomObjectController, entry: FurnitureLabelData | undefined): number {
+        const logicType = GetRoomContentLoader().getCollection(object.type)?.data?.logicType;
+        const label = object.model.getValue<FurnitureLabelData | undefined>(RoomObjectVariableEnum.FurnitureLabelData);
+        const region = object.model.getValue<FurnitureRegionData | undefined>(RoomObjectVariableEnum.FurnitureRegionData);
+
+        if (entry instanceof FurnitureRegionData) {
+            if (logicType !== RoomObjectLogicType.FURNITURE_REGION) {
+                if ((logicType === RoomObjectLogicType.FURNITURE_LABEL) && label) {
+                    object.processUpdateMessage(new ObjectFurnitureLabelUpdateMessage(undefined));
+
+                    return 2;
+                }
+
+                return 0;
+            }
+
+            if (!region || !region.equals(entry)) object.processUpdateMessage(new ObjectFurnitureRegionUpdateMessage(entry));
+
+            return 0;
+        }
+
+        if (entry) {
+            if (logicType !== RoomObjectLogicType.FURNITURE_LABEL) {
+                if ((logicType === RoomObjectLogicType.FURNITURE_REGION) && region) object.processUpdateMessage(new ObjectFurnitureRegionUpdateMessage(undefined));
+
+                return 1;
+            }
+
+            if (!label || !label.equals(entry)) {
+                object.processUpdateMessage(new ObjectFurnitureLabelUpdateMessage(entry.text, entry.bubbleColor, entry.visibility, entry.alwaysOpen));
+
+                return 2;
+            }
+
+            return 1;
+        }
+
+        if (logicType === RoomObjectLogicType.FURNITURE_LABEL) {
+            if (label) {
+                object.processUpdateMessage(new ObjectFurnitureLabelUpdateMessage(undefined));
+
+                return 2;
+            }
+        } else if ((logicType === RoomObjectLogicType.FURNITURE_REGION) && region) {
+            object.processUpdateMessage(new ObjectFurnitureRegionUpdateMessage(undefined));
+        }
+
+        return 0;
+    }
+
+    /** `restoreFurnitureLabelData` / `restoreFurnitureRegionData`: a furni just ready takes what was kept for it. */
+    private restoreFurnitureLabelOrRegion(object: IRoomObjectController): void {
+        const entry = this._bufferedLabels.get(object.id);
+
+        if (!entry) return;
+
+        this._bufferedLabels.delete(object.id);
+
+        if (this.applyFurnitureLabelOrRegion(object, entry) === 2) this.dispatchFurnitureLabelUpdated(object.id);
+    }
+
+    /** `getReadyRoomObject`: a floor furni already built and ready, without building a queued one. */
+    private getReadyFloorObject(objectId: number): IRoomObjectController | undefined {
+        const object = this.getRoomObjectManager(RoomObjectCategoryEnum.Floor)?.getObject(objectId);
+
+        return object?.isReady ? object : undefined;
+    }
+
+    private dispatchFurnitureLabelUpdated(furnitureId: number): void {
+        this.dispatchEvent(new RoomEngineFurnitureLabelEvent(RoomEngineFurnitureLabelEvent.UPDATED, this._roomId, furnitureId));
+    }
+
     public updateRoomObjectWall(
         objectId: number,
         location: IVector3D | undefined,
@@ -1670,8 +1813,18 @@ export class Room implements IRoom {
         return true;
     }
 
-    /** `RoomEngine.disposeObjectFurniture`; the flight of a picked up item to the toolbar is the client's (`createPickupTransition`). */
-    public removeRoomObjectFloor(objectId: number): void {
+    /**
+     * `RoomEngine.disposeObjectFurniture`; the flight of a picked up item to the toolbar is the client's (`createPickupTransition`).
+     * Taken away by the invisible furni manager, a ready furni's label or region is kept for when it
+     * comes back (`BufferedRoomObjectModelDataManager.captureObject`); otherwise it goes with it (`clearObject`).
+     */
+    public removeRoomObjectFloor(objectId: number, byInvisibleFurniManager: boolean = false): void {
+        const object = this.getRoomObjectManager(RoomObjectCategoryEnum.Floor)?.getObject(objectId);
+        const captured = (byInvisibleFurniManager && object?.isReady) ? (object.model.getValue<FurnitureLabelData | undefined>(RoomObjectVariableEnum.FurnitureLabelData) ?? object.model.getValue<FurnitureRegionData | undefined>(RoomObjectVariableEnum.FurnitureRegionData)) : undefined;
+
+        if (captured) this._bufferedLabels.set(objectId, captured);
+        else if (!byInvisibleFurniManager) this._bufferedLabels.delete(objectId);
+
         this.removeRoomObject(objectId, RoomObjectCategoryEnum.Floor);
     }
 

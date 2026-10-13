@@ -14,6 +14,7 @@ export * from './registerRoomFloorPlanHandlers';
 export * from './registerRoomFriendFurniHandlers';
 export * from './registerRoomFriendRequestHandlers';
 export * from './registerRoomFurnitureHandlers';
+export * from './registerRoomFurnitureLabelHandlers';
 export * from './registerRoomGenericErrorHandlers';
 export * from './registerRoomGuildFurniHandlers';
 export * from './registerRoomInfostandHandlers';

@@ -10,7 +10,7 @@
  * that catalogue at the furni's offer, or just the catalogue (`onOwnerRegion`); and picking up a
  * Builders Club furni the Builders Club no longer offers asks first (`pickupObjectWithConfirmation`).
  */
-import { CatalogTypeEnum, CrackableDataType, FurniId, FurnitureSpecialType, FurnitureUsagePolicyEnum, ISimpleRoomObjectData, MapDataType, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectVariableEnum, RoomWidgetEnumItemExtradataParameter } from '@nitrodevco/nitro-api';
+import { CatalogTypeEnum, CrackableDataType, FurniId, FurnitureLabelData, FurnitureSpecialType, FurnitureUsagePolicyEnum, ISimpleRoomObjectData, MapDataType, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectVariableEnum, RoomWidgetEnumItemExtradataParameter } from '@nitrodevco/nitro-api';
 import { GetSongInfoComposer, SetObjectDataComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
 
@@ -20,9 +20,9 @@ import { useGroupStore } from '#base/context/groups';
 import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomStore, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
-import { useWiredShowInspectButton } from '#base/context/wired';
+import { useWiredHasWritePermission, useWiredShowInspectButton } from '#base/context/wired';
 import { useCanPlaceWithBuildersClub, useRoomFurnitureData, useRoomObjectInteraction, useRoomObjectModify, useSecondsClock } from '#base/hooks';
-import { FURNITURE_RECOLOR_WIDGET } from '#base/utils';
+import { FURNITURE_LABEL_SETTINGS_WIDGET, FURNITURE_RECOLOR_WIDGET } from '#base/utils';
 import { InfostandFurniDetails, InfostandFurniVariant, InfostandFurniView } from '#base/views/room-widgets/object-infostand/InfostandFurniView';
 
 type InfostandFurniProps = {
@@ -61,6 +61,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const isFreeFurniMovementsMode = useRoomStore(x => x.isFreeFurniMovementsMode);
     const playTestMode = useRoomPlayTestMode();
     const showWiredInspectButton = useWiredShowInspectButton();
+    const hasWiredWritePermission = useWiredHasWritePermission();
     const nowPlayingSongId = useRoomStore(x => x.nowPlayingSongId);
     const songInfoById = useRoomStore(x => x.songInfoById);
     const groupDetails = useGroupStore(x => (furniData?.groupId ? x.detailsById[furniData.groupId] : undefined));
@@ -139,6 +140,11 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     // `InfoStandWidget`'s place more: a recolorable is placed again in its own colour, `r,g,b`.
     const placeMoreParam = isRecolorable ? [ (recolorableColor >> 16) & 0xff, (recolorableColor >> 8) & 0xff, recolorableColor & 0xff ].join(',') : extraParam;
 
+    // `update`: the label settings button for a WIRED label (`furniture_label_data` of type 0), outside play test
+    // mode, for whoever may modify the room's wired (`wiredMenu.hasWritePermission`).
+    const labelData = roomObject.model.getValue<FurnitureLabelData | undefined>(RoomObjectVariableEnum.FurnitureLabelData);
+    const canLabelSettings = !playTestMode && !!labelData && (labelData.type === FurnitureLabelData.TYPE_LABEL) && hasWiredWritePermission;
+
     // `RWFAM_WIRED_INSPECT`: a floor item by its id, a wall item by its negative id.
     const wiredInspectId = (category === RoomObjectCategoryEnum.Floor) ? objectId : ((category === RoomObjectCategoryEnum.Wall) ? -objectId : undefined);
 
@@ -203,7 +209,10 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
             // `update`: `button_list.visible = move || rotate || pickupMode != 0 || use || recolor` - rotate only ever with move.
             canRecolor={canRecolor}
             onRecolor={() => openRoomWidget({ type: FURNITURE_RECOLOR_WIDGET, objectId, category, objectType: roomObject.type })}
-            buttonsVisible={canMove || (pickupMode !== PICKUP_NONE) || canUse || canRecolor}
+            // `RWFAM_LABEL_SETTINGS`: `RWFLE_FURNITURE_LABEL_SETTINGS_OPEN` for the label widget.
+            canLabelSettings={canLabelSettings}
+            onLabelSettings={() => openRoomWidget({ type: FURNITURE_LABEL_SETTINGS_WIDGET, objectId, category, objectType: roomObject.type })}
+            buttonsVisible={canMove || (pickupMode !== PICKUP_NONE) || canUse || canLabelSettings || canRecolor}
             canSaveBranding={canSaveBranding}
             onMove={() => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_MOVE)}
             onRotate={() => modifyRoomObject(objectId, category, RoomObjectOperationType.OBJECT_ROTATE_POSITIVE)}

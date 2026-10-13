@@ -156,6 +156,8 @@ export class IncomingHeader {
     public static FurniRecolorUpdateMessage = 7201;
     public static FurniRentOrBuyoutOfferMessage = 1921;
     public static FurnitureAliasesMessage = 2576;
+    public static FurnitureLabelsAndRegionsMessage = 7500;
+    public static FurnitureLabelsAndRegionsUpdateMessage = 7501;
     public static Game2AccountGameStatusMessage = 1173;
     public static Game2ArenaEnteredMessage = 3954;
     public static Game2EnterArenaFailedMessage = 3762;
@@ -553,6 +555,8 @@ export class IncomingHeader {
     public static VariableFxConfigsRemovedMessage = 1200;
     public static VariableFxStatusMessage = 3889;
     public static VariableFxStatusRemovedMessage = 3388;
+    public static VariableLeaderboardChunkUpdateMessage = 7552;
+    public static VariableLeaderboardSnapshotMessage = 7551;
     public static VoucherRedeemErrorMessage = 3035;
     public static VoucherRedeemOkMessage = 1888;
     public static WardrobeMessage = 3152;

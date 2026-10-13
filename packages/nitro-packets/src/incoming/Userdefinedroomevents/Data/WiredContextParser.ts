@@ -8,6 +8,7 @@ import { ISharedVariableList } from './ISharedVariableList';
 import { ITextPlaceholders } from './ITextPlaceholders';
 import { IVariableInfoAndHolders } from './IVariableInfoAndHolders';
 import { IVariableInfoAndValue } from './IVariableInfoAndValue';
+import { IVariableLeaderboardContext } from './IVariableLeaderboard';
 import { IVariableList } from './IVariableList';
 import { IWiredContext } from './IWiredContext';
 import { SharedGlobalPlaceholderListParser } from './SharedGlobalPlaceholderListParser';
@@ -15,6 +16,7 @@ import { SharedVariableListParser } from './SharedVariableListParser';
 import { TextPlaceholdersParser } from './TextPlaceholdersParser';
 import { VariableInfoAndHoldersParser } from './VariableInfoAndHoldersParser';
 import { VariableInfoAndValueParser } from './VariableInfoAndValueParser';
+import { VariableLeaderboardContextParser } from './VariableLeaderboardParsers';
 import { VariableListParser } from './VariableListParser';
 import { WiredFurniActionEnum } from './WiredFurniActionEnum';
 
@@ -27,6 +29,7 @@ export const WiredContextParser = (wrapper: IMessageDataWrapper): IWiredContext 
     let referenceVariablesList: ISharedVariableList | undefined;
     let referencePlaceholderList: ISharedGlobalPlaceholderList | undefined;
     let textPlaceholders: ITextPlaceholders | undefined;
+    let variableLeaderboardContext: IVariableLeaderboardContext | undefined;
     const count = wrapper.readInt();
     for (let i2 = 0; i2 < count; i2++) {
         const section: WiredFurniActionEnum = wrapper.readInt();
@@ -55,7 +58,10 @@ export const WiredContextParser = (wrapper: IMessageDataWrapper): IWiredContext 
                 break;
             case WiredFurniActionEnum.TextPlaceholders:
                 textPlaceholders = TextPlaceholdersParser(wrapper);
+                break;
+            case WiredFurniActionEnum.VariableLeaderboard:
+                variableLeaderboardContext = VariableLeaderboardContextParser(wrapper);
         }
     }
-    return { roomVariablesList, furniVariableInfo, userVariableInfo, globalVariableInfo, rulesetVariables, referenceVariablesList, referencePlaceholderList, textPlaceholders };
+    return { roomVariablesList, furniVariableInfo, userVariableInfo, globalVariableInfo, rulesetVariables, referenceVariablesList, referencePlaceholderList, textPlaceholders, variableLeaderboardContext };
 };

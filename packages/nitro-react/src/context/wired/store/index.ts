@@ -9,5 +9,6 @@ export * from './WiredPreferencesSlice';
 export * from './WiredRoomLogsSlice';
 export * from './WiredSetupSlice';
 export * from './WiredStore';
+export * from './WiredVariableLeaderboardSlice';
 export * from './WiredVariableManagementSlice';
 export * from './WiredVariablesSlice';

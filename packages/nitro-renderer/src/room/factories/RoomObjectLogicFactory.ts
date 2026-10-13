@@ -34,6 +34,7 @@ import { AvatarLogic,
     FurnitureIceStormLogic,
     FurnitureInternalLinkLogic,
     FurnitureJukeboxLogic,
+    FurnitureLabelDataLogic,
     FurnitureLogic,
     FurnitureLovelockLogic,
     FurnitureMannequinLogic,
@@ -54,6 +55,7 @@ import { AvatarLogic,
     FurnitureRandomStateLogic,
     FurnitureRandomTeleportLogic,
     FurnitureRecolorableLogic,
+    FurnitureRegionDataLogic,
     FurnitureRentableSpaceLogic,
     FurnitureRoomBackgroundColorLogic,
     FurnitureRoomBackgroundLogic,
@@ -177,6 +179,12 @@ export class RoomObjectLogicFactory implements IRoomObjectLogicFactory {
                 break;
             case RoomObjectLogicType.FURNITURE_RECOLORABLE:
                 logic = FurnitureRecolorableLogic;
+                break;
+            case RoomObjectLogicType.FURNITURE_LABEL:
+                logic = FurnitureLabelDataLogic;
+                break;
+            case RoomObjectLogicType.FURNITURE_REGION:
+                logic = FurnitureRegionDataLogic;
                 break;
             case RoomObjectLogicType.FURNITURE_MULTIHEIGHT:
                 logic = FurnitureMultiHeightLogic;

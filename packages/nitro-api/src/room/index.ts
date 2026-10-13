@@ -32,6 +32,7 @@ export * from './IRoomObjectEventManager';
 export * from './IRoomObjectManager';
 export * from './IRoomRenderingCanvas';
 export * from './IRoomSpriteMouseEvent';
+export * from './object/data/FurnitureLabelData';
 export * from './object/data/GetObjectDataForFlags';
 export * from './object/data/IObjectData';
 export * from './object/data/ObjectDataBase';

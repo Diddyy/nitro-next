@@ -136,6 +136,8 @@ import {
     FurniRecolorUpdateMessage,
     FurniRentOrBuyoutOfferMessage,
     FurnitureAliasesMessage,
+    FurnitureLabelsAndRegionsMessage,
+    FurnitureLabelsAndRegionsUpdateMessage,
     Game2AccountGameStatusMessage,
     Game2GameCancelledMessage,
     Game2GameDirectoryStatusMessage,
@@ -454,6 +456,8 @@ import {
     VariableFxConfigsRemovedMessage,
     VariableFxStatusMessage,
     VariableFxStatusRemovedMessage,
+    VariableLeaderboardChunkUpdateMessage,
+    VariableLeaderboardSnapshotMessage,
     VoucherRedeemErrorMessage,
     VoucherRedeemOkMessage,
     WardrobeMessage,
@@ -514,6 +518,8 @@ import { IncomingHeader } from './IncomingHeader';
 export const GetIncomingPackets = () => {
     return {
         // Avatar editor
+        [IncomingHeader.FurnitureLabelsAndRegionsMessage]: FurnitureLabelsAndRegionsMessage,
+        [IncomingHeader.FurnitureLabelsAndRegionsUpdateMessage]: FurnitureLabelsAndRegionsUpdateMessage,
         [IncomingHeader.HotLooksMessage]: HotLooksMessage,
 
         // Advertisement
@@ -838,6 +844,8 @@ export const GetIncomingPackets = () => {
         [IncomingHeader.VariableFxConfigsRemovedMessage]: VariableFxConfigsRemovedMessage,
         [IncomingHeader.VariableFxStatusMessage]: VariableFxStatusMessage,
         [IncomingHeader.VariableFxStatusRemovedMessage]: VariableFxStatusRemovedMessage,
+        [IncomingHeader.VariableLeaderboardChunkUpdateMessage]: VariableLeaderboardChunkUpdateMessage,
+        [IncomingHeader.VariableLeaderboardSnapshotMessage]: VariableLeaderboardSnapshotMessage,
         [IncomingHeader.WiredFurniActionMessage]: WiredFurniActionEventMessage,
         [IncomingHeader.WiredFurniAddonMessage]: WiredFurniAddonEventMessage,
         [IncomingHeader.WiredFurniConditionMessage]: WiredFurniConditionEventMessage,

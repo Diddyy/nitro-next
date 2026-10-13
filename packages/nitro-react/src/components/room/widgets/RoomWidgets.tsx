@@ -8,6 +8,7 @@ import { RoomDoorbellWidget } from './doorbell/RoomDoorbellWidget';
 import { FloorPlanEditorWidget } from './floor-plan-editor/FloorPlanEditorWidget';
 import { RoomFriendRequestWidget } from './friend-request/RoomFriendRequestWidget';
 import { RoomFurnitureWidgets } from './furniture';
+import { FurnitureLabelWidget } from './furniture-label';
 import { RoomObjectInfostandWidget } from './object-infostand';
 import { RoomObjectMenuWidget } from './object-menu';
 import { RoomBreedingResultWidget } from './pets/RoomBreedingResultWidget';
@@ -33,6 +34,9 @@ export const RoomWidgets = () => {
         <>
             {/* Under everything else: the frame `createRoomView` adds to the room view itself. */}
             <RoomSpectatorModeWidget />
+            {/* `RWE_FURNITURE_LABEL`: the WIRED labels over their furni, in the desktop's background widgets under
+                the rest of the room UI (1318 `DesktopLayoutManager.as` 95). */}
+            <FurnitureLabelWidget />
             <RoomChatWidget />
             <RoomObjectMenuWidget />
             <RoomFurnitureWidgets />

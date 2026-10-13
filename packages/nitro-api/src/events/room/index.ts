@@ -3,6 +3,7 @@ export * from './RoomContentLoadedEvent';
 export * from './RoomDragEvent';
 export * from './RoomDraggedEvent';
 export * from './RoomEngineEvent';
+export * from './RoomEngineFurnitureLabelEvent';
 export * from './RoomEngineObjectEvent';
 export * from './RoomEngineObjectPlacedEvent';
 export * from './RoomEngineObjectPlacedOnUserEvent';

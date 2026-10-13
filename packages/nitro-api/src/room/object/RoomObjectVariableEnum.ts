@@ -81,6 +81,8 @@ export enum RoomObjectVariableEnum {
     FurnitureGuildCustomizedColor1 = 'furniture_guild_customized_color_1',
     FurnitureGuildCustomizedColor2 = 'furniture_guild_customized_color_2',
     FurnitureRecolorableColor = 'furniture_recolorable_color',
+    FurnitureLabelData = 'furniture_label_data',
+    FurnitureRegionData = 'furniture_region_data',
     FurnitureStateUpdateTime = 'furniture_state_update_time',
     FurnitureSelectionDisabled = 'furniture_selection_disable',
     FurnitureSizeX = 'furniture_size_x',

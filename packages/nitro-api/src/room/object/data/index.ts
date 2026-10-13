@@ -1,3 +1,4 @@
+export * from './FurnitureLabelData';
 export * from './GetObjectDataForFlags';
 export * from './IObjectData';
 export * from './ObjectDataBase';
