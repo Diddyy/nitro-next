@@ -15,7 +15,7 @@
  * to the top asks for older history instead, the one effect of it the user sees.
  */
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
-import { EventLogComposer, FollowFriendComposer, GetExtendedProfileComposer, GetHabboGroupDetailsComposer, GetMessengerHistoryComposer, IHistoricConsoleMessage, SendMsgComposer } from '@nitrodevco/nitro-packets';
+import { EventLogComposer, FollowFriendComposer, GetExtendedProfileComposer, GetHabboGroupDetailsComposer, GetMessengerHistoryComposer, IHistoricConsoleMessage, SendHabbiconComposer, SendMsgComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import {
@@ -25,6 +25,8 @@ import {
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { GetSoundManager, HabboSoundTypesEnum } from '#base/sound';
+
+import { noteHabbiconUsed } from './habbiconCommands';
 
 type Send = WebSocketConnection['send'];
 
@@ -353,6 +355,39 @@ export const sendMessengerMessage = (send: Send, message: string) => {
         messageId: '',
         awaitConfirmationId: confirmationId,
     });
+};
+
+/**
+ * `MainView.onHabbiconSelected`: a habbicon from the picker, sent into the selected conversation
+ * (`SendHabbiconMessageComposer`: chat id, habbicon, confirmation id), shown at once as the
+ * user's own pending bubble, and moved to the front of the recently used ones.
+ */
+export const sendMessengerHabbicon = (send: Send, habbiconId: number) => {
+    const { selectedChatId, takeConfirmationId } = messengerStore.getState();
+
+    if ((selectedChatId === MESSENGER_NO_CONVERSATION) || (habbiconId <= 0)) return;
+
+    const confirmationId = takeConfirmationId();
+    const { userId, name, figure } = userStore.getState();
+
+    send(new SendHabbiconComposer({ chatId: selectedChatId, habbiconId, confirmationId }));
+
+    const held = messengerStore.getState().entries[selectedChatId] ?? [];
+
+    if ((held.length === 0) || ((held.length === 1) && (held[0].type === MESSENGER_ENTRY_NOTIFICATION))) playMessengerSendSound();
+
+    recordChatEntry(send, selectedChatId, {
+        type: MESSENGER_ENTRY_OWN,
+        chatId: selectedChatId,
+        message: messengerMessageOf('', habbiconId),
+        sentAt: performance.now(),
+        senderId: userId,
+        senderName: name,
+        senderFigure: figure,
+        messageId: '',
+        awaitConfirmationId: confirmationId,
+    });
+    noteHabbiconUsed(habbiconId);
 };
 
 /** `messengerWindowProcedure`'s `follow_button`: to the friend's room, or a group chat's group room. */

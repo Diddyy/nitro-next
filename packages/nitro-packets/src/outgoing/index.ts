@@ -100,6 +100,7 @@ export * from './FriendList/HabboSearchComposer';
 export * from './FriendList/MessengerInitComposer';
 export * from './FriendList/RemoveFriendComposer';
 export * from './FriendList/RequestFriendComposer';
+export * from './FriendList/SendHabbiconComposer';
 export * from './FriendList/SendMsgComposer';
 export * from './FriendList/SendRoomInviteComposer';
 export * from './FriendList/SetRelationshipStatusComposer';

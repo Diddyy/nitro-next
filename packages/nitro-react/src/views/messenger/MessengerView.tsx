@@ -19,14 +19,20 @@
  * `selectConversation` registers the selected friend's name for the separator and the input's empty
  * text, and `refreshChatCount` the open count for the title: they are the template's `parameters`.
  *
- * Not ported: the habbicon picker (`MessengerHabbiconPicker`, `messenger_habbicon_picker`), so
- * `habbicon_button` draws and does nothing - received habbicons are shown. The report button reports
+ * - `habbicon_button`: the habbicon picker (`MessengerHabbiconPicker`, `messenger_habbicon_picker`,
+ *   drawn by the shared `HabbiconPickerView`) at the button's x, its bottom 4 above the input
+ *   (`positionHabbiconPicker`); a pick is sent into the conversation (`onHabbiconSelected`), and
+ *   the picker stays up while shift is held.
+ *
+ * Not ported: the picker does not follow the window while it is dragged. The report button reports
  * the conversation (`HabboMessenger.reportUser` -> `HabboHelp.reportUserFromIM`). The frame is not
  * resizable: `MainView` re-lays its items on `WE_RESIZE`, and the port keeps the layout's size. The
  * separator's label is hidden while no conversation is selected, where `selectConversation(-1)`
  * shows it (`§_-8K§ < 0`) - `MainView` hides the window then, so it is not seen either way.
  */
-import { followMessengerConversation, getMessengerFriend, hideMessenger, hideMessengerConversation, openMessengerConversationProfile, requestMessengerHistory, selectMessengerConversation, sendMessengerMessage } from '#base/commands';
+import { useRef, useState } from 'react';
+
+import { followMessengerConversation, getMessengerFriend, hideMessenger, hideMessengerConversation, openHabbiconHub, openMessengerConversationProfile, requestMessengerHistory, selectMessengerConversation, sendMessengerHabbicon, sendMessengerMessage } from '#base/commands';
 import { reportUserFromIM } from '#base/commands/helpCommands';
 import { AvatarImage } from '#base/components/AvatarImage';
 import { useWebSocketContext } from '#base/context/communication';
@@ -37,12 +43,30 @@ import {
 } from '#base/context/messenger';
 import { useConfigValue } from '#base/context/system';
 import { useFriends, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
-import { Box, findTemplateChild, Template, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
+import { Box, findTemplateChild, getGlobalRect, Template, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
+import { HabbiconPickerLook, HabbiconPickerView } from '#base/views/habbicons/HabbiconPickerView';
 
 import { MESSENGER_CHAT_BUBBLE_TEMPLATE, messengerCaption, messengerChatBubbleItem } from './MessengerChatBubble';
 import { MessengerInput } from './MessengerInput';
 
 const TEMPLATE = 'habbo-messenger-com/messenger_xml';
+/** `MessengerHabbiconPicker` and its section/tile views' sizes and slot colours. */
+const HABBICON_PICKER_LOOK: HabbiconPickerLook = {
+    template: 'habbo-messenger-com/messenger_habbicon_picker_xml',
+    width: 256,
+    minHeight: 94,
+    maxHeight: 304,
+    topBarHeight: 42,
+    bottomPadding: 6,
+    columns: 5,
+    slotSize: 45,
+    slotSpacing: 2,
+    filledColor: 0xffffff,
+    emptyColor: 0xdddddd,
+    hoverColor: 0xeeeeee,
+};
+/** `positionHabbiconPicker`: the picker's bottom sits 4 above `input_widget`, which shares the button's y. */
+const HABBICON_PICKER_GAP = 4;
 /** `messenger`'s frame and its size. */
 const FRAME_WIDTH = 282;
 /** `MainView.conversationItemWidth`. */
@@ -115,6 +139,14 @@ export const MessengerView = () => {
     const ownName = useUserStore(x => x.name);
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const frame = useTemplateFrame({ id: 'messenger', defaultPosition: { x: 120, y: 120 }, onClose: hideMessenger, closeButtonVariant: '102' });
+    const habbiconsEnabled = useConfigValue<boolean>('habbicons.enabled') === true;
+    const [ pickerAt, setPickerAt ] = useState<{ x: number; bottom: number } | null>(null);
+    // A press on the button that just closed the picker from outside must not open it again.
+    const pickerClosedAtRef = useRef(0);
+    const closePicker = () => {
+        pickerClosedAtRef.current = Date.now();
+        setPickerAt(null);
+    };
 
     const visible = conversations.filter(conversation => conversation.visible);
     const selected = conversations.find(conversation => conversation.chatId === selectedChatId);
@@ -207,42 +239,78 @@ export const MessengerView = () => {
     };
 
     return (
-        <TemplateWindow
-            id={TEMPLATE}
-            part="frame"
-            frame={frame}
-            parameters={{
-                'messenger.window.title': { open_chat_count: String(visible.length) },
-                'messenger.window.separator': { friend_name: friendName },
-                'messenger.window.input.default': { friend_name: friendName },
-            }}
-            bindings={{
-                avatar_list: { items: shownTabs.flatMap(tabItem) },
-                avatars_scroll_left: { visible: avatarScrollOffset > 0, onPointerTap: () => setAvatarScrollOffset(avatarScrollOffset - 1) },
-                avatars_scroll_right: { visible: moreRight, onPointerTap: () => setAvatarScrollOffset(avatarScrollOffset + 1) },
-                separator_label: { visible: ((selectedChatId < 0) || !!selected) && (selectedChatId !== MESSENGER_NO_CONVERSATION) },
-                follow_button: { onPointerTap: () => followMessengerConversation(send, selectedChatId) },
-                profile_button: { onPointerTap: () => openMessengerConversationProfile(send, selectedChatId) },
-                report_button: { onPointerTap: () => reportUserFromIM(selectedChatId) },
-                close_conversation_button: { onPointerTap: () => hideMessengerConversation(send, selectedChatId) },
-                conversation: {
-                    items: groupMessengerEntries(selectedChatId, selectedEntries).flatMap(item => chatItem(item.entries, item.key)),
-                    // The bubbles' template too: until it is in, the list holds only the notices.
-                    scrollEndKey: `${selectedChatId}:${selectedEntries.length}:${newest?.messageId ?? ''}:${bubbleTemplate ? 1 : 0}`,
-                    onReachStart: () => requestMessengerHistory(send, selectedChatId),
-                },
-                input_widget: {
-                    children: (
-                        <MessengerInput
-                            width={INPUT_WIDTH}
-                            emptyMessage={INPUT_EMPTY_MESSAGE}
-                            parameters={{ 'messenger.window.input.default': { friend_name: friendName } }}
-                            maxChars={INPUT_MAX_CHARS}
-                            onSubmit={message => sendMessengerMessage(send, message)}
-                        />
-                    ),
-                },
-            }}
-        />
+        <>
+            <TemplateWindow
+                id={TEMPLATE}
+                part="frame"
+                frame={frame}
+                parameters={{
+                    'messenger.window.title': { open_chat_count: String(visible.length) },
+                    'messenger.window.separator': { friend_name: friendName },
+                    'messenger.window.input.default': { friend_name: friendName },
+                }}
+                bindings={{
+                    avatar_list: { items: shownTabs.flatMap(tabItem) },
+                    avatars_scroll_left: { visible: avatarScrollOffset > 0, onPointerTap: () => setAvatarScrollOffset(avatarScrollOffset - 1) },
+                    avatars_scroll_right: { visible: moreRight, onPointerTap: () => setAvatarScrollOffset(avatarScrollOffset + 1) },
+                    separator_label: { visible: ((selectedChatId < 0) || !!selected) && (selectedChatId !== MESSENGER_NO_CONVERSATION) },
+                    follow_button: { onPointerTap: () => followMessengerConversation(send, selectedChatId) },
+                    profile_button: { onPointerTap: () => openMessengerConversationProfile(send, selectedChatId) },
+                    report_button: { onPointerTap: () => reportUserFromIM(selectedChatId) },
+                    close_conversation_button: { onPointerTap: () => hideMessengerConversation(send, selectedChatId) },
+                    // `toggleHabbiconPicker`.
+                    habbicon_button: {
+                        onPointerTap: (event) => {
+                            if (!habbiconsEnabled || ((Date.now() - pickerClosedAtRef.current) < 250)) return;
+
+                            if (pickerAt) {
+                                closePicker();
+
+                                return;
+                            }
+
+                            const button = getGlobalRect(event.currentTarget);
+
+                            setPickerAt({ x: Math.round(button.x), bottom: Math.round(button.y) - HABBICON_PICKER_GAP });
+                        },
+                    },
+                    conversation: {
+                        items: groupMessengerEntries(selectedChatId, selectedEntries).flatMap(item => chatItem(item.entries, item.key)),
+                        // The bubbles' template too: until it is in, the list holds only the notices.
+                        scrollEndKey: `${selectedChatId}:${selectedEntries.length}:${newest?.messageId ?? ''}:${bubbleTemplate ? 1 : 0}`,
+                        onReachStart: () => requestMessengerHistory(send, selectedChatId),
+                    },
+                    input_widget: {
+                        children: (
+                            <MessengerInput
+                                width={INPUT_WIDTH}
+                                emptyMessage={INPUT_EMPTY_MESSAGE}
+                                parameters={{ 'messenger.window.input.default': { friend_name: friendName } }}
+                                maxChars={INPUT_MAX_CHARS}
+                                onSubmit={message => sendMessengerMessage(send, message)}
+                            />
+                        ),
+                    },
+                }}
+            />
+            {habbiconsEnabled && pickerAt && (
+                <HabbiconPickerView
+                    look={HABBICON_PICKER_LOOK}
+                    x={pickerAt.x}
+                    bottom={pickerAt.bottom}
+                    onPick={(habbiconId, keepOpen) => {
+                        sendMessengerHabbicon(send, habbiconId);
+
+                        if (!keepOpen) closePicker();
+                    }}
+                    // `onOpenHubClicked`: `openHabbiconHub`, then `hide()`.
+                    onOpenHub={() => {
+                        openHabbiconHub(send);
+                        closePicker();
+                    }}
+                    onClose={closePicker}
+                />
+            )}
+        </>
     );
 };
