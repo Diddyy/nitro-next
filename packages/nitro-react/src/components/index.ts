@@ -12,6 +12,7 @@ export * from './help';
 export * from './hotel-view';
 export * from './inventory';
 export * from './messenger';
+export * from './moderation';
 export * from './navigator';
 export * from './notifications';
 export * from './offer-center';

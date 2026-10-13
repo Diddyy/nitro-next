@@ -9,6 +9,7 @@ export * from './groups';
 export * from './habbicons';
 export * from './help';
 export * from './inventory';
+export * from './moderation';
 export * from './navigator';
 export * from './notifications';
 export * from './offer-center';

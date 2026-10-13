@@ -1,12 +1,12 @@
 import { IIncomingPacket, IMessageDataWrapper } from '@nitrodevco/nitro-api';
 
-export type IssueDeletedMessageType = object;
+/** `IssueDeletedMessageParser`: the issue id, as a string. */
+export type IssueDeletedMessageType = {
+    issueId: number;
+};
 
 export class IssueDeletedMessage implements IIncomingPacket<IssueDeletedMessageType> {
     public parse(wrapper: IMessageDataWrapper): IssueDeletedMessageType {
-        const packet: IssueDeletedMessageType = {
-        };
-
-        return packet;
+        return { issueId: parseInt(wrapper.readString()) };
     }
 }
