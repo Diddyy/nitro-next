@@ -15,7 +15,7 @@ export interface ChatBubbleData {
     chatType: RoomChatTypeEnum;
     styleId: number;
     links: IChatLink[];
-    /** The speaker's room object's own location vector - live, so the pointer follows them as they walk (Flash `ChatItem.userLocation`). */
+    /** Where the speaker's room object stood when they spoke - a copy (Flash `ChatItem.userLocation`); the pointer falls back to it once they are gone. */
     userLocation: IVector3D | undefined;
     /** Arrival time, nudged by one per message that shares a millisecond so ordering stays strict. */
     timestamp: number;

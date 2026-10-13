@@ -81,6 +81,11 @@ export const ChatFlowProvider = ({ children }: ChatFlowProviderProps) => {
 
             return new Point(x, y);
         },
+        getUnitLocation: (roomId: number, objectId: number): IVector3D | undefined => {
+            if (!room || (room.roomId !== roomId)) return undefined;
+
+            return room.getRoomObject(objectId, RoomObjectCategoryEnum.Unit)?.getLocation();
+        },
         onBubbleRemoved: bubble => removeChatBubble(bubble.id),
     }), [ room, removeChatBubble ]);
 

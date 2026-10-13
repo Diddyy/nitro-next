@@ -1,4 +1,4 @@
-import { RoomChatTypeEnum, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
+import { RoomChatTypeEnum, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 import { ChatMessage, CloseConnectionMessage, FloodControlMessage, GetGuestRoomResultMessage, HandItemReceivedMessage, IChatLink, PetRespectNotificationEventMessage, PetSupplementedNotificationEventMessage, RemainingMutePeriodMessage, RespectNotificationMessage, RoomChatSettingsMessage, RoomEntryInfoMessage, ShoutMessage, SpecialSystemChatMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
 
 import { createChatBubbleId, GetChatStyleLibrary } from '#base/chat';
@@ -45,6 +45,7 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
         if (!room || (objectId < 0)) return;
 
         const roomObject = room.getRoomObject(objectId, RoomObjectCategoryEnum.Unit);
+        const location = roomObject?.getLocation();
         const now = Math.floor(performance.now());
 
         // Messages that share a millisecond still need a strict order for the collision rules.
@@ -61,7 +62,8 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
             chatType,
             styleId,
             links,
-            userLocation: roomObject?.getLocation(),
+            // `ChatItem` copies the location: the bubble keeps where its speaker stood when they spoke.
+            userLocation: location ? new Vector3d(location.x, location.y, location.z) : undefined,
             timestamp: now + chatFakeMsIncrementor,
             extraParam,
             hideUsername,
