@@ -8,6 +8,7 @@ import { RoomDoorbellWidget } from './doorbell/RoomDoorbellWidget';
 import { FloorPlanEditorWidget } from './floor-plan-editor/FloorPlanEditorWidget';
 import { RoomFriendRequestWidget } from './friend-request/RoomFriendRequestWidget';
 import { RoomFurnitureWidgets } from './furniture';
+import { FurnitureLabelWidget } from './furniture-label';
 import { RoomObjectInfostandWidget } from './object-infostand';
 import { RoomObjectMenuWidget } from './object-menu';
 import { RoomBreedingResultWidget } from './pets/RoomBreedingResultWidget';
@@ -35,6 +36,8 @@ export const RoomWidgets = () => {
             <RoomSpectatorModeWidget />
             <RoomChatWidget />
             <RoomObjectMenuWidget />
+            {/* `RWE_FURNITURE_LABEL`: the WIRED labels over their furni. */}
+            <FurnitureLabelWidget />
             <RoomFurnitureWidgets />
             <RoomToolsWidget />
             <RoomDoorbellWidget />

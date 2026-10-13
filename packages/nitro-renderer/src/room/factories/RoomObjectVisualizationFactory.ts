@@ -85,6 +85,8 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
                 visualization = AnimatedPetVisualization;
                 break;
             case RoomObjectVisualizationType.FURNITURE_STATIC:
+            case RoomObjectVisualizationType.FURNITURE_LABEL:
+            case RoomObjectVisualizationType.FURNITURE_REGION:
                 visualization = FurnitureVisualization;
                 break;
             case RoomObjectVisualizationType.FURNITURE_ANIMATED:
@@ -218,6 +220,8 @@ export class RoomObjectVisualizationFactory implements IRoomObjectVisualizationF
 
         switch (visualization) {
             case RoomObjectVisualizationType.FURNITURE_STATIC:
+            case RoomObjectVisualizationType.FURNITURE_LABEL:
+            case RoomObjectVisualizationType.FURNITURE_REGION:
             case RoomObjectVisualizationType.FURNITURE_GIFT_WRAPPED:
             case RoomObjectVisualizationType.FURNITURE_BB:
             case RoomObjectVisualizationType.FURNITURE_ISOMETRIC_BB:

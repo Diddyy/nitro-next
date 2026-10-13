@@ -470,6 +470,9 @@ export class OutgoingHeader {
     public static SetClothingChangeDataComposer = 2006;
     public static SetCustomStackingHeightComposer = 2882;
     public static SetDiscordPreferencesComposer = 452;
+    public static SetFurnitureLabelDataComposer = 7502;
+    public static SetFurnitureLabelSettingsComposer = 7503;
+    public static SetFurnitureRegionDataComposer = 7504;
     public static SetIgnoreRoomInvitesComposer = 1322;
     public static SetItemDataComposer = 3432;
     public static SetMannequinFigureComposer = 1420;

@@ -156,6 +156,8 @@ export class IncomingHeader {
     public static FurniRecolorUpdateMessage = 7201;
     public static FurniRentOrBuyoutOfferMessage = 1921;
     public static FurnitureAliasesMessage = 2576;
+    public static FurnitureLabelsAndRegionsMessage = 7500;
+    public static FurnitureLabelsAndRegionsUpdateMessage = 7501;
     public static Game2AccountGameStatusMessage = 1173;
     public static Game2ArenaEnteredMessage = 3954;
     public static Game2EnterArenaFailedMessage = 3762;

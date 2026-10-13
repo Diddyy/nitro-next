@@ -7,6 +7,7 @@ export * from './effects';
 export * from './floor-plan-editor';
 export * from './friend-request';
 export * from './furniture';
+export * from './furniture-label';
 export * from './object-infostand';
 export * from './object-menu';
 export * from './pets';

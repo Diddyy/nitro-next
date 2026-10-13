@@ -12,6 +12,7 @@ export * from './FurnitureEngravingWidget';
 export * from './FurnitureExternalImageWidget';
 export * from './FurnitureGuildMenuWidget';
 export * from './FurnitureHighScoreWidget';
+export * from './FurnitureLabelSettingsWidget';
 export * from './FurnitureLockConfirmWidget';
 export * from './FurnitureMannequinWidget';
 export * from './FurnitureMonsterplantSeedWidget';

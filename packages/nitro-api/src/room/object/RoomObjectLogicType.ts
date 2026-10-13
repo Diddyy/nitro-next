@@ -36,6 +36,8 @@ export class RoomObjectLogicType {
     public static FURNITURE_MANNEQUIN = 'furniture_mannequin';
     public static FURNITURE_GUILD_CUSTOMIZED = 'furniture_guild_customized';
     public static FURNITURE_RECOLORABLE = 'furniture_recolorable';
+    public static FURNITURE_LABEL = 'furniture_label';
+    public static FURNITURE_REGION = 'furniture_region';
     public static FURNITURE_GROUP_FORUM_TERMINAL = 'furniture_group_forum_terminal';
     public static FURNITURE_PET_CUSTOMIZATION = 'furniture_pet_customization';
     public static FURNITURE_CUCKOO_CLOCK = 'furniture_cuckoo_clock';

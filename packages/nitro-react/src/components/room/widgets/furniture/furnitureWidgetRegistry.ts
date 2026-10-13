@@ -1,7 +1,7 @@
 import { RoomObjectWidgetRequestEvent, RoomWidgetEnum } from '@nitrodevco/nitro-api';
 import { ComponentType } from 'react';
 
-import { FURNITURE_RECOLOR_WIDGET, PET_PACKAGE_WIDGET, PRESENT_OPENED_WIDGET } from '#base/utils';
+import { FURNITURE_LABEL_SETTINGS_WIDGET, FURNITURE_RECOLOR_WIDGET, PET_PACKAGE_WIDGET, PRESENT_OPENED_WIDGET } from '#base/utils';
 
 import { FurnitureAreaHideWidget } from './FurnitureAreaHideWidget';
 import { FurnitureBackgroundColorWidget } from './FurnitureBackgroundColorWidget';
@@ -16,6 +16,7 @@ import { FurnitureEngravingWidget } from './FurnitureEngravingWidget';
 import { FurnitureExternalImageWidget } from './FurnitureExternalImageWidget';
 import { FurnitureGuildMenuWidget } from './FurnitureGuildMenuWidget';
 import { FurnitureHighScoreWidget } from './FurnitureHighScoreWidget';
+import { FurnitureLabelSettingsWidget } from './FurnitureLabelSettingsWidget';
 import { FurnitureLockConfirmWidget } from './FurnitureLockConfirmWidget';
 import { FurnitureMannequinWidget } from './FurnitureMannequinWidget';
 import { FurnitureMonsterplantSeedWidget } from './FurnitureMonsterplantSeedWidget';
@@ -84,4 +85,5 @@ export const FURNITURE_WIDGETS: Record<string, ComponentType> = {
     [PET_PACKAGE_WIDGET]: FurniturePetPackageWidget,
     [PRESENT_OPENED_WIDGET]: FurniturePresentOpenedWidget,
     [FURNITURE_RECOLOR_WIDGET]: FurnitureRecolorWidget,
+    [FURNITURE_LABEL_SETTINGS_WIDGET]: FurnitureLabelSettingsWidget,
 };

@@ -20,6 +20,7 @@ import {
     RoomObjectUserType,
     RoomObjectVariableEnum,
 } from './object';
+import { FurnitureLabelData } from './object/data/FurnitureLabelData';
 import { ILegacyWallGeometry, IRoomAreaSelectionManager, IRoomObjectHighLighter, IStackingHeightMapReader, ITileObjectMap } from './utils';
 
 export interface IRoom {
@@ -120,6 +121,8 @@ export interface IRoom {
         extra?: number,
     ): boolean;
     updateFurnitureColor(objectIds: number[], red: number, green: number, blue: number): void;
+    replaceFurnitureLabelsAndRegions(entries: FurnitureLabelData[]): void;
+    updateFurnitureLabelsAndRegions(addedOrUpdated: FurnitureLabelData[], removedIds: number[]): void;
     updateRoomObjectWall(
         objectId: number,
         location: IVector3D | undefined,
@@ -163,7 +166,7 @@ export interface IRoom {
     updateRoomObjectUserGesture(objectId: number, gestureId: number): boolean;
     updateRoomObjectUserPetGesture(objectId: number, gesture: string): boolean;
     updateRoomObjectUserPosture(objectId: number, type: string, parameter?: string): boolean;
-    removeRoomObjectFloor(objectId: number): void;
+    removeRoomObjectFloor(objectId: number, byInvisibleFurniManager?: boolean): void;
     removeRoomObjectWall(objectId: number): void;
     removeRoomObjectUser(objectId: number): void;
     getRoomObjectScreenLocation(objectId: number, category: RoomObjectCategoryEnum): PointData | undefined;

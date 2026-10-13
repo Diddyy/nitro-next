@@ -136,6 +136,8 @@ import {
     FurniRecolorUpdateMessage,
     FurniRentOrBuyoutOfferMessage,
     FurnitureAliasesMessage,
+    FurnitureLabelsAndRegionsMessage,
+    FurnitureLabelsAndRegionsUpdateMessage,
     Game2AccountGameStatusMessage,
     Game2GameCancelledMessage,
     Game2GameDirectoryStatusMessage,
@@ -514,6 +516,8 @@ import { IncomingHeader } from './IncomingHeader';
 export const GetIncomingPackets = () => {
     return {
         // Avatar editor
+        [IncomingHeader.FurnitureLabelsAndRegionsMessage]: FurnitureLabelsAndRegionsMessage,
+        [IncomingHeader.FurnitureLabelsAndRegionsUpdateMessage]: FurnitureLabelsAndRegionsUpdateMessage,
         [IncomingHeader.HotLooksMessage]: HotLooksMessage,
 
         // Advertisement
