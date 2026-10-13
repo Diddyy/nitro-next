@@ -22,18 +22,13 @@ import { useConfigValue, useTranslation, useWindowActions } from '#base/context/
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useWiredHasWritePermission, useWiredShowInspectButton } from '#base/context/wired';
 import { useCanPlaceWithBuildersClub, useRoomFurnitureData, useRoomObjectInteraction, useRoomObjectModify, useSecondsClock } from '#base/hooks';
-import { FURNITURE_LABEL_SETTINGS_WIDGET, FURNITURE_RECOLOR_WIDGET } from '#base/utils';
+import { FURNITURE_LABEL_SETTINGS_WIDGET, FURNITURE_RECOLOR_WIDGET, getFurniturePickupMode, PICKUP_FULL, PICKUP_NONE } from '#base/utils';
 import { InfostandFurniDetails, InfostandFurniVariant, InfostandFurniView } from '#base/views/room-widgets/object-infostand/InfostandFurniView';
 
 type InfostandFurniProps = {
     objectData: ISimpleRoomObjectData;
     onClose: () => void;
 };
-
-/** `PickupMode`: none, eject someone else's furni, pick up your own. */
-export const PICKUP_NONE = 0;
-export const PICKUP_EJECT = 1;
-export const PICKUP_FULL = 2;
 
 /**
  * `InfoStandWidget.onFurniInfo`'s choice of view, by the furni's infostand extra param: the jukebox,
@@ -53,6 +48,7 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const furniData = useRoomFurnitureData(objectId, category);
     const ownUserId = useOwnUserId();
     const isAnyRoomController = useClientGate(ClientGates.AnyRoomController);
+    const canStealFurni = useClientGate(ClientGates.FurniSteal);
     const canSaveBranding = useClientGate(ClientGates.FurniBranding);
     // `createWindow` disposes `custom_variables` without `hasSecurity(5)`.
     const canSeeCustomVariables = useClientGate(ClientGates.FurniCustomVariables);
@@ -122,15 +118,16 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     // A crackable is there to be hit.
     if (isCrackable) canUse = true;
 
-    let pickupMode = PICKUP_NONE;
-
-    // `updatePickupMode(event, playTestMode)`.
-    if (!playTestMode) {
-        if (isOwner || isAnyRoomController) pickupMode = PICKUP_FULL;
-        else if (isRoomOwner || (controllerLevel >= RoomControllerLevelEnum.GuildAdmin)) pickupMode = PICKUP_EJECT;
-
-        if (furniData.isStickie) pickupMode = PICKUP_NONE;
-    }
+    const pickupMode = getFurniturePickupMode({
+        playTestMode,
+        isStickie: !!furniData.isStickie,
+        isOwner,
+        isRoomOwner,
+        isGuildAdmin: controllerLevel >= RoomControllerLevelEnum.GuildAdmin,
+        isAnyRoomController,
+        canStealFurni,
+        isBuildersClub: FurniId.isBuilderClubId(objectId),
+    });
 
     // A recolorable floor furni's colour (`furniture_recolorable_color`); undefined for any other furni.
     const recolorableColor = (category === RoomObjectCategoryEnum.Floor) ? roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureRecolorableColor) : undefined;

@@ -40,6 +40,8 @@ export const ClientGates = {
     RentCancelAny: { node: 'room.furni.rent_cancel_any', level: SecurityLevelEnum.Moderator },
     /** `InfoStandFurniView` - save an ad furni's branding (security 4). */
     FurniBranding: { node: 'room.furni.branding', level: SecurityLevelEnum.Employee },
+    /** `InfoStandFurniView.updatePickupMode` - "Pick up" (not "Eject") on somebody else's furni: Turbo's `room.furni.steal`, Flash's security 5. */
+    FurniSteal: { node: 'room.furni.steal', level: SecurityLevelEnum.Moderator },
     /** `InfoStandFurniView` / `InfoStandWidgetHandler.setObjectData` - a furni's custom variables (security 5). */
     FurniCustomVariables: { node: 'room.furni.custom_variables', level: SecurityLevelEnum.Moderator },
     /** `PurchaseConfirmationDialog.isModerator` - send a gift without the sender's face (security 5). */

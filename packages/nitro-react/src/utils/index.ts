@@ -22,6 +22,7 @@ export * from './floorPlanTiles';
 export * from './FriendlyTime';
 export * from './furnitureData';
 export * from './furnitureOwner';
+export * from './furniturePickupMode';
 export * from './furnitureWidgetData';
 export * from './GetLaunchParameter';
 export * from './GetPixelRatio';
