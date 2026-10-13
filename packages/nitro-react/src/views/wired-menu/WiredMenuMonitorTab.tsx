@@ -141,7 +141,8 @@ export const WiredMenuMonitorTab = () => {
                         <TableView
                             columns={columns}
                             rows={errors ?? []}
-                            getRowId={error => String(error.errorId)}
+                            // Two of Habbo's ten errors share id 8 (placement failure, variable fx limit).
+                            getRowId={error => `${error.errorId}-${error.errorName}`}
                             getCell={getCell}
                             layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
                         />

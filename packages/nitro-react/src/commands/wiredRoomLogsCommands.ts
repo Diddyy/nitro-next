@@ -4,8 +4,6 @@
  * `wiredmenu/logs` link, paging, the filters) opens the window with the page it gets back and
  * puts the page's filters into the window's controls; the view's auto refresh asks quietly, and
  * its answer is only shown while the window is up. The state is `WiredRoomLogsSlice`.
- *
- * The reference server (turbo-cloud) does not answer `WiredGetRoomLogs`.
  */
 import type { IWiredLogPage } from '@nitrodevco/nitro-packets';
 import { WiredGetRoomLogsComposer } from '@nitrodevco/nitro-packets';
