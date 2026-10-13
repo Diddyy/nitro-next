@@ -76,7 +76,7 @@ export const registerRoomPetHandlers = ({ subscribe }: WebSocketConnection) => {
 
         // Only the commands it has learned are worth offering; the rest are what it could learn.
         on(PetCommandsMessage, (data) => {
-            setPetCommands(data.petId, data.enabledCommands);
+            setPetCommands(data.petId, { all: data.allCommands, enabled: data.enabledCommands });
         }),
 
         on(PetStatusUpdateMessage, (data) => {

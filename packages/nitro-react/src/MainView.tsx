@@ -49,6 +49,7 @@ import { CameraPhotoLabView } from './views/room-widgets/camera/CameraPhotoLabVi
 import { CameraView } from './views/room-widgets/camera/CameraView';
 import { PhotoPurchaseConfirmationView } from './views/room-widgets/camera/PhotoPurchaseConfirmationView';
 import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInputView';
+import { PetTrainingView } from './views/room-widgets/pet-training/PetTrainingView';
 import { SystemDialogsView } from './views/system/SystemDialogsView';
 import { TemplatePreviewView } from './views/system/TemplatePreviewView';
 import { ViewErrorBoundaries } from './views/system/ViewErrorBoundary';
@@ -179,6 +180,8 @@ export const MainView = () => {
                     <NoobLobbyOfferView />
                     {/* `HabboPagesViewer`: drawn only while shown. */}
                     <HabboPagesView />
+                    {/* `PetCommandTool`: drawn only while shown. */}
+                    <PetTrainingView />
                     <UserProfileComponent />
                     <CollectiblesComponent />
                     <HabbiconsComponent />

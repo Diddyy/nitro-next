@@ -1,11 +1,10 @@
-import { ISimpleRoomObjectData, PetType, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectUserType } from '@nitrodevco/nitro-api';
-import { ChatComposer, CompostPlantComposer, GetPetCommandsComposer, HarvestPetComposer, MountPetComposer, PassCarryItemToPetComposer, RemoveSaddleFromPetComposer, RespectPetComposer, TogglePetBreedingPermissionComposer, TogglePetRidingPermissionComposer } from '@nitrodevco/nitro-packets';
-import { useEffect } from 'react';
+import { FurnitureSpecialType, ISimpleRoomObjectData, PetType, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectUserType } from '@nitrodevco/nitro-api';
+import { ChatComposer, CompostPlantComposer, HarvestPetComposer, MountPetComposer, PassCarryItemToPetComposer, RemoveSaddleFromPetComposer, RespectPetComposer, TogglePetBreedingPermissionComposer, TogglePetRidingPermissionComposer } from '@nitrodevco/nitro-packets';
 
 import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useIsRoomOwner, useOwnRoomObjectId, useRoomPetCommands, useRoomPetInfo, useRoomPetsActions, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
-import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useIsRoomOwner, useOwnRoomObjectId, useRoomPetInfo, useRoomPetsActions, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
+import { systemStore, useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useRoomObjectModify, useRoomUserData } from '#base/hooks';
@@ -27,6 +26,12 @@ const NEST_BREEDING_TYPES: Record<number, string> = {
 /** `pet.command.46`: what a nest-bred pet is told to start breeding. */
 const BREED_COMMAND = 46;
 
+/** `findFurnitureData(20, 16)`: the furniture of category (`specialtype`) 20, the monsterplant revival, whose first custom parameter is pet type 16. */
+const REVIVAL_PET_TYPE = '16';
+
+const findRevivalFurniture = () => Object.values(systemStore.getState().floorItems)
+    .find(furniture => (furniture.specialType === FurnitureSpecialType.MonsterplantRevival) && (furniture.customParams.split(' ')[0] === REVIVAL_PET_TYPE) && (furniture.purchaseOfferId >= 0));
+
 /** `updateButtons`: `treat` is enabled while the plant's energy is under this share of its maximum. */
 const TREAT_ENERGY_RATIO = 0.98;
 
@@ -47,7 +52,6 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
     const userData = useRoomUserByObjectId(objectId);
     const petId = userData?.webID ?? 0;
     const info = useRoomPetInfo(petId);
-    const commands = useRoomPetCommands(petId);
     const petRespectLeft = useUserStore(x => x.petRespectLeft);
     const showWiredInspect = useWiredShowInspectButton();
     const users = useRoomStore(x => x.usersByRoomObjectId);
@@ -59,18 +63,11 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
     const isRoomOwner = useIsRoomOwner();
     const handItemGivePetEnabled = useConfigValue<boolean>('handitem.give.pet.enabled') === true;
     const compostingEnabled = useConfigValue<boolean>('monsterplants.composting.enabled') === true;
-    const { showConfirm } = useWindowActions();
+    const { showConfirm, showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const petType = petTypeFromFigure(userData?.figure);
     const nestBreedingEnabled = useConfigValue<boolean>(`nest.breeding.${NEST_BREEDING_TYPES[petType] ?? 'none'}.enabled`) ?? false;
-
-    // The commands are only worth asking about for a pet we could actually train.
-    useEffect(() => {
-        if (!petId || !info || (info.ownerId !== ownUserId)) return;
-
-        send(new GetPetCommandsComposer({ petId }));
-    }, [ petId, info, ownUserId, send ]);
 
     if (!userData) return null;
 
@@ -122,9 +119,16 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
                 break;
             // `RWUAM_WIRED_INSPECT_PET`: the wired menu's inspection of this pet, by its room index.
             case 'wired_inspect': openClientLink(send, `wiredmenu/open/inspection/1/${objectId}`); break;
-            // Reviving costs a seed, so it is bought from the catalogue rather than sent from here.
-            case 'revive': break;
-            case 'train': break;
+            // `openCatalogPage(findFurnitureData(20, 16))`: the revival's offer (`RWUAM_REVIVE_PET` itself does nothing).
+            case 'revive': {
+                const revival = findRevivalFurniture();
+
+                if (revival) showWindow('catalog', { offerId: revival.purchaseOfferId });
+
+                break;
+            }
+            // `openTrainingView`: the training window (`PetCommandTool`) on this pet.
+            case 'train': showWindow('pet_training', { petId, objectId }); break;
         }
     };
 
@@ -150,10 +154,9 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
             canPassHandItem={handItemGivePetEnabled && isHandItem(ownCarryItem)}
             canStartBreeding={canStartBreeding}
             showWiredInspect={showWiredInspect}
-            commands={commands.map(id => ({ id, label: t(`pet.command.${id}`, String(id)) }))}
+            // `OwnPetMenuView.updateButtons`: `train` in the pet and horse modes, not the monsterplant's.
+            canTrain={!isMonsterplant}
             onAction={act}
-            // A command is spoken at the pet, not sent as a packet of its own.
-            onCommand={label => send(new ChatComposer({ text: `${info?.name ?? userData.name} ${label}`, styleId: 0 }))}
             onClose={onClose}
         />
     );

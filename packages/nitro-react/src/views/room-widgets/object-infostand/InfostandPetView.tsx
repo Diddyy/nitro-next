@@ -35,8 +35,6 @@ import { arrangeInfostandButtons } from './infostandButtons';
  * Until the info arrives the panel is the name and picture alone, with no buttons.
  *
  * What is not done, and why:
- * - `btn_train` opens Flash's `PetCommandTool` window, which the port does not have (its commands
- *   are the pet menu's rows), so the train button stays hidden;
  * - `btn_buy_food`'s `trackGoogle` has no tracking receiver here.
  */
 export interface InfostandPetViewProps {
@@ -61,6 +59,8 @@ export interface InfostandPetViewProps {
     onPickUp: () => void;
     /** `btn_buy_food`: `openCatalogPage("pet_accessories")`. */
     onBuyFood: () => void;
+    /** `btn_train`: `openTrainView` - the training window (`PetCommandTool`) on this pet. */
+    onTrain: () => void;
     /** `btn_pettreat`: `RWUAM_TREAT_PET`. */
     onTreat: () => void;
     /** `btn_move` / `btn_rotate`: `RWFAM_MOVE` / `RWFUAM_ROTATE` on the pet's room object. */
@@ -163,7 +163,7 @@ const PercentageBar = ({ value, max, colors }: { value: number; max: number; col
     );
 };
 
-export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isOwnPet, canRemovePet, canMoveAndRotate, onRespect, onPickUp, onBuyFood, onTreat, onMove, onRotate, onClose }: InfostandPetViewProps) => {
+export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isOwnPet, canRemovePet, canMoveAndRotate, onRespect, onPickUp, onBuyFood, onTrain, onTreat, onMove, onRotate, onClose }: InfostandPetViewProps) => {
     const t = useTranslation();
     const { texture: petTexture } = useChatPetFace(figure, posture, { scale: RoomGeometryScaleType.ZoomedIn, direction: 2 });
     // `InfoStandPetView.setSpecialSkillLevel`: `getBoolean("pet.enhancements.enabled")`.
@@ -179,7 +179,8 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isO
     const shownButtons: Record<ButtonRegion, boolean> = info
         ? {
                 pick: isMonsterplant ? canRemovePet : isOwnPet,
-                train: false,
+                // `showButton("train", isOwnPet)` outside the monsterplant mode.
+                train: !isMonsterplant && isOwnPet,
                 buy_food: !isMonsterplant,
                 petrespect: !isMonsterplant && (respectLeft > 0),
                 pettreat: isMonsterplant && (info.energy > 0) && ((info.energy / info.maxEnergy) < 0.98),
@@ -210,6 +211,7 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isO
         btn_pick: { onPointerTap: onPickUp },
         btn_kick: { onPointerTap: onPickUp },
         btn_buy_food: { onPointerTap: onBuyFood },
+        btn_train: { onPointerTap: onTrain },
         btn_petrespect: { onPointerTap: onRespect, caption: t('infostand.button.petrespect', '', { count: String(respectLeft) }) },
         btn_pettreat: { onPointerTap: onTreat },
         btn_move: { onPointerTap: onMove },

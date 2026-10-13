@@ -125,6 +125,9 @@ export type WindowRegistry = {
      * `download` counts the downloads, each one scrolling the page back to its top.
      */
     habbo_pages: { caption?: string; html?: string; download?: number };
+
+    /** The pet training window (`PetCommandTool`) on a pet, from its owner's menu (`openTrainingView`). */
+    pet_training: { petId?: number; objectId?: number };
 };
 
 export type NoWindowParams = Record<string, unknown>;
