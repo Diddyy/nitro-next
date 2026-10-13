@@ -33,7 +33,9 @@
  * (19x14, no region, no tooltip). The layout's `thumb_up` bitmap in `rating_region` is one nothing
  * ever fills, so the rate button is an invisible 18x16 click area with the `navigator.rateroom`
  * tooltip. `RoomDetailsCtrl.onEntry` swaps the owner's eye (`icon_eye_off` / `icon_eye_over`,
- * `setUserInfoState`) under the pointer.
+ * `setUserInfoState`) under the pointer. `remove_rights_region` ("Remove my rights from this room")
+ * shows to whoever holds rights in the room without owning it; a click gives them up
+ * (`RemoveOwnRoomRightsRoomMessageComposer`, no confirm) and `onRemoveRights` hides it at once.
  *
  * Each tag is `TagRenderer.refreshTag` on an `iro_tag_xml` clone added to `tags`: `#tag` in `txt`,
  * `txt` `textWidth + 5` wide and the tag 3 wider; `refreshTags` packs them 14 high across the
@@ -224,6 +226,8 @@ export const RoomInfoView = ({
     const [ hoveredTag, setHoveredTag ] = useState(-1);
     // `_embedExpanded`.
     const [ embedExpanded, setEmbedExpanded ] = useState(false);
+    // `onRemoveRights`: the region hides on the click itself, for as long as this window lives.
+    const [ rightsRemoved, setRightsRemoved ] = useState(false);
     // `prepareWindow`: `_window.center()`, once.
     const frame = useTemplateFrame({ id: 'room-info', centered: true, rememberPosition: false, resizeDirection: 'none', onClose });
 
@@ -303,7 +307,13 @@ export const RoomInfoView = ({
         add_thumbnail_region: { visible: canAddThumbnail, onPointerTap: onAddThumbnail },
 
         // `prepareWindow`'s and `refreshRoomDetails`' `refreshButton`s.
-        remove_rights_region: { visible: canRemoveRights, onPointerTap: onRemoveRights },
+        remove_rights_region: {
+            visible: canRemoveRights && !rightsRemoved,
+            onPointerTap: () => {
+                onRemoveRights();
+                setRightsRemoved(true);
+            },
+        },
         remove_rights: { asset: LayoutImage(`${LIBRARY}/remove_rights.png`) },
         make_home_region: { visible: !isHome, onPointerTap: onMakeHome },
         make_home: { asset: LayoutImage(`${LIBRARY}/make_home.png`) },
