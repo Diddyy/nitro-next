@@ -224,6 +224,10 @@ const UNFOCUSED_SELECTION_COLOR = '#888888';
 const UNFOCUSED_SELECTION_ALPHA = 0.35;
 /** Caret placement on click scans the prefix widths of the line under the pointer; a huge line would make that scan noticeable, so it's capped. */
 const MAX_CLICK_SCAN = 500;
+/** A second press this soon after the first, on the same character boundary, is a double-click: it selects the word. */
+const DOUBLE_CLICK_MS = 500;
+/** What a double-click selects around the pointer: a run of letters, digits and `_`. */
+const WORD_CHARACTER = /[\p{L}\p{N}_]/u;
 
 const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
     position: 'fixed',
@@ -252,9 +256,10 @@ const hiddenInputStyle: Partial<CSSStyleDeclaration> = {
  * `ThemeText`, the selection as a highlight, and a blinking caret positioned from real glyph
  * metrics - the Flash text layout wherever `ThemeText` draws the value exactly, canvas text
  * metrics only where it falls back to the browser's own text.
- * A click places the caret at the nearest glyph boundary, and a field scrolls to keep the caret
- * in view once the text outgrows the box: a single-line or unwrapped one horizontally, a
- * multiline one vertically.
+ * The mouse works as on a Flash `TextField`: a press places the caret at the nearest glyph
+ * boundary, dragging selects from there, Shift with a press extends the selection and a
+ * double-click selects the word. A field scrolls to keep the caret in view once the text
+ * outgrows the box: a single-line or unwrapped one horizontally, a multiline one vertically.
  *
  * Focus can be controlled from outside (`focused` + `onFocusChange`) - the room chat input
  * grabs focus when the user starts typing anywhere, or when the avatar menu asks it to whisper
@@ -270,7 +275,8 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const wraps = multiline && wordWrap;
         const [ internalFocused, setInternalFocused ] = useState(false);
         const [ boxNode, setBoxNode ] = useState<PixiContainer | null>(null);
-        const [ selection, setSelection ] = useState({ start: value.length, end: value.length });
+        // `caret` is the selection's moving end: where a drag or Shift+arrow is, `start` when it runs backwards.
+        const [ selection, setSelection ] = useState({ start: value.length, end: value.length, caret: value.length });
         const [ caretVisible, setCaretVisible ] = useState(true);
         const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
         const boxRef = useRef<PixiContainer | null>(null);
@@ -326,8 +332,9 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
             const start = input.selectionStart ?? input.value.length;
             const end = input.selectionEnd ?? start;
+            const caret = (input.selectionDirection === 'backward') ? start : end;
 
-            setSelection(prev => ((prev.start === start && prev.end === end) ? prev : { start, end }));
+            setSelection(prev => ((prev.start === start && prev.end === end && prev.caret === caret) ? prev : { start, end, caret }));
             onSelectionChangeRef.current?.(start, end);
         }, []);
 
@@ -463,7 +470,12 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         }, [ maxLength ]);
 
         // A value set from outside (the chat's whisper pre-fill, a caller clearing the field)
-        // lands in the native element with the caret at its end.
+        // lands in the native element with the caret at its end. A requested selection
+        // (`selectionAfterChange`) is applied once, when its `selectionRequestId` is new: held on
+        // to, it pulled the caret back to it on every key typed after it (the Message Editor's
+        // B / I / U / Align / placeholder buttons left one behind, and typing went to the end).
+        const appliedRequestRef = useRef<number | undefined>(undefined);
+
         useEffect(() => {
             const input = inputRef.current;
 
@@ -471,11 +483,13 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
             const clamp = (index: number) => Math.max(0, Math.min(index, value.length));
             const rangeEnd = (caret: number) => ((selectionEndAfterChange == null) ? caret : Math.max(caret, clamp(selectionEndAfterChange)));
+            const requested = ((selectionAfterChange != null) && (appliedRequestRef.current !== selectionRequestId)) ? clamp(selectionAfterChange) : null;
+
+            appliedRequestRef.current = selectionRequestId;
 
             if (input.value === value) {
-                if (selectionAfterChange != null) {
-                    const caret = clamp(selectionAfterChange);
-                    input.setSelectionRange(caret, rangeEnd(caret));
+                if (requested !== null) {
+                    input.setSelectionRange(requested, rangeEnd(requested));
                     readSelection();
                 }
 
@@ -483,7 +497,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             }
 
             input.value = value;
-            const caret = (selectionAfterChange == null) ? value.length : clamp(selectionAfterChange);
+            const caret = requested ?? value.length;
             input.setSelectionRange(caret, rangeEnd(caret));
             readSelection();
         }, [ value, readSelection, selectionAfterChange, selectionEndAfterChange, selectionRequestId ]);
@@ -614,7 +628,8 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const showMarks = !password && !!marks?.length;
         const selectionStart = Math.min(selection.start, value.length);
         const selectionEnd = Math.min(selection.end, value.length);
-        const caret = useMemo(() => measureCaret(displayValue, selectionEnd), [ measureCaret, displayValue, selectionEnd ]);
+        const selectionCaret = Math.min(selection.caret, value.length);
+        const caret = useMemo(() => measureCaret(displayValue, selectionCaret), [ measureCaret, displayValue, selectionCaret ]);
         const showSelection = focused || alwaysShowSelection;
         const selectionRects = useMemo(() => (showSelection ? measureSelection(displayValue, Math.min(selectionStart, selectionEnd), Math.max(selectionStart, selectionEnd)) : []), [ showSelection, measureSelection, displayValue, selectionStart, selectionEnd ]);
 
@@ -691,18 +706,10 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
 
         const onWheel = scroll?.wheel ? (event: FederatedWheelEvent) => (scrollVertical ?? scrollHorizontal)?.onWheel(event) : undefined;
 
-        /** A click lands the caret on the nearest glyph boundary. */
-        const onPointerTap = (event: FederatedPointerEvent) => {
-            const input = inputRef.current;
-            const node = boxRef.current;
+        /** The glyph boundary nearest a point in the box's own space. */
+        const indexAt = (local: { x: number; y: number }): number => {
+            if (!value.length) return 0;
 
-            if (input && editable && document.activeElement !== input) input.focus({ preventScroll: true });
-
-            setFocused(true);
-
-            if (!input || !node || !value.length) return;
-
-            const local = event.getLocalPosition(node);
             const targetX = (local.x - paddingX) + scrollX;
             const targetY = local.y + scrollY;
 
@@ -742,13 +749,80 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
                 }
             }
 
-            // The focus effect runs after this handler; queue the caret so it isn't reset by it.
-            setTimeout(() => {
-                if (document.activeElement === input) {
-                    input.setSelectionRange(bestIndex, bestIndex);
-                    readSelection();
-                }
-            }, 0);
+            return bestIndex;
+        };
+
+        // A drag measures against the layout and scroll of the latest render, not the press's.
+        const indexAtRef = useRef(indexAt);
+
+        useEffect(() => {
+            indexAtRef.current = indexAt;
+        });
+
+        const stopDragRef = useRef<(() => void) | null>(null);
+        const lastPressRef = useRef({ time: 0, index: -1 });
+
+        useEffect(() => () => stopDragRef.current?.(), []);
+
+        /** From `anchor` to `to`, the caret at `to`. */
+        const select = (input: HTMLInputElement | HTMLTextAreaElement, anchor: number, to: number) => {
+            input.setSelectionRange(Math.min(anchor, to), Math.max(anchor, to), (to < anchor) ? 'backward' : 'forward');
+            readSelection();
+        };
+
+        /** A press places the caret (Shift: extends the selection to it), a drag selects, a double-click takes the word. */
+        const onPointerDown = (event: FederatedPointerEvent) => {
+            if (event.button !== 0) return;
+
+            const input = inputRef.current;
+            const node = boxRef.current;
+            const wasFocused = focusedRef.current;
+
+            if (input && editable && document.activeElement !== input) input.focus({ preventScroll: true });
+
+            setFocused(true);
+
+            if (!input || !node || (document.activeElement !== input)) return;
+
+            const index = indexAt(event.getLocalPosition(node));
+            const now = performance.now();
+            const last = lastPressRef.current;
+
+            lastPressRef.current = { time: now, index };
+
+            if (!event.shiftKey && (last.index === index) && ((now - last.time) < DOUBLE_CLICK_MS)) {
+                const text = input.value;
+                let start = index;
+                let end = index;
+
+                while ((start > 0) && WORD_CHARACTER.test(text[start - 1])) start--;
+                while ((end < text.length) && WORD_CHARACTER.test(text[end])) end++;
+
+                // A third press starts over rather than selecting the word again.
+                lastPressRef.current = { time: 0, index: -1 };
+                select(input, start, end);
+
+                return;
+            }
+
+            const anchor = (event.shiftKey && wasFocused)
+                ? ((input.selectionDirection === 'backward') ? (input.selectionEnd ?? index) : (input.selectionStart ?? index))
+                : index;
+
+            select(input, anchor, index);
+
+            stopDragRef.current?.();
+
+            const onMove = (move: FederatedPointerEvent) => select(input, anchor, indexAtRef.current(move.getLocalPosition(node)));
+            const stop = () => {
+                node.off('globalpointermove', onMove);
+                window.removeEventListener('pointerup', stop);
+                stopDragRef.current = null;
+            };
+
+            node.on('globalpointermove', onMove);
+            window.addEventListener('pointerup', stop);
+            stopDragRef.current = stop;
         };
 
         const fill = focused ? focusedBackgroundColor : backgroundColor;
@@ -757,7 +831,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             <Box
                 ref={attachBox}
                 cursor="text"
-                onPointerTap={onPointerTap}
+                onPointerDown={onPointerDown}
                 onWheel={onWheel}
                 // Yoga defaults to a row, so the vertical axis is the cross axis: `alignItems` centres a single line.
                 layout={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: (multiline || flashPlacement) ? 'flex-start' : 'center', paddingLeft: paddingX, paddingRight: paddingX, overflow: 'hidden', ...layout }}
