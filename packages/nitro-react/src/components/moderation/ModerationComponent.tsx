@@ -1,9 +1,10 @@
 /**
  * Mounts Flash's moderation tool (`ModerationManager`) for a moderator: the start panel once
  * `ModeratorInit` came, and the windows its `WindowTracker` holds - user info, room tool, chatlog
- * and send message - each once per kind and id, the newest on top.
+ * send message and mod action - each once per kind and id, the newest on top.
  */
 import { moderationWindowKey, useModerationStore } from '#base/context/moderation';
+import { ModActionView } from '#base/views/moderation/ModActionView';
 import { ModChatlogView } from '#base/views/moderation/ModChatlogView';
 import { ModRoomToolView } from '#base/views/moderation/ModRoomToolView';
 import { ModSendMessageView } from '#base/views/moderation/ModSendMessageView';
@@ -44,6 +45,13 @@ export const ModerationComponent = () => {
                     );
                     case 'sendMessage': return (
                         <ModSendMessageView
+                            key={key}
+                            userId={window.userId}
+                            userName={window.userName}
+                        />
+                    );
+                    case 'modAction': return (
+                        <ModActionView
                             key={key}
                             userId={window.userId}
                             userName={window.userName}

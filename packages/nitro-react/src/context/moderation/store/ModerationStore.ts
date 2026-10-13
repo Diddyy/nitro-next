@@ -11,6 +11,8 @@
  *   `getType` / `getId`), the newest last; `rects` where each is, by key (the start panel's
  *   `START_PANEL`), kept as they are dragged.
  * - `userInfos`, `roomInfos`, `chatlogs`: the answers their windows wait for.
+ * - `defaultSanctions` (`IssueManager.updateSanctionData`): a player's default sanction, as the mod
+ *   action window labels it, from `CfhSanction` for its account.
  */
 import type { IModeratorRoomInfoData, IModeratorUserInfoData, IRoomChatlogData, ModeratorInitMessageType } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
@@ -23,7 +25,8 @@ export type ModerationWindow
     = | { kind: 'userInfo'; userId: number }
         | { kind: 'roomTool'; roomId: number }
         | { kind: 'chatlog'; type: number; id: number }
-        | { kind: 'sendMessage'; userId: number; userName: string };
+        | { kind: 'sendMessage'; userId: number; userName: string }
+        | { kind: 'modAction'; userId: number; userName: string };
 
 /** The start panel's `rects` key, and where its layout puts it (`start_panel.xml`: 120, 64, 170 x 170). */
 export const START_PANEL = 'startPanel';
@@ -35,6 +38,7 @@ const WINDOW_SIZES: Record<ModerationWindow['kind'], { width: number; height: nu
     roomTool: { width: 240, height: 437 },
     chatlog: { width: 480, height: 565 },
     sendMessage: { width: 212, height: 168 },
+    modAction: { width: 383, height: 295 },
 };
 
 /** `WindowTracker.show`'s gap between a window and its caller. */
@@ -61,6 +65,7 @@ export interface ModerationStore {
     userInfos: Record<number, IModeratorUserInfoData>;
     roomInfos: Record<number, IModeratorRoomInfoData>;
     chatlogs: Record<string, ModerationChatlog>;
+    defaultSanctions: Record<number, string>;
     setInit: (init: ModeratorInitMessageType) => void;
     userSelected: (userId: number, userName: string) => void;
     setCurrentRoomId: (roomId: number) => void;
@@ -76,6 +81,7 @@ export interface ModerationStore {
     setUserInfo: (info: IModeratorUserInfoData) => void;
     setRoomInfo: (info: IModeratorRoomInfoData) => void;
     setChatlog: (type: number, id: number, chatlog: ModerationChatlog) => void;
+    setDefaultSanction: (userId: number, label: string) => void;
 }
 
 export const moderationWindowKey = (window: ModerationWindow) => {
@@ -84,6 +90,7 @@ export const moderationWindowKey = (window: ModerationWindow) => {
         case 'roomTool': return `roomTool:${window.roomId}`;
         case 'chatlog': return `chatlog:${window.type}:${window.id}`;
         case 'sendMessage': return `sendMessage:${window.userId}`;
+        case 'modAction': return `modAction:${window.userId}`;
     }
 };
 
@@ -98,6 +105,7 @@ export const createModerationStore = () => createStore<ModerationStore>(set => (
     userInfos: {},
     roomInfos: {},
     chatlogs: {},
+    defaultSanctions: {},
     setInit: init => set({ init }),
     userSelected: (userId, userName) => set({ selectedUser: { userId, userName } }),
     setCurrentRoomId: currentRoomId => set({ currentRoomId }),
@@ -129,6 +137,7 @@ export const createModerationStore = () => createStore<ModerationStore>(set => (
     setUserInfo: info => set(state => ({ userInfos: { ...state.userInfos, [info.userId]: info } })),
     setRoomInfo: info => set(state => ({ roomInfos: { ...state.roomInfos, [info.flatId]: info } })),
     setChatlog: (type, id, chatlog) => set(state => ({ chatlogs: { ...state.chatlogs, [moderationChatlogKey(type, id)]: chatlog } })),
+    setDefaultSanction: (userId, label) => set(state => ({ defaultSanctions: { ...state.defaultSanctions, [userId]: label } })),
 }));
 
 export const moderationStore = createModerationStore();

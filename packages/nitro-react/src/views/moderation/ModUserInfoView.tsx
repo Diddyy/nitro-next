@@ -56,8 +56,8 @@ const userInfoBindings = (user: IModeratorUserInfoData | undefined): Record<stri
  * Flash's `moderation/UserInfoFrameCtrl` with its `UserInfoCtrl`: the `user_info_frame` window
  * ("User Info") holding `user_info`, which shows "Loading..." until `ModeratorUserInfo` for the
  * player arrives (`load` asks it). Its buttons open the player's chatlog and the send-message
- * window; the mod action is off for "No identity". Room visits, the mod action window and the
- * housekeeping links are not built yet.
+ * window, and the mod action window (`onModActionButton`), which is off for "No identity". Room
+ * visits and the housekeeping links are not built yet.
  */
 export const ModUserInfoView = ({ userId }: { userId: number }) => {
     const { send } = useWebSocketContext();
@@ -90,7 +90,7 @@ export const ModUserInfoView = ({ userId }: { userId: number }) => {
                             ...userInfoBindings(user),
                             chatlog_but: { onPointerTap: () => user && showWindow({ kind: 'chatlog', type: MOD_CHATLOG_USER, id: user.userId }, key, true) },
                             message_but: { onPointerTap: () => user && showWindow({ kind: 'sendMessage', userId: user.userId, userName: user.userName }, key, true) },
-                            modaction_but: { disabled: user?.primaryEmailAddress === 'No identity' },
+                            modaction_but: { disabled: user?.primaryEmailAddress === 'No identity', onPointerTap: () => user && (user.primaryEmailAddress !== 'No identity') && showWindow({ kind: 'modAction', userId: user.userId, userName: user.userName }, key, true) },
                         },
                     } ],
                 },
