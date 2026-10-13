@@ -51,6 +51,7 @@ import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInput
 import { SystemDialogsView } from './views/system/SystemDialogsView';
 import { TemplatePreviewView } from './views/system/TemplatePreviewView';
 import { ViewErrorBoundaries } from './views/system/ViewErrorBoundary';
+import { ClubDiscountPromoView } from './views/toolbar/ClubDiscountPromoView';
 import { ToolbarTransitionsView } from './views/toolbar/ToolbarTransitionsView';
 import { ToolbarView } from './views/toolbar/ToolbarView';
 
@@ -115,6 +116,8 @@ export const MainView = () => {
                         }}
                         >
                             <ActivityPointsView />
+                            {/* `club_promo` (priority 10) docks above the targeted offer (13). */}
+                            <ClubDiscountPromoView />
                             <TargetedOfferMinimizedView />
                             {/* `SingularNotificationController`'s extensions, docked at the end of the column. */}
                             <SafetyLockedNotificationView />

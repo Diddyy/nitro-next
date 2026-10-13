@@ -22,13 +22,13 @@
  * without it.
  */
 import { IActivePage, ICatalogNode } from '@nitrodevco/nitro-api';
-import { EventLogComposer, GetBadgesComposer, GetClubGiftInfoComposer, GetClubOffersComposer, IClubOfferExtendData, PurchaseBasicMembershipExtensionComposer, PurchaseFromCatalogComposer, PurchaseVipMembershipExtensionComposer, ScrGetKickbackInfoComposer, SelectClubGiftComposer } from '@nitrodevco/nitro-packets';
+import { EventLogComposer, GetBadgesComposer, GetClubGiftInfoComposer, GetClubOffersComposer, GetHabboClubExtendOfferComposer, IClubOfferExtendData, PurchaseBasicMembershipExtensionComposer, PurchaseFromCatalogComposer, PurchaseVipMembershipExtensionComposer, ScrGetKickbackInfoComposer, SelectClubGiftComposer } from '@nitrodevco/nitro-packets';
 import { StoreApi } from 'zustand';
 
 import { CatalogStore, CLUB_CENTER_DATA_UPDATE_INTERVAL, CLUB_OFFERS_SOURCE_CLUB_CENTER, ClubBuyOfferData } from '#base/context/catalog';
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore, translate as t } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { getPurseClubType, userStore } from '#base/context/user';
 import { clubBuyOfferAsPurchasableOffer, configReader } from '#base/utils';
 
 import { showPurchaseConfirmation } from './catalogCommands';
@@ -172,6 +172,17 @@ export const cancelClubBuy = (store: CatalogStoreApi) => {
 
     setVipPurchasePageName(undefined);
     setClubBuyConfirmation(undefined);
+};
+
+/**
+ * `ClubDiscountPromoExtension.onTextRegionClicked`: a VIP member's click on the toolbar's extend
+ * promo logs it and asks for the extension offer, which comes back as `HabboClubExtendOffer`
+ * (`showClubExtendOffer`).
+ */
+export const requestClubExtendOfferFromPromo = (send: Send) => {
+    if (getPurseClubType(userStore.getState().clubSubscription) !== 2) return;
+
+    send(new EventLogComposer({ event: 'DiscountPromo', data: 'discount', action: 'client.club.extend.discount.clicked', extraString: '', extraInt: 0 }), new GetHabboClubExtendOfferComposer({}));
 };
 
 /**
