@@ -24,6 +24,7 @@ import { RoomThumbnailCameraWidget } from './room-thumbnail-camera/RoomThumbnail
 import { RoomToolsWidget } from './room-tools/RoomToolsWidget';
 import { RoomSpectatorModeWidget } from './spectator/RoomSpectatorModeWidget';
 import { StarterRoomCameraWidget } from './starter-room-camera/StarterRoomCameraWidget';
+import { VariableLeaderboardWidget } from './variable-leaderboard';
 
 /**
  * Every widget mounted over the room canvas while a room is open. Each returns null until it
@@ -34,6 +35,9 @@ export const RoomWidgets = () => {
         <>
             {/* Under everything else: the frame `createRoomView` adds to the room view itself. */}
             <RoomSpectatorModeWidget />
+            {/* The WIRED leaderboard panels, which `VariableLeaderboardController` adds to the same background widgets
+                (`attachToBackgroundLayer`). */}
+            <VariableLeaderboardWidget />
             {/* `RWE_FURNITURE_LABEL`: the WIRED labels over their furni, in the desktop's background widgets under
                 the rest of the room UI (1318 `DesktopLayoutManager.as` 95). */}
             <FurnitureLabelWidget />

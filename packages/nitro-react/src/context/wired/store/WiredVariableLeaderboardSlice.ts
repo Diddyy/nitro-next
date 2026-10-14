@@ -43,15 +43,22 @@ export interface WiredVariableLeaderboardSlice {
     leaderboardSnapshotReceived: boolean;
     /** The leaderboards in the order the server first named them. */
     leaderboards: VariableLeaderboardOverlay[];
+    /**
+     * The leaderboard whose location a Leaderboard add-on's editor is setting (`beginLocationEdit`),
+     * by `overlayInstanceId`; null while none is. Every other one is faded (`applyLocationEditVisuals`).
+     */
+    leaderboardLocationEditId: number | null;
     setLeaderboardRoom: (roomId: number) => void;
     setLeaderboardSnapshot: (leaderboards: VariableLeaderboardOverlay[]) => void;
     setLeaderboard: (leaderboard: VariableLeaderboardOverlay) => void;
+    setLeaderboardLocationEditId: (overlayInstanceId: number | null) => void;
 }
 
 export const WiredVariableLeaderboardSliceInitialState = {
     leaderboardRoomId: 0,
     leaderboardSnapshotReceived: false,
     leaderboards: [] as VariableLeaderboardOverlay[],
+    leaderboardLocationEditId: null as number | null,
 };
 
 export const createWiredVariableLeaderboardSlice: StateCreator<WiredVariableLeaderboardSlice> = set => ({
@@ -59,6 +66,7 @@ export const createWiredVariableLeaderboardSlice: StateCreator<WiredVariableLead
     setLeaderboardRoom: roomId => set({ ...WiredVariableLeaderboardSliceInitialState, leaderboardRoomId: roomId }),
     setLeaderboardSnapshot: leaderboards => set({ leaderboards, leaderboardSnapshotReceived: true }),
     setLeaderboard: leaderboard => set(state => ({ leaderboards: state.leaderboards.map(existing => (existing.descriptor.overlayInstanceId === leaderboard.descriptor.overlayInstanceId) ? leaderboard : existing) })),
+    setLeaderboardLocationEditId: leaderboardLocationEditId => set({ leaderboardLocationEditId }),
 });
 
 /** `VariableLeaderboardDescriptorData.entriesPerPage`. */
