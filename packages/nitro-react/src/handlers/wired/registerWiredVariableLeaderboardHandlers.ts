@@ -3,10 +3,10 @@
  * applies the snapshot that answers, subscribes each leaderboard to the chunks its page needs and
  * takes in the chunks the server sends for them.
  */
-import { CloseConnectionMessage, IVariableLeaderboardDescriptor, RoomEntryInfoMessage, VariableLeaderboardChunkUpdateMessage, VariableLeaderboardReplaceSubscriptionComposer, VariableLeaderboardSnapshotMessage } from '@nitrodevco/nitro-packets';
+import { CloseConnectionMessage, IVariableLeaderboardDescriptor, RoomEntryInfoMessage, VARIABLE_LEADERBOARD_PAGE_SIZES, VariableLeaderboardChunkUpdateMessage, VariableLeaderboardReplaceSubscriptionComposer, VariableLeaderboardSnapshotMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { desiredLeaderboardChunks, leaderboardPageCount, VARIABLE_LEADERBOARD_MAX_OVERLAYS, VariableLeaderboardOverlay, wiredStore } from '#base/context/wired';
+import { desiredLeaderboardChunks, leaderboardPageCount, leaderboardPageSize, VARIABLE_LEADERBOARD_MAX_OVERLAYS, VariableLeaderboardOverlay, wiredStore } from '#base/context/wired';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -66,10 +66,37 @@ const reconcile = (overlay: VariableLeaderboardOverlay): VariableLeaderboardOver
     return { ...overlay, chunks, subscribedChunks: wanted, subscribedVariableId: overlay.selectedVariableId };
 };
 
+/**
+ * `refreshView`'s page size: the edited leaderboard pages by the size its editor describes, the rest
+ * by their descriptor's. A size that changed starts the leaderboard over at its first page
+ * (`VariableLeaderboardPagingState.entriesPerPage`) and subscribes to the chunks that page needs.
+ */
+const syncEntriesPerPage = () => {
+    const { leaderboards, leaderboardLocationEdit, leaderboardLocationEditId, setLeaderboardSnapshot } = wiredStore.getState();
+    let changed = false;
+
+    const next = leaderboards.map((overlay) => {
+        const edited = !!leaderboardLocationEdit && (leaderboardLocationEditId === overlay.descriptor.overlayInstanceId);
+        const entriesPerPage = edited ? (VARIABLE_LEADERBOARD_PAGE_SIZES[leaderboardLocationEdit.draft.pageSizeOption] ?? VARIABLE_LEADERBOARD_PAGE_SIZES[0]) : leaderboardPageSize(overlay.descriptor);
+
+        if (entriesPerPage === overlay.entriesPerPage) return overlay;
+
+        changed = true;
+
+        return reconcile({ ...overlay, entriesPerPage, page: 0, direction: 0 });
+    });
+
+    if (changed) setLeaderboardSnapshot(next);
+};
+
 export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: WebSocketConnection) => {
     sendComposer = send;
 
-    return subscribeAll(subscribe, [
+    const unsubscribeStore = wiredStore.subscribe((state, previous) => {
+        if ((state.leaderboardLocationEdit !== previous.leaderboardLocationEdit) || (state.leaderboards !== previous.leaderboards)) syncEntriesPerPage();
+    });
+
+    const unsubscribePackets = subscribeAll(subscribe, [
         // `onRoomEntryInfo`: a new room forgets the last one's leaderboards and asks for its own.
         on(RoomEntryInfoMessage, (data) => {
             const roomId = data.roomId;
@@ -101,7 +128,7 @@ export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: We
                 if (index < 0) {
                     if (next.length >= VARIABLE_LEADERBOARD_MAX_OVERLAYS) continue;
 
-                    next.push(resetQueryScope({ descriptor, selectedVariableId: null, page: 0, direction: 0, totalCount: null, chunks: {}, subscribedChunks: [], subscribedVariableId: null }, resolveSelection(descriptor, null)));
+                    next.push(resetQueryScope({ descriptor, selectedVariableId: null, entriesPerPage: leaderboardPageSize(descriptor), page: 0, direction: 0, totalCount: null, chunks: {}, subscribedChunks: [], subscribedVariableId: null }, resolveSelection(descriptor, null)));
                     changed.add(descriptor.overlayInstanceId);
 
                     continue;
@@ -139,6 +166,11 @@ export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: We
             setLeaderboard(reconcile((updated.page > lastPage) ? { ...updated, page: lastPage, direction: -1 } : updated));
         }),
     ]);
+
+    return () => {
+        unsubscribeStore();
+        unsubscribePackets();
+    };
 };
 
 /** `selectVariable`: another of the leaderboard's variables, from the first page. */
