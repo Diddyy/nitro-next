@@ -25,6 +25,11 @@ export interface VariableLeaderboardOverlay {
     descriptor: IVariableLeaderboardDescriptor;
     /** The variable shown; null when the leaderboard offers none. */
     selectedVariableId: string | null;
+    /**
+     * The rows a page shows (`paging.entriesPerPage`): the descriptor's page size, or while an editor
+     * sets this leaderboard's location the size it describes (`refreshView`).
+     */
+    entriesPerPage: number;
     /** The page shown, from 0 (`clientPage`). */
     page: number;
     /** +1 after a move forward, -1 after a move back or a shrink, 0 otherwise: which neighbour chunk to prefetch. */
@@ -90,15 +95,15 @@ export const createWiredVariableLeaderboardSlice: StateCreator<WiredVariableLead
 export const leaderboardPageSize = (descriptor: IVariableLeaderboardDescriptor) => VARIABLE_LEADERBOARD_PAGE_SIZES[descriptor.pageSizeOption] ?? VARIABLE_LEADERBOARD_PAGE_SIZES[0];
 
 /** `VariableLeaderboardPagingState.pageCount`. */
-export const leaderboardPageCount = (overlay: VariableLeaderboardOverlay) => ((overlay.totalCount ?? 0) > 0) ? Math.ceil(overlay.totalCount! / leaderboardPageSize(overlay.descriptor)) : 1;
+export const leaderboardPageCount = (overlay: VariableLeaderboardOverlay) => ((overlay.totalCount ?? 0) > 0) ? Math.ceil(overlay.totalCount! / overlay.entriesPerPage) : 1;
 
-const firstRowIndex = (overlay: VariableLeaderboardOverlay) => overlay.page * leaderboardPageSize(overlay.descriptor);
+const firstRowIndex = (overlay: VariableLeaderboardOverlay) => overlay.page * overlay.entriesPerPage;
 
 const currentChunkIndex = (overlay: VariableLeaderboardOverlay) => Math.floor(firstRowIndex(overlay) / VARIABLE_LEADERBOARD_CHUNK_SIZE);
 
 const lastChunkIndex = (overlay: VariableLeaderboardOverlay) => {
     const first = firstRowIndex(overlay);
-    const end = Math.min(first + leaderboardPageSize(overlay.descriptor), overlay.totalCount ?? 0);
+    const end = Math.min(first + overlay.entriesPerPage, overlay.totalCount ?? 0);
 
     return Math.floor(Math.max(first, end - 1) / VARIABLE_LEADERBOARD_CHUNK_SIZE);
 };
@@ -115,7 +120,7 @@ export const desiredLeaderboardChunks = (overlay: VariableLeaderboardOverlay): n
     if (last !== current) return [ current, last ];
     if (overlay.totalCount === null) return [ current ];
 
-    const pageSize = leaderboardPageSize(overlay.descriptor);
+    const pageSize = overlay.entriesPerPage;
     const first = firstRowIndex(overlay);
     const chunkCount = (overlay.totalCount > 0) ? Math.ceil(overlay.totalCount / VARIABLE_LEADERBOARD_CHUNK_SIZE) : 1;
     let neighbour = -1;
@@ -139,7 +144,7 @@ export const leaderboardPageRows = (overlay: VariableLeaderboardOverlay): IVaria
     const first = firstRowIndex(overlay);
     const rows: IVariableLeaderboardRow[] = [];
 
-    for (let i = 0; (i < leaderboardPageSize(overlay.descriptor)) && ((first + i) < (overlay.totalCount ?? 0)); i++) {
+    for (let i = 0; (i < overlay.entriesPerPage) && ((first + i) < (overlay.totalCount ?? 0)); i++) {
         const row = overlay.chunks[Math.floor((first + i) / VARIABLE_LEADERBOARD_CHUNK_SIZE)]?.[(first + i) % VARIABLE_LEADERBOARD_CHUNK_SIZE];
 
         if (row) rows.push(row);
