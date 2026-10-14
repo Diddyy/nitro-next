@@ -13,6 +13,7 @@ export * from './FurniSelectorFilter';
 export * from './FurniVariableFilter';
 export * from './GlobalPlaceholderAddon';
 export * from './JumpStrength';
+export * from './leaderboard';
 export * from './levelupper';
 export * from './MovePhysics';
 export * from './NoMoveAnimation';

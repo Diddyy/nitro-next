@@ -3,7 +3,8 @@
  * element serving a `AddonDefinition`'s code (`getElementByCode`, which also answers to an element's
  * `negativeCode`). One `defineWiredElement(definition, View)` per Flash element class, in the
  * order AddonTypes pushes them; an element with `INPUTS_TYPE_NONE` is registered without a view.
- * The six variable fx boxes (`addons/variablefx`: `§_-U2p§`, `§_-F2n§`, `§_-t1W§`, `§_-H2Q§`,
+ * The leaderboard (`VariableLeaderboardAddon`) comes after the time util (the share / import add-ons
+ * between them are not ported). The six variable fx boxes (`addons/variablefx`: `§_-U2p§`, `§_-F2n§`, `§_-t1W§`, `§_-H2Q§`,
  * `§_-zZ§`, `§_-N1s§`) come between the time util and the global placeholder.
  *
  * A code with no entry here opens nothing, the way Flash's `createWindow` gives up on a null element.
@@ -30,6 +31,7 @@ import { VariableCapturerView } from '#base/views/wired-setup/elements/addon/Var
 import { VariableFilterView } from '#base/views/wired-setup/elements/addon/VariableFilterView';
 import { VariableFxLevellingProgressView } from '#base/views/wired-setup/elements/addon/variablefx/VariableFxLevellingProgressView';
 import { VariableFxView } from '#base/views/wired-setup/elements/addon/variablefx/VariableFxView';
+import { VariableLeaderboardAddonView } from '#base/views/wired-setup/elements/addon/VariableLeaderboardAddonView';
 import { VariableLevelUpView } from '#base/views/wired-setup/elements/addon/VariableLevelUpView';
 import { VariablePlaceholderView } from '#base/views/wired-setup/elements/addon/VariablePlaceholderView';
 import { VariablesWebApiAddonView } from '#base/views/wired-setup/elements/addon/VariablesWebApiAddonView';
@@ -50,6 +52,7 @@ import { furniSelectorFilterAddon } from './FurniSelectorFilter';
 import { furniVariableFilterAddon } from './FurniVariableFilter';
 import { globalPlaceholderAddon } from './GlobalPlaceholderAddon';
 import { jumpStrengthAddon } from './JumpStrength';
+import { variableLeaderboardAddon } from './leaderboard/VariableLeaderboardAddon';
 import { movePhysicsAddon } from './MovePhysics';
 import { noMoveAnimationAddon } from './NoMoveAnimation';
 import { projectileAddon } from './Projectile';
@@ -96,6 +99,7 @@ export const addonElements: WiredElementEntry[] = [
     defineWiredElement(variableTextConverterAddon, VariableTextConverterView),
     defineWiredElement(variableLevelUpAddon, VariableLevelUpView),
     defineWiredElement(variableTimeUtilAddon, VariableTimeUtilView),
+    defineWiredElement(variableLeaderboardAddon, VariableLeaderboardAddonView),
     defineWiredElement(variableFxHealthPointsAddon, VariableFxView),
     defineWiredElement(variableFxProgressBarAddon, VariableFxView),
     defineWiredElement(variableFxLevellingProgressAddon, VariableFxLevellingProgressView),

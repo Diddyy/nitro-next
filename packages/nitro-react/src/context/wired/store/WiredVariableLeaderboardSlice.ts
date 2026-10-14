@@ -9,8 +9,10 @@
  * as they change (`VariableLeaderboardChunkUpdate`). A chunk for another revision, variable or a
  * chunk not subscribed to is dropped.
  */
-import { IVariableLeaderboardDescriptor, IVariableLeaderboardRow, VARIABLE_LEADERBOARD_CHUNK_SIZE, VARIABLE_LEADERBOARD_PAGE_SIZES } from '@nitrodevco/nitro-packets';
+import { IVariableLeaderboardContext, IVariableLeaderboardDescriptor, IVariableLeaderboardRow, VARIABLE_LEADERBOARD_CHUNK_SIZE, VARIABLE_LEADERBOARD_PAGE_SIZES } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
+
+import type { VariableLeaderboardConfig } from '#base/wired';
 
 /** `VariableLeaderboardController.MAX_OVERLAYS`. */
 export const VARIABLE_LEADERBOARD_MAX_OVERLAYS = 4;
@@ -36,6 +38,16 @@ export interface VariableLeaderboardOverlay {
     subscribedVariableId: string | null;
 }
 
+/**
+ * A Leaderboard add-on's editor setting its leaderboard's location (`beginLocationEdit`): the box's
+ * context and the config the editor describes (`editDraft`). A published leaderboard is drawn from
+ * the draft; an unpublished one gets a dummy leaderboard (`synchronizeDraftView`).
+ */
+export interface VariableLeaderboardLocationEdit {
+    context: IVariableLeaderboardContext;
+    draft: VariableLeaderboardConfig;
+}
+
 export interface WiredVariableLeaderboardSlice {
     /** The room the leaderboards belong to (`activeRoomId`), 0 outside a room. */
     leaderboardRoomId: number;
@@ -48,10 +60,13 @@ export interface WiredVariableLeaderboardSlice {
      * by `overlayInstanceId`; null while none is. Every other one is faded (`applyLocationEditVisuals`).
      */
     leaderboardLocationEditId: number | null;
+    /** The editor's draft while `leaderboardLocationEditId` is set. */
+    leaderboardLocationEdit: VariableLeaderboardLocationEdit | null;
     setLeaderboardRoom: (roomId: number) => void;
     setLeaderboardSnapshot: (leaderboards: VariableLeaderboardOverlay[]) => void;
     setLeaderboard: (leaderboard: VariableLeaderboardOverlay) => void;
-    setLeaderboardLocationEditId: (overlayInstanceId: number | null) => void;
+    /** `beginLocationEdit` / `updateEditDraft` / `updateDraggedLocation` with an edit, `endLocationEdit` with null. */
+    setLeaderboardLocationEdit: (edit: VariableLeaderboardLocationEdit | null) => void;
 }
 
 export const WiredVariableLeaderboardSliceInitialState = {
@@ -59,6 +74,7 @@ export const WiredVariableLeaderboardSliceInitialState = {
     leaderboardSnapshotReceived: false,
     leaderboards: [] as VariableLeaderboardOverlay[],
     leaderboardLocationEditId: null as number | null,
+    leaderboardLocationEdit: null as VariableLeaderboardLocationEdit | null,
 };
 
 export const createWiredVariableLeaderboardSlice: StateCreator<WiredVariableLeaderboardSlice> = set => ({
@@ -66,7 +82,8 @@ export const createWiredVariableLeaderboardSlice: StateCreator<WiredVariableLead
     setLeaderboardRoom: roomId => set({ ...WiredVariableLeaderboardSliceInitialState, leaderboardRoomId: roomId }),
     setLeaderboardSnapshot: leaderboards => set({ leaderboards, leaderboardSnapshotReceived: true }),
     setLeaderboard: leaderboard => set(state => ({ leaderboards: state.leaderboards.map(existing => (existing.descriptor.overlayInstanceId === leaderboard.descriptor.overlayInstanceId) ? leaderboard : existing) })),
-    setLeaderboardLocationEditId: leaderboardLocationEditId => set({ leaderboardLocationEditId }),
+    // `published`: the overlay the edit is for, 0 for a box never saved.
+    setLeaderboardLocationEdit: leaderboardLocationEdit => set({ leaderboardLocationEdit, leaderboardLocationEditId: leaderboardLocationEdit ? Math.max(0, leaderboardLocationEdit.context.overlayInstanceId) : null }),
 });
 
 /** `VariableLeaderboardDescriptorData.entriesPerPage`. */
