@@ -8,13 +8,15 @@ import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGr
 
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore, WindowParams } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { PerkCodes, userStore } from '#base/context/user';
 import { getWiredHasReadPermission, getWiredMenuEnabled, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW } from '#base/context/wired';
 
 import { openAchievements } from './achievementCommands';
 import { openBadgeLeaderboardLink } from './badgeLeaderboardCommands';
+import { startTakingPhoto } from './cameraCommands';
 import { openDailyTasksLink } from './dailyTasksCommands';
 import { showEarnings } from './earningsCommands';
+import { findNewFriends } from './friendBarCommands';
 import { openGroupForumLink } from './groupForumCommands';
 import { habbiconsEnabled, openHabbiconHub } from './habbiconCommands';
 import { openHabboPage } from './habboPagesCommands';
@@ -332,9 +334,17 @@ export const openClientLink = (send: Send, link: string) => {
 
             break;
         }
-        // `HabboFriendBarView.linkReceived`: `friendbar/user/<name>` shows that user's profile (`showProfileByName`).
+        // `HabboFriendBarView.linkReceived`: `friendbar/findfriends` asks the server for a room with
+        // people to meet (`findNewFriends`); `friendbar/user/<name>` shows that user's profile (`showProfileByName`).
         case 'friendbar': {
-            if ((parts[1] === 'user') && (parts.length > 2)) send(new GetExtendedProfileByNameComposer({ userName: parts[2] }));
+            if (parts[1] === 'findfriends') findNewFriends(send);
+            else if ((parts[1] === 'user') && (parts.length > 2)) send(new GetExtendedProfileByNameComposer({ userName: parts[2] }));
+
+            return;
+        }
+        // `CameraWidgetHandler.linkReceived`: `camera/open` is the toolbar's camera icon, for whoever has the `CAMERA` perk (`openCamera`).
+        case 'camera': {
+            if ((parts[1] === 'open') && (userStore.getState().perks.get(PerkCodes.Camera)?.isAllowed === true)) startTakingPhoto();
 
             return;
         }
