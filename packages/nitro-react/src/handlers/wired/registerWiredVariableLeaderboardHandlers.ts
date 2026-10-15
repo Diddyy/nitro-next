@@ -3,21 +3,19 @@
  * applies the snapshot that answers, subscribes each leaderboard to the chunks its page needs and
  * takes in the chunks the server sends for them.
  */
-import { CloseConnectionMessage, IVariableLeaderboardDescriptor, RoomEntryInfoMessage, VARIABLE_LEADERBOARD_PAGE_SIZES, VariableLeaderboardChunkUpdateMessage, VariableLeaderboardReplaceSubscriptionComposer, VariableLeaderboardSnapshotMessage } from '@nitrodevco/nitro-packets';
+import { CloseConnectionMessage, IVariableLeaderboardDescriptor, RoomEntryInfoMessage, VariableLeaderboardChunkUpdateMessage, VariableLeaderboardReplaceSubscriptionComposer, VariableLeaderboardSnapshotMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { desiredLeaderboardChunks, leaderboardPageCount, leaderboardPageSize, VARIABLE_LEADERBOARD_MAX_OVERLAYS, VariableLeaderboardOverlay, wiredStore } from '#base/context/wired';
+import { VARIABLE_LEADERBOARD_COLUMN_USERNAME, VARIABLE_LEADERBOARD_MAX_COLUMNS, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID } from '#base/wired';
 
 import { on, subscribeAll } from '../packetSubscriptions';
-
-/** `VariableLeaderboardController.NULL_VARIABLE_ID`. */
-const NULL_VARIABLE_ID = '0';
 
 /** `VariableLeaderboardController.isDescriptorStructurallyValid`. */
 const isStructurallyValid = (descriptor: IVariableLeaderboardDescriptor) => {
     const { columns, choices, defaultVariableId, pageSizeOption } = descriptor;
 
-    if ((columns.length < 1) || (columns.length > 4) || (columns[0].type !== 0) || (choices.length > 10) || (pageSizeOption < 0) || (pageSizeOption > 2)) return false;
+    if ((columns.length < 1) || (columns.length > VARIABLE_LEADERBOARD_MAX_COLUMNS) || (columns[0].type !== VARIABLE_LEADERBOARD_COLUMN_USERNAME) || (choices.length > 10) || (pageSizeOption < 0) || (pageSizeOption > 2)) return false;
     if (columns.some(column => (column.width < 0) || (column.width > 3))) return false;
 
     const ids = new Set<string>();
@@ -28,7 +26,7 @@ const isStructurallyValid = (descriptor: IVariableLeaderboardDescriptor) => {
         ids.add(choice.variableId);
     }
 
-    return (choices.length === 0) ? (defaultVariableId === NULL_VARIABLE_ID) : ids.has(defaultVariableId);
+    return (choices.length === 0) ? (defaultVariableId === VARIABLE_LEADERBOARD_NULL_VARIABLE_ID) : ids.has(defaultVariableId);
 };
 
 /** `VariableLeaderboardController.resolveSelection`: the variable still offered, else the default. */
@@ -77,7 +75,7 @@ const syncEntriesPerPage = () => {
 
     const next = leaderboards.map((overlay) => {
         const edited = !!leaderboardLocationEdit && (leaderboardLocationEditId === overlay.descriptor.overlayInstanceId);
-        const entriesPerPage = edited ? (VARIABLE_LEADERBOARD_PAGE_SIZES[leaderboardLocationEdit.draft.pageSizeOption] ?? VARIABLE_LEADERBOARD_PAGE_SIZES[0]) : leaderboardPageSize(overlay.descriptor);
+        const entriesPerPage = leaderboardPageSize(edited ? leaderboardLocationEdit.draft : overlay.descriptor);
 
         if (entriesPerPage === overlay.entriesPerPage) return overlay;
 
@@ -104,7 +102,7 @@ export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: We
             if (!roomId || (wiredStore.getState().leaderboardRoomId === roomId)) return;
 
             wiredStore.getState().setLeaderboardRoom(roomId);
-            send(new VariableLeaderboardReplaceSubscriptionComposer({ overlayInstanceId: 0, queryRevision: 0, selectedVariableId: NULL_VARIABLE_ID, chunkIndices: [] }));
+            send(new VariableLeaderboardReplaceSubscriptionComposer({ overlayInstanceId: 0, queryRevision: 0, selectedVariableId: VARIABLE_LEADERBOARD_NULL_VARIABLE_ID, chunkIndices: [] }));
         }),
 
         // `onRoomConnectionClosed`.

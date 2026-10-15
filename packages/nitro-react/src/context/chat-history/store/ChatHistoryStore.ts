@@ -6,6 +6,7 @@
 import { createStore } from 'zustand';
 
 import type { ChatBubbleData } from '#base/chat';
+import { twoDigits } from '#base/utils';
 
 /** `ChatHistoryBuffer.MAX_CHAT_ITEMS`. */
 export const CHAT_HISTORY_MAX_ENTRIES = 1000;
@@ -60,9 +61,8 @@ export type ChatHistoryStore = ChatHistoryState & ChatHistoryActions;
 /** `HabboFreeFlowChat.getTimeStampNow`. */
 export const getChatTimeStampNow = () => {
     const now = new Date();
-    const pad = (value: number) => ((value < 10) ? `0${value}` : String(value));
 
-    return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    return `${twoDigits(now.getHours())}:${twoDigits(now.getMinutes())}:${twoDigits(now.getSeconds())}`;
 };
 
 let nextEntryId = 1;

@@ -91,8 +91,8 @@ export const createWiredVariableLeaderboardSlice: StateCreator<WiredVariableLead
     setLeaderboardLocationEdit: leaderboardLocationEdit => set({ leaderboardLocationEdit, leaderboardLocationEditId: leaderboardLocationEdit ? Math.max(0, leaderboardLocationEdit.context.overlayInstanceId) : null }),
 });
 
-/** `VariableLeaderboardDescriptorData.entriesPerPage`. */
-export const leaderboardPageSize = (descriptor: IVariableLeaderboardDescriptor) => VARIABLE_LEADERBOARD_PAGE_SIZES[descriptor.pageSizeOption] ?? VARIABLE_LEADERBOARD_PAGE_SIZES[0];
+/** `VariableLeaderboardDescriptorData.entriesPerPage` / `VariableLeaderboardConfig.entriesPerPage`. */
+export const leaderboardPageSize = ({ pageSizeOption }: Pick<IVariableLeaderboardDescriptor, 'pageSizeOption'>) => VARIABLE_LEADERBOARD_PAGE_SIZES[pageSizeOption] ?? VARIABLE_LEADERBOARD_PAGE_SIZES[0];
 
 /** `VariableLeaderboardPagingState.pageCount`. */
 export const leaderboardPageCount = (overlay: VariableLeaderboardOverlay) => ((overlay.totalCount ?? 0) > 0) ? Math.ceil(overlay.totalCount! / overlay.entriesPerPage) : 1;

@@ -24,6 +24,8 @@ import { AvatarFaceImage } from '#base/components';
 import { translate } from '#base/context/system';
 import { leaderboardPageSize } from '#base/context/wired';
 import { Box, findTemplateChild, TemplateBindings, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
+import { twoDigits } from '#base/utils';
+import { VARIABLE_LEADERBOARD_COLUMN_CREATION, VARIABLE_LEADERBOARD_COLUMN_LAST_UPDATE, VARIABLE_LEADERBOARD_COLUMN_LEVEL, VARIABLE_LEADERBOARD_COLUMN_TEXT, VARIABLE_LEADERBOARD_COLUMN_USERNAME, VARIABLE_LEADERBOARD_COLUMN_VALUE } from '#base/wired';
 
 const TEMPLATE = 'habbo-user-defined-room-events-com/variable_leaderboard_panel_xml';
 
@@ -86,8 +88,6 @@ const formatLeaderboardValue = (value: string | null | undefined) => {
     return text;
 };
 
-const padTwoDigits = (value: number) => ((value < 10) ? `0${value}` : String(value));
-
 /**
  * `formatTime`: "-" for no time, "Nm ago" within the hour, the time of day today, else the month
  * (without its dot) and day, with the year when it is another year.
@@ -102,7 +102,7 @@ const formatLeaderboardTime = (time: number, now: number) => {
     const date = new Date(time);
     const today = new Date(now);
 
-    if ((date.getFullYear() === today.getFullYear()) && (date.getMonth() === today.getMonth()) && (date.getDate() === today.getDate())) return `${padTwoDigits(date.getHours())}:${padTwoDigits(date.getMinutes())}`;
+    if ((date.getFullYear() === today.getFullYear()) && (date.getMonth() === today.getMonth()) && (date.getDate() === today.getDate())) return `${twoDigits(date.getHours())}:${twoDigits(date.getMinutes())}`;
 
     let month = translate(`wiredfurni.params.time.month.${date.getMonth() + 1}`);
 
@@ -113,21 +113,21 @@ const formatLeaderboardTime = (time: number, now: number) => {
     return (date.getFullYear() === today.getFullYear()) ? day : `${day}, ${date.getFullYear()}`;
 };
 
-/** `formatColumn`: a row's text in a column of a type (1 value, 2 last update, 3 creation, 4 level, 5 text). */
+/** `formatColumn`: a row's text in a column of a type. */
 const formatColumn = (type: number, row: IVariableLeaderboardRow, now: number) => {
     switch (type) {
-        case 1: {
+        case VARIABLE_LEADERBOARD_COLUMN_VALUE: {
             const value = formatLeaderboardValue(row.rawValue);
 
             return value.length ? value : '-';
         }
-        case 2:
+        case VARIABLE_LEADERBOARD_COLUMN_LAST_UPDATE:
             return formatLeaderboardTime(row.lastUpdateTime, now);
-        case 3:
+        case VARIABLE_LEADERBOARD_COLUMN_CREATION:
             return formatLeaderboardTime(row.creationTime, now);
-        case 4:
+        case VARIABLE_LEADERBOARD_COLUMN_LEVEL:
             return (row.level !== null) ? formatLeaderboardValue(row.level) : '-';
-        case 5:
+        case VARIABLE_LEADERBOARD_COLUMN_TEXT:
             return row.textConnection ?? '-';
         default:
             return '';
@@ -146,24 +146,25 @@ export interface VariableLeaderboardViewProps {
     bodyState: VariableLeaderboardBodyState;
     /** The page's rows, from its first. */
     rows: readonly IVariableLeaderboardRow[];
-    page: number;
-    pageCount: number;
-    canPrevious: boolean;
-    canNext: boolean;
     /** The time the rows' times are told against (`refreshRelativeTimes`). */
     now: number;
-    dropdownOpen: boolean;
-    hoveredChoice: string | null;
-    onToggleChoices: () => void;
-    onHoverChoice: (variableId: string | null) => void;
-    onSelectChoice: (variableId: string) => void;
-    onPrevious: () => void;
-    onNext: () => void;
-    onProfile: (userId: number) => void;
+    /** The rest default to a leaderboard nothing can be done with (`projectDraftView`'s): page 1 of 1, the choices closed. */
+    page?: number;
+    pageCount?: number;
+    canPrevious?: boolean;
+    canNext?: boolean;
+    dropdownOpen?: boolean;
+    hoveredChoice?: string | null;
+    onToggleChoices?: () => void;
+    onHoverChoice?: (variableId: string | null) => void;
+    onSelectChoice?: (variableId: string) => void;
+    onPrevious?: () => void;
+    onNext?: () => void;
+    onProfile?: (userId: number) => void;
 }
 
 export const VariableLeaderboardView = (props: VariableLeaderboardViewProps) => {
-    const { descriptor, selectedVariableId, bodyState, rows, page, pageCount, canPrevious, canNext, now, dropdownOpen, hoveredChoice } = props;
+    const { descriptor, selectedVariableId, bodyState, rows, now, page = 0, pageCount = 1, canPrevious = false, canNext = false, dropdownOpen = false, hoveredChoice = null } = props;
     const template = useTemplate(TEMPLATE);
     const header = template && findTemplateChild(template.elements, 'header_template');
 
@@ -201,7 +202,7 @@ export const VariableLeaderboardView = (props: VariableLeaderboardViewProps) => 
 
         headers.push({
             key: `header${index}`,
-            from: headerPrototype(header, column.type !== 0),
+            from: headerPrototype(header, column.type !== VARIABLE_LEADERBOARD_COLUMN_USERNAME),
             bindings: { header_text: { caption: column.label } },
             arrange: ({ root, find }: TemplateWindows) => {
                 root()?.setRectangle(x, 0, width, root()?.height ?? 0);
@@ -226,7 +227,7 @@ export const VariableLeaderboardView = (props: VariableLeaderboardViewProps) => 
             row_background: { color: light ? ROW_COLOR_LIGHT : ROW_COLOR_DARK },
             rank_text: { caption: String(row.rank) },
             username_text: { caption: row.username },
-            profile_region: { onPointerTap: () => props.onProfile(row.userId) },
+            profile_region: { onPointerTap: () => props.onProfile?.(row.userId) },
             face_bitmap: {
                 children: !!row.figure && (
                     <Box layout={{ position: 'absolute', left: 0, top: 0, width: 24, height: 24, overflow: 'hidden' }}>
@@ -260,9 +261,9 @@ export const VariableLeaderboardView = (props: VariableLeaderboardViewProps) => 
             bindings: {
                 '': {
                     color: (hoveredChoice === choice.variableId) ? CHOICE_HOVER_COLOR : CHOICE_COLOR,
-                    onPointerTap: () => props.onSelectChoice(choice.variableId),
-                    onPointerOver: () => props.onHoverChoice(choice.variableId),
-                    onPointerOut: () => props.onHoverChoice(null),
+                    onPointerTap: () => props.onSelectChoice?.(choice.variableId),
+                    onPointerOver: () => props.onHoverChoice?.(choice.variableId),
+                    onPointerOut: () => props.onHoverChoice?.(null),
                 },
                 choice_selection: { visible: selected },
                 choice_text: { caption: choice.displayName, visible: !selected },

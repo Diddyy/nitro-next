@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useWebSocketContext } from '#base/context/communication';
 import { moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
 import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
+import { twoDigits } from '#base/utils';
 
 const TEMPLATE = 'habbo-moderation-com/roomvisits_frame_xml';
 
@@ -11,7 +12,6 @@ const TEMPLATE = 'habbo-moderation-com/roomvisits_frame_xml';
 const ROW_COLORS = [ 0xFFA2D6EA, 0xFFFFFFFF ];
 
 /** `RoomVisitsCtrl.padToTwoDigits`. */
-const pad = (value: number) => ((value < 10) ? `0${value}` : `${value}`);
 
 /**
  * Flash's `moderation/RoomVisitsCtrl`: the `roomvisits_frame` window, which asks the player's visits
@@ -44,7 +44,7 @@ export const ModRoomVisitsView = ({ userId }: { userId: number }) => {
             bindings: {
                 '': { color },
                 room_name_txt: { caption: room.roomName, color, onPointerTap: () => showWindow({ kind: 'roomTool', roomId: room.roomId }, key) },
-                time_txt: { caption: `${pad(room.enterHour)}:${pad(room.enterMinute)}` },
+                time_txt: { caption: `${twoDigits(room.enterHour)}:${twoDigits(room.enterMinute)}` },
                 // `OpenRoomInSpectatorMode`: "Enter" goes to the room (`ModerationManager.goToRoom`).
                 view_room_txt: { color, onPointerTap: () => send(new GetGuestRoomComposer({ roomId: room.roomId, enterRoom: false, roomForward: true })) },
             },

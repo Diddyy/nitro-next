@@ -8,6 +8,8 @@
 import type { ICfhSanctionTypeData, IIssueMessageData } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
+import { twoDigits } from '#base/utils';
+
 export const ISSUE_STATE_OPEN = 1;
 export const ISSUE_STATE_PICKED = 2;
 export const ISSUE_STATE_CLOSED = 3;
@@ -40,9 +42,8 @@ export interface ModerationIssueBundle {
 /** `IssueMessageData.getOpenTime`: hours and minutes since the issue was sent. */
 export const issueOpenTime = (issue: ModerationIssue, now: number) => {
     const minutes = Math.floor(Math.floor((issue.issueAgeInMilliseconds + now - issue.receivedAt) / 1000) / 60);
-    const pad = (value: number) => ((value < 10) ? '0' : '') + value;
 
-    return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+    return `${twoDigits(Math.floor(minutes / 60))}:${twoDigits(minutes % 60)}`;
 };
 
 /**

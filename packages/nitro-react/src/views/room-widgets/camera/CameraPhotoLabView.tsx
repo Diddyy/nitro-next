@@ -25,7 +25,7 @@ import { AchievementCategory, useAchievementsStore } from '#base/context/achieve
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
-import { buildRenderRoomMessageData } from '#base/utils';
+import { buildRenderRoomMessageData, twoDigits } from '#base/utils';
 
 import { CAMERA_IMAGE_SIZE, cameraAsset, CameraEffectDefinition, cloneCanvas, drawEffect, getAvailableEffects, loadEffectImage, zoomCanvas } from './cameraEffects';
 import { CanvasPicture } from './CanvasPicture';
@@ -67,9 +67,8 @@ const getCameraAchievementLevel = (categories: AchievementCategory[] | undefined
 /** `offerSaveAsFile`'s name: `Habbo_` and the time as `yyyy-MM-dd_HH-mm-ss`. */
 const saveFileName = () => {
     const now = new Date();
-    const pad = (value: number) => String(value).padStart(2, '0');
 
-    return `Habbo_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.png`;
+    return `Habbo_${now.getFullYear()}-${twoDigits(now.getMonth() + 1)}-${twoDigits(now.getDate())}_${twoDigits(now.getHours())}-${twoDigits(now.getMinutes())}-${twoDigits(now.getSeconds())}.png`;
 };
 
 export const CameraPhotoLabView = () => {

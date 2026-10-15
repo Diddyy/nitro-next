@@ -16,6 +16,7 @@
 import type { IVariableLeaderboardContext, IWiredVariable } from '@nitrodevco/nitro-packets';
 import { isWiredVariablePersisted, VariableExtraSourceTypes, WiredVariableTarget } from '@nitrodevco/nitro-packets';
 
+import { WIRED_INT_MAX, WIRED_INT_MIN } from '../../../common/numberInput';
 import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, type WiredVariablePickerState } from '../../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VARIABLE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
 import type { WiredElementContext, WiredElementDefinition } from '../../../WiredElement';
@@ -23,6 +24,7 @@ import { getWiredRoomVariables } from '../../../WiredTriggerable';
 import { AddonCodes } from '../addonCodes';
 import {
     canonicalLeaderboardVariableId,
+    createLeaderboardColumn,
     createUnpublishedLeaderboardConfig,
     decodeLeaderboardConfig,
     type EncodedVariableLeaderboardConfig,
@@ -31,9 +33,12 @@ import {
     leaderboardColumnDefaultWidth,
     leaderboardDefaultColumnLabel,
     suggestLeaderboardDisplayName,
+    VARIABLE_LEADERBOARD_COLUMN_CREATION,
+    VARIABLE_LEADERBOARD_COLUMN_LAST_UPDATE,
     VARIABLE_LEADERBOARD_COLUMN_LEVEL,
     VARIABLE_LEADERBOARD_COLUMN_TEXT,
     VARIABLE_LEADERBOARD_COLUMN_USERNAME,
+    VARIABLE_LEADERBOARD_COLUMN_VALUE,
     VARIABLE_LEADERBOARD_MAX_DISPLAY_OVERRIDES,
     VARIABLE_LEADERBOARD_MIN_COLUMN_LABEL_LENGTH,
     VARIABLE_LEADERBOARD_OPERAND_GLOBAL,
@@ -44,17 +49,17 @@ import {
 } from './VariableLeaderboardConfig';
 
 /** `VariableLeaderboardColumnsPreset.columnTypeOptions` for every row but the first, in this order. */
-export const VARIABLE_LEADERBOARD_OTHER_COLUMN_TYPES = [ 1, 5, 2, 3, 4 ];
+export const VARIABLE_LEADERBOARD_OTHER_COLUMN_TYPES = [ VARIABLE_LEADERBOARD_COLUMN_VALUE, VARIABLE_LEADERBOARD_COLUMN_TEXT, VARIABLE_LEADERBOARD_COLUMN_LAST_UPDATE, VARIABLE_LEADERBOARD_COLUMN_CREATION, VARIABLE_LEADERBOARD_COLUMN_LEVEL ];
 
 /** `VariableLeaderboardColumnsPreset.columnTypeLabel`. */
 export const leaderboardColumnTypeLabel = (type: number): string => {
     switch (type) {
-        case 0: return '${wiredfurni.params.variable_leaderboard.column.username}';
-        case 1: return '${wiredfurni.params.variable_leaderboard.column.value}';
-        case 2: return '${wiredfurni.params.variable_leaderboard.column.last_update}';
-        case 3: return '${wiredfurni.params.variable_leaderboard.column.creation}';
-        case 4: return '${wiredfurni.params.variable_leaderboard.column.level}';
-        case 5: return '${wiredfurni.params.variable_leaderboard.column.text_connection}';
+        case VARIABLE_LEADERBOARD_COLUMN_USERNAME: return '${wiredfurni.params.variable_leaderboard.column.username}';
+        case VARIABLE_LEADERBOARD_COLUMN_VALUE: return '${wiredfurni.params.variable_leaderboard.column.value}';
+        case VARIABLE_LEADERBOARD_COLUMN_LAST_UPDATE: return '${wiredfurni.params.variable_leaderboard.column.last_update}';
+        case VARIABLE_LEADERBOARD_COLUMN_CREATION: return '${wiredfurni.params.variable_leaderboard.column.creation}';
+        case VARIABLE_LEADERBOARD_COLUMN_LEVEL: return '${wiredfurni.params.variable_leaderboard.column.level}';
+        case VARIABLE_LEADERBOARD_COLUMN_TEXT: return '${wiredfurni.params.variable_leaderboard.column.text_connection}';
         default: return String(type);
     }
 };
@@ -185,13 +190,13 @@ export const leaderboardNeedsColumnTypeInfo = (columns: readonly VariableLeaderb
 
 /** `defaultColumnFor(index)`: Username first, then the first type no earlier row uses. */
 const defaultLeaderboardColumn = (columns: readonly VariableLeaderboardConfigColumn[], index: number): VariableLeaderboardConfigColumn => {
-    if (index === 0) return { type: VARIABLE_LEADERBOARD_COLUMN_USERNAME, label: leaderboardDefaultColumnLabel(0), width: 3 };
+    if (index === 0) return createLeaderboardColumn(VARIABLE_LEADERBOARD_COLUMN_USERNAME);
 
     for (const type of VARIABLE_LEADERBOARD_OTHER_COLUMN_TYPES) {
-        if (!columns.slice(0, index).some(column => (column.type === type))) return { type, label: leaderboardDefaultColumnLabel(type), width: leaderboardColumnDefaultWidth(type) };
+        if (!columns.slice(0, index).some(column => (column.type === type))) return createLeaderboardColumn(type);
     }
 
-    return { type: 2, label: leaderboardDefaultColumnLabel(2), width: 1 };
+    return createLeaderboardColumn(VARIABLE_LEADERBOARD_COLUMN_LAST_UPDATE);
 };
 
 /** `onCountChanged`: the rows between the old and the new count start from their defaults. */
@@ -238,7 +243,7 @@ const literalValueForForm = (literal: string): number | null => {
 
     const value = Number(literal);
 
-    if ((value < -2147483648) || (value > 2147483647)) return null;
+    if ((value < WIRED_INT_MIN) || (value > WIRED_INT_MAX)) return null;
 
     return Math.trunc(value);
 };

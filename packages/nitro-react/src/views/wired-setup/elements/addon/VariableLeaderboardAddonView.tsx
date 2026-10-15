@@ -2,12 +2,11 @@
  * `addons/leaderboard/VariableLeaderboardAddon.buildInputs` (WIN63-202610131318): the General,
  * Columns, Multi-variable mode (collapsed), Filter (collapsed) and Leaderboard location sections.
  *
- * While the editor is open its leaderboard's location is edited in the room (`onEditInitialized`
- * -> `VariableLeaderboardLocationPreset.beginEdit` -> `controller.beginLocationEdit`): the
- * published leaderboard, or a dummy one for a box never saved, is drawn from the editor's config
- * on every change (`configChanged` -> `updateEditDraft`) and can be dragged; a drag or the
- * coordinate inputs move it (`updateDraggedLocation`) and the new location goes back into the
- * form (`onLocationChanged`). Closing the editor ends the edit (`onEditEnd` -> `endLocationEdit`).
+ * While the editor is open its leaderboard's location is edited in the room - see
+ * `components/room/widgets/variable-leaderboard/VariableLeaderboardWidget`. The editor starts the
+ * edit (`onEditInitialized` -> `VariableLeaderboardLocationPreset.beginEdit`), sends its config on
+ * every change (`configChanged` -> `updateEditDraft`), takes a dragged location back into the form
+ * (`onLocationChanged`) and ends the edit when it closes (`onEditEnd` -> `endLocationEdit`).
  */
 import { VARIABLE_LEADERBOARD_PAGE_SIZES, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 import { useEffect, useMemo } from 'react';
@@ -39,6 +38,8 @@ import {
     VARIABLE_LEADERBOARD_WIDTH_LABELS,
     VariableLeaderboardAddonForm,
     VariableLeaderboardLocation,
+    WIRED_INT_MAX,
+    WIRED_INT_MIN,
     WiredElementView,
 } from '#base/wired';
 
@@ -57,8 +58,6 @@ import { WiredTextInput } from '../../kit/WiredTextInput';
 import { WiredValueOrVariableSection } from '../../kit/WiredValueOrVariableSection';
 
 /** `NumberInputParam(0, int.MIN, int.MAX, 32)` - the tile and altitude inputs. */
-const INT_MIN = -2147483648;
-const INT_MAX = 2147483647;
 const COORDINATE_INPUT_WIDTH = 32;
 
 /** `DropdownParam(..., 82)` - the column width drop-down. */
@@ -288,8 +287,8 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
                                                 title={null}
                                                 mergedId={0}
                                                 sourceTypeOptions={[ Number(VariableExtraSourceTypes.GLOBAL_SOURCE) ]}
-                                                min={INT_MIN}
-                                                max={INT_MAX}
+                                                min={WIRED_INT_MIN}
+                                                max={WIRED_INT_MAX}
                                                 state={form.operand}
                                                 onChange={operand => setForm({ operand })}
                                                 onSourceTypeSelect={sourceType => setWiredMergedSourceType(0, sourceType)}
@@ -326,8 +325,8 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
                         <WiredNumberInput
                             value={form.location.tileX}
                             onChange={tileX => setLocation({ tileX })}
-                            min={INT_MIN}
-                            max={INT_MAX}
+                            min={WIRED_INT_MIN}
+                            max={WIRED_INT_MAX}
                             width={COORDINATE_INPUT_WIDTH}
                             disabled={!active}
                         />
@@ -339,8 +338,8 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
                         <WiredNumberInput
                             value={form.location.tileY}
                             onChange={tileY => setLocation({ tileY })}
-                            min={INT_MIN}
-                            max={INT_MAX}
+                            min={WIRED_INT_MIN}
+                            max={WIRED_INT_MAX}
                             width={COORDINATE_INPUT_WIDTH}
                             disabled={!active}
                         />
@@ -366,8 +365,8 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
                         <WiredNumberInput
                             value={form.location.altitude}
                             onChange={altitude => setLocation({ altitude })}
-                            min={INT_MIN}
-                            max={INT_MAX}
+                            min={WIRED_INT_MIN}
+                            max={WIRED_INT_MAX}
                             width={COORDINATE_INPUT_WIDTH}
                             disabled={!active}
                         />

@@ -6,9 +6,8 @@
  * - `synchronizeViews` / `refreshView`: the panel shows the page of the selected variable, "Loading..."
  *   while a chunk the page needs has not come, "No entries" with no variable or no entry
  *   (`getBodyState`), and the pager.
- * - `projectView` (`VariableLeaderboardLocationProjector.project`): the anchor is the location's tile
- *   centre on the floor, `offsetX` room pixels right and `altitude` up, at the room's zoom; the
- *   panel's bottom centre sits on it (`getWindowPosition`), redone on every room frame.
+ * - `projectView`: the panel's bottom centre sits on its location (`VariableLeaderboardLocationProjector`),
+ *   redone on every room frame.
  * - `update`: the times in the rows are told again every 30 s (`refreshRelativeTimes`).
  * - `applyLocationEditVisuals`: while an add-on's editor sets one leaderboard's location, every
  *   other one is faded to 0.35.
@@ -31,10 +30,10 @@ import { useRoom } from '#base/context/room';
 import { leaderboardPageCount, leaderboardPageRows, leaderboardPageSize, useWiredStore, VariableLeaderboardLocationEdit, VariableLeaderboardOverlay, wiredStore } from '#base/context/wired';
 import { moveLeaderboardPage, selectLeaderboardVariable } from '#base/handlers';
 import { VariableLeaderboardBodyState, VariableLeaderboardView } from '#base/views/room-widgets/variable-leaderboard/VariableLeaderboardView';
-import { suggestLeaderboardDisplayName } from '#base/wired';
+import { suggestLeaderboardDisplayName, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID, VariableLeaderboardLocation } from '#base/wired';
 
 import { ScaledRoomOverlay } from '../../overlay';
-import { placeLeaderboardWindow, unprojectLeaderboardWindow, VariableLeaderboardScreenLocation } from './VariableLeaderboardLocationProjector';
+import { placeLeaderboardWindow, unprojectLeaderboardWindow } from './VariableLeaderboardLocationProjector';
 
 /** `VariableLeaderboardController.update`: how often the rows' relative times are told again. */
 const RELATIVE_TIME_REFRESH_MS = 30000;
@@ -43,7 +42,7 @@ const RELATIVE_TIME_REFRESH_MS = 30000;
 const LOCATION_EDIT_BLEND = 0.35;
 
 /** `projectView` / `projectDraftView`: the window's bottom centre on the location. Nowhere without a canvas. */
-const placeAt = (room: IRoom, location: VariableLeaderboardScreenLocation) => (width: number, height: number) => placeLeaderboardWindow(room, location, width, height);
+const placeAt = (room: IRoom, location: VariableLeaderboardLocation) => (width: number, height: number) => placeLeaderboardWindow(room, location, width, height);
 
 /**
  * `VariableLeaderboardView.effectiveChoiceName` while an edit runs: the display name typed in the
@@ -75,7 +74,7 @@ const withEditDraft = (descriptor: IVariableLeaderboardDescriptor, edit: Variabl
 const createDraftDescriptor = (edit: VariableLeaderboardLocationEdit): IVariableLeaderboardDescriptor => {
     const choices = edit.context.choices.map(choice => ({ variableId: choice.variableId, displayName: effectiveChoiceName({ variableId: choice.variableId, displayName: '' }, edit) }));
 
-    return withEditDraft({ overlayInstanceId: 0, queryRevision: 0, title: '', description: '', tileX: 0, tileY: 0, offsetX: 0, altitude: 0, sortMode: 0, columns: [], choices, defaultVariableId: choices.length ? choices[0].variableId : '0', pageSizeOption: 0 }, edit);
+    return withEditDraft({ overlayInstanceId: 0, queryRevision: 0, title: '', description: '', tileX: 0, tileY: 0, offsetX: 0, altitude: 0, sortMode: 0, columns: [], choices, defaultVariableId: choices.length ? choices[0].variableId : VARIABLE_LEADERBOARD_NULL_VARIABLE_ID, pageSizeOption: 0 }, edit);
 };
 
 /** `updateDraggedWindowPosition` -> `updateDraggedLocation`: the dragged window's location becomes the draft's. */
@@ -187,19 +186,7 @@ export const VariableLeaderboardWidget = () => {
                             selectedVariableId={draftDescriptor.choices.length ? draftDescriptor.defaultVariableId : null}
                             bodyState={2}
                             rows={[]}
-                            page={0}
-                            pageCount={1}
-                            canPrevious={false}
-                            canNext={false}
                             now={now}
-                            dropdownOpen={false}
-                            hoveredChoice={null}
-                            onToggleChoices={() => {}}
-                            onHoverChoice={() => {}}
-                            onSelectChoice={() => {}}
-                            onPrevious={() => {}}
-                            onNext={() => {}}
-                            onProfile={() => {}}
                         />
                     </ScaledRoomOverlay>
                 )}

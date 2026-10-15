@@ -25,6 +25,7 @@ import { useState } from 'react';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Box, GlobalRect, LayoutImage, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { twoDigits } from '#base/utils';
 import { TableCell, TableColumn, TableView } from '#base/views/shared/table/TableView';
 
 const TEMPLATE = 'habbo-help-com/my_reports_xml';
@@ -40,9 +41,8 @@ type Translate = ReturnType<typeof useTranslation>;
 /** `DateTimeFormatter.setDateTimePattern("dd/MM/yyyy")`. */
 const formatDate = (time: number): string => {
     const date = new Date(time);
-    const pad = (value: number) => String(value).padStart(2, '0');
 
-    return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+    return `${twoDigits(date.getDate())}/${twoDigits(date.getMonth() + 1)}/${date.getFullYear()}`;
 };
 
 /** `getActionExplanation`. */

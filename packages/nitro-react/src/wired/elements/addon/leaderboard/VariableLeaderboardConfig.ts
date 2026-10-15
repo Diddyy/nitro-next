@@ -121,6 +121,9 @@ export const leaderboardDefaultColumnLabel = (type: number): string => {
     }
 };
 
+/** A column of `type` with its default name and width. */
+export const createLeaderboardColumn = (type: number): VariableLeaderboardConfigColumn => ({ type, label: leaderboardDefaultColumnLabel(type), width: leaderboardColumnDefaultWidth(type) });
+
 /** `VariableLeaderboardDisplayNameFormatter.suggest`: `"best_score-2"` is `"Best Score 2"`. */
 export const suggestLeaderboardDisplayName = (technicalName: string | null | undefined): string => {
     if (!technicalName) return 'Variable';
@@ -138,7 +141,7 @@ export const suggestLeaderboardDisplayName = (technicalName: string | null | und
 export const createUnpublishedLeaderboardConfig = (): VariableLeaderboardConfig => ({
     title: '',
     description: '',
-    columns: [ { type: VARIABLE_LEADERBOARD_COLUMN_USERNAME, label: 'Username', width: 3 }, { type: VARIABLE_LEADERBOARD_COLUMN_VALUE, label: 'Value', width: 0 } ],
+    columns: [ VARIABLE_LEADERBOARD_COLUMN_USERNAME, VARIABLE_LEADERBOARD_COLUMN_VALUE ].map(createLeaderboardColumn),
     sortMode: 0,
     pageSizeOption: 0,
     filterEnabled: false,
@@ -150,9 +153,6 @@ export const createUnpublishedLeaderboardConfig = (): VariableLeaderboardConfig 
     displayOverrides: {},
     location: { tileX: 0, tileY: 0, offsetX: 0, altitude: 0 },
 });
-
-/** `entriesPerPage`. */
-export const leaderboardConfigEntriesPerPage = (config: VariableLeaderboardConfig): number => VARIABLE_LEADERBOARD_PAGE_SIZES[config.pageSizeOption] ?? VARIABLE_LEADERBOARD_PAGE_SIZES[0];
 
 /** `displayOverrideIds`: sorted as strings (`compareSerializedIds`). */
 export const leaderboardDisplayOverrideIds = (config: VariableLeaderboardConfig): string[] => Object.keys(config.displayOverrides).sort((a, b) => ((a < b) ? -1 : ((a > b) ? 1 : 0)));

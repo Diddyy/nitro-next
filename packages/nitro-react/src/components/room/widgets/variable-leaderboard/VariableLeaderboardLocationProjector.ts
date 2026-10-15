@@ -1,24 +1,15 @@
 /**
  * WIN63-202610131318 `VariableLeaderboardLocationProjector`: a leaderboard location (tile, `offsetX`
- * room pixels right of the tile centre, `altitude` room pixels up) to a point on screen and back.
- * The room view's size is the canvas's (`getRoomViewRect`), the scale its zoom (`getScale`).
+ * room pixels right of the tile centre, `altitude` room pixels up, at the room's zoom) to a point on
+ * screen and back; a panel's bottom centre sits on that point. The room view's size is the canvas's
+ * (`getRoomViewRect`), the scale its zoom (`getScale`, `getRoomOverlayScale`).
  */
 import { IRoom, Vector3d } from '@nitrodevco/nitro-api';
 import { Point } from 'pixi.js';
 
-/** `_-Ps` / `MAX_OFFSET_X`. */
-const MIN_OFFSET_X = -32;
-const MAX_OFFSET_X = 32;
+import { VARIABLE_LEADERBOARD_MAX_OFFSET_X, VARIABLE_LEADERBOARD_MIN_OFFSET_X, VariableLeaderboardLocation } from '#base/wired';
 
-/** `BASE_GEOMETRY_SCALE` (`_-I1q`). */
-const BASE_GEOMETRY_SCALE = 64;
-
-export interface VariableLeaderboardScreenLocation {
-    tileX: number;
-    tileY: number;
-    offsetX: number;
-    altitude: number;
-}
+import { getRoomOverlayScale } from '../../overlay';
 
 const canvasOf = (room: IRoom) => room.canvas ?? null;
 
@@ -29,15 +20,6 @@ const canvasScaleOf = (room: IRoom): number => {
     if (!canvas) return 0;
 
     return canvas.isFlipped ? -canvas.scale : canvas.scale;
-};
-
-/** `getScale`: the room's zoom as a factor, 1 at the default zoom. */
-export const leaderboardRoomScale = (room: IRoom): number => {
-    const canvas = canvasOf(room);
-
-    if (!canvas) return 0;
-
-    return (canvas.geometry.scale / BASE_GEOMETRY_SCALE) * Math.abs(canvasScaleOf(room));
 };
 
 /** `projectTileCenter`: the centre of a tile's floor on screen. */
@@ -56,18 +38,18 @@ const projectTileCenter = (room: IRoom, tileX: number, tileY: number): { x: numb
 };
 
 /** `project`: the location's anchor on screen. */
-export const projectLeaderboardLocation = (room: IRoom, location: VariableLeaderboardScreenLocation): { x: number; y: number } | null => {
+export const projectLeaderboardLocation = (room: IRoom, location: VariableLeaderboardLocation): { x: number; y: number } | null => {
     const center = projectTileCenter(room, location.tileX, location.tileY);
 
     if (!center) return null;
 
-    const scale = leaderboardRoomScale(room);
+    const scale = getRoomOverlayScale(room);
 
     return { x: center.x + (location.offsetX * scale), y: center.y - (location.altitude * scale) };
 };
 
 /** `project` + `getWindowPosition`: the window's top-left, its bottom centre on the anchor. */
-export const placeLeaderboardWindow = (room: IRoom, location: VariableLeaderboardScreenLocation, width: number, height: number): { x: number; y: number } | null => {
+export const placeLeaderboardWindow = (room: IRoom, location: VariableLeaderboardLocation, width: number, height: number): { x: number; y: number } | null => {
     const anchor = projectLeaderboardLocation(room, location);
 
     return anchor ? { x: anchor.x - (width / 2), y: anchor.y - height } : null;
@@ -79,12 +61,12 @@ export const placeLeaderboardWindow = (room: IRoom, location: VariableLeaderboar
  * horizontal offset leaves -32..32, the anchor moves to the neighbour tile along the axis that
  * runs most sideways on screen and the offset is measured again.
  */
-export const unprojectLeaderboardWindow = (room: IRoom, x: number, y: number, width: number, height: number): VariableLeaderboardScreenLocation | null => {
+export const unprojectLeaderboardWindow = (room: IRoom, x: number, y: number, width: number, height: number): VariableLeaderboardLocation | null => {
     const canvas = canvasOf(room);
 
     if (!canvas) return null;
 
-    const scale = leaderboardRoomScale(room);
+    const scale = getRoomOverlayScale(room);
     const canvasScale = canvasScaleOf(room);
 
     if (!scale || !canvasScale) return null;
@@ -104,7 +86,7 @@ export const unprojectLeaderboardWindow = (room: IRoom, x: number, y: number, wi
     const rawOffset = (anchor.x - center.x) / scale;
     let offsetX = Math.round(rawOffset);
 
-    if ((offsetX < MIN_OFFSET_X) || (offsetX > MAX_OFFSET_X)) {
+    if ((offsetX < VARIABLE_LEADERBOARD_MIN_OFFSET_X) || (offsetX > VARIABLE_LEADERBOARD_MAX_OFFSET_X)) {
         const alongX = projectTileCenter(room, tileX + 1, tileY);
         const alongY = projectTileCenter(room, tileX, tileY + 1);
 
