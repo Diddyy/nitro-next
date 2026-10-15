@@ -19,7 +19,7 @@ import { registerQuestHandlers } from './quests';
 import { registerRewardTrackHandlers } from './reward-track';
 import {
     registerCameraHandlers,
-    registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
+    registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomCustomUserNotificationHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
     registerRoomDirectoryHandlers, registerRoomDoorbellHandlers, registerRoomFloorPlanHandlers, registerRoomFriendFurniHandlers, registerRoomFriendRequestHandlers,
     registerRoomFurnitureHandlers, registerRoomFurnitureLabelHandlers, registerRoomGenericErrorHandlers, registerRoomGuildFurniHandlers, registerRoomInfostandHandlers, registerRoomJukeboxHandlers, registerRoomLinkHandlers, registerRoomMappingHandlers,
     registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers, registerRoomPresentHandlers, registerRoomPurchasableClothingHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
@@ -66,6 +66,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerCameraHandlers(socket),
         registerRoomThumbnailCameraHandlers(socket),
         registerRoomPollHandlers(socket),
+        registerRoomCustomUserNotificationHandlers(socket),
         registerRoomQuizHandlers(socket),
         registerRoomSettingsHandlers(socket),
         registerRoomFriendFurniHandlers(socket),

@@ -5,6 +5,7 @@ import { createRoomBotsSlice, RoomBotsSlice } from './RoomBotsSlice';
 import { createRoomCameraSlice, RoomCameraSlice } from './RoomCameraSlice';
 import { createRoomChatSlice, RoomChatSlice } from './RoomChatSlice';
 import { createRoomChooserSlice, RoomChooserSlice } from './RoomChooserSlice';
+import { createRoomCustomUserNotificationSlice, RoomCustomUserNotificationSlice } from './RoomCustomUserNotificationSlice';
 import { createRoomDoorbellSlice, RoomDoorbellSlice } from './RoomDoorbellSlice';
 import { createRoomFloorPlanSlice, RoomFloorPlanSlice } from './RoomFloorPlanSlice';
 import { createRoomFriendRequestSlice, RoomFriendRequestSlice } from './RoomFriendRequestSlice';
@@ -33,7 +34,7 @@ type Actions = {
     setRoom: (room: IRoom | undefined) => void;
 };
 
-export type RoomStore = State & Actions & RoomMouseSlice & RoomSessionSlice & RoomCameraSlice & RoomChatSlice & RoomSelectedObjectSlice & RoomStackingHeightMapSlice & RoomUsersSlice & RoomWidgetSlice & RoomDoorbellSlice & RoomPollSlice & RoomQuizSlice & RoomFriendRequestSlice & RoomSettingsFormSlice & RoomFloorPlanSlice & RoomPetsSlice & RoomBotsSlice & RoomSoundSlice & RoomChooserSlice;
+export type RoomStore = State & Actions & RoomMouseSlice & RoomSessionSlice & RoomCameraSlice & RoomChatSlice & RoomSelectedObjectSlice & RoomStackingHeightMapSlice & RoomUsersSlice & RoomWidgetSlice & RoomDoorbellSlice & RoomPollSlice & RoomCustomUserNotificationSlice & RoomQuizSlice & RoomFriendRequestSlice & RoomSettingsFormSlice & RoomFloorPlanSlice & RoomPetsSlice & RoomBotsSlice & RoomSoundSlice & RoomChooserSlice;
 
 /**
  * Everything a room starts with, as a fresh deep copy: the store's own initial state with the
@@ -67,6 +68,7 @@ export const createRoomStore = () => createStore<RoomStore>()((set, get, store) 
     ...createRoomWidgetSlice(set, get, store),
     ...createRoomDoorbellSlice(set, get, store),
     ...createRoomPollSlice(set, get, store),
+    ...createRoomCustomUserNotificationSlice(set, get, store),
     ...createRoomQuizSlice(set, get, store),
     ...createRoomFriendRequestSlice(set, get, store),
     ...createRoomSettingsFormSlice(set, get, store),
