@@ -16,6 +16,7 @@ export * from './useRoomInventoryPlacementHandler';
 export * from './useRoomIsInitialized';
 export * from './useRoomObjectBubblePlacement';
 export * from './useRoomObjectInteraction';
+export * from './useRoomObjectModelVersion';
 export * from './useRoomObjectModify';
 export * from './useRoomObjectMove';
 export * from './useRoomObjectName';

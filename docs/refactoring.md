@@ -50,7 +50,11 @@ model changes, and the React Compiler keeps the values cached across unrelated r
 avatar menu can show a hand item that was dropped. **Verified.**
 
 Change: read them from the store the packet handlers write, or subscribe with
-`useSyncExternalStore` to the room's object updates as `useRoomIsInitialized` does. M.
+`useSyncExternalStore` to the room's object updates as `useRoomIsInitialized` does. M. **Done**
+for `useRoomUserData` and `useRoomFurnitureData`: `hooks/room/useRoomObjectModelVersion.ts` checks
+the model's update counter each room frame, and the reads take that version. Confirmed live: the
+infostand's hand item row now follows the model. `useRoomObjectName` reads only the type id, which
+does not change, and is left as it is.
 
 ### 4. One window pointer-drag hook
 
@@ -187,3 +191,4 @@ copies' timing agrees with Flash's. M-L.
 
 - Item 1, handler refs (`useLatest`).
 - Item 2, one room-frame placement hook (`useRoomFramePlacement`).
+- Item 3, room object values read during render (`useRoomObjectModelVersion`).

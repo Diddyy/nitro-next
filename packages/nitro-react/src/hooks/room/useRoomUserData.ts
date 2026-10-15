@@ -3,13 +3,15 @@
  * with the checks `InfoStandWidgetHandler` made: who they are, their badges and relationships,
  * and which actions (friend, kick, ban, mute, trade) you may take on them, from both sides' rights.
  */
-import { AvatarActionStateType, AvatarGenderType, RoomControllerLevelEnum, RoomModerationType, RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomTradeModeEnum } from '@nitrodevco/nitro-api';
+import { AvatarActionStateType, AvatarGenderType, IRoomObjectModel, RoomControllerLevelEnum, RoomModerationType, RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomTradeModeEnum } from '@nitrodevco/nitro-api';
 import { IHabboUserBadge, IRelationshipStatusInfo } from '@nitrodevco/nitro-packets';
 
 import { countFriends } from '#base/commands';
 import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
 import { useIsSystemShutdown, useOwnUserId, useUserStore } from '#base/context/user';
+
+import { useRoomObjectModelVersion } from './useRoomObjectModelVersion';
 
 const NO_BADGES: IHabboUserBadge[] = [];
 const NO_RELATIONSHIPS: IRelationshipStatusInfo[] = [];
@@ -82,6 +84,15 @@ const settingAllows = (setting: RoomModerationType, myLevel: RoomControllerLevel
     }
 };
 
+/** What the avatar's model holds that changes while it is in the room, as of `_version` (`useRoomObjectModelVersion`). */
+const readFigureModel = (model: IRoomObjectModel, _version: string) => ({
+    targetControllerLevel: (model.getValue<RoomControllerLevelEnum>(RoomObjectVariableEnum.FigureFlatControl) ?? RoomControllerLevelEnum.None),
+    carryItem: model.getValue<number>(RoomObjectVariableEnum.FigureCarryObject) ?? 0,
+    effectId: model.getValue<number>(RoomObjectVariableEnum.FigureEffect) ?? 0,
+    posture: model.getValue<string>(RoomObjectVariableEnum.FigurePosture) ?? AvatarActionStateType.Stand,
+    canStandUp: model.getValue<boolean>(RoomObjectVariableEnum.FigureCanStandUp),
+});
+
 export const useRoomUserData = (objectId: number): AvatarInfo | undefined => {
     const room = useRoom();
     const userData = useRoomUserByObjectId(objectId);
@@ -104,6 +115,7 @@ export const useRoomUserData = (objectId: number): AvatarInfo | undefined => {
     const groupBadge = useUserStore(x => (userData ? (x.groupBadges[userData.groupId] ?? '') : ''));
     // `InfoStandWidgetHandler.isActivityDisplayEnabled`: `getBoolean`, so off unless the hotel sets it.
     const activityDisplayEnabled = useConfigValue<boolean>('activity.point.display.enabled') === true;
+    const modelVersion = useRoomObjectModelVersion(objectId, RoomObjectCategoryEnum.Unit);
 
     if (!room || !userData) return undefined;
 
@@ -112,7 +124,7 @@ export const useRoomUserData = (objectId: number): AvatarInfo | undefined => {
     if (!roomObject) return undefined;
 
     const isOwnUser = userData.webID === ownUserId;
-    const targetControllerLevel = (roomObject.model.getValue<RoomControllerLevelEnum>(RoomObjectVariableEnum.FigureFlatControl) ?? RoomControllerLevelEnum.None);
+    const { targetControllerLevel, carryItem, effectId, posture, canStandUp } = readFigureModel(roomObject.model, modelVersion);
 
     const info: AvatarInfo = {
         objectId: userData.objectId,
@@ -124,10 +136,10 @@ export const useRoomUserData = (objectId: number): AvatarInfo | undefined => {
         gender: userData.gender,
         achievementScore: activityDisplayEnabled ? userData.activityPoints : 0,
         isOwnUser,
-        carryItem: roomObject.model.getValue<number>(RoomObjectVariableEnum.FigureCarryObject) ?? 0,
-        effectId: roomObject.model.getValue<number>(RoomObjectVariableEnum.FigureEffect) ?? 0,
-        posture: roomObject.model.getValue<string>(RoomObjectVariableEnum.FigurePosture) ?? AvatarActionStateType.Stand,
-        canStandUp: roomObject.model.getValue<boolean>(RoomObjectVariableEnum.FigureCanStandUp),
+        carryItem,
+        effectId,
+        posture,
+        canStandUp,
         groupId: userData.groupId,
         groupName: userData.groupName,
         groupBadge,

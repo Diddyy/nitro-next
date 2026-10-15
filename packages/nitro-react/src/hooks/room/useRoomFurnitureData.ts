@@ -1,8 +1,27 @@
-import { FurnitureUsagePolicyEnum, GetObjectDataForFlags, IFurniData, IFurnitureData, RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
+import { FurnitureUsagePolicyEnum, GetObjectDataForFlags, IFurniData, IFurnitureData, IRoomObjectModel, RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
 import { useRoom } from '#base/context/room';
 import { useSystemStore, useTranslation } from '#base/context/system';
 import { getFurnitureData } from '#base/utils';
+
+import { useRoomObjectModelVersion } from './useRoomObjectModelVersion';
+
+/** What the furni's model holds that can change while it is in the room, as of `_version` (`useRoomObjectModelVersion`). */
+const readFurnitureModel = (model: IRoomObjectModel, _version: string) => {
+    const stuffData = GetObjectDataForFlags(model.getValue<number>(RoomObjectVariableEnum.FurnitureDataFormat));
+
+    stuffData.initializeFromRoomObjectModel(model);
+
+    return {
+        typeId: model.getValue<number>(RoomObjectVariableEnum.FurnitureTypeId),
+        stuffData,
+        ownerId: model.getValue<number>(RoomObjectVariableEnum.FurnitureOwnerId),
+        ownerName: model.getValue<string>(RoomObjectVariableEnum.FurnitureOwnerName),
+        usagePolicy: model.getValue<FurnitureUsagePolicyEnum>(RoomObjectVariableEnum.FurnitureUsagePolicy),
+        groupId: model.getValue<number>(RoomObjectVariableEnum.FurnitureGuildCustomizedGuildId),
+        extraParam: model.getValue<string>(RoomObjectVariableEnum.InfostandExtraParam) ?? undefined,
+    };
+};
 
 /**
  * Everything the UI wants to know about one furniture object, joined from its room object model
@@ -15,18 +34,11 @@ export const useRoomFurnitureData = (objectId: number, category: RoomObjectCateg
     const wallItems = useSystemStore(x => x.wallItems);
     const roomObject = room?.getRoomObject(objectId, category);
     const t = useTranslation();
+    const modelVersion = useRoomObjectModelVersion(objectId, category);
 
     if (!roomObject) return undefined;
 
-    const typeId = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureTypeId);
-    const dataFormat = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureDataFormat);
-    const stuffData = GetObjectDataForFlags(dataFormat);
-    const ownerId = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureOwnerId);
-    const ownerName = roomObject.model.getValue<string>(RoomObjectVariableEnum.FurnitureOwnerName);
-    const usagePolicy = roomObject.model.getValue<FurnitureUsagePolicyEnum>(RoomObjectVariableEnum.FurnitureUsagePolicy);
-    const groupId = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureGuildCustomizedGuildId);
-
-    stuffData.initializeFromRoomObjectModel(roomObject.model);
+    const { typeId, stuffData, ownerId, ownerName, usagePolicy, groupId, extraParam } = readFurnitureModel(roomObject.model, modelVersion);
 
     let name: string = '';
     let description: string = '';
@@ -52,7 +64,7 @@ export const useRoomFurnitureData = (objectId: number, category: RoomObjectCateg
         category,
         name,
         description,
-        extraParam: roomObject.model.getValue<string>(RoomObjectVariableEnum.InfostandExtraParam) ?? undefined,
+        extraParam,
         stuffData,
         furnitureData,
         isWallItem: (category === RoomObjectCategoryEnum.Wall),
