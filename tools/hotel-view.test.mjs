@@ -12,7 +12,7 @@ const load = (path, dependencies = {}) => {
     const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
     const exports = {};
 
-    runInNewContext(outputText, { exports, performance, setTimeout, clearTimeout, Date, require: (name) => {
+    runInNewContext(outputText, { exports, performance, setTimeout, clearTimeout, setInterval, clearInterval, Date, require: (name) => {
         assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`);
 
         return dependencies[name];
@@ -26,6 +26,7 @@ const { GetCurrentTimingCodeComposer } = load('nitro-packets/src/outgoing/Compet
 const { SecondsUntilMessage } = load('nitro-packets/src/incoming/Competition/SecondsUntilMessage');
 const { GetSecondsUntilComposer } = load('nitro-packets/src/outgoing/Competition/GetSecondsUntilComposer');
 const widgets = load('nitro-react/src/context/system/store/HotelViewWidgets', { './HotelViewSlice': backgrounds, '#base/utils': load('nitro-theme/src/utils/cssHexColor') });
+const questWidgets = load('nitro-react/src/context/system/store/HotelViewQuestWidgets', { './HotelViewSlice': backgrounds });
 const config = {
     'image.library.url': 'https://images.example/',
     'landing.view.bgtiming': 'schedule',
@@ -120,11 +121,13 @@ await test('generic widget conf, layout and common settings follow GenericWidget
 
 const INCOMING = [
     'CurrentTimingCodeMessage', 'SecondsUntilMessage', 'BonusRareInfoMessage', 'PromoArticlesMessage', 'CommunityGoalProgressMessage', 'CommunityVoteReceivedMessage', 'CatalogPageWithEarliestExpiryMessage',
-    'LimitedOfferAppearingNextMessage',
+    'LimitedOfferAppearingNextMessage', 'IsBadgeRequestFulfilledEventMessage', 'WiredRewardResultMessage', 'IsUserPartOfCompetitionMessage',
+    'QuestDailyMessage', 'ConcurrentUsersGoalProgressMessage', 'CommunityGoalHallOfFameMessage',
 ];
 const OUTGOING = [
     'GetCurrentTimingCodeComposer', 'GetSecondsUntilComposer', 'GetBonusRareInfoComposer', 'GetPromoArticlesComposer', 'GetCommunityGoalProgressComposer', 'GetCatalogPageWithEarliestExpiryComposer',
-    'GetLimitedOfferAppearingNextComposer',
+    'GetLimitedOfferAppearingNextComposer', 'GetIsBadgeRequestFulfilledComposer', 'GetIsUserPartOfCompetitionComposer',
+    'GetDailyQuestComposer', 'GetConcurrentUsersGoalProgressComposer', 'GetCommunityGoalHallOfFameComposer',
 ];
 const composer = name => class {
     constructor(params) {
@@ -137,7 +140,7 @@ const composer = name => class {
 };
 const loadHandlers = systemStore => load('nitro-react/src/handlers/system/registerHotelViewHandlers', {
     '@nitrodevco/nitro-packets': { ...Object.fromEntries(INCOMING.map(name => [ name, { name } ])), ...Object.fromEntries(OUTGOING.map(name => [ name, composer(name) ])) },
-    '#base/context/system': { ...backgrounds, ...widgets, systemStore },
+    '#base/context/system': { ...backgrounds, ...widgets, ...questWidgets, systemStore },
     '../packetSubscriptions': load('nitro-react/src/handlers/packetSubscriptions'),
 });
 
@@ -196,11 +199,12 @@ await test('activation refreshes every slot widget; container slots follow their
         for (const listener of listeners) listener(state, previous);
     };
 
-    // BonusRarePromoWidget asks in initialize and again in refresh; an unported widget asks nothing.
+    // BonusRarePromoWidget asks in initialize and again in refresh; DailyQuestWidget's refresh asks the first easy quest.
     assert.deepEqual(sent, [
         [ 'GetBonusRareInfoComposer' ],
         [ 'GetBonusRareInfoComposer' ],
         [ 'GetCurrentTimingCodeComposer', schedule2 ],
+        [ 'GetDailyQuestComposer', true, 0 ],
         [ 'GetCurrentTimingCodeComposer', 'schedule' ],
     ]);
     sent.length = 0;
@@ -220,7 +224,7 @@ await test('activation refreshes every slot widget; container slots follow their
     sent.length = 0;
     visibility(false);
     visibility(true);
-    assert.deepEqual(sent.map(packet => packet[0]), [ 'GetBonusRareInfoComposer', 'GetCurrentTimingCodeComposer', 'GetCurrentTimingCodeComposer' ]);
+    assert.deepEqual(sent.map(packet => packet[0]), [ 'GetBonusRareInfoComposer', 'GetCurrentTimingCodeComposer', 'GetDailyQuestComposer', 'GetCurrentTimingCodeComposer' ]);
 
     dispose();
     assert.equal(listeners.size, 0);
@@ -320,5 +324,95 @@ await test('the expiring page and next limited rare widgets ask at most every th
     assert.ok(sent.includes('GetLimitedOfferAppearingNextComposer'));
 
     dispose();
+    assert.equal(receivers.size, 0);
+});
+
+await test('generic widget elements ask what they show; badge buttons ask again on a wired reward; the score polls; a hidden catalogue page reactivates', (t) => {
+    t.mock.timers.enable({ apis: [ 'setTimeout', 'setInterval', 'Date' ] });
+
+    const listeners = new Set();
+    const state = {
+        config: {
+            ...config,
+            'landing.view.dynamic.slot.1.widget': 'generic',
+            'landing.view.dynamic.slot.1.conf': 'requestbadgebutton,b.caption,BADGE1,10,20;submitcompetitionroom,c.start,c.done,GOAL;communitygoaltimer,false,0,0,t.left,t.over;communitygoalscore,8,25,5000,false,0,0',
+        },
+        landingViewVisible: true, hotelViewBackgrounds: {}, hotelViewReactivations: 0,
+        hotelViewBadgeRequestsFulfilled: {},
+        setHotelViewBackgrounds: () => {},
+        setHotelViewTimingCode: () => {},
+        setHotelViewSecondsUntil: () => {},
+        setHotelViewBonusRare: () => {},
+        setHotelViewCommunityGoal: () => {},
+        setHotelViewPromoArticles: () => {},
+        setHotelViewBackgroundCode: () => {},
+        setHotelViewCommunityVoted: () => {},
+        setHotelViewExpiringPage: () => {},
+        setHotelViewNextLimited: () => {},
+        setHotelViewBadgeRequestFulfilled: (requestCode, fulfilled) => {
+            state.hotelViewBadgeRequestsFulfilled[requestCode] = fulfilled;
+        },
+        setHotelViewCompetitionEntry: (entry) => {
+            state.hotelViewCompetitionEntry = entry;
+        },
+    };
+    const systemStore = { getState: () => state, subscribe: (listener) => {
+        listeners.add(listener);
+
+        return () => listeners.delete(listener);
+    } };
+    const { registerHotelViewHandlers } = loadHandlers(systemStore);
+    const receivers = new Map();
+    const sent = [];
+    const dispose = registerHotelViewHandlers({
+        send: packet => sent.push(packet.compose()),
+        subscribe: (packet, listener) => {
+            receivers.set(packet.name, listener);
+
+            return () => receivers.delete(packet.name);
+        },
+    });
+    const receive = (name, data) => receivers.get(name)(data);
+
+    // `GenericWidget.refresh`: each element's own request, in the column's order.
+    assert.deepEqual(sent, [
+        [ 'GetIsBadgeRequestFulfilledComposer', 'BADGE1' ],
+        [ 'GetIsUserPartOfCompetitionComposer', 'GOAL' ],
+        [ 'GetCommunityGoalProgressComposer' ],
+        [ 'GetCommunityGoalProgressComposer' ],
+        [ 'GetCurrentTimingCodeComposer', 'schedule' ],
+    ]);
+    sent.length = 0;
+
+    receive('IsBadgeRequestFulfilledEventMessage', { requestCode: 'BADGE1', fulfilled: true });
+    assert.equal(state.hotelViewBadgeRequestsFulfilled.BADGE1, true);
+    receive('IsUserPartOfCompetitionMessage', { isPartOf: true, targetId: 42 });
+    assert.equal(state.hotelViewCompetitionEntry.targetId, 42);
+
+    // `RequestBadgeButtonElementHandler.onReward`.
+    receive('WiredRewardResultMessage', { reason: 6 });
+    assert.deepEqual(sent, [ [ 'GetIsBadgeRequestFulfilledComposer', 'BADGE1' ] ]);
+    sent.length = 0;
+
+    // The score's poll timer, which a second activation does not start twice.
+    t.mock.timers.tick(5000);
+    assert.deepEqual(sent, [ [ 'GetCommunityGoalProgressComposer' ] ]);
+    sent.length = 0;
+
+    // `onExpiredLinkClick`: a visit to a hidden catalogue page activates the visible reception again.
+    for (const listener of listeners) listener({ ...state, hotelViewReactivations: 1 }, state);
+    assert.ok(sent.some(packet => packet[0] === 'GetCurrentTimingCodeComposer'));
+    sent.length = 0;
+    t.mock.timers.tick(5000);
+    assert.deepEqual(sent, [ [ 'GetCommunityGoalProgressComposer' ] ]);
+    sent.length = 0;
+
+    // Not while it is hidden.
+    for (const listener of listeners) listener({ ...state, landingViewVisible: false, hotelViewReactivations: 2 }, { ...state, landingViewVisible: false, hotelViewReactivations: 1 });
+    assert.deepEqual(sent, []);
+
+    dispose();
+    t.mock.timers.tick(5000);
+    assert.deepEqual(sent, []);
     assert.equal(receivers.size, 0);
 });

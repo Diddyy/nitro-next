@@ -19,7 +19,8 @@ type AvatarEditorWindowParams = {
 };
 
 /**
- * The catalogue opened on a page (by id or name) or an offer; `roomAdExtension`: the room ad page
+ * The catalogue opened on a page (by id or name) or an offer - a page id with an offer id opens that
+ * page with the offer picked (`openCatalogPageById(pageId, offerId)`); `roomAdExtension`: the room ad page
  * opened in extended mode (`openRoomAdCatalogPageInExtendedMode`).
  */
 type CatalogWindowParams = { pageId?: number; pageName?: string; offerId?: number; roomAdExtension?: CatalogRoomAdExtension };

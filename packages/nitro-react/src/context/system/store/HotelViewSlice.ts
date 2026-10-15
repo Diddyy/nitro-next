@@ -4,10 +4,20 @@
  * shows (`WidgetContainerWidget.onTimingCode`), the countdowns `CustomTimerElementHandler` asked
  * for, the bonus rare (`BonusRarePromoWidget`), the promo articles and the one shown, the community goal and whether
  * the user's vote on it was taken (`CommunityVoteReceivedEvent`), the catalogue page that expires
- * first (`ExpiringCatalogPageWidget`) and the next limited rare (`NextLimitedRareCountdownWidget`).
+ * first (`ExpiringCatalogPageWidget`) and the next limited rare (`NextLimitedRareCountdownWidget`) -
+ * and what the generic widget's elements were told: whether each badge request was fulfilled
+ * (`RequestBadgeButtonElementHandler`) and whether the user has a competition room (the
+ * `submitcompetitionroom` element). `hotelViewReactivations` counts the catalogue's visits to an
+ * invisible page (`CATALOG_INVISIBLE_PAGE_VISITED`), on which the reception activates again.
+ * Also the daily quest offered (`DailyQuestWidget` and its element), the concurrent users goal
+ * (`ConcurrentUsersInfoElementHandler` and the meter) and the competition's hall of fame
+ * (`CommunityGoalHallOfFameWidget`).
  * Retained while a room is open, like the Flash window.
  */
-import { BonusRareInfoMessageType, CatalogPageWithEarliestExpiryMessageType, CommunityGoalProgressMessageType, LimitedOfferAppearingNextMessageType, PromoArticleData } from '@nitrodevco/nitro-packets';
+import {
+    BonusRareInfoMessageType, CatalogPageWithEarliestExpiryMessageType, CommunityGoalProgressMessageType, ConcurrentUsersGoalProgressMessageType, ICommunityGoalHallOfFameData, IsUserPartOfCompetitionMessageType, LimitedOfferAppearingNextMessageType,
+    PromoArticleData, QuestDailyMessageType,
+} from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
 export interface HotelViewBackground {
@@ -38,6 +48,8 @@ export interface HotelViewSlice {
     hotelViewSecondsUntil: Record<string, HotelViewSecondsUntil>;
     hotelViewBonusRare: BonusRareInfoMessageType | undefined;
     hotelViewCommunityGoal: CommunityGoalProgressMessageType | undefined;
+    /** When the community goal's progress last arrived (`performance.now()`), so its countdown runs on from it. */
+    hotelViewCommunityGoalReceivedAt: number;
     hotelViewPromoArticles: PromoArticleData[];
     /** `PromoArticleWidget`'s current article, which it keeps between visits to the reception. */
     hotelViewPromoArticleIndex: number;
@@ -45,6 +57,18 @@ export interface HotelViewSlice {
     hotelViewCommunityVoted: boolean;
     hotelViewExpiringPage: HotelViewTimed<CatalogPageWithEarliestExpiryMessageType> | undefined;
     hotelViewNextLimited: HotelViewTimed<LimitedOfferAppearingNextMessageType> | undefined;
+    /** `IsBadgeRequestFulfilledEvent` per request code: a fulfilled request's button is hidden. */
+    hotelViewBadgeRequestsFulfilled: Record<string, boolean>;
+    /** The last `IsUserPartOfCompetitionMessageEvent` - every `submitcompetitionroom` element takes it, whatever goal it asked about. */
+    hotelViewCompetitionEntry: IsUserPartOfCompetitionMessageType | undefined;
+    /** `CATALOG_INVISIBLE_PAGE_VISITED`s so far - each one reactivates a visible reception (`HabboLandingView.onExpiredLinkClick`). */
+    hotelViewReactivations: number;
+    /** The last `QuestDailyMessageEvent`: the daily quest widget's and element's `refreshContent`. */
+    hotelViewDailyQuest: QuestDailyMessageType | undefined;
+    /** The last `ConcurrentUsersGoalProgressMessageEvent`, which the `concurrentusers*` elements draw. */
+    hotelViewConcurrentUsers: ConcurrentUsersGoalProgressMessageType | undefined;
+    /** The last `CommunityGoalHallOfFameMessageEvent`'s leaders. */
+    hotelViewHallOfFame: ICommunityGoalHallOfFameData | undefined;
     setHotelViewBackgrounds: (backgrounds: HotelViewBackgrounds) => void;
     setHotelViewTimingCode: (schedulingStr: string, code: string) => void;
     setHotelViewSecondsUntil: (timeStr: string, value: HotelViewSecondsUntil) => void;
@@ -56,6 +80,12 @@ export interface HotelViewSlice {
     setHotelViewCommunityVoted: (voted: boolean) => void;
     setHotelViewExpiringPage: (page: HotelViewTimed<CatalogPageWithEarliestExpiryMessageType>) => void;
     setHotelViewNextLimited: (offer: HotelViewTimed<LimitedOfferAppearingNextMessageType>) => void;
+    setHotelViewDailyQuest: (dailyQuest: QuestDailyMessageType) => void;
+    setHotelViewConcurrentUsers: (progress: ConcurrentUsersGoalProgressMessageType) => void;
+    setHotelViewHallOfFame: (hallOfFame: ICommunityGoalHallOfFameData) => void;
+    setHotelViewBadgeRequestFulfilled: (requestCode: string, fulfilled: boolean) => void;
+    setHotelViewCompetitionEntry: (entry: IsUserPartOfCompetitionMessageType) => void;
+    reactivateHotelView: () => void;
 }
 
 /** `PromoArticleData.linkType`: a web page, an in-client link, or no link (the button is hidden). */
@@ -115,20 +145,33 @@ export const createHotelViewSlice: StateCreator<HotelViewSlice, [], [], HotelVie
     hotelViewSecondsUntil: {},
     hotelViewBonusRare: undefined,
     hotelViewCommunityGoal: undefined,
+    hotelViewCommunityGoalReceivedAt: 0,
     hotelViewPromoArticles: [],
     hotelViewPromoArticleIndex: 0,
     hotelViewCommunityVoted: false,
     hotelViewExpiringPage: undefined,
     hotelViewNextLimited: undefined,
+    hotelViewBadgeRequestsFulfilled: {},
+    hotelViewCompetitionEntry: undefined,
+    hotelViewReactivations: 0,
+    hotelViewDailyQuest: undefined,
+    hotelViewConcurrentUsers: undefined,
+    hotelViewHallOfFame: undefined,
     setHotelViewBackgrounds: hotelViewBackgrounds => set({ hotelViewBackgrounds }),
     setHotelViewTimingCode: (schedulingStr, code) => set(state => ({ hotelViewTimingCodes: { ...state.hotelViewTimingCodes, [schedulingStr]: code } })),
     setHotelViewSecondsUntil: (timeStr, value) => set(state => ({ hotelViewSecondsUntil: { ...state.hotelViewSecondsUntil, [timeStr]: value } })),
     setHotelViewBonusRare: hotelViewBonusRare => set({ hotelViewBonusRare }),
-    setHotelViewCommunityGoal: hotelViewCommunityGoal => set({ hotelViewCommunityGoal }),
+    setHotelViewCommunityGoal: hotelViewCommunityGoal => set({ hotelViewCommunityGoal, hotelViewCommunityGoalReceivedAt: performance.now() }),
     setHotelViewPromoArticles: hotelViewPromoArticles => set({ hotelViewPromoArticles }),
     setHotelViewPromoArticleIndex: hotelViewPromoArticleIndex => set({ hotelViewPromoArticleIndex }),
     setHotelViewBackgroundCode: hotelViewBackgroundCode => set({ hotelViewBackgroundCode }),
     setHotelViewCommunityVoted: hotelViewCommunityVoted => set({ hotelViewCommunityVoted }),
     setHotelViewExpiringPage: hotelViewExpiringPage => set({ hotelViewExpiringPage }),
     setHotelViewNextLimited: hotelViewNextLimited => set({ hotelViewNextLimited }),
+    setHotelViewDailyQuest: hotelViewDailyQuest => set({ hotelViewDailyQuest }),
+    setHotelViewConcurrentUsers: hotelViewConcurrentUsers => set({ hotelViewConcurrentUsers }),
+    setHotelViewHallOfFame: hotelViewHallOfFame => set({ hotelViewHallOfFame }),
+    setHotelViewBadgeRequestFulfilled: (requestCode, fulfilled) => set(state => ({ hotelViewBadgeRequestsFulfilled: { ...state.hotelViewBadgeRequestsFulfilled, [requestCode]: fulfilled } })),
+    setHotelViewCompetitionEntry: hotelViewCompetitionEntry => set({ hotelViewCompetitionEntry }),
+    reactivateHotelView: () => set(state => ({ hotelViewReactivations: state.hotelViewReactivations + 1 })),
 });

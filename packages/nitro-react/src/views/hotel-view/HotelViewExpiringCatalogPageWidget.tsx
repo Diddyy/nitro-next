@@ -6,7 +6,11 @@
  * The widget is hidden until a page is named, and again whenever the server names none. Its header
  * and description are the page's own texts (`landing.view.pageexpiry.page.<page>.header` / `.desc`),
  * its picture `reception/catalog_teaser_<page>.png` from the image library, and the countdown runs
- * down to the expiry. The button opens the catalogue at that page. The packet's image name is read
+ * down to the expiry. The button opens the catalogue at that page; once the page has expired the
+ * catalogue finds it hidden, opens its front page instead and raises `CATALOG_INVISIBLE_PAGE_VISITED`,
+ * on which `HabboLandingView.onExpiredLinkClick` activates the reception again - so this widget asks
+ * again which page expires first (`refresh`, still at most once in thirty seconds;
+ * `registerHotelViewHandlers`). The packet's image name is read
  * but, as in Flash, never drawn. The large layout's title line stretches up to its title
  * (`positionAfterAndStretch`).
  */

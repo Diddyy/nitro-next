@@ -11,7 +11,8 @@ import { useCatalogNavigation } from './useCatalogNavigation';
 
 /**
  * The catalogue window's params acted on: a `pageId`, `pageName` or `offerId` passed to `showWindow`
- * (or a catalogue link) becomes the requested page, opened once the window is up and the index is
+ * (or a catalogue link) becomes the requested page - a `pageId` with an `offerId` the page with that
+ * offer picked - opened once the window is up and the index is
  * in - `HabboCatalog.openCatalogPageById` / `openCatalogPage` / `openCatalogPageByOfferId` - and
  * then cleared. With nothing requested and nothing open, the first visible root node opens.
  */
@@ -40,8 +41,9 @@ export const useCatalogPageRequest = () => {
             requestedPage = CatalogRequestedPageUtilities.getForPageName(params.pageName);
         }
 
+        // A page id and an offer id: the page, with the offer picked on it (`openCatalogPageById`).
         if (params.offerId !== undefined) {
-            requestedPage = CatalogRequestedPageUtilities.getForOfferId(params.offerId);
+            requestedPage = (params.pageId !== undefined) ? { ...CatalogRequestedPageUtilities.getForPageId(params.pageId), offerId: params.offerId } : CatalogRequestedPageUtilities.getForOfferId(params.offerId);
         }
 
         // `openRoomAdCatalogPageInExtendedMode`: the purchase data is written before the page opens.
@@ -73,7 +75,7 @@ export const useCatalogPageRequest = () => {
                 return;
             }
             case CatalogPageRequestType.PageId: {
-                if (requestedPage.pageId !== undefined) openPageById(requestedPage.pageId);
+                if (requestedPage.pageId !== undefined) openPageById(requestedPage.pageId, requestedPage.offerId);
                 setRequestedPage(CatalogRequestedPageUtilities.getEmpty());
                 return;
             }

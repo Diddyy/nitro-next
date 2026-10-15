@@ -6,7 +6,7 @@
  */
 import { CatalogRequestedPageUtilities, ICatalogNode } from '@nitrodevco/nitro-api';
 
-import { loadCatalogPage } from '#base/commands';
+import { catalogInvisiblePageVisited, loadCatalogPage } from '#base/commands';
 import { getCatalogWindowName, useCatalogActions, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 
@@ -97,9 +97,10 @@ export const useCatalogNavigation = () => {
         if (targetNode.pageId > -1) loadCatalogPage(send, store, targetNode.pageId, offerId);
     };
 
-    const openPageById = (pageId: number) => {
+    /** `CatalogNavigator.openPageById(pageId, offerId)`: the page, with the offer on it picked when one is given. */
+    const openPageById = (pageId: number, offerId: number = -1) => {
         if (!isWindowVisible) {
-            setRequestedPage(CatalogRequestedPageUtilities.getForPageId(pageId));
+            setRequestedPage({ ...CatalogRequestedPageUtilities.getForPageId(pageId), ...((offerId > -1) ? { offerId } : {}) });
 
             show();
         } else {
@@ -110,10 +111,27 @@ export const useCatalogNavigation = () => {
             if (!node) return;
 
             setForceRefresh();
-            activateNode(node);
+            activateNode(node, offerId);
         }
     };
 
+    /** `CatalogNavigator.loadFrontPage` -> `getFirstNavigable`: the first visible node under the index, depth first. */
+    const getFirstNavigable = (node: ICatalogNode): ICatalogNode | undefined => {
+        if (node.visible && (node !== rootNode)) return node;
+
+        for (const child of node.children) {
+            const found = getFirstNavigable(child);
+
+            if (found) return found;
+        }
+
+        return undefined;
+    };
+
+    /**
+     * `CatalogNavigator.openPage`: a visible page opens; otherwise the front page does, and a page
+     * that exists but is hidden raises `CATALOG_INVISIBLE_PAGE_VISITED` first.
+     */
     const openPageByName = (pageName: string) => {
         if (!isWindowVisible) {
             setRequestedPage(CatalogRequestedPageUtilities.getForPageName(pageName));
@@ -124,7 +142,17 @@ export const useCatalogNavigation = () => {
 
             const node = getNodeByPageName(pageName, rootNode);
 
-            if (node) activateNode(node);
+            if (node && node.visible) {
+                activateNode(node);
+
+                return;
+            }
+
+            if (node) catalogInvisiblePageVisited();
+
+            const front = getFirstNavigable(rootNode);
+
+            if (front) activateNode(front);
         }
     };
 

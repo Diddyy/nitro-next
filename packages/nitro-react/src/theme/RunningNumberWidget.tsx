@@ -7,7 +7,8 @@
  * time since its last step over `updateFrequency` (one per `updateFrequency` ms) - never past `number`
  * - and shows it zero-padded to `digits`; it never runs down. `initialNumber` shows a number at once
  * and runs from there; without one it runs from 0, and the field keeps the layout's text until its
- * first step. `running_number:color_style` is kept by Flash but changes nothing, so it is not here.
+ * first step. `set fieldValue` writes the built field, so its `auto_size` widens the widget
+ * (`reflect_horizontal_resize_to_parent`) as the digits need. `running_number:color_style` is kept by Flash but changes nothing, so it is not here.
  */
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Ticker } from 'pixi.js';
@@ -64,7 +65,7 @@ export const RunningNumberWidget = ({ number, initialNumber, digits = 8, updateF
     return (
         <TemplateWindow
             id="habbo-window-manager-com/running_number_xml"
-            bindings={(shown.value === undefined) ? undefined : { number_field: { caption: fieldValue(shown.value, digits) } }}
+            bindings={(shown.value === undefined) ? undefined : { number_field: { caption: fieldValue(shown.value, digits), setCaptionAfterBuild: true } }}
         />
     );
 };

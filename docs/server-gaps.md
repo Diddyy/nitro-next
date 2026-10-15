@@ -58,6 +58,7 @@ nothing sends it.
 
 | Area | Messages | Turbo |
 |---|---|---|
+| Hotel view | `QuestDailyMessage`, `ConcurrentUsersGoalProgress`, `IsUserPartOfCompetition` | never sent |
 | Room: spectators | `YouAreSpectator`, `YouAreNotSpectator` | never sent |
 | Room: chat | `SpecialSystemChat` | no serializer |
 | Room: furniture | `UseObject`, `GamePlayerValue` | never sent |
@@ -95,6 +96,12 @@ nothing sends it.
 
 Packets that both sides handle, where Turbo does less than the Flash client expects. The tool
 cannot find these; add them as they are found.
+
+- **Hotel view requests.** `GetDailyQuest`, `GetConcurrentUsersGoalProgress`,
+  `GetConcurrentUsersReward`, `GetIsUserPartOfCompetition`, `ForwardToACompetitionRoom`,
+  `ForwardToRandomCompetitionRoom`, `ForwardToASubmittableRoom`, `RoomNetworkOpenConnection` and
+  `GetTalentTrack` are parsed and handled by an empty handler, so the reception's daily quest,
+  concurrent-user, competition, room hopper and talents widgets get no answer.
 
 - **Post-it stacks.** `PlacePostIt` places the whole inventory item rather than one sheet of its
   stack, and Turbo never answers with `PostItPlaced`, so the stack's count in the inventory does

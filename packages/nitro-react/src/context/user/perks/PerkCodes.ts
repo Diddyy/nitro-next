@@ -11,6 +11,8 @@ export const PerkCodes = {
     NavigatorRoomThumbnailCamera: 'NAVIGATOR_ROOM_THUMBNAIL_CAMERA',
     /** The guide tool, and the me menu's guide button (`MeMenuNewController.toggleVisibility`). */
     UseGuideTool: 'USE_GUIDE_TOOL',
+    /** Citizenship passed: the talent track offered is the helper one (`SessionDataManager.currentTalentTrack`). */
+    Citizen: 'CITIZEN',
 } as const;
 
 export type PerkCode = typeof PerkCodes[keyof typeof PerkCodes];

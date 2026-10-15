@@ -6,8 +6,8 @@
  * `refreshContent`: while the rare is on sale (`pageId` 0 or more) the `get` button names it - its
  * product's name - in the countdown's place; while it is still to come the countdown runs down to
  * it; with neither the widget is hidden, as it is until the first answer. Either button opens the
- * catalogue at the rare's page (`openCatalogPageById`); this port opens the page without also
- * picking the offer on it.
+ * catalogue at the rare's page with its offer picked (`onOpenCatalogButton` ->
+ * `openCatalogPageById(pageId, offerId, "NORMAL")`).
  */
 import { hotelViewColorableBindings, hotelViewColorableFormat, HotelViewCommonSettings, useSystemStore, useWindowActions } from '#base/context/system';
 import { useSecondsClock } from '#base/hooks';
@@ -30,7 +30,7 @@ export const HotelViewNextLimitedRareWidget = ({ settings }: HotelViewNextLimite
         if (!offer) return;
 
         hideWindow('builders_catalog');
-        showWindow('catalog', { pageId: offer.pageId });
+        showWindow('catalog', { pageId: offer.pageId, offerId: offer.offerId });
     };
 
     return (

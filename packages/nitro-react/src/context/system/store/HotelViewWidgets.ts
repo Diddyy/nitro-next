@@ -37,10 +37,13 @@ export const LandingViewWidgetType = {
 
 /**
  * The widget types this port draws in a slot. `LandingViewWidgetType.getWidgetForType` builds
- * every name above; the ones missing here are widgets whose windows are not ported yet (the avatar
- * image, the catalogue promos, daily quest, the competition prizes and hall of fame, the moderation,
- * talents, Habbo Way and safety quiz promos and the room hopper), and a slot naming one stays
- * empty - which `DynamicLayoutManager` treats exactly like an unconfigured slot.
+ * every name above, and the port draws each of them; a slot naming any other type stays empty -
+ * which `DynamicLayoutManager` treats exactly like an unconfigured slot. The competition prizes
+ * draw only the community goal progress another widget or element asks for, and the hall of fame
+ * asks the bottom slot's schedule (`landing.view.dynamic.slot.6.conf`) wherever it is - see their
+ * views. The talents, Habbo Way and safety quiz promos draw in full but their buttons lead to
+ * windows the port has not got (the talent track, the Habbo Way, the safety booklet) - see each
+ * widget's view.
  */
 export const PORTED_LANDING_VIEW_WIDGETS: ReadonlySet<string> = new Set([
     LandingViewWidgetType.GENERIC,
@@ -53,6 +56,17 @@ export const PORTED_LANDING_VIEW_WIDGETS: ReadonlySet<string> = new Set([
     LandingViewWidgetType.EXPIRINGCATALOGPAGE,
     LandingViewWidgetType.EXPIRINGCATALOGPAGESMALL,
     LandingViewWidgetType.NEXTLIMITEDRARECOUNTDOWN,
+    LandingViewWidgetType.AVATARIMAGE,
+    LandingViewWidgetType.CATALOGPROMO,
+    LandingViewWidgetType.CATALOGPROMOSMALL,
+    LandingViewWidgetType.HABBOMODERATIONPROMO,
+    LandingViewWidgetType.HABBOTALENTSPROMO,
+    LandingViewWidgetType.HABBOWAYPROMO,
+    LandingViewWidgetType.SAFETYQUIZPROMO,
+    LandingViewWidgetType.ROOMHOPPERNETWORK,
+    LandingViewWidgetType.DAILYQUEST,
+    LandingViewWidgetType.ACHIEVEMENTCOMPETITIONPRIZES,
+    LandingViewWidgetType.ACHIEVEMENTCOMPETITIONHALLOFFAME,
 ]);
 
 /**
@@ -69,13 +83,23 @@ export const HOTEL_VIEW_BOTTOM_SLOT = 6;
 /**
  * The widgets the port draws in the bottom slot. Only `WidgetContainerLayout`'s fixed widgets can go
  * there (the placeholder is renamed after the type, and only a fixed widget looks for one by name);
- * of those, these are ported. A bottom slot naming any other type stays empty.
+ * of those, these are ported. A bottom slot naming any other type stays empty: `catalogpromosmall`
+ * and `roomhoppernetwork` are not fixed widgets, and `avatarimage` is, but the reception has its own
+ * `widget_placeholder_avatarimage` already, which that widget takes.
  */
 export const BOTTOM_SLOT_LANDING_VIEW_WIDGETS: ReadonlySet<string> = new Set([
     LandingViewWidgetType.EXPIRINGCATALOGPAGE,
     LandingViewWidgetType.EXPIRINGCATALOGPAGESMALL,
     LandingViewWidgetType.COMMUNITYGOAL,
     LandingViewWidgetType.NEXTLIMITEDRARECOUNTDOWN,
+    LandingViewWidgetType.CATALOGPROMO,
+    LandingViewWidgetType.HABBOMODERATIONPROMO,
+    LandingViewWidgetType.HABBOTALENTSPROMO,
+    LandingViewWidgetType.HABBOWAYPROMO,
+    LandingViewWidgetType.SAFETYQUIZPROMO,
+    LandingViewWidgetType.DAILYQUEST,
+    LandingViewWidgetType.ACHIEVEMENTCOMPETITIONPRIZES,
+    LandingViewWidgetType.ACHIEVEMENTCOMPETITIONHALLOFFAME,
 ]);
 
 /** `landing.view.dynamic.slot.<slot>.widget`. */
@@ -134,6 +158,36 @@ export const hotelViewTimerTimeStr = (element: HotelViewGenericElement): string 
 
 /** `LandingViewElementType.CUSTOMTIMER`. */
 export const LANDING_VIEW_ELEMENT_CUSTOMTIMER = 'customtimer';
+
+/** `LandingViewElementType.COMMUNITYGOALTIMER`: `communitygoaltimer,<floating>,<x>,<y>,<remainingKey>,<expiredKey>`. */
+export const LANDING_VIEW_ELEMENT_COMMUNITYGOALTIMER = 'communitygoaltimer';
+
+/** `LandingViewElementType.COMMUNITYGOALSCORE`: `communitygoalscore,<digits>,<updateFrequency>,<pollMillis>,<floating>,<x>,<y>`. */
+export const LANDING_VIEW_ELEMENT_COMMUNITYGOALSCORE = 'communitygoalscore';
+
+/** `LandingViewElementType.SUBMITCOMPETITIONROOM`: `submitcompetitionroom,<caption>,<submittedCaption>,<goalCode>`. */
+export const LANDING_VIEW_ELEMENT_SUBMITCOMPETITIONROOM = 'submitcompetitionroom';
+
+/**
+ * `LandingViewElementType.createHandler`'s `REQUESTBADGEBUTTON` .. `REQUESTBADGEBUTTONFIFTH`: one
+ * `RequestBadgeButtonElementHandler` each - `<type>,<caption>,<requestCode>,<x>,<y>[,<floating>]`.
+ */
+export const LANDING_VIEW_ELEMENT_REQUESTBADGEBUTTONS: ReadonlySet<string> = new Set([
+    'requestbadgebutton',
+    'requestbadgebuttonsecond',
+    'requestbadgebuttonthird',
+    'requestbadgebuttonfourth',
+    'requestbadgebuttonfifth',
+]);
+
+/** `RequestBadgeButtonElementHandler._badgeRequestCode`. */
+export const hotelViewBadgeRequestCode = (element: HotelViewGenericElement): string => element.args[1] ?? '';
+
+/** The `submitcompetitionroom` element's goal code (`_goalCode`). */
+export const hotelViewCompetitionGoalCode = (element: HotelViewGenericElement): string => element.args[2] ?? '';
+
+/** `communitygoalscore`'s poll period in ms (`new Timer(param3[3])`). */
+export const hotelViewCommunityGoalScorePollMillis = (element: HotelViewGenericElement): number => parseInt(element.args[2] ?? '', 10) | 0;
 
 /**
  * `CommonWidgetSettings`: the hotel-wide colours every `COLORABLE`-tagged widget text is given.

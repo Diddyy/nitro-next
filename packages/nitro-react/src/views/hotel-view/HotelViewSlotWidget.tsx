@@ -4,15 +4,25 @@
  * widget the timing code of its slot's schedule names (`switchCurrentWidget`). Until that code
  * arrives, or when it is empty, the container is its own empty `widget_container_widget`.
  */
-import { hotelViewCodeWidget, HotelViewCommonSettings, hotelViewSlotSchedule, LandingViewWidgetType, PORTED_LANDING_VIEW_WIDGETS, useConfigData, useSystemStore } from '#base/context/system';
+import { HOTEL_VIEW_BOTTOM_SLOT, hotelViewCodeWidget, HotelViewCommonSettings, hotelViewSlotSchedule, LandingViewWidgetType, PORTED_LANDING_VIEW_WIDGETS, useConfigData, useSystemStore } from '#base/context/system';
 import { TemplateWindow } from '#base/theme';
 
+import { HotelViewAvatarImageWidget } from './HotelViewAvatarImageWidget';
 import { HotelViewBonusRareWidget } from './HotelViewBonusRareWidget';
+import { HotelViewCatalogPromoWidget } from './HotelViewCatalogPromoWidget';
 import { HotelViewCommunityGoalWidget } from './HotelViewCommunityGoalWidget';
+import { HotelViewCompetitionPrizesWidget } from './HotelViewCompetitionPrizesWidget';
+import { HotelViewDailyQuestWidget } from './HotelViewDailyQuestWidget';
 import { HotelViewExpiringCatalogPageWidget } from './HotelViewExpiringCatalogPageWidget';
 import { HotelViewGenericWidget } from './HotelViewGenericWidget';
+import { HotelViewHabboWayPromoWidget } from './HotelViewHabboWayPromoWidget';
+import { HotelViewHallOfFameWidget } from './HotelViewHallOfFameWidget';
+import { HotelViewModerationPromoWidget } from './HotelViewModerationPromoWidget';
 import { HotelViewNextLimitedRareWidget } from './HotelViewNextLimitedRareWidget';
 import { HotelViewPromoArticleWidget } from './HotelViewPromoArticleWidget';
+import { HotelViewRoomHopperNetworkWidget } from './HotelViewRoomHopperNetworkWidget';
+import { HotelViewSafetyQuizPromoWidget } from './HotelViewSafetyQuizPromoWidget';
+import { HotelViewTalentsPromoWidget } from './HotelViewTalentsPromoWidget';
 import { hotelViewTemplateId } from './hotelViewTemplate';
 
 interface HotelViewSlotWidgetProps {
@@ -79,6 +89,37 @@ export const HotelViewSlotWidget = ({ type, slot, code, settings }: HotelViewSlo
             );
         case LandingViewWidgetType.NEXTLIMITEDRARECOUNTDOWN:
             return <HotelViewNextLimitedRareWidget settings={settings} />;
+        case LandingViewWidgetType.AVATARIMAGE:
+            return <HotelViewAvatarImageWidget />;
+        case LandingViewWidgetType.CATALOGPROMO:
+        case LandingViewWidgetType.CATALOGPROMOSMALL:
+            return (
+                <HotelViewCatalogPromoWidget
+                    small={type === LandingViewWidgetType.CATALOGPROMOSMALL}
+                    settings={settings}
+                />
+            );
+        case LandingViewWidgetType.HABBOMODERATIONPROMO:
+            return <HotelViewModerationPromoWidget />;
+        case LandingViewWidgetType.HABBOTALENTSPROMO:
+            return <HotelViewTalentsPromoWidget />;
+        case LandingViewWidgetType.HABBOWAYPROMO:
+            return <HotelViewHabboWayPromoWidget />;
+        case LandingViewWidgetType.SAFETYQUIZPROMO:
+            return <HotelViewSafetyQuizPromoWidget bottomSlot={slot === HOTEL_VIEW_BOTTOM_SLOT} />;
+        case LandingViewWidgetType.ROOMHOPPERNETWORK:
+            return <HotelViewRoomHopperNetworkWidget />;
+        case LandingViewWidgetType.DAILYQUEST:
+            return (
+                <HotelViewDailyQuestWidget
+                    slot={slot}
+                    code={code}
+                />
+            );
+        case LandingViewWidgetType.ACHIEVEMENTCOMPETITIONPRIZES:
+            return <HotelViewCompetitionPrizesWidget settings={settings} />;
+        case LandingViewWidgetType.ACHIEVEMENTCOMPETITIONHALLOFFAME:
+            return <HotelViewHallOfFameWidget />;
         default:
             return null;
     }

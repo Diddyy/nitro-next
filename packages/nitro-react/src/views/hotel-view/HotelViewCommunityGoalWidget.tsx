@@ -20,8 +20,8 @@
  *   contributed - from the progress known when the landing view opens, which is when this mounts;
  *   until any is known they show, as the layout has them.
  *
- * `refreshContent` also sizes `goal_info` to its text so the buttons under it move with it; here it
- * keeps the layout's height.
+ * `refreshContent` also sizes `goal_info` to its text (`textHeight + 6`) once the progress is in, so
+ * the buttons under it in `info_container` move with it.
  */
 import { CommunityGoalVoteComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
@@ -43,7 +43,19 @@ const COLORABLE = [ 'community_title', 'goal_caption', 'goal_info', 'community_t
 /** `CommunityGoalWidget`'s own progress through its meter's sweep, which outlives the landing view as the widget does. */
 const sweep = { elapsed: 0, buildup: 0 };
 
+/** `refreshContent`'s `goal_info.height = textHeight + 6`. */
+const GOAL_INFO_PADDING = 6;
+
 const arrange = (windows: TemplateWindows) => positionAfterAndStretch(windows, 'community_title', 'hdr_line');
+
+/** `refreshContent`, once there is progress: the title line, and `goal_info` as tall as its text. */
+const arrangeWithProgress = (windows: TemplateWindows) => {
+    arrange(windows);
+
+    const info = windows.find('goal_info');
+
+    if (info) info.setHeight(info.textHeight + GOAL_INFO_PADDING);
+};
 
 /** `updateMeter(frame, lit)`, or `undefined` before the first: the levels the needle has reached, and the needle. */
 interface MeterState {
@@ -149,7 +161,7 @@ export const HotelViewCommunityGoalWidget = ({ type, settings }: HotelViewCommun
             <TemplateWindow
                 id={voting ? 'habbo-friend-bar-com/community_goal_voting_xml' : 'habbo-friend-bar-com/community_goal_xml'}
                 bindings={hotelViewColorableBindings(settings, COLORABLE, bindings)}
-                arrange={arrange}
+                arrange={goal ? arrangeWithProgress : arrange}
                 parameters={goal ? { [`landing.view.community.meter.${goalCode}`]: { totalAmount: String(goal.communityTotalScore) } } : undefined}
             />
         </Box>

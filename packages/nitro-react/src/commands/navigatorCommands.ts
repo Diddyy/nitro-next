@@ -1,11 +1,11 @@
 /**
  * The navigator's actions over `navigatorStore` - `HabboNavigator` / `HabboNewNavigator`: entering a
- * room (direct, forwarded or home), searching with its cache, history and refresh, the window
- * preferences sync, and the in-room dialogs it owns (`RoomEventViewCtrl`, `EnforceCategoryCtrl`,
+ * room (direct, forwarded or home) or a room network, searching with its cache, history and
+ * refresh, the window preferences sync, and the in-room dialogs it owns (`RoomEventViewCtrl`, `EnforceCategoryCtrl`,
  * `RoomFilterCtrl`), plus creating a room.
  */
 import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
-import { CreateFlatComposer, CreateFlatComposerType, EditEventComposer, GetCustomRoomFilterComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, SetNewNavigatorWindowPreferencesComposer, UpdateRoomCategoryAndTradeSettingsComposer, UpdateRoomFilterComposer } from '@nitrodevco/nitro-packets';
+import { CreateFlatComposer, CreateFlatComposerType, EditEventComposer, GetCustomRoomFilterComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, RoomNetworkOpenConnectionComposer, SetNewNavigatorWindowPreferencesComposer, UpdateRoomCategoryAndTradeSettingsComposer, UpdateRoomFilterComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { groupStore } from '#base/context/groups';
@@ -35,6 +35,23 @@ export const goToRoom = (send: Send, roomId: number, password: string = '', skip
     systemStore.getState().startRoomSession(roomId);
 };
 
+/** `RoomSessionManager.gotoRoomNetwork`: the id a room network session starts with, before the server names the room. */
+const ROOM_NETWORK_SESSION_ROOM_ID = 1;
+
+/**
+ * `HabboNavigator.goToRoomNetwork(networkId, goToHomeRoom)`: closes the room info panel
+ * (`RoomInfoViewCtrl.close`), then `RoomSessionManager.gotoRoomNetwork` starts a session for room 1
+ * whose open connection is `RoomNetworkOpenConnectionMessageComposer(networkId, homeRoomId)` - the
+ * home room only when asked for and set, else 0. The server then picks the network's room.
+ */
+export const goToRoomNetwork = (send: Send, networkId: number, goToHomeRoom: boolean) => {
+    const { homeRoomId, hideWindow, startRoomSession } = systemStore.getState();
+
+    hideWindow('room_info');
+    send(new RoomNetworkOpenConnectionComposer({ networkId, homeRoomId: (goToHomeRoom && (homeRoomId > 0)) ? homeRoomId : 0 }));
+    startRoomSession(ROOM_NETWORK_SESSION_ROOM_ID);
+};
+
 /**
  * `HabboNewNavigator.goToRoom(roomId)` / `IncomingMessages.forwardToRoom`: a room forward
  * asks for the room info with roomForward set and closes the navigator window. The
@@ -46,6 +63,12 @@ export const forwardToRoom = (send: Send, roomId: number) => {
 
     systemStore.getState().hideWindow('navigator');
 };
+
+/**
+ * `HabboNavigator.goToPrivateRoom`: the same forward (`GetGuestRoomMessageComposer(roomId, false,
+ * true)`), leaving the navigator window as it is.
+ */
+export const goToPrivateRoom = (send: Send, roomId: number) => send(new GetGuestRoomComposer({ roomId, enterRoom: false, roomForward: true }));
 
 /**
  * `HabboNavigator.goToHomeRoom` -> `HabboNewNavigator.goToHomeRoom`: the home room is entered
