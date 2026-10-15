@@ -4,6 +4,10 @@
  *   `onMyCfhReportStatusMessageEvent` (`MyReportStatus.openWindow`), each answer opening its window
  *   anew (`openWindow` disposes the one already up first);
  * - `onCfhTopics`: the report reasons and topics;
+ * - a report's answers (`CallForHelpManager`): `onCallForHelpResult` - "${help.cfh.sent.title}" with the
+ *   server's text, or `help.cfh.sent.text` when it sends none - and `onCallForHelpReply`, a moderator's
+ *   reply under "${help.cfh.reply.title}", both `windowManager.alert`; and `onCallForHelpDisabledNotify`
+ *   (`HabboHelp`), the global mute's `simpleAlert` with its info link;
  * - the user registry: `onUsers` registers every other user (`userType` 1) a room shows, in the
  *   room `onRoomReady` (its id, no name yet) and `onGuestRoomResult` (its id and name) registered;
  * - the chat registry: `ChatEventHandler.onRoomChat` keeps each line a user says, shouts or
@@ -13,7 +17,7 @@
  *   conversation, a history's messages from the other side, and room invites by their sender.
  */
 import { RoomObjectUserType } from '@nitrodevco/nitro-api';
-import { CfhTopicsInitMessage, ChatMessage, ConsoleMessageHistoryMessage, GetGuestRoomResultMessage, MyCfhReportStatusMessage, NewConsoleMessageMessage, RoomInviteMessage, RoomReadyMessage, SanctionStatusEventMessage, ShoutMessage, UsersMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
+import { CallForHelpDisabledNotifyMessage, CallForHelpReplyMessage, CallForHelpResultMessage, CfhTopicsInitMessage, ChatMessage, ConsoleMessageHistoryMessage, GetGuestRoomResultMessage, MyCfhReportStatusMessage, NewConsoleMessageMessage, RoomInviteMessage, RoomReadyMessage, SanctionStatusEventMessage, ShoutMessage, UsersMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
 
 import { GetChatStyleLibrary } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
@@ -44,6 +48,23 @@ export const registerHelpHandlers = ({ subscribe }: WebSocketConnection) => subs
     on(SanctionStatusEventMessage, data => systemStore.getState().showWindow('help_sanction_info', { sanctions: data.sanctions, openedAt: performance.now() })),
     on(MyCfhReportStatusMessage, data => systemStore.getState().showWindow('help_my_reports', { reports: data.reports, openedAt: performance.now() })),
     on(CfhTopicsInitMessage, data => helpStore.getState().setCallForHelpCategories(data.callForHelpCategories)),
+    on(CallForHelpResultMessage, (data) => {
+        const { interpolate, showAlert } = systemStore.getState();
+
+        showAlert(interpolate('${help.cfh.sent.title}'), interpolate(data.messageText || '${help.cfh.sent.text}'));
+    }),
+    on(CallForHelpReplyMessage, (data) => {
+        const { interpolate, showAlert } = systemStore.getState();
+
+        showAlert(interpolate('${help.cfh.reply.title}'), interpolate(data.message));
+    }),
+    on(CallForHelpDisabledNotifyMessage, data => systemStore.getState().showSimpleAlert({
+        caption: '${help.emergency.global_mute.caption}',
+        subtitle: '${help.emergency.global_mute.subtitle}',
+        message: '${help.emergency.global_mute.message}',
+        linkTitle: '${help.emergency.global_mute.link}',
+        linkUrl: data.infoUrl,
+    })),
     on(UsersMessage, (data) => {
         const ownUserId = userStore.getState().userId;
 
