@@ -305,6 +305,30 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         this._backgroundVisible = flag;
 
         if (this._background) this._background.visible = flag;
+
+        // Without the opaque background under them, additive sprites go back to the `add` blend at once.
+        if (!flag && this._display) for (const child of this._display.children) {
+            if (!(child instanceof ExtendedSprite) || !child.batchAdditive) continue;
+
+            child.batchAdditive = false;
+            child.blendMode = 'add';
+        }
+    }
+
+    /**
+     * Sets the sprite's blend mode. An `add` sprite is drawn with the normal blend in its
+     * neighbours' batch (`AdditiveBatcher`) where that is the same picture: over the room's opaque
+     * background (the batched sprite leaves the destination's alpha as it was, `add` raises it),
+     * not through a filter pass (which composites the sprite's own output alpha), and not rounded
+     * by Pixi (whose round-pixels flag the additive mark sits beside).
+     */
+    private applyBlendMode(extendedSprite: ExtendedSprite, blendMode: ExtendedSprite['blendMode'], filters: readonly unknown[] | undefined): void {
+        const batchAdditive = (blendMode === 'add') && this._backgroundVisible && !filters?.length && !extendedSprite.roundPixels;
+        const mode = batchAdditive ? 'normal' : blendMode;
+
+        if (extendedSprite.blendMode !== mode) extendedSprite.blendMode = mode;
+
+        extendedSprite.batchAdditive = batchAdditive;
     }
 
     public setMask(flag: boolean): void {
@@ -779,7 +803,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
             if (extendedSprite.tint !== objectSprite.color) extendedSprite.tint = objectSprite.color;
 
-            if (extendedSprite.blendMode !== objectSprite.blendMode) extendedSprite.blendMode = objectSprite.blendMode;
+            this.applyBlendMode(extendedSprite, objectSprite.blendMode, objectSprite.filters);
 
             if (extendedSprite.texture !== objectSprite.texture) extendedSprite.setTexture(objectSprite.texture);
 
@@ -843,8 +867,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         extendedSprite.varyingDepth = sprite.varyingDepth;
         extendedSprite.clickHandling = sprite.clickHandling;
         extendedSprite.skipMouseHandling = sprite.skipMouseHandling;
-        extendedSprite.blendMode = sprite.blendMode;
         extendedSprite.setFilters(sprite.filters);
+        this.applyBlendMode(extendedSprite, sprite.blendMode, sprite.filters);
 
         if (!textureSet) extendedSprite.setTexture(sprite.texture);
 

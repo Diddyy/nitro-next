@@ -52,6 +52,7 @@ export class ExtendedSprite extends Sprite {
     private _objectUpdateId: number = -1;
     /** The list last given to `setFilters`; Pixi keeps only a frozen copy of it. */
     private _sourceFilters: Filter[] | undefined = undefined;
+    private _batchAdditive: boolean = false;
 
     /** The source was drawn again (a plane, a pooled render texture): every frame read from it is stale. */
     public static removeHitmap(source: TextureSource): void {
@@ -75,6 +76,21 @@ export class ExtendedSprite extends Sprite {
     /** The texture's frame alpha, as the hit test reads it: cached per texture and source version. */
     public static getFrameAlpha(texture: Texture): SourceAlpha | undefined {
         return this.getHitMap(texture);
+    }
+
+    /**
+     * Drawn additively with the normal blend mode, in its neighbours' batch (`AdditiveBatcher`):
+     * its output alpha is zeroed. The packed vertices change with it, so it counts as a view change.
+     */
+    public get batchAdditive(): boolean {
+        return this._batchAdditive;
+    }
+
+    public set batchAdditive(value: boolean) {
+        if (value === this._batchAdditive) return;
+
+        this._batchAdditive = value;
+        this.onViewUpdate();
     }
 
     public needsUpdate(geometryUpdateId: number, objectUpdateId: number): boolean {

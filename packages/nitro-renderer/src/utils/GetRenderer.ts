@@ -1,9 +1,13 @@
 import { AutoDetectOptions, autoDetectRenderer, Renderer, TextureSource } from 'pixi.js';
 
+import { installAdditiveBatcher } from './AdditiveBatcher';
+
 let renderer: Renderer;
 
 const ApplyTextureDefaults = () => {
     TextureSource.defaultOptions.scaleMode = 'nearest';
+    // Additive sprites batch with normal ones (`AdditiveBatcher`; also installed when it loads).
+    installAdditiveBatcher();
 };
 
 /**
