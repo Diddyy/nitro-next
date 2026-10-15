@@ -17,7 +17,7 @@ import { HabbiconsComponent } from './components/habbicons';
 import { HelpComponent } from './components/help';
 import { HotelViewComponent } from './components/hotel-view';
 import { ModerationComponent } from './components/moderation';
-import { MotdNotificationComponent } from './components/notifications';
+import { EpicPopupComponent, MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
 import { OnboardingComponent } from './components/onboarding';
 import { QuestsComponent, QuestTrackerComponent } from './components/quests';
@@ -60,6 +60,7 @@ import { ViewErrorBoundaries } from './views/system/ViewErrorBoundary';
 import { ClubDiscountPromoView } from './views/toolbar/ClubDiscountPromoView';
 import { ToolbarTransitionsView } from './views/toolbar/ToolbarTransitionsView';
 import { ToolbarView } from './views/toolbar/ToolbarView';
+import { VipQuestsPromoView } from './views/toolbar/VipQuestsPromoView';
 
 /**
  * The client once `NitroView` shows it: the room and hotel view under the window layer, which holds
@@ -122,8 +123,9 @@ export const MainView = () => {
                         }}
                         >
                             <ActivityPointsView />
-                            {/* `club_promo` (priority 10) docks above the targeted offer (13). */}
+                            {/* `club_promo` (priority 10) docks above the targeted offer (13); `vip_quests` (10) detaches it and docks there. */}
                             <ClubDiscountPromoView />
+                            <VipQuestsPromoView />
                             {/* `targeted_offer` (13): the targeted offer's or the Habbo Mall offer's, whichever is up. */}
                             <TargetedOfferMinimizedView />
                             <MallOfferMinimizedView />
@@ -209,6 +211,7 @@ export const MainView = () => {
                     <RoomEffectsWidget />
                     <NotificationsView />
                     <MotdNotificationComponent />
+                    <EpicPopupComponent />
                     <NotificationPopupsView />
                     <SystemDialogsView />
                     {/* Context 3: every `ModalDialog` is moved in here, over the windows and their popups. */}

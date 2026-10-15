@@ -12,8 +12,8 @@
  * definition each subclass is.
  */
 import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
-import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 
@@ -39,7 +39,6 @@ export const createSelectorFilterAddon = (code: number): WiredElementDefinition<
     },
     readIntParams: form => [ form.filter.value, form.filter.option, form.filter.picker.target ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.filter.picker) ],
-    isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && isValueOrVariableSourcePickingDisabled(form.filter),
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',
     mergedSelections: [ [ 0, 0 ] ],
     getMergedType: form => form.filter.picker.target,

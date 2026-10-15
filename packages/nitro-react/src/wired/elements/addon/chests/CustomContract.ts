@@ -11,7 +11,7 @@
  * on no variable; one that is off, or given as a variable, on the value 1.
  */
 import { finalizePickerSelection, setPickerTarget } from '../../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, type WiredElementContext, type WiredElementDefinition } from '../../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables, type WiredTriggerable } from '../../../WiredTriggerable';
 import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../../action/ActionVariableReference';
@@ -76,7 +76,7 @@ export const customContractAddon: WiredElementDefinition<CustomContractAddonForm
 
         const part = partOf(form, id);
 
-        if (sourceType === WIRED_SOURCE_MERGED) return !part.enabled || isValueOrVariableSourcePickingDisabled(part.amount);
+        if (sourceType === WIRED_SOURCE_MERGED) return !part.enabled;
         if (sourceType === WIRED_SOURCE_FURNI) return !part.enabled || (part.type !== CUSTOM_CONTRACT_TYPE_FURNI);
 
         return false;

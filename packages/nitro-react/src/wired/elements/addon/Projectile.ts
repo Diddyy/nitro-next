@@ -14,12 +14,12 @@
  * straight trajectory. Variable ids: `[ time variable, distance variable ]`.
  *
  * The furni source is the projectile, the user source the shooter; the shooter only matters
- * while the new direction turns them, and each merged source only while its section uses a
- * variable (`isInputSourceDisabled`).
+ * while the new direction turns them, and each merged source only while its section is on
+ * (`isInputSourceDisabled`).
  */
 import type { WiredSubVariableParam } from '../../common/SubVariableParam';
 import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { createValueOrVariableState, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES } from '../action/ActionVariableReference';
@@ -132,9 +132,9 @@ export const projectileAddon: WiredElementDefinition<ProjectileAddonForm> = {
     mergedSelectionTitle: id => ((id === 0) ? 'wiredfurni.params.sources.merged.title.variable_time_per_tile' : 'wiredfurni.params.sources.merged.title.variable_animation_distance'),
     isInputSourceDisabled: (form, id, sourceType) => {
         if (sourceType === WIRED_SOURCE_MERGED) {
-            if (id === 0) return !form.customAnimationTime || isValueOrVariableSourcePickingDisabled(form.animationTime);
+            if (id === 0) return !form.customAnimationTime;
 
-            return (form.distanceMode === 0) || isValueOrVariableSourcePickingDisabled(form.distance);
+            return (form.distanceMode === 0);
         }
 
         if (sourceType === WIRED_SOURCE_USER) return !form.changeShooterDirection || !form.newDirection;

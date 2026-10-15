@@ -16,7 +16,7 @@ import { IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-pack
 import { type WiredDropdownOption } from '../../common/expandableDropdown';
 import { intAsLong } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableOnSameHolder, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { createValueOrVariableState, isValueOrVariableOnSameHolder, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
@@ -79,7 +79,7 @@ export const changeVariableAction: WiredElementDefinition<ChangeVariableActionFo
     ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker), finalizePickerSelection(ctx.roomVariables, form.reference.picker) ],
     isInputSourceDisabled: (form, id, sourceType) =>
-        (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && (isValueOrVariableSourcePickingDisabled(form.reference) || !changeVariableRequiresOperand(form) || isValueOrVariableOnSameHolder(form.reference, form.picker.target)),
+        (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && (!changeVariableRequiresOperand(form) || isValueOrVariableOnSameHolder(form.reference, form.picker.target)),
     mergedSelections: [ [ 0, 0 ], [ 1, 1 ] ],
     mergedSelectionTitle: id => ((id === 0) ? 'wiredfurni.params.sources.merged.title.variables_destination' : 'wiredfurni.params.sources.merged.title.variables_reference'),
     getMergedType: (form, id) => ((id === 0) ? form.picker.target : form.reference.picker.target),

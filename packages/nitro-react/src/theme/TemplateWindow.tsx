@@ -56,7 +56,9 @@ export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, heig
     const localizations = useSystemStore(x => x.localizations);
     const parametersKey = parameters ? JSON.stringify(parameters) : '';
     const registered = useMemo(() => (parametersKey ? JSON.parse(parametersKey) as Record<string, Record<string, string>> : undefined), [ parametersKey ]);
-    const resolveText = useCallback((key: string) => (localizations[key] !== undefined ? t(key, '', registered?.[key]) : undefined), [ t, localizations, registered ]);
+    // A key the texts lack shows as the key itself, as Flash does: `registerListener` makes it a text
+    // whose value is its own key (CoreLocalizationManager.as:296-301), so a layout's `${ok}` reads "ok".
+    const resolveText = useCallback((key: string) => (localizations[key] !== undefined ? t(key, '', registered?.[key]) : key), [ t, localizations, registered ]);
     // A bitmap the template names is a bundled asset already: `ThemeImage` reads the name as it is.
     // A `${key}` in it is a hotel variable (`${image.library.questing.url}ach_category_pets.png`).
     const config = useSystemStore(x => x.config);

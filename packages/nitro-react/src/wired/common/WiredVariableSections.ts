@@ -131,9 +131,6 @@ export const valueOrVariableValidationError = (state: WiredValueOrVariableState,
     return ambiguous ? VALUE_OR_VARIABLE_ERROR_AMBIGUOUS : VALUE_OR_VARIABLE_ERROR_INVALID;
 };
 
-/** `ValueOrVariableSection.isSourcePickingDisabled` - the merged input source only matters for a variable. */
-export const isValueOrVariableSourcePickingDisabled = (state: WiredValueOrVariableState): boolean => (state.option === VALUE_OR_VARIABLE_OPTION_VALUE);
-
 /**
  * `VariableNameSection.variableName` / `PlaceholderNameSection.placeholderName` - spaces become
  * underscores and everything is lower case; the field is rewritten to this on every change.

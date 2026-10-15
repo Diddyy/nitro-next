@@ -79,7 +79,7 @@ export const giveVariableAction: WiredElementDefinition<GiveVariableActionForm> 
     getCustomSourcesForMergedType: id => ((id === 0) ? [ Number(VariableExtraSourceTypes.CONTEXT_SOURCE) ] : [ Number(VariableExtraSourceTypes.GLOBAL_SOURCE), Number(VariableExtraSourceTypes.CONTEXT_SOURCE) ]),
     hasCustomTypePicker: () => true,
     isInputSourceDisabled: (form, id, sourceType) =>
-        (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && (form.valueDisabled || (form.initialValue.option === VALUE_OR_VARIABLE_OPTION_VALUE) || isValueOrVariableOnSameHolder(form.initialValue, form.picker.target)),
+        (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && (form.valueDisabled || isValueOrVariableOnSameHolder(form.initialValue, form.picker.target)),
     advancedAlwaysVisible: true,
     forceHidePickFurniInstructions: true,
 };

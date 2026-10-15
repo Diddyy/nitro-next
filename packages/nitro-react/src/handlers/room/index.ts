@@ -6,6 +6,7 @@ export * from './registerRoomBuildersClubHandlers';
 export * from './registerRoomChatHandlers';
 export * from './registerRoomConfigurationItemsHandlers';
 export * from './registerRoomCraftingHandlers';
+export * from './registerRoomCustomUserNotificationHandlers';
 export * from './registerRoomDataHandlers';
 export * from './registerRoomDimmerHandlers';
 export * from './registerRoomDirectoryHandlers';

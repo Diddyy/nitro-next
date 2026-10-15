@@ -16,8 +16,8 @@
  * would then save no name; here the box keeps the one it had until another is picked.
  */
 import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
-import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
+import { createValueOrVariableState, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
 import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES } from './ActionVariableReference';
@@ -55,6 +55,5 @@ export const progressAchievementAction: WiredElementDefinition<ProgressAchieveme
     getMergedType: form => form.score.picker.target,
     setMergedType: (form, _id, sourceType) => ({ ...form, score: { ...form.score, picker: setPickerTarget(form.score.picker, sourceType) } }),
     getCustomSourcesForMergedType: () => VARIABLE_REFERENCE_CUSTOM_SOURCES,
-    isInputSourceDisabled: (form, _id, sourceType) => ((sourceType === WIRED_SOURCE_MERGED) && isValueOrVariableSourcePickingDisabled(form.score)),
     hasCustomTypePicker: () => true,
 };

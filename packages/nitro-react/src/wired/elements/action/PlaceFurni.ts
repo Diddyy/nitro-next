@@ -18,7 +18,7 @@
 import { IWiredVariable, VariableType, WiredVariableTarget } from '@nitrodevco/nitro-packets';
 
 import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, setPickerTarget, type WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VARIABLE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VARIABLE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
@@ -143,7 +143,7 @@ export const placeFurniAction: WiredElementDefinition<PlaceFurniActionForm> = {
         if (sourceType !== WIRED_SOURCE_MERGED) return false;
         if (id === PLACE_FURNI_MERGED_CUSTOM_TARGET) return !placeFurniRequiresCustomReference(form);
 
-        return isValueOrVariableSourcePickingDisabled(form.spawnValue) || !form.spawnWithVariable || isPlaceFurniSpawnValueDisabled(form);
+        return !form.spawnWithVariable || isPlaceFurniSpawnValueDisabled(form);
     },
     hasCustomTypePicker: id => (id === PLACE_FURNI_MERGED_VALUE),
     getCustomSourcesForMergedType: id => ((id === PLACE_FURNI_MERGED_VALUE) ? VARIABLE_REFERENCE_CUSTOM_SOURCES : []),
