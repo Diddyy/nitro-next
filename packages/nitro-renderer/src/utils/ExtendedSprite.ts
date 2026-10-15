@@ -11,6 +11,13 @@ interface HitMap {
     version: number;
 }
 
+/** A whole source's alpha, row by row at its resolution. */
+export interface SourceAlpha {
+    alpha: Uint8Array;
+    width: number;
+    height: number;
+}
+
 /** A decoded image a 2D canvas can read the frame from without going through the GPU. */
 const isCpuReadable = (resource: unknown): resource is CanvasImageSource => {
     if ((typeof ImageBitmap !== 'undefined') && (resource instanceof ImageBitmap)) return resource.width > 0;
@@ -31,6 +38,8 @@ export class ExtendedSprite extends Sprite {
     private static readonly _sourceVersions = new WeakMap<TextureSource, number>();
     /** A source's alpha read back from the GPU whole (`readSourceAlpha`), and the version it was read at. */
     private static readonly _sourceAlpha = new WeakMap<TextureSource, { alpha: Uint8Array; width: number; height: number; version: number }>();
+    /** Builds a render texture's alpha without the GPU (`setAlphaProvider`): asked instead of reading it back. */
+    private static readonly _alphaProviders = new WeakMap<TextureSource, () => SourceAlpha | undefined>();
 
     private _offsetX: number = 0;
     private _offsetY: number = 0;
@@ -49,6 +58,23 @@ export class ExtendedSprite extends Sprite {
         if (!source) return;
 
         this._sourceVersions.set(source, (this._sourceVersions.get(source) ?? 0) + 1);
+    }
+
+    /**
+     * How to build the source's alpha on the CPU - an avatar frame from its parts - asked, once per
+     * source version, instead of reading the source back from the GPU. A redraw that keeps the
+     * source gives a new provider and bumps the version (`removeHitmap`).
+     */
+    public static setAlphaProvider(source: TextureSource, provider: (() => SourceAlpha | undefined) | undefined): void {
+        if (!source) return;
+
+        if (provider) this._alphaProviders.set(source, provider);
+        else this._alphaProviders.delete(source);
+    }
+
+    /** The texture's frame alpha, as the hit test reads it: cached per texture and source version. */
+    public static getFrameAlpha(texture: Texture): SourceAlpha | undefined {
+        return this.getHitMap(texture);
     }
 
     public needsUpdate(geometryUpdateId: number, objectUpdateId: number): boolean {
@@ -213,6 +239,16 @@ export class ExtendedSprite extends Sprite {
         const cached = ExtendedSprite._sourceAlpha.get(source);
 
         if (cached && (cached.version === version)) return cached;
+
+        const provided = ExtendedSprite._alphaProviders.get(source)?.();
+
+        if (provided) {
+            const read = { ...provided, version };
+
+            ExtendedSprite._sourceAlpha.set(source, read);
+
+            return read;
+        }
 
         const whole = new Texture({ source });
         const result = TextureUtils.getPixels(whole);

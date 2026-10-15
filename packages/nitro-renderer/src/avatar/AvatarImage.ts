@@ -1,11 +1,12 @@
 import { AvatarActionStateType, AvatarBodyPartType, AvatarDirectionAngle, AvatarFigurePartType, AvatarGeometryType, AvatarScaleType, AvatarSetType, IActiveActionData, IAnimationLayerData, IAvatarDataContainer, IAvatarEffectListener, IAvatarFigureContainer, IAvatarImage, IGraphicAsset, IPartColor, ISpriteDataContainer } from '@nitrodevco/nitro-api';
 import { Container, Filter, ImageLike, Point, PointData, Rectangle, RenderTexture, Sprite, Texture } from 'pixi.js';
 
-import { GetTickerTime, TexturePool, TextureUtils } from '#renderer/utils';
+import { ExtendedSprite, GetTickerTime, TexturePool, TextureUtils } from '#renderer/utils';
 
 import { ActiveActionData } from './actions';
 import { AssetAliasCollection } from './alias';
 import { AvatarFigureContainer } from './AvatarFigureContainer';
+import { AvatarHitAlpha } from './AvatarHitAlpha';
 import { AvatarStructure } from './AvatarStructure';
 import { AvatarImageCache } from './cache';
 import { EffectAssetDownloadManager } from './EffectAssetDownloadManager';
@@ -50,6 +51,11 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
     protected _disposed: boolean = false;
     protected _sortedActions: IActiveActionData[] = [];
     private _fullImageCache: Map<string, AvatarImageCachedFullImage> = new Map();
+    /** The cached frames by what they are made of (`getImageInternal`): one texture for the same picture under several keys. */
+    private _fullImageBySignature: Map<string, AvatarImageCachedFullImage> = new Map();
+    private static readonly _objectIds = new WeakMap<object, number>();
+    private static readonly _partSignatures = new WeakMap<Container, string>();
+    private static _nextObjectId = 1;
     private _frameCounter: number = 0;
     private _directionOffset: number = 0;
     private _changes: boolean = true;
@@ -76,6 +82,8 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
      * group Pixi gives the root) was ~14KB of garbage each time. Only ever used synchronously.
      */
     private _setContainer: Container | undefined = undefined;
+    /** The parts of the frame last drawn into `_image`, for its hit test (`AvatarHitAlpha`). */
+    private readonly _hitAlpha = new AvatarHitAlpha();
     private _setPartContainers: Container[] = [];
     private _setPartCount: number = 0;
     private _setImageFilter: Filter | undefined = undefined;
@@ -233,8 +241,9 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
             if (cached) {
                 this._changes = false;
 
-                this.disposeCroppedTopImage();
-
+                // The view is kept while it frames the same pixels (`getCroppedTopImage`): an idle
+                // avatar comes back to the frame it shows on every animation tick, and a new view of
+                // it would be a texture change - a redraw of the room - twelve times a second.
                 this._topCropY = Math.max(0, cached.topCropY);
                 this._image = cached.texture;
                 this._isCachedImage = true;
@@ -247,15 +256,13 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
 
         if (!avatarCanvas) return undefined;
 
-        this.disposeCroppedTopImage();
-
-        this._topCropY = -1;
-
         const parts = this.getBodyParts(setType, this._mainAction.definition.geometryType, this._mainDirection);
         const container = this.beginSetContainer();
 
         let isCachable = true;
         let topY = avatarCanvas.height;
+        // What the frame is made of: the canvas, the effect's filter and every part image where it goes.
+        let signature = `${avatarCanvas.width}x${avatarCanvas.height}:${AvatarImage.objectId(this._avatarSpriteData?.imageFilter)}`;
 
         for (let i = parts.length - 1; i >= 0; i--) {
             const part = this._cache.getImageContainer(parts[i], this._frameCounter);
@@ -275,12 +282,38 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
 
             this.addSetPart(container, part.image, point.x, point.y);
 
+            signature += `|${AvatarImage.partSignature(part.image)}@${point.x},${point.y}`;
             topY = Math.min(topY, point.y);
         }
 
-        this._topCropY = (topY === avatarCanvas.height) ? 0 : Math.max(0, Math.min((avatarCanvas.height - 1), topY));
-
         this.endSetContainer(container);
+
+        /*
+         * The idle cycle's eight cache keys, and an animation's held frames, are mostly the same
+         * picture: frames built from the same part images in the same places share one cached
+         * texture rather than each drawing its own copy. The sprite then keeps its texture, and
+         * an idle avatar stops redrawing the room every animation tick.
+         */
+        if (cacheKey && isCachable && (scale === 1)) {
+            const same = this._fullImageBySignature.get(signature);
+
+            if (same && !same.texture.destroyed) {
+                this._fullImageCache.set(cacheKey, same);
+
+                if (this._image && !this._isCachedImage) TexturePool.releaseTexture(this._image);
+
+                this._image = same.texture;
+                this._isCachedImage = true;
+                this._topCropY = same.topCropY;
+                this._changes = false;
+
+                return croppedTop ? this.getCroppedTopImage() : this._image;
+            }
+        }
+
+        this.disposeCroppedTopImage();
+
+        this._topCropY = (topY === avatarCanvas.height) ? 0 : Math.max(0, Math.min((avatarCanvas.height - 1), topY));
 
         // A frame that goes into the full image cache is drawn once, straight into its cache
         // texture, and shown from there - what the next request for it gets anyway.
@@ -308,19 +341,34 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
 
         this._changes = false;
 
+        // What was drawn, for a hit test to rebuild its alpha from without reading the GPU back.
+        this._hitAlpha.capture(container);
+
         if (cachedImage && cacheKey) {
+            AvatarImage.provideHitAlpha(cachedImage, this._hitAlpha.clone(), 1);
             this.cacheFullImage(cacheKey, cachedImage, this._topCropY);
-        } else if (cacheKey && isCachable) {
-            const imageClone = TexturePool.createRenderTexture(avatarCanvas.width, avatarCanvas.height);
 
-            if (imageClone) {
-                TextureUtils.getRenderer().render({
-                    target: imageClone,
-                    container,
-                    clear: true,
-                });
+            const entry = this.getFullImage(cacheKey);
 
-                this.cacheFullImage(cacheKey, imageClone, this._topCropY);
+            if (entry) this._fullImageBySignature.set(signature, entry);
+        } else {
+            // Drawn again in place for an action the cache leaves out (a dance, talking, a turned head): the last frame's alpha is stale.
+            ExtendedSprite.removeHitmap(this._image.source);
+            AvatarImage.provideHitAlpha(this._image, this._hitAlpha, 1);
+
+            if (cacheKey && isCachable) {
+                const imageClone = TexturePool.createRenderTexture(avatarCanvas.width, avatarCanvas.height);
+
+                if (imageClone) {
+                    TextureUtils.getRenderer().render({
+                        target: imageClone,
+                        container,
+                        clear: true,
+                    });
+
+                    AvatarImage.provideHitAlpha(imageClone, this._hitAlpha.clone(), 1);
+                    this.cacheFullImage(cacheKey, imageClone, this._topCropY);
+                }
             }
         }
 
@@ -332,6 +380,8 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
 
                 this._image = reduced;
                 this._topCropY = Math.max(0, Math.min((reduced.height - 1), Math.round(this._topCropY * scale)));
+
+                AvatarImage.provideHitAlpha(reduced, this._hitAlpha, scale);
             }
         }
 
@@ -811,6 +861,13 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
         return this._disposed;
     }
 
+    /** Lets the hit test build `image`'s alpha from `hitAlpha`, drawn `scale` times the canvas size. */
+    private static provideHitAlpha(image: Texture, hitAlpha: AvatarHitAlpha, scale: number): void {
+        const source = image.source;
+
+        ExtendedSprite.setAlphaProvider(source, () => hitAlpha.compose(source.pixelWidth, source.pixelHeight, scale * source.resolution));
+    }
+
     protected getFullImage(key: string): AvatarImageCachedFullImage | undefined {
         return this._fullImageCache.get(key);
     }
@@ -821,16 +878,73 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
         if (existing) {
             this._fullImageCache.delete(key);
 
-            TexturePool.releaseTexture(existing.texture);
+            // Released only once no other key shows the same frame.
+            if (![ ...this._fullImageCache.values() ].includes(existing)) {
+                for (const [ signature, image ] of this._fullImageBySignature) if (image === existing) this._fullImageBySignature.delete(signature);
+
+                TexturePool.releaseTexture(existing.texture);
+            }
         }
 
         this._fullImageCache.set(key, { texture, topCropY });
     }
 
     protected disposeFullImageCache(): void {
-        for (const image of this._fullImageCache.values()) TexturePool.releaseTexture(image.texture);
+        // A texture several keys share (`_fullImageBySignature`) goes back to the pool once.
+        for (const image of new Set(this._fullImageCache.values())) TexturePool.releaseTexture(image.texture);
 
         this._fullImageCache.clear();
+        this._fullImageBySignature.clear();
+    }
+
+    /**
+     * What a part image draws - each sprite's texture, placement, tint and alpha - read once per
+     * part image, which is not changed once built. Part images are built per frame number even
+     * where every frame draws the same assets (the idle cycle's body), so they are compared by this.
+     */
+    private static partSignature(image: Container): string {
+        let signature = AvatarImage._partSignatures.get(image);
+
+        if (signature !== undefined) return signature;
+
+        signature = '';
+
+        const walk = (node: Container) => {
+            if (!node.visible) return;
+
+            node.updateLocalTransform();
+
+            if ((node instanceof Sprite) && (node.texture !== Texture.EMPTY)) {
+                const { a, b, c, d, tx, ty } = node.localTransform;
+
+                signature += `${AvatarImage.objectId(node.texture)}:${a},${b},${c},${d},${tx},${ty},${node.tint},${node.alpha},${node.blendMode};`;
+            }
+
+            for (const child of node.children) walk(child);
+        };
+
+        image.updateLocalTransform();
+        signature += `${image.scale.x},${image.scale.y},${image.x},${image.y}/`;
+
+        for (const child of image.children) walk(child);
+
+        AvatarImage._partSignatures.set(image, signature);
+
+        return signature;
+    }
+
+    /** A number for an object, the same every time it is asked: what a frame's signature names its parts by. */
+    private static objectId(object: object | undefined): number {
+        if (!object) return 0;
+
+        let id = AvatarImage._objectIds.get(object);
+
+        if (id === undefined) {
+            id = AvatarImage._nextObjectId++;
+            AvatarImage._objectIds.set(object, id);
+        }
+
+        return id;
     }
 
     private resetActions(): boolean {

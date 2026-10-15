@@ -144,7 +144,7 @@ const createPool = () => {
     const { TexturePool } = load('utils/TexturePool', {
         '@nitrodevco/nitro-api': { NitroLogger: { log() {} } },
         'pixi.js': { RenderTexture, TextureSource: { defaultOptions: { antialias: true, scaleMode: 'nearest' } } },
-        './ExtendedSprite': { ExtendedSprite: { removeHitmap() {} } },
+        './ExtendedSprite': { ExtendedSprite: { removeHitmap() {}, setAlphaProvider() {} } },
         './GetTicker': { GetTicker: () => ({ add() {}, remove() {} }) },
         './TextureUtils': { TextureUtils: { destroyTexture(texture) {
             texture.destroyed = true;

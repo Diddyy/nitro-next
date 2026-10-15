@@ -89,6 +89,8 @@ export class TexturePool {
         (texture.source as unknown as { _touched: number })._touched = this._runCount;
 
         ExtendedSprite.removeHitmap(texture.source);
+        // Whoever draws into it next does not draw what the last holder's alpha describes.
+        ExtendedSprite.setAlphaProvider(texture.source, undefined);
 
         this._texturePool[width][height].push(texture);
 

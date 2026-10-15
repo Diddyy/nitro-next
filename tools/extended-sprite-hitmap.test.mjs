@@ -184,3 +184,35 @@ await test('a closed bitmap falls back to the GPU readback', () => {
     assert.equal(sprite.containsXY(1, 1), true);
     assert.equal(gpuReads.length, 1);
 });
+
+await test('a render texture with an alpha provider is read from it, not the GPU, and again once drawn again', () => {
+    const { ExtendedSprite, gpuReads } = load();
+    const source = sheetSource();
+    const sprite = spriteOf(ExtendedSprite, frameTexture(source, 0));
+    const alphaOf = (opaqueX, opaqueY) => {
+        const alpha = new Uint8Array(SHEET_WIDTH * SHEET_HEIGHT);
+
+        alpha[(opaqueY * SHEET_WIDTH) + opaqueX] = 255;
+
+        return { alpha, width: SHEET_WIDTH, height: SHEET_HEIGHT };
+    };
+
+    ExtendedSprite.setAlphaProvider(source, () => alphaOf(0, 0));
+
+    assert.equal(sprite.containsXY(0, 0), true);
+    assert.equal(sprite.containsXY(1, 1), false);
+
+    // An avatar drawn again in place: a new frame, a new provider.
+    ExtendedSprite.removeHitmap(source);
+    ExtendedSprite.setAlphaProvider(source, () => alphaOf(1, 1));
+
+    assert.equal(sprite.containsXY(0, 0), false);
+    assert.equal(sprite.containsXY(1, 1), true);
+
+    // Released to the pool: back to reading the GPU.
+    ExtendedSprite.removeHitmap(source);
+    ExtendedSprite.setAlphaProvider(source, undefined);
+    sprite.containsXY(1, 1);
+
+    assert.equal(gpuReads.length, 1);
+});

@@ -11,7 +11,7 @@ import {
     RoomObjectSpriteTypeEnum, RoomObjectVariableEnum, RoomSpriteMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
 import { Container, Graphics, Matrix, Point, Rectangle, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 
-import { ExtendedSprite, TextureUtils } from '../utils';
+import { ExtendedSprite, GetTicker, TextureUtils } from '../utils';
 import { RoomObjectCache, RoomObjectCacheItem } from './object';
 import {
     ObjectMouseData,
@@ -100,6 +100,10 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
     private _averageRenderTime: number = 0;
     private _haltedTime: number = 0;
     private _renderTime: number = 0;
+
+    /** The JS port's 24 ms and 18 ms against its 60 fps frame: into and out of frame skipping. */
+    private static readonly RUNNING_SLOW_ENTER_RATIO = 24 / (1000 / 60);
+    private static readonly RUNNING_SLOW_LEAVE_RATIO = 18 / (1000 / 60);
 
     private static readonly _zComparator = (a: SortableSprite, b: SortableSprite): number => b.z - a.z;
 
@@ -441,8 +445,13 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
      * Flash `calculateUpdateInterval`, the fps counter's half: after the first 50 frames, every 50
      * frames the average interval between them and the average time their renders took become the
      * counter's text (`fps`, `frame time`, the ping first when one is known), with the last frame
-     * of over 180 ms since the previous text as `halted`. Flash's switch into and out of its
-     * frame skipping mode (`_runningSlow`, over 60 ms and under 50 ms) is not made here.
+     * of over 180 ms since the previous text as `halted`.
+     *
+     * The same average switches the frame skipping mode (`_runningSlow`), in which a furni's
+     * sprites are rebuilt only every other frame while its animation runs on. Flash enters it over
+     * a 60 ms average and leaves it under 50 ms; Habbo's JS port, drawing at up to 60 fps, over
+     * 24 ms and under 18 ms. Here those are taken as shares of the ticker's own frame, as
+     * `fps.limit` sets it, so a lower cap is not slow in itself.
      */
     private calculateUpdateInterval(time: number): void {
         if (this._renderTimestamp <= 0) return;
@@ -469,6 +478,12 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         this._sampledFrames = 0;
         this._sampledIntervalTotal = 0;
         this._sampledRenderTimeTotal = 0;
+
+        const maxFPS = GetTicker().maxFPS;
+        const frameInterval = 1000 / ((maxFPS > 0) ? maxFPS : 60);
+
+        if (!this._runningSlow && (this._averageInterval > (frameInterval * RoomSpriteCanvas.RUNNING_SLOW_ENTER_RATIO))) this._runningSlow = true;
+        else if (this._runningSlow && (this._averageInterval < (frameInterval * RoomSpriteCanvas.RUNNING_SLOW_LEAVE_RATIO))) this._runningSlow = false;
 
         if (this._fpsCounterEnabled && this._fpsText) {
             const fps = (1000 / this._averageInterval).toFixed(1);
