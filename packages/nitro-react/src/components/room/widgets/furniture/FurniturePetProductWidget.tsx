@@ -2,11 +2,14 @@ import { FurnitureSpecialType, IRoomUserData, RoomObjectCategoryEnum, RoomObject
 import { CustomizePetWithFurniComposer } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
+import type { InventoryPetProductRequest } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomStore, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
+import { useSystemStore } from '#base/context/system';
 import { useOwnUserId } from '#base/context/user';
 import { usePetImageTexture, useRoomEventDispatcher, useRoomFurnitureData, useRoomObjectSelect } from '#base/hooks';
 import { LayoutImage, ThemeImage } from '#base/theme';
+import { getFurnitureData } from '#base/utils';
 import { FurnitureUseProductView } from '#base/views/room-widgets/furniture/FurnitureUseProductView';
 import { petProductPreview } from '#base/views/room-widgets/furniture/petProductPreview';
 import { UseProductMenuRow, UseProductMenuView } from '#base/views/room-widgets/furniture/UseProductMenuView';
@@ -56,10 +59,16 @@ const petTypeId = (user: IRoomUserData): number => parseInt((user.figure ?? '').
  * frame and controller the product's own: the pet as the product would leave it over
  * `use_product_preview_bg` (`petProductPreview`), the pet's and product's names in the texts, and
  * a click on the picture selecting the pet in the room. Confirming sends the product to the pet.
+ *
+ * The inventory's `use_btn` asks for the same menu for an item it holds
+ * (`handleUseProductMenuRequestInventoryItem`, `showInventoryUseProductSelection`): the product is
+ * then the type's floor furniture data, its owner the user, and what is sent is the item's `ref`.
  */
 export const FurniturePetProductWidget = () => {
-    const request = useRoomWidget(RoomObjectWidgetRequestEvent.PET_PRODUCT_MENU);
+    const request = useRoomWidget<Partial<InventoryPetProductRequest>>(RoomObjectWidgetRequestEvent.PET_PRODUCT_MENU);
     const furnitureData = useRoomFurnitureData(request?.objectId ?? -1, request?.category ?? 0);
+    const floorItems = useSystemStore(x => x.floorItems);
+    const wallItems = useSystemStore(x => x.wallItems);
     const users = useRoomStore(x => x.usersByRoomObjectId);
     const ownUserId = useOwnUserId();
     const { closeRoomWidget } = useRoomWidgetActions();
@@ -67,7 +76,13 @@ export const FurniturePetProductWidget = () => {
     const { send } = useWebSocketContext();
     const [ chosen, setChosen ] = useState<{ objectId: number; petObjectId: number } | undefined>(undefined);
 
-    const objectId = request?.objectId ?? -1;
+    // `RoomEngineUseProductEvent.inventoryStripId`: the product stays in the inventory.
+    const inventoryRequest = (request?.data?.inventoryStripId !== undefined) ? request.data : undefined;
+    const product = inventoryRequest
+        ? getFurnitureData({ floorItems, wallItems }, inventoryRequest.furnitureTypeId ?? -1, false)
+        : furnitureData?.furnitureData;
+    // The confirmation's `§_-p1D§`: the room object, or the inventory item.
+    const objectId = inventoryRequest ? (inventoryRequest.inventoryStripId ?? -1) : (request?.objectId ?? -1);
     const onClose = () => closeRoomWidget(RoomObjectWidgetRequestEvent.PET_PRODUCT_MENU);
     const chosenPet = (chosen && (chosen.objectId === objectId)) ? users[chosen.petObjectId] : undefined;
 
@@ -76,14 +91,13 @@ export const FurniturePetProductWidget = () => {
         if (request && !chosenPet) onClose();
     });
 
-    const preview = usePetImageTexture((chosenPet && furnitureData?.furnitureData) ? petProductPreview(furnitureData.furnitureData.specialType, furnitureData.furnitureData.customParams ?? '', chosenPet) : undefined);
+    const preview = usePetImageTexture((chosenPet && product) ? petProductPreview(product.specialType, product.customParams ?? '', chosenPet) : undefined);
 
-    if (!request || !furnitureData?.furnitureData) return null;
+    if (!request || !product) return null;
 
-    // Flash refuses outright unless the product is yours.
-    if (furnitureData.ownerId !== ownUserId) return null;
+    // Flash refuses a room product unless it is yours; an inventory item always is.
+    if (!inventoryRequest && (furnitureData?.ownerId !== ownUserId)) return null;
 
-    const product = furnitureData.furnitureData;
     const mode = PRODUCT_MODES[product.specialType];
 
     if (!mode) return null;
@@ -141,7 +155,7 @@ export const FurniturePetProductWidget = () => {
                     preview_image_region: { onPointerTap: () => selectObject(chosenPet.objectId, RoomObjectCategoryEnum.Unit) },
                 }}
                 onConfirm={() => {
-                    send(new CustomizePetWithFurniComposer({ objectId: request.objectId, petId: chosenPet.webID }));
+                    send(new CustomizePetWithFurniComposer({ objectId, petId: chosenPet.webID }));
                     onClose();
                 }}
                 onCancel={onClose}

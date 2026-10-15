@@ -48,7 +48,6 @@ answer yet.
 | Room camera | Photo competitions (`PhotoCompetitionComposer`, `CompetitionStatusMessage`); taking, buying and publishing photos and room thumbnails are ported (`views/room-widgets/camera`, `RoomThumbnailCameraWidget`). | `Camera` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
-| Inventory | Merged rentable furni (the `rentables` tab) and a rented item's rent state and expiry, the `use_btn` and paging through an external image wall item (`showUseProductSelection`), the achievement score under the badges. | `useInventoryFurniPage`, `useInventoryBadgesPage`, `InventoryView` |
 | Messenger | Resizing the window, and the Habbicon picker following the window while it is dragged. Turbo only sends the friend bar's room event notifications, as it has no achievements, quests or games to send the others for. | `MessengerView` |
 | Group forums | Scrolling to the message a link names. | `GroupForumView` |
 | Wired | The limited-edition plaque and rarity flag on chest item icons. | `WiredChestFurniContentsView` |
@@ -120,3 +119,7 @@ About 40 unused packets are protocol the port does not need:
 - **The notification feed** (`notifications/feed`). `HabboNotifications` declares its
   `NotificationController` and reads it, but never creates one, so the feed items `IncomingMessages`
   adds behind `notification.feed.enabled` have nowhere to go (and the hotel sets the key false).
+- **The inventory's rentables tab and achievement score.** `HabboInventory.mergeRentFurni` always
+  returns true, so rented furni share the furni page and the `rentables` tab is never added.
+  `achievements_score_container` is hidden in `inventory_xml`, and `onAchievementsScore` only sets
+  its text's parameter, so the badges page never shows the score.

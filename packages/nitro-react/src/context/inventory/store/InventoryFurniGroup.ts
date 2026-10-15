@@ -5,8 +5,10 @@
  *
  * A group keeps the type, category, stuff data and extra it was created with
  * (`FurniModel.createGroupItem`); its items are in the order they were pushed, as Flash's `Map`
- * keeps them. `GroupItem.selectedItemIndex` is not kept: it only picks the item the preview and
- * the room placement use, and a group's items all share the type `getItemsForTrade` filters on.
+ * keeps them. `GroupItem.selectedItemIndex` is the furni slice's `furniSelectedItemIndex`, as only
+ * the selected group's is ever read: it picks the item the preview, the placement and the external
+ * image view use (`getInventoryFurniSelectedItem`). A group's items all share the type
+ * `getItemsForTrade` filters on, so the trade ignores it.
  */
 import { IObjectData, MapDataType } from '@nitrodevco/nitro-api';
 import { IFurniListAddOrUpdateFurni, ITradeRequirement, TradeRequirementNodeType, TradeRequirementType } from '@nitrodevco/nitro-packets';
@@ -120,6 +122,37 @@ export const getStuffDataChestName = (stuffData: IObjectData): string => ((stuff
 
 /** `GroupItem.peek`: the last item pushed. */
 export const peekInventoryFurni = (group: InventoryFurniGroup): InventoryFurniItem | undefined => group.items[group.items.length - 1];
+
+/** `GroupItem.selectedItemIndex`'s getter: an index past the items reads as the last. */
+const clampInventoryFurniItemIndex = (group: InventoryFurniGroup, index: number): number => ((index >= group.items.length) ? Math.max(0, group.items.length - 1) : index);
+
+/**
+ * `FurniView.updateActionView`'s item: `getAt(selectedItemIndex)` once the index is set, `peek`
+ * while it is not (-1) or names no item.
+ */
+export const getInventoryFurniSelectedItem = (group: InventoryFurniGroup, selectedItemIndex: number): InventoryFurniItem | undefined => {
+    const index = clampInventoryFurniItemIndex(group, selectedItemIndex);
+
+    return ((index >= 0) ? group.items[index] : undefined) ?? peekInventoryFurni(group);
+};
+
+/** `FurniView.showNextPreviewItem`: `selectedItemIndex++`, which the setter takes back to 0 past the last item. */
+export const getNextInventoryFurniItemIndex = (group: InventoryFurniGroup, selectedItemIndex: number): number => {
+    const next = clampInventoryFurniItemIndex(group, selectedItemIndex) + 1;
+
+    return (next >= group.items.length) ? 0 : next;
+};
+
+/** `HabboInventory.getWallItemById`: the wall item with this strip id, in any group. */
+export const getInventoryWallItemById = (groups: readonly InventoryFurniGroup[], itemId: number): InventoryFurniItem | undefined => {
+    for (const group of groups) {
+        const item = group.items.find(entry => entry.id === itemId);
+
+        if (item?.isWallItem) return item;
+    }
+
+    return undefined;
+};
 
 /** `GroupItem.isWallItem`. */
 export const isInventoryFurniGroupWallItem = (group: InventoryFurniGroup): boolean => group.items[0]?.isWallItem ?? false;

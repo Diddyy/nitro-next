@@ -8,18 +8,18 @@
  * - A room layout paper (wallpaper 2, floor 3, landscape 4) draws walls *and* floor with its own
  *   pattern over whichever of the three it is, and a landscape adds a `window_double_default` wall
  *   item so there is a window for the landscape to show through.
- * - A wall item draws with walls and floor; a floor item with the floor only, so nothing stands
- *   behind it.
+ * - A wall item draws with walls and floor, with the stuff data of the item the page shows
+ *   (`nextItemButton` pages through an external image's pictures); a floor item with the floor
+ *   only, so nothing stands behind it.
  *
- * Not ported: `nextItemButton` / `viewItemButton`, which page through an external image wall item's
- * pictures, and the limited-edition and rarity overlays the widget draws over the preview.
+ * The limited-edition and rarity overlays over the preview are the furni page's own widgets.
  */
 import { IObjectData, RoomId, Vector3d } from '@nitrodevco/nitro-api';
 import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
 import { useEffect, useState } from 'react';
 
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
-import { INVENTORY_FURNI_CATEGORY_FLOOR, INVENTORY_FURNI_CATEGORY_LANDSCAPE, INVENTORY_FURNI_CATEGORY_WALLPAPER, InventoryFurniGroup, isInventoryFurniGroupWallItem, isRoomLayoutCategory, peekInventoryFurni } from '#base/context/inventory';
+import { INVENTORY_FURNI_CATEGORY_FLOOR, INVENTORY_FURNI_CATEGORY_LANDSCAPE, INVENTORY_FURNI_CATEGORY_WALLPAPER, InventoryFurniGroup, InventoryFurniItem, isInventoryFurniGroupWallItem, isRoomLayoutCategory } from '#base/context/inventory';
 import { getRoomPatterns } from '#base/context/room';
 import { BoxLayout } from '#base/theme';
 
@@ -28,6 +28,8 @@ const PREVIEW_DIRECTION = new Vector3d(90, 0, 0);
 
 interface InventoryFurniPreviewProps {
     group: InventoryFurniGroup;
+    /** `updateActionView`'s item: `getAt(selectedItemIndex)`, else `peek`. */
+    item: InventoryFurniItem | undefined;
     layout?: BoxLayout;
 }
 
@@ -47,9 +49,7 @@ type PreviewRequest = {
     | { kind: 'floor'; typeId: number; stuffData: IObjectData; extra: number }
 );
 
-const getPreviewRequest = (group: InventoryFurniGroup): PreviewRequest | undefined => {
-    const item = peekInventoryFurni(group);
-
+const getPreviewRequest = (group: InventoryFurniGroup, item: InventoryFurniItem | undefined): PreviewRequest | undefined => {
     if (!item) return undefined;
 
     const { wallType, floorType, landscapeType } = getRoomPatterns();
@@ -72,7 +72,7 @@ const getPreviewRequest = (group: InventoryFurniGroup): PreviewRequest | undefin
     return { kind: 'floor', floorType, wallType, landscapeType, typeId: group.typeId, stuffData: group.stuffData, extra: group.extra };
 };
 
-export const InventoryFurniPreview = ({ group, layout }: InventoryFurniPreviewProps) => {
+export const InventoryFurniPreview = ({ group, item, layout }: InventoryFurniPreviewProps) => {
     const [ previewer, setPreviewer ] = useState<RoomPreviewerHandle | null>(null);
 
     // The room's patterns are read when the selection changes, not during render: they live on the
@@ -80,7 +80,7 @@ export const InventoryFurniPreview = ({ group, layout }: InventoryFurniPreviewPr
     // group does (the furni slice copies a group when it edits it).
     useEffect(() => {
         const room = previewer?.room;
-        const request = previewer ? getPreviewRequest(group) : undefined;
+        const request = previewer ? getPreviewRequest(group, item) : undefined;
 
         if (!previewer || !room || !request) return;
 
@@ -108,7 +108,7 @@ export const InventoryFurniPreview = ({ group, layout }: InventoryFurniPreviewPr
                 previewer.addFloorItem(request.typeId, PREVIEW_DIRECTION, request.stuffData, request.extra);
                 break;
         }
-    }, [ previewer, group ]);
+    }, [ previewer, group, item ]);
 
     return (
         <RoomPreviewer

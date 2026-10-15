@@ -101,6 +101,9 @@ cannot find these; add them as they are found.
 - **Spam wall.** Turbo sends `RequestSpamWallPostIt` with the wall's room object id. Flash looks
   that id up in the inventory to take a themed post-it's type, so with Turbo the note always opens
   as a plain `post_it`.
+- **Pet products used from the inventory.** The furni page's `use_btn` sends
+  `CustomizePetWithFurni` with the inventory item's room item id (`ref`). Turbo's handler only
+  interacts with an item standing in the room, so a product still in the inventory does nothing.
 
 ## Checking a client feature without the server
 

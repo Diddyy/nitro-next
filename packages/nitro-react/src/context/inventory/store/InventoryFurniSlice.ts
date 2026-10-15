@@ -49,6 +49,11 @@ type State = {
     furniGroups: InventoryFurniGroup[];
     /** The selected group's `id`, -1 for none (`GroupItem.isSelected`). */
     furniSelectedGroupId: number;
+    /**
+     * The selected group's `GroupItem.selectedItemIndex`: -1 until `nextItemButton` pages through
+     * it, and again whenever a group is selected (`FurniModel`'s selection sets it to -1).
+     */
+    furniSelectedItemIndex: number;
     /** `isListInited`: a complete list has arrived; `FurniListAddOrUpdate` is ignored before that. */
     furniListInitialized: boolean;
     /** `HabboInventory.isInventoryCategoryInit('furni')`: false until the list arrives and after `FurniListInvalidate`. */
@@ -79,6 +84,8 @@ type Actions = {
     invalidateFurni: () => void;
     /** `GroupItem.itemEventProc` on `WME_DOWN`: `removeSelections` and select this one. */
     selectFurniGroup: (groupId: number) => void;
+    /** `FurniView.showNextPreviewItem`: the selected group's `selectedItemIndex`. */
+    setFurniSelectedItemIndex: (index: number) => void;
     /** `FurniModel.updateItemLocks` with the room item ids every lock source holds; none is `removeAllLocks`. */
     updateFurniLocks: (lockedRefs: number[]) => void;
     /**
@@ -95,6 +102,7 @@ type Actions = {
 export const InventoryFurniSliceInitialState: State = {
     furniGroups: [],
     furniSelectedGroupId: -1,
+    furniSelectedItemIndex: -1,
     furniListInitialized: false,
     furniCategoryInitialized: false,
 };
@@ -313,6 +321,13 @@ const resetUnseen = (groups: InventoryFurniGroup[]): InventoryFurniGroup[] => {
     return groups.map(group => (isNew(group) ? { ...group, hasUnseenItems: false } : group));
 };
 
+/** `keepInventorySelection`, and the paged item forgotten when another group takes the selection. */
+const keepFurniSelection = (groups: InventoryFurniGroup[], x: State): Pick<State, 'furniSelectedGroupId' | 'furniSelectedItemIndex'> => {
+    const furniSelectedGroupId = keepInventorySelection(groups, x.furniSelectedGroupId);
+
+    return { furniSelectedGroupId, furniSelectedItemIndex: (furniSelectedGroupId === x.furniSelectedGroupId) ? x.furniSelectedItemIndex : -1 };
+};
+
 export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & InventoryUnseenSlice, [], [], InventoryFurniSlice> = (set, get) => ({
     ...InventoryFurniSliceInitialState,
     insertFurniture: furni => set((x) => {
@@ -329,7 +344,7 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         return {
             furniGroups: draft.groups,
-            furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId),
+            ...keepFurniSelection(draft.groups, x),
             furniListInitialized: true,
             furniCategoryInitialized: true,
         };
@@ -368,7 +383,7 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         if (!removeItem(draft, stripId)) return false;
 
-        set({ furniGroups: draft.groups, furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId) });
+        set({ furniGroups: draft.groups, ...keepFurniSelection(draft.groups, x) });
 
         return true;
     },
@@ -385,7 +400,7 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
 
         for (const stripId of expired) removeItem(draft, stripId);
 
-        set({ furniGroups: draft.groups, furniSelectedGroupId: keepInventorySelection(draft.groups, x.furniSelectedGroupId) });
+        set({ furniGroups: draft.groups, ...keepFurniSelection(draft.groups, x) });
 
         return expired.length;
     },
@@ -405,7 +420,8 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
         return { furniGroups: draft.groups };
     }),
     invalidateFurni: () => set({ furniCategoryInitialized: false }),
-    selectFurniGroup: furniSelectedGroupId => set({ furniSelectedGroupId }),
+    selectFurniGroup: furniSelectedGroupId => set({ furniSelectedGroupId, furniSelectedItemIndex: -1 }),
+    setFurniSelectedItemIndex: furniSelectedItemIndex => set({ furniSelectedItemIndex }),
     updateFurniLocks: lockedRefs => set((x) => {
         const refs = new Set(lockedRefs);
         let changed = false;

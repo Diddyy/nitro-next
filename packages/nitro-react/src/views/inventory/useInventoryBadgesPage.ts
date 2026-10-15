@@ -22,8 +22,9 @@
  *   `filter` box, matching a badge's name and description, which applies with the next update -
  *   Enter, or a filter picked - and clears on Escape or `clear_filter_button`.
  *
- * Not ported: `achievements_score_container`, which needs the achievement score this client does
- * not hold.
+ * `achievements_score_container` stays hidden, as the layout has it: Flash only fills in its text's
+ * `achievements_score_description` parameter (`IncomingMessages.onAchievementsScore`) and nothing
+ * shows the container.
  */
 import { getBadgeRarityLabelKey, getBadgeRarityWhiteBackgroundTagColor } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';

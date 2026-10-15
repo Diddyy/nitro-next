@@ -25,25 +25,34 @@
  *   `requestCurrentActionOnSelection`.
  * - `updateActionView`: the room previewer (`InventoryFurniPreview`), the tradeable and recyclable
  *   counts with their icons and tooltips, the limited and rarity plaques, the name, description and
- *   `furni_extra` (the rarity, or the chest's name; a rented item's time, `updateRentedItem`).
+ *   `furni_extra` (the rarity, or the chest's name; a rented item's time, `updateRentedItem`). The
+ *   preview, the plaques and the rarity or chest name are the item `nextItemButton` paged to
+ *   (`selectedItemIndex`), else the last; an `external_image_wallitem`'s description is its
+ *   picture's message (`getJSONValue('m')`).
+ * - `nextItemButton` and `viewItemButton` show for an external image wall item: the first pages
+ *   through the group's pictures (`showNextPreviewItem`), the second shows the paged one's picture
+ *   (`showUseProductSelection` with its strip id, `showInventoryUseProductSelection`). Flash asks
+ *   for the wall item type of a floor item's type id too; here only a wall item is looked up.
  * - `updateActionButtons`: `preview_element_list`'s buttons, re-added in its order - place in room
  *   (disabled outside a room), extend rent and buy out (a rented item not in a room), go to room (an
- *   item in a room), the amount field (`multi.item.trading.enabled`) and offer button while a trade
- *   runs (enabled for an unlocked tradeable item), and sell (marketplace on, sellable, no safety
- *   lock, no trade, not an external image). `furni_preview_region` places the furni too.
+ *   item in a room), use (a pet product - shampoo, custom part, saddle or revival - in a room:
+ *   `showUseProductSelection`), the amount field (`multi.item.trading.enabled`) and offer button
+ *   while a trade runs (enabled for an unlocked tradeable item), and sell (marketplace on, sellable,
+ *   no safety lock, no trade, not an external image). `furni_preview_region` places the furni too.
  *
- * Not ported: `use_btn`, `nextItemButton` / `viewItemButton` (`showUseProductSelection`, which the
- * room engine does not offer), an external image's own description, and the page numbers' underline.
- * A rented item whose time has run out leaves the list (`onImageUpdateTimerEvent`) in
- * `registerInventoryFurniHandlers`.
+ * Not ported: the page numbers' underline. A rented item whose time has run out leaves the list
+ * (`onImageUpdateTimerEvent`) in `registerInventoryFurniHandlers`.
  */
-import { IFurnitureData, MapDataType } from '@nitrodevco/nitro-api';
+import { FurnitureSpecialType, IFurnitureData, IObjectData, MapDataType } from '@nitrodevco/nitro-api';
+import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
 import { useEffect, useRef, useState } from 'react';
 
-import { cancelInventoryFurniInMover, checkFurniInventoryInitialization, checkMarketplaceInitialization, goToRoom, offerSelectedFurniToTrade, openRentConfirmationWindow, recycleSelectedInventoryFurni, requestSelectedFurniPlacement, requestSelectedFurniSelling } from '#base/commands';
+import {
+    cancelInventoryFurniInMover, checkFurniInventoryInitialization, checkMarketplaceInitialization, goToRoom, offerSelectedFurniToTrade, openRentConfirmationWindow, recycleSelectedInventoryFurni, requestSelectedFurniPlacement, requestSelectedFurniSelling, showInventoryUseProductSelection,
+} from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import {
-    canOfferInventoryFurniToWiredTrade, getInventoryFurniRecyclableCount, getInventoryFurniSecondsToExpiration, getInventoryFurniTradeableCount, getInventoryFurniTypeFilters, getInventoryFurniUnlockedCount, getStuffDataChestName, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_MAIN_FILTERS, INVENTORY_RECYCLER_STATE_ACTIVE, InventoryFurniGroup, isInventoryFurniGroupWallItem, passInventoryFurniFilter, peekInventoryFurni, useInventoryFurniActions, useInventoryStore, useInventoryTradingActive,
+    canOfferInventoryFurniToWiredTrade, getInventoryFurniRecyclableCount, getInventoryFurniSecondsToExpiration, getInventoryFurniSelectedItem, getInventoryFurniTradeableCount, getInventoryFurniTypeFilters, getInventoryFurniUnlockedCount, getNextInventoryFurniItemIndex, getStuffDataChestName, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_MAIN_FILTERS, INVENTORY_RECYCLER_STATE_ACTIVE, InventoryFurniGroup, isInventoryFurniGroupWallItem, passInventoryFurniFilter, peekInventoryFurni, useInventoryFurniActions, useInventoryStore, useInventoryTradingActive,
 } from '#base/context/inventory';
 import { useRoom } from '#base/context/room';
 import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
@@ -73,6 +82,23 @@ const RENT_UPDATE_INTERVAL_MS = 1000;
 /** The room layout papers' categories - wallpaper, floor and landscape - which a press on the preview does not place. */
 const ROOM_LAYOUT_CATEGORIES = [ 2, 3, 4 ];
 
+/** `updateActionButtons`: the categories `use_btn` is offered for - the pet products a pet in the room can take. */
+const USE_PRODUCT_CATEGORIES: number[] = [ FurnitureSpecialType.PetSaddle, FurnitureSpecialType.PetCustomPart, FurnitureSpecialType.PetCustomPartShampoo, FurnitureSpecialType.PetShampoo, FurnitureSpecialType.MonsterplantRevival ];
+
+/** The wall item type whose picture paging (`nextItemButton`, `viewItemButton`) is offered for any type containing it. */
+const EXTERNAL_IMAGE_TYPE = 'external_image_wallitem';
+
+/** `IStuffData.getJSONValue`: a field of the legacy string read as JSON; empty when it is not. */
+const getStuffDataJsonValue = (stuffData: IObjectData, key: string): string => {
+    try {
+        const value = (JSON.parse(stuffData.getLegacyString()) as Record<string, unknown>)[key];
+
+        return ((typeof value === 'string') || (typeof value === 'number')) ? String(value) : '';
+    } catch {
+        return '';
+    }
+};
+
 const page = (name?: string) => inventoryPagePath('furni', name);
 
 export const useInventoryFurniPage = ({ active, templates }: InventoryPageContext): InventoryPage => {
@@ -80,6 +106,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const t = useTranslation();
     const groups = useInventoryStore(x => x.furniGroups);
     const selectedGroupId = useInventoryStore(x => x.furniSelectedGroupId);
+    const selectedItemIndex = useInventoryStore(x => x.furniSelectedItemIndex);
     const listInitialized = useInventoryStore(x => x.furniListInitialized);
     const filterMain = useInventoryStore(x => x.furniFilterMain);
     const filterType = useInventoryStore(x => x.furniFilterType);
@@ -100,7 +127,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const rentWarningSeconds = useConfigValue<number>('purchase.rent.warning_duration_seconds') ?? DEFAULT_RENT_WARNING_SECONDS;
     // `FurniModel.isPrivateRoom`: every room session is a private room.
     const inRoom = !!useRoom();
-    const { selectFurniGroup, setFurniFilterMain, setFurniFilterType, setFurniFilterText } = useInventoryFurniActions();
+    const { selectFurniGroup, setFurniSelectedItemIndex, setFurniFilterMain, setFurniFilterType, setFurniFilterText } = useInventoryFurniActions();
     // The `filter` box's caption, which the grid takes on Enter; a reset of the filters empties it.
     const [ filterCaption, setFilterCaption ] = useState(filterText);
     const [ appliedText, setAppliedText ] = useState(filterText);
@@ -191,6 +218,11 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const selectedItem = selectedGroup ? peekInventoryFurni(selectedGroup) : undefined;
     const selectedFurniData = selectedGroup ? getFurniData(selectedGroup) : undefined;
     const selectedTexts = selectedGroup ? getGroupTexts(selectedGroup) : { name: '', description: '' };
+    // `updateActionView`'s item: the one `nextItemButton` paged to, else `peek`.
+    const previewItem = selectedGroup ? getInventoryFurniSelectedItem(selectedGroup, selectedItemIndex) : undefined;
+    // `getWallItemType(type)`.
+    const previewWallType = previewItem?.isWallItem ? GetRoomContentLoader().getFurnitureWallNameForTypeId(previewItem.typeId) : '';
+    const isExternalImage = previewWallType.indexOf(EXTERNAL_IMAGE_TYPE) !== -1;
 
     // `FurniModel.requestCurrentActionOnSelection`: into the recycler while it runs, into the trade
     // while one runs, else placed in the room.
@@ -254,6 +286,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const canBuyRentedItem = !!selectedItem?.isRented && notRentedInRoom && !!selectedFurniData?.purchaseCouldBeUsedForBuyout;
     const canSell = hasSelection && marketplaceEnabled && selectedItem.sellable && !safetyLocked && !tradeRunning && !(selectedFurniData?.isExternalImage ?? false);
     const canOffer = hasSelection && (getInventoryFurniUnlockedCount(selectedGroup) > 0) && selectedItem.tradeable;
+    const canUse = hasSelection && inRoom && USE_PRODUCT_CATEGORIES.includes(selectedItem.category);
 
     // `FurniModel.extendRentPeriod` / `buyRentedItem`: the rent window for the selected item's strip id.
     const onRent = (isBuyout: boolean) => {
@@ -278,6 +311,8 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
         [ 'extendrent_btn', !tradeRunning && canExtendRent, { '': { onPointerTap: () => onRent(false) } } ],
         [ 'buyrenteditem_btn', !tradeRunning && canBuyRentedItem, { '': { onPointerTap: () => onRent(true) } } ],
         [ 'goto_room_btn', !tradeRunning && !!selectedItem && (selectedItem.flatId > -1), { '': { onPointerTap: () => selectedItem && goToRoom(send, selectedItem.flatId) } } ],
+        // `FurniModel.showUseProductSelection`: the pet product menu over the pets it suits.
+        [ 'use_btn', canUse, { '': { onPointerTap: () => selectedItem && showInventoryUseProductSelection(selectedItem.ref, selectedItem.typeId) } } ],
         [ 'offertotrade_cnt', tradeRunning && multiItemTrading, { '': { caption: offerCount, onChange: setOfferCount, disabled: !canOffer } } ],
         [ 'offertotrade_btn', tradeRunning, { '': { disabled: !canOffer, onPointerTap: onOffer } } ],
         [ 'sell_btn', canSell, { '': { onPointerTap: () => requestSelectedFurniSelling(send) } } ],
@@ -285,7 +320,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
 
     // `furni_extra`: the rarity, or the chest's name - then `updateRentedItem`: a rented item's time
     // left once its period has started, its whole period before.
-    const stuffData = selectedItem?.stuffData;
+    const stuffData = previewItem?.stuffData;
     const rentText = selectedItem?.isRented
         ? t(selectedItem.hasRentPeriodStarted ? 'inventory.rent.expiration' : 'inventory.rent.inactive', '', { time: GetFriendlyTime(t, getInventoryFurniSecondsToExpiration(selectedItem)) })
         : undefined;
@@ -298,7 +333,11 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     // `preview_element_list`: its texts, then `updateActionButtons`' buttons in the order it adds them.
     const previewItems: TemplateItem[] = [
         { key: 'furni_name', from: page('furni_name'), bindings: { '': { caption: hasSelection ? selectedTexts.name : '' } } },
-        { key: 'furni_description', from: page('furni_description'), bindings: { '': { caption: hasSelection ? selectedTexts.description : '' } } },
+        {
+            key: 'furni_description',
+            from: page('furni_description'),
+            bindings: { '': { caption: hasSelection ? ((previewItem && (previewWallType === EXTERNAL_IMAGE_TYPE)) ? getStuffDataJsonValue(previewItem.stuffData, 'm') : selectedTexts.description) : '' } },
+        },
         { key: 'furni_extra', from: page('furni_extra'), bindings: { '': { caption: extraText, visible: extraText !== '' } } },
         { key: 'spacer', from: page('spacer') },
         ...(hasSelection ? buttons.filter(([ , shown ]) => shown).map(([ name, , bindings ]) => ({ key: name, from: page(name), bindings })) : []),
@@ -349,6 +388,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
                     <InventoryFurniPreview
                         key={selectedGroup.id}
                         group={selectedGroup}
+                        item={previewItem}
                         layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
                     />
                 ),
@@ -360,8 +400,14 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
                 },
                 onPointerTap: onPlace,
             },
-            [page('nextItemButton')]: { visible: false },
-            [page('viewItemButton')]: { visible: false },
+            [page('nextItemButton')]: {
+                visible: hasSelection && isExternalImage,
+                onPointerTap: () => selectedGroup && setFurniSelectedItemIndex(getNextInventoryFurniItemIndex(selectedGroup, selectedItemIndex)),
+            },
+            [page('viewItemButton')]: {
+                visible: hasSelection && isExternalImage,
+                onPointerTap: () => previewItem && showInventoryUseProductSelection(previewItem.ref, previewItem.typeId, previewItem.id),
+            },
 
             [page('tradeable_info_region')]: { tooltip: hasSelection ? t((tradeableCount > 0) ? 'inventory.furni.preview.tradeable_amount' : 'inventory.furni.preview.not_tradeable') : undefined },
             [page('tradeable_icon')]: { asset: hasSelection ? ((tradeableCount > 0) ? TRADE_ICON : NO_TRADE_ICON) : '' },

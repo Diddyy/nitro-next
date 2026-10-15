@@ -8,14 +8,15 @@
  * the wired trade (`WiredTradingModel`) while that one does, and nothing otherwise - in that
  * order, as Flash checks them.
  */
-import { RoomEngineObjectPlacedEvent, RoomObjectCategoryEnum, RoomObjectPlacementSource } from '@nitrodevco/nitro-api';
+import { RoomEngineObjectPlacedEvent, RoomObjectCategoryEnum, RoomObjectPlacementSource, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
 import { RequestFurniInventoryComposer, RequestFurniInventoryWhenNotInRoomComposer, RequestRoomPropertySetComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { findNextInventoryFurniToPlace, getInventoryFurniItemsForTrade, getInventoryFurniTotalCount, getInventoryFurniUnlockedCount, INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADE_MAX_ITEMS, InventoryFurniItem, inventoryStore, isRoomLayoutCategory, peekInventoryFurni } from '#base/context/inventory';
-import { getRoom } from '#base/context/room';
+import { findNextInventoryFurniToPlace, getInventoryFurniItemsForTrade, getInventoryFurniSelectedItem, getInventoryFurniTotalCount, getInventoryFurniUnlockedCount, getInventoryWallItemById, INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADE_MAX_ITEMS, InventoryFurniItem, inventoryStore, isRoomLayoutCategory } from '#base/context/inventory';
+import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { wiredTradingStore } from '#base/context/wired-trading';
+import { getFurnitureData } from '#base/utils';
 
 import { cancelRoomObjectInsert, initializeRoomObjectInsert } from './catalogPlacementCommands';
 import { offerSelectedFurniToUserTrade } from './inventoryTradingCommands';
@@ -103,14 +104,17 @@ export const offerSelectedFurniToTrade = (send: Send, count: number): number | u
     return itemIds.length;
 };
 
+/** `FurniModel.isExternalImageItem`: the item's type, read as a wall item, is an external image. */
+const isExternalImageItem = (item: InventoryFurniItem): boolean => !!getFurnitureData(systemStore.getState(), item.typeId, true)?.isExternalImage;
+
 /**
  * `HabboInventory.requestSelectedFurniToMover`: the item becomes the room's placement ghost. A
- * poster carries its poster id as the instance data and no stuff data; anything else carries its
- * `extra` and its stuff data.
+ * poster carries its poster id as the instance data and no stuff data, as does an external image
+ * its picture's data; anything else carries its `extra` and its stuff data.
  */
 const requestSelectedFurniToMover = (item: InventoryFurniItem): boolean => {
     const category = item.isWallItem ? RoomObjectCategoryEnum.Wall : RoomObjectCategoryEnum.Floor;
-    const started = (item.category === INVENTORY_FURNI_CATEGORY_POSTER)
+    const started = ((item.category === INVENTORY_FURNI_CATEGORY_POSTER) || isExternalImageItem(item))
         ? initializeRoomObjectInsert(RoomObjectPlacementSource.INVENTORY, item.id, category, item.typeId, item.stuffData.getLegacyString())
         : initializeRoomObjectInsert(RoomObjectPlacementSource.INVENTORY, item.id, category, item.typeId, String(item.extra), item.stuffData);
 
@@ -225,15 +229,16 @@ const attemptPlaceNextFurni = (placedItemId: number) => {
  *
  * `isDoubleClick` is Flash's first argument: a double click never applies a paper, it only places
  * furni. Nothing happens for an empty selection, a group whose every item is locked in a trade, or
- * a rented item that is already standing in a room.
+ * a rented item that is already standing in a room. The item is the one `nextItemButton` paged to,
+ * else the last (`selectedItemIndex` set to the count less one, which reads the same).
  */
 export const requestSelectedFurniPlacement = (send: Send, isDoubleClick: boolean = false): boolean => {
-    const { furniGroups, furniSelectedGroupId } = inventoryStore.getState();
+    const { furniGroups, furniSelectedGroupId, furniSelectedItemIndex } = inventoryStore.getState();
     const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
 
     if (!group || (getInventoryFurniUnlockedCount(group) === 0)) return false;
 
-    const item = peekInventoryFurni(group);
+    const item = getInventoryFurniSelectedItem(group, furniSelectedItemIndex);
 
     if (!item) return false;
 
@@ -248,4 +253,45 @@ export const requestSelectedFurniPlacement = (send: Send, isDoubleClick: boolean
     }
 
     return requestSelectedFurniToMover(item);
+};
+
+/** What `ROSM_USE_PRODUCT_FROM_INVENTORY` hands the pet product menu (`RoomEngineUseProductEvent`). */
+export interface InventoryPetProductRequest {
+    /** `inventoryStripId`: the item's `ref`, which `useProductForPet` sends as the product. */
+    inventoryStripId: number;
+    furnitureTypeId: number;
+}
+
+/** What it hands the external image view: the strip id of the wall item to show (`showWithFurniID`). */
+export interface InventoryExternalImageRequest {
+    inventoryItemId: number;
+}
+
+/**
+ * `RoomEngine.showUseProductSelection`'s `ROSM_USE_PRODUCT_FROM_INVENTORY`, which two room widget
+ * handlers take while a room is open, each going on only when it finds what it needs:
+ *
+ * - `AvatarInfoWidgetHandler.handleUseProductMenuRequestInventoryItem`: the type's floor furniture
+ *   data - the pet product menu over the user's pets it suits (`FurniturePetProductWidget`).
+ * - `ExternalImageWidgetHandler`: `showWithFurniID(itemId)` - the picture of the wall item the
+ *   inventory holds under that strip id; `use_btn` passes none (-1).
+ */
+export const showInventoryUseProductSelection = (ref: number, typeId: number, itemId: number = -1) => {
+    if (!getRoom()) return;
+
+    const { openRoomWidget, updateRoomWidgetData } = roomStore.getState();
+
+    if (getFurnitureData(systemStore.getState(), typeId, false)) {
+        const request: InventoryPetProductRequest = { inventoryStripId: ref, furnitureTypeId: typeId };
+
+        openRoomWidget({ type: RoomObjectWidgetRequestEvent.PET_PRODUCT_MENU, objectId: -1, category: RoomObjectCategoryEnum.Floor, objectType: '' });
+        updateRoomWidgetData(RoomObjectWidgetRequestEvent.PET_PRODUCT_MENU, request);
+    }
+
+    if (getInventoryWallItemById(inventoryStore.getState().furniGroups, itemId)) {
+        const request: InventoryExternalImageRequest = { inventoryItemId: itemId };
+
+        openRoomWidget({ type: RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE, objectId: -1, category: RoomObjectCategoryEnum.Wall, objectType: '' });
+        updateRoomWidgetData(RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE, request);
+    }
 };

@@ -1,6 +1,9 @@
 import { RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
+import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
 
+import type { InventoryExternalImageRequest } from '#base/commands';
 import { reportPhoto } from '#base/commands/helpCommands';
+import { getInventoryWallItemById, useInventoryStore } from '#base/context/inventory';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
 import { parsePhotoData, resolvePhotoUrl } from '#base/utils';
@@ -14,17 +17,48 @@ const PHOTO_POSTER_TYPE = 'photo_poster';
  * JSON naming it, and the image is fetched from the stories host the configuration points at.
  * A photo that carries only an id keeps its details on a separate service, which the port does
  * not call, so that kind shows nothing.
+ *
+ * The inventory's `viewItemButton` shows a photo it holds the same way (`showWithFurniID`, through
+ * `showInventoryUseProductSelection`): the wall item with that strip id, its type the wall item
+ * type's name, and no report button.
  */
 export const FurnitureExternalImageWidget = () => {
-    const request = useRoomWidget(RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE);
+    const request = useRoomWidget<Partial<InventoryExternalImageRequest>>(RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE);
     const room = useRoom();
     const { closeRoomWidget } = useRoomWidgetActions();
+    const furniGroups = useInventoryStore(x => x.furniGroups);
     const imageUrlBase = useConfigValue<string>('stories.image_url_base') ?? '';
     // `ExternalImageWidgetHandler.isSelfieReportingEnabled`.
     const selfieReportingConfig = useConfigValue<string | boolean>('stories.report.selfie.enabled');
     const selfieReportingEnabled = (selfieReportingConfig === 'true') || (selfieReportingConfig === true);
 
     if (!request || !room) return null;
+
+    const onClose = () => closeRoomWidget(RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE);
+
+    const inventoryItemId = request.data?.inventoryItemId;
+
+    if (inventoryItemId !== undefined) {
+        const item = getInventoryWallItemById(furniGroups, inventoryItemId);
+        const photo = item && parsePhotoData(item.stuffData.getLegacyString());
+
+        if (!item || !photo) return null;
+
+        // `§_-UX§ = getWallItemType(type)`.
+        const type = GetRoomContentLoader().getFurnitureWallNameForTypeId(item.typeId);
+
+        return (
+            <FurnitureExternalImageView
+                imageUrl={resolvePhotoUrl(photo.url, imageUrlBase, type === PHOTO_POSTER_TYPE)}
+                creatorName={photo.creatorName}
+                time={photo.time}
+                caption={photo.caption}
+                reportVisible={false}
+                onReport={() => undefined}
+                onClose={onClose}
+            />
+        );
+    }
 
     const roomObject = room.getRoomObject(request.objectId, request.category);
 
@@ -44,7 +78,7 @@ export const FurnitureExternalImageWidget = () => {
             // `openReportImage`: the sender, their name, the photo's extra data id (none for a photo that
             // carries its own url) and the wall item.
             onReport={() => reportPhoto(photo.creatorId, photo.creatorName, '', request.objectId)}
-            onClose={() => closeRoomWidget(RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE)}
+            onClose={onClose}
         />
     );
 };

@@ -9,8 +9,8 @@
  *   the selected one is put back (`setViewToCategory`), which is each page window's `visible` here.
  *   The tabs are taken out and re-added in layout order - furni, collectibles, rentables, pets,
  *   badges, bots: `collectibles` only with `web3trade.enabled` and only while a trade runs
- *   (`showCollectiblesTab`), `rentables` never (the port merges rented furni into the furni page,
- *   `mergeRentFurni`), `bots` only with `inventory.bots.enabled`.
+ *   (`showCollectiblesTab`), `rentables` never (`HabboInventory.mergeRentFurni` is always true, so
+ *   rented furni are on the furni page), `bots` only with `inventory.bots.enabled`.
  * - `disableNonTradingTabs`: while a trade runs, every tab but furni and collectibles is disabled
  *   (`Util.disableSection`).
  * - `windowEventProc`: `WE_SELECTED` on the tabs switches the page, resetting the unseen items of
