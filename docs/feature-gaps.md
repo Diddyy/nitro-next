@@ -50,7 +50,6 @@ answer yet.
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
 | Messenger | Resizing the window, and the Habbicon picker following the window while it is dragged. Turbo only sends the friend bar's room event notifications, as it has no achievements, quests or games to send the others for. | `MessengerView` |
 | Group forums | Scrolling to the message a link names. | `GroupForumView` |
-| Wired | The limited-edition plaque and rarity flag on chest item icons. | `WiredChestFurniContentsView` |
 | Hotel view | The widget types `PORTED_LANDING_VIEW_WIDGETS` leaves out: the avatar image, the catalogue promos, daily quest, the competition prizes and hall of fame, the moderation, talents, Habbo Way and safety quiz promos, and the room hopper. The generic widget leaves out its title, image, room, badge, habblet, VIP, community goal, daily quest and concurrent-user elements. The expiring page widget is not asked again when an invisible catalogue page is visited (`CATALOG_INVISIBLE_PAGE_VISITED`), the next limited rare's buttons open its page without picking the offer, and the community goal keeps `goal_info` at its layout height. What the ported widgets wait on from the server is under [Hotel view: Turbo and the admin panel](#hotel-view-turbo-and-the-admin-panel). | `HotelViewWidgets`, `HotelViewGenericWidget`, `HotelViewPromoArticleWidget` |
 | Account | Email change and status. | `Users` |
 | Moderation tool | The housekeeping links in user info and the room tool ("Edit in HK"). | `ModUserInfoView`, `ModRoomToolView` |

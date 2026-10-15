@@ -20,12 +20,15 @@ const PLAQUE_METAL = LayoutImage('habbo-window-manager-com/unique_item_label_pla
 /**
  * The shine that runs down the metal plaque (`LimitedItemGridOverlayWidget.update`, an animated
  * overlay): every 10 seconds the slice of `unique_item_label_plaque_metal` the plaque background
- * shows slides down the sheet for a quarter second, then snaps back to the top.
+ * shows slides down the sheet for a quarter second, then snaps back to the top. A still overlay
+ * never registers for updates and keeps the top of the sheet.
  */
-const usePlaqueShineOffset = () => {
+const usePlaqueShineOffset = (animated: boolean) => {
     const [ offset, setOffset ] = useState(0);
 
     useEffect(() => {
+        if (!animated) return;
+
         let time = 0;
         let lastShine = 0;
 
@@ -50,8 +53,9 @@ const usePlaqueShineOffset = () => {
 
         return () => {
             GetTicker().remove(update);
+            setOffset(0);
         };
-    }, []);
+    }, [ animated ]);
 
     return offset;
 };
@@ -59,18 +63,20 @@ const usePlaqueShineOffset = () => {
 export interface LimitedItemGridOverlayViewProps {
     /** `serialNumber` - the catalogue gives it the series size (`enableLimitedItemLayout`). */
     serialNumber: number;
+    /** `animated`: every caller sets it but the wired furni chest. */
+    animated?: boolean;
 }
 
 /**
  * The limited edition plaque over a grid item's icon - the `limited_item_overlay_grid` window
  * widget, `LimitedItemGridOverlayWidget`, which builds `unique_item_overlay_griditem_xml` as its
  * root window. The code draws two of its bitmaps: `unique_item_overlay_plaque_background_bitmap`
- * gets the metal sheet (the shining slice of it, as the catalogue sets `animated`), and
+ * gets the metal sheet (the shining slice of it when `animated`), and
  * `set serialNumber` fills `unique_item_overlay_plaque_number_bitmap` with
  * `LimitedItemNumberBitmap.createBitmap`.
  */
-export const LimitedItemGridOverlayView = ({ serialNumber }: LimitedItemGridOverlayViewProps) => {
-    const offset = usePlaqueShineOffset();
+export const LimitedItemGridOverlayView = ({ serialNumber, animated = true }: LimitedItemGridOverlayViewProps) => {
+    const offset = usePlaqueShineOffset(animated);
 
     return (
         <TemplateWindow

@@ -17,8 +17,10 @@
  *   the desktop beside the button (`relocateBubbleFocus`); here the wired trading bubble does that,
  *   so the template's own bubble stays hidden.
  *
- * Not drawn: the `limited_item_overlay_grid` / `rarity_item_overlay_grid` widgets (not ported in
- * this client), and the "+N" text's 12px size from 1000 up (the template binding has no font size).
+ * The cells never show the `limited_item_overlay_grid` / `rarity_item_overlay_grid` widgets:
+ * `TransactionChestItemWrapper` gives `initChestBasedIconUI` empty stuff data and special type 1.
+ *
+ * Not drawn: the "+N" text's 12px size from 1000 up (the template binding has no font size).
  */
 import type { IWiredTransactionDetails, IWiredTransactionFurniAmount } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer } from 'pixi.js';

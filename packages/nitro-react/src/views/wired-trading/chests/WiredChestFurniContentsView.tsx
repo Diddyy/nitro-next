@@ -6,7 +6,9 @@
  * - `grid_items` holds a clone of `furni_template` per group (`FurniChestItemView`), in the order
  *   the store keeps them, set up by `initChestBasedIconUI` / `updateUI` / `updateColoring`: the
  *   icon, a limited item's label background, the count from two up, the border's colour following
- *   the pointer and the focus outline on the selection. The first group is selected whenever nothing
+ *   the pointer and the focus outline on the selection. A limited item gets the serial plaque
+ *   (`limited_item_overlay_grid`, left still: the chest never sets `animated`), a rare (special
+ *   type 19) the rarity flag (`rarity_item_overlay_grid`). The first group is selected whenever nothing
  *   is (`maybeSelectNewItemView`).
  * - From 31 groups up the search bar (`search_border`) shows and the grid moves 28px down
  *   (`updateSearchbarVisibility`); Enter filters by every space-separated word of the text, Escape
@@ -15,9 +17,6 @@
  *   with one, the name and picture show and withdraw follows `canWithdraw`.
  *   `view_logs_by_furni_btn` is invisible in the layout and nothing shows it (its handler,
  *   `viewLogsWithType`, is empty in Flash).
- *
- * The `limited_item_overlay_grid` / `rarity_item_overlay_grid` widgets (the serial plaque and the
- * rarity flag) are not ported in this client.
  */
 import type { IChestItemType, IChestStorage } from '@nitrodevco/nitro-api';
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
@@ -29,6 +28,8 @@ import { useWiredTradingStore } from '#base/context/wired-trading';
 import { useFurnitureImageTexture, useWiredChestItemFurniData, useWiredChestItemIconUrl, useWiredChestItemName, useWiredChestItemNameResolver } from '#base/hooks';
 import { TemplateItem, TemplateWindow, TemplateWindows, ThemeImage } from '#base/theme';
 import { WiredChestItemGroup } from '#base/utils';
+import { LimitedItemGridOverlayView } from '#base/views/shared/LimitedItemGridOverlayView';
+import { RarityItemGridOverlayView } from '#base/views/shared/RarityItemGridOverlayView';
 
 /** `FurniChestView.§_-u11§`: the search bar shows from this many groups. */
 const SEARCH_THRESHOLD = 31;
@@ -37,6 +38,8 @@ const GRID_OFFSET_SEARCH = 28;
 /** `FurniChestItemView.NOT_HOVERED_COLOR` / `§_-KJ§`. */
 const NOT_HOVERED_COLOR = 13355979;
 const HOVERED_COLOR = 14079702;
+/** `initChestBasedIconUI`: the special type that shows the rarity flag. */
+const RARE_SPECIAL_TYPE = 19;
 
 export const WIRED_FURNI_CHEST_WIDTH = 458;
 export const WIRED_FURNI_CHEST_HEIGHT = 264;
@@ -85,6 +88,14 @@ const arrangeWithSearch = ({ find }: TemplateWindows) => {
 const groupItem = (group: WiredChestItemGroup, active: boolean, hovered: boolean, select: () => void, hover: (over: boolean) => void): TemplateItem => {
     const sample: IChestStorage = group.storages[0];
     const count = group.storages.length;
+    const unique = (sample.stuffData.uniqueNumber > 0);
+    const rare = (sample.specialType === RARE_SPECIAL_TYPE);
+    const plaque = unique && (
+        <LimitedItemGridOverlayView
+            serialNumber={sample.stuffData.uniqueNumber}
+            animated={false}
+        />
+    );
 
     return {
         key: String(group.key),
@@ -96,7 +107,9 @@ const groupItem = (group: WiredChestItemGroup, active: boolean, hovered: boolean
                 onPointerOut: () => hover(false),
             },
             border: { color: hovered ? HOVERED_COLOR : NOT_HOVERED_COLOR },
-            unique_item_background_bitmap: { visible: sample.stuffData.uniqueNumber > 0 },
+            unique_item_background_bitmap: { visible: unique },
+            unique_item_overlay_container: { visible: unique, children: plaque },
+            rarity_item_overlay_container: { visible: rare, children: rare && <RarityItemGridOverlayView rarityLevel={sample.stuffData.rarityLevel} /> },
             furni_icon: { children: <ChestItemIcon itemType={sample.type} /> },
             number_container: { visible: count > 1 },
             furni_quantity: { caption: String(count), setCaptionAfterBuild: true },
