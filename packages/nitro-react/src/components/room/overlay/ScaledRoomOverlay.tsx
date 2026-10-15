@@ -82,11 +82,33 @@ export const ScaledRoomOverlay = ({ place, draggable = false, onDragged, alpha =
         node.y = Math.round(position.y);
     };
 
+    const updateRef = useRef(update);
+
+    useLayoutEffect(() => {
+        updateRef.current = update;
+    });
+
     useRoomEventDispatcher<RoomRenderedEvent>(RoomRenderedEvent.ROOM_RENDERED, update);
 
-    // Drawn transparent until the first frame places it.
+    /*
+     * Drawn transparent until the first frame places it. The room frame comes before Pixi lays
+     * the stage out, so it is placed again once the layout pass has measured a change of size,
+     * before that size is drawn at the old one's place.
+     */
     useLayoutEffect(() => {
-        if (nodeRef.current && !placedRef.current) nodeRef.current.alpha = 0;
+        const node = nodeRef.current;
+
+        if (!node) return;
+
+        if (!placedRef.current) node.alpha = 0;
+
+        const onLayout = () => updateRef.current();
+
+        node.on('layout', onLayout);
+
+        return () => {
+            node.off('layout', onLayout);
+        };
     }, []);
 
     useEffect(() => {
