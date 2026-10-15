@@ -14,7 +14,7 @@ Three sources, each worth re-running after a revision bump or a feature port:
 
 - **Packet coverage.** `node tools/packet-coverage.mjs` lists, by feature area, the incoming
   messages nothing in the client listens to and the outgoing composers nothing sends. At the time
-  of writing that is 127 of 572 incoming and 149 of 567 outgoing. A packet counts as used when its
+  of writing that is 110 of 579 incoming and 123 of 574 outgoing. A packet counts as used when its
   class name appears in the client's source, so a registered listener that does nothing still counts.
 - **The port's own notes.** Views, stores and handlers state what they leave out; search the
   client for `not ported` and `Not ported:`.
@@ -31,7 +31,6 @@ answer yet.
 
 | Feature | What is missing | Packet areas |
 |---|---|---|
-| Moderation tool | Issues, chat logs, room and user info, room visits, sanctions. No window, no store, and nothing sends its requests. | `Moderation`, `Moderator` |
 | Help, call for help and guides | Pending calls, guide sessions, chat review, the safety quiz. Reporting a user, a room, an instant message or a photo is ported (`views/help`, `helpCommands`, the navigator's room info bubble). | `Help`, `Callforhelp` |
 | Talent track and the daily quest | Talent track levels, and the hotel view's `dailyquest` widget. The quest list, details, tracker and completed dialog are ported (`views/quests`), community goals are the hotel view's; the achievement browser, score and standard award packets are implemented - see [achievement client](achievements.md). | `Quest`, `Talent` |
 | Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. Nothing calls `buySnowWarTokensOffer` (`commands/gameTokensCommands.ts`); the catalogue's game token offers are bought through `purchaseGameTokensOffer`. | `Game` |
@@ -39,8 +38,7 @@ answer yet.
 | New user experience | The gift offer and the tutorial script. The new user flow - look, name and starter room (`OnBoardingHcFlow`) - is ported (`views/onboarding`); the room types, their pictures (`new.user.flow.room.image.url`) and the dice's looks (`new.user.flow.figures.male` / `.female`) are configuration - see Turbo's `docs/onboarding.md`. | `Nux` |
 | Room competitions | Submitting, voting, forwarding to competition rooms. | `Competition`, `Navigator` |
 | NFT wardrobe | Silver (`GetSilverComposer`). Saved NFT outfits, their selection and the avatar editor's `nfts` tab are ported. | `Nft` |
-| Name change | `AvatarEditorNameChangeView` and the in-room name change (`AvatarEditor`). | `Avatar` |
-| Avatar editor | The hot looks and effects lists (`HotLooksView`, `AvatarEditorGridViewEffects`, `effectParamsContainer`) - nothing feeds them. | `AvatarEditor` |
+| Name change | The avatar editor's `avatar_name_change` (`AvatarEditorNameChangeView`, behind `premium.name.change.enabled`). The own avatar menu's name change window (`NameChangeView`) is ported (`commands/nameChangeCommands.ts`). | `Avatar` |
 
 ## Gaps inside ported features
 
@@ -48,17 +46,19 @@ answer yet.
 |---|---|---|
 | Room | YouTube playback control from the server (`YoutubeControlVideoMessage`). | `FurnitureYoutubeView` |
 | Room camera | Photo competitions (`PhotoCompetitionComposer`, `CompetitionStatusMessage`); taking, buying and publishing photos and room thumbnails are ported (`views/room-widgets/camera`, `RoomThumbnailCameraWidget`). | `Camera` |
-| Catalogue | The gift check (`GetIsOfferGiftableComposer`), the HC extend offer, the targeted offer's HabboMall page. | `registerTargetedOfferHandlers` |
+| Catalogue | The gift check (`GetIsOfferGiftableComposer`), the targeted offer's HabboMall page, the toolbar HC extend promo's glint (`flashing_animation`). | `registerTargetedOfferHandlers`, `ClubDiscountPromoView` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
 | Inventory | Merged rentable furni (the `rentables` tab) and a rented item's rent state and expiry, the `use_btn` and paging through an external image wall item (`showUseProductSelection`), the achievement score under the badges. | `useInventoryFurniPage`, `useInventoryBadgesPage`, `InventoryView` |
-| Messenger | The conversation's habbicon picker (`MessengerHabbiconPicker`), and resizing the window. Turbo only sends the friend bar's room event notifications, as it has no achievements, quests or games to send the others for. | `MessengerView` |
+| Messenger | Resizing the window, and the Habbicon picker following the window while it is dragged. Turbo only sends the friend bar's room event notifications, as it has no achievements, quests or games to send the others for. | `MessengerView` |
 | Group forums | Scrolling to the message a link names. | `GroupForumView` |
 | Wired | The limited-edition plaque and rarity flag on chest item icons. | `WiredChestFurniContentsView` |
 | Hotel view | The widget types `PORTED_LANDING_VIEW_WIDGETS` leaves out: the avatar image, the catalogue promos, daily quest, the competition prizes and hall of fame, the moderation, talents, Habbo Way and safety quiz promos, and the room hopper. The generic widget leaves out its title, image, room, badge, habblet, VIP, community goal, daily quest and concurrent-user elements. The expiring page widget is not asked again when an invisible catalogue page is visited (`CATALOG_INVISIBLE_PAGE_VISITED`), the next limited rare's buttons open its page without picking the offer, and the community goal keeps `goal_info` at its layout height. What the ported widgets wait on from the server is under [Hotel view: Turbo and the admin panel](#hotel-view-turbo-and-the-admin-panel). | `HotelViewWidgets`, `HotelViewGenericWidget`, `HotelViewPromoArticleWidget` |
 | Chat | The chat commands `roomChatCommands` lists as not carried (`:shake`, `:ping`, `:showstats`, `:news`, ...). The chat bar's help button (`helpbutton`, shown while the pointer is over the field, opening `habbopages/chat/commands`) stays hidden. | `roomChatCommands`, `RoomChatInputView` |
 | Account | Email change and status. | `Users` |
-| Hot looks, mystery box keys, user classification, element pointer | No listener or request. | |
+| Moderation tool | The housekeeping links in user info and the room tool ("Edit in HK"). | `ModUserInfoView`, `ModRoomToolView` |
+| Avatar editor | The preview avatar wearing the effect picked on the effects tab (`FigureData.updateView` with `avatarEffectType`). | `AvatarEditor` |
+| Mystery box keys, user classification, element pointer | No listener or request. | |
 
 ## Hotel view: Turbo and the admin panel
 
