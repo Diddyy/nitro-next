@@ -33,7 +33,7 @@ answer yet.
 |---|---|---|
 | Help, call for help and guides | Pending calls, guide sessions, chat review, the safety quiz. Reporting a user, a room, an instant message or a photo is ported (`views/help`, `helpCommands`, the navigator's room info bubble). | `Help`, `Callforhelp` |
 | Talent track and the daily quest | Talent track levels, and the hotel view's `dailyquest` widget. The quest list, details, tracker and completed dialog are ported (`views/quests`), community goals are the hotel view's; the achievement browser, score and standard award packets are implemented - see [achievement client](achievements.md). | `Quest`, `Talent` |
-| Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. Nothing calls `buySnowWarTokensOffer` (`commands/gameTokensCommands.ts`); the catalogue's game token offers are bought through `purchaseGameTokensOffer`. | `Game` |
+| Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. Nothing calls `buySnowWarTokensOffer` (`commands/gameTokensCommands.ts`); the catalogue's game token offers are bought through `purchaseGameTokensOffer`. The staff chat command `:csmm` (`GameManager.generateChecksumMismatch`) waits on the game manager. | `Game` |
 | Campaign calendar | The advent calendar and its doors, and the seasonal daily offer that shares it. | `Campaign`, `Catalog` |
 | New user experience | The gift offer and the tutorial script. The new user flow - look, name and starter room (`OnBoardingHcFlow`) - is ported (`views/onboarding`); the room types, their pictures (`new.user.flow.room.image.url`) and the dice's looks (`new.user.flow.figures.male` / `.female`) are configuration - see Turbo's `docs/onboarding.md`. | `Nux` |
 | Room competitions | Submitting, voting, forwarding to competition rooms. | `Competition`, `Navigator` |
@@ -52,7 +52,6 @@ answer yet.
 | Group forums | Scrolling to the message a link names. | `GroupForumView` |
 | Wired | The limited-edition plaque and rarity flag on chest item icons. | `WiredChestFurniContentsView` |
 | Hotel view | The widget types `PORTED_LANDING_VIEW_WIDGETS` leaves out: the avatar image, the catalogue promos, daily quest, the competition prizes and hall of fame, the moderation, talents, Habbo Way and safety quiz promos, and the room hopper. The generic widget leaves out its title, image, room, badge, habblet, VIP, community goal, daily quest and concurrent-user elements. The expiring page widget is not asked again when an invisible catalogue page is visited (`CATALOG_INVISIBLE_PAGE_VISITED`), the next limited rare's buttons open its page without picking the offer, and the community goal keeps `goal_info` at its layout height. What the ported widgets wait on from the server is under [Hotel view: Turbo and the admin panel](#hotel-view-turbo-and-the-admin-panel). | `HotelViewWidgets`, `HotelViewGenericWidget`, `HotelViewPromoArticleWidget` |
-| Chat | The chat commands `roomChatCommands` lists as not carried (`:shake`, `:ping`, `:showstats`, `:news`, ...). The chat bar's help button (`helpbutton`, shown while the pointer is over the field, opening `habbopages/chat/commands`) stays hidden. | `roomChatCommands`, `RoomChatInputView` |
 | Account | Email change and status. | `Users` |
 | Moderation tool | The housekeeping links in user info and the room tool ("Edit in HK"). | `ModUserInfoView`, `ModRoomToolView` |
 | Mystery box keys, user classification, element pointer | No listener or request. | |
@@ -103,7 +102,7 @@ About 40 unused packets are protocol the port does not need:
 - **The handshake and shell.** `InitDiffieHandshake`, `CompleteDiffieHandshake`, `VersionCheck`,
   `UniqueId`, `IdentityAccounts`, `RestoreClientMessage`: the port's socket speaks plaintext and
   the client is a page, not an AIR shell.
-- **Tracking.** Latency pings, lag warnings and performance logs.
+- **Tracking.** Lag warnings and performance logs. The latency pings are ported (`latencyCommands`): `:ping` and the fps counter show them.
 - **Packets this revision's Flash client registers or defines but never acts on.**
   `NoSuchFlatMessage`: both navigators' `onNoSuchFlat` are empty, so there is no error to show.
   `RedeemMarketplaceOfferCreditsComposer`: `HabboCatalog.redeemSoldMarketPlaceOffers` has no

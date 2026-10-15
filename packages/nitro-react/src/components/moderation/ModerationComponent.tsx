@@ -2,7 +2,9 @@
  * Mounts Flash's moderation tool (`ModerationManager`) for a moderator: the start panel once
  * `ModeratorInit` came, and the windows its `WindowTracker` holds - user info, room tool, chatlog
  * send message, mod action and room visits - each once per kind and id, the newest on top; and the
- * call for help queue (`IssueManager`): its browser and an issue handler per bundle handled.
+ * call for help queue (`IssueManager`): its browser and an issue handler per bundle handled. The
+ * user classification windows (`UserClassificationCtrl`) are no tracked window and need no init:
+ * Flash's message handler opens one for whoever gets `UserClassification`.
  */
 import { moderationWindowKey, useModerationIssueStore, useModerationStore } from '#base/context/moderation';
 import { ModActionView } from '#base/views/moderation/ModActionView';
@@ -13,6 +15,7 @@ import { ModRoomToolView } from '#base/views/moderation/ModRoomToolView';
 import { ModRoomVisitsView } from '#base/views/moderation/ModRoomVisitsView';
 import { ModSendMessageView } from '#base/views/moderation/ModSendMessageView';
 import { ModStartPanelView } from '#base/views/moderation/ModStartPanelView';
+import { ModUserClassificationView } from '#base/views/moderation/ModUserClassificationView';
 import { ModUserInfoView } from '#base/views/moderation/ModUserInfoView';
 
 export const ModerationComponent = () => {
@@ -20,12 +23,11 @@ export const ModerationComponent = () => {
     const windows = useModerationStore(x => x.windows);
     const browserOpen = useModerationIssueStore(x => x.browserOpen);
     const handlers = useModerationIssueStore(x => x.handlers);
-
-    if (!hasInit) return null;
+    const classifications = useModerationStore(x => x.classifications);
 
     return (
         <>
-            <ModStartPanelView />
+            {hasInit && <ModStartPanelView />}
             {windows.map((window) => {
                 const key = moderationWindowKey(window);
 
@@ -76,6 +78,12 @@ export const ModerationComponent = () => {
                 <ModIssueHandlerView
                     key={bundleId}
                     bundleId={bundleId}
+                />
+            ))}
+            {classifications.map(classification => (
+                <ModUserClassificationView
+                    key={classification.id}
+                    classification={classification}
                 />
             ))}
         </>

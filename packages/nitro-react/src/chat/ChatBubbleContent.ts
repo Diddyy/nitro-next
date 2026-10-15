@@ -52,6 +52,9 @@ export const resolveChatBubbleText = (data: ChatBubbleData, userName: string, lo
 
             return localize('widget.chatbubble.handitem', '', { username: userName, handitem: handItem });
         }
+        // `:ping`'s round trip in ms, -1 before the first answer - not localised in Flash either.
+        case RoomChatTypeEnum.Ping:
+            return (data.extraParam >= 0) ? `Ping: ${data.extraParam} ms` : 'Ping: measuring...';
         // `applySpecialChatContent`: only special system type 67 says anything, and in plain text; any other is empty.
         case RoomChatTypeEnum.SpecialSystem:
             return (data.extraParam === SPECIAL_SYSTEM_CHAT_67) ? SPECIAL_SYSTEM_CHAT_67_TEXT : '';

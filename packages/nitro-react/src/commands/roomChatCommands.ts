@@ -22,21 +22,28 @@
  * - `:reload`, `:rollback` - the room's wired, after a confirmation, for the owner or security 5;
  * - `:floor` / `:bcfloor` - the floor plan editor for a group admin or the owner;
  * - `:moonwalk`, `:habnam`, `:yyxxabxa`, `:mutepets`, `:mpgame` - `sendSpecialCommandMessage`;
- * - `:fps <n>`, `:cam` / `:camera` (the `CAMERA` perk), `:fs` / `:fullscreen`, `:donate`.
+ * - `:fps <n>`, `:cam` / `:camera` (the `CAMERA` perk), `:fs` / `:fullscreen`, `:donate`;
+ * - `:shake`, `:iddqd` / `:flip` - the room shaking or turned over (the special room effects');
+ * - `:ping` - the latency as a chat bubble; `:showstats` - the canvas's fps counter;
+ * - `:screenshot`, `:hidemouse`, `:demonictriggers` - the room saved as a PNG, the mouse and tile
+ *   cursor hidden or shown, the wired triggers inverted or not (`roomDebugCommands`);
+ * - `:lang <name>` - the texts of another `localization.<n>` definition;
+ * - `:uc <type>`, `:uc hotel <type>` - the room's or the hotel's users of a classification, for
+ *   security 4; `:anew` the room's new users, for an ambassador or security 4;
+ * - `:news` - the community news page under `client.news.embed.enabled`; `:mail` under
+ *   `client.minimail.embed.enabled` - with no page around the client, neither opens an embed.
  *
  * A command's second word `x` is the selected avatar's name (`withSelectedAvatarName`).
  *
  * Without the rights each asks for, the command does nothing and is not said either - unless
  * Flash breaks out of its switch for it, when it is said as chat.
  *
- * Not carried: `:shake` (no room shaking effect), `:ping` (no latency measure), `:showstats` (no
- * fps counter), `:news` / `:mail` (web embeds), `:csmm`, `:lang`, `:uc` / `:anew` (the
- * classification composer carries no type), `:screenshot`, `:iddqd` / `:flip`, `:hidemouse`,
- * `:demonictriggers`.
+ * Not carried: `:csmm` (`GameManager.generateChecksumMismatch`, for the game centre, which is not
+ * ported).
  */
-import { AvatarExpressionEnum, ClubLevelEnum, RoomControllerLevelEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
-import { AvatarExpressionComposer, ChatComposer, SignComposer, VisitUserComposer, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
-import { GetTicker } from '@nitrodevco/nitro-renderer';
+import { AvatarExpressionEnum, ClubLevelEnum, RoomControllerLevelEnum, RoomObjectVariableEnum, RoomZoomEvent } from '@nitrodevco/nitro-api';
+import { AvatarExpressionComposer, ChatComposer, PeerUsersClassificationComposer, RoomUsersClassificationComposer, SignComposer, VisitUserComposer, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
+import { GetTicker, RoomShakingEffect } from '@nitrodevco/nitro-renderer';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
@@ -45,8 +52,11 @@ import { ClientGates, hasClientGate, PerkCodes, userStore } from '#base/context/
 
 import { startTakingPhoto } from './cameraCommands';
 import { openClientLink } from './clientLinkCommands';
+import { showOwnPingChat } from './latencyCommands';
+import { activateLocalizationDefinition } from './localizationCommands';
 import { goToRoom } from './navigatorCommands';
 import { openFurniChooser, openUserChooser } from './roomChooserCommands';
+import { createRoomScreenshot, enableRoomFpsCounter, toggleDemonicTriggers, toggleRoomMouseHidden } from './roomDebugCommands';
 import { ambassadorAlert, dropCarryItem, ignoreUser, kickUser, muteUser, unignoreUser } from './roomUserCommands';
 
 type Send = WebSocketConnection['send'];
@@ -86,6 +96,16 @@ const confirmWiredRoomState = (send: Send, rollback: boolean) => {
     showConfirm(interpolate(`\${${key}}`), interpolate(`\${${key}.warning}`), () => send(new WiredUpdateRoomComposer({ rollback })));
 };
 
+/**
+ * `HabboWebTools.openNews` without a page around the client: `openWebHabblet('news')`, the
+ * community news under `url.prefix` in the hotel's main window.
+ */
+const openNews = () => {
+    const urlPrefix = systemStore.getState().config['url.prefix'];
+
+    window.open(`${(typeof urlPrefix === 'string') ? urlPrefix : ''}/community/category/all/1/`, 'habboMain');
+};
+
 /** `windowManager.toggleFullScreen`. */
 const toggleFullScreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
@@ -119,6 +139,52 @@ export const runRoomChatCommand = (send: Send, text: string): boolean => {
     const argument = words[1] ?? '';
 
     switch (command) {
+        case ':shake':
+            RoomShakingEffect.init(250, 5000);
+            RoomShakingEffect.turnVisualizationOn();
+            return true;
+        case ':ping':
+            // A ping chat of the user's own with `HabboTracking.latencyPingMs`.
+            showOwnPingChat();
+            return true;
+        case ':showstats':
+            enableRoomFpsCounter();
+            return true;
+        case ':screenshot':
+            createRoomScreenshot();
+            return true;
+        case ':hidemouse':
+            toggleRoomMouseHidden();
+            return true;
+        case ':demonictriggers':
+            toggleDemonicTriggers();
+            return true;
+        case ':news':
+            if (systemStore.getState().config['client.news.embed.enabled'] !== true) return false;
+            openNews();
+            return true;
+        case ':mail':
+            // `HabboWebTools.openMinimail`: with no page around the client, `openWebHabblet('minimail')`
+            // knows no such habblet and opens nothing.
+            return systemStore.getState().config['client.minimail.embed.enabled'] === true;
+        case ':iddqd':
+        case ':flip':
+            // `RoomEngineZoomEvent(activeRoomId, -1, true)`: the room turned upside down.
+            room.eventDispatcher.dispatchEvent(new RoomZoomEvent(room.roomId, -1, true));
+            return true;
+        case ':lang':
+            // `activateLocalizationDefinition`: the texts of the hotel definition `localization.<n>` names.
+            activateLocalizationDefinition(argument);
+            return true;
+        case ':uc':
+            if (hasClientGate(ClientGates.ChatStaffCommands)) {
+                if (argument === 'hotel') send(new PeerUsersClassificationComposer({ classification: words[2] ?? '' }));
+                else send(new RoomUsersClassificationComposer({ classification: argument }));
+            }
+            return true;
+        case ':anew':
+            if (isAmbassadorOrStaff()) send(new RoomUsersClassificationComposer({ classification: 'new' }));
+            return true;
         case ':d':
         case ';d':
             if (hasVip()) expression(send, AvatarExpressionEnum.Laugh);

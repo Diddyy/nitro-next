@@ -68,6 +68,8 @@ export const ClientGates = {
     ChatStaffCommands: { node: null, level: SecurityLevelEnum.Employee },
     /** `ChatInputWidgetHandler` `:reload` / `:rollback` - any room's wired state (security 5). No server node. */
     RoomStateAnyRoom: { node: null, level: SecurityLevelEnum.Moderator },
+    /** `ModerationManager.isModerator` - the user classification window's classifications and its user info / visit links (security 5). No server node. */
+    ModerationUserLinks: { node: null, level: SecurityLevelEnum.Moderator },
 } as const satisfies Record<string, ClientGate>;
 
 /** Whether a user with these rights passes `gate`: its node when the server sent nodes, its level otherwise. */

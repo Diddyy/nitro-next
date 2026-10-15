@@ -6,9 +6,10 @@
  * - `onRoomEnter` / `onRoomExit` (:269-290): the guest room the tool's room buttons act on;
  * - `onModeratorActionResult` (:292-304): on success the player's info is asked again, else an alert;
  * - `onSanctions` -> `IssueManager.updateSanctionData` (:468-500): an account's default sanction, labelled
- *   for its mod action window (issue ones are the issue handler's).
+ *   for its mod action window (issue ones are the issue handler's);
+ * - `onRoomUserClassification` (:234-253): a user classification window with the users, for anyone.
  */
-import { CfhSanctionMessage, CloseConnectionMessage, GetModeratorUserInfoComposer, ModeratorActionResultMessage, ModeratorInitMessage, ModeratorRoomInfoMessage, ModeratorUserInfoMessage, RoomChatlogMessage, RoomEntryInfoMessage, UserChatlogMessage } from '@nitrodevco/nitro-packets';
+import { CfhSanctionMessage, CloseConnectionMessage, GetModeratorUserInfoComposer, ModeratorActionResultMessage, ModeratorInitMessage, ModeratorRoomInfoMessage, ModeratorUserInfoMessage, RoomChatlogMessage, RoomEntryInfoMessage, UserChatlogMessage, UserClassificationMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { MOD_CHATLOG_ROOM, MOD_CHATLOG_USER, moderationStore } from '#base/context/moderation';
@@ -30,6 +31,7 @@ export const registerModerationHandlers = ({ subscribe, send }: WebSocketConnect
     on(UserChatlogMessage, data => moderation().setChatlog(MOD_CHATLOG_USER, data.data.userId, { caption: `User Chatlog: ${data.data.userName}`, records: data.data.rooms })),
     on(RoomEntryInfoMessage, data => moderation().setCurrentRoomId(data.roomId)),
     on(CloseConnectionMessage, () => moderation().setCurrentRoomId(0)),
+    on(UserClassificationMessage, data => moderation().showClassification(data.users)),
     on(CfhSanctionMessage, (data) => {
         const { name, avatarOnly, sanctionLengthInHours, tradeLockInfo, machineBanInfo } = data.sanctionType;
         let label = name + (avatarOnly ? ' (avatar) ' : ' ');

@@ -13,8 +13,11 @@
  * - `userInfos`, `roomInfos`, `chatlogs`: the answers their windows wait for.
  * - `defaultSanctions` (`IssueManager.updateSanctionData`): a player's default sanction, as the mod
  *   action window labels it, from `CfhSanction` for its account.
+ * - `classifications` (`ModerationMessageHandler.onRoomUserClassification`): a `UserClassificationCtrl`
+ *   window per `UserClassification` the server sent, each up until closed. They are not the
+ *   `WindowTracker`'s: every answer opens another, where the layout puts it.
  */
-import type { IModeratorRoomInfoData, IModeratorUserInfoData, IRoomChatlogData, IRoomVisitsData, ModeratorInitMessageType } from '@nitrodevco/nitro-packets';
+import type { IModeratorRoomInfoData, IModeratorUserInfoData, IRoomChatlogData, IRoomVisitsData, IUserClassificationData, ModeratorInitMessageType } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 /** `ChatlogCtrl`'s types: 4 a room's chatlog, 5 a user's (`ModerationMessageHandler.onRoomChatlog` / `onUserChatlog`). */
@@ -46,6 +49,12 @@ const WINDOW_SIZES: Record<ModerationWindow['kind'], { width: number; height: nu
     roomVisits: { width: 292, height: 224 },
 };
 
+/** `userclassification_frame.xml`'s frame (60, 4, 292 x 224): where `getXmlWindow` builds it, unplaced. */
+const CLASSIFICATION_RECT = { x: 60, y: 4, width: 292, height: 224 };
+
+/** A classification window's `rects` key (`UserClassificationCtrl` is no `WindowTracker` window). */
+export const moderationClassificationKey = (id: number) => `userClassification:${id}`;
+
 /** `WindowTracker.show`'s gap between a window and its caller. */
 const CALLER_GAP = 5;
 
@@ -61,6 +70,11 @@ export interface ModerationChatlog {
     records: IRoomChatlogData[];
 }
 
+export interface ModerationClassification {
+    id: number;
+    users: IUserClassificationData[];
+}
+
 export interface ModerationStore {
     init: ModeratorInitMessageType | undefined;
     selectedUser: { userId: number; userName: string } | undefined;
@@ -72,6 +86,7 @@ export interface ModerationStore {
     chatlogs: Record<string, ModerationChatlog>;
     defaultSanctions: Record<number, string>;
     roomVisits: Record<number, IRoomVisitsData>;
+    classifications: ModerationClassification[];
     setInit: (init: ModeratorInitMessageType) => void;
     userSelected: (userId: number, userName: string) => void;
     setCurrentRoomId: (roomId: number) => void;
@@ -89,6 +104,10 @@ export interface ModerationStore {
     setChatlog: (type: number, id: number, chatlog: ModerationChatlog) => void;
     setDefaultSanction: (userId: number, label: string) => void;
     setRoomVisits: (visits: IRoomVisitsData) => void;
+    /** `onRoomUserClassification`: a new `UserClassificationCtrl` window with the users. */
+    showClassification: (users: IUserClassificationData[]) => void;
+    /** `UserClassificationCtrl.onClose`. */
+    closeClassification: (id: number) => void;
 }
 
 export const moderationWindowKey = (window: ModerationWindow) => {
@@ -115,6 +134,7 @@ export const createModerationStore = () => createStore<ModerationStore>(set => (
     chatlogs: {},
     defaultSanctions: {},
     roomVisits: {},
+    classifications: [],
     setInit: init => set({ init }),
     userSelected: (userId, userName) => set({ selectedUser: { userId, userName } }),
     setCurrentRoomId: currentRoomId => set({ currentRoomId }),
@@ -148,6 +168,16 @@ export const createModerationStore = () => createStore<ModerationStore>(set => (
     setChatlog: (type, id, chatlog) => set(state => ({ chatlogs: { ...state.chatlogs, [moderationChatlogKey(type, id)]: chatlog } })),
     setDefaultSanction: (userId, label) => set(state => ({ defaultSanctions: { ...state.defaultSanctions, [userId]: label } })),
     setRoomVisits: visits => set(state => ({ roomVisits: { ...state.roomVisits, [visits.userId]: visits } })),
+    showClassification: users => set((state) => {
+        const id = (state.classifications.at(-1)?.id ?? 0) + 1;
+
+        return { classifications: [ ...state.classifications, { id, users } ], rects: { ...state.rects, [moderationClassificationKey(id)]: CLASSIFICATION_RECT } };
+    }),
+    closeClassification: id => set((state) => {
+        const { [moderationClassificationKey(id)]: _, ...rects } = state.rects;
+
+        return { classifications: state.classifications.filter(x => x.id !== id), rects };
+    }),
 }));
 
 export const moderationStore = createModerationStore();

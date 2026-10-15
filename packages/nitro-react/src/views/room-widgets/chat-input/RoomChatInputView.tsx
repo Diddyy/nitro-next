@@ -3,7 +3,7 @@ import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer,
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
-import { openHabbiconHub, requestChatCommandSuggestions, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle, triggerHabbicon, withSelectedAvatarName } from '#base/commands';
+import { openClientLink, openHabbiconHub, requestChatCommandSuggestions, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle, triggerHabbicon, withSelectedAvatarName } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { HabbiconsStore, useHabbiconsStore } from '#base/context/habbicons';
 import { getUnseenItemCount, UnseenItemCategory, useInventoryStore } from '#base/context/inventory';
@@ -41,6 +41,10 @@ const NO_STYLE_SELECTED = -1;
 const SUGGEST_DELAY_MS = 120;
 /** An argument the server would refuse: the red of the field's own flood warning (`block_text`). */
 const INVALID_ARGUMENT_COLOR = '#ff0000';
+/** `startHelpButtonHideTimer`: the help button goes this long after the pointer leaves the field and the button. */
+const HELP_BUTTON_HIDE_DELAY_MS = 400;
+/** `CHAT_HELP_INTERNAL_CLIENT_LINK`. */
+const CHAT_HELP_LINK = 'habbopages/chat/commands';
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -164,6 +168,10 @@ export const RoomChatInputView = () => {
     const stylesClosedAtRef = useRef(0);
     const [ habbiconsAnchor, setHabbiconsAnchor ] = useState<GlobalRect | null>(null);
     const habbiconsClosedAtRef = useRef(0);
+    // `helpbutton`: shown while the pointer is over the field's row or the button.
+    const [ helpButtonVisible, setHelpButtonVisible ] = useState(false);
+    const overHelpButtonRef = useRef(false);
+    const helpButtonHideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     useEffect(() => {
         valueRef.current = value;
@@ -557,6 +565,30 @@ export const RoomChatInputView = () => {
 
     useEffect(() => () => clearTimers(), []);
 
+    /** `stopHelpButtonHideTimer`. */
+    const stopHelpButtonHideTimer = () => {
+        clearTimeout(helpButtonHideTimerRef.current);
+        helpButtonHideTimerRef.current = undefined;
+    };
+
+    useEffect(() => () => clearTimeout(helpButtonHideTimerRef.current), []);
+
+    /** `onInputHoverRegionMouseEvent` / `onHelpButtonMouseEvent`'s `WME_OVER`. */
+    const showHelpButton = () => {
+        setHelpButtonVisible(true);
+        stopHelpButtonHideTimer();
+    };
+
+    /** `startHelpButtonHideTimer` -> `onHelpButtonHideTimer`: hidden unless the pointer is on the button by then. */
+    const startHelpButtonHideTimer = () => {
+        stopHelpButtonHideTimer();
+        helpButtonHideTimerRef.current = setTimeout(() => {
+            helpButtonHideTimerRef.current = undefined;
+
+            if (!overHelpButtonRef.current) setHelpButtonVisible(false);
+        }, HELP_BUTTON_HIDE_DELAY_MS);
+    };
+
     // What only the server knows is asked for once typing pauses; the answer lands in the user store.
     useEffect(() => {
         if (requestCommand === null) return;
@@ -633,7 +665,14 @@ export const RoomChatInputView = () => {
                     // `hideFloodBlocking` / `showFloodBlocking`: the field or the countdown, never both.
                     block_text: { visible: isFloodBlocked, caption: t('chat.input.alert.flood', 'You are talking too fast. Wait %time% seconds.', { time: String(floodRemaining) }) },
                     chat_input: { visible: false },
-                    input_border: { children: isFloodBlocked ? undefined : field },
+                    // `helpbutton_show_hover_region` (the whole border) and `chat_input` show the help button.
+                    input_border: {
+                        children: isFloodBlocked ? undefined : field,
+                        onPointerOver: showHelpButton,
+                        onPointerOut: () => {
+                            if (!overHelpButtonRef.current) startHelpButtonHideTimer();
+                        },
+                    },
                     styles: { onPointerTap: () => toggleStyles(stylesRect) },
                     // `chat_extra_button` under `habbicons.enabled`, with the unseen count while the menu is
                     // shut (`updateHabbiconUnseenCounter`), 2 in from its top right.
@@ -648,8 +687,19 @@ export const RoomChatInputView = () => {
                     },
                     // `updateHabbiconButtonSetIcon`: the set of the last habbicon used, else the shop's first set, outlined.
                     chat_extra_set_icon: { visible: habbiconsEnabled && !!setIconAsset, asset: setIconAsset },
-                    // `createWindow`: the chat commands help button starts hidden; what shows it is not ported.
-                    helpbutton: { visible: false },
+                    // `onHelpButtonMouseEvent`: the chat commands page on a click; the button stays while the pointer is on it.
+                    helpbutton: {
+                        visible: helpButtonVisible,
+                        onPointerTap: () => openClientLink(send, CHAT_HELP_LINK),
+                        onPointerOver: () => {
+                            overHelpButtonRef.current = true;
+                            showHelpButton();
+                        },
+                        onPointerOut: () => {
+                            overHelpButtonRef.current = false;
+                            startHelpButtonHideTimer();
+                        },
+                    },
                 }}
             />
             {stylesAnchor && (

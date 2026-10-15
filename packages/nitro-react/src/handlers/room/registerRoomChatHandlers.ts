@@ -1,22 +1,12 @@
-import { RoomChatTypeEnum, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
+import { RoomChatTypeEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import { ChatMessage, CloseConnectionMessage, FloodControlMessage, GetGuestRoomResultMessage, HandItemReceivedMessage, IChatLink, PetRespectNotificationEventMessage, PetSupplementedNotificationEventMessage, RemainingMutePeriodMessage, RespectNotificationMessage, RoomChatSettingsMessage, RoomEntryInfoMessage, ShoutMessage, SpecialSystemChatMessage, WhisperMessage } from '@nitrodevco/nitro-packets';
 
-import { createChatBubbleId, GetChatStyleLibrary } from '#base/chat';
-import { ChatHistoryIgnoreTarget, chatHistoryStore } from '#base/context/chat-history';
+import { GENERIC_CHAT_STYLE, insertRoomChat } from '#base/commands';
+import { chatHistoryStore } from '#base/context/chat-history';
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
-import { userStore } from '#base/context/user';
 
 import { on, subscribeAll } from '../packetSubscriptions';
-
-/** `ChatBubbleFactory.isSystemNotificationChat`: the chat types 3-10 and 12. */
-const SYSTEM_NOTIFICATION_CHAT_TYPES: ReadonlySet<RoomChatTypeEnum> = new Set([
-    RoomChatTypeEnum.Respect, RoomChatTypeEnum.PetRespect, RoomChatTypeEnum.HandItem, RoomChatTypeEnum.PetTreat, RoomChatTypeEnum.PetRevive,
-    RoomChatTypeEnum.PetRebreed, RoomChatTypeEnum.PetSpeed, RoomChatTypeEnum.MuteRemaining, RoomChatTypeEnum.SpecialSystem,
-]);
-
-/** `SystemChatStyleEnum.GENERIC` - the anonymous grey bubble every system notice uses. */
-const GENERIC_CHAT_STYLE = 1;
 
 /** `PetSupplementedNotification.supplementType` -> the Flash chat types 7/8/9. */
 const PET_SUPPLEMENT_CHAT_TYPES: Record<number, RoomChatTypeEnum> = {
@@ -26,63 +16,14 @@ const PET_SUPPLEMENT_CHAT_TYPES: Record<number, RoomChatTypeEnum> = {
 };
 
 /**
- * The Flash `RoomChatHandler` + `ChatEventHandler`: every chat-ish packet becomes a
- * `ChatBubbleData` in the room store (which `RoomChatBubbles` renders), and a spoken message
- * also makes the speaker's avatar mouth it (one second per word - `ObjectAvatarChatUpdateMessage`).
- * The speaker's live location vector is handed to the bubble (as the Flash `ChatEventHandler`
- * did), so its pointer keeps following them while they walk. Flood control and the room's chat settings land in the store for the chat input.
+ * The Flash `RoomChatHandler`: every chat-ish packet becomes a chat event `insertRoomChat` puts in
+ * the room (`ChatEventHandler`), and a spoken message also makes the speaker's avatar mouth it
+ * (one second per word - `ObjectAvatarChatUpdateMessage`). Flood control and the room's chat settings land in the store for the chat input.
  */
 export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => {
-    const { addChatBubble, setFloodBlock, setChatSettings } = roomStore.getState();
-    let lastAddedChatMs = 0;
-    let chatFakeMsIncrementor = 0;
+    const { setFloodBlock, setChatSettings } = roomStore.getState();
 
     const findUser = (webId: number, userType: RoomObjectUserType) => roomStore.getState().getUserByWebId(webId, userType);
-
-    const addChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[] = [], extraParam: number = 0, hideUsername: boolean = false) => {
-        const room = getRoom();
-
-        if (!room || (objectId < 0)) return;
-
-        const roomObject = room.getRoomObject(objectId, RoomObjectCategoryEnum.Unit);
-        const location = roomObject?.getLocation();
-        const now = Math.floor(performance.now());
-
-        // Messages that share a millisecond still need a strict order for the collision rules.
-        if (now === lastAddedChatMs) chatFakeMsIncrementor++;
-        else chatFakeMsIncrementor = 0;
-
-        lastAddedChatMs = now;
-
-        const bubble = {
-            id: createChatBubbleId(),
-            roomId: room.roomId,
-            objectId,
-            text,
-            chatType,
-            styleId,
-            links,
-            // `ChatItem` copies the location: the bubble keeps where its speaker stood when they spoke.
-            userLocation: location ? new Vector3d(location.x, location.y, location.z) : undefined,
-            timestamp: now + chatFakeMsIncrementor,
-            extraParam,
-            hideUsername,
-        };
-
-        // `ChatBubbleFactory.getHistoryLineEntry` draws the line from who spoke it then: a user's
-        // name and figure are kept with it, as the history outlives the room's user list.
-        const speaker = roomStore.getState().usersByRoomObjectId[objectId];
-
-        // `canIgnore`: a user's line, not your own, in a style that is not a notification, of a
-        // chat type that is not a system notice.
-        const ignore: ChatHistoryIgnoreTarget | undefined = (speaker && (speaker.userType === RoomObjectUserType.User) && (speaker.webID > 0)
-            && (speaker.webID !== userStore.getState().userId) && !GetChatStyleLibrary().getStyle(styleId)?.isNotification && !SYSTEM_NOTIFICATION_CHAT_TYPES.has(chatType))
-            ? { webId: speaker.webID, userName: speaker.name }
-            : undefined;
-
-        chatHistoryStore.getState().insertChat((speaker?.userType === RoomObjectUserType.User) ? { ...bubble, forcedUserName: speaker.name, forcedFigure: speaker.figure } : bubble, ignore);
-        addChatBubble(bubble);
-    };
 
     const addSpokenChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[], hideUsername: boolean) => {
         const room = getRoom();
@@ -91,7 +32,7 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
 
         room.updateRoomObjectUserAction(objectId, RoomObjectVariableEnum.FigureTalk, text.split(' ').length);
 
-        addChat(objectId, text, chatType, styleId, links, 0, hideUsername);
+        insertRoomChat(objectId, text, chatType, styleId, links, 0, hideUsername);
     };
 
     return subscribeAll(subscribe, [
@@ -122,7 +63,7 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
         }),
 
         on(HandItemReceivedMessage, (data) => {
-            addChat(data.giverUserId, '', RoomChatTypeEnum.HandItem, GENERIC_CHAT_STYLE, [], data.handItemType);
+            insertRoomChat(data.giverUserId, '', RoomChatTypeEnum.HandItem, GENERIC_CHAT_STYLE, [], data.handItemType);
         }),
 
         /*
@@ -132,19 +73,19 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
         on(SpecialSystemChatMessage, (data) => {
             if (!roomStore.getState().usersByRoomObjectId[data.userIndex]) return;
 
-            addChat(data.userIndex, '', RoomChatTypeEnum.SpecialSystem, GENERIC_CHAT_STYLE, [], data.specialSystemType);
+            insertRoomChat(data.userIndex, '', RoomChatTypeEnum.SpecialSystem, GENERIC_CHAT_STYLE, [], data.specialSystemType);
         }),
 
         on(RespectNotificationMessage, (data) => {
             const user = findUser(data.userId, RoomObjectUserType.User);
 
-            if (user) addChat(user.objectId, '', RoomChatTypeEnum.Respect, GENERIC_CHAT_STYLE);
+            if (user) insertRoomChat(user.objectId, '', RoomChatTypeEnum.Respect, GENERIC_CHAT_STYLE);
         }),
 
         on(PetRespectNotificationEventMessage, (data) => {
             const pet = findUser(data.petId, RoomObjectUserType.Pet);
 
-            if (pet) addChat(pet.objectId, '', data.isTreat ? RoomChatTypeEnum.PetTreat : RoomChatTypeEnum.PetRespect, GENERIC_CHAT_STYLE);
+            if (pet) insertRoomChat(pet.objectId, '', data.isTreat ? RoomChatTypeEnum.PetTreat : RoomChatTypeEnum.PetRespect, GENERIC_CHAT_STYLE);
         }),
 
         on(PetSupplementedNotificationEventMessage, (data) => {
@@ -155,7 +96,7 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
             const giver = findUser(data.userId, RoomObjectUserType.User);
             const chatType = PET_SUPPLEMENT_CHAT_TYPES[data.supplementType] ?? RoomChatTypeEnum.PetRevive;
 
-            addChat(pet.objectId, '', chatType, GENERIC_CHAT_STYLE, [], giver?.objectId ?? -1);
+            insertRoomChat(pet.objectId, '', chatType, GENERIC_CHAT_STYLE, [], giver?.objectId ?? -1);
         }),
 
         on(FloodControlMessage, (data) => {
@@ -163,7 +104,7 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
         }),
 
         on(RemainingMutePeriodMessage, (data) => {
-            addChat(roomStore.getState().ownRoomIndex, '', RoomChatTypeEnum.MuteRemaining, GENERIC_CHAT_STYLE, [], data.secondsRemaining);
+            insertRoomChat(roomStore.getState().ownRoomIndex, '', RoomChatTypeEnum.MuteRemaining, GENERIC_CHAT_STYLE, [], data.secondsRemaining);
         }),
 
         on(RoomChatSettingsMessage, (data) => {

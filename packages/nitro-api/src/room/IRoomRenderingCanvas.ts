@@ -39,6 +39,10 @@ export interface IRoomRenderingCanvas {
     screenOffsetY: number;
     scale: number;
     readonly isFlipped: boolean;
+    /** Flash `fpsCounterEnabled`: the fps, frame time and ping text in the canvas's bottom right corner. */
+    fpsCounterEnabled: boolean;
+    /** Flash `pingMs`: the latency the fps counter shows on its first line; below 0 it shows none. */
+    pingMs: number;
     width: number;
     height: number;
 }

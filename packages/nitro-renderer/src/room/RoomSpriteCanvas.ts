@@ -9,7 +9,7 @@ import {
     MouseEventType, RoomGeometryScaleType,
     RoomObjectSpriteData,
     RoomObjectSpriteTypeEnum, RoomObjectVariableEnum, RoomSpriteMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
-import { Container, Graphics, Matrix, Point, Rectangle, Sprite, Texture } from 'pixi.js';
+import { Container, Graphics, Matrix, Point, Rectangle, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 
 import { ExtendedSprite, TextureUtils } from '../utils';
 import { RoomObjectCache, RoomObjectCacheItem } from './object';
@@ -83,6 +83,23 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
     private _usesMask: boolean = true;
     private _backgroundVisible: boolean = true;
     private _zDirty: boolean = false;
+
+    /*
+     * `calculateUpdateInterval`'s bookkeeping for the fps counter: the frames before the first
+     * sample, the frames and their intervals and render times in the sample being taken, the last
+     * sample's averages, the last really slow frame and how long the last render took.
+     */
+    private _fpsCounterEnabled: boolean = false;
+    private _fpsText: Text | undefined = undefined;
+    private _pingMs: number = -1;
+    private _framesBeforeSampling: number = 0;
+    private _sampledFrames: number = 0;
+    private _sampledIntervalTotal: number = 0;
+    private _sampledRenderTimeTotal: number = 0;
+    private _averageInterval: number = 0;
+    private _averageRenderTime: number = 0;
+    private _haltedTime: number = 0;
+    private _renderTime: number = 0;
 
     private static readonly _zComparator = (a: SortableSprite, b: SortableSprite): number => b.z - a.z;
 
@@ -276,6 +293,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         this._width = width;
         this._height = height;
+        this.positionFpsText();
         this.updateZoomSampling();
     }
 
@@ -357,6 +375,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         if (!this._geometry || time === this._renderTimestamp) return;
 
+        const renderStart = performance.now();
+
         // RotatingRoomSpriteCanvas.render: the rotating and shaking room effects move the geometry
         // before each frame is drawn. Once per frame, so a re-entrant render(-1) does not step them twice.
         this.doMagic();
@@ -408,9 +428,120 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         this.cleanSprites(spriteCount);
 
+        this._renderTime = performance.now() - renderStart;
+
+        this.calculateUpdateInterval(time);
+
         this._renderTimestamp = time;
         this._renderedWidth = this._width;
         this._renderedHeight = this._height;
+    }
+
+    /**
+     * Flash `calculateUpdateInterval`, the fps counter's half: after the first 50 frames, every 50
+     * frames the average interval between them and the average time their renders took become the
+     * counter's text (`fps`, `frame time`, the ping first when one is known), with the last frame
+     * of over 180 ms since the previous text as `halted`. Flash's switch into and out of its
+     * frame skipping mode (`_runningSlow`, over 60 ms and under 50 ms) is not made here.
+     */
+    private calculateUpdateInterval(time: number): void {
+        if (this._renderTimestamp <= 0) return;
+
+        const interval = time - this._renderTimestamp;
+
+        if (interval <= 0) return;
+
+        // Flash's frame times are whole milliseconds (`getTimer`); the ticker's are not.
+        if (interval > (60 * 3)) this._haltedTime = Math.trunc(interval);
+
+        this._framesBeforeSampling++;
+
+        if (this._framesBeforeSampling <= 50) return;
+
+        this._sampledFrames++;
+        this._sampledIntervalTotal += interval;
+        this._sampledRenderTimeTotal += this._renderTime;
+
+        if (this._sampledFrames < 50) return;
+
+        this._averageInterval = this._sampledIntervalTotal / this._sampledFrames;
+        this._averageRenderTime = this._sampledRenderTimeTotal / this._sampledFrames;
+        this._sampledFrames = 0;
+        this._sampledIntervalTotal = 0;
+        this._sampledRenderTimeTotal = 0;
+
+        if (this._fpsCounterEnabled && this._fpsText) {
+            const fps = (1000 / this._averageInterval).toFixed(1);
+            const frameTime = (this._averageRenderTime < 1) ? '<1.0' : this._averageRenderTime.toFixed(1);
+
+            let text = '';
+
+            if (this._pingMs >= 0) text += 'ping: ' + this._pingMs + 'ms\n';
+
+            text += 'fps: ' + fps + '\n' + 'frame time: ' + frameTime + 'ms';
+
+            if (this._haltedTime > 0) text += '\nhalted ' + this._haltedTime + 'ms';
+
+            this._fpsText.text = text;
+        }
+
+        this._haltedTime = 0;
+    }
+
+    /**
+     * Flash's counter `TextField`: Verdana 9 in 0xFF5500, right aligned in a 100 x 60 box 20 px in
+     * from the right edge and 60 px up from the bottom. Flash builds it with every canvas; here it
+     * is made the first time a counter is turned on, over the room in the canvas's master.
+     */
+    private createFpsText(): Text | undefined {
+        if (this._fpsText || !this._master) return this._fpsText;
+
+        this._fpsText = new Text({
+            text: '',
+            style: new TextStyle({
+                fontFamily: 'Verdana',
+                fontSize: 9,
+                fill: 0xFF5500,
+                align: 'right',
+            }),
+        });
+
+        this._fpsText.anchor.x = 1;
+        this._fpsText.eventMode = 'none';
+
+        this._master.addChild(this._fpsText);
+        this.positionFpsText();
+
+        return this._fpsText;
+    }
+
+    /** `initialize`: the box's right edge, less the `TextField`'s 2 px gutter, and its top plus the gutter. */
+    private positionFpsText(): void {
+        if (!this._fpsText) return;
+
+        this._fpsText.x = this._width - (100 + 20) + 100 - 2;
+        this._fpsText.y = this._height - (60 + 60) + 2;
+    }
+
+    public get fpsCounterEnabled(): boolean {
+        return this._fpsCounterEnabled;
+    }
+
+    /** Flash `set fpsCounterEnabled`: turning it off empties the text; on, it fills at the next sample. */
+    public set fpsCounterEnabled(flag: boolean) {
+        this._fpsCounterEnabled = flag;
+
+        if (flag) this.createFpsText();
+        else if (this._fpsText) this._fpsText.text = '';
+    }
+
+    public get pingMs(): number {
+        return this._pingMs;
+    }
+
+    /** Flash `set pingMs`, which `RoomEngine.update` gives the active canvas every frame. */
+    public set pingMs(ping: number) {
+        this._pingMs = ping;
     }
 
     public skipSpriteVisibilityChecking(): void {

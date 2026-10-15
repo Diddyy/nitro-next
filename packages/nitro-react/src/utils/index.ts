@@ -28,6 +28,7 @@ export * from './GetLaunchParameter';
 export * from './GetPixelRatio';
 export * from './habbiconAssets';
 export * from './handItems';
+export * from './latencyTracker';
 export * from './localizationData';
 export * from './localizationParameters';
 export * from './marketplace';

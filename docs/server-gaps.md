@@ -89,6 +89,7 @@ nothing sends it.
 | Trading | `TradeSilverSet`, `TradeSilverFee` (never sent), `TradeNftAssets`, `TradeNftAssetInventory` (no serializer) | |
 | Wired | `WiredMenuError` (never sent); `WiredRoomLogs`, `WiredUserVariablesList`, `WiredUserPermanentVariables`, `WiredSetUserPermanentVariableResult`, `WiredWebApiKeyResult` (no serializer) | |
 | Wired trading | `SelfDonationResult` | no serializer |
+| Moderation | `UserClassification` (the answer to `:uc` / `:anew`) | never sent |
 
 ## Known behaviour gaps
 
@@ -101,6 +102,9 @@ cannot find these; add them as they are found.
 - **Spam wall.** Turbo sends `RequestSpamWallPostIt` with the wall's room object id. Flash looks
   that id up in the inventory to take a themed post-it's type, so with Turbo the note always opens
   as a plain `post_it`.
+- **User classification.** `RoomUsersClassification` and `PeerUsersClassification` (`:uc`,
+  `:anew`) are parsed without their classification and handled by nothing, and the
+  `UserClassification` serializer writes no users.
 - **Pet products used from the inventory.** The furni page's `use_btn` sends
   `CustomizePetWithFurni` with the inventory item's room item id (`ref`). Turbo's handler only
   interacts with an item standing in the room, so a product still in the inventory does nothing.
