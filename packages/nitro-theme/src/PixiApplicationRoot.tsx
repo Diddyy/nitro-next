@@ -13,13 +13,16 @@ import { ReactNode, useCallback, useRef } from 'react';
 
 import { useThemeConfigValue } from './host';
 import { setAdvancedBlendModes } from './utils/flashBlendMode';
-import { GetPixelRatio } from './utils/GetPixelRatio';
+import { GetCanvasImageRendering, GetPixelRatio } from './utils/GetPixelRatio';
 import { guardGpuLoss } from './utils/gpuLossGuard';
 import { guardLayoutViewSizes } from './utils/layoutViewSizeGuard';
 import { gateLayoutWalk } from './utils/layoutWalkGate';
+import { gateRendering } from './utils/renderGate';
 
 /** `renderer.color.space` in nitro-config.json: the port's own key - Flash drew in sRGB and had no such setting. */
 const COLOR_SPACE_KEY = 'renderer.color.space';
+/** `false` draws every tick, as before `renderGate` - should something show late with it. */
+const RENDER_ON_DEMAND_KEY = 'renderer.render_on_demand';
 
 /**
  * Puts the canvas in the `display-p3` colour space when the config asks for it
@@ -61,6 +64,35 @@ const applyCanvasColorSpace = (app: PixiApplication, colorSpace: string | undefi
     }
 };
 
+/**
+ * Keeps the renderer at `GetPixelRatio` as the device ratio changes - the browser zoomed, the window
+ * moved to another screen - as Habbo's JS port checks it every tick; here a media query for the
+ * current ratio says when it stops matching, and every resize checks it again.
+ */
+const followPixelRatio = (app: PixiApplication) => {
+    const apply = () => {
+        const resolution = GetPixelRatio();
+
+        app.canvas.style.imageRendering = GetCanvasImageRendering();
+
+        if (resolution !== app.renderer.resolution) app.renderer.resize(app.renderer.screen.width, app.renderer.screen.height, resolution);
+    };
+
+    const listen = () => {
+        if (typeof window.matchMedia !== 'function') return;
+
+        window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener('change', () => {
+            apply();
+            listen();
+        }, { once: true });
+    };
+
+    apply();
+    listen();
+    // A browser zoom also resizes the window: checked there too, should the query's change be missed.
+    app.renderer.on('resize', apply);
+};
+
 interface PixiApplicationRootProps {
     onReady: () => void;
     /**
@@ -87,11 +119,12 @@ interface PixiApplicationRootProps {
 const UI_LAYOUT = { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' } as const;
 
 /** The client's canvas: the whole window, under everything else on the page. */
-const FULL_WINDOW_CANVAS = 'position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; image-rendering: pixelated;';
+const FULL_WINDOW_CANVAS = 'position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%;';
 
 export const PixiApplicationRoot = ({ onReady, onInit, onGpuLost, resizeTo = window, canvasStyle = FULL_WINDOW_CANVAS, children }: PixiApplicationRootProps) => {
     const readyRef = useRef(false);
     const colorSpace = useThemeConfigValue<string>(COLOR_SPACE_KEY);
+    const renderOnDemand = (useThemeConfigValue<boolean>(RENDER_ON_DEMAND_KEY) !== false);
 
     const handleInit = useCallback((app: PixiApplication) => {
         if (readyRef.current) return;
@@ -103,6 +136,7 @@ export const PixiApplicationRoot = ({ onReady, onInit, onGpuLost, resizeTo = win
         // without it a finger dragged across the canvas is the browser's pan or zoom, which cancels
         // the pointer a few pixels in and leaves the room (or any drag) stuck.
         app.canvas.style.touchAction = 'none';
+        followPixelRatio(app);
 
         SetRenderer(app.renderer);
         setAdvancedBlendModes(app.renderer);
@@ -129,9 +163,11 @@ export const PixiApplicationRoot = ({ onReady, onInit, onGpuLost, resizeTo = win
         gateLayoutWalk(app.renderer, app.stage);
         // A nine-slice or tiling sprite once laid out at 0 would stay `NaN` sized.
         guardLayoutViewSizes();
+        // The frame is drawn only when something on it changed.
+        if (renderOnDemand) gateRendering(app);
 
         onReady();
-    }, [ onReady, onInit, onGpuLost, colorSpace, canvasStyle ]);
+    }, [ onReady, onInit, onGpuLost, colorSpace, canvasStyle, renderOnDemand ]);
 
     return (
         <Application

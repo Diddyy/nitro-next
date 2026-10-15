@@ -349,6 +349,7 @@
     "recycler.timeout_seconds": 10,
     "relationship.status.enabled": true,
     "renderer.color.space": "",
+    "renderer.render_on_demand": true,
     "renderer.petTypes": [
         "dog",
         "cat",

@@ -37,6 +37,9 @@ const raiseOn = <K extends 'invalidateRoot' | 'forceUpdate' | 'setStyle'>(name: 
     };
 };
 
+/** Whether a layout change is waiting for the stage's next walk (`renderGate` draws a frame for it). */
+export const isLayoutWalkPending = (): boolean => pending;
+
 /** Installs the gate on the renderer's layout system for `stage`; once per page. */
 export const gateLayoutWalk = (renderer: unknown, stage: Container): void => {
     const system = (renderer as { layout?: LayoutWalker }).layout;
