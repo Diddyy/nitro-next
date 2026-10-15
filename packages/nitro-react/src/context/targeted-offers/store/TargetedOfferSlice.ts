@@ -44,20 +44,57 @@ export const checkTargetedOfferPurseBalance = (offer: TargetedOffer, credits: nu
     return ((activityPoints[offer.activityPointType] ?? 0) >= (offer.priceInActivityPoints * quantity));
 };
 
+/**
+ * Flash's `catalog/targetedoffers/data/HabboMallOffer`: the offer the web page answers
+ * `TargetedWebOffer.checkOffer` with (`MallOfferExternalInterfaceHelper.onShopOfferResult`), built
+ * from the object it passes - `targetedOfferId` and `trackingStateCode` through `parseInt`, the rest
+ * as they come.
+ */
+export interface HabboMallOffer {
+    targetedOfferId: number;
+    identifier: string;
+    title: string;
+    highlight: string;
+    description: string;
+    imageUrl: string;
+    smallImageUrl: string;
+    trackingState: number;
+}
+
+/** `new HabboMallOffer(param1)`: the page's object, read as Flash reads it. */
+export const createHabboMallOffer = (data: Record<string, unknown>): HabboMallOffer => {
+    const text = (value: unknown) => ((typeof value === 'string') || (typeof value === 'number') || (typeof value === 'boolean')) ? String(value) : '';
+
+    return {
+        targetedOfferId: parseInt(text(data.targetedOfferId)),
+        identifier: text(data.identifier),
+        title: text(data.header),
+        highlight: text(data.highlight),
+        description: text(data.description),
+        imageUrl: text(data.imageUrl),
+        smallImageUrl: text(data.smallImageUrl),
+        trackingState: parseInt(text(data.trackingStateCode)),
+    };
+};
+
 /** `TargetedOfferData.purchased(n)`, without touching the offer it is given. */
 export const purchasedTargetedOffer = (offer: TargetedOffer, amount: number): TargetedOffer => ({ ...offer, purchaseLimit: offer.purchaseLimit - amount });
 
 type State = {
     /** The offer of the view that is up; `null` when none is. */
     offer: TargetedOffer | null;
+    /** The Habbo Mall offer of the mall view that is up; `null` when none is. */
+    mallOffer: HabboMallOffer | null;
 };
 
 type Actions = {
     setOffer: (offer: TargetedOffer | null) => void;
+    setMallOffer: (mallOffer: HabboMallOffer | null) => void;
 };
 
 export const TargetedOfferSliceInitialState: State = {
     offer: null,
+    mallOffer: null,
 };
 
 export type TargetedOfferSlice = State & Actions;
@@ -65,4 +102,5 @@ export type TargetedOfferSlice = State & Actions;
 export const createTargetedOfferSlice: StateCreator<TargetedOfferSlice, [], [], TargetedOfferSlice> = set => ({
     ...TargetedOfferSliceInitialState,
     setOffer: offer => set({ offer }),
+    setMallOffer: mallOffer => set({ mallOffer }),
 });

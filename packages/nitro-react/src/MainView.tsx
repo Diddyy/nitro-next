@@ -29,6 +29,7 @@ import { registerHandlers } from './handlers';
 import { useRegisterHandlers } from './hooks';
 import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
 import { BadgeLeaderboardView } from './views/badge-leaderboard/BadgeLeaderboardView';
+import { MallOfferMinimizedView } from './views/catalog/targeted-offers/MallOfferMinimizedView';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
 import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
 import { GroupForumDialogs } from './views/group-forums/GroupForumDialogs';
@@ -122,7 +123,9 @@ export const MainView = () => {
                             <ActivityPointsView />
                             {/* `club_promo` (priority 10) docks above the targeted offer (13). */}
                             <ClubDiscountPromoView />
+                            {/* `targeted_offer` (13): the targeted offer's or the Habbo Mall offer's, whichever is up. */}
                             <TargetedOfferMinimizedView />
+                            <MallOfferMinimizedView />
                             {/* `SingularNotificationController`'s extensions, docked at the end of the column. */}
                             <SafetyLockedNotificationView />
                             <ClubGiftNotificationView />

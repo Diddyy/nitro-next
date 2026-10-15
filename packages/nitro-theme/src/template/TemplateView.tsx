@@ -1022,6 +1022,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
                 previous={bitmapSourceOf(element, undefined, context.imageUrl)}
                 // A colour the code sets (`IWindow.color`); the layout's own is not drawn on a bitmap.
                 tint={binding?.color !== undefined ? flashColor(binding.color)?.hex : undefined}
+                frame={binding?.frame}
                 bitmap={{ ...bitmapVars(element.vars), ...(binding?.pivot !== undefined && { pivot: binding.pivot }), ...(binding?.rotation !== undefined && { rotation: binding.rotation }) }}
                 // `IBitmapWrapperWindow.greyscale` - the layout's `greyscale` var (a sub menu's `<name>_icon_grey`), or its code's.
                 greyscale={binding?.greyscale ?? flashBool(element.vars.greyscale)}

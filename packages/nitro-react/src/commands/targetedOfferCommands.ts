@@ -2,20 +2,22 @@
  * What the targeted offer views do - the public methods of Flash's
  * `catalog/targetedoffers/OfferController`: `minimizeOffer`, `maximizeOffer`,
  * `purchaseTargetedOffer`, `showConfirmation`, `destroyView`, `purchaseCredits` and
- * `sendLogEvent`. Each sends the packet Flash sends there and writes `targetedOfferStore`.
+ * `sendLogEvent`, and for a Habbo Mall offer `onHabboMallOffer`, `maximizeMallOffer`,
+ * `minimizeMallOffer`, `onHabboMallOfferOpened` and `onHabboMallOfferClosed`. Each sends the packet
+ * Flash sends there and writes `targetedOfferStore`.
  *
- * `purchaseCredits` is Flash's log event and `HabboCatalog.openCreditsHabblet`, which opens
- * `web.shop.relativeUrl` under the hotel's web root (`HabboWebTools.openWebPageAndMinimizeClient`).
- * The port has no hotel web page to open it under - the client is served from its own origin,
- * as `onNotEnoughBalance` in `registerCatalogHandlers` notes - so only the log event is sent.
+ * `purchaseCredits` and `onHabboMallOfferOpened` open the web shop with `openCreditsHabblet`.
  */
-import { EventLogComposer, PurchaseTargetedOfferComposer, SetTargetedOfferStateComposer } from '@nitrodevco/nitro-packets';
+import { EventLogComposer, PurchaseTargetedOfferComposer, SetTargetedOfferStateComposer, ShopTargetedOfferViewedComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
 import {
-    isTargetedOfferExpired, purchasedTargetedOffer, TARGETED_OFFER_DIALOG_LAYOUT, TARGETED_OFFER_DIALOG_VARIATION_LAYOUT, TARGETED_OFFER_STATE_MAXIMIZED, TARGETED_OFFER_STATE_MINIMIZED, TargetedOffer, targetedOfferStore,
+    HabboMallOffer, isTargetedOfferExpired, purchasedTargetedOffer, TARGETED_OFFER_DIALOG_LAYOUT, TARGETED_OFFER_DIALOG_VARIATION_LAYOUT, TARGETED_OFFER_STATE_MAXIMIZED, TARGETED_OFFER_STATE_MINIMIZED,
+    TARGETED_OFFER_STATE_PREVIEWED, TARGETED_OFFER_STATE_REJECTED, TARGETED_OFFER_STATE_SELECTED, TargetedOffer, targetedOfferStore,
 } from '#base/context/targeted-offers';
+
+import { openCreditsHabblet } from './catalogClubCommands';
 
 type Send = WebSocketConnection['send'];
 
@@ -24,10 +26,11 @@ export const TARGETED_OFFER_OPEN_CREDITS_PAGE_CLICKED = 'targeted.offer.open.cre
 
 /** `destroyView`: whichever view is up goes, and the offer with it. */
 export const destroyTargetedOfferView = () => {
-    const { hideView, setOffer } = targetedOfferStore.getState();
+    const { hideView, setOffer, setMallOffer } = targetedOfferStore.getState();
 
     hideView();
     setOffer(null);
+    setMallOffer(null);
 };
 
 /** `minimizeOffer`: the offer docks in the toolbar's extension column. */
@@ -89,6 +92,58 @@ export const purchaseTargetedOffer = (send: Send, offer: TargetedOffer, quantity
 export const sendTargetedOfferLogEvent = (send: Send, action: string, extra: string = '') =>
     send(new EventLogComposer({ event: 'TargetedOffers', data: 'FLASH.UNKNOWN', action, extraString: extra, extraInt: 0 }));
 
-/** `purchaseCredits` - the log event; see the docblock for the web shop it cannot open. */
-export const purchaseTargetedOfferCredits = (send: Send, offer: TargetedOffer) =>
+/** `purchaseCredits`: the log event, and the web shop. */
+export const purchaseTargetedOfferCredits = (send: Send, offer: TargetedOffer) => {
     sendTargetedOfferLogEvent(send, TARGETED_OFFER_OPEN_CREDITS_PAGE_CLICKED, offer.identifier);
+    openCreditsHabblet();
+};
+
+/** `onHabboMallOffer`: a rejected offer is dropped; one new (0), selected or previewed opens its dialog, any other docks. */
+export const onHabboMallOffer = (send: Send, offer: HabboMallOffer) => {
+    switch (offer.trackingState) {
+        case TARGETED_OFFER_STATE_REJECTED:
+            return;
+        case 0:
+        case TARGETED_OFFER_STATE_SELECTED:
+        case TARGETED_OFFER_STATE_PREVIEWED:
+            maximizeMallOffer(send, offer);
+            return;
+        default:
+            minimizeMallOffer(offer);
+    }
+};
+
+/** `maximizeMallOffer`: nothing while the mall dialog is up; otherwise it replaces the view that is, and the offer is told previewed. */
+export const maximizeMallOffer = (send: Send, offer: HabboMallOffer) => {
+    const { view, showMallDialogView, setMallOffer } = targetedOfferStore.getState();
+
+    if (view === 'mallDialog') return;
+
+    destroyTargetedOfferView();
+    setMallOffer(offer);
+    showMallDialogView();
+
+    send(new ShopTargetedOfferViewedComposer({ targetedOfferId: offer.targetedOfferId, trackingState: TARGETED_OFFER_STATE_PREVIEWED }));
+};
+
+/** `minimizeMallOffer`: the offer docks in the toolbar's extension column; nothing is sent. */
+export const minimizeMallOffer = (offer: HabboMallOffer) => {
+    const { showMallMinimizedView, setMallOffer } = targetedOfferStore.getState();
+
+    destroyTargetedOfferView();
+    setMallOffer(offer);
+    showMallMinimizedView();
+};
+
+/** `onHabboMallOfferOpened`, the dialog's `btn_buy`: told opened (1), the web shop (`openCreditsHabblet`), and docked. */
+export const openHabboMallOffer = (send: Send, offer: HabboMallOffer) => {
+    send(new ShopTargetedOfferViewedComposer({ targetedOfferId: offer.targetedOfferId, trackingState: TARGETED_OFFER_STATE_MAXIMIZED }));
+    openCreditsHabblet();
+    minimizeMallOffer(offer);
+};
+
+/** `onHabboMallOfferClosed`, the dialog's close button: told closed (4), and docked. */
+export const closeHabboMallOffer = (send: Send, offer: HabboMallOffer) => {
+    send(new ShopTargetedOfferViewedComposer({ targetedOfferId: offer.targetedOfferId, trackingState: TARGETED_OFFER_STATE_MINIMIZED }));
+    minimizeMallOffer(offer);
+};

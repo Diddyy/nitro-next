@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 
 import type { EtchingPosition, FlashTextStyleSheet } from '../font/flash-text';
 import type { PivotPoint } from '../utils/flashBitmap';
+import type { SpriteFrame } from '../utils/spriteFrame';
 import type { Template, TemplateElement } from './templateData';
 import type { LayoutWindow, TemplateRect } from './templateLayout';
 
@@ -70,6 +71,12 @@ export interface TemplateBinding {
      * a `badge_image` widget's badge (`BadgeImageWidget.badgeId`), as its image's url.
      */
     asset?: string;
+    /**
+     * A bitmap's image cut to this rect, as code hands the window a `BitmapData` it `copyPixels` part
+     * of the asset into (`ClubDiscountPromoExtension.onAnimationTimer`); drawn by the window's own
+     * vars, as that bitmap would be.
+     */
+    frame?: SpriteFrame;
     /**
      * A bitmap sized to the image its code gives it, as `fit_size_to_contents` sizes one to its
      * layout's: what code does when it sets `bitmap` and then `width = bitmap.width`, `height =

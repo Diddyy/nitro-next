@@ -46,7 +46,6 @@ answer yet.
 |---|---|---|
 | Room | YouTube playback control from the server (`YoutubeControlVideoMessage`). | `FurnitureYoutubeView` |
 | Room camera | Photo competitions (`PhotoCompetitionComposer`, `CompetitionStatusMessage`); taking, buying and publishing photos and room thumbnails are ported (`views/room-widgets/camera`, `RoomThumbnailCameraWidget`). | `Camera` |
-| Catalogue | The gift check (`GetIsOfferGiftableComposer`), the targeted offer's HabboMall page, the toolbar HC extend promo's glint (`flashing_animation`). | `registerTargetedOfferHandlers`, `ClubDiscountPromoView` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
 | Badges | Requesting a badge (`RequestABadgeComposer`). | |
 | Inventory | Merged rentable furni (the `rentables` tab) and a rented item's rent state and expiry, the `use_btn` and paging through an external image wall item (`showUseProductSelection`), the achievement score under the badges. | `useInventoryFurniPage`, `useInventoryBadgesPage`, `InventoryView` |
@@ -116,7 +115,8 @@ About 40 unused packets are protocol the port does not need:
   creates its `LiftView`, so the promoted-rooms strip has nowhere to draw. `CanCreateRoomEventMessage`:
   nothing sends `CanCreateRoomEventMessageComposer`, so an event is only made by buying a room ad.
   `CancelEventComposer`: the event settings window's end and cancel handlers are never wired to a
-  button.
+  button. `GetIsOfferGiftableComposer`: `HabboCatalog.checkGiftable` has no caller, and nothing
+  listens to `IsOfferGiftableMessageEvent`.
 - **The notification feed** (`notifications/feed`). `HabboNotifications` declares its
   `NotificationController` and reads it, but never creates one, so the feed items `IncomingMessages`
   adds behind `notification.feed.enabled` have nowhere to go (and the hotel sets the key false).

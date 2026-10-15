@@ -9,32 +9,69 @@
  * - `onTargetedOffer`: an offer in tracking state 4 (`TARGETED_OFFER_STATE_MINIMIZED`) docks in the
  *   toolbar, any other opens its dialog. `TargetedOfferData.parse`'s `seconds * 1000 + getTimer()`
  *   is taken here, when the packet lands.
- * - `onTargetedOfferNotFound` starts `MallOfferExternalInterfaceHelper`, which calls the web page's
- *   `TargetedWebOffer.checkOffer` through `ExternalInterface` and waits for it to call back with a
- *   Habbo Mall offer. There is no page around this client to ask, so that answer never comes: the
- *   listener is registered and does nothing, and `MallOfferDialogView` / `MallOfferMinimizedView`
- *   (`targeted_offer_habbomall.xml`), which only that answer builds, are not ported.
+ * - `onTargetedOfferNotFound` starts `MallOfferExternalInterfaceHelper`: it publishes
+ *   `targetedWebOfferCheckResponse` and `targetedWebOfferCheckFailed` on the page
+ *   (`ExternalInterface.addCallback`) and calls the page's `TargetedWebOffer.checkOffer`. A page
+ *   that has one answers through the response callback with a Habbo Mall offer, which goes to
+ *   `onHabboMallOffer`; the failure callback does nothing. A page without one is no answer, as
+ *   Flash's `ExternalInterface.call` of a missing function returns null.
+ *
+ * `OfferController.dispose` disposes the helper, taking its callbacks off the page; here that is the
+ * handlers' unsubscribe.
  *
  * `onPurseUpdate` re-runs the dialog's `updateButtonStates`; the dialog here reads the purse from
  * `userStore`, so it follows every update on its own.
  */
 import { GetNextTargetedOfferComposer, TargetedOfferEventMessage, TargetedOfferNotFoundEventMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
-import { maximizeTargetedOffer, minimizeTargetedOffer } from '#base/commands';
+import { maximizeTargetedOffer, minimizeTargetedOffer, onHabboMallOffer } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
-import { createTargetedOffer, TARGETED_OFFER_STATE_MINIMIZED } from '#base/context/targeted-offers';
+import { createHabboMallOffer, createTargetedOffer, TARGETED_OFFER_STATE_MINIMIZED } from '#base/context/targeted-offers';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
-export const registerTargetedOfferHandlers = ({ send, subscribe }: WebSocketConnection) => subscribeAll(subscribe, [
-    on(UserObjectMessage, () => send(new GetNextTargetedOfferComposer({}))),
+/** `MallOfferExternalInterfaceHelper.GET_HABBO_SHOP_OFFER_RESULT_CALLBACK` / `_FAILED_CALLBACK`. */
+const MALL_OFFER_RESULT_CALLBACK = 'targetedWebOfferCheckResponse';
+const MALL_OFFER_FAILED_CALLBACK = 'targetedWebOfferCheckFailed';
 
-    on(TargetedOfferEventMessage, (data) => {
-        const offer = createTargetedOffer(data.data, performance.now());
+/** `MallOfferExternalInterfaceHelper`'s constructor: the callbacks, then `TargetedWebOffer.checkOffer`. */
+const startMallOfferHelper = (send: WebSocketConnection['send']) => {
+    // `onShopOfferResult`.
+    Reflect.set(globalThis, MALL_OFFER_RESULT_CALLBACK, (data: unknown) => {
+        if ((data === null) || (data === undefined)) return;
 
-        if (offer.trackingState === TARGETED_OFFER_STATE_MINIMIZED) minimizeTargetedOffer(send, offer);
-        else maximizeTargetedOffer(send, offer);
-    }),
+        onHabboMallOffer(send, createHabboMallOffer(Object(data) as Record<string, unknown>));
+    });
+    // `onShopOfferFailed`.
+    Reflect.set(globalThis, MALL_OFFER_FAILED_CALLBACK, () => {});
 
-    on(TargetedOfferNotFoundEventMessage, () => undefined),
-]);
+    const page = Reflect.get(globalThis, 'TargetedWebOffer') as { checkOffer?: unknown } | undefined;
+
+    if (typeof page?.checkOffer === 'function') (page.checkOffer as () => unknown).call(page);
+};
+
+/** `MallOfferExternalInterfaceHelper.dispose`. */
+const disposeMallOfferHelper = () => {
+    Reflect.deleteProperty(globalThis, MALL_OFFER_RESULT_CALLBACK);
+    Reflect.deleteProperty(globalThis, MALL_OFFER_FAILED_CALLBACK);
+};
+
+export const registerTargetedOfferHandlers = ({ send, subscribe }: WebSocketConnection) => {
+    const unsubscribe = subscribeAll(subscribe, [
+        on(UserObjectMessage, () => send(new GetNextTargetedOfferComposer({}))),
+
+        on(TargetedOfferEventMessage, (data) => {
+            const offer = createTargetedOffer(data.data, performance.now());
+
+            if (offer.trackingState === TARGETED_OFFER_STATE_MINIMIZED) minimizeTargetedOffer(send, offer);
+            else maximizeTargetedOffer(send, offer);
+        }),
+
+        on(TargetedOfferNotFoundEventMessage, () => startMallOfferHelper(send)),
+    ]);
+
+    return () => {
+        unsubscribe();
+        disposeMallOfferHelper();
+    };
+};

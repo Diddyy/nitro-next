@@ -72,7 +72,7 @@ nothing sends it.
 | Inventory | `FurniListAddOrUpdate`, `PostItPlaced` | never sent |
 | Marketplace | `MarketplaceConfiguration`, `MarketPlaceOffers`, `MarketPlaceOwnOffers`, `MarketplaceItemStats`, `MarketplaceCanMakeOfferResult`, `MarketplaceMakeOfferResult`, `MarketplaceBuyOfferResult`, `MarketplaceCancelOfferResult` | never sent |
 | Marketplace | `MarketplaceCancelAllOffersResult`, `MarketplaceClearOwnHistoryResult` | no serializer |
-| Catalogue | `BundleDiscountRuleset`, `LimitedEditionSoldOut`, `FurniRentOrBuyoutOffer`, `TargetedOffer`, `TargetedOfferNotFound`, `ScrSendKickbackInfo` | never sent |
+| Catalogue | `BundleDiscountRuleset`, `LimitedEditionSoldOut`, `FurniRentOrBuyoutOffer`, `TargetedOffer`, `ScrSendKickbackInfo` | never sent |
 | Recycler | `RecyclerStatus`, `RecyclerPrizes`, `RecyclerFinished` | no serializer |
 | Special items | `ClaimProductResult`, `HasClaimedProductResponse` | no serializer |
 | Offer centre | `OfferRewardDelivered` | never sent |
