@@ -10,6 +10,7 @@ const state = singularNotificationStore.getState();
 
 const actions = {
     closeMotdNotification: state.closeMotdNotification,
+    closeEpicPopup: state.closeEpicPopup,
     closeClubGiftNotification: state.closeClubGiftNotification,
     markNewFeatureNotificationOpened: state.markNewFeatureNotificationOpened,
     closeNewFeatureNotification: state.closeNewFeatureNotification,

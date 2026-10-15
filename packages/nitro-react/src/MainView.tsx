@@ -17,7 +17,7 @@ import { HabbiconsComponent } from './components/habbicons';
 import { HelpComponent } from './components/help';
 import { HotelViewComponent } from './components/hotel-view';
 import { ModerationComponent } from './components/moderation';
-import { MotdNotificationComponent } from './components/notifications';
+import { EpicPopupComponent, MotdNotificationComponent } from './components/notifications';
 import { OfferCenterComponent } from './components/offer-center';
 import { OnboardingComponent } from './components/onboarding';
 import { QuestsComponent, QuestTrackerComponent } from './components/quests';
@@ -211,6 +211,7 @@ export const MainView = () => {
                     <RoomEffectsWidget />
                     <NotificationsView />
                     <MotdNotificationComponent />
+                    <EpicPopupComponent />
                     <NotificationPopupsView />
                     <SystemDialogsView />
                     {/* Context 3: every `ModalDialog` is moved in here, over the windows and their popups. */}
