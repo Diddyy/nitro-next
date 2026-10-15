@@ -22,7 +22,7 @@
  */
 import { IRoom } from '@nitrodevco/nitro-api';
 import { IVariableLeaderboardChoice, IVariableLeaderboardDescriptor } from '@nitrodevco/nitro-packets';
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 
 import { openProfile } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
@@ -30,7 +30,7 @@ import { useRoom } from '#base/context/room';
 import { leaderboardPageCount, leaderboardPageRows, leaderboardPageSize, useWiredStore, VariableLeaderboardLocationEdit, VariableLeaderboardOverlay, wiredStore } from '#base/context/wired';
 import { moveLeaderboardPage, selectLeaderboardVariable } from '#base/handlers';
 import { VariableLeaderboardBodyState, VariableLeaderboardView } from '#base/views/room-widgets/variable-leaderboard/VariableLeaderboardView';
-import { suggestLeaderboardDisplayName, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID, VariableLeaderboardLocation } from '#base/wired';
+import { sameLeaderboardLocation, suggestLeaderboardDisplayName, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID, VariableLeaderboardLocation } from '#base/wired';
 
 import { ScaledRoomOverlay } from '../../overlay';
 import { placeLeaderboardWindow, unprojectLeaderboardWindow } from './VariableLeaderboardLocationProjector';
@@ -82,7 +82,8 @@ const onLeaderboardDragged = (room: IRoom) => (x: number, y: number, width: numb
     const edit = wiredStore.getState().leaderboardLocationEdit;
     const location = unprojectLeaderboardWindow(room, x, y, width, height);
 
-    if (!edit || !location) return;
+    // Most drag steps stay on the same room pixel: nothing to tell the editor.
+    if (!edit || !location || sameLeaderboardLocation(location, edit.draft.location)) return;
 
     wiredStore.getState().setLeaderboardLocationEdit({ ...edit, draft: { ...edit.draft, location } });
 };
@@ -94,12 +95,88 @@ const bodyStateOf = (overlay: VariableLeaderboardOverlay, rows: unknown[] | null
     return rows ? 1 : 0;
 };
 
+interface LeaderboardPanelProps {
+    room: IRoom;
+    overlay: VariableLeaderboardOverlay;
+    /** The edit, for the leaderboard whose location is being edited only. */
+    edit: VariableLeaderboardLocationEdit | null;
+    faded: boolean;
+    now: number;
+    dropdownOpen: boolean;
+    hoveredChoice: string | null;
+    setDropdown: (overlayInstanceId: number, open: boolean) => void;
+    setHoveredChoice: (choice: { overlayInstanceId: number; variableId: string } | null) => void;
+}
+
+/** One published leaderboard - redrawn only when its own state changes, not another's. */
+const LeaderboardPanel = memo(({ room, overlay, edit, faded, now, dropdownOpen, hoveredChoice, setDropdown, setHoveredChoice }: LeaderboardPanelProps) => {
+    const { send } = useWebSocketContext();
+    const id = overlay.descriptor.overlayInstanceId;
+    const descriptor = edit ? withEditDraft(overlay.descriptor, edit) : overlay.descriptor;
+    const shown = edit ? { ...overlay, descriptor } : overlay;
+    const rows = leaderboardPageRows(shown);
+    const totalKnown = (overlay.totalCount !== null) && (overlay.totalCount > 0);
+    const pageCount = leaderboardPageCount(shown);
+
+    return (
+        <ScaledRoomOverlay
+            place={placeAt(room, descriptor)}
+            alpha={faded ? LOCATION_EDIT_BLEND : 1}
+            draggable={!!edit}
+            onDragged={onLeaderboardDragged(room)}
+        >
+            <VariableLeaderboardView
+                descriptor={descriptor}
+                selectedVariableId={overlay.selectedVariableId}
+                bodyState={bodyStateOf(shown, rows)}
+                rows={(rows ?? []).slice(0, leaderboardPageSize(descriptor))}
+                page={overlay.page}
+                pageCount={pageCount}
+                canPrevious={totalKnown && (overlay.page > 0)}
+                canNext={totalKnown && ((overlay.page + 1) < pageCount)}
+                now={now}
+                dropdownOpen={dropdownOpen}
+                hoveredChoice={hoveredChoice}
+                onToggleChoices={() => setDropdown(id, !dropdownOpen)}
+                onHoverChoice={variableId => setHoveredChoice(variableId ? { overlayInstanceId: id, variableId } : null)}
+                onSelectChoice={(variableId) => {
+                    selectLeaderboardVariable(id, variableId);
+                    setDropdown(id, false);
+                }}
+                onPrevious={() => moveLeaderboardPage(id, -1)}
+                onNext={() => moveLeaderboardPage(id, 1)}
+                onProfile={userId => openProfile(send, userId)}
+            />
+        </ScaledRoomOverlay>
+    );
+});
+
+/** `synchronizeDraftView`: the dummy leaderboard of a box never saved, while it is edited. */
+const DraftLeaderboardPanel = memo(({ room, edit, now }: { room: IRoom; edit: VariableLeaderboardLocationEdit; now: number }) => {
+    const descriptor = createDraftDescriptor(edit);
+
+    return (
+        <ScaledRoomOverlay
+            place={placeAt(room, descriptor)}
+            draggable
+            onDragged={onLeaderboardDragged(room)}
+        >
+            <VariableLeaderboardView
+                descriptor={descriptor}
+                selectedVariableId={descriptor.choices.length ? descriptor.defaultVariableId : null}
+                bodyState={2}
+                rows={[]}
+                now={now}
+            />
+        </ScaledRoomOverlay>
+    );
+});
+
 export const VariableLeaderboardWidget = () => {
     const room = useRoom();
     const leaderboards = useWiredStore(x => x.leaderboards);
     const locationEditId = useWiredStore(x => x.leaderboardLocationEditId);
     const locationEdit = useWiredStore(x => x.leaderboardLocationEdit);
-    const { send } = useWebSocketContext();
     // `choice_dropdown`'s `visible`, by leaderboard, and the choice row under the pointer.
     const [ openDropdowns, setOpenDropdowns ] = useState<ReadonlySet<number>>(new Set());
     const [ hoveredChoice, setHoveredChoice ] = useState<{ overlayInstanceId: number; variableId: string } | null>(null);
@@ -113,82 +190,45 @@ export const VariableLeaderboardWidget = () => {
         return () => clearInterval(timer);
     }, [ leaderboards.length ]);
 
-    const setDropdown = (overlayInstanceId: number, open: boolean) => setOpenDropdowns((current) => {
+    const setDropdown = useCallback((overlayInstanceId: number, open: boolean) => setOpenDropdowns((current) => {
         const next = new Set(current);
 
         if (open) next.add(overlayInstanceId);
         else next.delete(overlayInstanceId);
 
         return next;
-    });
+    }), []);
 
     if (!room) return null;
-
-    // `synchronizeDraftView`: only while a box never saved is edited.
-    const draftDescriptor = (locationEdit && (locationEditId === 0)) ? createDraftDescriptor(locationEdit) : null;
 
     return (
         <>
             {leaderboards.map((overlay) => {
                 const id = overlay.descriptor.overlayInstanceId;
-                const editing = !!locationEdit && (locationEditId === id);
-                const descriptor = editing ? withEditDraft(overlay.descriptor, locationEdit) : overlay.descriptor;
-                const shown = editing ? { ...overlay, descriptor } : overlay;
-                const rows = leaderboardPageRows(shown);
-                const bodyState = bodyStateOf(shown, rows);
-                const totalKnown = (overlay.totalCount !== null) && (overlay.totalCount > 0);
-                const pageCount = leaderboardPageCount(shown);
-                const faded = (locationEditId !== null) && (locationEditId !== id);
 
                 return (
-                    <ScaledRoomOverlay
+                    <LeaderboardPanel
                         key={id}
-                        place={placeAt(room, descriptor)}
-                        alpha={faded ? LOCATION_EDIT_BLEND : 1}
-                        draggable={editing}
-                        onDragged={onLeaderboardDragged(room)}
-                    >
-                        <VariableLeaderboardView
-                            descriptor={descriptor}
-                            selectedVariableId={overlay.selectedVariableId}
-                            bodyState={bodyState}
-                            rows={(rows ?? []).slice(0, leaderboardPageSize(descriptor))}
-                            page={overlay.page}
-                            pageCount={pageCount}
-                            canPrevious={totalKnown && (overlay.page > 0)}
-                            canNext={totalKnown && ((overlay.page + 1) < pageCount)}
-                            now={now}
-                            dropdownOpen={openDropdowns.has(id)}
-                            hoveredChoice={(hoveredChoice?.overlayInstanceId === id) ? hoveredChoice.variableId : null}
-                            onToggleChoices={() => setDropdown(id, !openDropdowns.has(id))}
-                            onHoverChoice={variableId => setHoveredChoice(variableId ? { overlayInstanceId: id, variableId } : null)}
-                            onSelectChoice={(variableId) => {
-                                selectLeaderboardVariable(id, variableId);
-                                setDropdown(id, false);
-                            }}
-                            onPrevious={() => moveLeaderboardPage(id, -1)}
-                            onNext={() => moveLeaderboardPage(id, 1)}
-                            onProfile={userId => openProfile(send, userId)}
-                        />
-                    </ScaledRoomOverlay>
+                        room={room}
+                        overlay={overlay}
+                        edit={(locationEdit && (locationEditId === id)) ? locationEdit : null}
+                        faded={(locationEditId !== null) && (locationEditId !== id)}
+                        now={now}
+                        dropdownOpen={openDropdowns.has(id)}
+                        hoveredChoice={(hoveredChoice?.overlayInstanceId === id) ? hoveredChoice.variableId : null}
+                        setDropdown={setDropdown}
+                        setHoveredChoice={setHoveredChoice}
+                    />
                 );
             })}
-            {draftDescriptor
+            {locationEdit && (locationEditId === 0)
                 && (
-                    <ScaledRoomOverlay
+                    <DraftLeaderboardPanel
                         key="draft"
-                        place={placeAt(room, draftDescriptor)}
-                        draggable
-                        onDragged={onLeaderboardDragged(room)}
-                    >
-                        <VariableLeaderboardView
-                            descriptor={draftDescriptor}
-                            selectedVariableId={draftDescriptor.choices.length ? draftDescriptor.defaultVariableId : null}
-                            bodyState={2}
-                            rows={[]}
-                            now={now}
-                        />
-                    </ScaledRoomOverlay>
+                        room={room}
+                        edit={locationEdit}
+                        now={now}
+                    />
                 )}
         </>
     );

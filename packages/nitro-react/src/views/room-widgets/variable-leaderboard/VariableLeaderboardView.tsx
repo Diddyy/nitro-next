@@ -135,10 +135,24 @@ const formatColumn = (type: number, row: IVariableLeaderboardRow, now: number) =
 };
 
 /** `VariableLeaderboardColumnHeaderView.setColumn`: a value column's header is centred, the username's not. */
-const headerPrototype = (header: TemplateElement, centred: boolean): TemplateElement => ({
+const createHeaderPrototype = (header: TemplateElement, centred: boolean): TemplateElement => ({
     ...header,
     children: header.children.map(child => ((child.name === 'header_text') ? { ...child, vars: { ...child.vars, auto_size: centred ? 'center' : 'none' } } : child)),
 });
+
+/** Built once per template: the template engine reuses a clone's nodes only while its prototype is the same object. */
+const headerPrototypes = new WeakMap<TemplateElement, { centred: TemplateElement; plain: TemplateElement }>();
+
+const headerPrototype = (header: TemplateElement, centred: boolean): TemplateElement => {
+    let prototypes = headerPrototypes.get(header);
+
+    if (!prototypes) {
+        prototypes = { centred: createHeaderPrototype(header, true), plain: createHeaderPrototype(header, false) };
+        headerPrototypes.set(header, prototypes);
+    }
+
+    return centred ? prototypes.centred : prototypes.plain;
+};
 
 export interface VariableLeaderboardViewProps {
     descriptor: IVariableLeaderboardDescriptor;

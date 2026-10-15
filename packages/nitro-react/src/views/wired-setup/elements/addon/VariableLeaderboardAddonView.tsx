@@ -12,7 +12,7 @@ import { VARIABLE_LEADERBOARD_PAGE_SIZES, VariableExtraSourceTypes } from '@nitr
 import { useEffect, useMemo } from 'react';
 
 import { setWiredMergedSourceType } from '#base/commands';
-import { useWiredStore } from '#base/context/wired';
+import { useWiredStore, wiredStore } from '#base/context/wired';
 import {
     changeLeaderboardColumn,
     getWiredRoomVariables,
@@ -24,6 +24,8 @@ import {
     leaderboardGeneralWarning,
     leaderboardNeedsColumnTypeInfo,
     leaderboardSortOptions,
+    sameLeaderboardConfig,
+    sameLeaderboardLocation,
     selectLeaderboardFilterVariable,
     setLeaderboardColumnCount,
     suggestLeaderboardDisplayNames,
@@ -66,9 +68,6 @@ const COLUMN_WIDTH_DROPDOWN_WIDTH = 82;
 /** `Math.max(80, entries_per_page.width)` - the page size label and its drop-down. */
 const PAGE_SIZE_WIDTH = 80;
 
-const sameLocation = (a: VariableLeaderboardLocation, b: VariableLeaderboardLocation): boolean =>
-    (a.tileX === b.tileX) && (a.tileY === b.tileY) && (a.offsetX === b.offsetX) && (a.altitude === b.altitude);
-
 export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardAddonForm> = ({ form, setForm, triggerable, ctx }) => {
     const style = useWiredStyle();
     const variables = getWiredRoomVariables(triggerable);
@@ -85,6 +84,11 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
     useEffect(() => {
         if (!active || !form.context) return;
 
+        const current = wiredStore.getState().leaderboardLocationEdit;
+
+        // A dragged location coming back through the form is the draft the store already has.
+        if (current && (current.context === form.context) && sameLeaderboardConfig(current.draft, config)) return;
+
         setLocationEdit({ context: form.context, draft: config });
     }, [ active, form.context, config, setLocationEdit ]);
 
@@ -93,7 +97,7 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
 
     // `onLocationChanged`: a drag in the room moved the leaderboard.
     useEffect(() => {
-        if (!active || !draftLocation || sameLocation(draftLocation, form.location)) return;
+        if (!active || !draftLocation || sameLeaderboardLocation(draftLocation, form.location)) return;
 
         setForm({ location: draftLocation });
     }, [ active, draftLocation ]);

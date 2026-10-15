@@ -154,6 +154,33 @@ export const createUnpublishedLeaderboardConfig = (): VariableLeaderboardConfig 
     location: { tileX: 0, tileY: 0, offsetX: 0, altitude: 0 },
 });
 
+export const sameLeaderboardLocation = (a: VariableLeaderboardLocation, b: VariableLeaderboardLocation): boolean =>
+    (a.tileX === b.tileX) && (a.tileY === b.tileY) && (a.offsetX === b.offsetX) && (a.altitude === b.altitude);
+
+const sameDisplayOverrides = (a: Readonly<Record<string, string>>, b: Readonly<Record<string, string>>): boolean => {
+    const keys = Object.keys(a);
+
+    return (keys.length === Object.keys(b).length) && keys.every(key => (a[key] === b[key]));
+};
+
+/** Whether two configs hold the same settings - an editor sending back the draft it was given changes nothing. */
+export const sameLeaderboardConfig = (a: VariableLeaderboardConfig, b: VariableLeaderboardConfig): boolean => (a === b) || (
+    (a.title === b.title)
+    && (a.description === b.description)
+    && (a.sortMode === b.sortMode)
+    && (a.pageSizeOption === b.pageSizeOption)
+    && (a.filterEnabled === b.filterEnabled)
+    && (a.filterVariableId === b.filterVariableId)
+    && (a.comparisonEnabled === b.comparisonEnabled)
+    && (a.operandKind === b.operandKind)
+    && (a.globalOperandVariableId === b.globalOperandVariableId)
+    && (a.literal === b.literal)
+    && (a.columns.length === b.columns.length)
+    && a.columns.every((column, i) => (column.type === b.columns[i].type) && (column.label === b.columns[i].label) && (column.width === b.columns[i].width))
+    && sameDisplayOverrides(a.displayOverrides, b.displayOverrides)
+    && sameLeaderboardLocation(a.location, b.location)
+);
+
 /** `displayOverrideIds`: sorted as strings (`compareSerializedIds`). */
 export const leaderboardDisplayOverrideIds = (config: VariableLeaderboardConfig): string[] => Object.keys(config.displayOverrides).sort((a, b) => ((a < b) ? -1 : ((a > b) ? 1 : 0)));
 
