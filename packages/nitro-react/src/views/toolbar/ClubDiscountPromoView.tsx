@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { requestClubExtendOfferFromPromo } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
+import { useQuestsStore } from '#base/context/quests';
 import { useConfigValue } from '#base/context/system';
 import { getPurseClubType, useOwnClubSubscription } from '#base/context/user';
 import { Box, TemplateWindow, TemplateWindows } from '#base/theme';
@@ -34,7 +35,8 @@ const GLINT_STEPS = 26;
  * the bar `HabboToolbar.initVipExtendExtension` creates while `club.membership.extend.vip.promotion.enabled`,
  * docked as `club_promo` at priority 10 - under the purse, above the targeted offer (13) - while the
  * membership is expiring and VIP (`onClubChanged`: `clubIsExpiring` and `isExtensionEnabled`, club level 2).
- * With under a day left it goes when the membership does (`onExtendOfferExpire`).
+ * With under a day left it goes when the membership does (`onExtendOfferExpire`). The VIP quests promo
+ * detaches it while that is docked (`CitizenshipVipQuestsPromoExtension.onCitizenshipQuestPromoEnabled`).
  *
  * `promo_text` and its shadow read `discount.bar.vip.expiring`; a click on `text_region` asks for the
  * extension offer (`onTextRegionClicked`), whose dialog `showClubExtendOffer` puts up. The text turns
@@ -58,6 +60,7 @@ const glintAt = (step: number) => {
 
 export const ClubDiscountPromoView = () => {
     const enabled = useConfigValue<boolean>('club.membership.extend.vip.promotion.enabled') === true;
+    const vipQuestsPromoAttached = useQuestsStore(x => x.vipQuestsPromoAttached);
     const subscription = useOwnClubSubscription();
     const minutesLeft = subscription.minutesUntilExpiration;
     // The countdown the bar was taken down for; a new subscription status brings it back.
@@ -72,7 +75,7 @@ export const ClubDiscountPromoView = () => {
         return () => clearTimeout(timeout);
     }, [ minutesLeft ]);
 
-    if (!enabled || (expiredAt === minutesLeft) || !subscription.isExpiring || (getPurseClubType(subscription) !== 2)) return null;
+    if (!enabled || vipQuestsPromoAttached || (expiredAt === minutesLeft) || !subscription.isExpiring || (getPurseClubType(subscription) !== 2)) return null;
 
     return <ClubDiscountPromoContent />;
 };
