@@ -10,7 +10,7 @@ import { useRoom } from '#base/context/room';
 import { useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { easeOutCubic, useRoomObjectSelect, useTween } from '#base/hooks';
-import { LayoutImage, useTextureFromUrl } from '#base/theme';
+import { LayoutImage, useLatest, useTextureFromUrl } from '#base/theme';
 import { CHAT_HISTORY_LEFT_MARGIN, ChatHistoryEntryMeasure, ChatHistoryEntryView } from '#base/views/room-widgets/chat/ChatHistoryEntryView';
 
 /** `ChatHistoryTray._openedWidth`: `350 + 62 + 1`. */
@@ -90,7 +90,6 @@ export const ChatHistoryTray = () => {
     const { setOpen, toggleOpen } = useChatHistoryActions();
     const screen = useScreenSize();
     const { selectObject } = useRoomObjectSelect();
-    const selectObjectRef = useRef(selectObject);
     const trayWidth = Math.round(useTween(open ? OPENED_WIDTH : 0, ANIMATION_DURATION_MS, easeOutCubic));
     // `activateView` / `deactivateView`: the lines exist only while the tray shows.
     const active = open || (trayWidth > 0);
@@ -116,9 +115,7 @@ export const ChatHistoryTray = () => {
     const { send } = useWebSocketContext();
     const t = useTranslation();
 
-    useEffect(() => {
-        selectObjectRef.current = selectObject;
-    });
+    const selectObjectRef = useLatest(selectObject);
 
     // The history is the room's: leaving takes the tray with it.
     useEffect(() => () => {
@@ -175,13 +172,9 @@ export const ChatHistoryTray = () => {
 
         return { positions: result, bufferHeight: cursor };
     }, [ entries, measures ]);
-    const bufferHeightRef = useRef(bufferHeight);
-    const viewHeightRef = useRef(viewHeight);
 
-    useEffect(() => {
-        bufferHeightRef.current = bufferHeight;
-        viewHeightRef.current = viewHeight;
-    });
+    const bufferHeightRef = useLatest(bufferHeight);
+    const viewHeightRef = useLatest(viewHeight);
 
     const setTopY = useCallback((value: number) => {
         topYRef.current = value;

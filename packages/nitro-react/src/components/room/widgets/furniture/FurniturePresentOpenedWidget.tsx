@@ -1,7 +1,7 @@
 import { RoomGeometryScaleType, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectPlacementSource, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
 import { RemovePetFromFlatComposer } from '@nitrodevco/nitro-packets';
 import { GetRoomEngine, PetFigureData } from '@nitrodevco/nitro-renderer';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { initializeRoomObjectInsert, placeInventoryPetToRoom, removeInventoryUnseenFurniCounter, removeInventoryUnseenPetCounter } from '#base/commands';
 import { useCatalogGiftReceiverActions } from '#base/context/catalog-purchase';
@@ -10,7 +10,7 @@ import { INVENTORY_FURNI_CATEGORY_POSTER, useInventoryStore } from '#base/contex
 import { useRoomStore, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
 import { useFurnitureImageTexture, usePetImageTexture, useRoomEventDispatcher, useRoomObjectModify, useRoomObjectSelect } from '#base/hooks';
-import { LayoutImage } from '#base/theme';
+import { LayoutImage, useLatest } from '#base/theme';
 import { PRESENT_OPENED_WIDGET, PresentOpenedData } from '#base/utils';
 import { FurniturePresentOpenedIcon, FurniturePresentOpenedView } from '#base/views/room-widgets/furniture/FurniturePresentOpenedView';
 
@@ -103,11 +103,8 @@ export const FurniturePresentOpenedWidget = () => {
 
         if (unit) selectObject(Number(unit[0]), RoomObjectCategoryEnum.Unit);
     };
-    const selectGiftedObjectRef = useRef(selectGiftedObject);
 
-    useEffect(() => {
-        selectGiftedObjectRef.current = selectGiftedObject;
-    });
+    const selectGiftedObjectRef = useLatest(selectGiftedObject);
 
     useEffect(() => {
         if (contents) selectGiftedObjectRef.current();

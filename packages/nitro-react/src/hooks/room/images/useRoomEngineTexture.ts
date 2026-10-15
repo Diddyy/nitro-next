@@ -6,6 +6,7 @@ import { IGetImageListener } from '@nitrodevco/nitro-api';
 import { Texture } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
+import { useLatest } from '#base/theme';
 import { destroyOwnedTexture } from '#base/utils';
 
 export interface EngineTextureOptions {
@@ -30,16 +31,12 @@ export interface EngineTextureOptions {
  */
 export const useOwnedEngineTexture = (key: string | undefined, request: (listener: IGetImageListener) => Promise<Texture | undefined>, options: EngineTextureOptions = {}): Texture | undefined => {
     const [ texture, setTexture ] = useState<Texture | undefined>(undefined);
-    const requestRef = useRef(request);
-    const optionsRef = useRef(options);
     // Every texture handed to state and not destroyed yet, and the most recent of them.
     const ownedRef = useRef<Set<Texture>>(new Set());
     const latestRef = useRef<Texture | undefined>(undefined);
 
-    useEffect(() => {
-        requestRef.current = request;
-        optionsRef.current = options;
-    });
+    const requestRef = useLatest(request);
+    const optionsRef = useLatest(options);
 
     useEffect(() => {
         if (key === undefined) return;

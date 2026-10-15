@@ -1,7 +1,7 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useCallback, useEffect, useRef } from 'react';
 
-import { getGlobalRect } from '#base/theme';
+import { getGlobalRect, useLatest } from '#base/theme';
 import {
     applyFloorPlanDraw, cloneFloorPlanModel, expandFloorPlanTo, FloorPlanDrawMode, FloorPlanModel, floorPlanScreenToTile,
     FloorPlanTile, resetFloorPlanRows,
@@ -41,14 +41,11 @@ export interface RoomFloorPlanDrawingOptions {
 const NO_TILE: FloorPlanTile = { x: -1000, y: -1000 };
 
 export const useRoomFloorPlanDrawing = (options: RoomFloorPlanDrawingOptions) => {
-    const optionsRef = useRef(options);
     const nodeRef = useRef<PixiContainer | null>(null);
     const drawingRef = useRef(false);
     const listenersRef = useRef<{ move: (event: PointerEvent) => void; up: (event: PointerEvent) => void } | null>(null);
 
-    useEffect(() => {
-        optionsRef.current = options;
-    });
+    const optionsRef = useLatest(options);
 
     const stopDrawing = useCallback(() => {
         const listeners = listenersRef.current;

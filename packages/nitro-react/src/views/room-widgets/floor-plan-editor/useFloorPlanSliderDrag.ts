@@ -1,7 +1,7 @@
 import { FederatedPointerEvent } from 'pixi.js';
 import { useCallback, useEffect, useRef } from 'react';
 
-import { getGlobalRect } from '#base/theme';
+import { getGlobalRect, useLatest } from '#base/theme';
 
 /**
  * The floor plan editor's two drag bars - `BCFloorPlanEditor.colorMapWindowProcedure` on
@@ -14,12 +14,9 @@ import { getGlobalRect } from '#base/theme';
  * pointer leaves the bar.
  */
 export const useFloorPlanSliderDrag = (steps: number, width: number, onChange: (value: number) => void, disabled = false) => {
-    const onChangeRef = useRef(onChange);
     const listenersRef = useRef<{ move: (event: PointerEvent) => void; up: () => void } | null>(null);
 
-    useEffect(() => {
-        onChangeRef.current = onChange;
-    });
+    const onChangeRef = useLatest(onChange);
 
     const stopDragging = useCallback(() => {
         const listeners = listenersRef.current;

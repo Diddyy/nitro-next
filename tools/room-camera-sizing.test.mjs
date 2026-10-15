@@ -215,6 +215,14 @@ await test('the installed room ticker and resize listener use the latest camera 
             registrations++;
         }, remove() {} }) },
         react: { useRef: value => (refs[refIndex++] ??= { current: value }), useEffect: (fn) => { effect ??= fn; }, useLayoutEffect: fn => fn() },
+        // nitro-theme's: a ref the commit (here, at once) writes the latest value into.
+        '#base/theme': { useLatest: (value) => {
+            const ref = (refs[refIndex++] ??= { current: value });
+
+            ref.current = value;
+
+            return ref;
+        } },
         '#base/context/room': { useRoom: () => room, useRoomStore: select => select({}), useRoomMouseActions: () => ({ hasAndResetCursorUpdate: () => false }) },
         '#base/hooks': { useRoomCamera: () => ({ updateRoomCamera: callback }) },
         './touchPlacementDrop': { touchPlacementDrop: { objectId: -1, category: -1 } },

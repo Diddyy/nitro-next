@@ -4,17 +4,15 @@
  * state to render, so the handler takes it as the room store announces it and it is cleared straight
  * away. The handler lives in a ref, so the latest render's closure is the one called.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { RoomChatInputContent, roomStore, useRoomChatActions } from '#base/context/room';
+import { useLatest } from '#base/theme';
 
 export const useChatInputContentRequest = (handler: (content: RoomChatInputContent) => void) => {
     const { clearChatInputContent } = useRoomChatActions();
-    const handlerRef = useRef(handler);
 
-    useEffect(() => {
-        handlerRef.current = handler;
-    });
+    const handlerRef = useLatest(handler);
 
     useEffect(() => roomStore.subscribe(({ chatInputContent }) => {
         if (!chatInputContent) return;

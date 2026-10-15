@@ -22,6 +22,7 @@ import { Container as PixiContainer, PointData, Rectangle } from 'pixi.js';
 import { RefObject, useLayoutEffect, useRef } from 'react';
 
 import { useRoom } from '#base/context/room';
+import { useLatest } from '#base/theme';
 import { FixedSizeStack } from '#base/utils';
 
 import { useRoomEventDispatcher } from './useRoomEventDispatcher';
@@ -69,11 +70,7 @@ export const useRoomObjectBubblePlacement = (bubbleRef: RefObject<PixiContainer 
     const maxStack = useRef(INITIAL_MAX_STACK);
     const sample = useRef<ObjectSample | undefined>(undefined);
     // Read by the listeners, so a room frame between a commit and its passive effects already sees the new object.
-    const optionsRef = useRef(options);
-
-    useLayoutEffect(() => {
-        optionsRef.current = options;
-    });
+    const optionsRef = useLatest(options);
 
     /** Reads the object from the room and moves the drop smoothing on by one frame. */
     const takeSample = (): ObjectSample | undefined => {

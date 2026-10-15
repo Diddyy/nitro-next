@@ -1,5 +1,7 @@
 import { Container as PixiContainer, Texture } from 'pixi.js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import { useLatest } from './useLatest';
 
 /** Animation frames a container has to stay unchanged, with a size and in place, before it is shown. */
 const SETTLE_FRAMES = 2;
@@ -44,11 +46,8 @@ const describe = (node: PixiContainer): string => {
  */
 export const useRevealWhenSettled = (node: PixiContainer | null, isPositioned?: () => boolean): boolean => {
     const [ revealed, setRevealed ] = useState(false);
-    const isPositionedRef = useRef(isPositioned);
 
-    useEffect(() => {
-        isPositionedRef.current = isPositioned;
-    });
+    const isPositionedRef = useLatest(isPositioned);
 
     useEffect(() => {
         if (revealed || !(node instanceof PixiContainer)) return;

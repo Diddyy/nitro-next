@@ -1,11 +1,12 @@
 import { RoomObjectCategoryEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { PollAnswerComposer } from '@nitrodevco/nitro-packets';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomObjectIdByWebId, useRoomQuizActions, useRoomStore } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
 import { QUIZ_VALUE_DISLIKE, QUIZ_VALUE_LIKE } from '#base/handlers';
+import { useLatest } from '#base/theme';
 import { RoomQuizAnswerSignView } from '#base/views/room-widgets/quiz/RoomQuizAnswerSignView';
 import { RoomQuizView } from '#base/views/room-widgets/quiz/RoomQuizView';
 
@@ -103,11 +104,7 @@ const QuizAnswerSign = ({ userId, liked, seconds, onExpire }: QuizAnswerSignProp
     const objectId = useRoomObjectIdByWebId(userId, RoomObjectUserType.User);
 
     // `onExpire` is a new function every render of the widget; the timer must not restart with it.
-    const onExpireRef = useRef(onExpire);
-
-    useLayoutEffect(() => {
-        onExpireRef.current = onExpire;
-    });
+    const onExpireRef = useLatest(onExpire);
 
     // The answer expires whether or not its avatar is still here to show it.
     useEffect(() => {

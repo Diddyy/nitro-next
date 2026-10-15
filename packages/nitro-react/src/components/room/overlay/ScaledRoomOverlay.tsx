@@ -25,7 +25,7 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { useRoomEventDispatcher } from '#base/hooks';
-import { Box } from '#base/theme';
+import { Box, useLatest } from '#base/theme';
 
 import { getRoomOverlayScale } from './getRoomOverlayScale';
 
@@ -50,13 +50,9 @@ export const ScaledRoomOverlay = ({ place, draggable = false, onDragged, alpha =
     const nodeRef = useRef<PixiContainer>(null);
     const placedRef = useRef(false);
     const dragRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null);
-    const placeRef = useRef(place);
-    const onDraggedRef = useRef(onDragged);
 
-    useLayoutEffect(() => {
-        placeRef.current = place;
-        onDraggedRef.current = onDragged;
-    });
+    const placeRef = useLatest(place);
+    const onDraggedRef = useLatest(onDragged);
 
     const contentSize = (node: PixiContainer) => ({ width: node.layout?.computedLayout.width ?? 0, height: node.layout?.computedLayout.height ?? 0 });
 
@@ -82,11 +78,7 @@ export const ScaledRoomOverlay = ({ place, draggable = false, onDragged, alpha =
         node.y = Math.round(position.y);
     };
 
-    const updateRef = useRef(update);
-
-    useLayoutEffect(() => {
-        updateRef.current = update;
-    });
+    const updateRef = useLatest(update);
 
     useRoomEventDispatcher<RoomRenderedEvent>(RoomRenderedEvent.ROOM_RENDERED, update);
 

@@ -24,7 +24,7 @@ import { useEffect, useRef } from 'react';
 
 import { HINT_STYLE_VERTICAL, useHintStore } from '#base/context/hints';
 import { useViewportSize } from '#base/hooks';
-import { Box, getGlobalRect, GlobalRect, LayoutImage, useTextureFromUrl } from '#base/theme';
+import { Box, getGlobalRect, GlobalRect, LayoutImage, useLatest, useTextureFromUrl } from '#base/theme';
 
 /** Over the frames (from 100), the floating popups (90000) and the modal layer (95000); under the tooltips (100000). */
 const HINT_Z_INDEX = 99000;
@@ -69,13 +69,9 @@ export const HintArrowView = () => {
     const texture = useTextureFromUrl(activeHint ? LayoutImage(vertical ? 'habbo-window-manager-com/common_green_arrow_vertical.png' : 'habbo-window-manager-com/common_green_arrow_horizontal.png') : undefined);
     const viewport = useViewportSize();
     const spriteRef = useRef<Sprite>(null);
-    const viewportRef = useRef(viewport);
-    const nodeRef = useRef(node);
 
-    useEffect(() => {
-        viewportRef.current = viewport;
-        nodeRef.current = node;
-    });
+    const viewportRef = useLatest(viewport);
+    const nodeRef = useLatest(node);
 
     useEffect(() => {
         if (!activeHint || !texture) return;

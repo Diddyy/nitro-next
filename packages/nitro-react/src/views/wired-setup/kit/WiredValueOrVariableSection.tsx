@@ -25,10 +25,10 @@
  */
 import { IWiredVariable } from '@nitrodevco/nitro-packets';
 import { Container } from 'pixi.js';
-import { useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { Box, FloatingPopup, getGlobalRect, LayoutImage, Region, ThemeImage } from '#base/theme';
+import { Box, FloatingPopup, getGlobalRect, LayoutImage, Region, ThemeImage, useLatest } from '#base/theme';
 import { determineInitialVariablePickerTab, filterPickerVariables, getPickerSelectedVariable, getTypeNameForSource, getVariablePickerHistory, isValueOrVariableOnSameHolder, isValueOrVariableSameHolderEligible, readValueOrVariableText, registerWiredFormValidationSource, selectPickerVariable, subscribeVariablePickerHistory, VALUE_OR_VARIABLE_OPTION_VARIABLE, valueOrVariableEligibleVariables, valueOrVariableSelectable, valueOrVariableValidationError, VARIABLE_PICKER_TAB_SEARCH, WiredValueOrVariableState } from '#base/wired';
 
 import { useWiredDisabled } from './useWiredDisabled';
@@ -106,11 +106,8 @@ export const WiredValueOrVariableSection = ({ title, mergedId, sourceTypeOptions
     const sameHolderEligible = (sameHolderTarget !== undefined) && isValueOrVariableSameHolderEligible(state, sameHolderTarget);
     const error = disabled ? null : valueOrVariableValidationError(state, check.valid, check.ambiguous, variables, variableFilter);
     const errorText = error ? t(error.key, error.fallback) : null;
-    const errorRef = useRef<string | null>(errorText);
 
-    useLayoutEffect(() => {
-        errorRef.current = errorText;
-    });
+    const errorRef = useLatest(errorText);
 
     // `attachInputSourceControl`: the merged source is the section's while it is built.
     useEffect(() => claim?.(mergedId), [ claim, mergedId ]);

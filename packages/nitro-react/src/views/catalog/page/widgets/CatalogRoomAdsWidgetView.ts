@@ -1,6 +1,6 @@
 import { ClubLevelEnum, IPurchasableOffer, RoomEngineEvent } from '@nitrodevco/nitro-api';
 import type { IRoomEntryData } from '@nitrodevco/nitro-packets';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { getRoomAdsPurchaseInfo } from '#base/commands';
 import { CatalogRoomAdPurchaseData, CatalogRoomAdPurchaseInfo, CatalogWidgetEventEnum, getCatalogPageText, useCatalogRoomAdActions, useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
@@ -9,7 +9,7 @@ import { useNavigatorStore } from '#base/context/navigator';
 import { useRoom } from '#base/context/room';
 import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent, useRoomEventDispatcher } from '#base/hooks';
-import { useTemplateLibrary } from '#base/theme';
+import { useLatest, useTemplateLibrary } from '#base/theme';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
 import { CATALOG_LIBRARY } from '../catalogTemplates';
@@ -188,11 +188,7 @@ export const CatalogRoomAdsWidgetView = ({ page }: CatalogWidgetProps) => {
     /** `onRoomInitialized`: a room entered while the page is open (never a previewer's) becomes the selected one. */
     const onRoomInitialized = (roomId: number) => setDefaultRoom(roomId, false, rooms, roomAdPurchaseData);
 
-    const onPurchaseInfoEventRef = useRef(onPurchaseInfoEvent);
-
-    useEffect(() => {
-        onPurchaseInfoEventRef.current = onPurchaseInfoEvent;
-    });
+    const onPurchaseInfoEventRef = useLatest(onPurchaseInfoEvent);
 
     // `onPurchaseConfirmationEvent`: after a purchase, ask again and start the next ad from nothing.
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.PURCHASE, () => {

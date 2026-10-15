@@ -1,7 +1,7 @@
 import { IRoomObject, MouseEventType, NitroLogger, RoomBackgroundColorEvent, RoomEngineObjectEvent, RoomObjectBadgeAssetEvent, RoomObjectCategoryEnum, RoomObjectDataRequestEvent, RoomObjectDimmerStateUpdateEvent, RoomObjectEvent, RoomObjectFloorHoleEvent, RoomObjectFurnitureActionEvent, RoomObjectHSLColorEnableEvent, RoomObjectMouseEvent, RoomObjectMoveEvent, RoomObjectRoomAdEvent, RoomObjectStateChangedEvent, RoomObjectUserType, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent, RoomSpriteMouseEvent, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
 import { RoomDimmerPresetsMessageType } from '@nitrodevco/nitro-packets';
 import { RoomObjectUpdateMessage } from '@nitrodevco/nitro-renderer';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { moderationStore } from '#base/context/moderation';
 import { roomStore, useRoom, useRoomIsPlayingGame, useRoomMouseActions, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
@@ -9,6 +9,7 @@ import { useConfigValue } from '#base/context/system';
 import { useOwnIsAnyRoomController, useOwnUserId } from '#base/context/user';
 import { useRoomAdHandler, useRoomBadgeAssetHandler, useRoomEventDispatcher, useRoomEventHandler, useRoomFurnitureActionHandler, useRoomObjectInteraction, useRoomObjectSelect, useRoomWidgetRequestHandler } from '#base/hooks';
 import { handleRoomObjectSoundEvent, isRoomObjectSoundEvent } from '#base/sound';
+import { useLatest } from '#base/theme';
 
 import { DisposeRoomBackgroundColor, SetRoomBackgroundColor } from './roomBackgroundColor';
 import { DisposeRoomViewColor, SetRoomViewColor } from './roomViewColor';
@@ -330,13 +331,8 @@ export const RoomEventHandler = () => {
 
     // The engine is handed one stable handler per room that calls the latest render's, rather than
     // a new handler (and a clear in between) on every render.
-    const handleRoomObjectEventRef = useRef(handleRoomObjectEvent);
-    const handleRoomCanvasMouseEventRef = useRef(handleRoomCanvasMouseEvent);
-
-    useLayoutEffect(() => {
-        handleRoomObjectEventRef.current = handleRoomObjectEvent;
-        handleRoomCanvasMouseEventRef.current = handleRoomCanvasMouseEvent;
-    });
+    const handleRoomObjectEventRef = useLatest(handleRoomObjectEvent);
+    const handleRoomCanvasMouseEventRef = useLatest(handleRoomCanvasMouseEvent);
 
     useEffect(() => {
         if (!room) return;

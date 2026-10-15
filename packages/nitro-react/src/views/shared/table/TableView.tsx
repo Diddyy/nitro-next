@@ -40,7 +40,7 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { Border, Box, BoxLayout, getGlobalRect, GlobalRect, Region, ScrollArea, TextInput, ThemeImage, ThemeText, useLayoutSize, useOutsideClick } from '#base/theme';
+import { Border, Box, BoxLayout, getGlobalRect, GlobalRect, Region, ScrollArea, TextInput, ThemeImage, ThemeText, useLatest, useLayoutSize, useOutsideClick } from '#base/theme';
 
 import { fitTableText, measureTableText } from './tableText';
 
@@ -411,14 +411,10 @@ export const TableView = <T extends object>({ columns, rows, getRowId, getCell, 
     const listRef = useRef<PixiContainer | null>(null);
     const rowsRef = useRef<PixiContainer | null>(null);
     const hoveredId = useRef<string | null>(null);
-    const onRowSelectedRef = useRef(onRowSelected);
-    const onRowHoveredRef = useRef(onRowHovered);
     const contents = useLayoutSize(contentsNode);
 
-    useEffect(() => {
-        onRowSelectedRef.current = onRowSelected;
-        onRowHoveredRef.current = onRowHovered;
-    });
+    const onRowSelectedRef = useLatest(onRowSelected);
+    const onRowHoveredRef = useLatest(onRowHovered);
 
     const isControlled = (controlledSelectedId !== undefined);
     const selectedId = isControlled ? controlledSelectedId : ownSelectedId;

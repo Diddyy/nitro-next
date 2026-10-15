@@ -1,8 +1,9 @@
 import { FurnitureUsagePolicyEnum, IObjectData, IRoom, IRoomPreviewerData, IVector3D, LegacyDataType, RoomEngineObjectEvent, RoomGeometryScaleType, RoomId, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager, GetRoomEngine, GetTicker, GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, PointData } from 'pixi.js';
-import { RefObject, useEffect, useLayoutEffect, useRef } from 'react';
+import { RefObject, useEffect, useRef } from 'react';
 
+import { useLatest } from '#base/theme';
 import { createRoomMapForSize, getValidRoomObjectDirection } from '#base/utils';
 
 /** The id of the one object a previewer room shows. */
@@ -538,13 +539,8 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
 
     // The ticker and the layout listener are added once per room; they call the latest render's
     // functions, which read the current options (`transparent`, `scale`), not the first render's.
-    const renderRef = useRef(render);
-    const resizeRoomPreviewRef = useRef(resizeRoomPreview);
-
-    useLayoutEffect(() => {
-        renderRef.current = render;
-        resizeRoomPreviewRef.current = resizeRoomPreview;
-    });
+    const renderRef = useLatest(render);
+    const resizeRoomPreviewRef = useLatest(resizeRoomPreview);
 
     useEffect(() => {
         room?.canvas?.setBackgroundVisible(!transparent);

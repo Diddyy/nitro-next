@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { CatalogPage, CatalogWidgetEventListener, CatalogWidgetEventType } from '#base/context/catalog';
+import { useLatest } from '#base/theme';
 
 /**
  * A catalogue widget's `events.addEventListener(type, handler)` from its `init()`: subscribes to
@@ -13,11 +14,7 @@ import { CatalogPage, CatalogWidgetEventListener, CatalogWidgetEventType } from 
  * initialise, and `CatalogPageView` dispatches `WIDGETS_INITIALIZED` after all of them.
  */
 export const useCatalogWidgetEvent = <T extends CatalogWidgetEventType>(page: CatalogPage, type: T, handler: CatalogWidgetEventListener<T>) => {
-    const handlerRef = useRef(handler);
-
-    useEffect(() => {
-        handlerRef.current = handler;
-    });
+    const handlerRef = useLatest(handler);
 
     useEffect(() => page.events.addEventListener(type, event => handlerRef.current(event)), [ page, type ]);
 };

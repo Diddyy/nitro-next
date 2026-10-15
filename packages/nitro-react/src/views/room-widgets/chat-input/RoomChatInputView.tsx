@@ -12,7 +12,7 @@ import { useOwnControllerLevel, useRoom, useRoomIsSpectating, useRoomStore } fro
 import { useConfigActions, useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnHasClub, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
 import { useChatInputContentRequest, useChatStyles, useHintTarget, useViewportSize } from '#base/hooks';
-import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useTemplate } from '#base/theme';
+import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useLatest, useTemplate } from '#base/theme';
 import { completeChatCommand, findInvalidArguments, IChatCommandCompletion, mergeChatCommands, NO_CHAT_COMMAND_COMPLETION } from '#base/utils';
 import { roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
@@ -186,7 +186,6 @@ export const RoomChatInputView = () => {
     const typingTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const idleTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const lastContentRef = useRef('');
-    const valueRef = useRef(value);
     /** The style menu closes on any outside pointerdown - including the one that starts a tap on its own button, which must not reopen it. */
     const stylesClosedAtRef = useRef(0);
     const [ habbiconsAnchor, setHabbiconsAnchor ] = useState<GlobalRect | null>(null);
@@ -217,9 +216,7 @@ export const RoomChatInputView = () => {
         setNuxReminderTicks(undefined);
     }
 
-    useEffect(() => {
-        valueRef.current = value;
-    });
+    const valueRef = useLatest(value);
 
     const roomUserNames = useMemo(() => Object.values(usersByRoomObjectId).filter(x => x.userType === RoomObjectUserType.User).map(x => x.name), [ usersByRoomObjectId ]);
 

@@ -21,7 +21,7 @@ import { closeWiredRoomLogs, requestWiredRoomLogs, WiredRoomLogsRequest } from '
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation, useWindowActions } from '#base/context/system';
 import { WIRED_ROOM_LOGS_FRAME_ID, WIRED_ROOM_LOGS_PAGE_SIZE } from '#base/context/wired';
-import { TemplateWindow } from '#base/theme';
+import { TemplateWindow, useLatest } from '#base/theme';
 import { TableCell, TableColumn } from '#base/views/shared/table/TableView';
 import { uintToHexColor } from '#base/wired';
 
@@ -98,11 +98,7 @@ export const WiredRoomLogsView = ({ page, pageRequested }: WiredRoomLogsViewProp
     };
 
     // The timer below outlives renders; it asks through the limiter of the latest one.
-    const requestsRef = useRef(requests);
-
-    useEffect(() => {
-        requestsRef.current = requests;
-    });
+    const requestsRef = useLatest(requests);
 
     // `onAutoRefresh` - the page on screen with its own filters, quietly. A filter change starts the timer over.
     useEffect(() => {

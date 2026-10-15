@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ScrollControllerOptions } from '../scroll';
 import { clamp } from '../utils/clamp';
+import { useLatest } from './useLatest';
 import { useLayoutEvent } from './useLayoutEvent';
 
 export interface ScrollController {
@@ -86,12 +87,8 @@ export const useScrollController = ({
 
     const wasAtStartRef = useRef(true);
     const wasAtEndRef = useRef(true);
-    const onReachStartRef = useRef(onReachStart);
-    const onReachEndRef = useRef(onReachEnd);
-    useEffect(() => {
-        onReachStartRef.current = onReachStart;
-        onReachEndRef.current = onReachEnd;
-    });
+    const onReachStartRef = useLatest(onReachStart);
+    const onReachEndRef = useLatest(onReachEnd);
 
     const dragOriginRef = useRef<{ pointer: number; scroll: number; availableTrack: number; scrollMax: number; scale: number } | null>(null);
     const activeListenersRef = useRef<{ move: (e: PointerEvent) => void; up: (e: PointerEvent) => void } | null>(null);

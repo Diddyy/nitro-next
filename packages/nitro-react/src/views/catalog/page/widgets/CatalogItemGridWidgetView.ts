@@ -1,6 +1,6 @@
 import { CatalogPricingModelEnum, CatalogTypeEnum, FurnitureTypeEnum, IPurchasableOffer } from '@nitrodevco/nitro-api';
 import { GetProductOfferComposer } from '@nitrodevco/nitro-packets';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { requestSelectedItemToMover } from '#base/commands';
 import { CATALOG_NO_GUILD_SELECTED, CatalogPage, CatalogWidgetEventEnum, useCatalogStoreApi } from '#base/context/catalog';
@@ -8,7 +8,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData } from '#base/context/system';
 import { useOwnClubLevel } from '#base/context/user';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { useTemplateLibrary } from '#base/theme';
+import { useLatest, useTemplateLibrary } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
@@ -168,11 +168,7 @@ export const CatalogItemGridWidgetView = ({ page, tags }: CatalogWidgetProps) =>
         if (notifyColours) page.events.dispatchEvent({ type: CatalogWidgetEventEnum.COLOUR_ARRAY, colours: getCurrentItemColors(offer, content.itemColors), backgroundAssetName: COLOUR_BACKGROUND_ASSET, colourAssetName: COLOUR_ASSET, chosenColourAssetName: COLOUR_CHOSEN_ASSET, index: getCurrentItemColourIndex(offer) });
     };
 
-    const selectRef = useRef(select);
-
-    useEffect(() => {
-        selectRef.current = select;
-    });
+    const selectRef = useLatest(select);
 
     useEffect(() => page.registerItemGrid({ select: (offer, notifyColours) => selectRef.current(offer, notifyColours) }), [ page ]);
 

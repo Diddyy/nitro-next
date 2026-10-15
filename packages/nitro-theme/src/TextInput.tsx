@@ -4,6 +4,7 @@ import { forwardRef, ForwardRefExoticComponent, RefAttributes, useCallback, useE
 import { Box, BoxLayout } from './Box';
 import { FLASH_TEXT_GUTTER, flashTextCaretRect, FlashTextFieldOverrides, flashTextSelectionRects, HABBO_TEXT_STYLES, resolveFlashTextFormat } from './font/flash-text';
 import { useLayoutSize, useOutsideClick } from './hooks';
+import { useLatest } from './hooks/useLatest';
 import type { ScrollController } from './hooks/useScrollController';
 import { ColorLayer } from './layer';
 import { ThemeText } from './ThemeText';
@@ -315,29 +316,18 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const boxRef = useRef<PixiContainer | null>(null);
         const isControlled = (controlledFocused !== undefined);
         const focused = isControlled ? controlledFocused : internalFocused;
-        const focusedRef = useRef(focused);
-        const onChangeRef = useRef(onChange);
-        const onSelectionChangeRef = useRef(onSelectionChange);
-        const onEnterRef = useRef(onEnter);
-        const onKeyDownRef = useRef(onKeyDown);
-        const onFocusChangeRef = useRef(onFocusChange);
-        const focusCapturerRef = useRef(focusCapturer);
-        const maxLengthRef = useRef(maxLength);
         const restrictTest = useMemo(() => parseFlashRestrict(restrict), [ restrict ]);
-        const restrictRef = useRef(restrictTest);
         const paddingX = flashPlacement ? 0 : PADDING_X;
 
-        useEffect(() => {
-            focusedRef.current = focused;
-            onChangeRef.current = onChange;
-            onSelectionChangeRef.current = onSelectionChange;
-            onEnterRef.current = onEnter;
-            onKeyDownRef.current = onKeyDown;
-            onFocusChangeRef.current = onFocusChange;
-            focusCapturerRef.current = focusCapturer;
-            maxLengthRef.current = maxLength;
-            restrictRef.current = restrictTest;
-        });
+        const focusedRef = useLatest(focused);
+        const onChangeRef = useLatest(onChange);
+        const onSelectionChangeRef = useLatest(onSelectionChange);
+        const onEnterRef = useLatest(onEnter);
+        const onKeyDownRef = useLatest(onKeyDown);
+        const onFocusChangeRef = useLatest(onFocusChange);
+        const focusCapturerRef = useLatest(focusCapturer);
+        const maxLengthRef = useLatest(maxLength);
+        const restrictRef = useLatest(restrictTest);
 
         const setFocused = useCallback((next: boolean) => {
             if (focusedRef.current === next) return;
@@ -735,11 +725,8 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const scrollVertical = scroll?.vertical;
         const scrollX = scrollHorizontal ? scrollHorizontal.scrollOffset : ((!wraps && viewWidth > 0 && caret.x > (viewWidth - 1)) ? (caret.x - (viewWidth - 1)) : 0);
         const scrollY = scrollVertical ? scrollVertical.scrollOffset : ((multiline && viewHeight > 0 && (caret.y + caret.height) > viewHeight) ? ((caret.y + caret.height) - viewHeight) : 0);
-        const scrollRef = useRef({ scrollHorizontal, scrollVertical, viewWidth, viewHeight });
 
-        useEffect(() => {
-            scrollRef.current = { scrollHorizontal, scrollVertical, viewWidth, viewHeight };
-        });
+        const scrollRef = useLatest({ scrollHorizontal, scrollVertical, viewWidth, viewHeight });
 
         // A controlled axis follows the caret while the field is focused, by as little as keeps it in
         // view. Two frames on, so the range it clamps to has the edit that moved the caret laid out (as
@@ -848,11 +835,7 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         };
 
         // A drag measures against the layout and scroll of the latest render, not the press's.
-        const indexAtRef = useRef(indexAt);
-
-        useEffect(() => {
-            indexAtRef.current = indexAt;
-        });
+        const indexAtRef = useLatest(indexAt);
 
         const stopDragRef = useRef<(() => void) | null>(null);
         const lastPressRef = useRef({ time: 0, index: -1 });

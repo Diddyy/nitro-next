@@ -1,11 +1,12 @@
 import { IPurchasableOffer } from '@nitrodevco/nitro-api';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 import { APPROVE_NAME_TYPE_PET, approveName, purchaseWillBeGift, showPurchaseConfirmation } from '#base/commands';
 import { CatalogPage, CatalogWidgetEventEnum, PetImageRequest, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation, useWindowActions } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
+import { useLatest } from '#base/theme';
 import { PET_NAME_ERRORS } from '#base/utils';
 
 /**
@@ -42,11 +43,7 @@ export const usePetNamePurchase = (page: CatalogPage, { initialised, name, offer
         approveName(send, name, APPROVE_NAME_TYPE_PET);
     };
 
-    const onPurchaseRef = useRef(onPurchase);
-
-    useEffect(() => {
-        onPurchaseRef.current = onPurchase;
-    });
+    const onPurchaseRef = useLatest(onPurchase);
 
     const constructErrorMessage = (reason: string, nameValidationInfo: string) => {
         const key = `catalog.alert.petname.${reason}`;

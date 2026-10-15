@@ -48,7 +48,7 @@ import { useGroupStore } from '#base/context/groups';
 import { useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useHomeRoomId, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useUserStore } from '#base/context/user';
-import { Box, findTemplateChild, FloatingPopup, TemplateBindings, TemplateItem, TemplateWindow, useLayoutSize, useTemplate } from '#base/theme';
+import { Box, findTemplateChild, FloatingPopup, TemplateBindings, TemplateItem, TemplateWindow, useLatest, useLayoutSize, useTemplate } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 /**
@@ -84,11 +84,7 @@ export interface NavigatorRoomInfoPopupProps {
  * info button was pressed, which is outside the bubble.
  */
 const useCloseWhenMouseLeaves = (bubble: RefObject<PixiContainer | null>, serial: number, onClose: () => void) => {
-    const onCloseRef = useRef(onClose);
-
-    useEffect(() => {
-        onCloseRef.current = onClose;
-    }, [ onClose ]);
+    const onCloseRef = useLatest(onClose);
 
     useEffect(() => {
         let remaining = POPUP_CLOSE_DELAY_MS;

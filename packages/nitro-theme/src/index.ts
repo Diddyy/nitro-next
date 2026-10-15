@@ -41,6 +41,7 @@ export * from './hooks/useFrameDrag';
 export * from './hooks/useFrameResize';
 export * from './hooks/useHoldToRepeat';
 export * from './hooks/useInteractionState';
+export * from './hooks/useLatest';
 export * from './hooks/useLayoutEvent';
 export * from './hooks/useOutsideClick';
 export * from './hooks/usePixiTexture';

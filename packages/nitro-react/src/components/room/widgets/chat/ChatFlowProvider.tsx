@@ -7,6 +7,7 @@ import { ChatBubbleMotion, chatBubbleWidthFromSetting, ChatFlowStage, IChatFlowH
 import { useRoom, useRoomChatActions } from '#base/context/room';
 import { useUserStore } from '#base/context/user';
 import { ChatFlowContext, ChatFlowContextValue, useRoomObjectSelect } from '#base/hooks';
+import { useLatest } from '#base/theme';
 
 /** `ChatFlowViewer._Str_22565` / `_chatAreaVsScreenSize` - new bubbles appear a quarter of the way down the screen. */
 const DEFAULT_CHAT_AREA_HEIGHT = 230;
@@ -31,7 +32,6 @@ export const ChatFlowProvider = ({ children }: ChatFlowProviderProps) => {
     const chatScrollSpeed = useUserStore(x => x.chatScrollSpeed);
     const { removeChatBubble } = useRoomChatActions();
     const { selectObject } = useRoomObjectSelect();
-    const selectObjectRef = useRef(selectObject);
     const settings = useMemo<IChatFlowSettings>(() => ({ mode: chatMode, bubbleWidth: chatBubbleWidth, scrollSpeed: chatScrollSpeed }), [ chatMode, chatBubbleWidth, chatScrollSpeed ]);
     const settingsRef = useRef(settings);
     const stageRef = useRef<ChatFlowStage | null>(null);
@@ -89,9 +89,7 @@ export const ChatFlowProvider = ({ children }: ChatFlowProviderProps) => {
         onBubbleRemoved: bubble => removeChatBubble(bubble.id),
     }), [ room, removeChatBubble ]);
 
-    useEffect(() => {
-        selectObjectRef.current = selectObject;
-    });
+    const selectObjectRef = useLatest(selectObject);
 
     useEffect(() => {
         settingsRef.current = settings;

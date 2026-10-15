@@ -7,6 +7,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { NotificationLayoutName, useNotificationActions, useNotificationStore } from '#base/context/notifications';
 import { useWindowActions, useWindowZIndex } from '#base/context/system';
 import { useViewportSize } from '#base/hooks';
+import { useLatest } from '#base/theme';
 
 import { NotificationFrame, NotificationsBubble } from './NotificationsBubble';
 import {
@@ -127,11 +128,7 @@ export const NotificationsView = () => {
         setFrames(previous => (sameFrames(previous, next) ? previous : next));
     };
 
-    const tickRef = useRef(tick);
-
-    useEffect(() => {
-        tickRef.current = tick;
-    });
+    const tickRef = useLatest(tick);
 
     const active = (queueLength > 0) || (visible.length > 0);
 

@@ -45,6 +45,7 @@ Use the relevant references below; a small edit does not require reading every g
 | Revision updates or copied reference tables | [Staying in step](docs/staying-in-step.md) |
 | Unported or partly ported features, and picking work | [Feature gaps](docs/feature-gaps.md) |
 | What the client does that Turbo does not answer yet | [Server gaps](docs/server-gaps.md) |
+| Refactoring nitro-react, or code an open refactor touches | [Refactoring backlog](docs/refactoring.md) |
 | Room rendering, water, zoom or GPU behavior | [Renderer verification](docs/renderer-parity.md) |
 | The avatar or group badge imager | [Imager](docs/imager.md) |
 | Shared test and diagnostic commands | [Developer tools directory](tools/) |

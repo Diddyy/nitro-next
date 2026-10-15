@@ -17,13 +17,13 @@
  * (`windowEventHandler`, `select_name_button`) - inference.
  */
 import { ChangeUserNameInRoomComposer } from '@nitrodevco/nitro-packets';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { checkNameChangeName, listenNameChangeResults, NameChangeResult } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
-import { Box, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { Box, TemplateBindings, TemplateWindow, useLatest, useTemplateFrame } from '#base/theme';
 
 const LIBRARY = 'habbo-help-com';
 /** `welcome_name_change`'s frame around its 303 x 190 content. */
@@ -134,11 +134,7 @@ const NameChangeWindow = () => {
     };
 
     // Always the latest handler, which closes over this render's state.
-    const latest = useRef(onResult);
-
-    useLayoutEffect(() => {
-        latest.current = onResult;
-    });
+    const latest = useLatest(onResult);
 
     useEffect(() => listenNameChangeResults(result => latest.current(result)), []);
 

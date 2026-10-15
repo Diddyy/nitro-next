@@ -20,7 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { previewSoundVolumes, saveSoundVolumes } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useUserStore } from '#base/context/user';
-import { LayoutImage, TemplateBindings, TemplateWindows } from '#base/theme';
+import { LayoutImage, TemplateBindings, TemplateWindows, useLatest } from '#base/theme';
 
 import { ToolbarSettingsWindow } from './ToolbarSettingsWindow';
 
@@ -58,11 +58,8 @@ export const ToolbarSoundSettingsView = ({ onClose }: { onClose: () => void }) =
 
         previewSoundVolumes(next.ui_volume_container, next.furni_volume_container, next.trax_volume_container);
     };
-    const previewRef = useRef(preview);
 
-    useEffect(() => {
-        previewRef.current = preview;
-    });
+    const previewRef = useLatest(preview);
 
     const stopDragging = () => {
         const listeners = listenersRef.current;

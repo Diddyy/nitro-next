@@ -1,7 +1,8 @@
 import { NitroEvent } from '@nitrodevco/nitro-api';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { useRoom } from '#base/context/room';
+import { useLatest } from '#base/theme';
 
 /**
  * Subscribes a handler to one or more of the room's own events (`room.eventDispatcher`) for as
@@ -14,13 +15,10 @@ export const useRoomEventDispatcher = <T extends NitroEvent>(
     enabled: boolean = true,
 ) => {
     const room = useRoom();
-    const handlerRef = useRef(handler);
     // Callers pass array literals, a new array each render: the listeners follow the names, not the array.
     const typeKey = Array.isArray(type) ? type.join('|') : type;
 
-    useEffect(() => {
-        handlerRef.current = handler;
-    });
+    const handlerRef = useLatest(handler);
 
     useEffect(() => {
         if (!room || !enabled) return;

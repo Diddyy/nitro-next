@@ -2,10 +2,11 @@
 import { IRoomObject, MouseEventType, RoomDragEvent, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectMouseEvent, RoomRenderedEvent } from '@nitrodevco/nitro-api';
 import { GetRenderer, GetRoomStage, GetTicker, RoomAreaSelectionManager } from '@nitrodevco/nitro-renderer';
 import { FederatedPointerEvent, Ticker } from 'pixi.js';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { getRoomObjectBeingPlaced, useRoom, useRoomMouseActions, useRoomStore } from '#base/context/room';
 import { useRoomCamera } from '#base/hooks';
+import { useLatest } from '#base/theme';
 
 import { touchPlacementDrop } from './touchPlacementDrop';
 
@@ -34,17 +35,12 @@ export const RoomCanvas = () => {
     const { updateRoomCamera } = useRoomCamera();
     // The ticker and the pointer listeners outlive renders; own-avatar targeting and follow settings,
     // and whether a drag may start (decorating, a game), must stay current.
-    const updateCameraRef = useRef(updateRoomCamera);
-    const isDecoratingRef = useRef(isDecorating);
-    const isPlayingGameRef = useRef(isPlayingGame);
     // Whether the press being handled is a finger placing an object (`isTouchPlacing`).
     const touchPlacingRef = useRef(false);
 
-    useLayoutEffect(() => {
-        updateCameraRef.current = updateRoomCamera;
-        isDecoratingRef.current = isDecorating;
-        isPlayingGameRef.current = isPlayingGame;
-    });
+    const updateCameraRef = useLatest(updateRoomCamera);
+    const isDecoratingRef = useLatest(isDecorating);
+    const isPlayingGameRef = useLatest(isPlayingGame);
     const { hasAndResetCursorUpdate, hasCursorOwners } = useRoomMouseActions();
     const mouseDataRef = useRef<MouseData>({
         mouseXY: { x: 0, y: 0 },

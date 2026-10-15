@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 
-import { Box, TemplateWindow, TemplateWindows } from '#base/theme';
+import { Box, TemplateWindow, TemplateWindows, useLatest } from '#base/theme';
 
 interface QuestProgressBarProps {
     /** `location`, in the window the bar is added to. */
@@ -43,13 +43,9 @@ export const QuestProgressBar = ({ x, y, width, current, max, levelKey, scoreAtS
     const [ shown, setShown ] = useState(target);
     const [ start, setStart ] = useState(target);
     const previous = useRef({ levelKey, max });
-    const shownRef = useRef(shown);
-    const onSettledRef = useRef(onSettled);
 
-    useEffect(() => {
-        shownRef.current = shown;
-        onSettledRef.current = onSettled;
-    });
+    const shownRef = useLatest(shown);
+    const onSettledRef = useLatest(onSettled);
 
     useEffect(() => {
         // `refresh`: a new level or maximum jumps to the target; otherwise the bar animates from where it is.

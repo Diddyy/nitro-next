@@ -1,5 +1,7 @@
 import { Container as PixiContainer } from 'pixi.js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import { useLatest } from './useLatest';
 
 export interface LayoutSize {
     width: number;
@@ -29,11 +31,7 @@ const readSize = (node: PixiContainer | null): LayoutSize => {
  * was laid out before the effect attached would otherwise never report).
  */
 export const useLayoutEvent = (node: PixiContainer | null, handler: () => void): void => {
-    const handlerRef = useRef(handler);
-
-    useEffect(() => {
-        handlerRef.current = handler;
-    });
+    const handlerRef = useLatest(handler);
 
     useEffect(() => {
         if (!node || node.destroyed) return;
