@@ -15,8 +15,8 @@
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
-import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { ConditionCodes } from './conditionCodes';
@@ -58,7 +58,6 @@ export const chestHasAmountCondition: WiredElementDefinition<ChestHasAmountCondi
     setMergedType: (form, _id, sourceType) => ({ ...form, amount: { ...form.amount, picker: setPickerTarget(form.amount.picker, sourceType) } }),
     getCustomSourcesForMergedType: () => [ Number(VariableExtraSourceTypes.GLOBAL_SOURCE), Number(VariableExtraSourceTypes.CONTEXT_SOURCE) ],
     hasCustomTypePicker: () => true,
-    isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && (id === 0) && isValueOrVariableSourcePickingDisabled(form.amount),
     advancedAlwaysVisible: true,
     forceHidePickFurniInstructions: true,
 };

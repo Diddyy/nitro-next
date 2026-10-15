@@ -14,8 +14,8 @@ import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { intAsLong } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, setPickerTarget, WiredVariableFilter, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, VALUE_OR_VARIABLE_OPTION_VARIABLE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
-import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, VALUE_OR_VARIABLE_OPTION_VARIABLE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { ConditionCodes } from './conditionCodes';
@@ -84,7 +84,6 @@ export const variableAgeCondition: WiredElementDefinition<VariableAgeConditionFo
     setMergedType: (form, id, sourceType) => ((id === 0)
         ? { ...form, picker: setPickerTarget(form.picker, sourceType) }
         : { ...form, duration: { ...form.duration, picker: setPickerTarget(form.duration.picker, sourceType) } }),
-    isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && (id === 1) && isValueOrVariableSourcePickingDisabled(form.duration),
     getCustomSourcesForMergedType: () => [ Number(VariableExtraSourceTypes.GLOBAL_SOURCE), Number(VariableExtraSourceTypes.CONTEXT_SOURCE) ],
     hasCustomTypePicker: () => true,
     advancedAlwaysVisible: true,

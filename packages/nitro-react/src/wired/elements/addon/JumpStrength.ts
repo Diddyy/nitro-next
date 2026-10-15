@@ -7,8 +7,8 @@
  * one saved with a variable on the value `JUMP_STRENGTH_VARIABLE_DEFAULT`.
  */
 import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
-import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { AddonCodes } from './addonCodes';
@@ -36,7 +36,6 @@ export const jumpStrengthAddon: WiredElementDefinition<JumpStrengthAddonForm> = 
     },
     readIntParams: form => [ form.strength.option, form.strength.value, form.strength.picker.target ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.strength.picker) ],
-    isInputSourceDisabled: (form, id, sourceType) => (sourceType === WIRED_SOURCE_MERGED) && isValueOrVariableSourcePickingDisabled(form.strength),
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',
     mergedSelections: [ [ 0, 0 ] ],
     getMergedType: form => form.strength.picker.target,

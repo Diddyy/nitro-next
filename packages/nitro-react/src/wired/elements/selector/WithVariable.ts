@@ -21,7 +21,7 @@ import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 import { resolveSourceTypeSelection } from '../../common/sourceTypeColors';
 import { intAsLong } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, setPickerTarget, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableOnSameHolder, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { createValueOrVariableState, isValueOrVariableOnSameHolder, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, WiredElementContext, WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
@@ -109,7 +109,7 @@ export const createWithVariableSelector = (code: number, variableSource: number)
 
         if (isValueOrVariableOnSameHolder(form.reference, variableSource)) return true;
 
-        return !form.variableHasValue || !form.selectByValue || isValueOrVariableSourcePickingDisabled(form.reference);
+        return !form.variableHasValue || !form.selectByValue;
     },
     mergedSelections: [ [ 0, 0 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',
