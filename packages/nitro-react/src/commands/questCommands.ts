@@ -2,7 +2,7 @@
  * What the quest list does - Flash's `quest/QuestsList` and the `HabboQuestEngine` calls it makes:
  * `onToolbarClick` (and `showQuests` over it), `onQuests`, `onAcceptQuest` and `onCancelQuest`.
  */
-import { AcceptQuestComposer, ActivateQuestComposer, GetQuestsComposer, IQuestMessageData, OpenQuestTrackerComposer, RejectQuestComposer } from '@nitrodevco/nitro-packets';
+import { AcceptQuestComposer, ActivateQuestComposer, GetQuestsComposer, IQuestMessageData, OpenQuestTrackerComposer, RejectQuestComposer, StartCampaignComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { questsStore } from '#base/context/quests';
@@ -219,4 +219,30 @@ export const acceptQuestFromDetails = (send: Send, quest: IQuestMessageData) => 
     else send(new ActivateQuestComposer({ questId: quest.id }));
 
     closeQuestDetails();
+};
+
+/**
+ * `CitizenshipVipQuestsPromoExtension.onCitizenshipQuestPromoEnabled`: the server says the account's
+ * free HC is on, and `vip_quests` docks at priority 10 in place of `club_promo` (which it detaches).
+ * `HabboToolbar` builds the extension, and so listens, only while
+ * `citizenship.vip.quest.promotion.enabled`.
+ */
+export const onCitizenshipVipQuestsPromoEnabled = () => {
+    if (!configReader(systemStore.getState().config).configBoolean('citizenship.vip.quest.promotion.enabled')) return;
+
+    questsStore.getState().setVipQuestsPromoAttached(true);
+};
+
+/** `onButtonClicked`: start the campaign `citizenship.vip.tutorial.quest.campaign.name` names, and undock (`destroyWindow`). */
+export const startCitizenshipVipQuests = (send: Send) => {
+    send(new StartCampaignComposer({ campaignName: configReader(systemStore.getState().config).configString('citizenship.vip.tutorial.quest.campaign.name') }));
+
+    questsStore.getState().setVipQuestsPromoAttached(false);
+};
+
+/** `onMinMax`: either region flips `_expanded`; `assignState` draws it. */
+export const toggleCitizenshipVipQuestsPromo = () => {
+    const { vipQuestsPromoExpanded, setVipQuestsPromoExpanded } = questsStore.getState();
+
+    setVipQuestsPromoExpanded(!vipQuestsPromoExpanded);
 };
