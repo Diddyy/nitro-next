@@ -45,9 +45,9 @@ export interface RoomPreviewerApi {
     /**
      * Re-dresses the placed avatar in place (no re-add) - falls back to `addAvatar` if none is
      * placed yet, waits for the room if it doesn't exist yet, and for the figure's libraries so
-     * the placeholder avatar never shows.
+     * the placeholder avatar never shows. `effect` is the avatar effect it wears (0 or -1 for none).
      */
-    updateAvatar: (figure: string, gender?: string) => void;
+    updateAvatar: (figure: string, gender?: string, effect?: number) => void;
     /** Turns the placed avatar one step (45deg) clockwise, or counter-clockwise with `forward = false`. */
     rotateAvatar: (forward?: boolean) => void;
     addFloorItem: (classId: number, direction: IVector3D, objectData?: IObjectData, extra?: number) => number;

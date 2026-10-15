@@ -33,20 +33,22 @@
  *   `BORDER` `_3` while selected or under the pointer, else `_1`; `CLUB_ICON`). A category without
  *   parts shows `content_title` and `content_notification` instead. `showPalettes`: one palette as
  *   wide as `thumbs`, or two `(width - 10) / 2` wide, 10 apart.
- * - `avatarWidget` is the room previewer with the editing figure; `rotate_avatar` turns it,
+ * - `avatarWidget` is the room previewer with the editing figure, wearing the editor's effect
+ *   (`FigureDataView.update` with `avatarEffectType`); `rotate_avatar` turns it,
  *   `save` saves the look (or a clothing booth's) and closes the editor.
  * - `setSideContent`: `wardrobe` toggles the wardrobe (`AvatarEditorWardrobe`) into
  *   `sideContainer`, which takes its width; the content and the frame grow with it.
  *
  * The effects tab: `useAvatarEditorEffects`.
  *
- * Not ported: `avatar_name_change` (`premium.name.change.enabled`, `AvatarEditorNameChangeView`).
+ * Not ported: `avatar_name_change` (`premium.name.change.enabled`, `AvatarEditorNameChangeView`) - its
+ * layouts are only in the AS3, not in the `habbo-avatar-editor-com` template bundle.
  */
 import { AvatarEditorCategory, AvatarFigurePartType, AvatarGenderType, RoomId } from '@nitrodevco/nitro-api';
 import { GetHotLooksComposer, GetSelectedNftWardrobeOutfitComposer, GetUserNftWardrobeComposer, GetWardrobeComposer, INftWardrobeItem, SaveUserNftWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useMemo, useState } from 'react';
 
-import { hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
+import { closeAvatarEditorEffect, hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
 import { DEFAULT_WARDROBE_SLOTS, normalizeGender, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
@@ -238,6 +240,7 @@ export const AvatarEditor = () => {
     const figure = useAvatarEditorStore(x => x.figure);
     const figureParts = useAvatarEditorStore(x => x.parts);
     const gender = useAvatarEditorStore(x => x.gender);
+    const avatarEffectType = useAvatarEditorStore(x => x.avatarEffectType);
     const figureSetIds = useAvatarEditorStore(x => x.figureSetIds);
     const activeSetType = activeSubType[activeCategory];
     const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setSelectedNftOutfitId, setNftOutfit, setNftSelection } = useAvatarEditorActions();
@@ -393,10 +396,13 @@ export const AvatarEditor = () => {
         if (hasAvatarEditorInvalidSellableItems()) stripAvatarEditorInvalidSellableItems(clubLevel);
     }, [ figure, clubLevel, figureSetIds ]);
 
-    // The previewed avatar follows every edit (re-dressed in place, not re-added).
+    // The previewed avatar follows every edit and the effect it wears (re-dressed in place, not re-added).
     useEffect(() => {
-        if (figure) previewer?.updateAvatar(figure, gender);
-    }, [ previewer, figure, gender ]);
+        if (figure) previewer?.updateAvatar(figure, gender, avatarEffectType);
+    }, [ previewer, figure, gender, avatarEffectType ]);
+
+    // `HabboAvatarEditorManager.close`, however the window goes.
+    useEffect(() => () => closeAvatarEditorEffect(), []);
 
     // A booth brings its own outfit; loading it here keeps the editing figure something only the editor sets.
     useEffect(() => {

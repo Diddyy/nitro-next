@@ -11,12 +11,15 @@
  * that is the remove item - with `avatareditor.show.clubitems.first` that can be another club item,
  * which leaves the figure as invalid as it was. The port takes the first item of the grid the user
  * may wear instead, and removes the part when there is none and the set type is not mandatory.
+ *
+ * Also `HabboAvatarEditorManager.close`'s effect step (`closeAvatarEditorEffect`).
  */
 import { AvatarFigurePartType } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
 
 import { avatarEditorStore } from '#base/context/avatar-editor';
 import { systemStore } from '#base/context/system';
+import { userStore } from '#base/context/user';
 import { firstSelectableColorId, getAvatarEditorPartSets } from '#base/utils';
 
 /** The set types of the editor's part categories (`getCategoryValues`). */
@@ -110,4 +113,13 @@ export const stripAvatarEditorInvalidSellableItems = (clubLevel: number): void =
 
         if (worn?.partSet?.isSellable && !figureSetIds.includes(worn.partSet.id)) replacePart(setType, clubLevel, worn.worn.colorIds);
     }
+};
+
+/**
+ * `HabboAvatarEditorManager.close`: the editor's effect becomes the one last worn
+ * (`inventory.getLastActivatedEffect()`), which the preview wears the next time it opens. A pick
+ * not saved stays marked for the next save, as Flash leaves `§_-91a§` alone here.
+ */
+export const closeAvatarEditorEffect = (): void => {
+    avatarEditorStore.getState().setAvatarEffectType(userStore.getState().lastWornEffect);
 };

@@ -1,8 +1,11 @@
 import { AvatarEditorCategory } from '@nitrodevco/nitro-api';
-import { FigureSetIdsEventMessage, HotLooksMessage, UserNftWardrobeMessage, UserNftWardrobeSelectionMessage, WardrobeMessage } from '@nitrodevco/nitro-packets';
+import {
+    AvatarEffectActivatedMessage, AvatarEffectExpiredMessage, AvatarEffectMessage, AvatarEffectSelectedMessage, FigureSetIdsEventMessage, HotLooksMessage, UserNftWardrobeMessage, UserNftWardrobeSelectionMessage, WardrobeMessage,
+} from '@nitrodevco/nitro-packets';
 
 import { avatarEditorStore, AvatarEditorWardrobeOutfit, DEFAULT_WARDROBE_SLOTS, normalizeGender, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { WebSocketConnection } from '#base/context/communication';
+import { roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -13,9 +16,14 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * (`NftAvatarsModel.onUserNftWardrobeMessage`) with the one worn (`HabboAvatarEditor.onUserNftWardrobeMessage`). They land in the
  * one app-wide editor store, so they are fetched once and are still there the next time the
  * window opens.
+ *
+ * The effect the preview wears (`figureData.avatarEffectType`) follows the server's effect messages
+ * as the handler's `onAvatarEffectActivated`, `onAvatarEffectExpired` (only for the effect worn),
+ * `onRoomAvatarEffects` (only for the user's own avatar in the room) and `onAvatarEffectSelected`
+ * set it; the preview redraws from the store (`figureData.updateView`).
  */
 export const registerAvatarEditorHandlers = ({ subscribe }: WebSocketConnection) => {
-    const { setFigureSetIds, setWardrobe, setNftOutfits, setHotLooks } = avatarEditorStore.getState();
+    const { setFigureSetIds, setWardrobe, setNftOutfits, setHotLooks, setAvatarEffectType } = avatarEditorStore.getState();
 
     return subscribeAll(subscribe, [
         on(FigureSetIdsEventMessage, (data) => {
@@ -36,6 +44,20 @@ export const registerAvatarEditorHandlers = ({ subscribe }: WebSocketConnection)
         }),
 
         on(UserNftWardrobeMessage, data => setNftOutfits(data.nftAvatars)),
+
+        on(AvatarEffectActivatedMessage, data => setAvatarEffectType(data.type)),
+
+        on(AvatarEffectExpiredMessage, (data) => {
+            if (avatarEditorStore.getState().avatarEffectType === data.type) setAvatarEffectType(-1);
+        }),
+
+        on(AvatarEffectMessage, (data) => {
+            const { room, ownRoomIndex } = roomStore.getState();
+
+            if (room && (data.objectId === ownRoomIndex)) setAvatarEffectType(data.effectId);
+        }),
+
+        on(AvatarEffectSelectedMessage, data => setAvatarEffectType(data.type)),
 
         // `HotLooksModel.onHotLooksMessage`: each look filed under its gender.
         on(HotLooksMessage, data => setHotLooks(data.hotLooks.map(look => ({ figure: look.figureString, gender: normalizeGender(look.gender) })))),

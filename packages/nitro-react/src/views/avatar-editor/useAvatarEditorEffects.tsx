@@ -13,17 +13,21 @@
  *   `effectParamsContainer` names it (`${fx_<type>}`): `save_to_activate` for one not running yet,
  *   else `time_left_bg` with the time left counting down each second; `get_more_button` opens
  *   `avatareditor.effects.buy.button.catalog.page.name`.
- * - The pick is kept until `save`, which wears it (`HabboInventory.setEffectSelected` ->
- *   `EffectsModel.useEffect`: switched on first when not running, then selected) or takes every
- *   effect off (`deselectAllEffects(true)`: selected -1). The tab opens on the effect last worn
- *   (`getLastActivatedEffect`).
+ * - The pick is `figureData.avatarEffectType` in the editor store, which the preview wears; the
+ *   editor opens on the effect last worn (`getLastActivatedEffect`), and the server's effect
+ *   messages move it too (`registerAvatarEditorHandlers`). A pick (`setAvatarEffectType`) marks it
+ *   for the save, which wears it (`HabboInventory.setEffectSelected` -> `EffectsModel.useEffect`:
+ *   switched on first when not running, then selected) or takes every effect off
+ *   (`deselectAllEffects(true)`: selected -1). Flash keeps that mark until a save, so a pick in an
+ *   editor closed without saving is still worn by the next save.
  */
 import { AvatarEffectActivatedComposer, AvatarEffectSelectedComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
+import { useAvatarEditorActions, useAvatarEditorStore } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
-import { useAvatarEffects, useUserActions, useUserStore } from '#base/context/user';
+import { useAvatarEffects, useUserActions } from '#base/context/user';
 import { secondsLeftOf, UserAvatarEffect } from '#base/context/user/store/avatarEffectsModel';
 import { ColorLayer, LayoutImage, Template, TemplateBindings, TemplateItem, useTemplate } from '#base/theme';
 import { twoDigits } from '#base/utils';
@@ -77,19 +81,18 @@ const PARAM_BAR = { width: 120, height: 16 };
 
 export const useAvatarEditorEffects = (shown: boolean) => {
     const effects = useAvatarEffects();
-    const lastWorn = useUserStore(x => x.lastWornEffect);
+    const avatarEffectType = useAvatarEditorStore(x => x.avatarEffectType);
+    const avatarEffectPicked = useAvatarEditorStore(x => x.avatarEffectPicked);
+    const { pickAvatarEffectType, clearAvatarEffectPicked } = useAvatarEditorActions();
     const { setLastWornEffect } = useUserActions();
     const { showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const template = useTemplate(GRID_ITEM_TEMPLATE);
     const buyPage = useConfigValue<string>('avatareditor.effects.buy.button.catalog.page.name') ?? '';
-    // The pick (`setAvatarEffectType`), `null` while nothing was picked since the editor opened.
-    const [ choice, setChoice ] = useState<number | null>(null);
     const [ hovered, setHovered ] = useState<number | null>(null);
     const [ now, setNow ] = useState(() => Date.now());
-    const selectedType = choice ?? lastWorn;
-    const selected = effects.find(effect => effect.type === selectedType) ?? null;
+    const selected = effects.find(effect => effect.type === avatarEffectType) ?? null;
 
     // `onSecondsTimer`: the time left counts down each second while the tab is up.
     useEffect(() => {
@@ -109,7 +112,7 @@ export const useAvatarEditorEffects = (shown: boolean) => {
             from,
             bindings: {
                 '': {
-                    onPointerTap: () => setChoice(type),
+                    onPointerTap: () => pickAvatarEffectType(type),
                     onPointerOver: () => setHovered(type),
                     onPointerOut: () => setHovered(current => ((current === type) ? null : current)),
                 },
@@ -150,13 +153,13 @@ export const useAvatarEditorEffects = (shown: boolean) => {
 
     /** `HabboAvatarEditor.saveCurrentSelection`'s effect part: only when an effect was picked. */
     const save = () => {
-        if (choice === null) return;
+        if (!avatarEffectPicked) return;
 
-        if (choice === NO_EFFECT) {
+        if (avatarEffectType === NO_EFFECT) {
             send(new AvatarEffectSelectedComposer({ effectType: NO_EFFECT }));
             setLastWornEffect(NO_EFFECT);
         } else {
-            const effect = effects.find(entry => entry.type === choice);
+            const effect = effects.find(entry => entry.type === avatarEffectType);
 
             if (effect) {
                 if (!effect.isActive) send(new AvatarEffectActivatedComposer({ effectType: effect.type }));
@@ -168,7 +171,7 @@ export const useAvatarEditorEffects = (shown: boolean) => {
             }
         }
 
-        setChoice(null);
+        clearAvatarEffectPicked();
     };
 
     return { thumbs, hasEffects: thumbs.length > 0, paramBindings, save };

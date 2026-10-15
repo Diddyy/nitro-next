@@ -25,6 +25,9 @@ const actions = {
     setSelectedNftOutfitId: state.setSelectedNftOutfitId,
     setNftOutfit: state.setNftOutfit,
     setNftSelection: state.setNftSelection,
+    setAvatarEffectType: state.setAvatarEffectType,
+    pickAvatarEffectType: state.pickAvatarEffectType,
+    clearAvatarEffectPicked: state.clearAvatarEffectPicked,
 };
 
 export const useAvatarEditorActions = () => actions;

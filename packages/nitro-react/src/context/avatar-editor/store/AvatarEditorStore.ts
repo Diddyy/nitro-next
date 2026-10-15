@@ -48,6 +48,14 @@ type State = {
     nftCurrentTokenId: string | null;
     nftFallbackFigure: string;
     nftFallbackGender: string;
+    /**
+     * `FigureData.avatarEffectType`: the effect the preview avatar wears and the effects tab has
+     * picked, -1 for none. The editor opens on the effect last worn (`getLastActivatedEffect`); a
+     * pick and the server's effect messages change it (`AvatarEditorMessageHandler`).
+     */
+    avatarEffectType: number;
+    /** `HabboAvatarEditor.§_-91a§`: an effect was picked since the last save, so the save wears it. */
+    avatarEffectPicked: boolean;
 };
 
 type Actions = {
@@ -72,6 +80,12 @@ type Actions = {
     /** `HabboAvatarEditor.setNftOutfit`: picks the outfit and keeps the current look to roll back to. */
     setNftOutfit: (id: string) => void;
     setNftSelection: (currentTokenId: string | null, fallbackFigure?: string, fallbackGender?: string) => void;
+    /** `figureData.avatarEffectType = type` - what the server's effect messages and opening the editor set. */
+    setAvatarEffectType: (avatarEffectType: number) => void;
+    /** `HabboAvatarEditor.setAvatarEffectType`: the effects tab's pick, which the next save wears. */
+    pickAvatarEffectType: (avatarEffectType: number) => void;
+    /** `saveCurrentSelection`: the pick is worn, so the next save leaves effects alone. */
+    clearAvatarEffectPicked: () => void;
 };
 
 const initialState: State = {
@@ -103,6 +117,8 @@ const initialState: State = {
     nftCurrentTokenId: null,
     nftFallbackFigure: '',
     nftFallbackGender: '',
+    avatarEffectType: -1,
+    avatarEffectPicked: false,
 };
 
 export type AvatarEditorStore = State & Actions & {
@@ -177,6 +193,9 @@ export const createAvatarEditorStore = () => createStore<AvatarEditorStore>()((s
         nftFallbackFigure: nftFallbackFigure ?? state.nftFallbackFigure,
         nftFallbackGender: nftFallbackGender ?? state.nftFallbackGender,
     })),
+    setAvatarEffectType: avatarEffectType => set({ avatarEffectType }),
+    pickAvatarEffectType: avatarEffectType => set({ avatarEffectType, avatarEffectPicked: true }),
+    clearAvatarEffectPicked: () => set({ avatarEffectPicked: false }),
     setWardrobeSlot: (index, outfit) => set((state) => {
         const wardrobe = [ ...state.wardrobe ];
 
