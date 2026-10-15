@@ -108,6 +108,8 @@ cannot find these; add them as they are found.
 - **Pet products used from the inventory.** The furni page's `use_btn` sends
   `CustomizePetWithFurni` with the inventory item's room item id (`ref`). Turbo's handler only
   interacts with an item standing in the room, so a product still in the inventory does nothing.
+- **Friend bar notifications.** Of `FriendNotification`'s types Turbo sends only the room event
+  ones, as it has no achievements, quests or games to send the others for.
 
 ## Checking a client feature without the server
 

@@ -22,13 +22,19 @@
  * - `habbicon_button`: the habbicon picker (`MessengerHabbiconPicker`, `messenger_habbicon_picker`,
  *   drawn by the shared `HabbiconPickerView`) at the button's x, its bottom 4 above the input
  *   (`positionHabbiconPicker`); a pick is sent into the conversation (`onHabbiconSelected`), and
- *   the picker stays up while shift is held.
+ *   the picker stays up while shift is held. Flash adds the picker to the messenger's container,
+ *   but a press on the header or the scaler sends the last pressed window (the button, or the
+ *   picker) `WME_CLICK_AWAY`, and `hideHabbiconPickerIfOutside` hides it before the window moves or
+ *   resizes - as the picker's press-outside close does here.
+ * - The frame resizes from 282x275 up (`width_min` / `height_min`); its children follow by their
+ *   params. `WE_RESIZE` re-lays what `MainView` sizes itself: the items take the new
+ *   `conversationItemWidth` (`adjustListItemWidths`) and the tabs refill the stretched
+ *   `avatar_list` (`refreshAvatarList`).
  *
- * Not ported: the picker does not follow the window while it is dragged. The report button reports
- * the conversation (`HabboMessenger.reportUser` -> `HabboHelp.reportUserFromIM`). The frame is not
- * resizable: `MainView` re-lays its items on `WE_RESIZE`, and the port keeps the layout's size. The
- * separator's label is hidden while no conversation is selected, where `selectConversation(-1)`
- * shows it (`§_-8K§ < 0`) - `MainView` hides the window then, so it is not seen either way.
+ * The report button reports the conversation (`HabboMessenger.reportUser` ->
+ * `HabboHelp.reportUserFromIM`). The separator's label is hidden while no conversation is selected,
+ * where `selectConversation(-1)` shows it (`§_-8K§ < 0`) - `MainView` hides the window then, so it
+ * is not seen either way.
  */
 import { useRef, useState } from 'react';
 
@@ -67,14 +73,12 @@ const HABBICON_PICKER_LOOK: HabbiconPickerLook = {
 };
 /** `positionHabbiconPicker`: the picker's bottom sits 4 above `input_widget`, which shares the button's y. */
 const HABBICON_PICKER_GAP = 4;
-/** `messenger`'s frame and its size. */
+/** `messenger`'s frame and its layout width. */
 const FRAME_WIDTH = 282;
-/** `MainView.conversationItemWidth`. */
-const ITEM_WIDTH = FRAME_WIDTH - MESSENGER_ITEM_WIDTH_INSET;
-/** `avatar_list`'s width and a tab's, which `refreshAvatarList` fits tabs into. */
+/** `avatar_list`'s layout width and a tab's, which `refreshAvatarList` fits tabs into; the list stretches with the frame. */
 const AVATAR_LIST_WIDTH = 248;
 const AVATAR_SIZE = 35;
-/** `input_widget`'s size. */
+/** `input_widget`'s layout width; it stretches with the frame. */
 const INPUT_WIDTH = 232;
 /** `illumina_input:max_chars`. */
 const INPUT_MAX_CHARS = 120;
@@ -108,19 +112,19 @@ const tabPrototype = (template: Template, selected: boolean): TemplateElement | 
 };
 
 /** A notice's text right of its 55px icon (`createChatItem`: `conversationItemWidth - 55`). */
-const arrangeNotice = ({ find }: TemplateWindows) => {
-    find('content')?.setWidth(ITEM_WIDTH - MESSENGER_NOTIFICATION_ICON_WIDTH);
+const arrangeNotice = (itemWidth: number) => ({ find }: TemplateWindows) => {
+    find('content')?.setWidth(itemWidth - MESSENGER_NOTIFICATION_ICON_WIDTH);
 };
 
 /** `msg_info`'s text held to `conversationItemWidth` (`limits.minWidth` / `maxWidth`). */
-const arrangeInfo = ({ find }: TemplateWindows) => {
+const arrangeInfo = (itemWidth: number) => ({ find }: TemplateWindows) => {
     const content = find('content');
 
     if (!content) return;
 
-    content.minWidth = ITEM_WIDTH;
-    content.maxWidth = ITEM_WIDTH;
-    content.setWidth(ITEM_WIDTH);
+    content.minWidth = itemWidth;
+    content.maxWidth = itemWidth;
+    content.setWidth(itemWidth);
 };
 
 export const MessengerView = () => {
@@ -138,7 +142,8 @@ export const MessengerView = () => {
     const ownGender = useOwnUserGender();
     const ownName = useUserStore(x => x.name);
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
-    const frame = useTemplateFrame({ id: 'messenger', defaultPosition: { x: 120, y: 120 }, onClose: hideMessenger, closeButtonVariant: '102' });
+    const [ frameSize, setFrameSize ] = useState<{ width: number; height: number } | null>(null);
+    const frame = useTemplateFrame({ id: 'messenger', defaultPosition: { x: 120, y: 120 }, resizeDirection: 'all', onResize: setFrameSize, onClose: hideMessenger, closeButtonVariant: '102' });
     const habbiconsEnabled = useConfigValue<boolean>('habbicons.enabled') === true;
     const [ pickerAt, setPickerAt ] = useState<{ x: number; bottom: number } | null>(null);
     // A press on the button that just closed the picker from outside must not open it again.
@@ -148,11 +153,17 @@ export const MessengerView = () => {
         setPickerAt(null);
     };
 
+    const frameWidth = frameSize?.width ?? FRAME_WIDTH;
+    // The frame's width change, which the stretching children (`avatar_list`, `input_widget`) take as well.
+    const widthChange = frameWidth - FRAME_WIDTH;
+    // `MainView.conversationItemWidth`.
+    const itemWidth = frameWidth - MESSENGER_ITEM_WIDTH_INSET;
+
     const visible = conversations.filter(conversation => conversation.visible);
     const selected = conversations.find(conversation => conversation.chatId === selectedChatId);
     const friendName = selected?.name ?? '';
     // `refreshAvatarList`: skip the scrolled-past tabs, then as many as fit.
-    const shownTabs = visible.slice(avatarScrollOffset, avatarScrollOffset + Math.floor(AVATAR_LIST_WIDTH / AVATAR_SIZE));
+    const shownTabs = visible.slice(avatarScrollOffset, avatarScrollOffset + Math.floor((AVATAR_LIST_WIDTH + widthChange) / AVATAR_SIZE));
     const moreRight = visible.length > (avatarScrollOffset + shownTabs.length);
     const selectedEntries = entries[selectedChatId] ?? [];
     const selectedFriend = (selectedChatId > 0) ? friends[selectedChatId] : undefined;
@@ -195,7 +206,7 @@ export const MessengerView = () => {
     const chatItem = (group: MessengerChatEntry[], key: string): TemplateItem[] => {
         const first = group[0];
         const bubble = (args: Omit<Parameters<typeof messengerChatBubbleItem>[1], 'key' | 'entries' | 'width' | 'habbiconPreviews' | 'onProfile'>) => (bubbleTemplate
-            ? [ messengerChatBubbleItem(bubbleTemplate, { ...args, key, entries: group, width: ITEM_WIDTH, habbiconPreviews, onProfile: userId => openMessengerConversationProfile(send, userId) }) ]
+            ? [ messengerChatBubbleItem(bubbleTemplate, { ...args, key, entries: group, width: itemWidth, habbiconPreviews, onProfile: userId => openMessengerConversationProfile(send, userId) }) ]
             : []);
 
         switch (first.type) {
@@ -224,14 +235,14 @@ export const MessengerView = () => {
                     key,
                     from: (first.type === MESSENGER_ENTRY_NOTIFICATION) ? 'msg_notification' : 'msg_invitation',
                     bindings: { content: { caption: messengerCaption(first.message.text, first.message.localized) } },
-                    arrange: arrangeNotice,
+                    arrange: arrangeNotice(itemWidth),
                 } ];
             case MESSENGER_ENTRY_INFO:
                 return [ {
                     key,
                     from: 'msg_info',
                     bindings: { content: { caption: messengerCaption(first.message.text, first.message.localized) } },
-                    arrange: arrangeInfo,
+                    arrange: arrangeInfo(itemWidth),
                 } ];
             default:
                 return [];
@@ -283,7 +294,7 @@ export const MessengerView = () => {
                     input_widget: {
                         children: (
                             <MessengerInput
-                                width={INPUT_WIDTH}
+                                width={INPUT_WIDTH + widthChange}
                                 emptyMessage={INPUT_EMPTY_MESSAGE}
                                 parameters={{ 'messenger.window.input.default': { friend_name: friendName } }}
                                 maxChars={INPUT_MAX_CHARS}
