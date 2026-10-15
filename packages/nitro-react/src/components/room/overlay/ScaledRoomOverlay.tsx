@@ -20,11 +20,10 @@
  * labels in the desktop's `background_widgets` container under the rest of the room UI
  * (`DesktopLayoutManager.as` 95).
  */
-import { RoomRenderedEvent } from '@nitrodevco/nitro-api';
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 
-import { useRoomEventDispatcher } from '#base/hooks';
+import { getLayoutSize, useRoomFramePlacement } from '#base/hooks';
 import { Box, useLatest } from '#base/theme';
 
 import { getRoomOverlayScale } from './getRoomOverlayScale';
@@ -51,56 +50,40 @@ export const ScaledRoomOverlay = ({ place, draggable = false, onDragged, alpha =
     const placedRef = useRef(false);
     const dragRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null);
 
-    const placeRef = useLatest(place);
     const onDraggedRef = useLatest(onDragged);
 
-    const contentSize = (node: PixiContainer) => ({ width: node.layout?.computedLayout.width ?? 0, height: node.layout?.computedLayout.height ?? 0 });
-
-    const update = () => {
-        const node = nodeRef.current;
-
-        if (!node || dragRef.current) return;
+    /** Scales the window to the room and puts it where `place` says; a drag holds it where the pointer put it. */
+    const placeNode = (node: PixiContainer): boolean => {
+        if (dragRef.current) return placedRef.current;
 
         const scale = getRoomOverlayScale();
-        const { width, height } = contentSize(node);
+        const { width, height } = getLayoutSize(node);
 
         node.scale.set(scale);
 
         // A window with no measured size yet is not placed: it would show somewhere else for a frame.
-        const position = (width && height) ? placeRef.current(Math.ceil(width * scale), Math.ceil(height * scale), scale) : null;
+        const position = (width && height) ? place(Math.ceil(width * scale), Math.ceil(height * scale), scale) : null;
 
-        placedRef.current = !!position;
-        node.alpha = position ? alpha : 0;
-
-        if (!position) return;
+        if (!position) return false;
 
         node.x = Math.round(position.x);
         node.y = Math.round(position.y);
+
+        return true;
     };
 
-    const updateRef = useLatest(update);
+    useRoomFramePlacement(nodeRef, {
+        place: placeNode,
+        onPlaced: (placed) => {
+            placedRef.current = placed;
 
-    useRoomEventDispatcher<RoomRenderedEvent>(RoomRenderedEvent.ROOM_RENDERED, update);
+            if (nodeRef.current) nodeRef.current.alpha = placed ? alpha : 0;
+        },
+    });
 
-    /*
-     * Drawn transparent until the first frame places it. The room frame comes before Pixi lays
-     * the stage out, so it is placed again once the layout pass has measured a change of size,
-     * before that size is drawn at the old one's place.
-     */
+    // Drawn transparent until the first frame places it.
     useLayoutEffect(() => {
-        const node = nodeRef.current;
-
-        if (!node) return;
-
-        if (!placedRef.current) node.alpha = 0;
-
-        const onLayout = () => updateRef.current();
-
-        node.on('layout', onLayout);
-
-        return () => {
-            node.off('layout', onLayout);
-        };
+        if (nodeRef.current && !placedRef.current) nodeRef.current.alpha = 0;
     }, []);
 
     useEffect(() => {
@@ -127,7 +110,7 @@ export const ScaledRoomOverlay = ({ place, draggable = false, onDragged, alpha =
 
             const x = Math.round(drag.x + (moveEvent.clientX - drag.pointerX));
             const y = Math.round(drag.y + (moveEvent.clientY - drag.pointerY));
-            const { width, height } = contentSize(nodeRef.current);
+            const { width, height } = getLayoutSize(nodeRef.current);
             const scale = nodeRef.current.scale.x;
 
             nodeRef.current.x = x;

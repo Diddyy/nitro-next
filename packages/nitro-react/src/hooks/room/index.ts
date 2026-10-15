@@ -8,6 +8,7 @@ export * from './useRoomCursorUpdate';
 export * from './useRoomEventDispatcher';
 export * from './useRoomEventHandler';
 export * from './useRoomFloorPlanDrawing';
+export * from './useRoomFramePlacement';
 export * from './useRoomFurnitureActionHandler';
 export * from './useRoomFurnitureData';
 export * from './useRoomInfostandPlacementHandler';

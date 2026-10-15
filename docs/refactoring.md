@@ -38,7 +38,8 @@ ones that had already moved to a layout effect by hand (`RoomCanvas`, `RoomEvent
 `components/room/overlay/ScaledRoomOverlay.tsx` and `hooks/room/useRoomObjectBubblePlacement.ts`
 each place a node on `RoomRenderedEvent`, place it again on the node's `layout` event, hide it
 until placed and size it from its computed layout. Change: one `useRoomFramePlacement(nodeRef,
-place)` both use. Do it after item 1. M.
+place)` both use. Do it after item 1. M. **Done:** `hooks/room/useRoomFramePlacement.ts` (with
+`getLayoutSize`); the bubble keeps its sampling and smoothing, the overlay its scaling and drag.
 
 ### 3. Room object values read during render
 
@@ -185,3 +186,4 @@ copies' timing agrees with Flash's. M-L.
 ## Done
 
 - Item 1, handler refs (`useLatest`).
+- Item 2, one room-frame placement hook (`useRoomFramePlacement`).

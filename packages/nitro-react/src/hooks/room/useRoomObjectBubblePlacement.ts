@@ -8,16 +8,13 @@
  * `MAX_VERTICAL_LEAD_RATIO` of the object's height above its top. A bubble with no measured size
  * yet is not placed: placing a zero-sized node would put it somewhere else for a frame.
  *
- * The room frame comes before Pixi lays the stage out, so a bubble whose content has just changed
- * (another object's menu, a sub-menu, the minimised view) still has its old size then. Placed by
- * that size, the new content would show a frame too high or too low - pinned to the window's top
- * edge when it shrinks - before jumping into place. So the bubble is placed again from the same
- * room frame whenever its layout changes (`layout`, emitted during the prerender, before drawing).
+ * A bubble whose content changes (another object's menu, a sub-menu, the minimised view) is placed
+ * again from the same room frame by its new size (`useRoomFramePlacement`).
  *
  * Given another object, the bubble starts over, hidden until placed. Showing it again is the
  * caller's, from `onRendered`.
  */
-import { RoomObjectCategoryEnum, RoomRenderedEvent } from '@nitrodevco/nitro-api';
+import { RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { Container as PixiContainer, PointData, Rectangle } from 'pixi.js';
 import { RefObject, useLayoutEffect, useRef } from 'react';
 
@@ -25,7 +22,7 @@ import { useRoom } from '#base/context/room';
 import { useLatest } from '#base/theme';
 import { FixedSizeStack } from '#base/utils';
 
-import { useRoomEventDispatcher } from './useRoomEventDispatcher';
+import { getLayoutSize, useRoomFramePlacement } from './useRoomFramePlacement';
 
 const BUBBLE_DROP_SPEED = 3;
 /** `getMaximumVerticalLead`: the smoothed top may not lag the real one by more than this share of the object's height. */
@@ -50,8 +47,8 @@ export interface RoomObjectBubblePlacementOptions {
     /** Keep the bubble `SPACE_AROUND_EDGES` inside the window. */
     keepOnScreen?: boolean;
     /**
-     * Called after every room frame, with whether the bubble could be placed, and again with no
-     * time passed when a change of size has placed it anew.
+     * Called after every room frame with whether the bubble could be placed, and again, with no
+     * time passed, after a change of its size.
      */
     onRendered?: (placed: boolean, time: number) => void;
 }
@@ -69,7 +66,6 @@ export const useRoomObjectBubblePlacement = (bubbleRef: RefObject<PixiContainer 
     const locationStack = useRef(new FixedSizeStack(stackSize));
     const maxStack = useRef(INITIAL_MAX_STACK);
     const sample = useRef<ObjectSample | undefined>(undefined);
-    // Read by the listeners, so a room frame between a commit and its passive effects already sees the new object.
     const optionsRef = useLatest(options);
 
     /** Reads the object from the room and moves the drop smoothing on by one frame. */
@@ -93,15 +89,13 @@ export const useRoomObjectBubblePlacement = (bubbleRef: RefObject<PixiContainer 
     };
 
     /** Puts the bubble over the last sample by its current size. */
-    const place = (): boolean => {
-        const node = bubbleRef.current;
+    const place = (node: PixiContainer): boolean => {
         const { isAvatar, keepOnScreen = false } = optionsRef.current;
 
-        if (!node || !sample.current) return false;
+        if (!sample.current) return false;
 
         const { bounds, location, highest } = sample.current;
-        const nodeWidth = node.layout?.computedLayout.width ?? 0;
-        const nodeHeight = node.layout?.computedLayout.height ?? 0;
+        const { width: nodeWidth, height: nodeHeight } = getLayoutSize(node);
 
         if (!nodeWidth || !nodeHeight) return false;
 
@@ -129,10 +123,12 @@ export const useRoomObjectBubblePlacement = (bubbleRef: RefObject<PixiContainer 
         return true;
     };
 
-    useRoomEventDispatcher<RoomRenderedEvent>(RoomRenderedEvent.ROOM_RENDERED, (event) => {
-        sample.current = takeSample();
-
-        optionsRef.current.onRendered?.(place(), event.time);
+    useRoomFramePlacement(bubbleRef, {
+        sample: () => {
+            sample.current = takeSample();
+        },
+        place,
+        onPlaced: (placed, time) => optionsRef.current.onRendered?.(placed, time),
     });
 
     // A layout effect, so the ticker cannot draw the bubble at its old place before this runs.
@@ -143,21 +139,4 @@ export const useRoomObjectBubblePlacement = (bubbleRef: RefObject<PixiContainer 
 
         if (bubbleRef.current) bubbleRef.current.alpha = 0;
     }, [ objectId, category, stackSize ]);
-
-    // The layout pass has measured the bubble anew: place it by that size before it is drawn.
-    useLayoutEffect(() => {
-        const node = bubbleRef.current;
-
-        if (!node) return;
-
-        const onLayout = () => {
-            if (place()) optionsRef.current.onRendered?.(true, 0);
-        };
-
-        node.on('layout', onLayout);
-
-        return () => {
-            node.off('layout', onLayout);
-        };
-    }, [ bubbleRef ]);
 };
