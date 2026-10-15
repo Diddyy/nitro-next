@@ -12,7 +12,7 @@
  * - `onAccountSafetyLockStatusChanged`: status 1 (unlocked) takes it down. The session's own
  *   `accountSafetyLocked` flag is `SessionDataManager`'s, set in `registerUserInfoHandlers`.
  */
-import { AccountSafetyLockStatusChangeMessage, ClubGiftNotificationEventMessage, MOTDNotificationEventMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { AccountSafetyLockStatusChangeMessage, ClubGiftNotificationEventMessage, EpicPopupMessage, MOTDNotificationEventMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { singularNotificationStore } from '#base/context/singular-notifications';
@@ -22,7 +22,7 @@ import { configReader } from '#base/utils';
 import { on, subscribeAll } from '../packetSubscriptions';
 
 export const registerSingularNotificationHandlers = ({ subscribe }: WebSocketConnection) => {
-    const { showMotdNotification, showClubGiftNotification, showSafetyLockedNotification, hideSafetyLockedNotification } = singularNotificationStore.getState();
+    const { showMotdNotification, showClubGiftNotification, showSafetyLockedNotification, hideSafetyLockedNotification, showEpicPopup } = singularNotificationStore.getState();
 
     return subscribeAll(subscribe, [
         on(MOTDNotificationEventMessage, (data) => {
@@ -30,6 +30,11 @@ export const registerSingularNotificationHandlers = ({ subscribe }: WebSocketCon
 
             // `useNotifications`: `getBoolean("notification.items.enabled")`.
             if (configReader(systemStore.getState().config).configBoolean('notification.items.enabled')) showMotdNotification(data.messages);
+        }),
+
+        // `HabboEpicPopupView.onEpicPopupMessageEvent`: `showPopup(imageUri)`.
+        on(EpicPopupMessage, (data) => {
+            showEpicPopup(data.imageUri);
         }),
 
         on(ClubGiftNotificationEventMessage, (data) => {
