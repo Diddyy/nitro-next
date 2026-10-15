@@ -1690,7 +1690,17 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 alpha={alpha}
                 layout={rectOf(rect, flow)}
             >
-                {drawn(fade(faceOf(element, rect, context, binding)))}
+                {/* A container button holds its windows in its face, as below, so a press on one is the button's. */}
+                {(element.tag === 'container_button')
+                    ? (
+                            <Box
+                                pointerTransparent
+                                layout={{ ...FILL, overflow: rect.clip ? 'hidden' : undefined }}
+                            >
+                                {faceOf(element, rect, context, binding, children)}
+                            </Box>
+                        )
+                    : drawn(fade(faceOf(element, rect, context, binding)))}
             </Region>
         );
     }
