@@ -1,4 +1,4 @@
-import { RoomObjectUserType } from '@nitrodevco/nitro-api';
+import { NoobnessLevelEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer, WhisperComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -6,11 +6,12 @@ import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
 import { openClientLink, openHabbiconHub, requestChatCommandSuggestions, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle, triggerHabbicon, withSelectedAvatarName } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { HabbiconsStore, useHabbiconsStore } from '#base/context/habbicons';
+import { useHintActions } from '#base/context/hints';
 import { getUnseenItemCount, UnseenItemCategory, useInventoryStore } from '#base/context/inventory';
 import { useOwnControllerLevel, useRoom, useRoomIsSpectating, useRoomStore } from '#base/context/room';
-import { useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
+import { useConfigActions, useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnHasClub, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
-import { useChatInputContentRequest, useChatStyles, useViewportSize } from '#base/hooks';
+import { useChatInputContentRequest, useChatStyles, useHintTarget, useViewportSize } from '#base/hooks';
 import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useTemplate } from '#base/theme';
 import { completeChatCommand, findInvalidArguments, IChatCommandCompletion, mergeChatCommands, NO_CHAT_COMMAND_COMPLETION } from '#base/utils';
 import { roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
@@ -45,6 +46,11 @@ const INVALID_ARGUMENT_COLOR = '#ff0000';
 const HELP_BUTTON_HIDE_DELAY_MS = 400;
 /** `CHAT_HELP_INTERNAL_CLIENT_LINK`. */
 const CHAT_HELP_LINK = 'habbopages/chat/commands';
+/** `getInteger("nux.noob.chat.reminder.delay", 240)`: seconds before a new user who has not typed is reminded. */
+const NUX_CHAT_REMINDER_DELAY_SECONDS = 240;
+/** `highlightChatInput`'s `Timer(500)`, and the ticks it runs before the reminder is over. */
+const NUX_CHAT_REMINDER_TICK_MS = 500;
+const NUX_CHAT_REMINDER_TICKS = 10;
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -114,6 +120,13 @@ const resolveHabbiconButtonSetIconCollectionId = (state: HabbiconsStore): number
  * window's friend suggestions (`PurchaseConfirmationDialog.onNameInputKeyUp`): Up and Down move
  * the highlight round the list, Enter takes it - when it would change the line; a line already
  * whole is still sent - and Tab always does. Escape puts the list away until the line changes.
+ *
+ * A new user (`isNoob`) who has not been reminded this session (`nux.chat.reminder.shown`) and types
+ * nothing in a room for `nux.noob.chat.reminder.delay` seconds is reminded (`onNuxIdleTimerComplete` ->
+ * `highlightChatInput`): the field's text becomes `widgets.chatinput.mode.remind.noobie`, the field is
+ * the `nux_chat_reminder` hint target with the arrow at it, and the bar bobs a pixel every 500 ms. After
+ * ten bobs, or a key or a press in the field, the reminder is over (`chatBarReminderShown`): the arrow
+ * goes and `nux.chat.reminder.shown` is set.
  */
 export const RoomChatInputView = () => {
     const t = useTranslation();
@@ -182,6 +195,27 @@ export const RoomChatInputView = () => {
     const [ helpButtonVisible, setHelpButtonVisible ] = useState(false);
     const overHelpButtonRef = useRef(false);
     const helpButtonHideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const isNoob = useUserStore(x => Number(x.noobnessLevel) !== Number(NoobnessLevelEnum.NotNoob));
+    const nuxReminderShown = useConfigValue<string>('nux.chat.reminder.shown') === '1';
+    const nuxReminderDelay = useConfigValue<number>('nux.noob.chat.reminder.delay') ?? NUX_CHAT_REMINDER_DELAY_SECONDS;
+    const { setConfigValue } = useConfigActions();
+    const { showHint } = useHintActions();
+    // The view is Flash's per room: its nux timer starts again in every room, until the user types there.
+    const roomId = room?.roomId ?? -1;
+    const [ nuxRoomId, setNuxRoomId ] = useState(roomId);
+    const [ nuxTyped, setNuxTyped ] = useState(false);
+    // `highlightChatInput` has run in this room (its text stays), and how many of its bobs have passed while it lasts.
+    const [ nuxReminded, setNuxReminded ] = useState(false);
+    const [ nuxReminderTicks, setNuxReminderTicks ] = useState<number | undefined>(undefined);
+    const nuxReminding = (nuxReminderTicks !== undefined);
+    const nuxHintTarget = useHintTarget('nux_chat_reminder', nuxReminding);
+
+    if (nuxRoomId !== roomId) {
+        setNuxRoomId(roomId);
+        setNuxTyped(false);
+        setNuxReminded(false);
+        setNuxReminderTicks(undefined);
+    }
 
     useEffect(() => {
         valueRef.current = value;
@@ -338,6 +372,9 @@ export const RoomChatInputView = () => {
 
             idleTimerRef.current = setTimeout(onIdleTimer, IDLE_DELAY_MS);
         }
+
+        // `onInputChanged`: typing stops the nux timer.
+        if (next.length) setNuxTyped(true);
 
         lastContentRef.current = next;
         // Enter can land before React has rendered the last keystroke (the field's `input` event is
@@ -523,6 +560,9 @@ export const RoomChatInputView = () => {
 
     /** `_Str_10572` - Space autocompletes the whisper target, Backspace clears a bare `:whisper name `. */
     const onKeyDown = (event: KeyboardEvent): boolean | void => {
+        // `windowKeyEventProcessor` -> `setInputFieldFocus`.
+        endNuxReminder();
+
         if (onSuggestionKey(event)) return true;
 
         const current = valueRef.current;
@@ -582,6 +622,49 @@ export const RoomChatInputView = () => {
     };
 
     useEffect(() => () => clearTimeout(helpButtonHideTimerRef.current), []);
+
+    // `onNuxIdleTimerComplete` -> `highlightChatInput`.
+    useEffect(() => {
+        if ((roomId < 0) || !isNoob || nuxReminderShown || nuxTyped || nuxReminded) return;
+
+        const timeout = setTimeout(() => {
+            setNuxReminded(true);
+            setNuxReminderTicks(0);
+        }, nuxReminderDelay * 1000);
+
+        return () => clearTimeout(timeout);
+    }, [ roomId, isNoob, nuxReminderShown, nuxTyped, nuxReminded, nuxReminderDelay ]);
+
+    // `registerHintWindow("nux_chat_reminder", chat_input)` then `showHint("nux_chat_reminder")`.
+    useEffect(() => {
+        if (nuxReminding) showHint('nux_chat_reminder');
+    }, [ nuxReminding, showHint ]);
+
+    // `onChatReminderTimer`: a bob every 500 ms; after the tenth, `chatBarReminderShown`.
+    useEffect(() => {
+        if (nuxReminderTicks === undefined) return;
+
+        const timeout = setTimeout(() => {
+            if ((nuxReminderTicks + 1) < NUX_CHAT_REMINDER_TICKS) {
+                setNuxReminderTicks(nuxReminderTicks + 1);
+
+                return;
+            }
+
+            setNuxReminderTicks(undefined);
+            setConfigValue('nux.chat.reminder.shown', '1');
+        }, NUX_CHAT_REMINDER_TICK_MS);
+
+        return () => clearTimeout(timeout);
+    }, [ nuxReminderTicks, setConfigValue ]);
+
+    /** `setInputFieldFocus` while the reminder runs: `chatBarReminderShown`. */
+    const endNuxReminder = () => {
+        if (!nuxReminding) return;
+
+        setNuxReminderTicks(undefined);
+        setConfigValue('nux.chat.reminder.shown', '1');
+    };
 
     /** `onInputHoverRegionMouseEvent` / `onHelpButtonMouseEvent`'s `WME_OVER`. */
     const showHelpButton = () => {
@@ -648,7 +731,8 @@ export const RoomChatInputView = () => {
             onFocusChange={setFocused}
             // `chat_input`'s `focus_capturer`: it has the keyboard whenever nothing else does.
             focusCapturer
-            placeholder={t('widgets.chatinput.default')}
+            // `highlightChatInput` sets the field's text to the reminder, which stays there.
+            placeholder={nuxReminded ? t('widgets.chatinput.mode.remind.noobie') : t('widgets.chatinput.default')}
             placeholderColor="#777777"
             maxLength={MAX_CHARS}
             fontFamily="Ubuntu"
@@ -667,7 +751,8 @@ export const RoomChatInputView = () => {
     );
 
     return (
-        <Box layout={{ position: 'absolute', left, top }}>
+        // `onChatReminderTimer` lifts the bar a pixel on every other tick.
+        <Box layout={{ position: 'absolute', left, top: top - (((nuxReminderTicks ?? 0) % 2 === 1) ? 1 : 0) }}>
             <TemplateWindow
                 id={CHAT_INPUT_TEMPLATE}
                 part="bubblecont"
@@ -677,7 +762,19 @@ export const RoomChatInputView = () => {
                     chat_input: { visible: false },
                     // `helpbutton_show_hover_region` (the whole border) and `chat_input` show the help button.
                     input_border: {
-                        children: isFloodBlocked ? undefined : field,
+                        children: (
+                            <>
+                                {!isFloodBlocked && field}
+                                {/* `chat_input`, the `nux_chat_reminder` hint target. */}
+                                <Box
+                                    ref={nuxHintTarget}
+                                    pointerTransparent
+                                    layout={{ position: 'absolute', left: layout.input.x, width: layout.inputWidth, top: layout.input.y, height: layout.input.height }}
+                                />
+                            </>
+                        ),
+                        // `windowMouseEventProcessor`'s `WME_DOWN` on the field -> `setInputFieldFocus`.
+                        onPointerDown: endNuxReminder,
                         onPointerOver: showHelpButton,
                         onPointerOut: () => {
                             if (!overHelpButtonRef.current) startHelpButtonHideTimer();

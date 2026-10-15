@@ -1,5 +1,5 @@
 import { AvatarGenderType, ChangeUserNameResultMessageCode, ClubLevelEnum } from '@nitrodevco/nitro-api';
-import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetDailyTasksComposer, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
+import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetDailyTasksComposer, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, MysteryBoxKeysMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
 import { onNameChangeChanged, openClientLink } from '#base/commands';
@@ -18,7 +18,9 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * asks the client to open (`onInClientLink`: `createLinkEvent`, here `openClientLink`). Also gives a pet respect
  * back when the server refuses one (`onPetRespectFailed`): the respect was spent when it was sent,
  * and follows the account's safety lock (`onAccountSafetyLockStatusChanged`: locked while the status is 0)
- * and the hotel's availability (`onAvailabilityStatus`), which trading checks for a shutdown.
+ * and the hotel's availability (`onAvailabilityStatus`), which trading checks for a shutdown. It
+ * keeps the colours of the mystery box and key the account collects (`onMysteryBoxKeys`), which
+ * the mystery box tracker and open dialog draw.
  *
  * Not Flash's: after the user object it asks the server for Turbo's `permission.nodes` and
  * `chat.commands.v2` extensions, unless `turbo.extensions.disabled` is set. A Turbo server answers and sends the nodes the user
@@ -27,7 +29,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * so a server that happens to use the same header for something else cannot feed the gates.
  */
 export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { setAvailabilityStatus, setRights, setPermissionNodes, setChatCommands, setTurboCapabilities, mergePerks, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned } = userStore.getState();
+    const { setAvailabilityStatus, setRights, setPermissionNodes, setChatCommands, setTurboCapabilities, mergePerks, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned, setMysteryBoxKeys } = userStore.getState();
 
     return subscribeAll(subscribe, [
         on(FigureUpdateEventMessage, (data) => {
@@ -78,6 +80,8 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
         on(NoobnessLevelMessage, (data) => {
             setNoobnessLevel(data.noobnessLevel);
         }),
+
+        on(MysteryBoxKeysMessage, data => setMysteryBoxKeys(data.boxColor, data.keyColor)),
 
         on(AvailabilityStatusMessage, data => setAvailabilityStatus(data.isOpen, data.onShutDown, data.isAuthenticHabbo)),
 

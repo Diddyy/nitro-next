@@ -36,4 +36,5 @@ export * from './FurnitureVimeoWidget';
 export * from './furnitureWidgetRegistry';
 export * from './FurnitureYoutubeWidget';
 export * from './mannequinFigure';
+export * from './MysteryBoxToolbarExtensionComponent';
 export * from './RoomFurnitureWidgets';

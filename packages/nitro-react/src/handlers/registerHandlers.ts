@@ -9,6 +9,7 @@ import { registerGameTokensHandlers } from './game-tokens';
 import { registerBadgeLeaderboardHandlers, registerGroupForumHandlers, registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
 import { registerHelpHandlers } from './help';
+import { registerElementPointerHandlers } from './hints';
 import { registerInventoryBadgesHandlers, registerInventoryBotsHandlers, registerInventoryFurniHandlers, registerInventoryMarketplaceHandlers, registerInventoryPetsHandlers, registerInventoryTradingHandlers, registerInventoryUnseenHandlers } from './inventory';
 import { registerModerationHandlers, registerModerationIssueHandlers } from './moderation';
 import { registerNavigatorHandlers, registerRaidProtectionHandlers, registerRoomQueueHandlers } from './navigator';
@@ -174,6 +175,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         // The habbicon controller (`HabbiconController`, a component `HabboCatalog` attaches for the session).
         registerHabbiconHandlers(socket),
         registerHelpHandlers(socket),
+        // `ElementPointerHandler`: the server's hint arrow (`HintManager`).
+        registerElementPointerHandlers(socket),
         // `ModerationManager`'s message handler: a moderator's tool.
         registerModerationHandlers(socket),
         // Its call for help queue and room visits.

@@ -12,7 +12,7 @@
  */
 import { ISimpleRoomObjectData, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { Container as PixiContainer } from 'pixi.js';
-import { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
+import { ReactNode, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { useRoomObjectBubblePlacement } from '#base/hooks';
 import { Box } from '#base/theme';
@@ -28,16 +28,22 @@ type RoomObjectMenuBubbleProps = {
     fades?: boolean;
     children?: ReactNode;
     onClose?: () => void;
+    /** The bubble's window, for whoever needs it as well (a hint target). */
+    targetRef?: (node: PixiContainer | null) => void;
 };
 
 const isAvatar = (userType: RoomObjectUserType | undefined) => (userType === RoomObjectUserType.User) || (userType === RoomObjectUserType.Bot) || (userType === RoomObjectUserType.RentableBot);
 
 export const RoomObjectMenuBubble = (props: RoomObjectMenuBubbleProps) => {
-    const { objectData, userType, fades = false, children, onClose = undefined } = props;
+    const { objectData, userType, fades = false, children, onClose = undefined, targetRef = undefined } = props;
     const { objectId, category } = objectData;
     const isFading = useRef<boolean>(false);
     const fadeTime = useRef<number>(1);
     const bubbleRef = useRef<PixiContainer>(null);
+    const attachBubble = useCallback((node: PixiContainer | null) => {
+        bubbleRef.current = node;
+        targetRef?.(node);
+    }, [ targetRef ]);
 
     const updateFade = (time: number) => {
         if (!isFading.current || !bubbleRef?.current) return;
@@ -92,7 +98,7 @@ export const RoomObjectMenuBubble = (props: RoomObjectMenuBubbleProps) => {
 
     return (
         <Box
-            ref={bubbleRef}
+            ref={attachBubble}
             layout={{ position: 'absolute', top: 0, left: 0 }}
         >
             {children}

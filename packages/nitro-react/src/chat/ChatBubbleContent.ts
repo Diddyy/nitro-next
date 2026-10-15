@@ -111,7 +111,8 @@ export const buildChatBubbleMarkup = (text: string, userName: string, chatType: 
 
     for (let i = 0; i < links.length; i++) {
         const url = tableTabs ? escapeChatTableTabMarker(links[i].url) : links[i].url;
-        const anchor = `<font color="${toCssHexColor(style.linkColor)}"><u>${url}</u></font>`;
+        // `<a href="url">url</a>`, in the style's link colour, underlined.
+        const anchor = `<a href="${url}"><font color="${toCssHexColor(style.linkColor)}"><u>${url}</u></font></a>`;
 
         markup = markup.replace(`{${i}}`, anchor);
     }

@@ -7,6 +7,7 @@ import { NitroLogger } from '@nitrodevco/nitro-api';
 import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
+import { hintStore } from '#base/context/hints';
 import { systemStore, WindowParams } from '#base/context/system';
 import { PerkCodes, userStore } from '#base/context/user';
 import { getWiredHasReadPermission, getWiredMenuEnabled, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW } from '#base/context/wired';
@@ -36,6 +37,9 @@ type Send = WebSocketConnection['send'];
 const TAB_LINK_SEARCH_CODES: Record<string, string> = { me: 'myworld_view' };
 
 const INVENTORY_TABS: WindowParams<'inventory'>['tab'][] = [ 'furni', 'pets', 'bots', 'badges' ];
+
+/** `BottomBarLeft.linkReceived`'s `highlight` targets: the hint key (`getIconName`) of each. */
+const TOOLBAR_HIGHLIGHT_ICONS: Record<string, string> = { catalog: 'CATALOGUE', navigator: 'NAVIGATOR', memenu: 'MEMENU' };
 
 /**
  * `WiredMenuController.linkReceived` - `wiredmenu/open[/<tab>[/...]]` and `wiredmenu/logs`, turned
@@ -351,6 +355,17 @@ export const openClientLink = (send: Send, link: string) => {
         // `HabboPagesViewer.linkReceived`: `habbopages/<page>`, the page being everything after the first `/`.
         case 'habbopages': {
             if (parts.length >= 2) openHabboPage(parts.slice(1).join('/'));
+
+            return;
+        }
+        // `BottomBarLeft.linkReceived`: `toolbar/highlight/<catalog|navigator|memenu>` points the hint arrow at that
+        // icon. Its `toolbar/memenu` (toggling the me menu, which the toolbar view holds) is not ported.
+        case 'toolbar': {
+            if ((parts[1] !== 'highlight') || (parts.length <= 2)) break;
+
+            const icon = TOOLBAR_HIGHLIGHT_ICONS[parts[2]];
+
+            if (icon) hintStore.getState().showHint(icon);
 
             return;
         }

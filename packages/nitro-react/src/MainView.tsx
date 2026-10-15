@@ -7,7 +7,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue } from '#base/context/system';
 import { useWindowVisibility } from '#base/hooks';
 
-import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, NavigatorComponent, NavigatorRoomEventInfoComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTransactionsComponent } from './components';
+import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, MysteryBoxToolbarExtensionComponent, NavigatorComponent, NavigatorRoomEventInfoComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTransactionsComponent } from './components';
 import { AchievementsComponent } from './components/achievements';
 import { TargetedOfferComponent } from './components/catalog/TargetedOfferComponent';
 import { CollectiblesComponent } from './components/collectibles';
@@ -36,6 +36,7 @@ import { GroupForumDialogs } from './views/group-forums/GroupForumDialogs';
 import { GroupForumView } from './views/group-forums/GroupForumView';
 import { HabboPagesView } from './views/habbo-pages/HabboPagesView';
 import { NameChangeView } from './views/help/NameChangeView';
+import { HintArrowView } from './views/hints/HintArrowView';
 import { MessengerView } from './views/messenger/MessengerView';
 import { ClubGiftNotificationView } from './views/notifications/ClubGiftNotificationView';
 import { NewFeatureNotificationsView } from './views/notifications/NewFeatureNotificationView';
@@ -131,6 +132,8 @@ export const MainView = () => {
                             <ClubGiftNotificationView />
                             <NewFeatureNotificationsView />
                         </Box>
+                        {/* `MysteryBoxToolbarExtension` docks `mystery_box` at the column's end as the first room opens, before the banner and event card. */}
+                        <MysteryBoxToolbarExtensionComponent />
                         {/* `GroupRoomInfoCtrl` docks the banner in this column, before the quest tracker and the event card. */}
                         <GroupRoomInfoComponent />
                         {/* `QuestController`'s trackers dock here, after the group banner and before the event card. */}
@@ -212,6 +215,8 @@ export const MainView = () => {
                     <ModalLayer />
                     {/* Desktop 2: the pictures `animateToIcon` flies into the toolbar, over every window. */}
                     <ToolbarTransitionsView />
+                    {/* `HintManager`'s arrow at the element a hint key names, over every window. */}
+                    <HintArrowView />
                     <TooltipLayer />
                 </ViewErrorBoundaries>
             </WindowLayer>

@@ -8,6 +8,7 @@ export * from './game-tokens';
 export * from './groups';
 export * from './habbicons';
 export * from './help';
+export * from './hints';
 export * from './inventory';
 export * from './moderation';
 export * from './navigator';

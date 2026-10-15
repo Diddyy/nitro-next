@@ -1,10 +1,11 @@
-import { ISimpleRoomObjectData, RoomObjectCategoryEnum, RoomObjectUserType, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
-import { ReactNode, useState } from 'react';
+import { ISimpleRoomObjectData, NoobnessLevelEnum, RoomObjectCategoryEnum, RoomObjectUserType, RoomWidgetUpdateRoomObjectEvent } from '@nitrodevco/nitro-api';
+import { ReactNode, useEffect, useState } from 'react';
 
+import { useHintActions } from '#base/context/hints';
 import { useOwnRoomObjectId, useRoom, useRoomBotsActions, useRoomFurnitureContextMenu, useRoomIsPlayingGame, useRoomIsSpectating, useRoomObjectIdByWebId, useRoomStore } from '#base/context/room';
 import { useUserStore } from '#base/context/user';
 import { useWiredStore } from '#base/context/wired';
-import { useRoomEventDispatcher } from '#base/hooks';
+import { useHintTarget, useRoomEventDispatcher } from '#base/hooks';
 import { FurnitureContextMenuView } from '#base/views/room-widgets/furniture/FurnitureContextMenuView';
 import { DecorateModeBubbleView } from '#base/views/room-widgets/object-menu/DecorateModeBubbleView';
 import { InfoBubbleAvatarView } from '#base/views/room-widgets/object-menu/InfoBubbleAvatarView';
@@ -14,6 +15,9 @@ import { InfoBubbleRentableBotView } from '#base/views/room-widgets/object-menu/
 import { RoomObjectMenuBubble } from './RoomObjectMenuBubble';
 import { RoomObjectMenuNameBubble } from './RoomObjectMenuNameBubble';
 import { RoomObjectMenuPet } from './RoomObjectMenuPet';
+
+/** `setAvatarHightlightTimer`'s `Timer(5000)`. */
+const AVATAR_HIGHLIGHT_MS = 5000;
 
 /**
  * Everything that sits over a room object - `AvatarInfoWidget` and the furniture context menus.
@@ -30,6 +34,12 @@ import { RoomObjectMenuPet } from './RoomObjectMenuPet';
  * While the room is playing a game - a game arena, or wired click settings that make it one
  * (`isGameMode`: `RoomEngine.getActiveRoomIsPlayingGame`) - users, pets and rentable bots open no
  * menu at all.
+ *
+ * The own name bubble of a room entry is highlighted (`§_-N2P§`): registered as the `avatar` hint target
+ * with the arrow shown at it (`registerHintWindow("avatar", view.window)`, `showHint("avatar")`), and
+ * hovering units shows no names meanwhile. For a user who is not new (`isNoob`) the highlight ends after
+ * 5 s (`setAvatarHightlightTimer` -> `removeAvatarHighlightTimer`, `unregisterHintWindow("avatar")`);
+ * otherwise it lasts as long as the bubble does (`removeView`).
  */
 export const RoomObjectMenuWidget = () => {
     const [ selectedData, setSelectedData ] = useState<ISimpleRoomObjectData | undefined>(undefined);
@@ -54,6 +64,10 @@ export const RoomObjectMenuWidget = () => {
     // `§_-M2g§`: the room index whose menu waits for the server's answer.
     const [ heldMenuIndex, setHeldMenuIndex ] = useState<number | undefined>(undefined);
     const [ seenClickAnswer, setSeenClickAnswer ] = useState(userClickHandled?.sequence ?? 0);
+    const isNoob = useUserStore(x => Number(x.noobnessLevel) !== Number(NoobnessLevelEnum.NotNoob));
+    // The room entry whose highlight timer has run out.
+    const [ highlightEndedKey, setHighlightEndedKey ] = useState<string | undefined>(undefined);
+    const { showHint } = useHintActions();
 
     // `onUserClickHandledEvent`: an answer with `openMenu` for the held unit lets its menu open.
     if (userClickHandled && (userClickHandled.sequence !== seenClickAnswer)) {
@@ -74,6 +88,23 @@ export const RoomObjectMenuWidget = () => {
     const entryKey = (room && !isSpectating && !nameChangeAllowed && (ownRoomObjectId >= 0)) ? `${room.roomId}:${ownRoomObjectId}` : undefined;
     const entryData: ISimpleRoomObjectData | undefined = (entryKey && (entryKey !== dismissedEntryKey)) ? { objectId: ownRoomObjectId, category: RoomObjectCategoryEnum.Unit } : undefined;
 
+    // `§_-N2P§`: the entry's own name bubble is up and its highlight not over.
+    const highlighting = !!entryData && !selectedData && (entryKey !== highlightEndedKey);
+    const avatarHintTarget = useHintTarget('avatar', highlighting && !isDecorating);
+
+    useEffect(() => {
+        if (highlighting && !isDecorating) showHint('avatar');
+    }, [ highlighting, isDecorating, showHint ]);
+
+    // `setAvatarHightlightTimer`: 5 s, for a user who is not new.
+    useEffect(() => {
+        if (!highlighting || isNoob) return;
+
+        const timeout = setTimeout(() => setHighlightEndedKey(entryKey), AVATAR_HIGHLIGHT_MS);
+
+        return () => clearTimeout(timeout);
+    }, [ highlighting, isNoob, entryKey ]);
+
     useRoomEventDispatcher(RoomWidgetUpdateRoomObjectEvent.OBJECT_DESELECTED, () => setSelectedData(undefined));
 
     useRoomEventDispatcher<RoomWidgetUpdateRoomObjectEvent>([ RoomWidgetUpdateRoomObjectEvent.USER_REMOVED, RoomWidgetUpdateRoomObjectEvent.FURNI_REMOVED ], (event) => {
@@ -88,13 +119,13 @@ export const RoomObjectMenuWidget = () => {
     });
 
     useRoomEventDispatcher<RoomWidgetUpdateRoomObjectEvent>(RoomWidgetUpdateRoomObjectEvent.OBJECT_ROLL_OVER, (event) => {
-        if (selectedData || (event.category !== RoomObjectCategoryEnum.Unit)) return;
+        if (highlighting || selectedData || (event.category !== RoomObjectCategoryEnum.Unit)) return;
 
         setHoverData({ objectId: event.objectId, category: event.category });
     });
 
     useRoomEventDispatcher<RoomWidgetUpdateRoomObjectEvent>(RoomWidgetUpdateRoomObjectEvent.OBJECT_ROLL_OUT, (event) => {
-        if (!hoverData || (event.category !== RoomObjectCategoryEnum.Unit) || (hoverData.objectId !== event.objectId)) return;
+        if (highlighting || !hoverData || (event.category !== RoomObjectCategoryEnum.Unit) || (hoverData.objectId !== event.objectId)) return;
 
         setHoverData(undefined);
     });
@@ -216,6 +247,7 @@ export const RoomObjectMenuWidget = () => {
                 key="entry"
                 objectData={entryData}
                 onClose={() => setDismissedEntryKey(entryKey)}
+                targetRef={avatarHintTarget}
             />
         );
     };

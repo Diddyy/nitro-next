@@ -52,7 +52,6 @@ answer yet.
 | Hotel view | Every widget type and generic widget element is drawn. What their buttons open is not always there: the talents promo asks for a talent track no window shows, the Habbo Way and safety quiz promos' buttons open windows that are not ported (`showHabboWay`, `SafetyBookletController`), and nothing reopens the room competition window (`reenableRoomCompetitionWindow`). The avatar image widget has no greyed placeholder while the figure loads, and the handlers' tracking calls (`trackGoogle`, `trackEventLog`) have no receiver. What the widgets wait on from the server is under [Hotel view: Turbo and the admin panel](#hotel-view-turbo-and-the-admin-panel). | `HotelViewWidgets`, `HotelViewGenericWidget` |
 | Account | Email change and status. | `Users` |
 | Moderation tool | The housekeeping links in user info and the room tool ("Edit in HK"). | `ModUserInfoView`, `ModRoomToolView` |
-| Mystery box keys, user classification, element pointer | No listener or request. | |
 
 ## Hotel view: Turbo and the admin panel
 

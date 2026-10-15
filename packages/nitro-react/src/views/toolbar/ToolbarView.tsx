@@ -29,17 +29,23 @@
  * The inventory icon's bitmap and the me menu region are what `animateToIcon` flies pictures into
  * (`createTransitionToIcon`), and what bounces as one lands: `Queue(Wait(duration + 8),
  * DropBounce(icon, 400, 12))` lifts it 12 px and lets it fall back with a bounce.
+ *
+ * The navigator, me menu, inventory and catalogue icons are registered as hint targets under their
+ * icon names (`NAVIGATOR`, `MEMENU`, `INVENTORY`, `CATALOGUE`), which the server's element pointer
+ * and the `toolbar/highlight/<icon>` link point the hint arrow at; a click on an icon takes the arrow
+ * off it (`onIconClick`'s `hideMatchingHint`).
  */
 import { CatalogTypeEnum, NoobnessLevelEnum, RoomDoorModeEnum, RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { QuitComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
-import { Container as PixiContainer, Ticker } from 'pixi.js';
+import { Container as PixiContainer, FederatedPointerEvent, Ticker } from 'pixi.js';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
 import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, showQuests, startTakingPhoto, toggleCatalog, toggleNavigator } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
 import { useGroupStore } from '#base/context/groups';
+import { useHintActions } from '#base/context/hints';
 import { useInventoryStore, useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
 import { useNavigatorStore } from '#base/context/navigator';
@@ -48,7 +54,7 @@ import { useOwnRoomObjectId } from '#base/context/room';
 import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId, useUserStore } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
-import { easeOutCubic, useRoomObjectSelect, useTween, useViewportSize } from '#base/hooks';
+import { easeOutCubic, useHintTarget, useRoomObjectSelect, useTween, useViewportSize } from '#base/hooks';
 import { Box, Region, Template, TemplateBindings, TemplateElement, TemplateWindow, TemplateWindows, useLayoutEvent, useTemplate } from '#base/theme';
 import { configReader } from '#base/utils';
 import { FriendBarView } from '#base/views/friend-bar/FriendBarView';
@@ -141,11 +147,12 @@ const useToolbarTransitionTarget = (icon: ToolbarTransitionIcon) => {
     return { attachTarget, lift };
 };
 
-/** A `TOGGLE` window of the layout: its name and tags, and whether it is one of `toolbar_items`. */
+/** A `TOGGLE` window of the layout: its name, tags and size, and whether it is one of `toolbar_items`. */
 interface ToolbarToggle {
     name: string;
     tags: readonly string[];
     width: number;
+    height: number;
     inItems: boolean;
 }
 
@@ -153,7 +160,7 @@ interface ToolbarToggle {
 const readToggles = (template: Template): ToolbarToggle[] => {
     const toggles: ToolbarToggle[] = [];
     const walk = (element: TemplateElement, inItems: boolean) => {
-        if (element.tags?.includes('TOGGLE') && element.name) toggles.push({ name: element.name, tags: element.tags, width: element.width, inItems });
+        if (element.tags?.includes('TOGGLE') && element.name) toggles.push({ name: element.name, tags: element.tags, width: element.width, height: element.height, inItems });
 
         for (const child of element.children) walk(child, inItems || (element.name === 'toolbar_items'));
     };
@@ -224,6 +231,12 @@ export const ToolbarView = () => {
     const claimableRewardTrackPrizes = useRewardTrackStore(x => getRewardTrackClaimableCount(x.tracks));
     const { attachTarget: attachInventoryTarget, lift: inventoryLift } = useToolbarTransitionTarget('HTIE_ICON_INVENTORY');
     const { attachTarget: attachMeMenuTarget, lift: meMenuLift } = useToolbarTransitionTarget('HTIE_ICON_MEMENU');
+    const { hideMatchingHint } = useHintActions();
+    // `registerHintWindow(getIconName(...), icon)` for the navigator, me menu, inventory and catalogue icons.
+    const navigatorHintTarget = useHintTarget('NAVIGATOR');
+    const meMenuHintTarget = useHintTarget('MEMENU');
+    const inventoryHintTarget = useHintTarget('INVENTORY');
+    const catalogueHintTarget = useHintTarget('CATALOGUE');
 
     useLayoutEvent(rightGroup, () => setRightWidth(Math.ceil(rightGroup?.layout?.computedLayout.width ?? rightGroup?.width ?? 0)));
 
@@ -264,6 +277,12 @@ export const ToolbarView = () => {
     };
 
     const toggles = template ? readToggles(template) : [];
+    // A hint target box fills its icon's region.
+    const sizeOf = (name: string) => {
+        const toggle = toggles.find(entry => entry.name === name);
+
+        return { width: toggle?.width ?? 0, height: toggle?.height ?? 0 };
+    };
     const target = layoutOf(collapsed, toggles);
     const source = layoutOf(!collapsed, toggles);
     // How far the run is from the old state's layout to the new one's.
@@ -311,7 +330,16 @@ export const ToolbarView = () => {
         // HTIE_ICON_HOME -> `goToHomeRoom`: a room forward to the home room (its GetGuestRoomResult starts the session).
         HOME: { onPointerTap: iconClick(() => goToHomeRoom(send)) },
         // HTIE_ICON_NAVIGATOR -> `HabboNewNavigator.toggle`: shown with its last search made again, or hidden.
-        NAVIGATOR: { onPointerTap: iconClick(() => toggleNavigator(send)) },
+        NAVIGATOR: {
+            onPointerTap: iconClick(() => toggleNavigator(send)),
+            children: (
+                <Box
+                    ref={navigatorHintTarget}
+                    pointerTransparent
+                    layout={{ position: 'absolute', left: 0, top: 0, ...sizeOf('NAVIGATOR') }}
+                />
+            ),
+        },
         PROGRESSION: {
             onPointerTap: iconClick(undefined, 'progression'),
             children: (
@@ -325,7 +353,16 @@ export const ToolbarView = () => {
         },
         GAMES: { onPointerTap: iconClick() },
         STORIES: { onPointerTap: iconClick() },
-        CATALOGUE: { onPointerTap: iconClick(() => toggleCatalog(CatalogTypeEnum.Normal)) },
+        CATALOGUE: {
+            onPointerTap: iconClick(() => toggleCatalog(CatalogTypeEnum.Normal)),
+            children: (
+                <Box
+                    ref={catalogueHintTarget}
+                    pointerTransparent
+                    layout={{ position: 'absolute', left: 0, top: 0, ...sizeOf('CATALOGUE') }}
+                />
+            ),
+        },
         BUILDER: { onPointerTap: iconClick(() => toggleCatalog(CatalogTypeEnum.BuildersClub)) },
         INVENTORY: {
             // `InventoryMainView.onHabboToolbarEvent`: the page it last showed.
@@ -341,6 +378,11 @@ export const ToolbarView = () => {
                     <UnseenItemCounterView
                         count={unseenInventoryCount}
                         layout={{ position: 'absolute', right: 0, top: 0 }}
+                    />
+                    <Box
+                        ref={inventoryHintTarget}
+                        pointerTransparent
+                        layout={{ position: 'absolute', left: 0, top: 0, ...sizeOf('INVENTORY') }}
                     />
                 </>
             ),
@@ -359,6 +401,11 @@ export const ToolbarView = () => {
                         count={unseenMiniMailCount + unreadForumsCount}
                         layout={{ position: 'absolute', right: 0, top: 0 }}
                     />
+                    <Box
+                        ref={meMenuHintTarget}
+                        pointerTransparent
+                        layout={{ position: 'absolute', left: 0, top: 0, ...sizeOf('MEMENU') }}
+                    />
                 </>
             ),
         },
@@ -374,7 +421,20 @@ export const ToolbarView = () => {
         const alpha = (!running || (inSource && inTarget)) ? 1 : (inSource ? (1 - fraction) : fraction);
         const shown = running ? (inSource || inTarget) : inTarget;
 
-        bindings[toggle.name] = { ...bindings[toggle.name], visible: shown, alpha };
+        const binding = bindings[toggle.name];
+
+        bindings[toggle.name] = {
+            ...binding,
+            visible: shown,
+            alpha,
+            // `onIconClick`: `toggleWindowVisibility(name)`, then `hideMatchingHint(name)`.
+            ...(binding?.onPointerTap && {
+                onPointerTap: (event: FederatedPointerEvent) => {
+                    binding.onPointerTap?.(event);
+                    hideMatchingHint(toggle.name);
+                },
+            }),
+        };
     }
 
     // `onCollapseToolsBar`: ignored while the run is on.

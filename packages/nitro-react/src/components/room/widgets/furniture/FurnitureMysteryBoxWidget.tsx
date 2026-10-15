@@ -4,7 +4,7 @@ import { MysteryBoxWaitingCanceledComposer } from '@nitrodevco/nitro-packets';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useSystemStore } from '#base/context/system';
-import { useOwnUserId } from '#base/context/user';
+import { getMysteryBoxKeyColor, useOwnUserId, useUserStore } from '#base/context/user';
 import { MysteryBoxData } from '#base/handlers';
 import { useRoomFurnitureData } from '#base/hooks';
 import { getFurnitureDataForProductType } from '#base/utils';
@@ -20,6 +20,8 @@ export const FurnitureMysteryBoxWidget = () => {
     const request = useRoomWidget<MysteryBoxData>(RoomObjectWidgetRequestEvent.MYSTERYBOX_OPEN_DIALOG);
     const furnitureData = useRoomFurnitureData(request?.objectId ?? -1, request?.category ?? 0);
     const userId = useOwnUserId();
+    const boxColor = useUserStore(x => x.mysteryBoxColor);
+    const keyColor = useUserStore(x => x.mysteryKeyColor);
     const floorItems = useSystemStore(x => x.floorItems);
     const wallItems = useSystemStore(x => x.wallItems);
     const { closeRoomWidget } = useRoomWidgetActions();
@@ -45,10 +47,13 @@ export const FurnitureMysteryBoxWidget = () => {
     }
 
     const isOwner = (!!furnitureData?.ownerId && (furnitureData.ownerId === userId));
+    // `showWaitWindow`: the owner's box colour or the other's key colour - the pair share one - when the session has it.
+    const colour = isOwner ? boxColor : keyColor;
 
     return (
         <FurnitureMysteryBoxView
             isOwner={isOwner}
+            color={(colour !== '') ? getMysteryBoxKeyColor(colour) : undefined}
             onCancel={() => {
                 // The wait belongs to whoever owns the box, so that is who calls it off.
                 send(new MysteryBoxWaitingCanceledComposer({ furnitureOwnerId: furnitureData?.ownerId ?? 0 }));

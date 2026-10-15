@@ -10,9 +10,9 @@ import { LayoutImage, ModalDialog, TemplateWindow, useTemplateFrame } from '#bas
  * server says when to show it, when to take it away, and what came out.
  *
  * `cancel_button` calls the wait off (`waitWindowProcedure`). Flash sends the cancel for the header
- * close too; the port's header close only closes, as it did before. Flash also tints both `*_base`
- * bitmaps with `MysteryBoxToolbarExtension.KEY_COLORS` of the session's box or key colour, which
- * the port's session does not keep, so they draw in their own colour.
+ * close too; the port's header close only closes, as it did before. Both `*_base` bitmaps are tinted
+ * with `MysteryBoxToolbarExtension.KEY_COLORS` of the session's box colour (the owner) or key colour
+ * (the other); with no colour in the session they draw in their own.
  */
 export interface FurnitureMysteryBoxViewProps {
     /**
@@ -20,6 +20,8 @@ export interface FurnitureMysteryBoxViewProps {
      * same dialog with the halves swapped: each waits for what the other has.
      */
     isOwner: boolean;
+    /** The tint of `reward_base` and `needed_base`, `0xRRGGBB`; none leaves them as they are. */
+    color?: number;
     onCancel: () => void;
     onClose: () => void;
 }
@@ -27,7 +29,7 @@ export interface FurnitureMysteryBoxViewProps {
 /** A `mysterybox_*` bitmap, as `assetUri` names it - the window manager's art. */
 const mysteryBoxImage = (name: string) => LayoutImage(`habbo-window-manager-com/${name}.png`);
 
-export const FurnitureMysteryBoxView = ({ isOwner, onCancel, onClose }: FurnitureMysteryBoxViewProps) => {
+export const FurnitureMysteryBoxView = ({ isOwner, color, onCancel, onClose }: FurnitureMysteryBoxViewProps) => {
     const frame = useTemplateFrame({ id: 'mystery-box-open-dialog', modal: true, draggable: false, rememberPosition: false, onClose });
     const prefix = isOwner ? 'mysterybox.dialog.owner.' : 'mysterybox.dialog.other.';
     const mine = isOwner ? 'box' : 'key';
@@ -43,9 +45,9 @@ export const FurnitureMysteryBoxView = ({ isOwner, onCancel, onClose }: Furnitur
                     subtitle_text: { caption: `\${${prefix}subtitle}` },
                     waiting_text: { caption: `\${${prefix}waiting}` },
                     cancel_button: { caption: `\${${prefix}cancel}`, onPointerTap: onCancel },
-                    reward_base: { asset: mysteryBoxImage(`mysterybox_${mine}_base`) },
+                    reward_base: { asset: mysteryBoxImage(`mysterybox_${mine}_base`), color },
                     reward_overlay: { asset: mysteryBoxImage(`mysterybox_${mine}_overlay`) },
-                    needed_base: { asset: mysteryBoxImage(`mysterybox_${theirs}_base`) },
+                    needed_base: { asset: mysteryBoxImage(`mysterybox_${theirs}_base`), color },
                     needed_overlay: { asset: mysteryBoxImage(`mysterybox_${theirs}_overlay`) },
                 }}
             />

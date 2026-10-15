@@ -83,7 +83,7 @@ nothing sends it.
 | Chat styles | `UserNftChatStyles` (never sent), `UserPurchasableChatStyles`, `UserPurchasableChatStyleChanged` (no serializer) | |
 | Account word filter | `GetCustomFilterResult`, `ModifyCustomFilterResult` | no serializer |
 | Messenger | `MiniMailNew`, `MiniMailUnreadCount` | never sent |
-| Notifications | `RoomMessageNotification` | never sent |
+| Notifications | `RoomMessageNotification`, `ElementPointer` (the hint arrow) | never sent |
 | Hotel status | `InfoHotelClosed`, `LoginFailedHotelClosed` | never sent |
 | NFT collectibles | `CollectibleMintingEnabled`, `CollectibleWalletAddresses`, `CollectableMintableItemTypes`, `CollectibleMintTokenCount`, `CollectibleMintTokenOffers`, `CollectibleMintableItemResult`, `NftCollections`, `NftCollectionsScore`, `NftBonusItemClaimResult`, `NftRewardItemClaimResult`, `NftTransferFee`, `NftTransferAssetsResult` | never sent |
 | NFT collectibles | `NftClaims`, `NftClaimResult`, `NftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBoxState`, `RedeemNftLootBoxResult` | no serializer |
@@ -109,6 +109,9 @@ cannot find these; add them as they are found.
 - **Spam wall.** Turbo sends `RequestSpamWallPostIt` with the wall's room object id. Flash looks
   that id up in the inventory to take a themed post-it's type, so with Turbo the note always opens
   as a plain `post_it`.
+- **Mystery box keys.** `MysteryBoxKeys` is sent once at login with no box or key colour, so
+  the tracker (`mysterybox.tracker.active`) never shows one, and Turbo has no mystery box furni
+  to open.
 - **User classification.** `RoomUsersClassification` and `PeerUsersClassification` (`:uc`,
   `:anew`) are parsed without their classification and handled by nothing, and the
   `UserClassification` serializer writes no users.

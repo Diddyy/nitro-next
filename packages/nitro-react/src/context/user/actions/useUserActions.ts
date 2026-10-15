@@ -1,6 +1,6 @@
 /**
  * `UserStore`'s account actions - rights, tags, noobness, pet respects, chat and UI preferences,
- * chat styles and the Builder's Club subscription - and the effect last worn
+ * chat styles, the Builder's Club subscription and the mystery box colours - and the effect last worn
  * (`UserEffectsSlice`). Read off the store once: a component using these re-renders for nothing.
  */
 import { userStore } from '../store/UserStore';
@@ -27,6 +27,7 @@ const actions = {
     setPurchasableChatStyleOwned: state.setPurchasableChatStyleOwned,
     setBuildersClubSubscription: state.setBuildersClubSubscription,
     decreaseBuildersClubSecondsLeft: state.decreaseBuildersClubSecondsLeft,
+    setMysteryBoxKeys: state.setMysteryBoxKeys,
     setLastWornEffect: state.setLastWornEffect,
 };
 

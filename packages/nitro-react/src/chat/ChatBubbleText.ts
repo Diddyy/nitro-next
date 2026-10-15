@@ -1,4 +1,4 @@
-import { FlashTextFormat, FlashTextRenderer, HABBO_TEXT_STYLES, layoutFlashTextLines, measureBrowserText, normalizeFlashTextFormat, parseFlashTextMarkup, renderBrowserTextCanvas, renderFlashTextCanvas } from '@nitrodevco/nitro-theme/flash-text';
+import { FlashTextFormat, flashTextLinkAtPoint, FlashTextRenderer, HABBO_TEXT_STYLES, layoutFlashTextLines, measureBrowserText, normalizeFlashTextFormat, parseFlashTextMarkup, parseFlashTextMarkupWithLinks, renderBrowserTextCanvas, renderFlashTextCanvas } from '@nitrodevco/nitro-theme/flash-text';
 import { Texture } from 'pixi.js';
 
 import { ChatTabMeasureLayout, layoutChatTabs } from './ChatTabLayout';
@@ -14,6 +14,8 @@ export interface ChatBubbleTextRender {
     textHeight: number;
     /** `TextField.numLines`. */
     lineCount: number;
+    /** The `href` of the link (`<a href>`) whose glyphs hold a point of the text, if any. */
+    linkAt: (x: number, y: number) => string | undefined;
 }
 
 /**
@@ -53,7 +55,7 @@ export const renderChatBubbleText = (markup: string, fontFace: string, fontSize:
     const format = normalizeFlashTextFormat({ ...HABBO_TEXT_STYLES.u_chat_speak, fontFamily: fontFace, fontSize, color });
     // `ChatTabLayout.apply`: `[a]` columns get tab stops; without them the text is drawn as it is.
     const tabs = tableTabs ? layoutChatTabs(markup, fontSizeScale, measureChatTabCells(format)) : null;
-    const runs = parseFlashTextMarkup(tabs?.markup ?? markup, format);
+    const { runs, links } = parseFlashTextMarkupWithLinks(tabs?.markup ?? markup, format);
     const options = { wordWrap: true, wrapWidth: Math.max(1, Math.floor(wrapWidth)), breakWords: true, tabStops: tabs?.tabStops };
     const rendered = renderFlashTextCanvas(runs, format, options) ?? renderBrowserTextCanvas(runs, options);
 
@@ -66,5 +68,7 @@ export const renderChatBubbleText = (markup: string, fontFace: string, fontSize:
 
     const lineCount = (rendered.lineHeight > 0) ? Math.max(1, Math.round(rendered.textHeight / rendered.lineHeight)) : 1;
 
-    return { texture, textWidth: Math.ceil(rendered.textWidth), textHeight: Math.ceil(rendered.textHeight), lineCount };
+    const linked = { ...rendered, links };
+
+    return { texture, textWidth: Math.ceil(rendered.textWidth), textHeight: Math.ceil(rendered.textHeight), lineCount, linkAt: (x, y) => flashTextLinkAtPoint(linked, x, y) };
 };

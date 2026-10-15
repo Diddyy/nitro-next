@@ -76,6 +76,13 @@ type State = {
     buildersClubMaxFurniLimit: number;
     /** `SessionDataManager.hasPurchasableChatStyle` - the bought chat styles (`UserPurchasableChatStylesMessage`, then one at a time). */
     purchasableChatStyles: number[];
+    /**
+     * `SessionDataManager.mysteryBoxColor` / `mysteryKeyColor` (`onMysteryBoxKeys`): the colour of
+     * the mystery box and of the key the account is collecting, as the server names them
+     * (`MYSTERY_BOX_KEY_COLORS`); empty for none.
+     */
+    mysteryBoxColor: string;
+    mysteryKeyColor: string;
 };
 
 /** The bits of `uiFlags` this client knows about (`SessionDataManager.setUIFlag`). */
@@ -125,6 +132,8 @@ type Actions = {
     setBuildersClubSubscription: (secondsLeft: number, secondsLeftWithGrace: number, furniLimit: number, maxFurniLimit: number) => void;
     /** The editor's own ten-second countdown (`BCFloorPlanEditor.onBcCountdownTimerEvent`), so the save stops working the moment the subscription does. */
     decreaseBuildersClubSecondsLeft: (seconds: number) => void;
+    /** `SessionDataManager.onMysteryBoxKeys`: both colours at once, as `MysteryBoxKeysUpdateEvent` carries them. */
+    setMysteryBoxKeys: (mysteryBoxColor: string, mysteryKeyColor: string) => void;
 };
 
 const initialState: State = {
@@ -156,6 +165,8 @@ const initialState: State = {
     buildersClubSecondsLeftWithGrace: 0,
     buildersClubFurniLimit: 0,
     buildersClubMaxFurniLimit: 0,
+    mysteryBoxColor: '',
+    mysteryKeyColor: '',
 };
 
 export type UserStore = State & Actions & UserInfoSlice & UserFriendsSlice & UserWalletSlice & UserEffectsSlice & UserSocialSlice & UserSoundSettingsSlice & UserWordFilterSlice & UserChatCommandsSlice;
@@ -195,6 +206,7 @@ export const createUserStore = () => createStore<UserStore>()((set, get, store) 
     })),
     setBuildersClubSubscription: (buildersClubSecondsLeft: number, buildersClubSecondsLeftWithGrace: number, buildersClubFurniLimit: number, buildersClubMaxFurniLimit: number) => set({ buildersClubSecondsLeft, buildersClubSecondsLeftWithGrace, buildersClubFurniLimit, buildersClubMaxFurniLimit }),
     decreaseBuildersClubSecondsLeft: (seconds: number) => set(state => ({ buildersClubSecondsLeft: state.buildersClubSecondsLeft - seconds })),
+    setMysteryBoxKeys: (mysteryBoxColor: string, mysteryKeyColor: string) => set({ mysteryBoxColor, mysteryKeyColor }),
     ...createUserInfoSlice(set, get, store),
     ...createUserFriendsSlice(set, get, store),
     ...createUserWalletSlice(set, get, store),
