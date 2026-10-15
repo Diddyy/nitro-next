@@ -67,7 +67,11 @@ Eight drag loops add their own `window` listeners: `WiredSlider`, `ToolbarSoundS
 re-subscribes on every move.
 
 Change: `useWindowPointerDrag({ onMove, onEnd })` owning listeners, cleanup, cancel and pointer id,
-with optional local-space conversion; a slider-knob hook on top for the four sliders. M.
+with optional local-space conversion; a slider-knob hook on top for the four sliders. M. **Done:**
+`hooks/useWindowPointerDrag.ts` (`tools/window-pointer-drag.test.mjs`), used by all eight and by a
+ninth the review missed, `useRoomFloorPlanDrawing`. Local-space conversion stays with
+`useFurnitureSlider`, its only user; the slider-knob hook is still open. Seen while checking: the
+chat history pulled past its top does not spring back - before this change as after it.
 
 ### 5. Group forum state kept twice
 
@@ -192,3 +196,4 @@ copies' timing agrees with Flash's. M-L.
 - Item 1, handler refs (`useLatest`).
 - Item 2, one room-frame placement hook (`useRoomFramePlacement`).
 - Item 3, room object values read during render (`useRoomObjectModelVersion`).
+- Item 4, window pointer drags (`useWindowPointerDrag`).

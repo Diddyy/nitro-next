@@ -18,13 +18,15 @@
  *   Cancel goes back to the viewfinder; the header's close just closes; its help opens `habbopages/camera`.
  */
 import { RenderRoomComposer } from '@nitrodevco/nitro-packets';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { FederatedPointerEvent } from 'pixi.js';
+import { useEffect, useMemo, useState } from 'react';
 
 import { closePhotoLab, openPhotoPurchase, returnToViewfinder, useCameraStore } from '#base/commands';
 import { AchievementCategory, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
+import { useWindowPointerDrag } from '#base/hooks';
+import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLatest, useTemplate, useTemplateFrame } from '#base/theme';
 import { buildRenderRoomMessageData, twoDigits } from '#base/utils';
 
 import { CAMERA_IMAGE_SIZE, cameraAsset, CameraEffectDefinition, cloneCanvas, drawEffect, getAvailableEffects, loadEffectImage, zoomCanvas } from './cameraEffects';
@@ -102,7 +104,6 @@ const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
     const [ dragValue, setDragValue ] = useState<number | undefined>(undefined);
     const [ filterType, setFilterType ] = useState<'colormatrix' | 'composite'>('colormatrix');
     const [ zoom, setZoom ] = useState(false);
-    const dragStart = useRef<{ x: number; value: number } | undefined>(undefined);
     const frame = useTemplateFrame({ id: 'camera-photo-lab', centered: true, rememberPosition: false, resizeDirection: 'none', onClose: closePhotoLab });
 
     // `CameraFxPreloader`: the composite and frame pictures.
@@ -214,32 +215,28 @@ const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
         setState(selected, { value: Math.max(0, Math.min(SLIDER_SCALE, Math.round(value))) });
     };
 
+    const setSelectedValueRef = useLatest(setSelectedValue);
+    const pointerDrag = useWindowPointerDrag();
+
     // `buttonProcedure`: the slider button follows the pointer while it is down, and sets the value when let go.
-    useEffect(() => {
-        if (dragValue === undefined) return;
+    const startSliderDrag = (event: FederatedPointerEvent) => {
+        const startX = event.clientX;
+        const startValue = sliderValue;
+        let value = startValue;
 
-        const move = (event: PointerEvent) => {
-            const start = dragStart.current;
+        setDragValue(value);
 
-            if (start) setDragValue(Math.max(0, Math.min(SLIDER_SCALE, start.value + (event.clientX - start.x))));
-        };
-        const up = () => {
-            dragStart.current = undefined;
-            setDragValue((value) => {
-                if (value !== undefined) setSelectedValue(value);
-
-                return undefined;
-            });
-        };
-
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
-
-        return () => {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-        };
-    });
+        pointerDrag.start(event.pointerId, {
+            onMove: (move) => {
+                value = Math.max(0, Math.min(SLIDER_SCALE, startValue + (move.clientX - startX)));
+                setDragValue(value);
+            },
+            onEnd: () => {
+                setDragValue(undefined);
+                setSelectedValueRef.current(value);
+            },
+        });
+    };
 
     /** `openPurchaseConfirmationDialog` -> `CameraWidget.sendPhotoData`: the render data with the effects and the zoom. */
     const openPurchase = async () => {
@@ -367,10 +364,7 @@ const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
         slider_base: { asset: cameraAsset('camera_fx_slider_bottom_active') },
         slider_button: {
             asset: cameraAsset('camera_fx_slider_button'),
-            onPointerDown: (event) => {
-                dragStart.current = { x: event.clientX, value: sliderValue };
-                setDragValue(sliderValue);
-            },
+            onPointerDown: startSliderDrag,
         },
         shaft_click_area: { onPointerDown: event => setSelectedValue(event.getLocalPosition(event.currentTarget).x) },
         slider_effect_info: { caption: sliderInfo },

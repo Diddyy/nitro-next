@@ -18,9 +18,10 @@
  * Controlled: `value` in, `onChange` with every new value out.
  */
 import { Container, FederatedPointerEvent } from 'pixi.js';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
-import { Box, LayoutImage, ThemeImage, useLayoutSize } from '#base/theme';
+import { useWindowPointerDrag } from '#base/hooks';
+import { Box, LayoutImage, ThemeImage, useLatest, useLayoutSize } from '#base/theme';
 import { clampSliderValue } from '#base/wired';
 
 import { useWiredDisabled, wiredDisabledAlpha } from './useWiredDisabled';
@@ -65,33 +66,13 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
     const { width: trackWidth } = useLayoutSize(trackNode);
     const [ dragged, setDragged ] = useState<DraggedKnob | null>(null);
     const dragOriginRef = useRef<DragOrigin | null>(null);
-    const listenersRef = useRef<{ move: (event: PointerEvent) => void; up: () => void } | null>(null);
-    const latestRef = useRef({ min, max, step, value, onChange });
-
-    useEffect(() => {
-        latestRef.current = { min, max, step, value, onChange };
-    });
+    const latestRef = useLatest({ min, max, step, value, onChange });
+    const pointerDrag = useWindowPointerDrag();
 
     const stopDragging = () => {
-        const listeners = listenersRef.current;
-
-        if (listeners) {
-            window.removeEventListener('pointermove', listeners.move);
-            window.removeEventListener('pointerup', listeners.up);
-            listenersRef.current = null;
-        }
-
+        pointerDrag.stop();
         dragOriginRef.current = null;
     };
-
-    useEffect(() => () => {
-        const listeners = listenersRef.current;
-
-        if (!listeners) return;
-
-        window.removeEventListener('pointermove', listeners.move);
-        window.removeEventListener('pointerup', listeners.up);
-    }, []);
 
     const referenceWidth = Math.max(0, Math.floor(trackWidth) - template.buttonWidth);
     const knobX = (dragged && (dragged.value === value)) ? dragged.x : knobPosition(clampSliderValue(value, min, max), min, max, referenceWidth);
@@ -129,11 +110,12 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
             if (next !== latest.value) latest.onChange(next);
         };
 
-        const up = () => stopDragging();
-
-        listenersRef.current = { move, up };
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
+        pointerDrag.start(event.pointerId, {
+            onMove: move,
+            onEnd: () => {
+                dragOriginRef.current = null;
+            },
+        });
     };
 
     return (

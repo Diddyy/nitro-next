@@ -1,6 +1,6 @@
 import { FederatedPointerEvent } from 'pixi.js';
-import { useCallback, useEffect, useRef } from 'react';
 
+import { useWindowPointerDrag } from '#base/hooks';
 import { getGlobalRect, useLatest } from '#base/theme';
 
 /**
@@ -14,35 +14,16 @@ import { getGlobalRect, useLatest } from '#base/theme';
  * pointer leaves the bar.
  */
 export const useFloorPlanSliderDrag = (steps: number, width: number, onChange: (value: number) => void, disabled = false) => {
-    const listenersRef = useRef<{ move: (event: PointerEvent) => void; up: () => void } | null>(null);
-
     const onChangeRef = useLatest(onChange);
-
-    const stopDragging = useCallback(() => {
-        const listeners = listenersRef.current;
-
-        if (!listeners) return;
-
-        window.removeEventListener('pointermove', listeners.move);
-        window.removeEventListener('pointerup', listeners.up);
-        listenersRef.current = null;
-    }, []);
-
-    useEffect(() => stopDragging, [ stopDragging ]);
+    const pointerDrag = useWindowPointerDrag();
 
     return (event: FederatedPointerEvent) => {
         if (disabled || (event.button !== 0)) return;
 
         const left = getGlobalRect(event.currentTarget).x;
         const pick = (clientX: number) => onChangeRef.current(Math.trunc(((clientX - left) / width) * steps));
-        const move = (moveEvent: PointerEvent) => pick(moveEvent.clientX);
 
-        stopDragging();
-
-        listenersRef.current = { move, up: stopDragging };
-
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', stopDragging);
+        pointerDrag.start(event.pointerId, { onMove: move => pick(move.clientX) });
 
         pick(event.clientX);
     };

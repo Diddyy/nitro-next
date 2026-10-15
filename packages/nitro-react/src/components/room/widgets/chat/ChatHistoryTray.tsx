@@ -9,7 +9,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
 import { useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
-import { easeOutCubic, useRoomObjectSelect, useTween } from '#base/hooks';
+import { easeOutCubic, useRoomObjectSelect, useTween, useWindowPointerDrag } from '#base/hooks';
 import { LayoutImage, useLatest, useTextureFromUrl } from '#base/theme';
 import { CHAT_HISTORY_LEFT_MARGIN, ChatHistoryEntryMeasure, ChatHistoryEntryView } from '#base/views/room-widgets/chat/ChatHistoryEntryView';
 
@@ -315,34 +315,32 @@ export const ChatHistoryTray = () => {
 
     // `mouseDragEventHandler`: pull the history with the pointer, then let it spring back.
     const dragged = useRef(false);
+    const pointerDrag = useWindowPointerDrag();
 
-    const beginDrag = (startClientY: number) => {
+    const onSurfacePointerDown = (event: FederatedPointerEvent) => {
         beginUserScroll();
         dragged.current = false;
 
+        const startClientY = event.clientY;
         const startTop = topYRef.current;
-        const onMove = (event: PointerEvent) => {
-            const delta = event.clientY - startClientY;
 
-            if (Math.abs(delta) > TAP_SLOP) dragged.current = true;
+        pointerDrag.start(event.pointerId, {
+            onMove: (move) => {
+                const delta = move.clientY - startClientY;
 
-            setTopY(startTop - delta);
-        };
-        const onUp = () => {
-            window.removeEventListener('pointermove', onMove);
-            window.removeEventListener('pointerup', onUp);
-            startSpringback();
-            // The tap that ends a drag arrives right after; let it see the flag first.
-            setTimeout(() => {
-                dragged.current = false;
-            }, 0);
-        };
+                if (Math.abs(delta) > TAP_SLOP) dragged.current = true;
 
-        window.addEventListener('pointermove', onMove);
-        window.addEventListener('pointerup', onUp);
+                setTopY(startTop - delta);
+            },
+            onEnd: () => {
+                startSpringback();
+                // The tap that ends a drag arrives right after; let it see the flag first.
+                setTimeout(() => {
+                    dragged.current = false;
+                }, 0);
+            },
+        });
     };
-
-    const onSurfacePointerDown = (event: FederatedPointerEvent) => beginDrag(event.clientY);
 
     /** `ChatHistoryScrollBar.mouseDownEventHandler`. */
     const onThumbPointerDown = (event: FederatedPointerEvent) => {
@@ -351,19 +349,15 @@ export const ChatHistoryTray = () => {
 
         const startClientY = event.clientY;
         const startTop = topYRef.current;
-        const onMove = (move: PointerEvent) => {
-            const ratio = bufferHeightRef.current / Math.max(1, viewHeightRef.current);
 
-            setTopY(startTop + ((move.clientY - startClientY) * ratio));
-        };
-        const onUp = () => {
-            window.removeEventListener('pointermove', onMove);
-            window.removeEventListener('pointerup', onUp);
-            startSpringback();
-        };
+        pointerDrag.start(event.pointerId, {
+            onMove: (move) => {
+                const ratio = bufferHeightRef.current / Math.max(1, viewHeightRef.current);
 
-        window.addEventListener('pointermove', onMove);
-        window.addEventListener('pointerup', onUp);
+                setTopY(startTop + ((move.clientY - startClientY) * ratio));
+            },
+            onEnd: () => startSpringback(),
+        });
     };
 
     const onEntryTap = useCallback((entry: ChatHistoryEntry) => {

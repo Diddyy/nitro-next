@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { previewSoundVolumes, saveSoundVolumes } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useUserStore } from '#base/context/user';
+import { useWindowPointerDrag } from '#base/hooks';
 import { LayoutImage, TemplateBindings, TemplateWindows, useLatest } from '#base/theme';
 
 import { ToolbarSettingsWindow } from './ToolbarSettingsWindow';
@@ -48,7 +49,7 @@ export const ToolbarSoundSettingsView = ({ onClose }: { onClose: () => void }) =
     // snapped when let go - only a volume set from elsewhere moves it (Flash's `setValue`).
     const [ dragged, setDragged ] = useState<{ row: Row; x: number } | null>(null);
     const dragRef = useRef<{ row: Row; pointerX: number; knobX: number } | null>(null);
-    const listenersRef = useRef<{ move: (event: PointerEvent) => void; up: () => void } | null>(null);
+    const pointerDrag = useWindowPointerDrag();
 
     const volumes: Record<Row, number> = { ui_volume_container: uiVolume, furni_volume_container: furniVolume, trax_volume_container: traxVolume };
 
@@ -62,14 +63,7 @@ export const ToolbarSoundSettingsView = ({ onClose }: { onClose: () => void }) =
     const previewRef = useLatest(preview);
 
     const stopDragging = () => {
-        const listeners = listenersRef.current;
-
-        if (listeners) {
-            window.removeEventListener('pointermove', listeners.move);
-            window.removeEventListener('pointerup', listeners.up);
-            listenersRef.current = null;
-        }
-
+        pointerDrag.stop();
         dragRef.current = null;
     };
 
@@ -99,14 +93,13 @@ export const ToolbarSoundSettingsView = ({ onClose }: { onClose: () => void }) =
             previewRef.current(origin.row, x / REFERENCE_WIDTH);
         };
 
-        const up = () => {
-            stopDragging();
-            setDragged(null);
-        };
-
-        listenersRef.current = { move, up };
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
+        pointerDrag.start(event.pointerId, {
+            onMove: move,
+            onEnd: () => {
+                dragRef.current = null;
+                setDragged(null);
+            },
+        });
     };
 
     const setFromButton = (row: Row, volume: number) => {

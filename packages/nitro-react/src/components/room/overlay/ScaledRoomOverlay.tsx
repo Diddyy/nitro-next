@@ -23,7 +23,7 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 
-import { getLayoutSize, useRoomFramePlacement } from '#base/hooks';
+import { getLayoutSize, useRoomFramePlacement, useWindowPointerDrag } from '#base/hooks';
 import { Box, useLatest } from '#base/theme';
 
 import { getRoomOverlayScale } from './getRoomOverlayScale';
@@ -90,10 +90,16 @@ export const ScaledRoomOverlay = ({ place, draggable = false, onDragged, alpha =
         if (nodeRef.current && placedRef.current) nodeRef.current.alpha = alpha;
     }, [ alpha ]);
 
+    const pointerDrag = useWindowPointerDrag();
+    const { stop: stopPointerDrag } = pointerDrag;
+
     // `draggable = false` ends a drag under way (`ScaledWindow.draggable` 118-132).
     useEffect(() => {
-        if (!draggable) dragRef.current = null;
-    }, [ draggable ]);
+        if (draggable) return;
+
+        dragRef.current = null;
+        stopPointerDrag();
+    }, [ draggable, stopPointerDrag ]);
 
     const onPointerDown = (event: FederatedPointerEvent) => {
         const node = nodeRef.current;
@@ -118,14 +124,12 @@ export const ScaledRoomOverlay = ({ place, draggable = false, onDragged, alpha =
             onDraggedRef.current?.(x, y, Math.ceil(width * scale), Math.ceil(height * scale));
         };
 
-        const up = () => {
-            dragRef.current = null;
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-        };
-
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
+        pointerDrag.start(event.pointerId, {
+            onMove: move,
+            onEnd: () => {
+                dragRef.current = null;
+            },
+        });
     };
 
     return (

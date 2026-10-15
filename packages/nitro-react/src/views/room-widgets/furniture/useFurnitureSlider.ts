@@ -1,6 +1,7 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
+import { useWindowPointerDrag } from '#base/hooks';
 import { LayoutImage, TemplateBindings, TemplateWindows } from '#base/theme';
 
 /** `slider_movement_area`'s width less `slider_button`'s: `_referenceWidth` (206 - 12). */
@@ -43,13 +44,11 @@ export interface FurnitureSlider {
  * pulls it up by its overhang to y 0, where it stays.
  */
 export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEvent, onChange }: FurnitureSliderOptions): FurnitureSlider => {
-    const stopRef = useRef<(() => void) | null>(null);
+    const pointerDrag = useWindowPointerDrag();
     const [ dragX, setDragX ] = useState<number | null>(null);
     /** The background toner's button stays where it was dropped, while the value is still the one read from there. */
     const [ dropped, setDropped ] = useState<{ x: number; value: number } | null>(null);
     const [ moved, setMoved ] = useState(false);
-
-    useEffect(() => () => stopRef.current?.(), []);
 
     const getSliderPosition = (next: number) => Math.trunc(REFERENCE_WIDTH * ((next - min) / (max - min)));
     const getValue = (x: number) => Math.trunc((x / REFERENCE_WIDTH) * (max - min)) + min;
@@ -74,10 +73,7 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
 
         if (!target) return;
 
-        stopRef.current?.();
-
         // `WindowMouseDragger`: the grab offset is kept, so the pressed pixel stays under the pointer.
-        const pointerId = event.pointerId;
         const startClient = { x: event.clientX, y: event.clientY };
         const startGlobal = { x: event.global.x, y: event.global.y };
         // The button's space as the press found it: what draws it may move with it, so the pointer
@@ -90,8 +86,6 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
         if (reportOnEveryEvent) report(current);
 
         const move = (moveEvent: PointerEvent) => {
-            if (moveEvent.pointerId !== pointerId) return;
-
             // Any move of the drag goes through `setRectangle`, which bounds y to the area.
             setMoved(true);
 
@@ -107,28 +101,14 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
             if (reportOnEveryEvent) report(next);
         };
 
-        const stop = () => {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-            window.removeEventListener('pointercancel', up);
-
-            stopRef.current = null;
-        };
-
         // `WME_UP` / `WME_UP_OUTSIDE`: a release anywhere ends the drag.
-        const up = (upEvent: PointerEvent) => {
-            if (upEvent.pointerId !== pointerId) return;
-
-            stop();
-            setDragX(null);
-            report(current);
-        };
-
-        stopRef.current = stop;
-
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
-        window.addEventListener('pointercancel', up);
+        pointerDrag.start(event.pointerId, {
+            onMove: move,
+            onEnd: () => {
+                setDragX(null);
+                report(current);
+            },
+        });
     };
 
     return {

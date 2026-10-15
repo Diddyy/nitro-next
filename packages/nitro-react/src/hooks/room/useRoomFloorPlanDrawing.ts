@@ -1,5 +1,5 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 
 import { getGlobalRect, useLatest } from '#base/theme';
 import {
@@ -7,6 +7,8 @@ import {
     FloorPlanTile, resetFloorPlanRows,
 } from '#base/utils';
 import { interpolationPoints } from '#base/wired';
+
+import { useWindowPointerDrag } from '../useWindowPointerDrag';
 
 /**
  * The floor plan editor's drawing gesture - `HeightMapEditor.editorWindowProcedure`, with the two
@@ -43,23 +45,16 @@ const NO_TILE: FloorPlanTile = { x: -1000, y: -1000 };
 export const useRoomFloorPlanDrawing = (options: RoomFloorPlanDrawingOptions) => {
     const nodeRef = useRef<PixiContainer | null>(null);
     const drawingRef = useRef(false);
-    const listenersRef = useRef<{ move: (event: PointerEvent) => void; up: (event: PointerEvent) => void } | null>(null);
 
     const optionsRef = useLatest(options);
 
+    const pointerDrag = useWindowPointerDrag();
+    const { stop: stopPointerDrag } = pointerDrag;
+
     const stopDrawing = useCallback(() => {
-        const listeners = listenersRef.current;
-
-        if (listeners) {
-            window.removeEventListener('pointermove', listeners.move);
-            window.removeEventListener('pointerup', listeners.up);
-            listenersRef.current = null;
-        }
-
+        stopPointerDrag();
         drawingRef.current = false;
-    }, []);
-
-    useEffect(() => stopDrawing, [ stopDrawing ]);
+    }, [ stopPointerDrag ]);
 
     const attachHeightMap = useCallback((node: PixiContainer | null) => {
         nodeRef.current = node;
@@ -183,12 +178,6 @@ export const useRoomFloorPlanDrawing = (options: RoomFloorPlanDrawingOptions) =>
             lastDraw = tile;
         };
 
-        const handleUp = (upEvent: PointerEvent) => {
-            if (upEvent.pointerId !== event.pointerId) return;
-
-            stopDrawing();
-        };
-
         const start = tileAt(event.clientX, event.clientY);
 
         selectionStart = start;
@@ -198,10 +187,12 @@ export const useRoomFloorPlanDrawing = (options: RoomFloorPlanDrawingOptions) =>
 
         lastDraw = start;
 
-        listenersRef.current = { move: handleMove, up: handleUp };
-
-        window.addEventListener('pointermove', handleMove);
-        window.addEventListener('pointerup', handleUp);
+        pointerDrag.start(event.pointerId, {
+            onMove: handleMove,
+            onEnd: () => {
+                drawingRef.current = false;
+            },
+        });
     };
 
     return { attachHeightMap, onPointerDown };

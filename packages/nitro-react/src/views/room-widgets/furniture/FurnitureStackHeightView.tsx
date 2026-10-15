@@ -1,7 +1,8 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
+import { useWindowPointerDrag } from '#base/hooks';
 import { TemplateWindow } from '#base/theme';
 
 /** `CustomStackHeightWidget.SLIDER_RANGE`: the slider spans 0 to 10 tiles. */
@@ -71,9 +72,7 @@ export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, on
     const [ multiWalk, setMultiWalk ] = useState<boolean>(multiWalkMode);
     const [ dragX, setDragX ] = useState<number | null>(null);
     const t = useTranslation();
-    const stopDragRef = useRef<(() => void) | null>(null);
-
-    useEffect(() => () => stopDragRef.current?.(), []);
+    const pointerDrag = useWindowPointerDrag();
 
     // The server's own height wins whenever it changes under us, unless the height is being dragged or typed (`canApplyLiveHeight`).
     if ((height !== lastHeight) && (dragX === null) && !edited) {
@@ -105,8 +104,6 @@ export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, on
     const onButtonDown = (event: FederatedPointerEvent) => {
         if (event.button !== 0) return;
 
-        stopDragRef.current?.();
-
         const startX = sliderXForHeight(parseHeight(draft));
         const startClientX = event.clientX;
         let lastSent = -SLIDER_LIVE_UPDATE_INTERVAL_MS;
@@ -128,21 +125,13 @@ export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, on
             }
         };
 
-        const stop = () => {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-            stopDragRef.current = null;
-        };
-
-        const up = () => {
-            stop();
-            setDragX(null);
-            send(latest);
-        };
-
-        stopDragRef.current = stop;
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
+        pointerDrag.start(event.pointerId, {
+            onMove: move,
+            onEnd: () => {
+                setDragX(null);
+                send(latest);
+            },
+        });
     };
 
     const sliderX = dragX ?? sliderXForHeight(parseHeight(draft));
