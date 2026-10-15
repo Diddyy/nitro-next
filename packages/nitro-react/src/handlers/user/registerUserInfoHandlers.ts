@@ -1,5 +1,5 @@
 import { AvatarGenderType, ChangeUserNameResultMessageCode, ClubLevelEnum } from '@nitrodevco/nitro-api';
-import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetDailyTasksComposer, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, MysteryBoxKeysMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
+import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, DiscordPreferencesMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetDailyTasksComposer, GetDiscordPreferencesComposer, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, MysteryBoxKeysMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
 import { onNameChangeChanged, openClientLink } from '#base/commands';
@@ -29,9 +29,13 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * so a server that happens to use the same header for something else cannot feed the gates.
  */
 export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { setAvailabilityStatus, setRights, setPermissionNodes, setChatCommands, setTurboCapabilities, mergePerks, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned, setMysteryBoxKeys } = userStore.getState();
+    const { setAvailabilityStatus, setRights, setPermissionNodes, setChatCommands, setTurboCapabilities, mergePerks, setNoobnessLevel, increasePetRespects, setChatPreferences, setSoundVolumes, setUiFlags, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setOnlineIndicatorPreference, setDiscordPreferences, setUserInfo, setName, setFigure, setAccountSafetyLocked, setEmailVerified, setNftChatStyles, setPurchasableChatStyles, setPurchasableChatStyleOwned, setMysteryBoxKeys } = userStore.getState();
 
     return subscribeAll(subscribe, [
+        on(DiscordPreferencesMessage, (data) => {
+            setDiscordPreferences(data);
+        }),
+
         on(FigureUpdateEventMessage, (data) => {
             setFigure(data.figure, data.gender as AvatarGenderType);
         }),
@@ -44,6 +48,8 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             send(new GetDailyTasksComposer({}));
             // `HabboSoundManagerFlash10.initComponent`: asks for the sound settings `AccountPreferences` answers.
             send(new GetSoundSettingsComposer({}));
+            // `DiscordSettingsController.initComponent` asks once, in the same burst as the rest.
+            send(new GetDiscordPreferencesComposer({}));
             if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 }, { name: TURBO_CHAT_COMMANDS_CAPABILITY, version: 1 }, { name: TURBO_STARTER_ROOMS_CAPABILITY, version: 1 } ] }));
         }),
 
