@@ -52,6 +52,10 @@ type Rect = { x: number; y: number; width: number; height: number };
  * What the bar is placed by, read off its layout: `bubblecont`'s width, `chat_input_container`'s y in
  * it, `input_border` in that row (the command list stands on it, as wide), `chat_input` in the
  * border, and the `styles` and `chat_extra_button` buttons in the row.
+ *
+ * `chat_input` reaches 5 past the left edge of `helpbutton`, which lies over the field's end while
+ * it shows; Flash's 2 px text gutter hides less under it than this field would, so the field stops
+ * where the button starts (`inputWidth`).
  */
 const readLayout = (template: Template) => {
     const rectOf = (name: string): Rect | undefined => {
@@ -65,8 +69,14 @@ const readLayout = (template: Template) => {
     const input = rectOf('chat_input');
     const styles = rectOf('styles');
     const extra = rectOf('chat_extra_button');
+    const help = rectOf('helpbutton');
 
-    return (bubble && row && border && input && styles && extra) ? { width: bubble.width, row, border, input, styles, extra } : undefined;
+    if (!bubble || !row || !border || !input || !styles || !extra) return undefined;
+
+    // `helpbutton` is in `bubblecont`; the field is in `input_border`, in the row.
+    const inputWidth = help ? Math.min(input.width, help.x - (row.x + border.x + input.x)) : input.width;
+
+    return { width: bubble.width, row, border, input, inputWidth, styles, extra };
 };
 
 /**
@@ -652,7 +662,7 @@ export const RoomChatInputView = () => {
             alwaysShowSelection
             backgroundColor={null}
             focusedBackgroundColor={null}
-            layout={{ position: 'absolute', left: layout.input.x, width: layout.input.width, top: layout.input.y, height: layout.input.height }}
+            layout={{ position: 'absolute', left: layout.input.x, width: layout.inputWidth, top: layout.input.y, height: layout.input.height }}
         />
     );
 
