@@ -88,6 +88,8 @@ export * from './Crafting/CraftSecretComposer';
 export * from './Crafting/GetCraftableProductsComposer';
 export * from './Crafting/GetCraftingRecipeComposer';
 export * from './Crafting/GetCraftingRecipesAvailableComposer';
+export * from './Discord/GetDiscordPreferencesComposer';
+export * from './Discord/SetDiscordPreferencesComposer';
 export * from './Friendfurni/FriendFurniConfirmLockComposer';
 export * from './FriendList/AcceptFriendComposer';
 export * from './FriendList/DeclineFriendComposer';

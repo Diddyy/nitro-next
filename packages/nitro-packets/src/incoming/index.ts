@@ -175,6 +175,7 @@ export * from './Data/TradingItemListDataParser';
 export * from './Data/TradingItemListParser';
 export * from './Data/TreasureHuntWinnerInfoParser';
 export * from './Data/WiredValidationParameterParser';
+export * from './Discord/DiscordPreferencesMessage';
 export * from './Error/ErrorReportMessage';
 export * from './Friendfurni/FriendFurniCancelLockMessage';
 export * from './Friendfurni/FriendFurniOtherLockConfirmedMessage';

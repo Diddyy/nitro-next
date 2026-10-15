@@ -1,5 +1,5 @@
 import { ClubLevelEnum, NoobnessLevelEnum, RoomChatBubbleWidthType, RoomChatModeType, RoomChatScrollSpeedType, SecurityLevelEnum } from '@nitrodevco/nitro-api';
-import { IPerk } from '@nitrodevco/nitro-packets';
+import { DiscordPreferencesMessageType, IPerk } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 import { createUserChatCommandsSlice, UserChatCommandsSlice } from './UserChatCommandsSlice';
@@ -43,6 +43,11 @@ type State = {
     roomInvitesIgnored: boolean;
     /** `HabboMessenger.getOnlineIndicatorPreference` - `AccountPreferences.onlineIndicatorPreference`: who is told when this user comes online. */
     onlineIndicatorPreference: number;
+    /**
+     * `DiscordSettingsController.preferences` - `DiscordPreferencesMessage`, asked for once at
+     * start; `null` until it answers.
+     */
+    discordPreferences: DiscordPreferencesMessageType | null;
     /**
      * `AccountPreferencesEventMessage.uiFlags`: the account's remembered UI switches, one bit
      * each, kept whole because `SetUIFlagsComposer` sends the whole word back.
@@ -116,6 +121,7 @@ type Actions = {
     setRoomCameraFollowDisabled: (isRoomCameraFollowDisabled: boolean) => void;
     setRoomInvitesIgnored: (roomInvitesIgnored: boolean) => void;
     setOnlineIndicatorPreference: (onlineIndicatorPreference: number) => void;
+    setDiscordPreferences: (discordPreferences: DiscordPreferencesMessageType) => void;
     /** Flips one bit and hands back the whole word, so the caller can send it on. */
     setUiFlag: (flag: UiFlagEnum, on: boolean) => number;
     setNftChatStyles: (nftChatStyles: number[]) => void;
@@ -143,6 +149,7 @@ const initialState: State = {
     isRoomCameraFollowDisabled: false,
     roomInvitesIgnored: false,
     onlineIndicatorPreference: 0,
+    discordPreferences: null,
     uiFlags: 0,
     preferredChatStyle: 0,
     freeFlowChatDisabled: false,
@@ -179,6 +186,7 @@ export const createUserStore = () => createStore<UserStore>()((set, get, store) 
     setRoomCameraFollowDisabled: (isRoomCameraFollowDisabled: boolean) => set({ isRoomCameraFollowDisabled }),
     setRoomInvitesIgnored: (roomInvitesIgnored: boolean) => set({ roomInvitesIgnored }),
     setOnlineIndicatorPreference: (onlineIndicatorPreference: number) => set({ onlineIndicatorPreference }),
+    setDiscordPreferences: (discordPreferences: DiscordPreferencesMessageType) => set({ discordPreferences }),
     setUiFlag: (flag: UiFlagEnum, on: boolean) => {
         const uiFlags = on ? (get().uiFlags | flag) : (get().uiFlags & ~flag);
 
