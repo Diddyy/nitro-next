@@ -9,8 +9,8 @@
  * `WiredVariable.§_-i8§`, an id no variable has, to the picker). Its input sources are always shown.
  */
 import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
-import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredElement';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
+import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables, getWiredString } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
 import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from './ActionVariableReference';
@@ -58,6 +58,5 @@ export const progressRewardTrackAction: WiredElementDefinition<ProgressRewardTra
     getMergedType: form => form.score.picker.target,
     setMergedType: (form, _id, sourceType) => ({ ...form, score: { ...form.score, picker: setPickerTarget(form.score.picker, sourceType) } }),
     getCustomSourcesForMergedType: () => VARIABLE_REFERENCE_CUSTOM_SOURCES,
-    isInputSourceDisabled: (form, _id, sourceType) => ((sourceType === WIRED_SOURCE_MERGED) && isValueOrVariableSourcePickingDisabled(form.score)),
     hasCustomTypePicker: () => true,
 };

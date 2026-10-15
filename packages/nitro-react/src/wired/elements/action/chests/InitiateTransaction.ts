@@ -14,7 +14,7 @@
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { finalizePickerSelection, setPickerTarget } from '../../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../../WiredTriggerable';
 import { ActionTypeCodes } from '../actionCodes';
@@ -64,7 +64,7 @@ export const initiateTransactionAction: WiredElementDefinition<InitiateTransacti
     ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.multiplier.picker) ],
     isInputSourceDisabled: (form, id, sourceType) =>
-        (sourceType === WIRED_SOURCE_MERGED) && (id === 0) && isValueOrVariableSourcePickingDisabled(form.multiplier),
+        (sourceType === WIRED_SOURCE_MERGED) && (id === 0) && (form.mode === CONTRACT_MODE_NO_MULTIPLIER),
     mergedSelections: [ [ 2, 1 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',
     furniSelectionTitle: id => ((id === 0) ? 'wiredfurni.params.sources.furni.title.chests' : 'wiredfurni.params.sources.furni.title.contracts'),

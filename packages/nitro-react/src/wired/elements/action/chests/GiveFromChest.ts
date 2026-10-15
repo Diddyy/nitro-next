@@ -17,7 +17,7 @@
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
 import { finalizePickerSelection, setPickerTarget } from '../../../common/WiredVariablePickerModel';
-import { createValueOrVariableState, isValueOrVariableSourcePickingDisabled, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
+import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables, type WiredTriggerable } from '../../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../ActionVariableReference';
@@ -79,7 +79,7 @@ export const giveFromChestBase = <F extends GiveFromChestForm>(): Omit<WiredElem
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.amount.picker) ],
     readStringParam: form => form.popupText,
     isInputSourceDisabled: (form, id, sourceType) =>
-        (sourceType === WIRED_SOURCE_MERGED) && (id === 0) && (isValueOrVariableSourcePickingDisabled(form.amount) || (form.rewardingMode === GIVE_FROM_CHEST_MODE_ALL)),
+        (sourceType === WIRED_SOURCE_MERGED) && (id === 0) && (form.rewardingMode === GIVE_FROM_CHEST_MODE_ALL),
     mergedSelections: [ [ 1, 1 ] ],
     mergedSelectionTitle: () => 'wiredfurni.params.sources.merged.title.variables_reference',
     furniSelectionTitle: () => 'wiredfurni.params.sources.furni.title.chests',
