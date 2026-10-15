@@ -61,10 +61,13 @@ type State = {
 };
 
 type Actions = {
-    /** `FurniModel.insertFurniture` with a complete list. */
-    insertFurniture: (furni: Map<number, IFurniListAddOrUpdateFurni>) => void;
-    /** `IncomingMessages.onFurnitureAddOrUpdate`. */
-    addOrUpdateFurni: (furni: IFurniListAddOrUpdateFurni[]) => void;
+    /**
+     * `FurniModel.insertFurniture` with a complete list; the items it added, each of which Flash's
+     * `addOrUpdateItem` offers to `HabboCatalog.itemAddedToInventory`.
+     */
+    insertFurniture: (furni: Map<number, IFurniListAddOrUpdateFurni>) => IFurniListAddOrUpdateFurni[];
+    /** `IncomingMessages.onFurnitureAddOrUpdate`; the items it added, as `insertFurniture`. */
+    addOrUpdateFurni: (furni: IFurniListAddOrUpdateFurni[]) => IFurniListAddOrUpdateFurni[];
     /**
      * `FurniModel.removeFurni`: true when the strip id was held, which is when
      * `onFurniListRemove` goes on to `resetUnseenItems` (`resetInventoryFurniUnseenItems`).
@@ -330,36 +333,47 @@ const keepFurniSelection = (groups: InventoryFurniGroup[], x: State): Pick<State
 
 export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & InventoryUnseenSlice, [], [], InventoryFurniSlice> = (set, get) => ({
     ...InventoryFurniSliceInitialState,
-    insertFurniture: furni => set((x) => {
+    insertFurniture: (furni) => {
+        const x = get();
         const draft = new FurniGroupsDraft(x.furniGroups);
         const held = getAllStripIds(x.furniGroups);
+        const addedFurni: IFurniListAddOrUpdateFurni[] = [];
 
         for (const stripId of held) {
             if (!furni.has(stripId)) removeItem(draft, stripId);
         }
 
         for (const [ stripId, data ] of furni) {
-            if (!held.has(stripId)) addOrUpdateItem(draft, createInventoryFurniItem(data), true, x.unseenItems);
+            if (held.has(stripId)) continue;
+
+            addOrUpdateItem(draft, createInventoryFurniItem(data), true, x.unseenItems);
+            addedFurni.push(data);
         }
 
-        return {
+        set({
             furniGroups: draft.groups,
             ...keepFurniSelection(draft.groups, x),
             furniListInitialized: true,
             furniCategoryInitialized: true,
-        };
-    }),
-    addOrUpdateFurni: furni => set((x) => {
-        if (!x.furniListInitialized) return x;
+        });
+
+        return addedFurni;
+    },
+    addOrUpdateFurni: (furni) => {
+        const x = get();
+
+        if (!x.furniListInitialized) return [];
 
         const draft = new FurniGroupsDraft(x.furniGroups);
         const added: InventoryFurniGroup[] = [];
+        const addedFurni: IFurniListAddOrUpdateFurni[] = [];
 
         for (const data of furni) {
             const index = draft.indexOfItem(data.itemId);
 
             if (index === -1) {
                 added.push(addOrUpdateItem(draft, createInventoryFurniItem(data), false, x.unseenItems));
+                addedFurni.push(data);
 
                 continue;
             }
@@ -375,8 +389,10 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
         // `updateUnseenItemsThumbs(newGroups, false)`.
         const unseenMovedToTop = added.length ? updateUnseenThumbs(draft, added, x.unseenItems, x.unseenMovedToTop) : x.unseenMovedToTop;
 
-        return { furniGroups: draft.groups, unseenMovedToTop };
-    }),
+        set({ furniGroups: draft.groups, unseenMovedToTop });
+
+        return addedFurni;
+    },
     removeFurni: (stripId) => {
         const x = get();
         const draft = new FurniGroupsDraft(x.furniGroups);

@@ -11,7 +11,6 @@ export * from './registerCatalogLimitedEditionHandlers';
 export * from './registerCatalogMarketplaceHandlers';
 export * from './registerCatalogMediaHandlers';
 export * from './registerCatalogPetHandlers';
-export * from './registerCatalogPlacementHandlers';
 export * from './registerCatalogPurchaseFlowHandlers';
 export * from './registerCatalogRecyclerHandlers';
 export * from './registerCatalogRentHandlers';

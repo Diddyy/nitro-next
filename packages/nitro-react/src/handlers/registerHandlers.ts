@@ -1,7 +1,7 @@
 import { WebSocketConnection } from '#base/context/communication';
 
 import { registerAchievementHandlers } from './achievements';
-import { bridgeRecyclerRoomSession, registerCatalogPlacementHandlers, registerCatalogRecyclerHandlers, registerCatalogRentHandlers, registerCatalogVoucherHandlers, registerTargetedOfferHandlers } from './catalog';
+import { bridgeRecyclerRoomSession, registerCatalogRecyclerHandlers, registerCatalogRentHandlers, registerCatalogVoucherHandlers, registerTargetedOfferHandlers } from './catalog';
 import { bridgeCollectiblesInventoryAndPurse, registerCollectiblesHandlers } from './collectibles';
 import { registerDailyTasksHandlers } from './daily-tasks';
 import { registerEarningsHandlers } from './earnings';
@@ -134,10 +134,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         bridgeOfferCenter(),
         // The targeted offers (`OfferController`): asked for once the user object is in.
         registerTargetedOfferHandlers(socket),
-        // The rent and buyout confirmation the infostand and the inventory open, and a dropped
-        // offer's bought item placed where it was dropped.
+        // The rent and buyout confirmation the infostand and the inventory open.
         registerCatalogRentHandlers(socket),
-        registerCatalogPlacementHandlers(socket),
         // Wired: the setup dialog, the room's wired environment, the variables cache and the permissions.
         registerWiredSetupHandlers(socket),
         registerWiredEnvironmentHandlers(socket),

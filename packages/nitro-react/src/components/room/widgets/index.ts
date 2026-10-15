@@ -2,6 +2,7 @@
 export * from './bot-skills';
 export * from './chat';
 export * from './chooser';
+export * from './custom-user-notification';
 export * from './doorbell';
 export * from './effects';
 export * from './floor-plan-editor';

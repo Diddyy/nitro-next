@@ -15,6 +15,11 @@
  * - `onFurniListInvalidate`: the list is no longer current; it is asked for again straight away
  *   while the inventory is open (`setInventoryCategoryInit('furni', false)`), otherwise when the
  *   furni page next opens.
+ * - `FurniModel.addOrUpdateItem` offers every item it adds, from the full list or from
+ *   `FurniListAddOrUpdate`, to `HabboCatalog.itemAddedToInventory`, which places the one bought
+ *   for an offer dropped in the room where it was dropped. Turbo answers a purchase with
+ *   `FurniListInvalidate`, so the placement happens when the list is asked for again - straight
+ *   away while the inventory is open, as in Flash.
  * - `WiredTradingModel.updateItemGroupMaps` ends in `FurniModel.updateItemLocks`; a trade that is
  *   cancelled or completed closes its sub page, whose `'empty'` switch is `removeAllLocks`. The
  *   user's own cancel is answered by `WiredTradeCancelled`, so it clears the locks here too.
@@ -24,7 +29,7 @@
  */
 import { FurniListAddOrUpdateEventMessage, FurniListEventMessage, FurniListInvalidateEventMessage, FurniListRemoveEventMessage, IFurniListAddOrUpdateFurni, PostItPlacedEventMessage, WiredTradeCancelledMessage, WiredTradeCompletedMessage, WiredTradeItemsUpdateMessage } from '@nitrodevco/nitro-packets';
 
-import { removeAllInventoryFurniLocks, requestFurniInventory, resetInventoryFurniUnseenItems, updateInventoryFurniLocks } from '#base/commands';
+import { itemAddedToInventory, removeAllInventoryFurniLocks, requestFurniInventory, resetInventoryFurniUnseenItems, updateInventoryFurniLocks } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 import { systemStore } from '#base/context/system';
@@ -42,6 +47,10 @@ export const registerInventoryFurniHandlers = ({ send, subscribe }: WebSocketCon
     let imageUpdateTimer: ReturnType<typeof setInterval> | undefined;
     // `IncomingMessages.§_-M1Y§`: the fragments of the list on its way in.
     let fragments: (Fragment | undefined)[] | undefined;
+
+    const offerAddedToCatalog = (added: IFurniListAddOrUpdateFurni[]) => {
+        for (const furni of added) itemAddedToInventory(send, furni.itemTypeId, furni.itemId);
+    };
 
     /** `addMessageFragment`: the whole list once every fragment is in. */
     const addFragment = (fragment: Fragment, totalFragments: number, fragmentNo: number): Fragment | undefined => {
@@ -61,14 +70,16 @@ export const registerInventoryFurniHandlers = ({ send, subscribe }: WebSocketCon
 
             if (!furni) return;
 
-            insertFurniture(furni);
+            const added = insertFurniture(furni);
+
             fragments = undefined;
             imageUpdateTimer ??= setInterval(removeExpiredRentedFurni, RENT_EXPIRY_CHECK_INTERVAL_MS);
             // `insertFurniture` re-reads the locks when it added items; reading them again when it did not changes nothing.
             updateInventoryFurniLocks();
+            offerAddedToCatalog(added);
         }),
 
-        on(FurniListAddOrUpdateEventMessage, data => addOrUpdateFurni(data.furni)),
+        on(FurniListAddOrUpdateEventMessage, data => offerAddedToCatalog(addOrUpdateFurni(data.furni))),
 
         // `IncomingMessages.onPostItPlaced` -> `FurniModel.updatePostItCount`.
         on(PostItPlacedEventMessage, data => updatePostItCount(data.id, data.itemsLeft)),

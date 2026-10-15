@@ -16,7 +16,7 @@
  *   when the window comes back.
  *
  * An app-wide singleton: the drag outlives the catalogue window (which it hides), and the
- * inventory's furni listener (`itemAddedToInventory`) reads it.
+ * inventory's furni handler (`itemAddedToInventory`) reads it.
  */
 import { IPurchasableOffer, RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { StateCreator, StoreApi } from 'zustand';
