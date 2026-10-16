@@ -79,15 +79,17 @@ export const useAvatarEditorData = (setType: string): { parts: AvatarEditorPartD
         // A non-mandatory set type offers the "clear" cell first (`isntMandatorySet`).
         const mandatory = renderManager.getMandatoryAvatarPartSetIds(gender, clubItemsDimmed ? 2 : clubLevel);
 
-        if (!mandatory.includes(setType)) {
+        const hasClear = !mandatory.includes(setType);
+
+        if (hasClear) {
             parts.unshift({ id: -1, partColors: [], usesColors: false, isClear: true, isClub: false, isSellable: false, selected: !selected, disabled: false });
         }
 
         // --- the colour palettes ------------------------------------------------------------
-        const maxColorLayers = Math.min(
-            MAX_COLOR_LAYERS,
-            selected ? Math.max(1, ...(sets.find(partSet => partSet.id === selected.setId)?.parts ?? []).map(part => part.colorLayerIndex)) : 1,
-        );
+        // `AvatarEditorGridView.initFromList` ends on the selected item's `showPalettes(colorLayerCount)`;
+        // the clear item, selected while nothing of the set type is worn, has no part set and so no layers.
+        const layerCount = selected ? Math.max(1, ...(sets.find(partSet => partSet.id === selected.setId)?.parts ?? []).map(part => part.colorLayerIndex)) : 1;
+        const maxColorLayers = (hasClear && !selected) ? 0 : Math.min(MAX_COLOR_LAYERS, layerCount);
         const colors = [ ...palette.colors.values() ]
             .filter(color => color.isSelectable && (clubItemsDimmed || color.clubLevel <= clubLevel))
             .sort((a, b) => (a.clubLevel !== b.clubLevel ? a.clubLevel - b.clubLevel : a.index - b.index));
