@@ -139,10 +139,10 @@ export const MainView = () => {
                         <MysteryBoxToolbarExtensionComponent />
                         {/* `GroupRoomInfoCtrl` docks the banner in this column, before the quest tracker and the event card. */}
                         <GroupRoomInfoComponent />
-                        {/* `QuestController`'s trackers dock here, after the group banner and before the event card. */}
-                        <QuestTrackerComponent />
-                        {/* `RoomEventInfoCtrl` docks the room's event card here, under the group banner. */}
+                        {/* `RoomEventInfoCtrl` docks the room's event card here, under the group banner and over the quest trackers. */}
                         <NavigatorRoomEventInfoComponent />
+                        {/* `QuestController`'s trackers dock here, after the group banner and the event card. */}
+                        <QuestTrackerComponent />
                         <NotificationsExtensionAnchor />
                     </Box>
                     <AvatarEditorComponent />
