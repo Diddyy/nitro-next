@@ -49,7 +49,7 @@ import { useHintActions } from '#base/context/hints';
 import { useInventoryStore, useInventoryUnseenTotalCount } from '#base/context/inventory';
 import { useMessengerStore } from '#base/context/messenger';
 import { useNavigatorStore } from '#base/context/navigator';
-import { getRewardTrackClaimableCount, useRewardTrackStore } from '#base/context/reward-track';
+import { getRewardTrackClaimableCount, getRewardTrackTrackClaimableCount, useRewardTrackStore } from '#base/context/reward-track';
 import { useOwnRoomObjectId } from '#base/context/room';
 import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId, useUserStore } from '#base/context/user';
@@ -81,6 +81,9 @@ const BOUNCE_DURATION_MS = 400;
 const BOUNCE_HEIGHT = 12;
 /** `me_menu_new_view`'s height after `setGuideToolVisibility`: `profile.bottom + 5`, the guide's being the same. */
 const ME_MENU_HEIGHT = 55;
+
+/** `ProgMenuController.REWARD_TRACK_ITEM_PREFIX`: a reward track's item in the progression menu. */
+const REWARD_TRACK_ITEM_PREFIX = 'rewardtrack_';
 
 /** `DropBounce.getBounceOffset`: how far down the drop is, 0 to 1, bouncing as it lands. */
 const getBounceOffset = (progress: number): number => {
@@ -229,6 +232,9 @@ export const ToolbarView = () => {
     const unseenDailyTasks = useDailyTasksStore(x => getUnseenDailyTasksCount(x.tasks));
     // `UnseenRewardTrackRewardsCountUpdateEvent`: the reward tracks' prizes that can be claimed.
     const claimableRewardTrackPrizes = useRewardTrackStore(x => getRewardTrackClaimableCount(x.tracks));
+    // `trackCounts`: each track's, for its item in the progression menu.
+    const rewardTracks = useRewardTrackStore(x => x.tracks);
+    const rewardTrackCounts = new Map(rewardTracks.map(track => [ track.id, getRewardTrackTrackClaimableCount(track) ]));
     const { attachTarget: attachInventoryTarget, lift: inventoryLift } = useToolbarTransitionTarget('HTIE_ICON_INVENTORY');
     const { attachTarget: attachMeMenuTarget, lift: meMenuLift } = useToolbarTransitionTarget('HTIE_ICON_MEMENU');
     const { hideMatchingHint } = useHintActions();
@@ -528,8 +534,19 @@ export const ToolbarView = () => {
                         { name: 'achievements', visible: true, action: () => openClientLink(send, 'questengine/achievements') },
                         // `onSubMenuItemClick('leaderboards')`: the badge leaderboard's link (`groups/_-ge.getLink(0, -1, 0)`).
                         { name: 'leaderboards', visible: true, action: () => openClientLink(send, 'badge_leaderboard/0/-1/0') },
-                        { name: 'introduction', visible: true, action: () => openClientLink(send, 'reward_track/open/introduction'), unseenCount: claimableRewardTrackPrizes },
+                        // `refreshRewardTrackUnseenCounts`: each track's item counts its own prizes (`trackCounts`).
+                        { name: 'introduction', visible: true, action: () => openClientLink(send, 'reward_track/open/introduction'), unseenCount: rewardTrackCounts.get('introduction') },
+                        // `onRewardTracks`: an `introduction` clone per other track, `rewardtrack_<id>`, opening the track.
+                        ...rewardTracks.filter(track => track.id !== 'introduction').map(track => ({
+                            name: `${REWARD_TRACK_ITEM_PREFIX}${track.id}`,
+                            from: 'introduction',
+                            caption: `\${widget.progmenu.rewardtrack.${track.id}}`,
+                            visible: true,
+                            action: () => openClientLink(send, `reward_track/open/${track.id}`),
+                            unseenCount: rewardTrackCounts.get(track.id),
+                        })),
                     ]}
+                    listName="menu_items"
                     onClose={() => setOpenMenu(undefined)}
                 />
             )}

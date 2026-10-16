@@ -55,8 +55,11 @@ export const getRewardTrackTaskProgressRatio = (task: RewardTrackTask, level: Re
 export const getRewardTrackCompletedTaskCount = (track: RewardTrack) => track.tasks.filter(isRewardTrackTaskComplete).length;
 export const getRewardTrackClaimedPrizeCount = (track: RewardTrack) => track.prizes.filter(prize => prize.claimed).length;
 
+/** `broadcastClaimableRewardsCount`: a track's prizes that can be claimed (`trackCounts`). */
+export const getRewardTrackTrackClaimableCount = (track: RewardTrack) => track.prizes.filter(prize => isRewardTrackPrizeClaimable(prize, track)).length;
+
 /** `broadcastClaimableRewardsCount`: the prizes of every track that can be claimed. */
-export const getRewardTrackClaimableCount = (tracks: readonly RewardTrack[]) => tracks.reduce((count, track) => count + track.prizes.filter(prize => isRewardTrackPrizeClaimable(prize, track)).length, 0);
+export const getRewardTrackClaimableCount = (tracks: readonly RewardTrack[]) => tracks.reduce((count, track) => count + getRewardTrackTrackClaimableCount(track), 0);
 
 /**
  * `RewardTrack.refreshDerivedState`: each prize's availability, then the track complete when every

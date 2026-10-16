@@ -27,7 +27,7 @@
  */
 import { useState } from 'react';
 
-import { claimRewardTrackPrize, hideRewardTrack, openClientLink, openRewardTrackPremiumConfirmation } from '#base/commands';
+import { claimRewardTrackPrize, getRewardTrackTaskIconAssetName, hideRewardTrack, openClientLink, openRewardTrackPremiumConfirmation } from '#base/commands';
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import {
@@ -281,7 +281,8 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
                 task_border: { color: selected ? theme.active : hovered ? theme.light : TASK_BORDER_COLOR },
                 task_name: { caption: t(`${name}.name`, `${name}.name`), setCaptionAfterBuild: true },
                 task_description: { caption: t(`${name}.desc`, `${name}.desc`), setCaptionAfterBuild: true },
-                task_image: { asset: asset(`reward_track_tasks_${task.actionType.toLowerCase()}`) },
+                // `RewardTrackTaskRowView`: `controller.getTaskIconAssetName(task)`.
+                task_image: { asset: asset(getRewardTrackTaskIconAssetName(track.id, task)) },
                 task_progress_txt: { caption: `${task.progressCount} / ${level?.requiredCount ?? 0}`, setCaptionAfterBuild: true },
                 track_reward_txt: { caption: String(level?.pointsReward ?? 0), setCaptionAfterBuild: true },
                 'loading_bar/progress/loading_bar': { color: progress.color },
@@ -379,7 +380,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
         // `RewardTrackTaskDetailsView`: hidden with no task selected (`clear`).
         task_info: { visible: !!selectedTask },
         ...(selectedTask && {
-            task_info_img: { asset: asset(`reward_track_tasks_${selectedTask.actionType.toLowerCase()}`) },
+            task_info_img: { asset: asset(getRewardTrackTaskIconAssetName(track.id, selectedTask)) },
             task_info_name: { caption: t(`reward_track.${track.id}.task.${selectedTask.id}.name`, `reward_track.${track.id}.task.${selectedTask.id}.name`), setCaptionAfterBuild: true },
             task_info_description: { caption: t(`reward_track.${track.id}.task.${selectedTask.id}.desc`, `reward_track.${track.id}.task.${selectedTask.id}.desc`), setCaptionAfterBuild: true },
             task_hint_text: { caption: t(`${hintKey}.desc`, `${hintKey}.desc`), setCaptionAfterBuild: true },
