@@ -59,13 +59,15 @@ export const gridItemTemplateName = (offer: IPurchasableOffer, isBuilderPage: bo
  * One product of a bundle - the bare `gridItem` that `BundleProductContainer.populateItemGrid` and
  * `BundleGridViewCatalogWidget.populateItemGrid` clone per product: its `clubLevelIcon` hidden, the
  * product's icon in `image` (`Product.initIcon`), and for a product bought more than once
- * `multiContainer` with `x<count>` (`Product.view`). The items are never selected (the bundle's
- * `select` does nothing), so no highlight shows.
+ * `multiContainer` with `x<count>` (`Product.view`). `ProductGridItem.view` hides the template's
+ * `ITEM_HILIGHT`, shown in `gridItem.xml`, and the items are never selected (the bundle's `select`
+ * does nothing), so no highlight shows.
  */
 export const bundleProductItem = (product: IProduct, key: string, templates: Record<string, Template>): TemplateItem => ({
     key,
     from: templates[catalogTemplateId('gridItem')],
     bindings: {
+        '#ITEM_HILIGHT': { visible: false },
         image: { children: <CatalogProductIconView product={product} /> },
         clubLevelIcon: { visible: false },
         bundleCounter: { visible: false },
