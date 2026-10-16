@@ -1,8 +1,8 @@
 /**
  * What the inventory's badges page does - the parts of Flash `inventory/badges/BadgesModel` that
  * talk to the server: `requestInitialization` (through `HabboInventory.getAllMyBadgeIds`, which
- * asks once while the model is empty) and `saveBadgeSelection`, which follows every change to the
- * worn badges.
+ * asks once while the model is empty, and `checkCategoryInitilization('badges')`, which asks while
+ * no list has arrived) and `saveBadgeSelection`, which follows every change to the worn badges.
  *
  * The answer half - the owned codes minus the ones asked to leave out - is a read of
  * `inventoryStore`'s `badgeCodes`, which the caller takes with a selector.
@@ -21,6 +21,18 @@ export const requestInventoryBadgesIfEmpty = (send: Send) => {
     if (badgeCodes.length || badgesRequested) return;
 
     setBadgesRequested();
+    send(new GetBadgesComposer({}));
+};
+
+/**
+ * `HabboInventory.checkCategoryInitilization('badges')`, as the badges page asks on being shown
+ * (`InventoryMainView.setSubViewToCategory`): the list unless a whole one has arrived. A badge
+ * received or levelled up before then is in the model but is not the list, so it does not stop
+ * the ask - `initBadges` replaces the model with the full list and keeps it.
+ */
+export const checkInventoryBadgesInitialization = (send: Send) => {
+    if (inventoryStore.getState().badgesInitialized) return;
+
     send(new GetBadgesComposer({}));
 };
 
