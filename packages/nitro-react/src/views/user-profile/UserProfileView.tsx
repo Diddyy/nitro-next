@@ -36,6 +36,8 @@ export interface UserProfileViewProps {
     profile: ExtendedProfileMessageType;
     badges: IHabboUserBadge[];
     relationships: IRelationshipStatusInfo[];
+    /** `getSelectedGroup`'s id - the profile store keeps it across refreshes. */
+    selectedGroupId: number;
     ownUserId: number;
     activityDisplayEnabled: boolean;
     relationshipsEnabled: boolean;
@@ -70,7 +72,7 @@ const AVATAR_WIDGET_WIDTH = 34;
 const BADGE_SLOTS = 5;
 
 export const UserProfileView = ({
-    profile, badges, relationships, ownUserId, activityDisplayEnabled, relationshipsEnabled, canAskForFriend, isBlocked,
+    profile, badges, relationships, selectedGroupId, ownUserId, activityDisplayEnabled, relationshipsEnabled, canAskForFriend, isBlocked,
     onClose, onAddFriend, onRooms, onChangeLooks, onChangeBadges, onBadgeCount, onSelectGroup, onOpenProfile, onFindFriends, onToggleBlock, onShowGroups, onFavouriteGroup,
 }: UserProfileViewProps) => {
     const t = useTranslation();
@@ -80,22 +82,13 @@ export const UserProfileView = ({
     const groupEntryTemplate = useTemplate('habbo-groups-com/group_entry');
     const noGroupsTemplate = useTemplate('habbo-groups-com/no_groups');
     const badgeDetails = useBadgeDetails();
-    const [ selectedId, setSelectedId ] = useState(profile.guilds[0]?.groupId ?? 0);
     const [ hoveredBadge, setHoveredBadge ] = useState<{ slot: number; anchor: GlobalRect } | null>(null);
-    // `getSelectedGroup`: the chosen group while the profile still has it, else the first.
-    const selectedGroupId = profile.guilds.some(group => group.groupId === selectedId) ? selectedId : (profile.guilds[0]?.groupId ?? 0);
     const groupDetails = useGroupDetailsItem(selectedGroupId);
 
     const isSelf = profile.userId === ownUserId;
     const isHidden = profile.isHidden && !isSelf;
     const friendOrSelf = profile.isFriend || isSelf;
     const selectedBadges = new Map(badges.filter(badge => (badge.badgeIndex >= 1) && (badge.badgeIndex <= BADGE_SLOTS)).map(badge => [ badge.badgeIndex - 1, badge ]));
-
-    /** `onSelectGroup`: the group chosen, its details asked for. */
-    const selectGroup = (groupId: number) => {
-        setSelectedId(groupId);
-        onSelectGroup(groupId);
-    };
 
     const badgeBindings = (slot: number): TemplateBindings => {
         const badge = selectedBadges.get(slot);
@@ -154,24 +147,18 @@ export const UserProfileView = ({
                 key: String(group.groupId),
                 from: groupEntryTemplate,
                 bindings: {
-                    bg_region: { onPointerTap: () => selectGroup(group.groupId) },
+                    bg_region: { onPointerTap: () => onSelectGroup(group.groupId) },
                     bg_selected_bitmap: { visible: group.groupId === selectedGroupId },
                     bg_unselected_bitmap: { visible: group.groupId !== selectedGroupId },
                     group_pic_bitmap: { asset: group.badgeCode ? groupBadgeUrl.replace('%badgedata%', group.badgeCode) : undefined },
                     // `onClearFavourite` / `onMakeFavourite`: the group chosen; the new profile asks for its details.
                     clear_favourite: {
                         visible: group.favourite && isSelf,
-                        onPointerTap: () => {
-                            setSelectedId(group.groupId);
-                            onFavouriteGroup(group.groupId, true);
-                        },
+                        onPointerTap: () => onFavouriteGroup(group.groupId, true),
                     },
                     make_favourite: {
                         visible: !group.favourite && isSelf,
-                        onPointerTap: () => {
-                            setSelectedId(group.groupId);
-                            onFavouriteGroup(group.groupId, false);
-                        },
+                        onPointerTap: () => onFavouriteGroup(group.groupId, false),
                     },
                 },
             }))

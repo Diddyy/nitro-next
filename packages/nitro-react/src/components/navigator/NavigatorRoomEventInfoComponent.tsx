@@ -49,7 +49,9 @@ export const NavigatorRoomEventInfoComponent = () => {
     if (!enabled || !inRoom || (!hasEvent && !isOwner && !canModify)) return null;
 
     return (
-        <Box layout={{ position: 'relative', marginTop: 2, flexShrink: 0 }}>
+        // `extension_grid` is 192 wide and lays its windows out from its left edge, so the 195 wide card (its
+        // last 3 px are the background's shadow) starts where the trackers do and overhangs them on the right.
+        <Box layout={{ position: 'relative', marginTop: 2, flexShrink: 0, width: 192 }}>
             <NavigatorRoomEventInfoView
                 eventName={roomEventData?.eventName}
                 eventDescription={roomEventData?.eventDescription ?? ''}

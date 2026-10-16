@@ -8,6 +8,9 @@ import { useThemeVariant } from './hooks';
 import { BackgroundLayer } from './layer';
 import { ButtonVariant, expandSides, ThemeProps, wrapTextChildren } from './utils';
 
+/** `ButtonController.CAPTION_BLEND_CHANGE`: `WE_DISABLED` takes it off the caption's blend, `WE_ENABLED` gives it back. */
+const CAPTION_BLEND_CHANGE = 0.5;
+
 export interface ButtonProps extends ThemeProps<ButtonVariant> {
     disabled?: boolean;
     selected?: boolean;
@@ -18,7 +21,7 @@ export interface ButtonProps extends ThemeProps<ButtonVariant> {
 
 /**
  * Flash's `ButtonController` (`button`, and `button_thick` - see `ButtonThick`): the state's skin
- * behind a caption centred in a row, the window's `dynamic_style` applied to the button and its
+ * behind a caption centred in a row (half faded while disabled), the window's `dynamic_style` applied to the button and its
  * tagged children. Each window type is this component bound to its own cascade key.
  */
 export const createButton = (displayName: string, cascadeKey: string): ForwardRefExoticComponent<ButtonProps & RefAttributes<PixiContainer>> => {
@@ -60,7 +63,7 @@ export const createButton = (displayName: string, cascadeKey: string): ForwardRe
                         state={state}
                     >
                         <VariantCascadeProvider map={ownCascade}>
-                            {wrapTextChildren(children, { textStyle: resolvedTextStyle, textColor: resolvedTextColor })}
+                            {wrapTextChildren(children, { textStyle: resolvedTextStyle, textColor: resolvedTextColor, alpha: (state === 'disabled') ? 1 - CAPTION_BLEND_CHANGE : undefined })}
                         </VariantCascadeProvider>
                     </DynamicStyleProvider>
                 </Box>
