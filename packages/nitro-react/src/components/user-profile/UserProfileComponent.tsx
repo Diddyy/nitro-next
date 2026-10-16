@@ -1,7 +1,7 @@
 /** Mounts the extended user profile - Flash's `ExtendedProfileWindowCtrl`. */
-import { BlockUserComposer, DeselectFavouriteHabboGroupComposer, SelectFavouriteHabboGroupComposer, UnblockUserComposer } from '@nitrodevco/nitro-packets';
+import { BlockUserComposer, UnblockUserComposer } from '@nitrodevco/nitro-packets';
 
-import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, requestGroupDetails, searchRoomsByOwner, showGroupBases } from '#base/commands';
+import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, searchRoomsByOwner, selectProfileGroup, showGroupBases, toggleProfileFavouriteGroup } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useOwnUserId, useUserStore } from '#base/context/user';
@@ -48,9 +48,9 @@ export const UserProfileComponent = () => {
             onChangeBadges={() => showWindow('inventory', { tab: 'badges' })}
             onBadgeCount={() => openClientLink(send, 'badge_leaderboard/0/-1/0')}
             onOpenProfile={openUserId => openProfile(send, openUserId)}
-            onSelectGroup={groupId => requestGroupDetails(send, groupId)}
+            onSelectGroup={groupId => selectProfileGroup(send, groupId)}
             onShowGroups={() => showGroupBases(send)}
-            onFavouriteGroup={(groupId, favourite) => send(favourite ? new DeselectFavouriteHabboGroupComposer({ groupId }) : new SelectFavouriteHabboGroupComposer({ groupId }))}
+            onFavouriteGroup={(groupId, favourite) => toggleProfileFavouriteGroup(send, groupId, favourite)}
             // `onRelationshipLink` -> `addFriendsAlertCallback`: the alert, then the friend list, the profile closed.
             onFindFriends={() => showAlert(getLocalizationValue('extendedprofile.add.friends.alert.title'), getLocalizationValue('extendedprofile.add.friends.alert.body'), {
                 onClose: () => {

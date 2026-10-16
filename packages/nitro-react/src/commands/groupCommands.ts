@@ -15,10 +15,10 @@
  */
 import { ClubLevelEnum } from '@nitrodevco/nitro-api';
 import {
-    AddAdminRightsToMemberComposer, ApproveMembershipRequestComposer, CreateGuildComposer, DeactivateGuildComposer,
+    AddAdminRightsToMemberComposer, ApproveMembershipRequestComposer, CreateGuildComposer, DeactivateGuildComposer, DeselectFavouriteHabboGroupComposer,
     EventLogComposer, GetGuildEditInfoComposer, GetGuildEditorDataComposer, GetGuildMembersComposer, GetHabboGroupDetailsComposer,
     GetMemberGuildItemCountComposer, GUILD_MEMBER_SEARCH_MEMBERS, IMemberData, isGuildMemberAdmin, isGuildMemberBlocked, isGuildMemberMember, isGuildMemberOwner,
-    JoinHabboGroupComposer, KickMemberComposer, RejectMembershipRequestComposer, RemoveAdminRightsFromMemberComposer,
+    JoinHabboGroupComposer, KickMemberComposer, RejectMembershipRequestComposer, RemoveAdminRightsFromMemberComposer, SelectFavouriteHabboGroupComposer,
     UnblockGroupMemberComposer, UpdateGuildBadgeComposer, UpdateGuildColorsComposer, UpdateGuildIdentityComposer, UpdateGuildSettingsComposer,
 } from '@nitrodevco/nitro-packets';
 
@@ -66,16 +66,28 @@ export const showGroupBadgeInfo = (send: Send, groupId: number) => {
     send(new EventLogComposer({ event: GROUPS_TRACKING_CATEGORY, data: `${groupId}`, action: 'badge clicked', extraString: '', extraInt: 0 }));
 };
 
+/** `ExtendedProfileWindowCtrl.onSelectGroup`: a group in the profile's list was picked. */
+export const selectProfileGroup = (send: Send, groupId: number) => {
+    requestGroupDetails(send, groupId);
+    send(new EventLogComposer({ event: GROUPS_TRACKING_CATEGORY, data: `${groupId}`, action: 'select', extraString: '', extraInt: 0 }));
+};
+
+/** `ExtendedProfileWindowCtrl.onMakeFavourite` / `onClearFavourite`. */
+export const toggleProfileFavouriteGroup = (send: Send, groupId: number, favourite: boolean) => {
+    send(favourite ? new DeselectFavouriteHabboGroupComposer({ groupId }) : new SelectFavouriteHabboGroupComposer({ groupId }));
+    send(new EventLogComposer({ event: GROUPS_TRACKING_CATEGORY, data: `${groupId}`, action: favourite ? 'clear favourite' : 'make favourite', extraString: '', extraInt: 0 }));
+};
+
 /** `GroupDetailsCtrl.onJoin` / `GroupRoomInfoCtrl.onJoin`. */
 export const joinGroup = (send: Send, groupId: number) => {
     send(new JoinHabboGroupComposer({ groupId }));
-    send(new EventLogComposer({ event: 'Groups', data: `${groupId}`, action: 'join', extraString: '', extraInt: 0 }));
+    send(new EventLogComposer({ event: GROUPS_TRACKING_CATEGORY, data: `${groupId}`, action: 'join', extraString: '', extraInt: 0 }));
 };
 
 /** `GroupDetailsCtrl.onRoomLink`. */
 export const goToGroupBaseRoom = (send: Send, groupId: number, roomId: number) => {
     goToRoom(send, roomId);
-    send(new EventLogComposer({ event: 'Groups', data: `${groupId}`, action: 'base', extraString: '', extraInt: 0 }));
+    send(new EventLogComposer({ event: GROUPS_TRACKING_CATEGORY, data: `${groupId}`, action: 'base', extraString: '', extraInt: 0 }));
 };
 
 /**

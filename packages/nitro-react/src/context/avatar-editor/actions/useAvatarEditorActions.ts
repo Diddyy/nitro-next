@@ -28,6 +28,7 @@ const actions = {
     setAvatarEffectType: state.setAvatarEffectType,
     pickAvatarEffectType: state.pickAvatarEffectType,
     clearAvatarEffectPicked: state.clearAvatarEffectPicked,
+    setInitialised: state.setInitialised,
 };
 
 export const useAvatarEditorActions = () => actions;
