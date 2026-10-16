@@ -3,7 +3,7 @@ import { Children, ReactNode } from 'react';
 import { ThemeText } from '../ThemeText';
 import { TextStyleKey } from './textStyles';
 
-type WrapTextOptions = { textStyle?: TextStyleKey; textColor?: string };
+type WrapTextOptions = { textStyle?: TextStyleKey; textColor?: string; alpha?: number };
 
 const wrapChild = (child: ReactNode, text: WrapTextOptions | undefined): ReactNode => {
     if (typeof child !== 'string' && typeof child !== 'number') return child;
@@ -15,6 +15,7 @@ const wrapChild = (child: ReactNode, text: WrapTextOptions | undefined): ReactNo
             text={String(child)}
             textStyle={text?.textStyle}
             textOptions={{ fill: text?.textColor }}
+            alpha={text?.alpha}
         />
     );
 };
