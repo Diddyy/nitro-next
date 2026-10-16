@@ -11,12 +11,11 @@ import type { TemplateTextSize } from './templateLayout';
 
 const KNOWN_TEXT_STYLES = new Set(Object.keys(HABBO_TEXT_STYLES));
 
-/** The text style an element draws in: its `text_style`, else its window style's default. */
-export const templateTextStyle = (element: TemplateElement): TextStyleKey => {
-    const textStyle = element.vars.text_style;
+/** The style a `text_style` variable names, or `undefined` when it names none the client has. */
+export const knownTemplateTextStyle = (textStyle: unknown): TextStyleKey | undefined => (typeof textStyle === 'string' && KNOWN_TEXT_STYLES.has(textStyle) ? textStyle as TextStyleKey : undefined);
 
-    return typeof textStyle === 'string' && KNOWN_TEXT_STYLES.has(textStyle) ? textStyle as TextStyleKey : themeDefaultTextStyle(element.style);
-};
+/** The text style an element draws in: its `text_style`, else its window style's default. */
+export const templateTextStyle = (element: TemplateElement): TextStyleKey => knownTemplateTextStyle(element.vars.text_style) ?? themeDefaultTextStyle(element.style);
 
 /** A text's `font_size` variable, over its style's size (`TextController.setTextFormatting`); `undefined` when it sets none. */
 export const templateFontSize = (element: TemplateElement): number | undefined => {
