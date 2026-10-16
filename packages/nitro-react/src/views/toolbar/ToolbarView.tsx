@@ -79,8 +79,12 @@ const COLLAPSE_ANIMATION_DURATION_MS = 140;
 /** `animateToIcon`'s `DropBounce(icon, 400, 12)`. */
 const BOUNCE_DURATION_MS = 400;
 const BOUNCE_HEIGHT = 12;
-/** `me_menu_new_view`'s height after `setGuideToolVisibility`: `profile.bottom + 5`, the guide's being the same. */
-const ME_MENU_HEIGHT = 55;
+/**
+ * `me_menu_new_view`'s height after `toggleVisibility`'s `setGuideToolVisibility`: `profile.bottom + 5`, the guide's
+ * being the same. Only with `guides.enabled`: otherwise the last word is the window's resize to accommodate its
+ * children (hiding mini mail rearranges the box sizer), its layout height.
+ */
+const ME_MENU_GUIDE_HEIGHT = 55;
 
 /** `ProgMenuController.REWARD_TRACK_ITEM_PREFIX`: a reward track's item in the progression menu. */
 const REWARD_TRACK_ITEM_PREFIX = 'rewardtrack_';
@@ -508,7 +512,7 @@ export const ToolbarView = () => {
             {(openMenu === 'me') && (
                 <ToolbarExtendedMenu
                     templateId="habbo-toolbar-com/me_menu_new_view_xml"
-                    height={ME_MENU_HEIGHT}
+                    height={guidesEnabled ? ME_MENU_GUIDE_HEIGHT : undefined}
                     items={[
                         { name: 'guide', visible: guidesEnabled && guideAllowed },
                         { name: 'talents', visible: talentTrackEnabled },
