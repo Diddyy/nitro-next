@@ -2,6 +2,7 @@
 export * from './achievements';
 export * from './catalog';
 export * from './collectibles';
+export * from './cursed-dragon-adoption';
 export * from './daily-tasks';
 export * from './earnings';
 export * from './game-tokens';

@@ -24,6 +24,7 @@ export * from './chatSettingsCommands';
 export * from './clientLinkCommands';
 export * from './collectiblesCommands';
 export * from './connectionCommands';
+export * from './cursedDragonAdoptionCommands';
 export * from './dailyTasksCommands';
 export * from './earningsCommands';
 export * from './floorPlanCommands';

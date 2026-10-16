@@ -11,6 +11,7 @@ import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComp
 import { AchievementsComponent } from './components/achievements';
 import { TargetedOfferComponent } from './components/catalog/TargetedOfferComponent';
 import { CollectiblesComponent } from './components/collectibles';
+import { CursedDragonAdoptionComponent } from './components/cursed-dragon-adoption';
 import { EarningsComponent } from './components/earnings';
 import { GroupCreatedComponent, GroupHcRequiredComponent, GroupInfoComponent, GroupManagementComponent, GroupMembersComponent, GroupRoomInfoComponent } from './components/groups';
 import { HabbiconsComponent } from './components/habbicons';
@@ -166,6 +167,7 @@ export const MainView = () => {
                     <AchievementsComponent />
                     <QuestsComponent />
                     <SpecialItemsComponent />
+                    <CursedDragonAdoptionComponent />
                     <HelpComponent />
                     <ModerationComponent />
                     <GroupInfoComponent />

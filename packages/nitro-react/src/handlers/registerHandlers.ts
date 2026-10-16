@@ -3,6 +3,7 @@ import { WebSocketConnection } from '#base/context/communication';
 import { registerAchievementHandlers } from './achievements';
 import { bridgeRecyclerRoomSession, registerCatalogRecyclerHandlers, registerCatalogRentHandlers, registerCatalogVoucherHandlers, registerTargetedOfferHandlers } from './catalog';
 import { bridgeCollectiblesInventoryAndPurse, registerCollectiblesHandlers } from './collectibles';
+import { registerCursedDragonAdoptionHandlers } from './cursed-dragon-adoption';
 import { registerDailyTasksHandlers } from './daily-tasks';
 import { registerEarningsHandlers } from './earnings';
 import { registerGameTokensHandlers } from './game-tokens';
@@ -129,6 +130,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         // `HabboCatalog`'s session-long parts outside the catalogue window: the special items
         // display's claim, the snowwar token offers, and the offer centre (built with the club centre).
         registerSpecialItemsHandlers(socket),
+        // The cursed dragon adoption's claim (`CursedDragonAdoptionController`).
+        registerCursedDragonAdoptionHandlers(socket),
         registerGameTokensHandlers(socket),
         registerOfferCenterHandlers(socket),
         bridgeOfferCenter(),

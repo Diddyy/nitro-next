@@ -112,6 +112,9 @@ export type WindowRegistry = {
     /** The special items display (`SpecialItemsView`), from a `special_items_display/<key>` link. */
     special_items_display: NoWindowParams;
 
+    /** The cursed dragon adoption (`CursedDragonAdoptionView`), from `cursed_dragon_adoption/open`. */
+    cursed_dragon_adoption: NoWindowParams;
+
     /** The offer centre's reward list (`OfferCenter.showRewards`). */
     offer_center: NoWindowParams;
 

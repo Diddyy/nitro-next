@@ -21,17 +21,24 @@
  * (`onTime` / `tryInitialize`): an expiry already past takes it down unseen, and the countdown's
  * `countdown_widget` runs from the seconds answered.
  *
+ * `initializeAutoOpen` (build WIN63-202610151745): a key whose
+ * `notifications.new_feature.auto_open_condition.<key>` is `not_claimed:<claimId>` asks the server
+ * whether that claim was taken (`HasClaimedProduct`) once it is built. Not taken, it opens its link
+ * by itself after 5 seconds on the hotel view - the wait starting over whenever the view is left
+ * and come back to; taken, or claimed meanwhile (`ClaimProductResult` 0 or 1), or opened by hand,
+ * it never does (`stopAutoOpen`).
+ *
  * `SingularNotificationController.initComponent` looks for them 2 seconds after it starts
  * (`maybeShowNewFeatureNotification`).
  */
 import { ColorConverter } from '@nitrodevco/nitro-api';
-import { GetSecondsUntilComposer } from '@nitrodevco/nitro-packets';
+import { GetSecondsUntilComposer, HasClaimedProductComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
 import { maybeShowNewFeatureNotifications, openNewFeatureLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useSingularNotificationActions, useSingularNotificationStore } from '#base/context/singular-notifications';
-import { HotelViewSecondsUntil, useConfigData, useSystemStore, useTranslation } from '#base/context/system';
+import { HotelViewSecondsUntil, useConfigData, useIsLandingViewVisible, useSystemStore, useTranslation } from '#base/context/system';
 import { useSecondsClock } from '#base/hooks';
 import { Box, CountdownWidget, TemplateBindings, TemplateWindow } from '#base/theme';
 import { configReader } from '#base/utils';
@@ -47,6 +54,17 @@ const EXTENSION_SPACING = 2;
 
 /** `ColorConverter.hexToUint`: `#rrggbb` (or without the `#`) as a number. */
 const hexToUint = (hex: string) => (parseInt(hex.replace('#', ''), 16) || 0);
+
+/** `AUTO_OPEN_CONDITION_NOT_CLAIMED` / `AUTO_OPEN_DELAY_MS`. */
+const AUTO_OPEN_CONDITION_NOT_CLAIMED = 'not_claimed';
+const AUTO_OPEN_DELAY_MS = 5000;
+
+/** `initializeAutoOpen`'s parse: the claim id of a `not_claimed:<claimId>` condition, else none. */
+const autoOpenClaimId = (condition: string) => {
+    const parts = condition.split(':');
+
+    return ((parts.length === 2) && (parts[0] === AUTO_OPEN_CONDITION_NOT_CLAIMED) && parts[1].length) ? parts[1] : '';
+};
 
 const TYPE_NORMAL = 'normal';
 const TYPE_COUNTDOWN = 'countdown';
@@ -83,7 +101,7 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     const t = useTranslation();
     const { send } = useWebSocketContext();
     const opened = useSingularNotificationStore(x => x.newFeatureNotificationsOpened.includes(featureKey));
-    const { markNewFeatureNotificationOpened, closeNewFeatureNotification } = useSingularNotificationActions();
+    const { markNewFeatureNotificationOpened, closeNewFeatureNotification, clearNewFeatureClaim } = useSingularNotificationActions();
     const { configString } = configReader(useConfigData());
     const type = configString(`notifications.new_feature.type.${featureKey}`) || TYPE_NORMAL;
     const expiry = configString(`notifications.new_feature.expiry.${featureKey}`);
@@ -94,6 +112,11 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     const countdownAnswer = answerSince(useSystemStore(x => (countdownTo ? x.hotelViewSecondsUntil[countdownTo] : undefined)), askedAt);
     const now = useSecondsClock();
     const [ hovered, setHovered ] = useState(false);
+    const autoOpenClaim = autoOpenClaimId(configString(`notifications.new_feature.auto_open_condition.${featureKey}`));
+    // Until `stopAutoOpen`.
+    const [ autoOpening, setAutoOpening ] = useState(true);
+    const autoOpenClaimed = useSingularNotificationStore(x => (autoOpenClaim ? x.newFeatureClaims[autoOpenClaim] : undefined));
+    const onHotelView = useIsLandingViewVisible();
 
     useEffect(() => {
         if (!expiry && !countdownTo) return;
@@ -112,16 +135,46 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     }, [ expired, featureKey, closeNewFeatureNotification ]);
 
     // `tryInitialize`: built once every time asked about is answered.
-    if ((expiry && !expiryAnswer) || expired || (countdownTo && !countdownAnswer)) return null;
+    const built = !((expiry && !expiryAnswer) || expired || (countdownTo && !countdownAnswer));
+
+    /** `openConfiguredLink`: the auto-open stopped, the cancel link shown, the link opened. */
+    const open = () => {
+        setAutoOpening(false);
+        openNewFeatureLink(send, featureKey);
+        markNewFeatureNotificationOpened(featureKey);
+    };
+
+    // `init` -> `initializeAutoOpen`: asked once the notification is built.
+    useEffect(() => {
+        if (!built || !autoOpenClaim) return;
+
+        clearNewFeatureClaim(autoOpenClaim);
+        send(new HasClaimedProductComposer({ claimId: autoOpenClaim }));
+    }, [ built, autoOpenClaim, send, clearNewFeatureClaim ]);
+
+    // `onHasClaimedProductResponse` (taken) / `onClaimProductResult` (0 or 1): `stopAutoOpen`.
+    useEffect(() => {
+        if (autoOpenClaimed === true) setAutoOpening(false);
+    }, [ autoOpenClaimed ]);
+
+    // `onToolbarStateChanged` / `onAutoOpenTimerComplete`: the 5 seconds run while not taken and on
+    // the hotel view, and start over when it is left.
+    const autoOpenArmed = built && autoOpening && !!autoOpenClaim && (autoOpenClaimed === false) && onHotelView;
+
+    useEffect(() => {
+        if (!autoOpenArmed) return;
+
+        const timer = setTimeout(() => open(), AUTO_OPEN_DELAY_MS);
+
+        return () => clearTimeout(timer);
+    }, [ autoOpenArmed ]);
+
+    if (!built) return null;
 
     const color = hexToUint(configString(`notifications.new_feature.color.${featureKey}`) || BG_COLOR_NORMAL);
     // `initLayout`: the open button's lightness halfway from the colour's to the top.
     const hsl = ColorConverter.rgbToHSL(color);
     const buttonColor = ColorConverter.hslToRGB((255 - Math.trunc((255 - (hsl & 0xff)) / 2)) | (hsl & 0xffff00));
-    const open = () => {
-        openNewFeatureLink(send, featureKey);
-        markNewFeatureNotificationOpened(featureKey);
-    };
     const cancel = () => closeNewFeatureNotification(featureKey);
     const hover = { onPointerOver: () => setHovered(true), onPointerOut: () => setHovered(false) };
     const linkColor = hovered ? LINK_COLOR_HIGHLIGHT : LINK_COLOR_NORMAL;

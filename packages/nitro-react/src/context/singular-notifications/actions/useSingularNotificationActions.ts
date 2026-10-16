@@ -14,6 +14,7 @@ const actions = {
     closeClubGiftNotification: state.closeClubGiftNotification,
     markNewFeatureNotificationOpened: state.markNewFeatureNotificationOpened,
     closeNewFeatureNotification: state.closeNewFeatureNotification,
+    clearNewFeatureClaim: state.clearNewFeatureClaim,
 };
 
 export const useSingularNotificationActions = () => actions;
