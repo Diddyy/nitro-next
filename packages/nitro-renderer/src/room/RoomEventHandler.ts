@@ -19,7 +19,16 @@ import { RoomEnterEffect } from './utils';
  * request the engine answers without the UI, a furni asking for another furni's icon.
  */
 export class RoomEventHandler implements IRoomEventHandler {
+    private static MAX_EVENTS_BEFORE_HANDLER = 500;
+
     private _roomObjectEventHandler: ((event: RoomObjectEvent) => void) | undefined = undefined;
+    /**
+     * What the room's objects raised before the UI first took the room's events. Flash's handler is
+     * the engine's own and is there from the start; ours is the UI's, set a render after the room
+     * exists, and a room entered with its furni already loaded builds them - and a lit toner or a
+     * group furni raises its one event - before that. Undefined once a handler has been set.
+     */
+    private _eventsBeforeHandler: RoomObjectEvent[] | undefined = [];
     private _roomCanvasMouseHandler: ((event: RoomSpriteMouseEvent, object: IRoomObject) => void) | undefined = undefined;
 
     constructor(private _room: IRoom) { }
@@ -36,7 +45,12 @@ export class RoomEventHandler implements IRoomEventHandler {
             return;
         }
 
-        if (!this._roomObjectEventHandler) return;
+        if (!this._roomObjectEventHandler) {
+            // A room nobody takes events from (a previewer) keeps only the first few.
+            if (this._eventsBeforeHandler && (this._eventsBeforeHandler.length < RoomEventHandler.MAX_EVENTS_BEFORE_HANDLER)) this._eventsBeforeHandler.push(event);
+
+            return;
+        }
 
         this._roomObjectEventHandler(event);
     }
@@ -70,6 +84,14 @@ export class RoomEventHandler implements IRoomEventHandler {
 
     public setRoomObjectEventHandler(handler: ((event: IRoomObjectEvent) => void) | undefined): void {
         this._roomObjectEventHandler = handler;
+
+        if (!handler || !this._eventsBeforeHandler) return;
+
+        const events = this._eventsBeforeHandler;
+
+        this._eventsBeforeHandler = undefined;
+
+        for (const event of events) this.handleRoomObjectEvent(event);
     }
 
     public setRoomCanvasMouseHandler(handler: ((event: IRoomSpriteMouseEvent, object: IRoomObject) => void) | undefined): void {
