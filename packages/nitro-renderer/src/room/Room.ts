@@ -174,6 +174,13 @@ export class Room implements IRoom {
     private _ownUserRoomIndex: number = -1;
 
     /**
+     * The papers told before the room object exists. Habbo sends a room's `RoomProperty`
+     * messages before its floor height map, so Flash's `RoomEngine.updateObjectRoom` keeps them in
+     * the room's `RoomData` and `initializeRoom` builds the room with them instead of the defaults.
+     */
+    private _pendingPlaneTypes: { floor?: string; wall?: string; landscape?: string } = {};
+
+    /**
      * Flash `RoomInstanceData`'s furniture and wall item queues: furniture is added as data and built
      * a few at a time by the engine's update (`createPendingFurniture`), or at once when something
      * asks for it first (`getRoomObject`). In insertion order; adding an id again moves it to the end.
@@ -282,9 +289,12 @@ export class Room implements IRoom {
     public applyRoomMap(roomMap: IRoomMapData): void {
         if (!roomMap) return;
 
-        const floorType = '111';
-        const wallType = '201';
-        const landscapeType = '1';
+        // `initializeRoom`: the papers told while there was no room yet, else the defaults.
+        const floorType = this._pendingPlaneTypes.floor || '111';
+        const wallType = this._pendingPlaneTypes.wall || '201';
+        const landscapeType = this._pendingPlaneTypes.landscape || '1';
+
+        this._pendingPlaneTypes = {};
 
         this.removeRoomObject(Room.ROOM_OBJECT_ID, RoomObjectCategoryEnum.Room);
 
@@ -1576,7 +1586,14 @@ export class Room implements IRoom {
     public updateRoomPlaneType(floorType: string | undefined, wallType: string | undefined, landscapeType: string | undefined): boolean {
         const room = this.getRoomObjectRoom();
 
-        if (!room) return false;
+        // `RoomEngine.updateObjectRoom`: no room object yet, so the room keeps them for `applyRoomMap`.
+        if (!room) {
+            if (floorType) this._pendingPlaneTypes.floor = floorType;
+            if (wallType) this._pendingPlaneTypes.wall = wallType;
+            if (landscapeType) this._pendingPlaneTypes.landscape = landscapeType;
+
+            return true;
+        }
 
         if (floorType && floorType.length) room.processUpdateMessage(new ObjectRoomUpdateMessage(ObjectRoomUpdateMessage.ROOM_FLOOR_UPDATE, floorType));
 
