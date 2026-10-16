@@ -11,12 +11,11 @@ import type { TemplateTextSize } from './templateLayout';
 
 const KNOWN_TEXT_STYLES = new Set(Object.keys(HABBO_TEXT_STYLES));
 
-/** The text style an element draws in: its `text_style`, else its window style's default. */
-export const templateTextStyle = (element: TemplateElement): TextStyleKey => {
-    const textStyle = element.vars.text_style;
+/** The style a `text_style` variable names, or `undefined` when it names none the client has. */
+export const knownTemplateTextStyle = (textStyle: unknown): TextStyleKey | undefined => (typeof textStyle === 'string' && KNOWN_TEXT_STYLES.has(textStyle) ? textStyle as TextStyleKey : undefined);
 
-    return typeof textStyle === 'string' && KNOWN_TEXT_STYLES.has(textStyle) ? textStyle as TextStyleKey : themeDefaultTextStyle(element.style);
-};
+/** The text style an element draws in: its `text_style`, else its window style's default. */
+export const templateTextStyle = (element: TemplateElement): TextStyleKey => knownTemplateTextStyle(element.vars.text_style) ?? themeDefaultTextStyle(element.style);
 
 /** A text's `font_size` variable, over its style's size (`TextController.setTextFormatting`); `undefined` when it sets none. */
 export const templateFontSize = (element: TemplateElement): number | undefined => {
@@ -116,8 +115,8 @@ export const measureTemplateText = (element: TemplateElement, text: string, wrap
     const format = resolveFlashTextFormat({ style: HABBO_TEXT_STYLES[style], field: flash, face: flashFaceOverride(fontFamily), fontSize });
     const content = markup ? parseFlashTextMarkup(text, format, { resolveFace: resolveMarkupFace, styleSheet }) : text;
     const rendered = content.length ? renderFlashTextCanvas(content, format, wrapWidth === undefined ? {} : { wordWrap: true, wrapWidth: templateWrapWidth(wrapWidth) }) : null;
-    // The field's own height, not its bitmap's: `TextController` floors `TextField.height` into the window.
-    const size = rendered ? { width: rendered.width, height: rendered.fieldHeight ?? rendered.height, textWidth: rendered.textWidth, textHeight: rendered.textHeight } : undefined;
+    // The field's own size, not its bitmap's: `TextController` floors `TextField.width` and `height` into the window.
+    const size = rendered ? { width: rendered.fieldWidth ?? rendered.width, height: rendered.fieldHeight ?? rendered.height, textWidth: rendered.textWidth, textHeight: rendered.textHeight } : undefined;
 
     if (cache.size >= MAX_CACHED) cache.delete(cache.keys().next().value);
 

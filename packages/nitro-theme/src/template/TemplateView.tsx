@@ -53,7 +53,7 @@ import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
 import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, FrameSize, ThemeVariant, themeVariantOf, toCssHexColor, WindowPlacedContext } from '../utils';
 import { localizeCaption } from './localizeCaption';
-import { isMarkupTemplateText, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
+import { isMarkupTemplateText, knownTemplateTextStyle, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
 import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect, templateTextMargins, templateUsesParentGraphics } from './templateLayout';
@@ -800,8 +800,9 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     // Each window draws into a buffer of its own size (`WindowRendererItem.render`), so a field wider
     // than its window - a centred or right-aligned one, which keeps its window's width
     // (`TextController.refreshTextImage`) - is cut at the window's edges: the effects widget's
-    // centred one-line `no_effects` text. Masked only when it overflows, to keep masks few.
-    const clipped = !label && ((autoSize === 'none') || ((measureTemplateText(element, text, wordWrap ? fieldWidth : undefined, markup, binding?.styleSheet)?.width ?? 0) > fieldWidth));
+    // centred one-line `no_effects` text. Masked only when it overflows - its floored width, as the
+    // window takes it - to keep masks few.
+    const clipped = !label && ((autoSize === 'none') || (Math.floor(measureTemplateText(element, text, wordWrap ? fieldWidth : undefined, markup, binding?.styleSheet)?.width ?? 0) > fieldWidth));
     // `TextController.background`: the `TextField` fills its rect in its `backgroundColor` - the
     // window's colour (`set color`), white when it has none. A label has no field background.
     // A binding's `color` is the text's colour (`textColor` above), so it fills the field only when
@@ -1060,6 +1061,9 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         );
     }
 
+    // `ButtonController` hands a button's own `text_style` to its label, over its skin's.
+    const buttonTextStyle = knownTemplateTextStyle(element.vars.text_style);
+
     switch (element.tag) {
         // `WindowRendererItem.render`: a skinned window's bitmap is filled with its colour and the skin
         // drawn over it; with `background` set the skin keeps its own colours (`BitmapSkinRenderer`
@@ -1097,6 +1101,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         case 'button': return (
             <Button
                 variant={variant}
+                textStyle={buttonTextStyle}
                 tintColor={tintColor}
                 tooltip={tooltipOf(element, context, binding)}
                 tooltipDelay={binding?.tooltipDelay}
@@ -1111,6 +1116,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         case 'button_thick': return (
             <ButtonThick
                 variant={variant}
+                textStyle={buttonTextStyle}
                 tintColor={tintColor}
                 tooltip={tooltipOf(element, context, binding)}
                 tooltipDelay={binding?.tooltipDelay}
@@ -1124,6 +1130,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         case 'button_group_left': return (
             <ButtonGroupLeft
                 variant={variant}
+                textStyle={buttonTextStyle}
                 selected={binding?.selected}
                 tooltip={tooltipOf(element, context, binding)}
                 tooltipDelay={binding?.tooltipDelay}
@@ -1136,6 +1143,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         case 'button_group_center': return (
             <ButtonGroupCenter
                 variant={variant}
+                textStyle={buttonTextStyle}
                 selected={binding?.selected}
                 tooltip={tooltipOf(element, context, binding)}
                 tooltipDelay={binding?.tooltipDelay}
@@ -1148,6 +1156,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         case 'button_group_right': return (
             <ButtonGroupRight
                 variant={variant}
+                textStyle={buttonTextStyle}
                 selected={binding?.selected}
                 tooltip={tooltipOf(element, context, binding)}
                 tooltipDelay={binding?.tooltipDelay}
@@ -1975,7 +1984,8 @@ const BUTTON_CASCADE_KEYS: Readonly<Record<string, string>> = {
 
 /**
  * A button's window layout as the theme's variant of it carries it: the layout's size its minimum, its
- * `_BTN_TEXT` label's `margins` its padding and the label's style its text style.
+ * `_BTN_TEXT` label's `margins` its padding and the label's style its text style - unless the button sets
+ * its own `text_style`, which `ButtonController` hands to its label.
  */
 const buttonLabelOf = (element: TemplateElement): TemplateButtonLabel | undefined => {
     const variant = themeVariantOf<ButtonVariant>(BUTTON_CASCADE_KEYS[element.tag] ?? 'button', element.style ?? '0');
@@ -1988,7 +1998,7 @@ const buttonLabelOf = (element: TemplateElement): TemplateButtonLabel | undefine
     return {
         width: size(layout.minWidth),
         height: size(layout.minHeight),
-        textStyle: variant.textStyle,
+        textStyle: ((element.tag !== 'tab_button') ? knownTemplateTextStyle(element.vars.text_style) : undefined) ?? variant.textStyle,
         margins: { left: size(layout.paddingLeft), top: size(layout.paddingTop), right: size(layout.paddingRight), bottom: size(layout.paddingBottom) },
     };
 };

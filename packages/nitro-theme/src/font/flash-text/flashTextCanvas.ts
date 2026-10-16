@@ -37,6 +37,12 @@ export interface FlashTextCanvas {
     lineTops?: number[];
     /** `TextField.height` under `autoSize` - see `FlashTextBlock.fieldHeight`; absent on browser text, which has only `height`. */
     fieldHeight?: number;
+    /**
+     * `TextField.width` under `autoSize`: `textWidth` and the two gutters, unrounded (or the fixed `width`). `TextController`
+     * floors it into the window, where `width` - the bitmap, rounded up and wide enough for an italic overhang - can be a pixel more.
+     * Absent on browser text.
+     */
+    fieldWidth?: number;
     /** The `<a href>` ranges of a markup text (`parseFlashTextMarkupWithLinks`), for `flashTextLinkAtPoint`. */
     links?: FlashTextLink[];
 }
@@ -104,5 +110,5 @@ export const renderFlashTextCanvas = (content: string | readonly FlashTextRun[],
     FlashTextRenderer.unpremultiply(pixels);
     context.putImageData(new ImageData(pixels, width, height), 0, 0);
 
-    return { canvas, width, height, textWidth: block.textWidth, textHeight: block.textHeight, lineHeight: block.lineHeight, baseline: block.baseline, gutter: block.gutter, lineLayout: block.lineLayout, lineOffsets: block.lineOffsets, fieldHeight: block.fieldHeight + (height - block.height), ...(block.lineTops ? { lineTops: block.lineTops } : {}) };
+    return { canvas, width, height, textWidth: block.textWidth, textHeight: block.textHeight, lineHeight: block.lineHeight, baseline: block.baseline, gutter: block.gutter, lineLayout: block.lineLayout, lineOffsets: block.lineOffsets, fieldHeight: block.fieldHeight + (height - block.height), fieldWidth: (options.width ?? (block.textWidth + (block.gutter * 2))) + (width - block.width), ...(block.lineTops ? { lineTops: block.lineTops } : {}) };
 };
