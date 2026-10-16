@@ -1,14 +1,14 @@
 /** AS3 AchievementController.show, ensureAchievementsInitialized and the category/achievement selection log. */
-import { EventLogComposer, GetAchievementsComposer, GetBadgePointLimitsComposer } from '@nitrodevco/nitro-packets';
+import { EventLogComposer, GetAchievementsComposer } from '@nitrodevco/nitro-packets';
 
 import { achievementsStore } from '#base/context/achievements';
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
 
+/** `ensureAchievementsInitialized`: the list is asked for once, until it arrives. */
 export const requestAchievements = (send: WebSocketConnection['send']) => {
     if (!achievementsStore.getState().request()) return;
 
-    send(new GetBadgePointLimitsComposer({}));
     send(new GetAchievementsComposer({}));
 };
 

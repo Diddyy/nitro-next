@@ -1,7 +1,6 @@
 /** AS3 AchievementController packet lifecycle and achievement award presentation. */
 import { AchievementEventMessage, AchievementsEventMessage, AchievementsScoreEventMessage, EventLogComposer, HabboAchievementNotificationMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
-import { requestAchievements } from '#base/commands';
 import { achievementsStore } from '#base/context/achievements';
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
@@ -36,8 +35,9 @@ export const registerAchievementHandlers = ({ send, subscribe }: WebSocketConnec
                 systemStore.getState().hideWindow('achievements');
             }
 
+            // The list is asked for by the window (`AchievementController.show`) and the first room's
+            // camera (`ensureAchievementsInitialized`), never at login.
             userId = data.userInfo.userId;
-            requestAchievements(send);
         }),
         on(AchievementsEventMessage, (data) => {
             const fresh = systemStore.getState().config['achievements.new'];

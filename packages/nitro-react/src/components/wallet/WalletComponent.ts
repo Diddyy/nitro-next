@@ -7,9 +7,9 @@
  * While the subscription has minutes left it is asked for again every minute, so the purse counts
  * down and notices the end - `HabboInventory.setClubStatus` starting `onPurseTimer`.
  *
- * Achievement initialization requests badge point limits.
+ * The same start-up asks for the badge point limits last (`GetBadgePointLimitsComposer`).
  */
-import { GetCreditsInfoComposer, GetNftCreditsComposer, GetSilverComposer, ScrGetUserInfoComposer } from '@nitrodevco/nitro-packets';
+import { GetBadgePointLimitsComposer, GetCreditsInfoComposer, GetNftCreditsComposer, GetSilverComposer, ScrGetUserInfoComposer } from '@nitrodevco/nitro-packets';
 import { useEffect } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
@@ -25,6 +25,7 @@ export const WalletComponent = () => {
         send(new GetNftCreditsComposer({}));
         send(new GetSilverComposer({}));
         send(new ScrGetUserInfoComposer({ productName: 'habbo_club' }));
+        send(new GetBadgePointLimitsComposer({}));
     }, []);
 
     useEffect(() => {
