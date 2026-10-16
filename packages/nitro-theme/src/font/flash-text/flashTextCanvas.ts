@@ -35,6 +35,8 @@ export interface FlashTextCanvas {
     lineOffsets: number[];
     /** Where each line starts when the lines are not all `lineHeight` tall - see `FlashTextBlock.lineTops`. */
     lineTops?: number[];
+    /** `TextField.height` under `autoSize` - see `FlashTextBlock.fieldHeight`; absent on browser text, which has only `height`. */
+    fieldHeight?: number;
     /** The `<a href>` ranges of a markup text (`parseFlashTextMarkupWithLinks`), for `flashTextLinkAtPoint`. */
     links?: FlashTextLink[];
 }
@@ -102,5 +104,5 @@ export const renderFlashTextCanvas = (content: string | readonly FlashTextRun[],
     FlashTextRenderer.unpremultiply(pixels);
     context.putImageData(new ImageData(pixels, width, height), 0, 0);
 
-    return { canvas, width, height, textWidth: block.textWidth, textHeight: block.textHeight, lineHeight: block.lineHeight, baseline: block.baseline, gutter: block.gutter, lineLayout: block.lineLayout, lineOffsets: block.lineOffsets, ...(block.lineTops ? { lineTops: block.lineTops } : {}) };
+    return { canvas, width, height, textWidth: block.textWidth, textHeight: block.textHeight, lineHeight: block.lineHeight, baseline: block.baseline, gutter: block.gutter, lineLayout: block.lineLayout, lineOffsets: block.lineOffsets, fieldHeight: block.fieldHeight + (height - block.height), ...(block.lineTops ? { lineTops: block.lineTops } : {}) };
 };

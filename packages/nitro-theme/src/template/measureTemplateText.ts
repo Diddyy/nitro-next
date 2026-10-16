@@ -116,7 +116,8 @@ export const measureTemplateText = (element: TemplateElement, text: string, wrap
     const format = resolveFlashTextFormat({ style: HABBO_TEXT_STYLES[style], field: flash, face: flashFaceOverride(fontFamily), fontSize });
     const content = markup ? parseFlashTextMarkup(text, format, { resolveFace: resolveMarkupFace, styleSheet }) : text;
     const rendered = content.length ? renderFlashTextCanvas(content, format, wrapWidth === undefined ? {} : { wordWrap: true, wrapWidth: templateWrapWidth(wrapWidth) }) : null;
-    const size = rendered ? { width: rendered.width, height: rendered.height, textWidth: rendered.textWidth, textHeight: rendered.textHeight } : undefined;
+    // The field's own height, not its bitmap's: `TextController` floors `TextField.height` into the window.
+    const size = rendered ? { width: rendered.width, height: rendered.fieldHeight ?? rendered.height, textWidth: rendered.textWidth, textHeight: rendered.textHeight } : undefined;
 
     if (cache.size >= MAX_CACHED) cache.delete(cache.keys().next().value);
 

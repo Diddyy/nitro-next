@@ -4,6 +4,7 @@
  * height into one premultiplied RGBA bitmap - with the 2px gutter a Flash `TextField` has on
  * every side.
  */
+import { roundTiesEven } from './air32/mathColor';
 import { NativeRenderResult } from './air32/types';
 import { FlashTextFormat, normalizeFlashTextFormat } from './flashTextFormat';
 import { FlashTextMetrics, FlashTextRenderer } from './FlashTextRenderer';
@@ -83,6 +84,11 @@ export interface FlashTextBlock {
      * as its own runs make it. Absent when every line is `lineHeight` tall.
      */
     lineTops?: number[];
+    /**
+     * `TextField.height` with `autoSize` on: the lines' exact heights and the gutters, a fraction of a pixel
+     * more than `height` or less. `TextController` floors it into the window - see `flashTextFieldHeight`.
+     */
+    fieldHeight: number;
 }
 
 /** The width of `text` in `format`, or `null` when it cannot be measured. */
@@ -324,6 +330,36 @@ const mixedLineTops = (lines: FlashTextLine[], block: FlashTextMetrics, leading:
     return tops;
 };
 
+const toTwips = (value: number): number => Math.round(value * 20);
+
+/**
+ * Where each line of one height starts below the first, drawn. `TextField` stacks its lines by their
+ * exact heights, in twips, and puts every baseline on a whole pixel as it does the first line's
+ * (`FlashTextRenderer.metrics`): Ubuntu 12's 13.4 px lines are 14, 13, 13, 14 and 13 px apart, not 13 each.
+ * Advanced anti-aliasing only - the rounding read from the official client; normal keeps whole-pixel advances.
+ */
+const uniformLineTops = (count: number, metrics: FlashTextMetrics, leading: number, format: FlashTextFormat, lineHeight: number): number[] => {
+    if (format.antiAliasType !== 'advanced') return Array.from({ length: count }, (_, index) => index * lineHeight);
+
+    const firstTwips = toTwips(FLASH_TEXT_GUTTER + metrics.ascent);
+    const advanceTwips = toTwips(metrics.ascent + metrics.descent + leading);
+    const first = roundTiesEven(firstTwips / 20);
+
+    return Array.from({ length: count }, (_, index) => roundTiesEven((firstTwips + (index * advanceTwips)) / 20) - first);
+};
+
+/**
+ * `TextField.height` under `autoSize`: the lines' exact heights in twips - ascent and descent, with the
+ * leading between them - and the gutter above and below. `TextController` floors it into the window, so
+ * one 13.4 px Ubuntu 12 line makes a 17 px window and two make 30, the heights the layouts were saved
+ * with; the bitmap, sized for whole-pixel lines, is 18 and 31 tall.
+ */
+const flashTextFieldHeight = (lines: readonly { ascent: number; descent: number }[], leading: number): number => {
+    const twips = lines.reduce((total, line) => total + toTwips(line.ascent + line.descent), 0) + (Math.max(0, lines.length - 1) * toTwips(leading));
+
+    return (twips / 20) + (FLASH_TEXT_GUTTER * 2);
+};
+
 /** `renderTextBlock` for lines of different heights (`mixedLineTops`): every run of a line on the line's baseline. */
 const renderMixedLines = (lines: FlashTextLine[], renderedLines: RenderedLine[], lineTops: number[], { width, metrics, leading, align, lineHeight, textWidth, gutter }: { width: number; metrics: FlashTextMetrics; leading: number; align: 'left' | 'center' | 'right'; lineHeight: number; textWidth: number; gutter: number }): FlashTextBlock => {
     const all = lines.map(line => lineMetricsOf(line, metrics));
@@ -345,7 +381,7 @@ const renderMixedLines = (lines: FlashTextLine[], renderedLines: RenderedLine[],
         }
     });
 
-    return { width, height, pixels, lines: lines.map(line => line.text), lineHeight, baseline: metrics.baseline + gutter, textWidth, textHeight, gutter, lineLayout: lines, lineOffsets, lineTops };
+    return { width, height, pixels, lines: lines.map(line => line.text), lineHeight, baseline: metrics.baseline + gutter, textWidth, textHeight, gutter, lineLayout: lines, lineOffsets, lineTops, fieldHeight: flashTextFieldHeight(all, leading) };
 };
 
 /**
@@ -397,7 +433,13 @@ export const renderTextBlock = (content: string | readonly FlashTextRun[], forma
 
     if (lineTops) return renderMixedLines(lines, renderedLines, lineTops, { width, metrics, leading, align, lineHeight, textWidth, gutter });
 
-    const height = Math.max(1, (lines.length - 1) * lineHeight + Math.ceil(metrics.ascent + metrics.descent) + gutter * 2);
+    const tops = (options.lineHeight === undefined)
+        ? uniformLineTops(lines.length, metrics, leading, runs[0]?.format ?? blockFormat, lineHeight)
+        : lines.map((_, index) => index * lineHeight);
+    const lastTop = tops[tops.length - 1] ?? 0;
+    // As tall as whole-pixel lines made it, or more when the exact ones run past that and the last line's ink would be cut.
+    const height = Math.max(1, (lines.length - 1) * lineHeight + Math.ceil(metrics.ascent + metrics.descent) + gutter * 2, lastTop + Math.ceil(metrics.ascent + metrics.descent) + gutter);
+    const fieldHeight = (options.lineHeight === undefined) ? flashTextFieldHeight(lines.map(() => metrics), leading) : ((lines.length - 1) * lineHeight + metrics.ascent + metrics.descent + gutter * 2);
     const pixels = new Uint8ClampedArray(width * height * 4);
     const innerWidth = width - gutter * 2;
     const lineOffsets = lines.map(line => ((align === 'center') ? Math.floor((innerWidth - line.width) / 2) : (align === 'right') ? Math.floor(innerWidth - line.width) : 0));
@@ -406,9 +448,11 @@ export const renderTextBlock = (content: string | readonly FlashTextRun[], forma
         const lineX = lineOffsets[lineIndex];
 
         for (const { segment, rendered } of renderedSegments) {
-            if (rendered.retainedPixels) blitPremultiplied(rendered.retainedPixels, rendered.width, rendered.height, pixels, width, height, lineX + Math.round(segment.x), lineIndex * lineHeight);
+            if (rendered.retainedPixels) blitPremultiplied(rendered.retainedPixels, rendered.width, rendered.height, pixels, width, height, lineX + Math.round(segment.x), tops[lineIndex]);
         }
     });
 
-    return { width, height, pixels, lines: lines.map(line => line.text), lineHeight, baseline: metrics.baseline + gutter, textWidth, textHeight: lines.length * lineHeight, gutter, lineLayout: lines, lineOffsets };
+    const spread = tops.some((top, index) => top !== index * lineHeight);
+
+    return { width, height, pixels, lines: lines.map(line => line.text), lineHeight, baseline: metrics.baseline + gutter, textWidth, textHeight: lines.length * lineHeight, gutter, lineLayout: lines, lineOffsets, fieldHeight, ...(spread ? { lineTops: tops } : {}) };
 };
