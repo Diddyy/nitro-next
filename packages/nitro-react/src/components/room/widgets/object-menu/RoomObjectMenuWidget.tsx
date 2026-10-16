@@ -77,10 +77,19 @@ export const RoomObjectMenuWidget = () => {
     }
 
     // `RWRBFOCME_OPEN`: the server asked for a bot's menu, so it opens as if the bot were clicked.
-    if ((forcedBotMenuId !== undefined) && (forcedBotObjectId !== undefined)) {
-        setForcedBotMenuId(undefined);
+    // The request is cleared from the room store in an effect: clearing it while rendering updates every other component reading the store.
+    const [ takenForcedBotMenuId, setTakenForcedBotMenuId ] = useState<number | undefined>(undefined);
+
+    if ((forcedBotMenuId !== undefined) && (forcedBotObjectId !== undefined) && (forcedBotMenuId !== takenForcedBotMenuId)) {
+        setTakenForcedBotMenuId(forcedBotMenuId);
         setSelectedData({ objectId: forcedBotObjectId, category: RoomObjectCategoryEnum.Unit });
     }
+
+    if ((forcedBotMenuId === undefined) && (takenForcedBotMenuId !== undefined)) setTakenForcedBotMenuId(undefined);
+
+    useEffect(() => {
+        if ((forcedBotMenuId !== undefined) && (forcedBotMenuId === takenForcedBotMenuId)) setForcedBotMenuId(undefined);
+    }, [ forcedBotMenuId, takenForcedBotMenuId, setForcedBotMenuId ]);
 
     const onClose = () => setSelectedData(undefined);
 
