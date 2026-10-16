@@ -6,6 +6,7 @@ import {
     MouseEventType, RoomObjectMouseEvent, RoomObjectTileMouseEvent, RoomObjectVariableEnum, RoomObjectWallMouseEvent, Vector3d } from '@nitrodevco/nitro-api';
 import { Point } from 'pixi.js';
 
+import { GetTickerTime } from '../../../utils';
 import {
     ObjectRoomColorUpdateMessage,
     ObjectRoomFloorHoleUpdateMessage,
@@ -186,13 +187,15 @@ export class RoomLogic extends ObjectLogicBase {
         /*
          * `updateColors`: only a background colour lands on the planes. A colour for the whole
          * room fades them back to white - `RoomDesktop`'s colorizer tints the whole view with it
-         * instead (`REE_ROOM_COLOR`).
+         * instead (`REE_ROOM_COLOR`). The fade starts at the clock's time (`getTimer()`), not the last
+         * update's: a dimmer lit before the room's first update would otherwise start a fade at 0,
+         * which is "no fade", and the planes stayed white.
          */
         if (message instanceof ObjectRoomColorUpdateMessage) {
             this.object.model.setValue(RoomObjectVariableEnum.RoomColorizeBgOnly, message.backgroundOnly);
 
-            if (message.backgroundOnly) this._colorTransitioner.startTransition(message.color, message.light, this.time);
-            else this._colorTransitioner.startTransition(0xFFFFFF, 0xFF, this.time);
+            if (message.backgroundOnly) this._colorTransitioner.startTransition(message.color, message.light, GetTickerTime());
+            else this._colorTransitioner.startTransition(0xFFFFFF, 0xFF, GetTickerTime());
 
             return;
         }
