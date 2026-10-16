@@ -1,5 +1,5 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
-import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomAdErrorEventMessage, RoomEntryInfoMessage, RoomEventCancelMessage, RoomEventMessage, RoomFilterSettingsMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, ShowEnforceRoomCategoryDialogMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorLiftedRoomsMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomAdErrorEventMessage, RoomEntryInfoMessage, RoomEventCancelMessage, RoomEventMessage, RoomFilterSettingsMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, ShowEnforceRoomCategoryDialogMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { forwardToRoom, goToHomeRoom, goToRoom } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -108,6 +108,8 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
             hideWindow('navigator_room_create');
             hideWindow('navigator');
         }),
+
+        on(NavigatorLiftedRoomsMessage, data => navigator().setLiftedRooms(data.liftedRooms)),
 
         on(NavigatorCollapsedCategoriesMessage, (data) => {
             navigator().setCollapsedCategories((data as { collapsedCategories?: string[] }).collapsedCategories ?? []);
