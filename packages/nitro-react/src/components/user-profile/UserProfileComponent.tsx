@@ -14,6 +14,7 @@ export const UserProfileComponent = () => {
     const profile = useProfileStore(state => state.profile);
     const badges = useProfileStore(state => state.badges);
     const relationships = useProfileStore(state => state.relationships);
+    const selectedGroupId = useProfileStore(state => state.selectedGroupId);
     const getLocalizationValue = useTranslation();
     const { hideWindow, showAlert, showConfirm, showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
@@ -21,7 +22,7 @@ export const UserProfileComponent = () => {
     const isBlocked = useUserStore(state => state.blockedUserIds.includes(profile?.userId ?? -1));
     // `refreshHeader`: the add friend button follows the friend list, so one made a friend elsewhere loses it.
     const canAskForFriend = useUserStore(state => !!profile && canBeAskedForAFriend(profile.userId, state));
-    const { markFriendRequestSent } = useProfileActions();
+    const { markFriendRequestSent, selectGroup } = useProfileActions();
     const activityDisplayEnabled = useConfigValue<boolean>('activity.point.display.enabled') === true;
     const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
 
@@ -33,6 +34,7 @@ export const UserProfileComponent = () => {
             profile={profile}
             badges={badges}
             relationships={relationships}
+            selectedGroupId={selectedGroupId}
             ownUserId={ownUserId}
             activityDisplayEnabled={activityDisplayEnabled}
             relationshipsEnabled={relationshipsEnabled}
@@ -48,9 +50,16 @@ export const UserProfileComponent = () => {
             onChangeBadges={() => showWindow('inventory', { tab: 'badges' })}
             onBadgeCount={() => openClientLink(send, 'badge_leaderboard/0/-1/0')}
             onOpenProfile={openUserId => openProfile(send, openUserId)}
-            onSelectGroup={groupId => selectProfileGroup(send, groupId)}
+            // `onSelectGroup`: the group chosen, its details asked for.
+            onSelectGroup={(groupId) => {
+                selectGroup(groupId);
+                selectProfileGroup(send, groupId);
+            }}
             onShowGroups={() => showGroupBases(send)}
-            onFavouriteGroup={(groupId, favourite) => toggleProfileFavouriteGroup(send, groupId, favourite)}
+            onFavouriteGroup={(groupId, favourite) => {
+                selectGroup(groupId);
+                toggleProfileFavouriteGroup(send, groupId, favourite);
+            }}
             // `onRelationshipLink` -> `addFriendsAlertCallback`: the alert, then the friend list, the profile closed.
             onFindFriends={() => showAlert(getLocalizationValue('extendedprofile.add.friends.alert.title'), getLocalizationValue('extendedprofile.add.friends.alert.body'), {
                 onClose: () => {
