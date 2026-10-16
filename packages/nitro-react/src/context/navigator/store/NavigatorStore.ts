@@ -1,4 +1,4 @@
-import { IEventCategory, IFlatCategory, IRoomEventData, IRoomInfo, ISavedSearch, ISearchResultList, ISearchResultSet, ITopLevelContext } from '@nitrodevco/nitro-packets';
+import { IEventCategory, IFlatCategory, ILiftedRoomData, IRoomEventData, IRoomInfo, ISavedSearch, ISearchResultList, ISearchResultSet, ITopLevelContext } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 /**
@@ -148,6 +148,12 @@ type State = {
     preferences: { windowX: number; windowY: number; windowWidth: number; windowHeight: number; resultsMode: number } | undefined;
     flatCategories: IFlatCategory[];
     eventCategories: IEventCategory[];
+    /*
+     * NavigatorLiftedRoomsMessage - HabboNewNavigator.onLiftedRooms keeps them in its
+     * LiftDataContainer. Nothing shows them: the build never creates its LiftView
+     * (NavigatorView.as:191 is an empty if), and Habbo sends an empty list.
+     */
+    liftedRooms: ILiftedRoomData[];
     searchResult: ISearchResultSet | undefined;
     collapsedCategories: string[];
     expandedCategories: string[];
@@ -219,6 +225,7 @@ type Actions = {
     setPreferences: (preferences: { windowX: number; windowY: number; windowWidth: number; windowHeight: number; resultsMode: number }) => void;
     setFlatCategories: (flatCategories: IFlatCategory[]) => void;
     setEventCategories: (eventCategories: IEventCategory[]) => void;
+    setLiftedRooms: (liftedRooms: ILiftedRoomData[]) => void;
     setSearchResult: (searchResult: ISearchResultSet | undefined) => void;
     setCollapsedCategories: (collapsedCategories: string[]) => void;
     toggleCollapsedCategory: (code: string) => void;
@@ -283,6 +290,7 @@ const initialState: State = {
     preferences: undefined,
     flatCategories: [],
     eventCategories: [],
+    liftedRooms: [],
     searchResult: undefined,
     collapsedCategories: [],
     expandedCategories: [],
@@ -332,6 +340,7 @@ export const createNavigatorStore = () => createStore<NavigatorStore>()((set, ge
     setPreferences: preferences => set({ preferences }),
     setFlatCategories: flatCategories => set({ flatCategories }),
     setEventCategories: eventCategories => set({ eventCategories }),
+    setLiftedRooms: liftedRooms => set({ liftedRooms }),
     /*
      * `NavigatorView.onSearchResults`: the tab of the search the results answer is selected, when
      * there is one, and the filter they carry is put back in the drop menu and the field - so a
