@@ -17,13 +17,14 @@
  *   `RoomEngine.getRenderRoomMessage`); `button_editor` hides the viewfinder and opens the photo lab on the
  *   slot's photo (`editPhoto`), which sends that data with its effects.
  * - Built with the first room (`CameraWidget`'s constructor; RoomUI reuses the widget after that), it asks for the camera's prices once
- *   (`sendInitCameraMessage`: `RequestCameraConfigurationMessageComposer` with the `CAMERA` perk).
+ *   (`sendInitCameraMessage`: `RequestCameraConfigurationMessageComposer` with the `CAMERA` perk), then the achievements
+ *   (`ensureAchievementsInitialized`).
  */
 import { RequestCameraConfigurationComposer } from '@nitrodevco/nitro-packets';
 import { Rectangle } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
-import { CameraPhoto, collectRoomPhotoData, editPhoto, isRoomUnfit, openClientLink, snapshotRoomCanvas } from '#base/commands';
+import { CameraPhoto, collectRoomPhotoData, editPhoto, isRoomUnfit, openClientLink, requestAchievements, snapshotRoomCanvas } from '#base/commands';
 import { GetRoomBackgroundColor } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
@@ -130,6 +131,11 @@ export const CameraView = () => {
         configurationRequested = true;
         send(new RequestCameraConfigurationComposer({}));
     }, [ room, cameraAllowed, send ]);
+
+    // Then, with or without the perk, `questEngine.ensureAchievementsInitialized()`: the photo lab reads the camera achievement's level.
+    useEffect(() => {
+        if (room) requestAchievements(send);
+    }, [ room, send ]);
 
     // `update`, every 100 ms while shown and not in preview mode: the room under the image.
     useEffect(() => {
