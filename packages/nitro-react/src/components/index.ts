@@ -5,6 +5,7 @@ export * from './AvatarFaceImage';
 export * from './AvatarImage';
 export * from './catalog';
 export * from './collectibles';
+export * from './cursed-dragon-adoption';
 export * from './earnings';
 export * from './groups';
 export * from './habbicons';

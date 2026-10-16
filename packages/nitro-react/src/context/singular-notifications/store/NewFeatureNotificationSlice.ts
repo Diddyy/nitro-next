@@ -10,6 +10,12 @@ type State = {
     newFeatureNotifications: string[];
     /** The keys whose notification was opened (`eventHandler`'s `cancel_link_region.visible = true`). */
     newFeatureNotificationsOpened: string[];
+    /**
+     * `initializeAutoOpen`'s claims (`auto_open_condition.<key>` `not_claimed:<claimId>`) by id:
+     * whether the server answered it taken (`HasClaimedProductResponse.hasClaimed`, or a
+     * `ClaimProductResult` of 0 or 1), absent until it answers.
+     */
+    newFeatureClaims: Record<string, boolean>;
 };
 
 type Actions = {
@@ -19,11 +25,16 @@ type Actions = {
     markNewFeatureNotificationOpened: (key: string) => void;
     /** `NewFeatureNotification.dispose`: `detachExtension("new_feature_" + key)`. */
     closeNewFeatureNotification: (key: string) => void;
+    /** `onHasClaimedProductResponse` / `onClaimProductResult`: an answer for a claim. */
+    setNewFeatureClaim: (claimId: string, claimed: boolean) => void;
+    /** Forgets a claim's answer before it is asked again. */
+    clearNewFeatureClaim: (claimId: string) => void;
 };
 
 export const NewFeatureNotificationSliceInitialState: State = {
     newFeatureNotifications: [],
     newFeatureNotificationsOpened: [],
+    newFeatureClaims: {},
 };
 
 export type NewFeatureNotificationSlice = State & Actions;
@@ -33,4 +44,12 @@ export const createNewFeatureNotificationSlice: StateCreator<NewFeatureNotificat
     showNewFeatureNotification: key => set(x => (x.newFeatureNotifications.includes(key) ? x : { newFeatureNotifications: [ ...x.newFeatureNotifications, key ] })),
     markNewFeatureNotificationOpened: key => set(x => (x.newFeatureNotificationsOpened.includes(key) ? x : { newFeatureNotificationsOpened: [ ...x.newFeatureNotificationsOpened, key ] })),
     closeNewFeatureNotification: key => set(x => ({ newFeatureNotifications: x.newFeatureNotifications.filter(entry => entry !== key) })),
+    setNewFeatureClaim: (claimId, claimed) => set(x => ({ newFeatureClaims: { ...x.newFeatureClaims, [claimId]: claimed } })),
+    clearNewFeatureClaim: claimId => set((x) => {
+        if (!(claimId in x.newFeatureClaims)) return x;
+
+        const { [claimId]: _, ...rest } = x.newFeatureClaims;
+
+        return { newFeatureClaims: rest };
+    }),
 });

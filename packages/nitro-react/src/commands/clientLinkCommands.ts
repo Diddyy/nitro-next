@@ -15,6 +15,7 @@ import { getWiredHasReadPermission, getWiredMenuEnabled, WIRED_MENU_TAB_INSPECTI
 import { openAchievements } from './achievementCommands';
 import { openBadgeLeaderboardLink } from './badgeLeaderboardCommands';
 import { startTakingPhoto } from './cameraCommands';
+import { openCursedDragonAdoption } from './cursedDragonAdoptionCommands';
 import { openDailyTasksLink } from './dailyTasksCommands';
 import { showEarnings } from './earningsCommands';
 import { findNewFriends } from './friendBarCommands';
@@ -230,6 +231,16 @@ export const openClientLink = (send: Send, link: string) => {
             // The club centre's own mount (`CatalogClubCenterComponent`) runs `showClubCenter`.
             if ((parts.length >= 3) && (parts[1] === 'open') && (parts[2] === 'hccenter')) {
                 showWindow('club_center');
+
+                return;
+            }
+
+            break;
+        }
+        // `CursedDragonAdoptionController.linkReceived`: cursed_dragon_adoption/open.
+        case 'cursed_dragon_adoption': {
+            if ((parts.length >= 2) && (parts[1] === 'open')) {
+                openCursedDragonAdoption(send);
 
                 return;
             }

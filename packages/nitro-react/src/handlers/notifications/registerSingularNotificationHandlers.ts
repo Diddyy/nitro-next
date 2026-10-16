@@ -12,7 +12,7 @@
  * - `onAccountSafetyLockStatusChanged`: status 1 (unlocked) takes it down. The session's own
  *   `accountSafetyLocked` flag is `SessionDataManager`'s, set in `registerUserInfoHandlers`.
  */
-import { AccountSafetyLockStatusChangeMessage, ClubGiftNotificationEventMessage, EpicPopupMessage, MOTDNotificationEventMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { AccountSafetyLockStatusChangeMessage, ClaimProductResultMessage, ClubGiftNotificationEventMessage, EpicPopupMessage, HasClaimedProductResponseMessage, MOTDNotificationEventMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { singularNotificationStore } from '#base/context/singular-notifications';
@@ -25,6 +25,12 @@ export const registerSingularNotificationHandlers = ({ subscribe }: WebSocketCon
     const { showMotdNotification, showClubGiftNotification, showSafetyLockedNotification, hideSafetyLockedNotification, showEpicPopup } = singularNotificationStore.getState();
 
     return subscribeAll(subscribe, [
+        // `NewFeatureNotification.onHasClaimedProductResponse` / `onClaimProductResult`: the answers
+        // its auto-open waits on - taken stops it, not taken arms it, and a claim of 0 or 1 stops it.
+        on(HasClaimedProductResponseMessage, data => singularNotificationStore.getState().setNewFeatureClaim(data.claimId, data.hasClaimed)),
+        on(ClaimProductResultMessage, (data) => {
+            if ((data.result === 0) || (data.result === 1)) singularNotificationStore.getState().setNewFeatureClaim(data.claimId, true);
+        }),
         on(MOTDNotificationEventMessage, (data) => {
             if (!data.messages.length) return;
 
