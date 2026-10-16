@@ -14,7 +14,9 @@
  * nothing offsets it) - reaching past the widget's 90x130, as Flash's display object does.
  *
  * `dataReceived` decides what they say. The status title is `hccenter.status.<resolveClubStatus>`;
- * with no kickback data yet the gift block is hidden and nothing else is filled. Then the status
+ * until the data is in nothing else is filled, and the gift block keeps its place, as the constructor
+ * centres the window at that size (only a `dataReceived` without data hides it, and `populate`
+ * runs on data). Then the status
  * info fills `%timeleft%` (the purse's minutes until expiration), `%joindate%` and
  * `%streakduration%` (`FriendlyTime.getShortFriendlyTime`), the badge is the club badge
  * `BadgeResolver` found, the payday time is `hccenter.special.time.soon` under an hour, and the
@@ -154,7 +156,6 @@ export const CatalogClubCenterView = () => {
 
                     // `dataReceived`.
                     status_title: { caption: `\${hccenter.status.${status}}` },
-                    gift_content: { visible: !!kickback },
                     status_info: { caption: statusInfo },
                     hc_badge: { asset: (kickback && badgeId) ? badgeUrl.replace('%badgename%', badgeId) : '' },
                     btn_gift: { caption: giftsWaiting ? '${hccenter.btn.gifts.redeem}' : '${hccenter.btn.gifts.view}', onPointerTap: () => openClubCatalogPage('club_gifts') },

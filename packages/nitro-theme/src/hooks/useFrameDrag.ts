@@ -129,9 +129,11 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
 
         if (!rect.width || !rect.height) return;
 
+        // `WindowController.center`: `parent.width / 2 - width / 2` into the int `x`, so a frame wider or
+        // taller than the desktop hangs over both edges (a frame is not `bound_to_parent_rect`).
         const next = {
-            dx: Math.max(0, Math.floor((window.innerWidth - rect.width) / 2)),
-            dy: Math.max(0, Math.floor((window.innerHeight - rect.height) / 2)),
+            dx: Math.trunc((window.innerWidth - rect.width) / 2),
+            dy: Math.trunc((window.innerHeight - rect.height) / 2),
         };
 
         const last = latestOffsetRef.current;
