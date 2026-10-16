@@ -103,23 +103,28 @@ export const MainView = () => {
             {/* Window context 1's desktop: every window is drawn and ordered in here. */}
             <WindowLayer>
                 <ViewErrorBoundaries>
+                    {/*
+                      * `extension_grid`: a 192 wide itemlist at `desktop.width - 192 - 3`. The list only stacks its windows,
+                      * each keeps its own x - 0 for every docked window (the 195 wide ones overhang on the right), -38 for the
+                      * purse. The box takes the purse's 38 in as padding, so the purse stays inside the box it is hit-tested in.
+                      */}
                     <Box layout={{
                         position: 'absolute',
                         top: 0,
                         right: 0,
-                        // The purse's right edge at `desktop.width - 3` (the extension grid's own inset).
                         marginRight: 3,
                         width: 230,
+                        paddingLeft: 38,
                         flex: 1,
                         flexDirection: 'column',
-                        alignItems: 'flex-end',
+                        alignItems: 'flex-start',
                     }}
                     >
                         <PurseTemplateView />
                         <Box layout={{
                             flex: 1,
                             flexDirection: 'column',
-                            alignItems: 'flex-end',
+                            alignItems: 'flex-start',
                             width: 192,
                         }}
                         >
