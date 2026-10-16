@@ -4,8 +4,9 @@
  * badges not worn in `inactive_items` (200 a page, `item_grid_pages`), the worn ones in
  * `active_items`, and the selected one in `descriptionArea`.
  *
- * - Opening the page asks for the list unless one has arrived or has already been asked for
- *   (`HabboInventory.getAllMyBadgeIds`).
+ * - Opening the page asks for the list unless a whole one has arrived
+ *   (`HabboInventory.checkCategoryInitilization('badges')`) - badges received one by one before
+ *   then do not count.
  * - `updateAll` -> `forceSelection`: with nothing selected the first badge not worn is, else the
  *   first worn one.
  * - A thumb: the `badge` widget showing the badge, and the look `set isSelected` last put on it -
@@ -29,7 +30,7 @@
 import { getBadgeRarityLabelKey, getBadgeRarityWhiteBackgroundTagColor } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';
 
-import { requestInventoryBadgesIfEmpty, toggleInventoryBadgeWearing } from '#base/commands';
+import { checkInventoryBadgesInitialization, toggleInventoryBadgeWearing } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import {
     getInventoryBadgeRarityIds, getInventoryBadges, INVENTORY_BADGE_FILTER_ACHIEVEMENTS, INVENTORY_BADGE_FILTER_ALL, INVENTORY_BADGE_FILTER_NORMAL, INVENTORY_BADGE_RARITY_ALL, INVENTORY_BADGE_RARITY_COMMON, INVENTORY_BADGES_ACTIVE,
@@ -75,7 +76,7 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
     const firstBadgeCode = (inactiveBadges[0] ?? activeBadges[0])?.code;
 
     useEffect(() => {
-        if (active) requestInventoryBadgesIfEmpty(send);
+        if (active) checkInventoryBadgesInitialization(send);
     }, [ active, send ]);
 
     useEffect(() => {

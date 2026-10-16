@@ -3,7 +3,7 @@
  * `BadgesView` draws: every badge the user owns with the id, owner count and rarity the server
  * sends, which of them are worn (`BADGES_ACTIVE`, at most five), which one is selected, and
  * whether the list has been asked for (set by `getAllMyBadgeIds` the first time it finds the model
- * empty).
+ * empty) and whether it has arrived (`HabboInventory.setInventoryCategoryInit('badges')`).
  *
  * - `initBadges` is `BadgesModel.initBadges` with a complete `BadgesMessage` (the fragments joined
  *   by `registerInventoryBadgesHandlers`): the list is replaced, one entry per code - the parser
@@ -78,6 +78,11 @@ type State = {
     selectedBadgeCode: string;
     /** `GetBadges` has been sent by `getAllMyBadgeIds`. */
     badgesRequested: boolean;
+    /**
+     * `HabboInventory.isInventoryCategoryInit('badges')`: a whole `BadgesMessage` has arrived. A
+     * badge added on its own before then (`BadgeReceived`, an achievement level) does not count.
+     */
+    badgesInitialized: boolean;
     /** The badges whose thumb window has been made (`Badge.window`). */
     badgeThumbWindows: string[];
     /** The look `set isSelected` last put on a made thumb; none while it keeps the layout's. */
@@ -108,6 +113,7 @@ export const InventoryBadgesSliceInitialState: State = {
     wornBadgeCodes: [],
     selectedBadgeCode: '',
     badgesRequested: false,
+    badgesInitialized: false,
     badgeThumbWindows: [],
     badgeThumbLooks: {},
 };
@@ -135,7 +141,7 @@ export const createInventoryBadgesSlice: StateCreator<InventoryBadgesSlice & Inv
         }
 
         // `resetBadges` clears the worn list and the selection with the badges themselves - and their windows.
-        set({ badges, badgeCodes: badges.map(badge => badge.code), wornBadgeCodes: [], selectedBadgeCode: '', badgeThumbWindows: [], badgeThumbLooks: {} });
+        set({ badges, badgeCodes: badges.map(badge => badge.code), wornBadgeCodes: [], selectedBadgeCode: '', badgesInitialized: true, badgeThumbWindows: [], badgeThumbLooks: {} });
     },
     updateBadge: (incoming, wear) => set((x) => {
         const index = x.badges.findIndex(held => held.code === incoming.badgeCode);
