@@ -66,6 +66,13 @@ const autoOpenClaimId = (condition: string) => {
     return ((parts.length === 2) && (parts[0] === AUTO_OPEN_CONDITION_NOT_CLAIMED) && parts[1].length) ? parts[1] : '';
 };
 
+/**
+ * `static_bitmap.assetUri`: the window context's `ResourceManager.retrieveAsset` takes the window
+ * manager's own asset of that name (`reward_track_small_icon`), else loads the name as a url
+ * (`${image.library.url}album1584/...png`, `https://...`).
+ */
+const imageAsset = (image: string) => ((!image || image.includes('/') || image.includes('$')) ? image : `habbo-window-manager-com-${image}`);
+
 const TYPE_NORMAL = 'normal';
 const TYPE_COUNTDOWN = 'countdown';
 
@@ -181,7 +188,7 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
 
     const bindings: TemplateBindings = {
         desc: { caption: t(`notifications.new_feature.${featureKey}.desc`, `notifications.new_feature.${featureKey}.desc`), setCaptionAfterBuild: true },
-        static_bitmap: { asset: configString(`notifications.new_feature.image.${featureKey}`) },
+        static_bitmap: { asset: imageAsset(configString(`notifications.new_feature.image.${featureKey}`)) },
         cancel_link_region: { visible: (type === TYPE_NORMAL) || (type === TYPE_COUNTDOWN) || opened, onPointerTap: cancel },
     };
 
