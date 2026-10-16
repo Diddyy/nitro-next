@@ -21,9 +21,10 @@ import { NavigatorRoomEventInfoView } from '#base/views/navigator/NavigatorRoomE
  * (`roomEventViewCtrl.show`); the extend link opens the room ads page to extend the event
  * (`openCatalogRoomAdsExtendPage`, with the entered room's name).
  *
- * Flash docks it after the quest timer and tracker (`attachExtension("room_event_info", ..., -1,
- * ["next_quest_timer", "quest_tracker"])`), which the client does not have; the group banner goes
- * before it, so it is under the banner, 2 below what is over it (`extension_grid`'s spacing).
+ * Flash docks it in front of the quest timer and tracker (`attachExtension("room_event_info", ..., -1,
+ * ["next_quest_timer", "quest_tracker"])`: `ExtensionView.resolveIndex` inserts it before the first
+ * of those windows docked), so it is over the quest trackers; the group banner goes before it, so
+ * it is under the banner, 2 below what is over it (`extension_grid`'s spacing).
  */
 export const NavigatorRoomEventInfoComponent = () => {
     const roomEventData = useNavigatorStore(x => x.roomEventData);
