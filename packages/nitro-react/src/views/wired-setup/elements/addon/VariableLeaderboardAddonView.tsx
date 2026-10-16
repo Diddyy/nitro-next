@@ -123,6 +123,7 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
                 onChange={label => setForm(current => ({ ...current, columns: changeLeaderboardColumn(current.columns, index, { label }) }))}
                 maxCharacters={VARIABLE_LEADERBOARD_MAX_COLUMN_LABEL_LENGTH}
                 placeholder="${wiredfurni.params.variable_leaderboard.column_name}"
+                showCharacterLimit={false}
             />
             <WiredDropdown
                 options={VARIABLE_LEADERBOARD_WIDTH_LABELS.map((label, id) => ({ id, label }))}

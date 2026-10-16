@@ -5,7 +5,8 @@
  * - `width` is the field's own width; the frame adds what the template puts around the field.
  *   Without one (Flash's -1) the input fills - it has a static width only with one.
  * - `maxCharacters` (default 1000) caps the text when above 0, and near the cap illumina shows
- *   the "n/max" bubble over the input (`shouldShowWarn`, see `showsCharLimitWarning`).
+ *   the "n/max" bubble over the input (`shouldShowWarn`, see `showsCharLimitWarning`) - unless
+ *   `showCharacterLimit` is off (`TextInputPreset.as` 144, the leaderboard's column names).
  * - `placeholder` shows at half blend, cut with "...", while the text is empty.
  * - `restrict` is the Flash `TextField.restrict` string (`applyTextRestrict`).
  *
@@ -30,10 +31,12 @@ export interface WiredTextInputProps {
     editable?: boolean;
     /** `tooltip` - a literal or `${key}`. */
     tooltip?: string;
+    /** `showCharacterLimit`. Default `true`. */
+    showCharacterLimit?: boolean;
     disabled?: boolean;
 }
 
-export const WiredTextInput = ({ value, onChange, width = -1, maxCharacters = 1000, placeholder, restrict = null, editable = true, tooltip, disabled = false }: WiredTextInputProps) => (
+export const WiredTextInput = ({ value, onChange, width = -1, maxCharacters = 1000, placeholder, restrict = null, editable = true, tooltip, showCharacterLimit = true, disabled = false }: WiredTextInputProps) => (
     <WiredInputField
         value={value}
         onChange={text => onChange(applyTextRestrict(text, restrict))}
@@ -43,7 +46,7 @@ export const WiredTextInput = ({ value, onChange, width = -1, maxCharacters = 10
         placeholderMode="overflow"
         editable={editable}
         tooltip={tooltip}
-        charLimitWarning
+        charLimitWarning={showCharacterLimit}
         disabled={disabled}
     />
 );
