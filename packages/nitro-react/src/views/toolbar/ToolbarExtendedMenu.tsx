@@ -7,13 +7,17 @@
  * (`onSubMenuItemClick`), whatever the item does. A region's unseen count is the window manager's
  * counter, 5 in from the region's right and top (`getUnseenItemCounter`).
  *
+ * A region the code adds (`ProgMenuController.onRewardTracks`: one per reward track) is a clone of a
+ * layout's region with its own name and caption, put in the menu's list before its last window
+ * (`menu_items.addChildAt(clone, numChildren - 1)`, the spacer); the window grows with the list.
+ *
  * The window sits at x 3 with its bottom on the bottom bar's top (`reposition`). It is built in window
  * context 2 (`buildFromXML(xml, 2)`), whose desktop is over context 1's windows - the chat input
  * among them, which the menu covers where they meet.
  */
 import { useState } from 'react';
 
-import { Box, TemplateBindings, TemplateWindow } from '#base/theme';
+import { Box, findTemplateChild, TemplateBinding, TemplateBindings, TemplateElement, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
 
 /** `BottomBarLeft`'s window height: the menu's bottom sits on its top. */
@@ -36,24 +40,32 @@ export interface ToolbarExtendedMenuItem {
     visible: boolean;
     action?: () => void;
     unseenCount?: number;
+    /** A clone the code adds: the layout's region it is cloned from, whose `<from>_icon_*` bitmaps it keeps. */
+    from?: string;
+    /** The clone's `field_text`. */
+    caption?: string;
 }
 
 interface ToolbarExtendedMenuProps {
     templateId: string;
     items: ToolbarExtendedMenuItem[];
+    /** The list the clones are added to (`menu_items`). */
+    listName?: string;
     /** The window's height as its code sets it (`setGuideToolVisibility`). */
     height?: number;
     onClose: () => void;
 }
 
-export const ToolbarExtendedMenu = ({ templateId, items, height, onClose }: ToolbarExtendedMenuProps) => {
+export const ToolbarExtendedMenu = ({ templateId, items, listName, height, onClose }: ToolbarExtendedMenuProps) => {
     const [ hovered, setHovered ] = useState<string | undefined>(undefined);
-    const bindings: TemplateBindings = {};
+    const template = useTemplate(templateId);
+    const clones = items.filter(item => item.from !== undefined);
+    const list = (listName !== undefined) && template ? findTemplateChild(template.elements, listName) : undefined;
 
-    for (const { name, visible, action, unseenCount } of items) {
+    /** A region's bindings, found in the region itself (`''`): its own, or a clone's. */
+    const regionBindings = ({ name, visible, action, unseenCount, from = name, caption }: ToolbarExtendedMenuItem): TemplateBindings => {
         const over = (hovered === name);
-
-        bindings[name] = {
+        const region: TemplateBinding = {
             visible,
             onPointerOver: () => setHovered(name),
             onPointerOut: () => setHovered(current => ((current === name) ? undefined : current)),
@@ -70,9 +82,39 @@ export const ToolbarExtendedMenu = ({ templateId, items, height, onClose }: Tool
                     )
                 : undefined,
         };
-        bindings[`${name}_icon_color`] = { visible: over };
-        bindings[`${name}_icon_grey`] = { visible: !over };
-        bindings[`${name}/field_text`] = { color: over ? TEXT_COLOR_HOVER : TEXT_COLOR };
+
+        return {
+            '': region,
+            [`${from}_icon_color`]: { visible: over },
+            [`${from}_icon_grey`]: { visible: !over },
+            field_text: { color: over ? TEXT_COLOR_HOVER : TEXT_COLOR, ...(caption !== undefined && { caption }) },
+        };
+    };
+    const bindings: TemplateBindings = {};
+
+    if (list && clones.length) {
+        // The list's windows as clones, in its order, the code's before its last one.
+        const own = items.filter(item => item.from === undefined);
+        const item = (element: TemplateElement, index: number): TemplateItem => {
+            const region = own.find(item => item.name === element.name);
+
+            return { key: element.name ?? `@${index}`, from: element, bindings: region && regionBindings(region) };
+        };
+        const children = list.children.map(item);
+
+        bindings[listName as string] = {
+            items: [
+                ...children.slice(0, -1),
+                ...clones.map(clone => ({ key: clone.name, from: clone.from as string, bindings: regionBindings(clone) })),
+                ...children.slice(-1),
+            ],
+        };
+    } else {
+        for (const item of items) {
+            if (item.from !== undefined) continue;
+
+            for (const [ key, binding ] of Object.entries(regionBindings(item))) bindings[key ? `${item.name}/${key}` : item.name] = binding;
+        }
     }
 
     return (
