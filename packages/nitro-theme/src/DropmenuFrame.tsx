@@ -18,7 +18,8 @@ import { VariantCascadeProvider } from './cascade';
 import { useThemeVariant } from './hooks';
 import { BackgroundLayer, SpriteLayer } from './layer';
 import { ScrollArea } from './ScrollArea';
-import { DROPMENU_EXPANDED_MARGIN, DROPMENU_EXPANDED_PADDING_ITEM_HEIGHT, ThemeProps, ThemeVariant, ThemeWithStatesVariant, wrapTextChildren } from './utils';
+import { DROPMENU_EXPANDED_MARGIN, DROPMENU_EXPANDED_PADDING_ITEM_HEIGHT, expandSides, ThemeProps, ThemeVariant, ThemeWithStatesVariant, wrapTextChildren } from './utils';
+import { themeVariantOf } from './utils/themeRegistry';
 
 /** Where the skin layout puts `_DROPLIST_ITEMLIST`: its left/top/right inset in the frame. */
 export interface DropmenuListInset {
@@ -38,6 +39,18 @@ export type DropmenuVariant = (ThemeVariant | ThemeWithStatesVariant) & {
 
 const DEFAULT_ARROW_LAYOUT: BoxLayout = { right: 5, top: 2, width: 16, height: 16 };
 
+/**
+ * Where the closed menu's caption starts: the skin layout's `_DROPLIST_TITLETEXT` x - 10 in
+ * `habbo_window_layout_dropmenu` / `_black` / `illumina_light_dropmenu`, 6 in `_dropmenu_3`. In every
+ * one that is where the open list's text starts too: `_DROPLIST_ITEMLIST`'s x (`listInset`) plus the
+ * item's `_BTN_TEXT` left margin (4 in each `dropmenu_item*` layout), so the caption lines up with it.
+ */
+const titleInsetLeft = (variant: string, inset: DropmenuListInset | undefined): number => {
+    const item = themeVariantOf<ThemeWithStatesVariant>('dropmenuItem', variant);
+
+    return (inset?.left ?? 0) + Number(expandSides(item?.layout)?.paddingLeft ?? 0);
+};
+
 export interface DropmenuFrameProps extends ThemeProps<DropmenuVariant> {
     /** Draw the open list: the children are the items, stacked inside the frame. */
     expanded?: boolean;
@@ -51,7 +64,7 @@ export const DropmenuFrame: ForwardRefExoticComponent<DropmenuFrameProps & RefAt
         variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, visible, zIndex, expanded = false, listHeight, children,
         onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
-        const { ownCascade, config, state, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<DropmenuVariant>({
+        const { resolvedVariant, ownCascade, config, state, handlers, resolvedLayer, resolvedOverlay, resolvedTint, resolvedTextStyle, resolvedTextColor } = useThemeVariant<DropmenuVariant>({
             cascadeKey: 'dropmenu', variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor,
             onPointerOver, onPointerOut, onPointerDown, onPointerUp, onPointerUpOutside, onPointerTap,
         });
@@ -68,7 +81,7 @@ export const DropmenuFrame: ForwardRefExoticComponent<DropmenuFrameProps & RefAt
                     paddingRight: inset.right,
                     paddingBottom: (DROPMENU_EXPANDED_MARGIN - inset.top) + (scrolls ? 0 : DROPMENU_EXPANDED_PADDING_ITEM_HEIGHT),
                 }
-            : { paddingLeft: 2, paddingRight: 2 };
+            : { paddingLeft: titleInsetLeft(resolvedVariant, inset), paddingRight: 2 };
         const content = wrapTextChildren(children, { textStyle: resolvedTextStyle, textColor: resolvedTextColor });
 
         return (

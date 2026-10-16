@@ -47,7 +47,7 @@ const MENU_SIZE_KEYS = new Set([ 'width', 'height', 'minWidth', 'minHeight', 'ma
 
 const splitMenuLayout = (layout: BoxLayout | undefined): { box: BoxLayout; frame: BoxLayout } => {
     const box: Record<string, unknown> = { flexShrink: 0, flexDirection: 'row' };
-    const frame: Record<string, unknown> = { flexGrow: 1, flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingRight: ARROW_SPACE };
+    const frame: Record<string, unknown> = { flexGrow: 1, flexDirection: 'row', alignItems: 'center', paddingRight: ARROW_SPACE };
 
     // The shorthands first, so a caller's `padding` clears the arrow's space instead of losing to it.
     for (const [ key, value ] of Object.entries(expandSides(layout) ?? {})) {
