@@ -800,8 +800,9 @@ const textOf = (element: TemplateElement, rect: TemplateRect, context: Context, 
     // Each window draws into a buffer of its own size (`WindowRendererItem.render`), so a field wider
     // than its window - a centred or right-aligned one, which keeps its window's width
     // (`TextController.refreshTextImage`) - is cut at the window's edges: the effects widget's
-    // centred one-line `no_effects` text. Masked only when it overflows, to keep masks few.
-    const clipped = !label && ((autoSize === 'none') || ((measureTemplateText(element, text, wordWrap ? fieldWidth : undefined, markup, binding?.styleSheet)?.width ?? 0) > fieldWidth));
+    // centred one-line `no_effects` text. Masked only when it overflows - its floored width, as the
+    // window takes it - to keep masks few.
+    const clipped = !label && ((autoSize === 'none') || (Math.floor(measureTemplateText(element, text, wordWrap ? fieldWidth : undefined, markup, binding?.styleSheet)?.width ?? 0) > fieldWidth));
     // `TextController.background`: the `TextField` fills its rect in its `backgroundColor` - the
     // window's colour (`set color`), white when it has none. A label has no field background.
     // A binding's `color` is the text's colour (`textColor` above), so it fills the field only when
