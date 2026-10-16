@@ -170,6 +170,8 @@ export class LayoutWindow {
     /** The parent's rect a relative scale measures its change from (`updateScaleRelativeToParent`'s, obfuscated in the AS3). */
     public parentRect: TemplateRect = { x: 0, y: 0, width: 0, height: 0 };
     public param: number;
+    /** `_hCenterRem2`: the pixel an `on_resize_align_center` resize could not split, owed to the next one. */
+    public hCenterRemainder = 0;
     public parent: LayoutWindow | undefined;
     public children: LayoutWindow[] = [];
     public visible = true;
@@ -311,19 +313,34 @@ export class LayoutWindow {
         height = Math.min(this.maxHeight, Math.max(this.minHeight, height));
         width = Math.min(this.maxWidth, Math.max(this.minWidth, width));
 
+        const xChanged = x !== this.x;
+        const widthChanged = width !== this.width;
         let moved = x !== this.x || y !== this.y;
-        let resized = width !== this.width || height !== this.height;
+        let resized = widthChanged || height !== this.height;
+        let remainder = this.hCenterRemainder;
+        let centred = false;
+        let centredX = x;
 
         if (resized && !moved) {
             const alignH = this.param & P.alignCenter;
             const alignV = this.param & P.alignMiddle;
 
-            if (alignH === P.alignCenter) {
-                x = int(x - ((width - this.width) / 2));
-                moved = true;
-            } else if (alignH === P.alignRight) {
-                x = x - (width - this.width);
-                moved = true;
+            if (widthChanged) {
+                if (alignH === P.alignCenter) {
+                    // The odd pixel a centring leaves is kept for the next one, so a shrink and a
+                    // grow back put the window where it was.
+                    const delta = remainder - (width - this.width);
+                    const half = int(delta / 2);
+
+                    x += half;
+                    remainder = delta - (half * 2);
+                    centred = true;
+                    centredX = x;
+                    moved = x !== this.x || y !== this.y;
+                } else if (alignH === P.alignRight) {
+                    x = x - (width - this.width);
+                    moved = true;
+                }
             }
 
             if (alignV === P.alignMiddle) {
@@ -351,6 +368,9 @@ export class LayoutWindow {
         }
 
         if (!moved && !resized) return;
+
+        if (xChanged) this.hCenterRemainder = 0;
+        else if (widthChanged && resized) this.hCenterRemainder = (centred && (!moved || x === centredX)) ? remainder : 0;
 
         if (moved) {
             this.previous = this.rect;
