@@ -36,8 +36,11 @@ export const PurseTemplateView = () => {
 
     return (
         <>
-            {/* `ExtensionView.refreshItemWindow` lifts the grid 5 pixels while the purse is in it; its `spacing` is 2. */}
-            <Box layout={{ position: 'relative', marginTop: -5, marginBottom: 2, flexShrink: 0 }}>
+            {/*
+              * `ExtensionView.refreshItemWindow` lifts the grid 5 pixels while the purse is in it; its `spacing` is 2.
+              * `purse.xml` puts the 230 wide purse at x -38 of the 192 wide grid, so it ends at the grid's right edge.
+              */}
+            <Box layout={{ position: 'relative', marginTop: -5, marginBottom: 2, marginLeft: -38, flexShrink: 0 }}>
                 <TemplateWindow
                     id="habbo-toolbar-com/purse_xml"
                     bindings={{
