@@ -22,7 +22,7 @@ import { Template, TemplateBindings, TemplateElement, TemplateWindows } from '@n
 import { ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { onCatalogPageLink } from '#base/commands';
-import { CatalogPage, CatalogWidgetEnum, CatalogWidgetEventEnum, CatalogWidgetId, getCatalogPageLinks, getImageElementName, getTextElementName, useCatalogStore } from '#base/context/catalog';
+import { CatalogPage, CatalogWidgetEnum, CatalogWidgetId, getCatalogPageLinks, getImageElementName, getTextElementName, useCatalogStore } from '#base/context/catalog';
 import { useConfigValue } from '#base/context/system';
 import { findTemplateChild, TemplateWindow, useTemplateLibrary } from '#base/theme';
 
@@ -163,10 +163,7 @@ const CatalogPageLayout = ({ page, templateId, template, templates, height }: Ca
     const removed = removedPaths ? removedPaths.split('\n').map(path => `${path}/`) : [];
 
     // Children's effects run first: every widget has mounted and subscribed by now.
-    useEffect(() => {
-        page.dispatchWidgetEvent({ type: CatalogWidgetEventEnum.WIDGETS_INITIALIZED });
-        page.selectOffer((page.selectedOfferId > -1) ? page.selectedOfferId : page.initialOfferId);
-    }, [ page ]);
+    useEffect(() => page.initializeWidgets(), [ page ]);
 
     const widgets: ReactNode[] = containers.map((container) => {
         const Widget = removed.some(prefix => container.path.startsWith(prefix)) ? undefined : CATALOG_WIDGET_VIEWS[container.id];

@@ -103,6 +103,21 @@ export class CatalogPage implements IActivePage {
         }
     }
 
+    /**
+     * The built page's close: `WIDGETS_INITIALIZED` (`CatalogPage.initializeWidgets`), then the offer
+     * `CatalogViewer.showCatalogPage` selects - the one the page was opened for, or on reopening the
+     * one last selected. A widget's own pick on `WIDGETS_INITIALIZED` (the badge display's first offer,
+     * `UserBadgeSelectorCatalogWidget.onWidgetsInitialized`) only tells the widgets: no grid item
+     * activates, so it is not an offer to select again.
+     */
+    public initializeWidgets(): void {
+        const lastSelectedOfferId = this._selectedOfferId;
+
+        this.dispatchWidgetEvent({ type: CatalogWidgetEventEnum.WIDGETS_INITIALIZED });
+        this._selectedOfferId = lastSelectedOfferId;
+        this.selectOffer((lastSelectedOfferId > -1) ? lastSelectedOfferId : this.initialOfferId);
+    }
+
     public dispatchWidgetEvent(event: AnyCatalogWidgetEvent): boolean {
         return this.events.dispatchEvent(event);
     }
