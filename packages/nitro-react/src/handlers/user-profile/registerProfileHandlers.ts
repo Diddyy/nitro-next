@@ -23,10 +23,11 @@ export const registerProfileHandlers = ({ send, subscribe }: WebSocketConnection
             setProfile(data);
             systemStore.getState().showWindow('user_profile', { userId: data.userId });
 
-            // `ExtendedProfileWindowCtrl.refresh`: both answers are scoped to the visible profile.
-            send(new GetSelectedBadgesComposer({ userId: data.userId }));
-            send(new GetRelationshipStatusInfoComposer({ userId: data.userId }));
+            // `ExtendedProfileWindowCtrl.onProfile`: the first group's details, then `refresh` asks for
+            // the relationships and the badges, both scoped to the visible profile.
             if (data.guilds.length) requestGroupDetails(send, data.guilds[0].groupId);
+            send(new GetRelationshipStatusInfoComposer({ userId: data.userId }));
+            send(new GetSelectedBadgesComposer({ userId: data.userId }));
         }),
 
         on(ExtendedProfileChangedMessage, (data) => {
