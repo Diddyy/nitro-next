@@ -37,7 +37,6 @@ answer yet.
 | Campaign calendar | The advent calendar and its doors, and the seasonal daily offer that shares it. | `Campaign`, `Catalog` |
 | New user experience | The gift offer and the tutorial script. The new user flow - look, name and starter room (`OnBoardingHcFlow`) - is ported (`views/onboarding`); the room types, their pictures (`new.user.flow.room.image.url`) and the dice's looks (`new.user.flow.figures.male` / `.female`) are configuration - see Turbo's `docs/onboarding.md`. | `Nux` |
 | Room competitions | The room competition window (`RoomCompetitionController`) and voting. The hotel view's competition elements ask whether the user has entered, submit a room and forward to competition rooms, and its prizes and hall of fame widgets are drawn. | `Competition`, `Navigator` |
-| NFT wardrobe | Silver (`GetSilverComposer`). Saved NFT outfits, their selection and the avatar editor's `nfts` tab are ported. | `Nft` |
 | Name change | The avatar editor's `avatar_name_change` (`AvatarEditorNameChangeView`, behind `premium.name.change.enabled`). Its layouts (`avatar_editor_name_change`, `avatar_editor_name_change_item`) are only in the AS3's embedded assets: Habbo's JavaScript client dropped them, so the `habbo-avatar-editor-com` template bundle built from its library has neither. In Flash the window only checks a name - `select_name_button` has no handler. The own avatar menu's name change window (`NameChangeView`) is ported (`commands/nameChangeCommands.ts`). | `Avatar` |
 
 ## Gaps inside ported features
