@@ -56,6 +56,11 @@ type State = {
     avatarEffectType: number;
     /** `HabboAvatarEditor.§_-91a§`: an effect was picked since the last save, so the save wears it. */
     avatarEffectPicked: boolean;
+    /**
+     * `HabboAvatarEditor.init` ran for the main editor: it is only hidden on close
+     * (`HabboAvatarEditorManager.close` case 0), so its requests go once a session.
+     */
+    initialised: boolean;
 };
 
 type Actions = {
@@ -86,6 +91,7 @@ type Actions = {
     pickAvatarEffectType: (avatarEffectType: number) => void;
     /** `saveCurrentSelection`: the pick is worn, so the next save leaves effects alone. */
     clearAvatarEffectPicked: () => void;
+    setInitialised: () => void;
 };
 
 const initialState: State = {
@@ -119,6 +125,7 @@ const initialState: State = {
     nftFallbackGender: '',
     avatarEffectType: -1,
     avatarEffectPicked: false,
+    initialised: false,
 };
 
 export type AvatarEditorStore = State & Actions & {
@@ -196,6 +203,7 @@ export const createAvatarEditorStore = () => createStore<AvatarEditorStore>()((s
     setAvatarEffectType: avatarEffectType => set({ avatarEffectType }),
     pickAvatarEffectType: avatarEffectType => set({ avatarEffectType, avatarEffectPicked: true }),
     clearAvatarEffectPicked: () => set({ avatarEffectPicked: false }),
+    setInitialised: () => set({ initialised: true }),
     setWardrobeSlot: (index, outfit) => set((state) => {
         const wardrobe = [ ...state.wardrobe ];
 

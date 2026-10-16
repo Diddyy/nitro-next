@@ -50,7 +50,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { closeAvatarEditorEffect, hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
-import { DEFAULT_WARDROBE_SLOTS, normalizeGender, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
+import { avatarEditorStore, DEFAULT_WARDROBE_SLOTS, normalizeGender, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useOwnClubLevel, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
@@ -243,7 +243,7 @@ export const AvatarEditor = () => {
     const avatarEffectType = useAvatarEditorStore(x => x.avatarEffectType);
     const figureSetIds = useAvatarEditorStore(x => x.figureSetIds);
     const activeSetType = activeSubType[activeCategory];
-    const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setSelectedNftOutfitId, setNftOutfit, setNftSelection } = useAvatarEditorActions();
+    const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setSelectedNftOutfitId, setNftOutfit, setNftSelection, setInitialised } = useAvatarEditorActions();
     const nftOutfits = useAvatarEditorStore(x => x.nftOutfits);
     const hotLooks = useAvatarEditorStore(x => x.hotLooks);
     const selectedNftOutfitId = useAvatarEditorStore(x => x.selectedNftOutfitId);
@@ -421,14 +421,23 @@ export const AvatarEditor = () => {
         loadFigure(ownFigure || DEFAULT_FIGURES[ownGender] || '', ownGender, true);
     }, [ ownFigure, ownGender, !!clothingChange ]);
 
-    // `HabboAvatarEditor.init`'s `sendGetSelectedNftWardrobeOutfitMessage` and
-    // `NftAvatarsModel.requestNftAvatars`, as the editor's categories are made.
+    // `HabboAvatarEditor.init`, in its order: `sendGetSelectedNftWardrobeOutfitMessage`, the
+    // `WardrobeModel`'s `getWardrobe`, then the categories as they are made - `HotLooksModel.requestHotLooks`
+    // (`MAXIMUM_HOT_LOOKS`) and `NftAvatarsModel.requestNftAvatars`. The main editor is only hidden on
+    // close, so once a session; the clothing change editor is disposed on close (`HabboAvatarEditorManager.close`)
+    // and opens on torso and legs only, so every opening and without hot looks.
     useEffect(() => {
+        if (!clothingChange) {
+            if (avatarEditorStore.getState().initialised) return;
+
+            setInitialised();
+        }
+
         send(new GetSelectedNftWardrobeOutfitComposer({}));
+        send(new GetWardrobeComposer({}));
+        if (!clothingChange) send(new GetHotLooksComposer({ amount: HOT_LOOKS_AMOUNT }));
         send(new GetUserNftWardrobeComposer({}));
-        // `HotLooksModel.requestHotLooks`, as its category is made: `MAXIMUM_HOT_LOOKS`.
-        send(new GetHotLooksComposer({ amount: HOT_LOOKS_AMOUNT }));
-    }, []);
+    }, [ !!clothingChange ]);
 
     /** `NftAvatarsModel.selectNftAvatar`: an outfit with a look is put on, remembered for the save and named. */
     const selectNftOutfit = (outfit: INftWardrobeItem) => {
@@ -495,11 +504,6 @@ export const AvatarEditor = () => {
             loadNftFigure();
         }
     };
-
-    // The wardrobe is asked for once; the store keeps it across openings.
-    useEffect(() => {
-        if (!wardrobe.length) send(new GetWardrobeComposer({}));
-    }, [ wardrobe.length ]);
 
     const categories = CATEGORIES.filter(({ category }) => {
         if (category === AvatarEditorCategory.Misc) return miscEnabled;
