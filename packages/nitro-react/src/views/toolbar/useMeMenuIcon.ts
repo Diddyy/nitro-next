@@ -7,13 +7,18 @@
  * own, which is what the template's bitmap is bound to.
  *
  * There is one me menu icon, as `MeMenuNewIconLoader` keeps one bitmap (`§_-K2a§`): a new head
- * replaces the picture, and the old one is let go.
+ * replaces the picture, and the old one is let go - once the toolbar shows the new one. Destroyed
+ * while the toolbar still drew it, its source stayed in the UI stage's batch and the next rebuild
+ * of that batch threw (`[BindGroup] the resource bound as 'textureSource2' was destroyed`), which
+ * stopped the ticker: the black screen of changing outfits in the avatar editor.
  */
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { GetAssetManager, GetRenderer } from '@nitrodevco/nitro-renderer';
 import { Container, Graphics, RenderTexture, Sprite, Texture } from 'pixi.js';
+import { useEffect, useMemo } from 'react';
 
 import { useAvatarImageTexture } from '#base/theme';
+import { destroyOwnedTexture } from '#base/utils';
 
 /** `focusUserFace(image, "full", 3, 1)`: direction 3's face window. */
 const FACE_DIRECTION = 3;
@@ -24,21 +29,14 @@ const FACE_SIZE = 50;
 const CIRCLE_RADIUS = 20;
 
 let serial = 0;
-let current: { render: object; name: string; picture: RenderTexture } | undefined;
 
-/**
- * The picture for a head, drawn once per render of it - the render's snapshot, not its texture,
- * which the avatar renderer may draw a finished figure into after its placeholder - and the one
- * before it let go.
- */
-const pictureOf = (render: object, head: Texture): string => {
-    if (current?.render === render) return current.name;
+interface MeMenuPicture {
+    name: string;
+    picture: RenderTexture;
+}
 
-    if (current) {
-        GetAssetManager().removeTexture(current.name);
-        current.picture.destroy(true);
-    }
-
+/** The picture for a head, registered under a name of its own. */
+const drawPicture = (head: Texture): MeMenuPicture => {
     const container = new Container();
     const face = new Sprite(head);
     const circle = new Graphics().circle(FACE_SIZE / 2, FACE_SIZE / 2, CIRCLE_RADIUS).fill(0xffffff);
@@ -55,14 +53,26 @@ const pictureOf = (render: object, head: Texture): string => {
     const name = `toolbar_me_menu_icon_${++serial}`;
 
     GetAssetManager().setTexture(name, picture);
-    current = { render, name, picture };
 
-    return name;
+    return { name, picture };
 };
 
-/** The registered name of the me menu picture, once the head is drawn. */
+/**
+ * The registered name of the me menu picture, once the head is drawn. It is drawn once per render
+ * of the head - the render's snapshot, not its texture, which the avatar renderer may draw a
+ * finished figure into after its placeholder - and the one before it is let go after the toolbar
+ * has been committed with the new name, so no sprite draws it any more.
+ */
 export const useMeMenuIcon = (figure: string | undefined, gender: AvatarGenderType): string | undefined => {
     const render = useAvatarImageTexture(figure, gender, { headOnly: true, direction: FACE_DIRECTION });
+    const icon = useMemo(() => (render.texture ? drawPicture(render.texture) : undefined), [ render ]);
 
-    return render.texture ? pictureOf(render, render.texture) : undefined;
+    useEffect(() => () => {
+        if (!icon) return;
+
+        GetAssetManager().removeTexture(icon.name);
+        destroyOwnedTexture(icon.picture);
+    }, [ icon ]);
+
+    return icon?.name;
 };
