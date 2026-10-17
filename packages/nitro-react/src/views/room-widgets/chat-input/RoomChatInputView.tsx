@@ -1,35 +1,27 @@
-import { NoobnessLevelEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
-import { openClientLink, openHabbiconHub, requestChatCommandSuggestions, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, sayChat, sendChatTyping, setChatFontSizeMode, setPreferredChatStyle, shoutChat, triggerHabbicon, whisperChat, withSelectedAvatarName } from '#base/commands';
+import { openClientLink, openHabbiconHub, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, sayChat, sendChatTyping, setChatFontSizeMode, setPreferredChatStyle, shoutChat, triggerHabbicon, whisperChat, withSelectedAvatarName } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { HabbiconsStore, useHabbiconsStore } from '#base/context/habbicons';
-import { useHintActions } from '#base/context/hints';
 import { getUnseenItemCount, UnseenItemCategory, useInventoryStore } from '#base/context/inventory';
-import { useOwnControllerLevel, useRoom, useRoomIsSpectating, useRoomStore } from '#base/context/room';
-import { useConfigActions, useConfigBoolean, useConfigValue, useFriendBarWidth, useToolbarAreaWidth, useTranslation } from '#base/context/system';
-import { ClientGates, useClientGate, useOwnHasClub, useOwnIsAmbassador, useRoomToolsCollapsed, useUserStore } from '#base/context/user';
-import { useChatInputContentRequest, useChatStyles, useHintTarget, useViewportSize } from '#base/hooks';
+import { useRoom, useRoomIsSpectating, useRoomStore } from '#base/context/room';
+import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
+import { ClientGates, useClientGate, useOwnHasClub, useOwnIsAmbassador, useUserStore } from '#base/context/user';
+import { useChatInputContentRequest, useChatStyles } from '#base/hooks';
 import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useLatest, useTemplate } from '#base/theme';
-import { completeChatCommand, findInvalidArguments, IChatCommandCompletion, mergeChatCommands, NO_CHAT_COMMAND_COMPLETION } from '#base/utils';
-import { roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
 
 import { ChatCommandSuggestionsView } from './ChatCommandSuggestionsView';
-import { chatInputClientCommands } from './chatInputClientCommands';
 import { ChatStyleSelectorView } from './ChatStyleSelectorView';
 import { HabbiconSelectorView } from './HabbiconSelectorView';
+import { useChatFloodCountdown } from './useChatFloodCountdown';
+import { useChatInputCompletion } from './useChatInputCompletion';
+import { useChatInputPlacement } from './useChatInputPlacement';
+import { useChatNuxReminder } from './useChatNuxReminder';
 
 /** `createWindow`'s `chatinput_window_new`; `bubblecont` is the bar it places. */
 const CHAT_INPUT_TEMPLATE = 'habbo-room-ui-com/chatinput_window_new';
-/** `RoomChatInputView.updatePosition` - the gap kept from whatever sits left of the chat bar. */
-const LEFT_MARGIN = 12;
-/** The room the centred bar must leave the toolbar's icons on top of its own margin - `updatePosition`'s `+ 100`. */
-const TOOLBAR_CLEARANCE = 100;
-/** `bubblecont.y`: `height - 104` in the toolbar, `height - 160` above it. */
-const BUBBLECONT_FROM_BOTTOM_IN_TOOLBAR = 104;
-const BUBBLECONT_FROM_BOTTOM_ABOVE_TOOLBAR = 160;
 /** The Flash `chat_input` field: Ubuntu 17, 100 characters. */
 const MAX_CHARS = 100;
 /** `_typingTimer` / `_idleTimer` - typing is announced after a second of it, withdrawn after ten idle. */
@@ -37,19 +29,10 @@ const TYPING_DELAY_MS = 1000;
 const IDLE_DELAY_MS = 10000;
 /** No style picked in this session yet - send whatever the account preference says (`ChatStyleSelector._Str_22824`). */
 const NO_STYLE_SELECTED = -1;
-/** How long typing pauses before the server is asked what to offer (`chat.commands.v2`). */
-const SUGGEST_DELAY_MS = 120;
-/** An argument the server would refuse: the red of the field's own flood warning (`block_text`). */
-const INVALID_ARGUMENT_COLOR = '#ff0000';
 /** `startHelpButtonHideTimer`: the help button goes this long after the pointer leaves the field and the button. */
 const HELP_BUTTON_HIDE_DELAY_MS = 400;
 /** `CHAT_HELP_INTERNAL_CLIENT_LINK`. */
 const CHAT_HELP_LINK = 'habbopages/chat/commands';
-/** `getInteger("nux.noob.chat.reminder.delay", 240)`: seconds before a new user who has not typed is reminded. */
-const NUX_CHAT_REMINDER_DELAY_SECONDS = 240;
-/** `highlightChatInput`'s `Timer(500)`, and the ticks it runs before the reminder is over. */
-const NUX_CHAT_REMINDER_TICK_MS = 500;
-const NUX_CHAT_REMINDER_TICKS = 10;
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -133,14 +116,11 @@ export const RoomChatInputView = () => {
     // `RoomUI` creates `RWE_CHAT_INPUT_WIDGET` only for a session that is not spectating.
     const isSpectating = useRoomIsSpectating();
     const { send } = useWebSocketContext();
-    const floodBlockSeconds = useRoomStore(x => x.floodBlockSeconds);
-    const floodBlockStamp = useRoomStore(x => x.floodBlockStamp);
     const allStyles = useChatStyles();
     const preferredChatStyle = useUserStore(x => x.preferredChatStyle);
     const chatSizePreference = useUserStore(x => x.chatSizePreference);
     const hasClub = useOwnHasClub();
     const isStaff = useClientGate(ClientGates.StaffChatStyles);
-    const mayUseWired = useClientGate(ClientGates.WiredMenu);
     const isAmbassador = useOwnIsAmbassador();
     const nftChatStyles = useUserStore(x => x.nftChatStyles);
     const purchasableChatStyles = useUserStore(x => x.purchasableChatStyles);
@@ -153,15 +133,6 @@ export const RoomChatInputView = () => {
     const hasSetIcon = useHabbiconsStore(x => !!x.outlinedCollectionIcons[setIconCollectionId]);
     const setIconAsset = hasSetIcon ? `habbicon_collection_icon_outlined_${setIconCollectionId}` : undefined;
     const disabledStyles = useConfigValue<string>('disabled.custom.chat.styles') ?? '';
-    const chatCommands = useUserStore(x => x.chatCommands);
-    const chatCommandSuggestions = useUserStore(x => x.chatCommandSuggestions);
-    const controllerLevel = useOwnControllerLevel();
-    const usersByRoomObjectId = useRoomStore(x => x.usersByRoomObjectId);
-    // The bar starts where the room tools end, as `RoomToolsWidget.getWidgetAreaWidth` told it to.
-    const roomToolsCollapsed = useRoomToolsCollapsed();
-    const { width: viewportWidth, height: viewportHeight } = useViewportSize();
-    const toolbarAreaWidth = useToolbarAreaWidth();
-    const friendBarWidth = useFriendBarWidth();
     const template = useTemplate(CHAT_INPUT_TEMPLATE);
     const layout = useMemo(() => (template ? readLayout(template) : undefined), [ template ]);
 
@@ -170,15 +141,10 @@ export const RoomChatInputView = () => {
     const [ replacementCursor, setReplacementCursor ] = useState<number | null>(null);
     const [ selectionRequestId, setSelectionRequestId ] = useState(0);
     const [ focused, setFocused ] = useState(false);
-    const [ floodRemaining, setFloodRemaining ] = useState(0);
+    const floodRemaining = useChatFloodCountdown();
     // Where the `styles` button is on screen while its menu is open (the menu floats above it), or null while it is shut.
     const [ stylesAnchor, setStylesAnchor ] = useState<GlobalRect | null>(null);
     const [ selectedStyleId, setSelectedStyleId ] = useState(NO_STYLE_SELECTED);
-    const [ highlightIndex, setHighlightIndex ] = useState(0);
-    // The suggestions shown last, so the highlight goes back to the top when they change.
-    const [ highlightFor, setHighlightFor ] = useState('');
-    // The line the command list was put away on (Escape, a click elsewhere); it stays away until the line changes.
-    const [ suggestionsDismissedFor, setSuggestionsDismissedFor ] = useState<string | null>(null);
 
     const isTypingRef = useRef(false);
     const typingStartedSentRef = useRef(false);
@@ -193,77 +159,23 @@ export const RoomChatInputView = () => {
     const [ helpButtonVisible, setHelpButtonVisible ] = useState(false);
     const overHelpButtonRef = useRef(false);
     const helpButtonHideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-    const isNoob = useUserStore(x => Number(x.noobnessLevel) !== Number(NoobnessLevelEnum.NotNoob));
-    const nuxReminderShown = useConfigValue<string>('nux.chat.reminder.shown') === '1';
-    const nuxReminderDelay = useConfigValue<number>('nux.noob.chat.reminder.delay') ?? NUX_CHAT_REMINDER_DELAY_SECONDS;
-    const { setConfigValue } = useConfigActions();
-    const { showHint } = useHintActions();
-    // The view is Flash's per room: its nux timer starts again in every room, until the user types there.
     const roomId = room?.roomId ?? -1;
-    const [ nuxRoomId, setNuxRoomId ] = useState(roomId);
-    const [ nuxTyped, setNuxTyped ] = useState(false);
-    // `highlightChatInput` has run in this room (its text stays), and how many of its bobs have passed while it lasts.
-    const [ nuxReminded, setNuxReminded ] = useState(false);
-    const [ nuxReminderTicks, setNuxReminderTicks ] = useState<number | undefined>(undefined);
-    const nuxReminding = (nuxReminderTicks !== undefined);
-    const nuxHintTarget = useHintTarget('nux_chat_reminder', nuxReminding);
-
-    if (nuxRoomId !== roomId) {
-        setNuxRoomId(roomId);
-        setNuxTyped(false);
-        setNuxReminded(false);
-        setNuxReminderTicks(undefined);
-    }
+    const { nuxReminded, nuxReminderTicks, nuxHintTarget, onTyped, endNuxReminder } = useChatNuxReminder(roomId);
+    const { left, top } = useChatInputPlacement(layout?.width ?? 0);
 
     const valueRef = useLatest(value);
 
-    const roomUserNames = useMemo(() => Object.values(usersByRoomObjectId).filter(x => x.userType === RoomObjectUserType.User).map(x => x.name), [ usersByRoomObjectId ]);
-
-    // The client's own `:words` and, from a Turbo server, the commands it says the user may use.
-    const commands = useMemo(() => mergeChatCommands(chatInputClientCommands({
-        whisperMode: t('widgets.chatinput.mode.whisper', ':whisper'),
-        shoutMode: t('widgets.chatinput.mode.shout', ':shout'),
-        speakMode: t('widgets.chatinput.mode.speak', ':speak'),
-        whisper: t('widgets.chatinput.command.whisper', 'Whisper to someone in the room'),
-        shout: t('widgets.chatinput.command.shout', 'Shout to the whole room'),
-        speak: t('widgets.chatinput.command.speak', 'Talk normally'),
-        wiredMenu: t('widgets.chatinput.command.wired', 'Open the wired menu'),
-        variables: t('widgets.chatinput.command.variables', 'Open the wired variables'),
-        inspection: t('widgets.chatinput.command.inspection', 'Open the wired inspection'),
-        playTest: t('widgets.chatinput.command.playtest', 'Turn wired play test on or off'),
-        wiredReset: t('widgets.chatinput.command.wiredreset', 'Close the wired setup'),
-        userChooser: t('widgets.chatinput.command.chooser', 'List everyone in the room'),
-        furniChooser: t('widgets.chatinput.command.furni', 'List the furni in the room'),
-        pickAll: t('widgets.chatinput.command.pickall', 'Pick up all your furni in the room'),
-        pickAllBuildersClub: t('widgets.chatinput.command.pickallbc', 'Pick up all Builders Club furni in the room'),
-        resetScores: t('widgets.chatinput.command.resetscores', 'Reset the room\'s scores'),
-        ejectAll: t('widgets.chatinput.command.ejectall', 'Eject everyone else\'s furni from the room'),
-        ejectPets: t('widgets.chatinput.command.ejectpets', 'Send the pets in the room home'),
-    }, mayUseWired), chatCommands ?? []), [ t, mayUseWired, chatCommands ]);
-
-    const completion = useMemo<IChatCommandCompletion>(() => (focused
-        ? completeChatCommand({ text: value, cursor, commands, controllerLevel, roomUserNames, serverValues: chatCommandSuggestions })
-        : NO_CHAT_COMMAND_COMPLETION), [ commands, focused, value, cursor, controllerLevel, roomUserNames, chatCommandSuggestions ]);
-    // What the server would refuse, drawn in red as it is typed (`TextField.setTextFormat`).
-    const invalidArguments = useMemo(() => findInvalidArguments({ text: value, commands, controllerLevel, roomUserNames })
-        .map(x => ({ ...x, color: INVALID_ARGUMENT_COLOR })), [ value, commands, controllerLevel, roomUserNames ]);
-    const suggestions = completion.suggestions;
-    const suggestionsKey = suggestions.map(x => x.label).join('\n');
-
-    // `updateSuggestions` highlights the first row each time the list is rebuilt.
-    if (highlightFor !== suggestionsKey) {
-        setHighlightFor(suggestionsKey);
-        setHighlightIndex(0);
-    }
-
-    const showSuggestions = (suggestions.length > 0) && (suggestionsDismissedFor !== value);
-    const selectableSuggestions = suggestions.filter(x => x.replacement !== null).length;
-    // The request by its parts: a new object asking the same thing is the same request.
-    const requestCommand = completion.request?.command ?? null;
-    const requestParameter = completion.request?.parameter ?? -1;
-    const requestPrefix = completion.request?.prefix ?? '';
-    const requestSyntax = completion.request?.syntax ?? '';
-    const requestArgumentText = completion.request?.argumentText ?? '';
+    const { invalidArguments, suggestions, showSuggestions, highlightIndex, setHighlightIndex, setSuggestionsDismissedFor, takeSuggestion, onSuggestionKey } = useChatInputCompletion({
+        value,
+        valueRef,
+        cursor,
+        focused,
+        onTake: (next, nextCursor) => {
+            onChange(next);
+            setReplacementCursor(nextCursor);
+            setSelectionRequestId(current => current + 1);
+        },
+    });
 
     const whisperMode = t('widgets.chatinput.mode.whisper', ':whisper');
     const shoutMode = t('widgets.chatinput.mode.shout', ':shout');
@@ -370,7 +282,7 @@ export const RoomChatInputView = () => {
         }
 
         // `onInputChanged`: typing stops the nux timer.
-        if (next.length) setNuxTyped(true);
+        if (next.length) onTyped();
 
         lastContentRef.current = next;
         // Enter can land before React has rendered the last keystroke (the field's `input` event is
@@ -492,68 +404,6 @@ export const RoomChatInputView = () => {
         setValue(remainder);
     };
 
-    /** A suggestion taken: the line becomes what it completes to, and the field keeps the keyboard. */
-    const takeSuggestion = (index: number) => {
-        const replacement = suggestions[index]?.replacement;
-
-        if (replacement === null || replacement === undefined) return;
-
-        const next = replacement;
-        const nextCursor = suggestions[index]?.replacementCursor ?? next.length;
-        onChange(next);
-        setReplacementCursor(nextCursor);
-        setSelectionRequestId(current => current + 1);
-    };
-
-    /** `highlightSuggestion`: wraps past either end of the list. */
-    const moveHighlight = (step: number) => {
-        let next = highlightIndex + step;
-
-        if (next < 0) next = suggestions.length - 1;
-        if (next >= suggestions.length) next = 0;
-
-        setHighlightIndex(next);
-    };
-
-    /** `onNameInputKeyUp`, on the chat field: the command list's keys, before the field's own. */
-    const onSuggestionKey = (event: KeyboardEvent): boolean => {
-        if (!showSuggestions || !selectableSuggestions) {
-            if (showSuggestions && (event.key === 'Escape')) {
-                setSuggestionsDismissedFor(valueRef.current);
-
-                return true;
-            }
-
-            return false;
-        }
-
-        switch (event.key) {
-            case 'ArrowUp':
-                moveHighlight(-1);
-                return true;
-            case 'ArrowDown':
-                moveHighlight(1);
-                return true;
-            case 'Tab':
-                takeSuggestion(highlightIndex);
-                return true;
-            case 'Enter': {
-                // A line that taking the row would not change goes as it is.
-                const replacement = suggestions[highlightIndex]?.replacement;
-
-                if (!replacement || (replacement.trim() === valueRef.current.trim()) || event.shiftKey) return false;
-
-                takeSuggestion(highlightIndex);
-                return true;
-            }
-            case 'Escape':
-                setSuggestionsDismissedFor(valueRef.current);
-                return true;
-        }
-
-        return false;
-    };
-
     /** `_Str_10572` - Space autocompletes the whisper target, Backspace clears a bare `:whisper name `. */
     const onKeyDown = (event: KeyboardEvent): boolean | void => {
         // `windowKeyEventProcessor` -> `setInputFieldFocus`.
@@ -584,20 +434,6 @@ export const RoomChatInputView = () => {
         return undefined;
     };
 
-    // Flood control: swap the field for the countdown until the server's seconds have passed.
-    useEffect(() => {
-        if (!floodBlockSeconds || !floodBlockStamp) return;
-
-        const endsAt = floodBlockStamp + (floodBlockSeconds * 1000);
-        const tick = () => setFloodRemaining(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
-
-        tick();
-
-        const interval = setInterval(tick, 1000);
-
-        return () => clearInterval(interval);
-    }, [ floodBlockSeconds, floodBlockStamp ]);
-
     // The avatar menu asked us to whisper or shout to someone (`onChatInputUpdate`).
     useChatInputContentRequest((content) => {
         const prefix = (content.mode === 'whisper') ? whisperMode : shoutMode;
@@ -619,49 +455,6 @@ export const RoomChatInputView = () => {
 
     useEffect(() => () => clearTimeout(helpButtonHideTimerRef.current), []);
 
-    // `onNuxIdleTimerComplete` -> `highlightChatInput`.
-    useEffect(() => {
-        if ((roomId < 0) || !isNoob || nuxReminderShown || nuxTyped || nuxReminded) return;
-
-        const timeout = setTimeout(() => {
-            setNuxReminded(true);
-            setNuxReminderTicks(0);
-        }, nuxReminderDelay * 1000);
-
-        return () => clearTimeout(timeout);
-    }, [ roomId, isNoob, nuxReminderShown, nuxTyped, nuxReminded, nuxReminderDelay ]);
-
-    // `registerHintWindow("nux_chat_reminder", chat_input)` then `showHint("nux_chat_reminder")`.
-    useEffect(() => {
-        if (nuxReminding) showHint('nux_chat_reminder');
-    }, [ nuxReminding, showHint ]);
-
-    // `onChatReminderTimer`: a bob every 500 ms; after the tenth, `chatBarReminderShown`.
-    useEffect(() => {
-        if (nuxReminderTicks === undefined) return;
-
-        const timeout = setTimeout(() => {
-            if ((nuxReminderTicks + 1) < NUX_CHAT_REMINDER_TICKS) {
-                setNuxReminderTicks(nuxReminderTicks + 1);
-
-                return;
-            }
-
-            setNuxReminderTicks(undefined);
-            setConfigValue('nux.chat.reminder.shown', '1');
-        }, NUX_CHAT_REMINDER_TICK_MS);
-
-        return () => clearTimeout(timeout);
-    }, [ nuxReminderTicks, setConfigValue ]);
-
-    /** `setInputFieldFocus` while the reminder runs: `chatBarReminderShown`. */
-    const endNuxReminder = () => {
-        if (!nuxReminding) return;
-
-        setNuxReminderTicks(undefined);
-        setConfigValue('nux.chat.reminder.shown', '1');
-    };
-
     /** `onInputHoverRegionMouseEvent` / `onHelpButtonMouseEvent`'s `WME_OVER`. */
     const showHelpButton = () => {
         setHelpButtonVisible(true);
@@ -678,29 +471,8 @@ export const RoomChatInputView = () => {
         }, HELP_BUTTON_HIDE_DELAY_MS);
     };
 
-    // What only the server knows is asked for once typing pauses; the answer lands in the user store.
-    useEffect(() => {
-        if (requestCommand === null) return;
-
-        const timer = setTimeout(() => requestChatCommandSuggestions(send, requestCommand, requestParameter, requestPrefix, requestSyntax, requestArgumentText), SUGGEST_DELAY_MS);
-
-        return () => clearTimeout(timer);
-    }, [ send, requestCommand, requestParameter, requestPrefix, requestSyntax, requestArgumentText ]);
-
     if (!room || isSpectating || !template || !layout) return null;
 
-    /*
-     * `RoomChatInputView.updatePosition`: `bubblecont` sits centred in the toolbar when the
-     * toolbar's icons and the friend bar leave it the room - its top `height - 104` - and otherwise
-     * moves up to `height - 160` and starts right of the room tools, still centred if the centre is
-     * clear of them.
-     */
-    const centredLeft = ~~((viewportWidth / 2) - (layout.width / 2));
-    const fitsInToolbar = ((viewportWidth - toolbarAreaWidth - friendBarWidth) > (layout.width + LEFT_MARGIN))
-        && (centredLeft >= (toolbarAreaWidth + LEFT_MARGIN + TOOLBAR_CLEARANCE))
-        && ((centredLeft + layout.width) <= (viewportWidth - friendBarWidth));
-    const left = fitsInToolbar ? centredLeft : Math.max(centredLeft, roomToolsRight(roomToolsCollapsed) + LEFT_MARGIN);
-    const top = viewportHeight - (fitsInToolbar ? BUBBLECONT_FROM_BOTTOM_IN_TOOLBAR : BUBBLECONT_FROM_BOTTOM_ABOVE_TOOLBAR);
     // The `styles` button on screen, which its menu is aligned to (`alignToSelector`).
     const stylesRect: GlobalRect = { x: left + layout.styles.x, y: top + layout.row.y + layout.styles.y, width: layout.styles.width, height: layout.styles.height };
     const extraRect: GlobalRect = { x: left + layout.extra.x, y: top + layout.row.y + layout.extra.y, width: layout.extra.width, height: layout.extra.height };
