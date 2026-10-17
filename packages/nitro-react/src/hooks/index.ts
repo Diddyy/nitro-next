@@ -9,6 +9,7 @@ export * from './room';
 export * from './system';
 export * from './useClock';
 export * from './useSecondsClock';
+export * from './useSliderKnobDrag';
 export * from './useTween';
 export * from './useViewportSize';
 export * from './useWindowPointerDrag';

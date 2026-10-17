@@ -2,7 +2,7 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { useWindowPointerDrag } from '#base/hooks';
+import { useSliderKnobDrag } from '#base/hooks';
 import { TemplateWindow } from '#base/theme';
 
 /** `CustomStackHeightWidget.SLIDER_RANGE`: the slider spans 0 to 10 tiles. */
@@ -72,7 +72,7 @@ export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, on
     const [ multiWalk, setMultiWalk ] = useState<boolean>(multiWalkMode);
     const [ dragX, setDragX ] = useState<number | null>(null);
     const t = useTranslation();
-    const pointerDrag = useWindowPointerDrag();
+    const knobDrag = useSliderKnobDrag();
 
     // The server's own height wins whenever it changes under us, unless the height is being dragged or typed (`canApplyLiveHeight`).
     if ((height !== lastHeight) && (dragX === null) && !edited) {
@@ -105,28 +105,23 @@ export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, on
         if (event.button !== 0) return;
 
         const startX = sliderXForHeight(parseHeight(draft));
-        const startClientX = event.clientX;
         let lastSent = -SLIDER_LIVE_UPDATE_INTERVAL_MS;
         let latest = parseHeight(draft);
 
         setEdited(false);
         setDragX(startX);
 
-        const move = (moveEvent: PointerEvent) => {
-            const x = clampSliderX(startX + (moveEvent.clientX - startClientX));
+        knobDrag.start(event, startX, SLIDER_TRAVEL, {
+            onMove: (x, moveEvent) => {
+                latest = heightAtSliderX(x);
+                setDragX(x);
+                setDraft(latest.toString());
 
-            latest = heightAtSliderX(x);
-            setDragX(x);
-            setDraft(latest.toString());
-
-            if ((moveEvent.timeStamp - lastSent) >= SLIDER_LIVE_UPDATE_INTERVAL_MS) {
-                lastSent = moveEvent.timeStamp;
-                send(latest);
-            }
-        };
-
-        pointerDrag.start(event.pointerId, {
-            onMove: move,
+                if ((moveEvent.timeStamp - lastSent) >= SLIDER_LIVE_UPDATE_INTERVAL_MS) {
+                    lastSent = moveEvent.timeStamp;
+                    send(latest);
+                }
+            },
             onEnd: () => {
                 setDragX(null);
                 send(latest);

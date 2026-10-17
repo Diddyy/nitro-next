@@ -70,7 +70,10 @@ Change: `useWindowPointerDrag({ onMove, onEnd })` owning listeners, cleanup, can
 with optional local-space conversion; a slider-knob hook on top for the four sliders. M. **Done:**
 `hooks/useWindowPointerDrag.ts` (`tools/window-pointer-drag.test.mjs`), used by all eight and by a
 ninth the review missed, `useRoomFloorPlanDrawing`. Local-space conversion stays with
-`useFurnitureSlider`, its only user; the slider-knob hook is still open. Seen while checking: the
+`useFurnitureSlider`, its only user. The slider-knob hook is `hooks/useSliderKnobDrag.ts`
+(`tools/slider-knob-drag.test.mjs`), used by `WiredSlider`, `ToolbarSoundSettingsView` and
+`FurnitureStackHeightView`; the floor plan bars pick by absolute place, not a knob, so they keep
+`useFloorPlanSliderDrag`. Seen while checking: the
 chat history pulled past its top does not spring back - before this change as after it.
 
 ### 5. Group forum state kept twice

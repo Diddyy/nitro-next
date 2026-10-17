@@ -18,9 +18,9 @@
  * Controlled: `value` in, `onChange` with every new value out.
  */
 import { Container, FederatedPointerEvent } from 'pixi.js';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
-import { useWindowPointerDrag } from '#base/hooks';
+import { useSliderKnobDrag } from '#base/hooks';
 import { Box, LayoutImage, ThemeImage, useLatest, useLayoutSize } from '#base/theme';
 import { clampSliderValue } from '#base/wired';
 
@@ -47,12 +47,6 @@ interface DraggedKnob {
     value: number;
 }
 
-interface DragOrigin {
-    pointerX: number;
-    knobX: number;
-    referenceWidth: number;
-}
-
 /** `getSliderPosition`. */
 const knobPosition = (value: number, min: number, max: number, referenceWidth: number): number =>
     ((max === min) ? 0 : Math.trunc(referenceWidth * ((value - min) / (max - min))));
@@ -65,21 +59,15 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
     const [ trackNode, setTrackNode ] = useState<Container | null>(null);
     const { width: trackWidth } = useLayoutSize(trackNode);
     const [ dragged, setDragged ] = useState<DraggedKnob | null>(null);
-    const dragOriginRef = useRef<DragOrigin | null>(null);
     const latestRef = useLatest({ min, max, step, value, onChange });
-    const pointerDrag = useWindowPointerDrag();
-
-    const stopDragging = () => {
-        pointerDrag.stop();
-        dragOriginRef.current = null;
-    };
+    const knobDrag = useSliderKnobDrag();
 
     const referenceWidth = Math.max(0, Math.floor(trackWidth) - template.buttonWidth);
     const knobX = (dragged && (dragged.value === value)) ? dragged.x : knobPosition(clampSliderValue(value, min, max), min, max, referenceWidth);
 
     /** `moveSliderToLeft` / `moveSliderToRight`. */
     const stepBy = (direction: number) => {
-        stopDragging();
+        knobDrag.stop();
 
         if (step === 0) return;
 
@@ -91,29 +79,20 @@ export const WiredSlider = ({ min, max, step, value, onChange, disabled = false 
         if (isDisabled || (step === 0)) return;
 
         event.stopPropagation();
-        stopDragging();
 
-        dragOriginRef.current = { pointerX: event.clientX, knobX, referenceWidth };
+        // The track's width as it was pressed.
+        const travel = referenceWidth;
 
-        const move = (moveEvent: PointerEvent) => {
-            const origin = dragOriginRef.current;
+        knobDrag.start(event, knobX, travel, {
+            onMove: (dragX) => {
+                const latest = latestRef.current;
+                const x = Math.round(dragX);
+                const raw = (travel > 0) ? (((x / travel) * (latest.max - latest.min)) + latest.min) : latest.min;
+                const next = clampSliderValue(Math.round(raw / latest.step) * latest.step, latest.min, latest.max);
 
-            if (!origin) return;
+                setDragged({ x, value: next });
 
-            const latest = latestRef.current;
-            const x = Math.min(origin.referenceWidth, Math.max(0, Math.round(origin.knobX + (moveEvent.clientX - origin.pointerX))));
-            const raw = (origin.referenceWidth > 0) ? (((x / origin.referenceWidth) * (latest.max - latest.min)) + latest.min) : latest.min;
-            const next = clampSliderValue(Math.round(raw / latest.step) * latest.step, latest.min, latest.max);
-
-            setDragged({ x, value: next });
-
-            if (next !== latest.value) latest.onChange(next);
-        };
-
-        pointerDrag.start(event.pointerId, {
-            onMove: move,
-            onEnd: () => {
-                dragOriginRef.current = null;
+                if (next !== latest.value) latest.onChange(next);
             },
         });
     };

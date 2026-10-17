@@ -15,12 +15,12 @@
  * less the button's is the whole range, and `setValue` puts it back where the volume says.
  */
 import { FederatedPointerEvent } from 'pixi.js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { previewSoundVolumes, saveSoundVolumes } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useUserStore } from '#base/context/user';
-import { useWindowPointerDrag } from '#base/hooks';
+import { useSliderKnobDrag } from '#base/hooks';
 import { LayoutImage, TemplateBindings, TemplateWindows, useLatest } from '#base/theme';
 
 import { ToolbarSettingsWindow } from './ToolbarSettingsWindow';
@@ -48,8 +48,7 @@ export const ToolbarSoundSettingsView = ({ onClose }: { onClose: () => void }) =
     // While a knob is dragged it follows the pointer; otherwise it follows the volume. It is not
     // snapped when let go - only a volume set from elsewhere moves it (Flash's `setValue`).
     const [ dragged, setDragged ] = useState<{ row: Row; x: number } | null>(null);
-    const dragRef = useRef<{ row: Row; pointerX: number; knobX: number } | null>(null);
-    const pointerDrag = useWindowPointerDrag();
+    const knobDrag = useSliderKnobDrag();
 
     const volumes: Record<Row, number> = { ui_volume_container: uiVolume, furni_volume_container: furniVolume, trax_volume_container: traxVolume };
 
@@ -62,14 +61,9 @@ export const ToolbarSoundSettingsView = ({ onClose }: { onClose: () => void }) =
 
     const previewRef = useLatest(preview);
 
-    const stopDragging = () => {
-        pointerDrag.stop();
-        dragRef.current = null;
-    };
-
     // `SoundSettingsView.dispose` stores the three volumes however the window goes away.
     useEffect(() => () => {
-        stopDragging();
+        knobDrag.stop();
         saveSoundVolumes(send);
     }, [ send ]);
 
@@ -77,33 +71,20 @@ export const ToolbarSoundSettingsView = ({ onClose }: { onClose: () => void }) =
 
     // The press is left to bubble: the window's box reads it to take the top of the window stack.
     const startDrag = (row: Row, event: FederatedPointerEvent) => {
-        stopDragging();
+        knobDrag.start(event, knobX(row), REFERENCE_WIDTH, {
+            onMove: (dragX) => {
+                const x = Math.round(dragX);
 
-        dragRef.current = { row, pointerX: event.clientX, knobX: knobX(row) };
-
-        const move = (moveEvent: PointerEvent) => {
-            const origin = dragRef.current;
-
-            if (!origin) return;
-
-            const x = Math.min(REFERENCE_WIDTH, Math.max(0, Math.round(origin.knobX + (moveEvent.clientX - origin.pointerX))));
-
-            setDragged({ row: origin.row, x });
-            // `buttonProcedure` on `WE_RELOCATED`: `saveVolume(getValue(x), false)`.
-            previewRef.current(origin.row, x / REFERENCE_WIDTH);
-        };
-
-        pointerDrag.start(event.pointerId, {
-            onMove: move,
-            onEnd: () => {
-                dragRef.current = null;
-                setDragged(null);
+                setDragged({ row, x });
+                // `buttonProcedure` on `WE_RELOCATED`: `saveVolume(getValue(x), false)`.
+                previewRef.current(row, x / REFERENCE_WIDTH);
             },
+            onEnd: () => setDragged(null),
         });
     };
 
     const setFromButton = (row: Row, volume: number) => {
-        stopDragging();
+        knobDrag.stop();
         setDragged(null);
         preview(row, volume);
     };
