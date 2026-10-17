@@ -46,7 +46,7 @@
  */
 import { AvatarEditorCategory, AvatarFigurePartType, AvatarGenderType, RoomId } from '@nitrodevco/nitro-api';
 import { GetHotLooksComposer, GetSelectedNftWardrobeOutfitComposer, GetUserNftWardrobeComposer, GetWardrobeComposer, INftWardrobeItem, SaveUserNftWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { closeAvatarEditorEffect, hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
@@ -243,7 +243,7 @@ export const AvatarEditor = () => {
     const avatarEffectType = useAvatarEditorStore(x => x.avatarEffectType);
     const figureSetIds = useAvatarEditorStore(x => x.figureSetIds);
     const activeSetType = activeSubType[activeCategory];
-    const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setSelectedNftOutfitId, setNftOutfit, setNftSelection, setInitialised } = useAvatarEditorActions();
+    const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setSelectedNftOutfitId, setNftOutfit, setNftSelection, setInitialised, setBoothLook } = useAvatarEditorActions();
     const nftOutfits = useAvatarEditorStore(x => x.nftOutfits);
     const hotLooks = useAvatarEditorStore(x => x.hotLooks);
     const selectedNftOutfitId = useAvatarEditorStore(x => x.selectedNftOutfitId);
@@ -408,16 +408,34 @@ export const AvatarEditor = () => {
     useEffect(() => {
         if (!clothingChange) return;
 
+        setBoothLook(true);
         loadFigure(clothingChange.figure, clothingChange.gender, true);
     }, [ clothingChange?.objectId, clothingChange?.figure, clothingChange?.gender ]);
 
-    // The editor can mount before the user's info arrives; (re)load the editing figure whenever
-    // the server-side look changes, so opening with an empty figure never sticks.
+    // `HabboAvatarEditorManager.loadOwnAvatarInEditor` as the editor opens: once the server has named a worn NFT outfit
+    // (`hasNftOutfit` - any token id, the empty one too, until the next save) only the fallback look is loaded, and an empty
+    // fallback loads nothing, so a change left unsaved is still there when the editor opens again (official: lab30 Q3). Else
+    // the session's look. The editor can mount before the user's info arrives, so the look is (re)loaded whenever the
+    // server-side one changes too, and opening with an empty figure never sticks.
+    const opened = useRef(false);
+
     useEffect(() => {
         if (clothingChange) return;
 
         if (!ownFigure && !ownGender) return;
 
+        const { nftCurrentTokenId, nftFallbackFigure: fallbackFigure, nftFallbackGender: fallbackGender, boothLook } = avatarEditorStore.getState();
+        const opening = !opened.current;
+
+        opened.current = true;
+
+        if (opening && !boothLook && (nftCurrentTokenId !== null)) {
+            if (fallbackFigure !== '') loadFigure(fallbackFigure, fallbackGender);
+
+            return;
+        }
+
+        setBoothLook(false);
         loadFigure(ownFigure || DEFAULT_FIGURES[ownGender] || '', ownGender, true);
     }, [ ownFigure, ownGender, !!clothingChange ]);
 

@@ -61,6 +61,11 @@ type State = {
      * (`HabboAvatarEditorManager.close` case 0), so its requests go once a session.
      */
     initialised: boolean;
+    /**
+     * The look being edited is a booth's (`FurnitureClothingChangeWidgetHandler`: its own editor instance in Flash), not the
+     * main editor's, so opening the main editor loads the user's own look whatever `hasNftOutfit` says.
+     */
+    boothLook: boolean;
 };
 
 type Actions = {
@@ -92,6 +97,7 @@ type Actions = {
     /** `saveCurrentSelection`: the pick is worn, so the next save leaves effects alone. */
     clearAvatarEffectPicked: () => void;
     setInitialised: () => void;
+    setBoothLook: (boothLook: boolean) => void;
 };
 
 const initialState: State = {
@@ -126,6 +132,7 @@ const initialState: State = {
     avatarEffectType: -1,
     avatarEffectPicked: false,
     initialised: false,
+    boothLook: false,
 };
 
 export type AvatarEditorStore = State & Actions & {
@@ -204,6 +211,7 @@ export const createAvatarEditorStore = () => createStore<AvatarEditorStore>()((s
     pickAvatarEffectType: avatarEffectType => set({ avatarEffectType, avatarEffectPicked: true }),
     clearAvatarEffectPicked: () => set({ avatarEffectPicked: false }),
     setInitialised: () => set({ initialised: true }),
+    setBoothLook: boothLook => set({ boothLook }),
     setWardrobeSlot: (index, outfit) => set((state) => {
         const wardrobe = [ ...state.wardrobe ];
 
