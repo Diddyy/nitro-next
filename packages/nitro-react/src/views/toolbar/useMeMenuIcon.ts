@@ -58,6 +58,15 @@ const drawPicture = (head: Texture): MeMenuPicture => {
 };
 
 /**
+ * The picture for a render of the head. A placeholder head gets none: `setMeMenuToolbarIcon` draws
+ * only an image that is not `isPlaceholder()`, and `avatarImageReady` draws again once the figure's
+ * libraries have landed. It takes the render, not its texture: the finished head is drawn into the
+ * same pooled texture its placeholder had, so the texture alone does not tell the two apart - and
+ * the React compiler keys the memo below on what it reads.
+ */
+const pictureOf = (render: { texture: Texture | undefined; placeholder: boolean }): MeMenuPicture | undefined => ((render.texture && !render.placeholder) ? drawPicture(render.texture) : undefined);
+
+/**
  * The registered name of the me menu picture, once the head is drawn. It is drawn once per render
  * of the head - the render's snapshot, not its texture, which the avatar renderer may draw a
  * finished figure into after its placeholder - and the one before it is let go after the toolbar
@@ -65,7 +74,7 @@ const drawPicture = (head: Texture): MeMenuPicture => {
  */
 export const useMeMenuIcon = (figure: string | undefined, gender: AvatarGenderType): string | undefined => {
     const render = useAvatarImageTexture(figure, gender, { headOnly: true, direction: FACE_DIRECTION });
-    const icon = useMemo(() => (render.texture ? drawPicture(render.texture) : undefined), [ render ]);
+    const icon = useMemo(() => pictureOf(render), [ render ]);
 
     useEffect(() => () => {
         if (!icon) return;
