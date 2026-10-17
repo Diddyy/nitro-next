@@ -13,7 +13,7 @@ await test('saving your own look sends it and then closes the editor', () => {
     // The whole body: it returns early for an invalid sellable or club item before it saves.
     const save = source.slice(source.indexOf('const saveFigure'));
     const own = save.slice(0, save.indexOf('\n    };'));
-    const send = own.indexOf('new UpdateFigureDataComposer');
+    const send = own.indexOf('saveAvatarFigure(send');
     const hide = own.lastIndexOf('hide()');
 
     assert.ok(send > -1, 'the look is sent');

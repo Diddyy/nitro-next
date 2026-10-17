@@ -15,9 +15,9 @@
  * - The header's close hides it.
  */
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
-import { ChatComposer, GetPetCommandsComposer, GetPetInfoComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
+import { requestPetCommands, requestPetInfo, sayChat } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomPetCommands, useRoomPetInfo, useRoomUserByObjectId } from '#base/context/room';
 import { useConfigBoolean, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
@@ -107,7 +107,7 @@ const PetTrainingWindow = ({ petId }: { petId: number }) => {
 
     // `showCommandToolForPet`: the commands asked for when they are not known yet.
     useEffect(() => {
-        if (!commands) send(new GetPetCommandsComposer({ petId }));
+        if (!commands) requestPetCommands(send, petId);
     }, [ commands, petId, send ]);
 
     // `onButtonDisableTimeout`: the buttons back as the pet's commands say, 1.1 s after a press.
@@ -132,7 +132,7 @@ const PetTrainingWindow = ({ petId }: { petId: number }) => {
                 disabled: !commands?.enabled.includes(id) || (disabledUntil > 0),
                 onPointerTap: () => {
                     // `onTrainButtonMouseClick`: spoken at the pet, then every button disabled for a moment.
-                    send(new ChatComposer({ text: `${name} ${t(`pet.command.${id}`)}`, styleId: 0 }));
+                    sayChat(send, `${name} ${t(`pet.command.${id}`)}`, 0);
                     setDisabledUntil(Date.now() + BUTTONS_DISABLED_MS);
                 },
             },
@@ -163,7 +163,7 @@ const PetTrainingWindow = ({ petId }: { petId: number }) => {
             bindings={{
                 avatar_image: {
                     // `onCommandWindowAvatarImageClick`: `RWUAM_REQUEST_PET_UPDATE`.
-                    onPointerTap: () => send(new GetPetInfoComposer({ petId })),
+                    onPointerTap: () => requestPetInfo(send, petId),
                     children: texture && (
                         <Box layout={{ position: 'absolute', left: 0, top: 0, width: IMAGE_WIDTH, height: IMAGE_HEIGHT, overflow: 'hidden' }}>
                             <ThemeImage

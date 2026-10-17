@@ -1,6 +1,6 @@
 import { ContextMenuEnum, ISimpleRoomObjectData } from '@nitrodevco/nitro-api';
-import { UseFurnitureComposer } from '@nitrodevco/nitro-packets';
 
+import { sendUseFurniture } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
@@ -83,7 +83,7 @@ export const FurnitureContextMenuView = ({ objectData, menu, onClose }: Furnitur
 
     const useFurniture = () => {
         if (viaLogic) room?.getRoomObject(objectId, category)?.logic?.useObject();
-        else send(new UseFurnitureComposer({ objectId, param: 0 }));
+        else sendUseFurniture(send, objectId, 0);
 
         onClose();
     };

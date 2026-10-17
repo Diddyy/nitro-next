@@ -36,12 +36,11 @@
  * off it (`onIconClick`'s `hideMatchingHint`).
  */
 import { CatalogTypeEnum, NoobnessLevelEnum, RoomDoorModeEnum, RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
-import { QuitComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, FederatedPointerEvent, Ticker } from 'pixi.js';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
-import { goToHomeRoom, openClientLink, openProfile, showOwnRooms, showQuests, startTakingPhoto, toggleCatalog, toggleNavigator } from '#base/commands';
+import { goToHomeRoom, openClientLink, openProfile, quitRoom, showOwnRooms, showQuests, startTakingPhoto, toggleCatalog, toggleNavigator } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
 import { useGroupStore } from '#base/context/groups';
@@ -308,7 +307,7 @@ export const ToolbarView = () => {
 
     // `HabboLandingView.onToolbarClick` HTIE_ICON_RECEPTION: quit and dispose the room session right away (RSE_ENDED shows the hotel view).
     const goToHotelView = () => {
-        send(new QuitComposer({}));
+        quitRoom(send);
         endRoomSession();
     };
 

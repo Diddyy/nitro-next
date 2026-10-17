@@ -5,7 +5,7 @@
  * `ChangeUserNameResult` closes it on success (the "name changed" notice is `onUserNameChanged`'s,
  * for every change) or shows why not.
  */
-import { CheckUserNameComposer } from '@nitrodevco/nitro-packets';
+import { ChangeUserNameInRoomComposer, CheckUserNameComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
@@ -41,6 +41,9 @@ export const startNameChange = () => systemStore.getState().showWindow('name_cha
 
 /** `checkName`: whether the name is free. */
 export const checkNameChangeName = (send: Send, name: string) => send(new CheckUserNameComposer({ name }));
+
+/** `changeName`: the confirmed name sent as the new one (`ChangeUserNameInRoomMessageComposer`). */
+export const changeName = (send: Send, name: string) => send(new ChangeUserNameInRoomComposer({ name }));
 
 const answer = (kind: NameChangeResult['kind'], resultCode: number, name: string, suggestions: string[]) => {
     for (const listener of listeners) listener({ kind, resultCode, name, suggestions });

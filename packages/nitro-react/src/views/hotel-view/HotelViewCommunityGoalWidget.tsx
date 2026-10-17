@@ -23,11 +23,11 @@
  * `refreshContent` also sizes `goal_info` to its text (`textHeight + 6`) once the progress is in, so
  * the buttons under it in `info_container` move with it.
  */
-import { CommunityGoalVoteComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Ticker } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
+import { voteCommunityGoal } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import {
     COMMUNITY_GOAL_METER_BUILDUP_MS, COMMUNITY_GOAL_METER_DELAY_MS, COMMUNITY_GOAL_NEEDLE_BASE_FRAMES, communityGoalNeedleFrame, communityGoalVsNeedleFrame, hotelViewColorableBindings, HotelViewCommonSettings,
@@ -118,7 +118,7 @@ export const HotelViewCommunityGoalWidget = ({ type, settings }: HotelViewCommun
 
     const vote = (option: number) => {
         setShowVoteButtons(false);
-        send(new CommunityGoalVoteComposer({ vote: option }));
+        voteCommunityGoal(send, option);
     };
 
     const bindings: TemplateBindings = {

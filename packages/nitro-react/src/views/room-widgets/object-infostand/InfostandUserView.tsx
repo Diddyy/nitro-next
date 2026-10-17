@@ -1,8 +1,7 @@
 import { AvatarGenderType, ISimpleRoomObjectData } from '@nitrodevco/nitro-api';
-import { ChangeMottoComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useRef, useState } from 'react';
 
-import { openClientLink, openProfile, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_SMILE, requestUserDetails, showGroupBadgeInfo } from '#base/commands';
+import { changeMotto, openClientLink, openProfile, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_SMILE, requestUserDetails, showGroupBadgeInfo } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomStore } from '#base/context/room';
 import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
@@ -114,7 +113,7 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
     const submitMotto = () => {
         if (motto.length > mottoMaxLength) return;
 
-        send(new ChangeMottoComposer({ text: motto }));
+        changeMotto(send, motto);
         setEditingObjectId(undefined);
     };
 

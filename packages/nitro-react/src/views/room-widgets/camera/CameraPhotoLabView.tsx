@@ -17,11 +17,10 @@
  *   (`RenderRoomMessageComposer`) and opens the "Buy or publish" dialog with the lab hidden behind it.
  *   Cancel goes back to the viewfinder; the header's close just closes; its help opens `habbopages/camera`.
  */
-import { RenderRoomComposer } from '@nitrodevco/nitro-packets';
 import { FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useMemo, useState } from 'react';
 
-import { closePhotoLab, openPhotoPurchase, returnToViewfinder, useCameraStore } from '#base/commands';
+import { closePhotoLab, openPhotoPurchase, returnToViewfinder, sendPhotoRenderData, useCameraStore } from '#base/commands';
 import { AchievementCategory, useAchievementsStore } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
@@ -262,7 +261,7 @@ const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
 
         const data = await buildRenderRoomMessageData({ ...photo.render, effects: JSON.stringify(chosen), zoom: zoom ? 2 : 1 });
 
-        send(new RenderRoomComposer({ data }));
+        sendPhotoRenderData(send, data);
     };
 
     const save = () => {

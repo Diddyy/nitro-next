@@ -66,6 +66,7 @@ export * from './rewardTrackCommands';
 export * from './roomChatCommands';
 export * from './roomChooserCommands';
 export * from './roomDebugCommands';
+export * from './roomFurnitureCommands';
 export * from './roomPetCommands';
 export * from './roomThumbnailCameraCommands';
 export * from './roomUserCommands';

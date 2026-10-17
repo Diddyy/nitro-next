@@ -1,5 +1,4 @@
-import { RemoveFriendComposer } from '@nitrodevco/nitro-packets';
-
+import { removeFriends as removeFriendsCommand } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsActions, useFriendsStore } from '#base/context/friend';
 import { useIsWindowVisible, useWindowActions } from '#base/context/system';
@@ -38,7 +37,7 @@ const FriendListRemoveConfirmation = () => {
     /** `onRemove`: one `RemoveFriendMessageComposer` for every selected friend. */
     const removeFriends = () => {
         if (selectedFriendIds.length > 0) {
-            send(new RemoveFriendComposer({ playerIds: selectedFriendIds }));
+            removeFriendsCommand(send, selectedFriendIds);
             setSelectedFriendIds([]);
         }
 

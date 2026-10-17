@@ -1,7 +1,6 @@
 import { ISimpleRoomObjectData, RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
-import { CommandBotComposer, RemoveBotFromFlatComposer } from '@nitrodevco/nitro-packets';
 
-import { openClientLink } from '#base/commands';
+import { commandBot, openClientLink, pickUpBot } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { BOT_SKILL_CHANGE_NAME, BOT_SKILL_SETUP_CHAT, useIsRoomOwner, useOwnControllerLevel, useRoomBotsActions, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
 import { useWiredShowInspectButton } from '#base/context/wired';
@@ -75,7 +74,7 @@ export const InfoBubbleRentableBotView = ({ objectData, onClose }: InfoBubbleRen
     const skills = userData.botSkills ?? [];
     const has = (skill: number) => skills.includes(skill);
     const canManage = isRoomOwner || (controllerLevel >= RoomControllerLevelEnum.Guest);
-    const command = (skill: number, data = '') => () => send(new CommandBotComposer({ botId, skillType: skill, command: data }));
+    const command = (skill: number, data = '') => () => commandBot(send, botId, skill, data);
     const configure = (skill: number) => () => openBotSkillConfiguration(botId, skill);
 
     const buttons: MenuButton[] = [];
@@ -83,7 +82,7 @@ export const InfoBubbleRentableBotView = ({ objectData, onClose }: InfoBubbleRen
         if (visible) buttons.push({ key, row, caption, onPress });
     };
 
-    add(canManage && !has(SKILL_NO_PICK_UP), 'pick', () => send(new RemoveBotFromFlatComposer({ botId })));
+    add(canManage && !has(SKILL_NO_PICK_UP), 'pick', () => pickUpBot(send, botId));
     add(has(SKILL_DONATE_TO_ALL), 'donate_to_all', command(SKILL_DONATE_TO_ALL));
     add(has(SKILL_DONATE_TO_USER), 'donate_to_user', command(SKILL_DONATE_TO_USER));
     add(isRoomOwner && has(BOT_SKILL_CHANGE_NAME), 'change_bot_name', configure(BOT_SKILL_CHANGE_NAME));

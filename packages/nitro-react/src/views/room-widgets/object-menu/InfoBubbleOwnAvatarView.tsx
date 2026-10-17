@@ -1,8 +1,7 @@
 import { AvatarActionStateType, AvatarExpressionEnum, ClubLevelEnum, ISimpleRoomObjectData, PostureTypeEnum, RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
-import { AvatarExpressionComposer, ChangePostureComposer, DanceComposer, SignComposer } from '@nitrodevco/nitro-packets';
 import { ReactNode, useState } from 'react';
 
-import { dropCarryItem, openClientLink, openProfile, startNameChange } from '#base/commands';
+import { changePosture, dropCarryItem, openClientLink, openProfile, setDance, showAvatarExpression, showSign, startNameChange } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsRoomOwner, useOwnIsDancing, useRoomSessionActions, useRoomStore } from '#base/context/room';
 import { useConfigBoolean, useTranslation, useWindowActions } from '#base/context/system';
@@ -117,8 +116,8 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
     const isRiding = info.effectId === RIDING_EFFECT;
     const canUseVipExpressions = !hasEffectOn && !isSwimming && hasVip;
 
-    const expression = (type: AvatarExpressionEnum) => () => send(new AvatarExpressionComposer({ expressionType: type }));
-    const dance = (style: number) => () => send(new DanceComposer({ danceType: style }));
+    const expression = (type: AvatarExpressionEnum) => () => showAvatarExpression(send, type);
+    const dance = (style: number) => () => setDance(send, style);
     const toMode = (next: number) => () => setMode(next);
 
     const buttons: Record<number, MenuButton[]> = {
@@ -147,8 +146,8 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
             { key: 'back', visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
         ],
         [MODE_EXPRESSIONS]: [
-            { key: 'sit', visible: sittingEnabled && !isSwimming && !isRiding && (info.posture === String(AvatarActionStateType.Stand)), onPress: () => send(new ChangePostureComposer({ postureType: PostureTypeEnum.Sit })) },
-            { key: 'stand', visible: sittingEnabled && !isSwimming && !isRiding && info.canStandUp, onPress: () => send(new ChangePostureComposer({ postureType: PostureTypeEnum.Stand })) },
+            { key: 'sit', visible: sittingEnabled && !isSwimming && !isRiding && (info.posture === String(AvatarActionStateType.Stand)), onPress: () => changePosture(send, PostureTypeEnum.Sit) },
+            { key: 'stand', visible: sittingEnabled && !isSwimming && !isRiding && info.canStandUp, onPress: () => changePosture(send, PostureTypeEnum.Stand) },
             { key: 'wave', visible: true, enabled: !isSwimming, onPress: expression(AvatarExpressionEnum.Wave) },
             { key: 'blow', visible: true, enabled: canUseVipExpressions, vip: true, onPress: expression(AvatarExpressionEnum.Blow) },
             { key: '67', visible: expression67Enabled, enabled: canUseVipExpressions, vip: true, onPress: expression(AvatarExpressionEnum.Expression67) },
@@ -206,7 +205,7 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
         for (const sign of SIGN_CELLS) {
             bindings[`sign_${sign}/button`] = {
                 ...button(`sign_${sign}/button`, () => {
-                    send(new SignComposer({ signType: sign }));
+                    showSign(send, sign);
                     onClose();
                 }),
                 children: SIGN_PICTURES[sign],

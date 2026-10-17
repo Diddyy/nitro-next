@@ -1,7 +1,6 @@
-import { QuitComposer } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
-import { goToRoom } from '#base/commands';
+import { goToRoom, quitRoom } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { NavigatorRoomEntryDialog, useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useInterpolate, useTranslation } from '#base/context/system';
@@ -35,7 +34,7 @@ const DoorbellDialog = ({ dialog, onClose }: DialogProps) => {
 
     // `close`: while waiting, cancelling also quits the pending room session.
     const cancel = () => {
-        if (waiting) send(new QuitComposer({}));
+        if (waiting) quitRoom(send);
 
         onClose();
     };

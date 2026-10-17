@@ -1,8 +1,7 @@
 import { CatalogPricingModelEnum, CatalogTypeEnum, FurnitureTypeEnum, IPurchasableOffer } from '@nitrodevco/nitro-api';
-import { GetProductOfferComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { requestSelectedItemToMover } from '#base/commands';
+import { requestProductOffer, requestSelectedItemToMover } from '#base/commands';
 import { CATALOG_NO_GUILD_SELECTED, CatalogPage, CatalogWidgetEventEnum, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigData } from '#base/context/system';
@@ -156,7 +155,7 @@ export const CatalogItemGridWidgetView = ({ page, tags }: CatalogWidgetProps) =>
         const product = getOfferProduct(offer);
 
         if (offer.isLazy) {
-            if (product?.furnitureData) send(new GetProductOfferComposer({ offerId: product.furnitureData.rentOfferId > -1 ? product.furnitureData.rentOfferId : product.furnitureData.purchaseOfferId }));
+            if (product?.furnitureData) requestProductOffer(send, product.furnitureData.rentOfferId > -1 ? product.furnitureData.rentOfferId : product.furnitureData.purchaseOfferId);
 
             return;
         }

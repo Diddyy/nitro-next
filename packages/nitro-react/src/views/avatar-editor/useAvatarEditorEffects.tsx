@@ -21,9 +21,9 @@
  *   (`deselectAllEffects(true)`: selected -1). Flash keeps that mark until a save, so a pick in an
  *   editor closed without saving is still worn by the next save.
  */
-import { AvatarEffectActivatedComposer, AvatarEffectSelectedComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
+import { activateAvatarEffect, selectAvatarEffect } from '#base/commands';
 import { useAvatarEditorActions, useAvatarEditorStore } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
@@ -156,16 +156,16 @@ export const useAvatarEditorEffects = (shown: boolean) => {
         if (!avatarEffectPicked) return;
 
         if (avatarEffectType === NO_EFFECT) {
-            send(new AvatarEffectSelectedComposer({ effectType: NO_EFFECT }));
+            selectAvatarEffect(send, NO_EFFECT);
             setLastWornEffect(NO_EFFECT);
         } else {
             const effect = effects.find(entry => entry.type === avatarEffectType);
 
             if (effect) {
-                if (!effect.isActive) send(new AvatarEffectActivatedComposer({ effectType: effect.type }));
+                if (!effect.isActive) activateAvatarEffect(send, effect.type);
 
                 if (!effect.isInUse) {
-                    send(new AvatarEffectSelectedComposer({ effectType: effect.type }));
+                    selectAvatarEffect(send, effect.type);
                     setLastWornEffect(effect.type);
                 }
             }

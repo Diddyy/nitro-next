@@ -20,11 +20,10 @@
  *   (`sendInitCameraMessage`: `RequestCameraConfigurationMessageComposer` with the `CAMERA` perk), then the achievements
  *   (`ensureAchievementsInitialized`).
  */
-import { RequestCameraConfigurationComposer } from '@nitrodevco/nitro-packets';
 import { Rectangle } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
-import { CameraPhoto, collectRoomPhotoData, editPhoto, isRoomUnfit, openClientLink, requestAchievements, snapshotRoomCanvas } from '#base/commands';
+import { CameraPhoto, collectRoomPhotoData, editPhoto, isRoomUnfit, openClientLink, requestAchievements, requestCameraConfiguration, snapshotRoomCanvas } from '#base/commands';
 import { GetRoomBackgroundColor } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
@@ -129,7 +128,7 @@ export const CameraView = () => {
         if (!room || !cameraAllowed || configurationRequested) return;
 
         configurationRequested = true;
-        send(new RequestCameraConfigurationComposer({}));
+        requestCameraConfiguration(send);
     }, [ room, cameraAllowed, send ]);
 
     // Then, with or without the perk, `questEngine.ensureAchievementsInitialized()`: the photo lab reads the camera achievement's level.

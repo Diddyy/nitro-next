@@ -5,7 +5,7 @@
  * the room (`FriendsView`, `RoomInviteView`), the friend online bubble (`FriendCategories`) and
  * the highlight on a tab with news (`FriendListTab`).
  */
-import { AcceptFriendComposer, DeclineFriendComposer, EventLogComposer, FollowFriendComposer, FriendRequestQuestCompleteComposer, FriendRequestStateType, HabboSearchComposer, IFriendRequest, IMessengerFriend, MessengerFriendRelationType, SendRoomInviteComposer } from '@nitrodevco/nitro-packets';
+import { AcceptFriendComposer, DeclineFriendComposer, EventLogComposer, FollowFriendComposer, FriendRequestQuestCompleteComposer, FriendRequestStateType, HabboSearchComposer, IFriendRequest, IMessengerFriend, MessengerFriendRelationType, RemoveFriendComposer, SendRoomInviteComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
@@ -222,3 +222,6 @@ export const highlightFriendListTab = (tab: keyof FriendListHighlightedTabs) => 
 
     userStore.getState().setFriendListTabHighlighted(tab, openTab !== tab);
 };
+
+/** `FriendRemoveView.onRemove`: one `RemoveFriendMessageComposer` for every selected friend. */
+export const removeFriends = (send: Send, friendIds: number[]) => send(new RemoveFriendComposer({ playerIds: friendIds }));

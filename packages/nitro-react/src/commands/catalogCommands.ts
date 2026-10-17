@@ -5,7 +5,7 @@
  * window registered its handlers with in `handlers/catalog`).
  */
 import { CatalogTypeEnum, ICatalogNode, ICatalogPageLocalization, IObjectData, IPurchasableOffer } from '@nitrodevco/nitro-api';
-import { GetCatalogPageComposer, MarkCatalogNewAdditionsPageOpenedComposer } from '@nitrodevco/nitro-packets';
+import { GetCatalogPageComposer, GetProductOfferComposer, MarkCatalogNewAdditionsPageOpenedComposer } from '@nitrodevco/nitro-packets';
 import { StoreApi } from 'zustand';
 
 import { CATALOG_SEARCH_PAGE_ID, CatalogPage, CatalogStore, PetImageRequest } from '#base/context/catalog';
@@ -187,3 +187,6 @@ export const onCatalogVisibilityChanged = (send: Send, store: CatalogStoreApi, v
     setNewAdditionsAvailable(false);
     send(new MarkCatalogNewAdditionsPageOpenedComposer({}));
 };
+
+/** `HabboCatalog.sendGetProductOffer`: the server answers with the offer (`onProductOffer`). */
+export const requestProductOffer = (send: Send, offerId: number) => send(new GetProductOfferComposer({ offerId }));

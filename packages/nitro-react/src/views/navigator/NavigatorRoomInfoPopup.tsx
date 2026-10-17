@@ -36,12 +36,12 @@
  * Not ported: the `browse.openroominfo` event log `showAt` tracks.
  */
 import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
-import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, IRoomInfo, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
+import { IRoomInfo } from '@nitrodevco/nitro-packets';
 import { GetRenderer } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer } from 'pixi.js';
 import { RefObject, useEffect, useRef, useState } from 'react';
 
-import { openGroupInfo, openProfile, searchRoomTag } from '#base/commands';
+import { openGroupInfo, openProfile, searchRoomTag, setHomeRoom, setRoomFavourite } from '#base/commands';
 import { reportRoom } from '#base/commands/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
@@ -188,9 +188,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
     const tagRegion = tagTemplate && findTemplateChild(tagTemplate.elements, 'tag_region');
 
     const toggleFavourite = () => {
-        send(isFavourite
-            ? new DeleteFavouriteRoomComposer({ roomId: room.roomId })
-            : new AddFavouriteRoomComposer({ roomId: room.roomId }));
+        setRoomFavourite(send, room.roomId, !isFavourite);
 
         setFavouriteOverride(!isFavourite);
     };
@@ -198,7 +196,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
     const makeHome = () => {
         if (isHome) return;
 
-        send(new UpdateHomeRoomComposer({ roomId: room.roomId }));
+        setHomeRoom(send, room.roomId);
         setHomeOverride({ isHome: true, over: homeRoomId });
     };
 

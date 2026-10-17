@@ -1,11 +1,12 @@
 /**
  * What the friend bar asks of the rest of the client - `HabboFriendBarData`'s `followToRoom`,
  * `startConversation` and `findNewFriends`, each with the `EventLogMessageComposer` it sends
- * beside the request.
+ * beside the request - and `HabboFriendBarView.toggleCollapsedState`'s save of the bar's state.
  */
-import { EventLogComposer, FindNewFriendsComposer, FollowFriendComposer } from '@nitrodevco/nitro-packets';
+import { EventLogComposer, FindNewFriendsComposer, FollowFriendComposer, SetUIFlagsComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
+import { UiFlagEnum, userStore } from '#base/context/user';
 
 import { openMessengerConversation } from './messengerCommands';
 
@@ -31,3 +32,6 @@ export const findNewFriends = (send: Send) => {
     send(new FindNewFriendsComposer({}));
     logFriendBarAction(send, 'find_friends_btn_click');
 };
+
+/** `toggleCollapsedState`: the other state, saved to the account's UI flags (`SetUIFlagsMessageComposer`). */
+export const saveFriendBarExpanded = (send: Send, expanded: boolean) => send(new SetUIFlagsComposer({ flags: userStore.getState().setUiFlag(UiFlagEnum.FriendBarExpanded, expanded) }));

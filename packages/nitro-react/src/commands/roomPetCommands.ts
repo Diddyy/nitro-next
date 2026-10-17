@@ -1,8 +1,9 @@
 /**
  * Monsterplant breeding: `BreedPetsMessageComposer`'s states, and `AvatarInfoWidget`'s waiting
- * confirmation shown to whoever proposed it, which calls the breeding off when cancelled.
+ * confirmation shown to whoever proposed it, which calls the breeding off when cancelled - and a
+ * pet's commands and info asked for (`RoomSession.requestPetCommands`, `UserDataManager.requestPetInfo`).
  */
-import { BreedPetsComposer } from '@nitrodevco/nitro-packets';
+import { BreedPetsComposer, GetPetCommandsComposer, GetPetInfoComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { roomStore } from '#base/context/room';
@@ -54,3 +55,9 @@ export const removeBreedingPetsWaitingConfirmationAlert = () => {
     systemStore.getState().closeDialog(plantBreedingWaitingDialogId);
     setPlantBreedingWaitingDialogId(undefined);
 };
+
+/** `RoomSession.requestPetCommands`: the commands the pet knows, for the training window. */
+export const requestPetCommands = (send: Send, petId: number) => send(new GetPetCommandsComposer({ petId }));
+
+/** `UserDataManager.requestPetInfo`: the pet's level and experience (`RWUAM_REQUEST_PET_UPDATE`). */
+export const requestPetInfo = (send: Send, petId: number) => send(new GetPetInfoComposer({ petId }));

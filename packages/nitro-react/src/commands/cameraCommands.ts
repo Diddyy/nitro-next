@@ -2,16 +2,21 @@
  * The room camera's opening - `CameraWidget.startTakingPhoto`: the toolbar's camera icon shows the
  * viewfinder, or hides it when it is up. A room that is zoomed or flipped cannot be photographed
  * (`camera.zoom.missing`), and the viewfinder hides itself when the room is zoomed (`onRoomZoomed`).
+ * Also the photo lab's state and the camera's requests (`CameraWidgetHandler`).
  */
 import { GetConfigValue } from '@nitrodevco/nitro-api';
 import type { CameraPublishStatusMessageType, CameraStorageUrlMessageType, InitCameraMessageType } from '@nitrodevco/nitro-packets';
+import { PublishPhotoComposer, PurchasePhotoComposer, RenderRoomComposer, RequestCameraConfigurationComposer } from '@nitrodevco/nitro-packets';
 import { GetRenderer, SpriteDataCollector } from '@nitrodevco/nitro-renderer';
 import { Rectangle } from 'pixi.js';
 import { createStore, useStore } from 'zustand';
 
+import { WebSocketConnection } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import type { RenderRoomMessageSource } from '#base/utils';
+
+type Send = WebSocketConnection['send'];
 
 /** `getRoomCanvasScale() < 1 || getRoomCanvasIsFlipped()`. */
 export const isRoomUnfit = () => {
@@ -208,3 +213,15 @@ export const onCameraPublishStatus = (data: CameraPublishStatusMessageType) => {
         updatePurchase({ publishLocked: false });
     }, data.secondsToWait * 1000);
 };
+
+/** `CameraWidgetHandler.sendInitCameraMessage`: the camera's prices and settings asked for. */
+export const requestCameraConfiguration = (send: Send) => send(new RequestCameraConfigurationComposer({}));
+
+/** `CameraWidgetHandler.sendPhotoData`: the photo's render data, rendered and stored by the server. */
+export const sendPhotoRenderData = (send: Send, data: Uint8Array) => send(new RenderRoomComposer({ data }));
+
+/** `CameraWidgetHandler.confirmPhotoPurchase`. */
+export const purchasePhoto = (send: Send) => send(new PurchasePhotoComposer({}));
+
+/** `CameraWidgetHandler.confirmPhotoPublish`. */
+export const publishPhoto = (send: Send) => send(new PublishPhotoComposer({}));

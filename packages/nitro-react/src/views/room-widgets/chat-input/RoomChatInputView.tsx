@@ -1,9 +1,8 @@
 import { NoobnessLevelEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
-import { CancelTypingComposer, ChatComposer, ShoutComposer, StartTypingComposer, WhisperComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
-import { openClientLink, openHabbiconHub, requestChatCommandSuggestions, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, setChatFontSizeMode, setPreferredChatStyle, triggerHabbicon, withSelectedAvatarName } from '#base/commands';
+import { openClientLink, openHabbiconHub, requestChatCommandSuggestions, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, sayChat, sendChatTyping, setChatFontSizeMode, setPreferredChatStyle, shoutChat, triggerHabbicon, whisperChat, withSelectedAvatarName } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { HabbiconsStore, useHabbiconsStore } from '#base/context/habbicons';
 import { useHintActions } from '#base/context/hints';
@@ -323,7 +322,7 @@ export const RoomChatInputView = () => {
     const sendTypingStatus = () => {
         if (isFloodBlocked) return;
 
-        send(isTypingRef.current ? new StartTypingComposer({}) : new CancelTypingComposer({}));
+        sendChatTyping(send, isTypingRef.current);
     };
 
     const clearTimers = () => {
@@ -472,13 +471,13 @@ export const RoomChatInputView = () => {
 
             switch (mode) {
                 case 'speak':
-                    send(new ChatComposer({ text: cleaned, styleId }));
+                    sayChat(send, cleaned, styleId);
                     break;
                 case 'shout':
-                    send(new ShoutComposer({ text: cleaned, styleId }));
+                    shoutChat(send, cleaned, styleId);
                     break;
                 case 'whisper':
-                    send(new WhisperComposer({ recipientName: recipient, text: cleaned, styleId }));
+                    whisperChat(send, recipient, cleaned, styleId);
                     break;
             }
         }

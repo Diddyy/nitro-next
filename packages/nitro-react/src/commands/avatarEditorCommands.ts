@@ -12,15 +12,24 @@
  * which leaves the figure as invalid as it was. The port takes the first item of the grid the user
  * may wear instead, and removes the part when there is none and the set type is not mandatory.
  *
- * Also `HabboAvatarEditorManager.close`'s effect step (`closeAvatarEditorEffect`).
+ * Also `HabboAvatarEditorManager.close`'s effect step (`closeAvatarEditorEffect`), and the editor's
+ * requests: what it asks for as it opens, the wardrobe slots, and the save of a look, a clothing
+ * booth's outfit, an NFT outfit or an effect.
  */
-import { AvatarFigurePartType } from '@nitrodevco/nitro-api';
+import { AvatarFigurePartType, AvatarGenderType } from '@nitrodevco/nitro-api';
+import { AvatarEffectActivatedComposer, AvatarEffectSelectedComposer, GetHotLooksComposer, GetSelectedNftWardrobeOutfitComposer, GetUserNftWardrobeComposer, GetWardrobeComposer, SaveUserNftWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
 import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
 
 import { avatarEditorStore } from '#base/context/avatar-editor';
+import { WebSocketConnection } from '#base/context/communication';
 import { configBoolean } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { firstSelectableColorId, getAvatarEditorPartSets } from '#base/utils';
+
+type Send = WebSocketConnection['send'];
+
+/** `HotLooksModel.MAXIMUM_HOT_LOOKS`. */
+const HOT_LOOKS_AMOUNT = 20;
 
 /** The set types of the editor's part categories (`getCategoryValues`). */
 const CATEGORY_SET_TYPES: readonly string[] = [
@@ -121,3 +130,36 @@ export const stripAvatarEditorInvalidSellableItems = (clubLevel: number): void =
 export const closeAvatarEditorEffect = (): void => {
     avatarEditorStore.getState().setAvatarEffectType(userStore.getState().lastWornEffect);
 };
+
+/**
+ * `HabboAvatarEditor.init`, in its order: `sendGetSelectedNftWardrobeOutfitMessage`, the
+ * `WardrobeModel`'s `getWardrobe`, then the categories as they are made - `HotLooksModel.requestHotLooks`
+ * (`MAXIMUM_HOT_LOOKS`, not for a clothing change editor) and `NftAvatarsModel.requestNftAvatars`.
+ */
+export const requestAvatarEditorData = (send: Send, clothingChange: boolean) => {
+    send(new GetSelectedNftWardrobeOutfitComposer({}));
+    send(new GetWardrobeComposer({}));
+    if (!clothingChange) send(new GetHotLooksComposer({ amount: HOT_LOOKS_AMOUNT }));
+    send(new GetUserNftWardrobeComposer({}));
+};
+
+/** `WardrobeSlot`'s set button: the look saved into a (1-based) server slot. */
+export const saveWardrobeOutfit = (send: Send, slotId: number, figure: string, gender: AvatarGenderType) => send(new SaveWardrobeOutfitComposer({ slotId, figure, gender }));
+
+/** `HabboAvatarEditor.saveCurrentSelection` for a clothing booth: the look is the furni's, for one gender. */
+export const saveClothingChangeOutfit = (send: Send, objectId: number, gender: string, figure: string) => send(new SetClothingChangeDataComposer({ objectId, gender, figure }));
+
+/** `saveCurrentSelection` with an NFT outfit picked: worn by its id, and the worn one asked for again. */
+export const wearNftOutfit = (send: Send, id: string) => {
+    send(new SaveUserNftWardrobeComposer({ id }));
+    send(new GetSelectedNftWardrobeOutfitComposer({}));
+};
+
+/** `saveCurrentSelection`: the look itself (`UpdateFigureDataMessageComposer`). */
+export const saveAvatarFigure = (send: Send, figure: string, gender: AvatarGenderType) => send(new UpdateFigureDataComposer({ figure, gender }));
+
+/** `HabboInventory.setEffectSelected` (`EffectsModel.useEffect`'s select, or `deselectAllEffects`' -1). */
+export const selectAvatarEffect = (send: Send, effectType: number) => send(new AvatarEffectSelectedComposer({ effectType }));
+
+/** `EffectsModel.useEffect`: an effect not running yet is switched on first. */
+export const activateAvatarEffect = (send: Send, effectType: number) => send(new AvatarEffectActivatedComposer({ effectType }));

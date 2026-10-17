@@ -30,11 +30,11 @@
  * Not ported: `keepWindowInsideScreenRegion`, and the hotel view's collapse defaults written back
  * into the collapsed list (they are applied as the results draw).
  */
-import { ForwardToARandomPromotedRoomComposer, GetGuestRoomComposer, IRoomInfo, ISearchResultList, NavigatorAddCollapsedCategoryComposer, NavigatorAddSavedSearchComposer, NavigatorDeleteSavedSearchComposer, NavigatorRemoveCollapsedCategoryComposer, NavigatorSetSearchCodeViewModeComposer } from '@nitrodevco/nitro-packets';
+import { IRoomInfo, ISearchResultList } from '@nitrodevco/nitro-packets';
 import { FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
-import { goBackNavigatorSearch, openClientLink, performNavigatorSearch, refreshNavigatorSearch, requestRoomGroupDetails } from '#base/commands';
+import { addNavigatorSavedSearch, collapseNavigatorCategory, deleteNavigatorSavedSearch, expandNavigatorCategory, goBackNavigatorSearch, goToPrivateRoom, goToPromotedRoom, openClientLink, performNavigatorSearch, refreshNavigatorSearch, requestRoomGroupDetails, setNavigatorViewMode } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { NAVIGATOR_FILTER_TYPES, splitNavigatorFilter, useNavigatorActions, useNavigatorOpeningGeometry, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
@@ -213,7 +213,7 @@ export const NavigatorView = () => {
     const enterRoom = (room: IRoomInfo) => {
         if (isRepeatedEnter(room.roomId)) return;
 
-        send(new GetGuestRoomComposer({ roomId: room.roomId, enterRoom: false, roomForward: true }));
+        goToPrivateRoom(send, room.roomId);
         hide();
     };
 
@@ -271,18 +271,18 @@ export const NavigatorView = () => {
     };
 
     const collapse = (searchCode: string) => {
-        send(new NavigatorAddCollapsedCategoryComposer({ categoryName: searchCode }));
+        collapseNavigatorCategory(send, searchCode);
         toggleCollapsedCategory(searchCode);
     };
 
     const expand = (searchCode: string) => {
-        send(new NavigatorRemoveCollapsedCategoryComposer({ categoryName: searchCode }));
+        expandNavigatorCategory(send, searchCode);
         toggleCollapsedCategory(searchCode);
     };
 
     /** `HabboNewNavigator.addSavedSearch`: sent while there are results, and the left pane shown either way. */
     const addQuickLink = (searchCode: string) => {
-        if (searchResult) send(new NavigatorAddSavedSearchComposer({ searchCode, filter: searchResult.filteringData }));
+        if (searchResult) addNavigatorSavedSearch(send, searchCode, searchResult.filteringData);
 
         setLeftPaneHidden(false);
     };
@@ -293,7 +293,7 @@ export const NavigatorView = () => {
     const toggleMode = (searchCode: string, mode: number) => {
         const next = mode === RESULTS_MODE_ROWS ? RESULTS_MODE_TILES : RESULTS_MODE_ROWS;
 
-        send(new NavigatorSetSearchCodeViewModeComposer({ categoryName: searchCode, viewMode: next }));
+        setNavigatorViewMode(send, searchCode, next);
         setViewMode(searchCode, next);
     };
 
@@ -405,7 +405,7 @@ export const NavigatorView = () => {
                         onPointerTap: (event) => {
                             // The button's click is its own: the row's search does not run.
                             event.stopPropagation();
-                            send(new NavigatorDeleteSavedSearchComposer({ searchId: link.id }));
+                            deleteNavigatorSavedSearch(send, link.id);
                         },
                     },
                 },
@@ -439,7 +439,8 @@ export const NavigatorView = () => {
         random_room_border: { visible: !showPromote },
         random_room: {
             onPointerTap: () => {
-                send(new ForwardToARandomPromotedRoomComposer({ category: '' }));
+                // A random promoted room of any category (`ForwardToARandomPromotedRoomMessageComposer("")`).
+                goToPromotedRoom(send, '');
                 hideRoomInfo();
                 hide();
             },

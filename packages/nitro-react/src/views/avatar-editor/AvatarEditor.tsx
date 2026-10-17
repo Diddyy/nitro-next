@@ -45,10 +45,10 @@
  * layouts are only in the AS3, not in the `habbo-avatar-editor-com` template bundle.
  */
 import { AvatarEditorCategory, AvatarFigurePartType, AvatarGenderType, RoomId } from '@nitrodevco/nitro-api';
-import { GetHotLooksComposer, GetSelectedNftWardrobeOutfitComposer, GetUserNftWardrobeComposer, GetWardrobeComposer, INftWardrobeItem, SaveUserNftWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
+import { INftWardrobeItem } from '@nitrodevco/nitro-packets';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { closeAvatarEditorEffect, hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
+import { closeAvatarEditorEffect, hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, requestAvatarEditorData, saveAvatarFigure, saveClothingChangeOutfit, saveWardrobeOutfit, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems, wearNftOutfit } from '#base/commands';
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
 import { avatarEditorStore, DEFAULT_WARDROBE_SLOTS, normalizeGender, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
@@ -63,9 +63,6 @@ import { AvatarEditorWardrobe } from './AvatarEditorWardrobe';
 import { useAvatarEditorEffects } from './useAvatarEditorEffects';
 
 const LIBRARY = 'habbo-avatar-editor-com';
-
-/** `HotLooksModel.MAXIMUM_HOT_LOOKS`. */
-const HOT_LOOKS_AMOUNT = 20;
 
 /** `AvatarEditorView._allCategories` in `mainTabs`' order; effects and misc each behind a setting. */
 const CATEGORIES: readonly { category: AvatarEditorCategory; setting?: string }[] = [
@@ -334,7 +331,7 @@ export const AvatarEditor = () => {
     const saveWardrobeSlot = (index: number) => {
         if (!figure) return;
 
-        send(new SaveWardrobeOutfitComposer({ slotId: index + 1, figure, gender }));
+        saveWardrobeOutfit(send, index + 1, figure, gender);
         setWardrobeSlot(index, { figure, gender });
     };
 
@@ -364,14 +361,13 @@ export const AvatarEditor = () => {
         }
 
         if (clothingChange) {
-            send(new SetClothingChangeDataComposer({ objectId: clothingChange.objectId, gender, figure }));
+            saveClothingChangeOutfit(send, clothingChange.objectId, gender, figure);
         } else if (selectedNftOutfitId !== null) {
             // `saveCurrentSelection`: a picked NFT outfit is worn by its id, and the worn one asked for again.
-            send(new SaveUserNftWardrobeComposer({ id: selectedNftOutfitId }));
-            send(new GetSelectedNftWardrobeOutfitComposer({}));
+            wearNftOutfit(send, selectedNftOutfitId);
             setSelectedNftOutfitId(null);
         } else {
-            send(new UpdateFigureDataComposer({ figure, gender }));
+            saveAvatarFigure(send, figure, gender);
         }
 
         // `hasNftOutfit()`: the worn outfit is forgotten until the server answers again.
@@ -439,9 +435,7 @@ export const AvatarEditor = () => {
         loadFigure(ownFigure || DEFAULT_FIGURES[ownGender] || '', ownGender, true);
     }, [ ownFigure, ownGender, !!clothingChange ]);
 
-    // `HabboAvatarEditor.init`, in its order: `sendGetSelectedNftWardrobeOutfitMessage`, the
-    // `WardrobeModel`'s `getWardrobe`, then the categories as they are made - `HotLooksModel.requestHotLooks`
-    // (`MAXIMUM_HOT_LOOKS`) and `NftAvatarsModel.requestNftAvatars`. The main editor is only hidden on
+    // `HabboAvatarEditor.init` (`requestAvatarEditorData`). The main editor is only hidden on
     // close, so once a session; the clothing change editor is disposed on close (`HabboAvatarEditorManager.close`)
     // and opens on torso and legs only, so every opening and without hot looks.
     useEffect(() => {
@@ -451,10 +445,7 @@ export const AvatarEditor = () => {
             setInitialised();
         }
 
-        send(new GetSelectedNftWardrobeOutfitComposer({}));
-        send(new GetWardrobeComposer({}));
-        if (!clothingChange) send(new GetHotLooksComposer({ amount: HOT_LOOKS_AMOUNT }));
-        send(new GetUserNftWardrobeComposer({}));
+        requestAvatarEditorData(send, !!clothingChange);
     }, [ !!clothingChange ]);
 
     /** `NftAvatarsModel.selectNftAvatar`: an outfit with a look is put on, remembered for the save and named. */

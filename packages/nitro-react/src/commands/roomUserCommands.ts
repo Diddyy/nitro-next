@@ -2,8 +2,14 @@
  * What `InfoStandWidgetHandler.processWidgetMessage` did with each `RWUAM_*` message: the avatar
  * menus and the infostand both act on people through these, so a button does the same thing
  * wherever it sits. Each takes the user's server id unless it says otherwise.
+ *
+ * Also the own avatar's `RoomSession` sends (motto, expression, dance, sign, posture) and the
+ * rentable bot menu's (`RentableBotMenuView`: a skill's command, the pick up).
  */
-import { AmbassadorAlertComposer, AssignRightsComposer, BanUserWithDurationComposer, DropCarryItemComposer, GetExtendedProfileComposer, GetRelationshipStatusInfoComposer, GetSelectedBadgesComposer, IgnoreUserComposer, KickUserComposer, MuteUserComposer, OpenTradingComposer, PassCarryItemComposer, RemoveRightsComposer, ReplenishRespectComposer, RequestFriendComposer, RespectUserComposer, SetRelationshipStatusComposer, UnignoreUserComposer, UnmuteUserComposer } from '@nitrodevco/nitro-packets';
+import { AvatarExpressionEnum, PostureTypeEnum } from '@nitrodevco/nitro-api';
+import {
+    AmbassadorAlertComposer, AssignRightsComposer, AvatarExpressionComposer, BanUserWithDurationComposer, ChangeMottoComposer, ChangePostureComposer, CommandBotComposer, DanceComposer, DropCarryItemComposer, GetExtendedProfileComposer, GetRelationshipStatusInfoComposer, GetSelectedBadgesComposer, IgnoreUserComposer, KickUserComposer, MuteUserComposer, OpenTradingComposer, PassCarryItemComposer, RemoveBotFromFlatComposer, RemoveRightsComposer, ReplenishRespectComposer, RequestFriendComposer, RespectUserComposer, SetRelationshipStatusComposer, SignComposer, UnignoreUserComposer, UnmuteUserComposer,
+} from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { roomStore } from '#base/context/room';
@@ -96,3 +102,24 @@ export const dropCarryItem = (send: Send) => send(new DropCarryItemComposer({}))
 export const setRelationship = (send: Send, webId: number, relationship: number) => send(new SetRelationshipStatusComposer({ playerId: webId, relationshipType: relationship }));
 
 export const ambassadorAlert = (send: Send, webId: number) => send(new AmbassadorAlertComposer({ userId: webId }));
+
+/** `RoomSession.sendChangeMottoMessage`: the own motto, from the infostand. */
+export const changeMotto = (send: Send, motto: string) => send(new ChangeMottoComposer({ text: motto }));
+
+/** `RoomSession.sendAvatarExpressionMessage`. */
+export const showAvatarExpression = (send: Send, type: AvatarExpressionEnum) => send(new AvatarExpressionComposer({ expressionType: type }));
+
+/** `RoomSession.sendDanceMessage`: 0 stops dancing. */
+export const setDance = (send: Send, style: number) => send(new DanceComposer({ danceType: style }));
+
+/** `RoomSession.sendSignMessage`. */
+export const showSign = (send: Send, sign: number) => send(new SignComposer({ signType: sign }));
+
+/** `RoomSession.sendChangePostureMessage`: sit or stand. */
+export const changePosture = (send: Send, posture: PostureTypeEnum) => send(new ChangePostureComposer({ postureType: posture }));
+
+/** `RentableBotMenuView`: a bot skill run (`CommandBotComposer(botId, skill, data)`). */
+export const commandBot = (send: Send, botId: number, skillType: number, command: string = '') => send(new CommandBotComposer({ botId, skillType, command }));
+
+/** `RentableBotMenuView`'s pick: the bot back to its owner's inventory. */
+export const pickUpBot = (send: Send, botId: number) => send(new RemoveBotFromFlatComposer({ botId }));

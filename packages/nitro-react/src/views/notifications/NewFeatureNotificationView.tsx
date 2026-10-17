@@ -32,10 +32,9 @@
  * (`maybeShowNewFeatureNotification`).
  */
 import { ColorConverter } from '@nitrodevco/nitro-api';
-import { GetSecondsUntilComposer, HasClaimedProductComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { maybeShowNewFeatureNotifications, openNewFeatureLink } from '#base/commands';
+import { maybeShowNewFeatureNotifications, openNewFeatureLink, requestNewFeatureClaimState, requestNewFeatureSecondsUntil } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useSingularNotificationActions, useSingularNotificationStore } from '#base/context/singular-notifications';
 import { HotelViewSecondsUntil, useConfigData, useIsLandingViewVisible, useSystemStore, useTranslation } from '#base/context/system';
@@ -130,8 +129,8 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
 
         setAskedAt(performance.now());
 
-        if (expiry) send(new GetSecondsUntilComposer({ timeStr: expiry }));
-        if (countdownTo) send(new GetSecondsUntilComposer({ timeStr: countdownTo }));
+        if (expiry) requestNewFeatureSecondsUntil(send, expiry);
+        if (countdownTo) requestNewFeatureSecondsUntil(send, countdownTo);
     }, [ expiry, countdownTo, send ]);
 
     const expired = !!expiryAnswer && (expiryAnswer.seconds <= 0);
@@ -156,7 +155,7 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
         if (!built || !autoOpenClaim) return;
 
         clearNewFeatureClaim(autoOpenClaim);
-        send(new HasClaimedProductComposer({ claimId: autoOpenClaim }));
+        requestNewFeatureClaimState(send, autoOpenClaim);
     }, [ built, autoOpenClaim, send, clearNewFeatureClaim ]);
 
     // `onHasClaimedProductResponse` (taken) / `onClaimProductResult` (0 or 1): `stopAutoOpen`.

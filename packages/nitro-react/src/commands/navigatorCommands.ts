@@ -5,7 +5,11 @@
  * `RoomFilterCtrl`), plus creating a room.
  */
 import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
-import { CreateFlatComposer, CreateFlatComposerType, EditEventComposer, GetCustomRoomFilterComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, RoomNetworkOpenConnectionComposer, SetNewNavigatorWindowPreferencesComposer, UpdateRoomCategoryAndTradeSettingsComposer, UpdateRoomFilterComposer } from '@nitrodevco/nitro-packets';
+import {
+    AddFavouriteRoomComposer, CreateFlatComposer, CreateFlatComposerType, DeleteFavouriteRoomComposer, EditEventComposer, GetCustomRoomFilterComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NavigatorAddCollapsedCategoryComposer,
+    NavigatorAddSavedSearchComposer, NavigatorDeleteSavedSearchComposer, NavigatorRemoveCollapsedCategoryComposer, NavigatorSetSearchCodeViewModeComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, QuitComposer, RoomNetworkOpenConnectionComposer,
+    SetNewNavigatorWindowPreferencesComposer, UpdateHomeRoomComposer, UpdateRoomCategoryAndTradeSettingsComposer, UpdateRoomFilterComposer,
+} from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { groupStore } from '#base/context/groups';
@@ -278,3 +282,29 @@ export const requestRoomGroupDetails = (send: Send, groupId: number) => {
 
 /** `RoomCreateViewCtrl.onCreateButtonClick`: the server answers with `FlatCreatedMessage`. */
 export const createFlat = (send: Send, room: CreateFlatComposerType) => send(new CreateFlatComposer(room));
+
+/** `RoomSession.quit`: the server is told the room is left (`QuitMessageComposer`). */
+export const quitRoom = (send: Send) => send(new QuitComposer({}));
+
+/** `RoomInfoPopup.roomFavoriteRegionProcedure`: the room added to or removed from the favourites. */
+export const setRoomFavourite = (send: Send, roomId: number, favourite: boolean) => send(favourite
+    ? new AddFavouriteRoomComposer({ roomId })
+    : new DeleteFavouriteRoomComposer({ roomId }));
+
+/** `RoomInfoPopup.homeRoomRegionProcedure`: the room made the home room (`UpdateHomeRoomMessageComposer`). */
+export const setHomeRoom = (send: Send, roomId: number) => send(new UpdateHomeRoomComposer({ roomId }));
+
+/** `HabboNewNavigator.sendAddCollapsedCategory`: a results block folded, remembered by the server. */
+export const collapseNavigatorCategory = (send: Send, categoryName: string) => send(new NavigatorAddCollapsedCategoryComposer({ categoryName }));
+
+/** `HabboNewNavigator.sendRemoveCollapsedCategory`: a results block unfolded. */
+export const expandNavigatorCategory = (send: Send, categoryName: string) => send(new NavigatorRemoveCollapsedCategoryComposer({ categoryName }));
+
+/** `HabboNewNavigator.addSavedSearch`: a quick link for a search code and its filter. */
+export const addNavigatorSavedSearch = (send: Send, searchCode: string, filter: string) => send(new NavigatorAddSavedSearchComposer({ searchCode, filter }));
+
+/** `HabboNewNavigator.deleteSavedSearch`: a quick link removed. */
+export const deleteNavigatorSavedSearch = (send: Send, searchId: number) => send(new NavigatorDeleteSavedSearchComposer({ searchId }));
+
+/** `HabboNewNavigator.toggleSearchCodeViewMode`: a results block shown as rows or tiles. */
+export const setNavigatorViewMode = (send: Send, categoryName: string, viewMode: number) => send(new NavigatorSetSearchCodeViewModeComposer({ categoryName, viewMode }));

@@ -4,7 +4,7 @@
  * make (`goToRoom`, `requestBadge`, the competition room messages) - and the catalogue's
  * `CATALOG_INVISIBLE_PAGE_VISITED`, which the reception answers.
  */
-import { ForwardToARandomPromotedRoomComposer, ForwardToASubmittableRoomComposer, ForwardToRandomCompetitionRoomComposer, IsUserPartOfCompetitionMessageType, PromoArticleData, RequestABadgeComposer } from '@nitrodevco/nitro-packets';
+import { CommunityGoalVoteComposer, ForwardToARandomPromotedRoomComposer, ForwardToASubmittableRoomComposer, ForwardToRandomCompetitionRoomComposer, IsUserPartOfCompetitionMessageType, PromoArticleData, RequestABadgeComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { hotelViewProperty, PROMO_ARTICLE_LINK_CLIENT, PROMO_ARTICLE_LINK_WEB, systemStore } from '#base/context/system';
@@ -72,3 +72,6 @@ export const submitCompetitionRoom = (send: Send, entry: IsUserPartOfCompetition
  * expiring page widget can ask which page expires first now (`registerHotelViewHandlers`).
  */
 export const catalogInvisiblePageVisited = () => systemStore.getState().reactivateHotelView();
+
+/** `HabboLandingView.communityGoalVote`: the option voted for, 1 or 2. */
+export const voteCommunityGoal = (send: Send, vote: number) => send(new CommunityGoalVoteComposer({ vote }));

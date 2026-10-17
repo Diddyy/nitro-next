@@ -16,7 +16,7 @@
  *   `CallForHelpFromPhotoComposer`.
  */
 import { GetConfigValue } from '@nitrodevco/nitro-api';
-import { CallForHelpComposer, CallForHelpFromForumMessageComposer, CallForHelpFromForumThreadComposer, CallForHelpFromIMComposer, CallForHelpFromPhotoComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
+import { AppealCfhComposer, CallForHelpComposer, CallForHelpFromForumMessageComposer, CallForHelpFromForumThreadComposer, CallForHelpFromIMComposer, CallForHelpFromPhotoComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { HelpReportEntry, helpStore } from '#base/context/help';
@@ -240,3 +240,6 @@ export const submitCallForHelp = (send: Send, message: string, topic: ICallForHe
 
     send(new CallForHelpComposer({ message, topicId: topic.id, reportedUserId, roomId: reportedRoomId, chatEntries: collectSelectedChatEntries(), name: '', email: '' }));
 };
+
+/** `MyReportsView.onClickAppeal`: an appeal of a closed report's outcome. */
+export const appealCfhReport = (send: Send, reportId: number) => send(new AppealCfhComposer({ reportId }));

@@ -157,7 +157,10 @@ was down; it needs a moderator account).
 
 79 `send(new …Composer)` calls across 31 view files, against "send packets through commands";
 outside moderation the largest are `AvatarEditor`, `NavigatorView` and
-`InfoBubbleOwnAvatarView`. Move them as those views are touched. M, incremental.
+`InfoBubbleOwnAvatarView`. Move them as those views are touched. M, incremental. **Done:** no view
+under `views/` constructs a composer; the sends are commands in their features' files (and a new
+`roomFurnitureCommands.ts`), with the same packets in the same order. Room widget components keep
+their direct sends, as the conventions allow. Not checked live (Turbo was down).
 
 ### 11. Other store-access deviations
 
@@ -246,3 +249,4 @@ copies' timing agrees with Flash's. M-L.
 - Item 7, documented: Flash keeps an unoffered source type; the port's resolutions are listed.
 - Item 8, boolean configuration read as Flash does (`configBoolean`, `useConfigBoolean`).
 - Item 9, moderation through actions hooks and `moderationCommands`.
+- Item 10, views send packets only through commands.

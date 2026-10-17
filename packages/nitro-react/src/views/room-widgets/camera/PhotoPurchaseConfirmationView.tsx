@@ -14,10 +14,9 @@
  *   Close; `CameraPurchaseOKMessage` and `CameraPublishStatusMessage` answer them.
  * - Cancel and the header's close go back to the viewfinder (`startTakingPhoto("photoPurchaseCancel")`).
  */
-import { PublishPhotoComposer, PurchasePhotoComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { openClientLink, PhotoPurchaseState, returnToViewfinder, setPhotoPurchaseState, showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert, useCameraStore } from '#base/commands';
+import { openClientLink, PhotoPurchaseState, publishPhoto, purchasePhoto, returnToViewfinder, setPhotoPurchaseState, showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert, useCameraStore } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigBoolean } from '#base/context/system';
 import { useOwnCredits, useUserStore } from '#base/context/user';
@@ -112,14 +111,14 @@ const PhotoPurchaseConfirmation = () => {
 
         if (disclaimerEnabled) setDisclaimerAccepted(false);
 
-        send(new PurchasePhotoComposer({}));
+        purchasePhoto(send);
     };
 
     const onPublish = () => {
         if ((state !== 'image_loaded') || !checkPurse(0, publishDucketPrice)) return;
 
         wait('waiting_publish_to_complete', { publishLocked: true });
-        send(new PublishPhotoComposer({}));
+        publishPhoto(send);
     };
 
     const loaded = state === 'image_loaded';

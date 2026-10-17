@@ -16,10 +16,9 @@
  * The select button's flow with an unchecked name is read from a damaged decompile
  * (`windowEventHandler`, `select_name_button`) - inference.
  */
-import { ChangeUserNameInRoomComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
-import { checkNameChangeName, listenNameChangeResults, NameChangeResult } from '#base/commands';
+import { changeName, checkNameChangeName, listenNameChangeResults, NameChangeResult } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
@@ -212,7 +211,7 @@ const NameChangeWindow = () => {
             caption: t('tutorial.name_change.title.confirm'),
             bindings: {
                 final_name: { caption: checkedName ?? '' },
-                confirm_name_button: { onPointerTap: () => checkedName && send(new ChangeUserNameInRoomComposer({ name: checkedName })) },
+                confirm_name_button: { onPointerTap: () => checkedName && changeName(send, checkedName) },
                 cancel_confirmation_button: { onPointerTap: close },
             },
         },

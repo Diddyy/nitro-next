@@ -29,14 +29,14 @@
  * counts them then. Not carried: the dimmer over the bar while the room entry effect runs, and the
  * `friendbar/` link tracker.
  */
-import { FriendRequestStateType, SetUIFlagsComposer } from '@nitrodevco/nitro-packets';
+import { FriendRequestStateType } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { forwardRef, useCallback, useRef, useState } from 'react';
 
-import { findNewFriends, followFriendFromBar, openProfile, startFriendBarConversation } from '#base/commands';
+import { findNewFriends, followFriendFromBar, openProfile, saveFriendBarExpanded, startFriendBarConversation } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigBoolean, useIsWindowVisible, useToolbarAreaWidth, useTranslation, useWindowActions } from '#base/context/system';
-import { FriendBarNotification, UiFlagEnum, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserActions, useUserMessengerActions, useUserStore } from '#base/context/user';
+import { FriendBarNotification, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserMessengerActions, useUserStore } from '#base/context/user';
 import { easeOutCubic, useTween, useViewportSize } from '#base/hooks';
 import { Region, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useOutsideClick, useTemplate } from '#base/theme';
 import { getBadgeName } from '#base/utils';
@@ -66,7 +66,6 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const { showWindow, hideWindow, toggleWindow } = useWindowActions();
-    const { setUiFlag } = useUserActions();
     const friends = useFriendBarFriends();
     const requests = useFriendRequests();
     const notificationsByFriend = useUserStore(x => x.friendBarNotifications);
@@ -136,7 +135,7 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
     /** `toggleCollapsedState`: the other state, saved to the account, with the selection dropped. */
     const toggleCollapsed = () => {
         setSelected(null);
-        send(new SetUIFlagsComposer({ flags: setUiFlag(UiFlagEnum.FriendBarExpanded, collapsed) }));
+        saveFriendBarExpanded(send, collapsed);
     };
 
     /** `HabboFriendBarData.toggleFriendList`. */

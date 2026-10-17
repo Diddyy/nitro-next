@@ -19,9 +19,10 @@
  * window onto the desktop (`_window.desktop.addChild`) and placed by `relocateBubbleAndFocus`: its
  * left 2px inside the row's right edge, its middle on the row's.
  */
-import { AppealCfhComposer, CFH_APPEAL_STATUS_ACTION, CFH_APPEAL_STATUS_APPEALED, CFH_APPEAL_STATUS_NO_ACTION, CFH_APPEAL_STATUS_NONE, IMyCfhReportStatus } from '@nitrodevco/nitro-packets';
+import { CFH_APPEAL_STATUS_ACTION, CFH_APPEAL_STATUS_APPEALED, CFH_APPEAL_STATUS_NO_ACTION, CFH_APPEAL_STATUS_NONE, IMyCfhReportStatus } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
+import { appealCfhReport } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { Box, GlobalRect, LayoutImage, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
@@ -123,7 +124,7 @@ export const MyReportsView = ({ reports, onClose }: MyReportsViewProps) => {
 
     /** `onClickAppeal`. */
     const appeal = (report: IMyCfhReportStatus) => {
-        send(new AppealCfhComposer({ reportId: report.id }));
+        appealCfhReport(send, report.id);
         setAppealed(ids => [ ...ids, report.id ]);
     };
 

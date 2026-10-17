@@ -1,7 +1,7 @@
 import { CatalogPricingModelEnum, IPurchasableOffer } from '@nitrodevco/nitro-api';
-import { GetProductOfferComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useRef, useState } from 'react';
 
+import { requestProductOffer } from '#base/commands';
 import { CatalogWidgetEventEnum } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useCatalogWidgetEvent } from '#base/hooks';
@@ -48,7 +48,7 @@ export const CatalogLimitedItemWidgetView = ({ page }: CatalogWidgetProps) => {
 
         if (!isLimitedOffer(next)) return;
 
-        if (refresh && (previous?.offerId !== next.offerId)) send(new GetProductOfferComposer({ offerId: next.offerId }));
+        if (refresh && (previous?.offerId !== next.offerId)) requestProductOffer(send, next.offerId);
     };
 
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.SELECT_PRODUCT, event => update(event.offer, true));
@@ -61,7 +61,7 @@ export const CatalogLimitedItemWidgetView = ({ page }: CatalogWidgetProps) => {
     useEffect(() => {
         if (offerId < 0) return;
 
-        const timer = setInterval(() => send(new GetProductOfferComposer({ offerId })), SUPPLY_REFRESH_PERIOD_MS);
+        const timer = setInterval(() => requestProductOffer(send, offerId), SUPPLY_REFRESH_PERIOD_MS);
 
         return () => clearInterval(timer);
     }, [ offerId, send ]);

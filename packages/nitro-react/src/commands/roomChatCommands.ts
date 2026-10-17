@@ -38,11 +38,15 @@
  * Without the rights each asks for, the command does nothing and is not said either - unless
  * Flash breaks out of its switch for it, when it is said as chat.
  *
+ * What is said instead - chat, a shout, a whisper - and the typing state go out through
+ * `RoomSession`'s `sendChatMessage`, `sendShoutMessage`, `sendWhisperMessage` and
+ * `sendChatTypingMessage` (`sayChat`, `shoutChat`, `whisperChat`, `sendChatTyping`).
+ *
  * Not carried: `:csmm` (`GameManager.generateChecksumMismatch`, for the game centre, which is not
  * ported).
  */
 import { AvatarExpressionEnum, ClubLevelEnum, RoomControllerLevelEnum, RoomObjectVariableEnum, RoomZoomEvent } from '@nitrodevco/nitro-api';
-import { AvatarExpressionComposer, ChatComposer, PeerUsersClassificationComposer, RoomUsersClassificationComposer, SignComposer, VisitUserComposer, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
+import { AvatarExpressionComposer, CancelTypingComposer, ChatComposer, PeerUsersClassificationComposer, RoomUsersClassificationComposer, ShoutComposer, SignComposer, StartTypingComposer, VisitUserComposer, WhisperComposer, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker, RoomShakingEffect } from '@nitrodevco/nitro-renderer';
 
 import { WebSocketConnection } from '#base/context/communication';
@@ -308,3 +312,15 @@ export const runRoomChatCommand = (send: Send, text: string): boolean => {
 
     return false;
 };
+
+/** `RoomSession.sendChatMessage`: a line said in the chat style. */
+export const sayChat = (send: Send, text: string, styleId: number) => send(new ChatComposer({ text, styleId }));
+
+/** `RoomSession.sendShoutMessage`. */
+export const shoutChat = (send: Send, text: string, styleId: number) => send(new ShoutComposer({ text, styleId }));
+
+/** `RoomSession.sendWhisperMessage`: to the named user only. */
+export const whisperChat = (send: Send, recipientName: string, text: string, styleId: number) => send(new WhisperComposer({ recipientName, text, styleId }));
+
+/** `RoomSession.sendChatTypingMessage`: the typing bubble shown or taken away. */
+export const sendChatTyping = (send: Send, typing: boolean) => send(typing ? new StartTypingComposer({}) : new CancelTypingComposer({}));

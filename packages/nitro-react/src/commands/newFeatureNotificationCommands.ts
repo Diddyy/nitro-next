@@ -8,6 +8,8 @@
  * `openConfiguredLink`: `notifications.new_feature.internal_link.<key>` as a client link, else
  * `notifications.new_feature.external_link.<key>` in the browser.
  */
+import { GetSecondsUntilComposer, HasClaimedProductComposer } from '@nitrodevco/nitro-packets';
+
 import { WebSocketConnection } from '#base/context/communication';
 import { singularNotificationStore } from '#base/context/singular-notifications';
 import { systemStore } from '#base/context/system';
@@ -82,3 +84,9 @@ export const openNewFeatureLink = (send: Send, key: string) => {
 
     if (externalLink !== '') window.open(externalLink, 'habboMain');
 };
+
+/** `NewFeatureNotification`'s constructor: how long until its expiry, or its countdown's end (`GetSecondsUntilMessageComposer`). */
+export const requestNewFeatureSecondsUntil = (send: Send, timeStr: string) => send(new GetSecondsUntilComposer({ timeStr }));
+
+/** `NewFeatureNotification.initializeAutoOpen`: whether the auto-open condition's product is claimed. */
+export const requestNewFeatureClaimState = (send: Send, claimId: string) => send(new HasClaimedProductComposer({ claimId }));
