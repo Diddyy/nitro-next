@@ -56,7 +56,8 @@ const RoomThumbnailCameraView = () => {
     const [ texture ] = useState(() => RenderTexture.create({ width: VIEWFINDER_SIZE, height: VIEWFINDER_SIZE }));
     const viewfinder = useRef<Sprite>(null);
 
-    useEffect(() => () => texture.destroy(true), [ texture ]);
+    // Destroyed with the room's and the UI's batches rebuilt first: the viewfinder drew it this frame.
+    useEffect(() => () => TextureUtils.destroyTexture(texture), [ texture ]);
 
     useEffect(() => {
         if (sent) return;
