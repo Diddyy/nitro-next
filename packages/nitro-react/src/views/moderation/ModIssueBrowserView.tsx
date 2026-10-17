@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
+import { autoPickModerationBundle, pickModerationBundle, releaseAllModerationBundles, releaseModerationBundle } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { bundleHighestPriority, bundleMessageCount, bundleOpenTime, bundlesOfTab, highestPriorityIssue, IssueBundleTab, moderationIssueStore, useModerationIssueStore } from '#base/context/moderation';
+import { bundleHighestPriority, bundleMessageCount, bundleOpenTime, bundlesOfTab, highestPriorityIssue, IssueBundleTab, useModerationIssueActions, useModerationIssueStore } from '#base/context/moderation';
 import { useUserStore } from '#base/context/user';
-import { moderationIssueSends } from '#base/handlers/moderation';
 import { findTemplateChild, LayoutImage, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 import { issueCategoryName, issueSourceName } from './issueNames';
@@ -38,6 +38,7 @@ export const ModIssueBrowserView = () => {
     const userId = useUserStore(x => x.userId);
     const tab = useModerationIssueStore(x => x.browserTab);
     const snapshot = useModerationIssueStore(x => x.snapshot);
+    const { showBrowser, setBrowserTab, handleBundle } = useModerationIssueActions();
     const template = useTemplate(TEMPLATE);
     const [ now, setNow ] = useState(() => performance.now());
     // `createMainFrame`: centred on the desktop.
@@ -45,7 +46,7 @@ export const ModIssueBrowserView = () => {
         id: 'moderation-issue-browser',
         defaultPosition: { x: Math.floor((globalThis.innerWidth - BROWSER_WIDTH) / 2), y: Math.floor((globalThis.innerHeight - BROWSER_HEIGHT) / 2) },
         rememberPosition: false,
-        onClose: () => moderationIssueStore.getState().showBrowser(false),
+        onClose: () => showBrowser(false),
     }));
 
     useEffect(() => {
@@ -56,15 +57,13 @@ export const ModIssueBrowserView = () => {
 
     if (!template) return null;
 
-    const issues = moderationIssueStore.getState();
-    const sends = moderationIssueSends(send);
     const bindings: Record<string, object> = {
-        auto_pick: { onPointerTap: () => issues.autoPick('issue browser pick next', sends) },
-        'my_issues_prototype/release_all': { onPointerTap: () => issues.releaseAll(userId, sends) },
+        auto_pick: { onPointerTap: () => autoPickModerationBundle(send, 'issue browser pick next') },
+        'my_issues_prototype/release_all': { onPointerTap: () => releaseAllModerationBundles(send, userId) },
     };
 
     for (const name of TABS) {
-        bindings[name] = { selected: tab === name, onPointerTap: () => issues.setBrowserTab(name) };
+        bindings[name] = { selected: tab === name, onPointerTap: () => setBrowserTab(name) };
         bindings[`${name}_prototype`] = { visible: tab === name };
 
         const row = findTemplateChild(findTemplateChild(template.elements, `${name}_prototype`)?.children ?? [], 'item_prototype');
@@ -91,9 +90,9 @@ export const ModIssueBrowserView = () => {
                     time: { caption: bundleOpenTime(bundle, now) },
                     msgs: { caption: String(bundleMessageCount(bundle)) },
                     picker: { caption: bundle.pickerName },
-                    pick_button: { onPointerTap: () => issues.pickBundle(bundle.id, 'pick button', sends) },
-                    handle_button: { onPointerTap: () => issues.handleBundle(bundle.id) },
-                    release_button: { onPointerTap: () => issues.releaseBundle(bundle.id, sends) },
+                    pick_button: { onPointerTap: () => pickModerationBundle(send, bundle.id, 'pick button') },
+                    handle_button: { onPointerTap: () => handleBundle(bundle.id) },
+                    release_button: { onPointerTap: () => releaseModerationBundle(send, bundle.id) },
                 },
             };
         });

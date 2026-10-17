@@ -147,7 +147,11 @@ is for numbers.) Read a flag with these, never `=== true`.
 moderation views call `getState()` 22 times and send 28 packets directly, and two import
 `moderationIssueSends` from `handlers/moderation`. **Verified** (`getState` count). Change:
 `useModerationActions`, `useModerationIssueActions` and a moderation commands file. The local
-drift tool's exemption saying moderation is not ported is stale. M.
+drift tool's exemption saying moderation is not ported is stale. M. **Done:** `commands/moderationCommands.ts`
+holds every request and action the views sent (and `moderationIssueSends`, moved from the
+handlers); the views use `useModerationActions` / `useModerationIssueActions` / `useWindowActions`,
+with no `getState()` or `send(new …)` left. The drift exemption is removed. Not checked live (Turbo
+was down; it needs a moderator account).
 
 ### 10. Packets sent from views
 
@@ -229,3 +233,4 @@ copies' timing agrees with Flash's. M-L.
 - Item 6, chat bubble positions in a flipped room.
 - Item 7, documented: Flash keeps an unoffered source type; the port's resolutions are listed.
 - Item 8, boolean configuration read as Flash does (`configBoolean`, `useConfigBoolean`).
+- Item 9, moderation through actions hooks and `moderationCommands`.

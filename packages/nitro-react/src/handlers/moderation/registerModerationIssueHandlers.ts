@@ -14,10 +14,11 @@
  * - `CallForHelpManager.onIssueClose` (:670-679): the reporter's alert, the server's text or
  *   `help.cfh.closed.useless` / `abusive` / `resolved`.
  */
-import { CfhChatlogMessage, CfhSanctionMessage, IssueCloseNotificationMessage, IssueDeletedMessage, IssueInfoMessage, IssuePickFailedMessage, ModeratorInitMessage, ModeratorToolPreferencesMessage, PickIssuesComposer, ReleaseIssuesComposer, RoomVisitsMessage } from '@nitrodevco/nitro-packets';
+import { CfhChatlogMessage, CfhSanctionMessage, IssueCloseNotificationMessage, IssueDeletedMessage, IssueInfoMessage, IssuePickFailedMessage, ModeratorInitMessage, ModeratorToolPreferencesMessage, RoomVisitsMessage } from '@nitrodevco/nitro-packets';
 
+import { moderationIssueSends } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
-import { MOD_CHATLOG_CFH, ModerationIssueSends, moderationIssueStore, moderationStore } from '#base/context/moderation';
+import { MOD_CHATLOG_CFH, moderationIssueStore, moderationStore } from '#base/context/moderation';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { GetSoundManager, HabboSoundTypesEnum } from '#base/sound';
@@ -29,11 +30,6 @@ const userId = () => userStore.getState().userId;
 
 /** `CallForHelpManager.getCloseReasonKey`. */
 const closeReasonKey = (reason: number) => ((reason === 1) ? 'useless' : ((reason === 2) ? 'abusive' : 'resolved'));
-
-export const moderationIssueSends = (send: WebSocketConnection['send']): ModerationIssueSends => ({
-    pick: (issueIds, retryEnabled, retryCount, message) => send(new PickIssuesComposer({ issueIds, retryEnabled, retryCount, message })),
-    release: issueIds => send(new ReleaseIssuesComposer({ issueIds })),
-});
 
 export const registerModerationIssueHandlers = ({ subscribe, send }: WebSocketConnection) => {
     const sends = moderationIssueSends(send);

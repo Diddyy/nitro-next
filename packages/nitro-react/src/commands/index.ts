@@ -51,6 +51,7 @@ export * from './inventoryUnseenCommands';
 export * from './latencyCommands';
 export * from './localizationCommands';
 export * from './messengerCommands';
+export * from './moderationCommands';
 export * from './nameChangeCommands';
 export * from './navigatorCommands';
 export * from './newFeatureNotificationCommands';

@@ -1,39 +1,11 @@
-import { DefaultSanctionComposer, ModAlertComposer, ModBanComposer, ModKickComposer, ModMessageComposer, ModMuteComposer, ModToolSanctionComposer, ModTradingLockComposer } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
+import { giveDefaultSanction, MOD_ACTIONS, requestUserSanction, sendModAction } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useHelpStore } from '#base/context/help';
-import { moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
-import { useSystemStore, useTranslation } from '#base/context/system';
+import { moderationFrame, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
+import { useTranslation, useWindowActions } from '#base/context/system';
 import { TemplateWindow } from '#base/theme';
-
-/** `ModActionDefinition(actionId, name, actionType, sanctionTypeId, actionLengthHours)`. */
-interface ModActionDefinition {
-    actionId: number;
-    name: string;
-    actionType: number;
-    sanctionTypeId: number;
-    actionLengthHours: number;
-}
-
-/** `ModActionCtrl`'s twelve actions (`ModActionCtrl.as:64-75`), in its drop menu's order. */
-const MOD_ACTIONS: readonly ModActionDefinition[] = [
-    { actionId: 1, name: 'Alert', actionType: 1, sanctionTypeId: 1, actionLengthHours: 0 },
-    { actionId: 2, name: 'Mute 1h', actionType: 2, sanctionTypeId: 2, actionLengthHours: 0 },
-    { actionId: 3, name: 'Ban 18h', actionType: 3, sanctionTypeId: 3, actionLengthHours: 0 },
-    { actionId: 4, name: 'Ban 7 days', actionType: 3, sanctionTypeId: 4, actionLengthHours: 0 },
-    { actionId: 5, name: 'Ban 30 days (step 1)', actionType: 3, sanctionTypeId: 5, actionLengthHours: 0 },
-    { actionId: 7, name: 'Ban 30 days (step 2)', actionType: 3, sanctionTypeId: 7, actionLengthHours: 0 },
-    { actionId: 6, name: 'Ban 100 years', actionType: 3, sanctionTypeId: 6, actionLengthHours: 0 },
-    { actionId: 106, name: 'Ban avatar-only 100 years', actionType: 3, sanctionTypeId: 6, actionLengthHours: 0 },
-    { actionId: 101, name: 'Kick', actionType: 4, sanctionTypeId: 0, actionLengthHours: 0 },
-    { actionId: 102, name: 'Lock trade 1 week', actionType: 5, sanctionTypeId: 0, actionLengthHours: 168 },
-    { actionId: 104, name: 'Lock trade permanent', actionType: 5, sanctionTypeId: 0, actionLengthHours: 876000 },
-    { actionId: 105, name: 'Message', actionType: 6, sanctionTypeId: 0, actionLengthHours: 0 },
-];
-
-/** Not taken from an issue (`getIssueId` with no issue): the composers then leave the issue id out. */
-const NO_ISSUE = -1;
 
 /**
  * Flash's `moderation/ModActionCtrl`: the `modact_summary` window ("Mod action on: name"), opened
@@ -51,11 +23,12 @@ export const ModActionView = ({ userId, userName }: { userId: number; userName: 
     const init = useModerationStore(x => x.init);
     const defaultSanction = useModerationStore(x => x.defaultSanctions[userId]);
     const categories = useHelpStore(x => x.callForHelpCategories);
-    const showSimpleAlert = useSystemStore(x => x.showSimpleAlert);
+    const { showSimpleAlert } = useWindowActions();
+    const { closeWindow } = useModerationActions();
     const [ topic, setTopic ] = useState(-1);
     const [ action, setAction ] = useState(-1);
     const [ text, setText ] = useState('');
-    const close = () => moderationStore.getState().closeWindow({ kind: 'modAction', userId, userName });
+    const close = () => closeWindow({ kind: 'modAction', userId, userName });
     const [ frame ] = useState(() => moderationFrame(moderationWindowKey({ kind: 'modAction', userId, userName }), close));
 
     const topicIds = categories.flatMap(category => category.topics.map(x => x.id));
@@ -64,13 +37,13 @@ export const ModActionView = ({ userId, userName }: { userId: number; userName: 
     const selectTopic = (index: number) => {
         setTopic(index);
         setAction(-1);
-        send(new ModToolSanctionComposer({ issueId: NO_ISSUE, accountId: userId, topicId: topicIds[index] }));
+        requestUserSanction(send, userId, topicIds[index]);
     };
 
     const giveDefault = () => {
         if (topic < 0) return alert('Please select a topic.');
 
-        send(new DefaultSanctionComposer({ userId, topicId: topicIds[topic], message: text, issueId: NO_ISSUE }));
+        giveDefaultSanction(send, userId, topicIds[topic], text);
         close();
     };
 
@@ -79,34 +52,9 @@ export const ModActionView = ({ userId, userName }: { userId: number; userName: 
         if (action < 0) return alert('Please select a sanction.');
         if (!init) return;
 
-        const topicId = topicIds[topic];
-        const definition = MOD_ACTIONS[action];
-        const base = { userId, message: text, topicId, issueId: NO_ISSUE };
+        const refused = sendModAction(send, init, MOD_ACTIONS[action], userId, topicIds[topic], text);
 
-        switch (definition.actionType) {
-            case 1:
-                if (!init.alertPermission) return alert('You have insufficient permissions.');
-                send(new ModAlertComposer(base));
-                break;
-            case 2:
-                send(new ModMuteComposer(base));
-                break;
-            case 3:
-                if (!init.banPermission) return alert('You have insufficient permissions.');
-                send(new ModBanComposer({ ...base, sanctionTypeId: definition.sanctionTypeId, avatarOnly: definition.actionId === 106 }));
-                break;
-            case 4:
-                if (!init.kickPermission) return alert('You have insufficient permissions.');
-                send(new ModKickComposer(base));
-                break;
-            case 5:
-                send(new ModTradingLockComposer({ userId, message: text, lengthMinutes: definition.actionLengthHours * 60, topicId, issueId: NO_ISSUE }));
-                break;
-            case 6:
-                if (!text) return alert('Please write a message to user.');
-                send(new ModMessageComposer(base));
-                break;
-        }
+        if (refused) return alert(refused);
 
         close();
     };

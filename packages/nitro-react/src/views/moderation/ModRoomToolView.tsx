@@ -1,13 +1,10 @@
-import { GetModeratorRoomInfoComposer, ModerateRoomComposer, ModeratorActionComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
+import { requestModeratorRoomInfo, sendRoomModeration } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { MOD_CHATLOG_ROOM, moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
-import { useSystemStore } from '#base/context/system';
+import { MOD_CHATLOG_ROOM, moderationFrame, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
+import { useWindowActions } from '#base/context/system';
 import { TemplateWindow } from '#base/theme';
-
-/** `RoomToolCtrl.determineAction`: 0 caution, 1 caution and kick, 3 message, 4 message and kick. */
-const actionType = (caution: boolean, kick: boolean) => (kick ? (caution ? 1 : 4) : (caution ? 0 : 3));
 
 /**
  * Flash's `moderation/RoomToolCtrl`: the `roomtool_frame` window, shown once `ModeratorRoomInfo`
@@ -24,22 +21,22 @@ export const ModRoomToolView = ({ roomId }: { roomId: number }) => {
     const room = useModerationStore(x => x.roomInfos[roomId]);
     const init = useModerationStore(x => x.init);
     const currentRoomId = useModerationStore(x => x.currentRoomId);
-    const showSimpleAlert = useSystemStore(x => x.showSimpleAlert);
+    const { showSimpleAlert } = useWindowActions();
+    const { showWindow, closeWindow } = useModerationActions();
     const [ text, setText ] = useState<string | undefined>(undefined);
     const [ checks, setChecks ] = useState({ kick: false, lock: false, changeName: false });
-    const close = () => moderationStore.getState().closeWindow({ kind: 'roomTool', roomId });
+    const close = () => closeWindow({ kind: 'roomTool', roomId });
     const key = moderationWindowKey({ kind: 'roomTool', roomId });
     const [ frame ] = useState(() => moderationFrame(key, close));
 
     useEffect(() => {
-        send(new GetModeratorRoomInfoComposer({ roomId }));
+        requestModeratorRoomInfo(send, roomId);
     }, [ send, roomId ]);
 
     if (!room || !init) return null;
 
     const templates = init.roomMessageTemplates;
     const canSend = (room.flatId === currentRoomId) && init.roomAlertPermission;
-    const { showWindow } = moderationStore.getState();
 
     const act = (caution: boolean) => {
         if (!text) {
@@ -48,9 +45,7 @@ export const ModRoomToolView = ({ roomId }: { roomId: number }) => {
             return;
         }
 
-        send(new ModeratorActionComposer({ actionType: actionType(caution, checks.kick), message: text, extra: '' }));
-
-        if (checks.lock || checks.changeName || checks.kick) send(new ModerateRoomComposer({ roomId: room.flatId, lockDoor: checks.lock, changeName: checks.changeName, kickUsers: checks.kick }));
+        sendRoomModeration(send, room.flatId, caution, text, checks);
 
         close();
     };

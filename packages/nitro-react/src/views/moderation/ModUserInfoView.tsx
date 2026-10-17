@@ -1,8 +1,9 @@
-import { GetModeratorUserInfoComposer, IModeratorUserInfoData } from '@nitrodevco/nitro-packets';
+import { IModeratorUserInfoData } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
+import { requestModeratorUserInfo } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { MOD_CHATLOG_USER, moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
+import { MOD_CHATLOG_USER, moderationFrame, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
 import { TemplateWindow, useTemplate } from '#base/theme';
 
 /** `UserInfoCtrl.formatTime`. */
@@ -62,15 +63,14 @@ export const userInfoBindings = (user: IModeratorUserInfoData | undefined): Reco
 export const ModUserInfoView = ({ userId }: { userId: number }) => {
     const { send } = useWebSocketContext();
     const user = useModerationStore(x => x.userInfos[userId]);
+    const { showWindow, closeWindow } = useModerationActions();
     const userInfoTemplate = useTemplate('habbo-moderation-com/user_info_xml');
     const key = moderationWindowKey({ kind: 'userInfo', userId });
-    const [ frame ] = useState(() => moderationFrame(key, () => moderationStore.getState().closeWindow({ kind: 'userInfo', userId })));
+    const [ frame ] = useState(() => moderationFrame(key, () => closeWindow({ kind: 'userInfo', userId })));
 
     useEffect(() => {
-        send(new GetModeratorUserInfoComposer({ userId }));
+        requestModeratorUserInfo(send, userId);
     }, [ send, userId ]);
-
-    const { showWindow } = moderationStore.getState();
 
     // `UserInfoCtrl.prepare`: `user_info` built and added to the frame's content (`_-bg.addChild`); the
     // frame's layout has no children of its own, so the clone is its one child, laid out in its content area.

@@ -1,13 +1,10 @@
-import { ModMessageComposer } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
+import { sendModMessage } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
-import { useSystemStore } from '#base/context/system';
+import { moderationFrame, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
+import { useWindowActions } from '#base/context/system';
 import { TemplateWindow } from '#base/theme';
-
-/** `SendMsgsCtrl`'s topic for a message not tied to a call-for-help topic. */
-const NO_TOPIC = -999;
 
 /**
  * Flash's `moderation/SendMsgsCtrl`: the `send_msgs` window ("Msg To: name"). A template from the
@@ -18,10 +15,11 @@ const NO_TOPIC = -999;
 export const ModSendMessageView = ({ userId, userName }: { userId: number; userName: string }) => {
     const { send } = useWebSocketContext();
     const templates = useModerationStore(x => x.init?.messageTemplates ?? []);
-    const showSimpleAlert = useSystemStore(x => x.showSimpleAlert);
+    const { showSimpleAlert } = useWindowActions();
+    const { closeWindow } = useModerationActions();
     // `_placeHolderMessage`: the layout's caption until the input is focused or a template picked.
     const [ text, setText ] = useState<string | undefined>(undefined);
-    const close = () => moderationStore.getState().closeWindow({ kind: 'sendMessage', userId, userName });
+    const close = () => closeWindow({ kind: 'sendMessage', userId, userName });
     const [ frame ] = useState(() => moderationFrame(moderationWindowKey({ kind: 'sendMessage', userId, userName }), close));
 
     const sendMessage = () => {
@@ -31,7 +29,7 @@ export const ModSendMessageView = ({ userId, userName }: { userId: number; userN
             return;
         }
 
-        send(new ModMessageComposer({ userId, message: text, topicId: NO_TOPIC, issueId: -1 }));
+        sendModMessage(send, userId, text);
         close();
     };
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { MOD_CHATLOG_ROOM, moderationFrame, moderationIssueStore, moderationStore, START_PANEL, useModerationStore } from '#base/context/moderation';
+import { MOD_CHATLOG_ROOM, moderationFrame, START_PANEL, useModerationActions, useModerationIssueActions, useModerationStore } from '#base/context/moderation';
 import { TemplateWindow } from '#base/theme';
 
 /** `StartPanelCtrl.show`'s text colour for a button not usable yet (`6710886`), and `0` once it is. */
@@ -20,6 +20,8 @@ type StartPanelButton = typeof BUTTONS[number];
  */
 export const ModStartPanelView = () => {
     const init = useModerationStore(x => x.init);
+    const { showWindow } = useModerationActions();
+    const { showBrowser } = useModerationIssueActions();
     const roomId = useModerationStore(x => x.currentRoomId);
     const selectedUser = useModerationStore(x => x.selectedUser);
     const [ hovered, setHovered ] = useState<string | undefined>(undefined);
@@ -33,12 +35,11 @@ export const ModStartPanelView = () => {
         userinfo_but: !!selectedUser,
         ticket_queue_but: true,
     };
-    const { showWindow } = moderationStore.getState();
     const open: Record<StartPanelButton, () => void> = {
         room_tool_but: () => showWindow({ kind: 'roomTool', roomId }, START_PANEL),
         chatlog_but: () => showWindow({ kind: 'chatlog', type: MOD_CHATLOG_ROOM, id: roomId }, START_PANEL),
         userinfo_but: () => selectedUser && showWindow({ kind: 'userInfo', userId: selectedUser.userId }, START_PANEL),
-        ticket_queue_but: () => moderationIssueStore.getState().showBrowser(true),
+        ticket_queue_but: () => showBrowser(true),
     };
 
     const bindings: Record<string, object> = Object.fromEntries(BUTTONS.flatMap(name => [

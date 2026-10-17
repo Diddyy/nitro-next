@@ -1,12 +1,11 @@
-import { CloseIssueDefaultActionComposer, CloseIssuesComposer, GetCfhChatlogComposer, GetGuestRoomComposer, GetModeratorUserInfoComposer, ModToolPreferencesComposer, ModToolSanctionComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
+import { autoPickModerationBundle, closeModerationIssues, closeModerationIssueWithDefaultAction, forwardToModeratedRoom, releaseModerationBundle, requestCfhChatlog, requestModeratorUserInfo, requestSanctionData, saveModerationToolPreferences } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useHelpStore } from '#base/context/help';
-import { highestPriorityIssue, ISSUE_RESOLUTION_RESOLVED, ISSUE_RESOLUTION_USELESS, issueOpenTime, MOD_CHATLOG_CFH, moderationChatlogKey, moderationIssueStore, useModerationIssueStore, useModerationStore } from '#base/context/moderation';
-import { systemStore } from '#base/context/system';
-import { moderationIssueSends } from '#base/handlers/moderation';
-import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
+import { highestPriorityIssue, ISSUE_RESOLUTION_RESOLVED, ISSUE_RESOLUTION_USELESS, issueOpenTime, MOD_CHATLOG_CFH, moderationChatlogKey, useModerationActions, useModerationIssueActions, useModerationIssueStore, useModerationStore } from '#base/context/moderation';
+import { useWindowActions } from '#base/context/system';
+import { findTemplateChild, TemplateItem, TemplateWindow, useLatest, useTemplate } from '#base/theme';
 
 import { issueCategoryName, issueSourceName } from './issueNames';
 import { chatlogItems } from './ModChatlogView';
@@ -36,6 +35,10 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     const { send } = useWebSocketContext();
     const bundle = useModerationIssueStore(x => x.snapshot.find(b => b.id === bundleId));
     const preferences = useModerationIssueStore(x => x.preferences);
+    const preferencesRef = useLatest(preferences);
+    const { removeHandler } = useModerationIssueActions();
+    const { showWindow } = useModerationActions();
+    const { showSimpleAlert } = useWindowActions();
     const template = useTemplate(TEMPLATE);
     const evidenceTemplate = useTemplate('habbo-moderation-com/evidence_frame_xml');
     const userInfoTemplate = useTemplate('habbo-moderation-com/user_info_xml');
@@ -63,26 +66,25 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     useEffect(() => {
         if (!issueId) return;
 
-        send(new ModToolSanctionComposer({ issueId, accountId: -1, topicId: -1 }));
+        requestSanctionData(send, issueId, -1, -1);
 
-        if (autoTriggered) send(new ModToolSanctionComposer({ issueId, accountId: -1, topicId: 1 }));
+        if (autoTriggered) requestSanctionData(send, issueId, -1, 1);
     }, [ send, issueId, autoTriggered ]);
     const [ frame ] = useState(() => ({
         id: `moderation-issue-handler-${bundleId}`,
         defaultPosition: { x: preferences.x, y: preferences.y },
         rememberPosition: false,
         onPositionChange: (position: { x: number; y: number }) => {
-            const current = moderationIssueStore.getState().preferences;
+            const current = preferencesRef.current;
 
             if ((performance.now() - openedAt) <= PREFERENCES_DELAY_MS) return;
             if ((position.x === current.x) && (position.y === current.y)) return;
 
             const next = { ...current, x: position.x, y: position.y };
 
-            moderationIssueStore.getState().setPreferences(next);
-            send(new ModToolPreferencesComposer({ windowX: next.x, windowY: next.y, windowWidth: next.width, windowHeight: next.height }));
+            saveModerationToolPreferences(send, next);
         },
-        onClose: () => moderationIssueStore.getState().removeHandler(bundleId),
+        onClose: () => removeHandler(bundleId),
     }));
 
     // `registerUpdateReceiver(this, 1000)`: the open times move on each second.
@@ -93,18 +95,16 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     }, []);
 
     useEffect(() => {
-        if (issueId) send(new GetCfhChatlogComposer({ issueId }));
+        if (issueId) requestCfhChatlog(send, issueId);
     }, [ send, issueId ]);
 
     useEffect(() => {
-        if (reporterId) send(new GetModeratorUserInfoComposer({ userId: reporterId }));
-        if (reportedId) send(new GetModeratorUserInfoComposer({ userId: reportedId }));
+        if (reporterId) requestModeratorUserInfo(send, reporterId);
+        if (reportedId) requestModeratorUserInfo(send, reportedId);
     }, [ send, reporterId, reportedId ]);
 
     if (!template || !bundle || !issue) return null;
 
-    const issues = moderationIssueStore.getState();
-    const sends = moderationIssueSends(send);
     const ids = [ ...bundle.issues.keys() ];
     const list = (name: string) => findTemplateChild(template.elements, name)?.children[0];
     const issueRow = list('issues_item_list');
@@ -114,9 +114,9 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
 
     // `checkAutoHandling` then `dispose`.
     const done = () => {
-        if (handleNext) issues.autoPick('issue handler pick next', sends);
+        if (handleNext) autoPickModerationBundle(send, 'issue handler pick next');
 
-        issues.removeHandler(bundleId);
+        removeHandler(bundleId);
     };
 
     const issueItems: TemplateItem[] = issueRow
@@ -151,29 +151,29 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
                 caller_user_info: { items: userInfo(caller) },
                 reported_user_info: reportedId ? { items: userInfo(reported) } : { visible: false },
                 reported_user_info_caption: { visible: reportedId > 0 },
-                evidence_list: { items: (chatlog && header && line) ? chatlogItems(chatlog.records, header, line, `issueHandler:${bundleId}`, roomId => send(new GetGuestRoomComposer({ roomId, enterRoom: false, roomForward: true }))) : [] },
+                evidence_list: { items: (chatlog && header && line) ? chatlogItems(chatlog.records, header, line, `issueHandler:${bundleId}`, showWindow, roomId => forwardToModeratedRoom(send, roomId)) : [] },
                 handle_next_checkbox: { selected: handleNext, onPointerTap: () => setHandleNext(!handleNext) },
                 close_useless: {
                     onPointerTap: () => {
-                        send(new CloseIssuesComposer({ issueIds: ids, closeReason: ISSUE_RESOLUTION_USELESS }));
+                        closeModerationIssues(send, ids, ISSUE_RESOLUTION_USELESS);
                         done();
                     },
                 },
                 close_resolved: {
                     onPointerTap: () => {
-                        send(new CloseIssuesComposer({ issueIds: ids, closeReason: ISSUE_RESOLUTION_RESOLVED }));
+                        closeModerationIssues(send, ids, ISSUE_RESOLUTION_RESOLVED);
                         done();
                     },
                 },
                 close_sanction: {
                     onPointerTap: () => {
                         if (issueTopic === 28) {
-                            systemStore.getState().showSimpleAlert({ caption: 'Topic missing', message: 'You need to select the topic first.' });
+                            showSimpleAlert({ caption: 'Topic missing', message: 'You need to select the topic first.' });
 
                             return;
                         }
 
-                        send(new CloseIssueDefaultActionComposer({ issueId, otherIssueIds: ids.filter(x => x !== issueId), topicId: -1 }));
+                        closeModerationIssueWithDefaultAction(send, issueId, ids);
                         done();
                     },
                 },
@@ -185,13 +185,13 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
                             // `refreshSanctionDataForSelectedTopic`.
                             onSelect: (index: number) => {
                                 setTopicSelection(index);
-                                send(new ModToolSanctionComposer({ issueId, accountId: -1, topicId: topicIds[index] }));
+                                requestSanctionData(send, issueId, -1, topicIds[index]);
                             },
                         },
                 sanction_label: (sanctionLabel !== undefined) ? { caption: sanctionLabel } : {},
                 release: {
                     onPointerTap: () => {
-                        issues.releaseBundle(bundleId, sends);
+                        releaseModerationBundle(send, bundleId);
                         done();
                     },
                 },

@@ -1,8 +1,9 @@
-import { GetGuestRoomComposer, GetRoomChatlogComposer, GetUserChatlogComposer, IRoomChatlogData } from '@nitrodevco/nitro-packets';
+import { IRoomChatlogData } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
+import { forwardToModeratedRoom, requestModerationChatlog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { MOD_CHATLOG_ROOM, moderationChatlogKey, moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
+import { moderationChatlogKey, moderationFrame, ModerationWindow, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
 import { findTemplateChild, TemplateElement, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 const TEMPLATE = 'habbo-moderation-com/evidence_frame_xml';
@@ -24,8 +25,7 @@ const headerCaption = (record: IRoomChatlogData) => {
  * its "Room tool" button, and for a room "View room" when `viewRoom` is given) and its lines the second
  * (`chatline`): time, chatter (a link to their user info; "Bot / pet" for 0) and message, rows in alternating shades. Windows it opens go beside `caller`.
  */
-export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElement, line: TemplateElement, caller: string, viewRoom?: (roomId: number) => void) => {
-    const { showWindow } = moderationStore.getState();
+export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElement, line: TemplateElement, caller: string, showWindow: (window: ModerationWindow, caller?: string) => void, viewRoom?: (roomId: number) => void) => {
     const items: TemplateItem[] = [];
 
     records.forEach((record, recordIndex) => {
@@ -74,12 +74,13 @@ export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElemen
 export const ModChatlogView = ({ type, id }: { type: number; id: number }) => {
     const { send } = useWebSocketContext();
     const chatlog = useModerationStore(x => x.chatlogs[moderationChatlogKey(type, id)]);
+    const { showWindow, closeWindow } = useModerationActions();
     const template = useTemplate(TEMPLATE);
     const key = moderationWindowKey({ kind: 'chatlog', type, id });
-    const [ frame ] = useState(() => moderationFrame(key, () => moderationStore.getState().closeWindow({ kind: 'chatlog', type, id })));
+    const [ frame ] = useState(() => moderationFrame(key, () => closeWindow({ kind: 'chatlog', type, id })));
 
     useEffect(() => {
-        send((type === MOD_CHATLOG_ROOM) ? new GetRoomChatlogComposer({ roomType: 0, roomId: id }) : new GetUserChatlogComposer({ userId: id }));
+        requestModerationChatlog(send, type, id);
     }, [ send, type, id ]);
 
     const list = template && findTemplateChild(template.elements, 'evidence_list');
@@ -87,7 +88,7 @@ export const ModChatlogView = ({ type, id }: { type: number; id: number }) => {
 
     if (!chatlog || !header || !line) return null;
 
-    const items = chatlogItems(chatlog.records, header, line, key, roomId => send(new GetGuestRoomComposer({ roomId, enterRoom: false, roomForward: true })));
+    const items = chatlogItems(chatlog.records, header, line, key, showWindow, roomId => forwardToModeratedRoom(send, roomId));
 
     return (
         <TemplateWindow

@@ -1,8 +1,8 @@
-import { FollowFriendComposer } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
+import { followModeratedUser } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { ModerationClassification, moderationClassificationKey, moderationFrame, moderationStore } from '#base/context/moderation';
+import { ModerationClassification, moderationClassificationKey, moderationFrame, useModerationActions } from '#base/context/moderation';
 import { ClientGates, useClientGate } from '#base/context/user';
 import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
@@ -21,16 +21,16 @@ const ROW_COLORS = [ 0xFFA2D6EA, 0xFFFFFFFF ];
  */
 export const ModUserClassificationView = ({ classification }: { classification: ModerationClassification }) => {
     const { send } = useWebSocketContext();
+    const { showWindow, closeClassification } = useModerationActions();
     const isModerator = useClientGate(ClientGates.ModerationUserLinks);
     const template = useTemplate(TEMPLATE);
     const key = moderationClassificationKey(classification.id);
-    const [ frame ] = useState(() => moderationFrame(key, () => moderationStore.getState().closeClassification(classification.id)));
+    const [ frame ] = useState(() => moderationFrame(key, () => closeClassification(classification.id)));
 
     const row = template && findTemplateChild(template.elements, 'classificationrow');
 
     if (!row) return null;
 
-    const { showWindow } = moderationStore.getState();
     const items: TemplateItem[] = classification.users.map((user, index) => {
         const color = ROW_COLORS[index % 2];
 
@@ -42,7 +42,7 @@ export const ModUserClassificationView = ({ classification }: { classification: 
                 // A text window's `color` is its field's (the layout gives both a background).
                 user_name_txt: { caption: user.userName, backgroundColor: color, ...(isModerator ? { onPointerTap: () => showWindow({ kind: 'userInfo', userId: user.userId }, key) } : {}) },
                 user_classification_txt: { caption: user.classType, visible: isModerator },
-                visit_room_txt: { backgroundColor: color, visible: isModerator, ...(isModerator ? { onPointerTap: () => send(new FollowFriendComposer({ playerId: user.userId })) } : {}) },
+                visit_room_txt: { backgroundColor: color, visible: isModerator, ...(isModerator ? { onPointerTap: () => followModeratedUser(send, user.userId) } : {}) },
             },
         };
     });

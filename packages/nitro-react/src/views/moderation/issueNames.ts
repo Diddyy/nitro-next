@@ -1,4 +1,4 @@
-import { systemStore } from '#base/context/system';
+import { translate } from '#base/context/system';
 
 /** Flash's `moderation/IssueCategoryNames`: the names the issue browser and handler show. */
 /** `IssueCategoryNames.getSourceName`. */
@@ -26,7 +26,7 @@ export const issueSourceName = (categoryId: number) => {
  * else Flash's fixed names.
  */
 export const issueCategoryName = (topicId: number) => {
-    const text = systemStore.getState().getLocalizationValue(`help.cfh.topic.${topicId}`);
+    const text = translate(`help.cfh.topic.${topicId}`);
 
     if (text.length) return text;
 

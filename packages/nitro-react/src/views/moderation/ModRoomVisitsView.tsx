@@ -1,8 +1,8 @@
-import { GetGuestRoomComposer, GetRoomVisitsComposer } from '@nitrodevco/nitro-packets';
 import { useEffect, useState } from 'react';
 
+import { forwardToModeratedRoom, requestRoomVisits } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { moderationFrame, moderationStore, moderationWindowKey, useModerationStore } from '#base/context/moderation';
+import { moderationFrame, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
 import { findTemplateChild, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 import { twoDigits } from '#base/utils';
 
@@ -22,19 +22,19 @@ const ROW_COLORS = [ 0xFFA2D6EA, 0xFFFFFFFF ];
 export const ModRoomVisitsView = ({ userId }: { userId: number }) => {
     const { send } = useWebSocketContext();
     const visits = useModerationStore(x => x.roomVisits[userId]);
+    const { showWindow, closeWindow } = useModerationActions();
     const template = useTemplate(TEMPLATE);
     const key = moderationWindowKey({ kind: 'roomVisits', userId });
-    const [ frame ] = useState(() => moderationFrame(key, () => moderationStore.getState().closeWindow({ kind: 'roomVisits', userId })));
+    const [ frame ] = useState(() => moderationFrame(key, () => closeWindow({ kind: 'roomVisits', userId })));
 
     useEffect(() => {
-        send(new GetRoomVisitsComposer({ userId }));
+        requestRoomVisits(send, userId);
     }, [ send, userId ]);
 
     const row = template && findTemplateChild(template.elements, 'visitrow');
 
     if (!visits || !row) return null;
 
-    const { showWindow } = moderationStore.getState();
     const items: TemplateItem[] = visits.rooms.map((room, index) => {
         const color = ROW_COLORS[index % 2];
 
@@ -46,7 +46,7 @@ export const ModRoomVisitsView = ({ userId }: { userId: number }) => {
                 room_name_txt: { caption: room.roomName, color, onPointerTap: () => showWindow({ kind: 'roomTool', roomId: room.roomId }, key) },
                 time_txt: { caption: `${twoDigits(room.enterHour)}:${twoDigits(room.enterMinute)}` },
                 // `OpenRoomInSpectatorMode`: "Enter" goes to the room (`ModerationManager.goToRoom`).
-                view_room_txt: { color, onPointerTap: () => send(new GetGuestRoomComposer({ roomId: room.roomId, enterRoom: false, roomForward: true })) },
+                view_room_txt: { color, onPointerTap: () => forwardToModeratedRoom(send, room.roomId) },
             },
         };
     });
