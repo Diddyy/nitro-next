@@ -14,7 +14,7 @@ import { RoomGeometry } from '../../../utils';
 import { PlaneMaskManager } from './mask';
 import { PlaneTextureCache } from './PlaneTextureCache';
 import { IPlaneRasterizer } from './rasterizer/IPlaneRasterizer';
-import { acquirePlaneTarget, copyToPlaneCanvas, createPlaneCanvas, fillPlaneCanvas, preparePlaneSampling, releasePlaneCanvas, releasePlaneTarget } from './rasterizer/PlaneCanvas';
+import { acquirePlaneTarget, clearPlaneCanvas, copyToPlaneCanvas, createPlaneCanvas, fillPlaneCanvas, preparePlaneSampling, releasePlaneCanvas, releasePlaneTarget } from './rasterizer/PlaneCanvas';
 import { RoomPlaneBitmapMask } from './RoomPlaneBitmapMask';
 import { RoomPlaneRectangleMask } from './RoomPlaneRectangleMask';
 import { PlaneBitmapData, Randomizer } from './utils';
@@ -887,6 +887,9 @@ export class RoomPlane implements IRoomPlane {
             clear: true,
         });
 
+        // Destroyed, not dropped: the render made it a render group whose batcher the renderer keeps until then.
+        container.destroy({ children: true });
+
         return this._maskTexture;
     }
 
@@ -1050,7 +1053,7 @@ export class RoomPlane implements IRoomPlane {
         if (!this._coloredTexture) this._coloredTexture = preparePlaneSampling(createPlaneCanvas(this._width, this._height));
 
         if (this._textureColor !== color) {
-            TextureUtils.getRenderer().render({ target: this._coloredTexture, container: new Container(), clear: true });
+            clearPlaneCanvas(this._coloredTexture);
             copyToPlaneCanvas(this._coloredTexture, this._planeTexture, 0, 0, undefined, color);
             ExtendedSprite.removeHitmap(this._coloredTexture.source);
             this._textureColor = color;
