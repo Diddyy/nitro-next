@@ -1,6 +1,7 @@
 import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { execSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, rmdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig, Plugin } from 'vite';
@@ -88,6 +89,20 @@ const pruneBundledAssets = (): Plugin => ({
  */
 const WORKSPACE_PACKAGES = [ '@nitrodevco/nitro-api', '@nitrodevco/nitro-packets', '@nitrodevco/nitro-renderer', '@nitrodevco/nitro-theme' ];
 
+/**
+ * The build's own name, as a bug report carries it: `NITRO_BUILD` when the host sets one,
+ * otherwise the commit it was built from, `dev` outside a git checkout.
+ */
+const buildId = () => {
+    if (process.env.NITRO_BUILD) return process.env.NITRO_BUILD;
+
+    try {
+        return execSync('git rev-parse --short=12 HEAD', { cwd: import.meta.dirname, stdio: [ 'ignore', 'pipe', 'ignore' ] }).toString().trim() || 'dev';
+    } catch {
+        return 'dev';
+    }
+};
+
 export default defineConfig(({ mode }) => {
     const prebundleWorkspace = mode === 'prebundle';
     const bundledDev = mode === 'bundled';
@@ -95,6 +110,9 @@ export default defineConfig(({ mode }) => {
     return {
     // The repository root's `.env` - where a host such as Ploi writes the site's environment.
     envDir: r('../..'),
+    define: {
+        __NITRO_BUILD__: JSON.stringify(buildId()),
+    },
     experimental: {
         bundledDev,
     },

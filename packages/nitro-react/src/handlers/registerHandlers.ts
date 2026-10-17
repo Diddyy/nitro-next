@@ -30,7 +30,7 @@ import {
 } from './room';
 import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
 import { registerSpecialItemsHandlers } from './special-items';
-import { registerFurnitureDataHandlers, registerHotelViewHandlers, registerLatencyHandlers } from './system';
+import { registerBugReportHandlers, registerFurnitureDataHandlers, registerHotelViewHandlers, registerLatencyHandlers } from './system';
 import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerChatCommandHandlers, registerFriendBarHandlers, registerMessengerHandlers, registerOnboardingHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
 import { registerProfileHandlers } from './user-profile';
 import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariableLeaderboardHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
@@ -125,6 +125,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerFurnitureDataHandlers(socket),
         // `HabboTracking`'s latency test: a ping every `latencytest.interval` ms, the round trip `:ping` shows.
         registerLatencyHandlers(socket),
+        registerBugReportHandlers(socket),
         // The vault's income rewards (`EarningsController`), after the wallet whose duckets its claims weigh.
         registerEarningsHandlers(socket),
         // `HabboCatalog`'s session-long parts outside the catalogue window: the special items
