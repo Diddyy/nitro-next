@@ -392,6 +392,120 @@ index 75de38551df6130b63ee6495562813c42ef9a24c..6d254712f8a6c9a0653ad7b7b42d10fb
  export { GpuBatchAdaptor } from './batcher/gpu/GpuBatchAdaptor.mjs';
  export { Batch, Batcher } from './batcher/shared/Batcher.mjs';
  export { BatcherPipe } from './batcher/shared/BatcherPipe.mjs';
+diff --git a/lib/rendering/renderers/gpu/BindGroupSystem.js b/lib/rendering/renderers/gpu/BindGroupSystem.js
+index efc1c53ae3aabf7c0b382096d9ae6322b03967d1..ce1e32a0151dff894ecf681b29c36f7d01b4d024 100644
+--- a/lib/rendering/renderers/gpu/BindGroupSystem.js
++++ b/lib/rendering/renderers/gpu/BindGroupSystem.js
+@@ -1,8 +1,36 @@
+ 'use strict';
+ 
+ var Extensions = require('../../../extensions/Extensions.js');
++var warn = require('../../../utils/logging/warn.js');
++var Texture = require('../shared/texture/Texture.js');
+ 
+ "use strict";
++/**
++ * What a slot of a bind group binds when its resource was destroyed while a shader still uses it:
++ * the empty texture for a 2d float texture slot, its sampler for a filtering sampler slot, nothing
++ * (so the bind group still throws) for anything else. Every path that drew a destroyed texture -
++ * and `BindGroup.onResourceChange` nulls the slot of each group that held it - otherwise threw here
++ * and stopped the ticker: one early `destroy` blacked out the whole client.
++ * @param program - The program the group is bound for.
++ * @param groupIndex - The group's index in the program.
++ * @param binding - The slot's binding in the group.
++ * @returns The stand-in resource, or undefined when the slot takes no texture or sampler.
++ */
++function getEmptyStandIn(program, groupIndex, binding) {
++  const entries = program.gpuLayout?.[groupIndex];
++  if (!entries) return void 0;
++  for (const i in entries) {
++    const entry = entries[i];
++    if (!entry || entry.binding !== binding) continue;
++    if (entry.texture) {
++      const { sampleType = "float", viewDimension = "2d", multisampled = false } = entry.texture;
++      return sampleType === "float" && viewDimension === "2d" && !multisampled ? Texture.Texture.EMPTY.source : void 0;
++    }
++    if (entry.sampler) return (entry.sampler.type ?? "filtering") === "filtering" ? Texture.Texture.EMPTY.source.style : void 0;
++    return void 0;
++  }
++  return void 0;
++}
+ class GpuBindGroupEntry {
+   constructor(gpuBindGroup, now) {
+     this.autoGarbageCollect = true;
+@@ -46,9 +74,14 @@ class BindGroupSystem {
+     const entries = [];
+     const renderer = this._renderer;
+     for (const j in groupLayout) {
+-      const resource = group.resources[j] ?? group.resources[groupLayout[j]];
++      let resource = group.resources?.[j] ?? group.resources?.[groupLayout[j]];
+       if (!resource || resource.destroyed) {
+-        throw new Error(`[BindGroup] the resource bound as '${j}' was destroyed while a shader still uses it. Remove it from the shader before destroying it.`);
++        const standIn = getEmptyStandIn(program, groupIndex, groupLayout[j]);
++        if (!standIn) {
++          throw new Error(`[BindGroup] the resource bound as '${j}' was destroyed while a shader still uses it. Remove it from the shader before destroying it.`);
++        }
++        warn.warn(`[BindGroup] the resource bound as '${j}' was destroyed while a shader still uses it; it is drawn empty. Whatever draws it destroyed it too early.`);
++        resource = standIn;
+       }
+       let gpuResource;
+       if (resource._resourceType === "uniformGroup") {
+diff --git a/lib/rendering/renderers/gpu/BindGroupSystem.mjs b/lib/rendering/renderers/gpu/BindGroupSystem.mjs
+index 3f7c953cc7ff84ce42e3fa671b8f213e6e17d810..88e93a7460640e29cdffcd5e7e56ff5db584a250 100644
+--- a/lib/rendering/renderers/gpu/BindGroupSystem.mjs
++++ b/lib/rendering/renderers/gpu/BindGroupSystem.mjs
+@@ -1,6 +1,34 @@
+ import { ExtensionType } from '../../../extensions/Extensions.mjs';
++import { warn } from '../../../utils/logging/warn.mjs';
++import { Texture } from '../shared/texture/Texture.mjs';
+ 
+ "use strict";
++/**
++ * What a slot of a bind group binds when its resource was destroyed while a shader still uses it:
++ * the empty texture for a 2d float texture slot, its sampler for a filtering sampler slot, nothing
++ * (so the bind group still throws) for anything else. Every path that drew a destroyed texture -
++ * and `BindGroup.onResourceChange` nulls the slot of each group that held it - otherwise threw here
++ * and stopped the ticker: one early `destroy` blacked out the whole client.
++ * @param program - The program the group is bound for.
++ * @param groupIndex - The group's index in the program.
++ * @param binding - The slot's binding in the group.
++ * @returns The stand-in resource, or undefined when the slot takes no texture or sampler.
++ */
++function getEmptyStandIn(program, groupIndex, binding) {
++  const entries = program.gpuLayout?.[groupIndex];
++  if (!entries) return void 0;
++  for (const i in entries) {
++    const entry = entries[i];
++    if (!entry || entry.binding !== binding) continue;
++    if (entry.texture) {
++      const { sampleType = "float", viewDimension = "2d", multisampled = false } = entry.texture;
++      return sampleType === "float" && viewDimension === "2d" && !multisampled ? Texture.EMPTY.source : void 0;
++    }
++    if (entry.sampler) return (entry.sampler.type ?? "filtering") === "filtering" ? Texture.EMPTY.source.style : void 0;
++    return void 0;
++  }
++  return void 0;
++}
+ class GpuBindGroupEntry {
+   constructor(gpuBindGroup, now) {
+     this.autoGarbageCollect = true;
+@@ -44,9 +72,14 @@ class BindGroupSystem {
+     const entries = [];
+     const renderer = this._renderer;
+     for (const j in groupLayout) {
+-      const resource = group.resources[j] ?? group.resources[groupLayout[j]];
++      let resource = group.resources?.[j] ?? group.resources?.[groupLayout[j]];
+       if (!resource || resource.destroyed) {
+-        throw new Error(`[BindGroup] the resource bound as '${j}' was destroyed while a shader still uses it. Remove it from the shader before destroying it.`);
++        const standIn = getEmptyStandIn(program, groupIndex, groupLayout[j]);
++        if (!standIn) {
++          throw new Error(`[BindGroup] the resource bound as '${j}' was destroyed while a shader still uses it. Remove it from the shader before destroying it.`);
++        }
++        warn(`[BindGroup] the resource bound as '${j}' was destroyed while a shader still uses it; it is drawn empty. Whatever draws it destroyed it too early.`);
++        resource = standIn;
+       }
+       let gpuResource;
+       if (resource._resourceType === "uniformGroup") {
 diff --git a/lib/rendering/renderers/gpu/shader/BindGroup.d.ts b/lib/rendering/renderers/gpu/shader/BindGroup.d.ts
 index 89d340f065e87f6d84bcef4c2eabb6e07635433e..c0982cf3247118d9ca3e02224cf6c2e8d38e7e82 100644
 --- a/lib/rendering/renderers/gpu/shader/BindGroup.d.ts
