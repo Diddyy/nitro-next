@@ -14,3 +14,19 @@ export const snapRoomSpriteCoordinate = (coordinate: number, offset: number, sca
 
     return (snapped - offset) / scale;
 };
+
+/** Flash keeps a display position in whole twips (1/20 px), cut toward zero. */
+const toTwips = (value: number): number => Math.trunc((value * 20) + (Math.sign(value) * 0.02));
+
+/**
+ * How many pixels from `offset + local * scale` Flash draws a room sprite: 0, or -1 / +1. The
+ * canvas offset and the sprite's position are each kept in twips, and the bitmap
+ * (`pixelSnapping = "always"`) lands on the pixel its summed position cuts toward. With a positive
+ * offset off the twip grid the sum falls short of the whole pixel `snapSpriteCoordinate` aimed at,
+ * and the sprite is drawn a pixel higher (or further left), where Habbo's thumbnails draw it too.
+ */
+export const drawnRoomSpriteShift = (local: number, offset: number, scale: number): number => {
+    const drawn = Math.trunc((toTwips(offset) + (scale * toTwips(local))) / 20);
+
+    return drawn - Math.round(offset + (local * scale));
+};

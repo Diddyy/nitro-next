@@ -22,7 +22,7 @@ import {
     SortableSprite,
 } from './utils';
 import { RoomDownsampleFilter } from './utils/RoomDownsampleFilter';
-import { snapRoomSpriteCoordinate } from './utils/snapRoomSpriteCoordinate';
+import { drawnRoomSpriteShift, snapRoomSpriteCoordinate } from './utils/snapRoomSpriteCoordinate';
 
 /**
  * One view of a room: every object's sprites, sorted by depth into one display, with the mouse
@@ -734,6 +734,12 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             sortableSprite.x = spriteX - screenOffsetX;
             sortableSprite.y = spriteY - screenOffsetY;
 
+            // Not for the half-size composite or a flipped room: their pixels are placed differently.
+            const drawShift = !this._compositeZoom && !this._isFlipped;
+
+            sortableSprite.drawShiftX = drawShift ? drawnRoomSpriteShift(sortableSprite.x, screenOffsetX, this._scale) : 0;
+            sortableSprite.drawShiftY = drawShift ? drawnRoomSpriteShift(sortableSprite.y, screenOffsetY, this._scale) : 0;
+
             const newZ = z + sprite.relativeDepth + 3.7e-11 * count;
 
             if (!this._zDirty && newZ !== sortableSprite.z) this._zDirty = true;
@@ -828,10 +834,23 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         extendedSprite.x = sprite.x;
         extendedSprite.y = sprite.y;
 
+        this.placeDrawShift(extendedSprite, sprite);
+
         extendedSprite.offsetX = objectSprite.offsetX;
         extendedSprite.offsetY = objectSprite.offsetY;
 
         return true;
+    }
+
+    /**
+     * Draws the picture where Flash shows it (`drawnRoomSpriteShift`) and leaves x / y where
+     * `renderObject` put them: mouse hits stay on those, as `RoomSpriteCanvas.checkMouseHits` tests them.
+     */
+    private placeDrawShift(extendedSprite: ExtendedSprite, sortableSprite: SortableSprite): void {
+        const pivotX = sortableSprite.drawShiftX ? -sortableSprite.drawShiftX / (extendedSprite.scale.x * this._scale) : 0;
+        const pivotY = sortableSprite.drawShiftY ? -sortableSprite.drawShiftY / (extendedSprite.scale.y * this._scale) : 0;
+
+        if (extendedSprite.pivot.x !== pivotX || extendedSprite.pivot.y !== pivotY) extendedSprite.pivot.set(pivotX, pivotY);
     }
 
     private createAndAddSprite(sortableSprite: SortableSprite, index: number = -1): void {
@@ -875,6 +894,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         if (sprite.flipH) extendedSprite.scale.x = -1;
 
         if (sprite.flipV) extendedSprite.scale.y = -1;
+
+        this.placeDrawShift(extendedSprite, sortableSprite);
 
         this.updateEnterRoomEffect(extendedSprite, sprite);
 
