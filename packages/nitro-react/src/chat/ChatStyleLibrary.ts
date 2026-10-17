@@ -1,11 +1,11 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
+import { CHAT_STYLE_DEFAULT_ID, chatStyleAssetName, ChatStyleDefinition, ChatStyleOptionalBitmap } from '@nitrodevco/nitro-theme/chat';
 import { Texture } from 'pixi.js';
 
 import { assetBundleUrl, loadAssetBundle } from '#base/utils';
 
 import { ChatStyle, IChatStyle } from './ChatStyle';
-import { CHAT_STYLE_DEFAULT_ID, chatStyleAssetName, ChatStyleDefinition, ChatStyleOptionalBitmap } from './ChatStyleDefinitions';
 
 /** What Nitro Studio writes into the `habbo-free-flow-chat-com` library's bundle beside the bitmaps. */
 interface ChatStyleCatalogue {

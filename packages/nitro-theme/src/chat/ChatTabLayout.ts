@@ -5,8 +5,7 @@
  * stop is the widest cell so far plus `COLUMN_GAP` (scaled with the chat font). The markers then
  * become tab characters that the text block advances to those stops.
  */
-import { FlashTextFormat, FlashTextLine } from '@nitrodevco/nitro-theme/flash-text';
-
+import { FlashTextFormat, FlashTextLine } from '../font/flash-text';
 import { CHAT_TABLE_TAB_MARKER } from './ChatMarkup';
 
 /** `ChatTabLayout.COLUMN_GAP`. */

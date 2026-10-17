@@ -1,7 +1,8 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
+import { CHAT_FONT_SIZE_LABELS } from '@nitrodevco/nitro-theme/chat';
 import { useState } from 'react';
 
-import { CHAT_FONT_SIZE_LABELS, IChatStyle } from '#base/chat';
+import { IChatStyle } from '#base/chat';
 import { FloatingPopup, GlobalRect, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
 
 /**

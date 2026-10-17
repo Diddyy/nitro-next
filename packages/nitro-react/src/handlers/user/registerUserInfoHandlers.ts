@@ -1,7 +1,7 @@
 import { AvatarGenderType, ChangeUserNameResultMessageCode, ClubLevelEnum } from '@nitrodevco/nitro-api';
 import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, DiscordPreferencesMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetDailyTasksComposer, GetDiscordPreferencesComposer, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, MysteryBoxKeysMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
+import { clampChatFontSizeMode } from '@nitrodevco/nitro-theme/chat';
 
-import { clampChatFontSizeMode } from '#base/chat';
 import { onNameChangeChanged, openClientLink } from '#base/commands';
 import { setBugReportCaptureEnabled, TURBO_BUG_REPORT_CAPABILITY } from '#base/context/bugreport';
 import { WebSocketConnection } from '#base/context/communication';

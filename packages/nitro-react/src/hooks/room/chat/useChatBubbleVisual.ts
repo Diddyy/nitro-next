@@ -7,10 +7,11 @@
  */
 import { AvatarGenderType, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import { PetFigureData } from '@nitrodevco/nitro-renderer';
+import { chatFontSizeScale } from '@nitrodevco/nitro-theme/chat';
 import { Rectangle, Texture } from 'pixi.js';
 import { useEffect, useMemo, useState } from 'react';
 
-import { buildChatBubbleMarkup, ChatBubbleData, chatFontSizeScale, computeChatBubbleLayout, resolveChatBubbleText, scaleChatFontSize } from '#base/chat';
+import { buildChatBubbleMarkup, ChatBubbleData, computeChatBubbleLayout, resolveChatBubbleText, scaleChatFontSize } from '#base/chat';
 import { useRoom, useRoomUserByObjectId } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';

@@ -3,9 +3,10 @@
  * fits the preview area (`MessageEditorPreviewPreset.setBitmap`).
  */
 import { RoomChatTypeEnum } from '@nitrodevco/nitro-api';
+import { chatBubbleWidthFromSetting } from '@nitrodevco/nitro-theme/chat';
 import { useMemo } from 'react';
 
-import { buildChatBubbleMarkup, chatBubbleWidthFromSetting, computeChatBubbleLayout, scaleChatFontSize } from '#base/chat';
+import { buildChatBubbleMarkup, computeChatBubbleLayout, scaleChatFontSize } from '#base/chat';
 import { useUserStore } from '#base/context/user';
 import { useChatBackgroundTexture, useChatBubbleText, useChatStyle } from '#base/hooks';
 import { messageEditorPreviewFit } from '#base/wired';

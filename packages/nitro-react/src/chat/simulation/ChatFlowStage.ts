@@ -1,7 +1,7 @@
 import { RoomChatModeType, RoomChatScrollSpeedType } from '@nitrodevco/nitro-api';
+import { CHAT_FLOW_SCROLL_UP_STEP } from '@nitrodevco/nitro-theme/chat';
 import { Point } from 'pixi.js';
 
-import { CHAT_FLOW_SCROLL_UP_STEP } from '../ChatConstants';
 import { ChatBubbleCollisionEvent } from './ChatBubbleCollisionEvent';
 import { ChatBubbleSimulationEntity } from './ChatBubbleSimulationEntity';
 import { ChatBubbleSimulationWithLimitedWideRect } from './ChatBubbleSimulationWithLimitedWideRect';

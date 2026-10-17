@@ -10,9 +10,10 @@
  * where `recreate` clamps it for a bubble that follows no user on the screen.
  */
 import { RoomChatTypeEnum } from '@nitrodevco/nitro-api';
+import { CHAT_BUBBLE_WIDTH_NORMAL } from '@nitrodevco/nitro-theme/chat';
 import { useMemo } from 'react';
 
-import { buildChatBubbleMarkup, CHAT_BUBBLE_WIDTH_NORMAL, computeChatBubbleLayout, scaleChatFontSize } from '#base/chat';
+import { buildChatBubbleMarkup, computeChatBubbleLayout, scaleChatFontSize } from '#base/chat';
 import { useChatBackgroundTexture, useChatBubbleText, useChatStyle } from '#base/hooks';
 import { Box, BoxLayout } from '#base/theme';
 

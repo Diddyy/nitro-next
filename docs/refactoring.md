@@ -254,7 +254,11 @@ id follow the room engine's session. Found on the way: the navigator never ran `
   highlighted cell runs one; the cost is re-renders while it fades, not the timers.
 - **Chat definitions for Nitro Studio.** `chat/ChatStyleDefinitions.ts`, `chat/ChatConstants.ts` and
   the bubble layout depend only on nitro-api and are copied into Nitro Studio; moving them down a
-  package retires those copies. M.
+  package retires those copies. M. **Done** in the client: `ChatStyleDefinitions`, `ChatConstants`,
+  `ChatMarkup`, `ChatTabLayout` and `ChatBubbleText` are nitro-theme's `src/chat`
+  (`@nitrodevco/nitro-theme/chat`), which Nitro Studio already depends on. Studio's own copies
+  (`src/lib/chatBubble.ts`, `src/lib/flashText.ts`, `src/preview/engine/chat.ts`) can import them
+  instead - that is the Studio repository's change.
 - **`type Send`** is redeclared in 67 files; export it once from `context/communication`. S. **Done:**
   `Send` (`context/communication/WebSocketContext.ts`), in all 78 files that spelled it out.
 

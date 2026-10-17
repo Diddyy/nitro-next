@@ -1,6 +1,6 @@
+import { ChatBubbleTextRender, renderChatBubbleText } from '@nitrodevco/nitro-theme/chat';
 import { useEffect, useMemo } from 'react';
 
-import { ChatBubbleTextRender, renderChatBubbleText } from '#base/chat';
 import { destroyOwnedTexture } from '#base/utils';
 
 /**

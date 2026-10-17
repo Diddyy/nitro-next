@@ -5,13 +5,12 @@
  */
 import { RoomChatTypeEnum } from '@nitrodevco/nitro-api';
 import { IChatLink } from '@nitrodevco/nitro-packets';
+import { applyChatColourToChat, applyChatMarkupToElements, escapeChatMarkup, escapeChatTableTabMarker, hasChatTableTabMarkup } from '@nitrodevco/nitro-theme/chat';
 import { Texture } from 'pixi.js';
 
 import { toCssHexColor } from '#base/utils';
 
 import { ChatBubbleData } from './ChatBubbleData';
-import { escapeChatMarkup } from './ChatBubbleText';
-import { applyChatColourToChat, applyChatMarkupToElements, escapeChatTableTabMarker, hasChatTableTabMarkup } from './ChatMarkup';
 import { IChatStyle } from './ChatStyle';
 
 export type ChatLocalizer = (key: string, defaultValue?: string, replacements?: Record<string, string>) => string;

@@ -1,7 +1,7 @@
+import { CHAT_BUBBLE_WIDTH_NORMAL } from '@nitrodevco/nitro-theme/chat';
 import { Rectangle } from 'pixi.js';
 import { memo, useLayoutEffect } from 'react';
 
-import { CHAT_BUBBLE_WIDTH_NORMAL } from '#base/chat';
 import { ChatHistoryEntry } from '#base/context/chat-history';
 import { useChatBubbleText, useChatBubbleVisual } from '#base/hooks';
 import { LayoutImage, useTextureFromUrl } from '#base/theme';

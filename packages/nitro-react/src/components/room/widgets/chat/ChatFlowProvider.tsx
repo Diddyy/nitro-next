@@ -1,9 +1,10 @@
 import { IVector3D, RoomChatModeType, RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { GetRenderer, GetTicker } from '@nitrodevco/nitro-renderer';
+import { chatBubbleWidthFromSetting } from '@nitrodevco/nitro-theme/chat';
 import { Point, PointData, Ticker } from 'pixi.js';
 import { ReactNode, useEffect, useMemo, useRef } from 'react';
 
-import { ChatBubbleMotion, chatBubbleWidthFromSetting, ChatFlowStage, chatScreenPoint, IChatFlowHost, IChatFlowSettings } from '#base/chat';
+import { ChatBubbleMotion, ChatFlowStage, chatScreenPoint, IChatFlowHost, IChatFlowSettings } from '#base/chat';
 import { useRoom, useRoomChatActions } from '#base/context/room';
 import { useUserStore } from '#base/context/user';
 import { ChatFlowContext, ChatFlowContextValue, useRoomObjectSelect } from '#base/hooks';

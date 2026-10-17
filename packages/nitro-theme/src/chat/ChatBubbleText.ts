@@ -1,6 +1,6 @@
-import { FlashTextFormat, flashTextLinkAtPoint, FlashTextRenderer, HABBO_TEXT_STYLES, layoutFlashTextLines, measureBrowserText, normalizeFlashTextFormat, parseFlashTextMarkup, parseFlashTextMarkupWithLinks, renderBrowserTextCanvas, renderFlashTextCanvas } from '@nitrodevco/nitro-theme/flash-text';
 import { Texture } from 'pixi.js';
 
+import { FlashTextFormat, flashTextLinkAtPoint, FlashTextRenderer, HABBO_TEXT_STYLES, layoutFlashTextLines, measureBrowserText, normalizeFlashTextFormat, parseFlashTextMarkup, parseFlashTextMarkupWithLinks, renderBrowserTextCanvas, renderFlashTextCanvas } from '../font/flash-text';
 import { ChatTabMeasureLayout, layoutChatTabs } from './ChatTabLayout';
 
 /**

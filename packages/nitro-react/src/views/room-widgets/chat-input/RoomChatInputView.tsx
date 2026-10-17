@@ -1,6 +1,7 @@
+import { isNftChatStyle, isStaticChatStyle } from '@nitrodevco/nitro-theme/chat';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { IChatStyle, isNftChatStyle, isStaticChatStyle } from '#base/chat';
+import { IChatStyle } from '#base/chat';
 import { openClientLink, openHabbiconHub, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, sayChat, sendChatTyping, setChatFontSizeMode, setPreferredChatStyle, shoutChat, triggerHabbicon, whisperChat, withSelectedAvatarName } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { HabbiconsStore, useHabbiconsStore } from '#base/context/habbicons';

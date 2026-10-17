@@ -1,9 +1,8 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
+import { ChatStyleDefinition } from '@nitrodevco/nitro-theme/chat';
 import { Point, Rectangle, Texture } from 'pixi.js';
 
 import { destroyOwnedTexture, RetainedCache, toCssHexColor } from '#base/utils';
-
-import { ChatStyleDefinition } from './ChatStyleDefinitions';
 
 /** Tinted backgrounds kept per style - past this the least recently used colour is rebuilt on demand. */
 const MAX_TINTED_BACKGROUNDS = 32;

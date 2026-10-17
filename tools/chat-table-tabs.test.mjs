@@ -30,7 +30,7 @@ const loadFile = (url) => {
     return exports;
 };
 
-const chat = new URL('../packages/nitro-react/src/chat/', import.meta.url);
+const chat = new URL('../packages/nitro-theme/src/chat/', import.meta.url);
 const markup = loadFile(new URL('ChatMarkup.ts', chat));
 const { layoutChatTabs } = loadFile(new URL('ChatTabLayout.ts', chat));
 const { layoutFlashTextLines } = loadFile(new URL('../packages/nitro-theme/src/font/flash-text/flashTextBlock.ts', import.meta.url));

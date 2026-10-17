@@ -1,6 +1,6 @@
+import { CHAT_BUBBLE_HEIGHT_PADDING, CHAT_FLOW_SCROLL_UP_STEP } from '@nitrodevco/nitro-theme/chat';
 import { Point, Rectangle } from 'pixi.js';
 
-import { CHAT_BUBBLE_HEIGHT_PADDING, CHAT_FLOW_SCROLL_UP_STEP } from '../ChatConstants';
 import { IChatFlowBubble } from './IChatFlowBubble';
 
 /**

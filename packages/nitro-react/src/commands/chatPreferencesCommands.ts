@@ -4,8 +4,8 @@
  * bubble style keeps the font size mode on the server and the other way round.
  */
 import { SetChatStylePreferenceComposer } from '@nitrodevco/nitro-packets';
+import { clampChatFontSizeMode } from '@nitrodevco/nitro-theme/chat';
 
-import { clampChatFontSizeMode } from '#base/chat';
 import { Send } from '#base/context/communication';
 import { userStore } from '#base/context/user';
 
