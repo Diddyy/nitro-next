@@ -512,8 +512,10 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
 
         if (!texture) return undefined;
 
-        const base64 = await TextureUtils.getRenderer().extract.base64(new Sprite(texture));
+        const sprite = new Sprite(texture);
+        const base64 = await TextureUtils.getRenderer().extract.base64(sprite);
 
+        sprite.destroy();
         TexturePool.releaseTexture(texture);
 
         return base64;
