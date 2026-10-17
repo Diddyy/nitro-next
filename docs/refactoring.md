@@ -195,7 +195,9 @@ copies' timing agrees with Flash's. M-L.
   Studio's copy (`preview/engine/chat.ts`) can use it too - that is the Studio repository's change.
 - **Image caches.** `useChatAvatarHead` keeps its own avatar cache beside nitro-theme's
   `useAvatarImageTexture` and renders inside `getSnapshot`; `useChatPetFace` and
-  `usePartThumbnail` repeat the same retained-texture structure. M.
+  `usePartThumbnail` repeat the same retained-texture structure. M. **Left:** the chat head cache is
+  a bounded LRU (64) of head-only, chat-direction renders that the theme's per-mount texture does not
+  keep across bubbles; merging them would trade that reuse for one hook.
 - **Small helpers already in nitro-theme.** Hex colour (`OnboardingView`, `OnboardingWidgets`,
   `FurnitureDimmerWidget`, `CatalogGuildSelectorWidgetView`), clamp (`VariableFxState`,
   `VariableFxPreviewStatus`), two digits (`CountdownWidget`, `InfostandPetView`); three furni-name
@@ -204,8 +206,8 @@ copies' timing agrees with Flash's. M-L.
   same helper; the furni-name lookups' fallbacks are their Flash classes' own (`FurniChooserWidgetHandler`
   starts from the object's type, the infostand from nothing).
 - **Large files.** `RoomChatInputView` (completion, NUX reminder, flood countdown, placement hooks),
-  `CatalogProductViewWidgetView` (avatar pose, preview population, zoom easing - whose effect also
-  misses `zoomProgress` in its dependencies), `AvatarEditor` (NFT handling, save flow),
+  `CatalogProductViewWidgetView` (avatar pose, preview population, zoom easing - its effect reads
+  `zoomProgress` only as the start value, by design; its tick now stops on arrival), `AvatarEditor` (NFT handling, save flow),
   `commands/collectiblesCommands.ts` (split along its section banners; its slices only expose
   generic `patch*` actions). M each.
 - **Wired boilerplate.** 34 definitions are only `{ holder, code, createForm: () => ({}) }`, and the
@@ -218,7 +220,8 @@ copies' timing agrees with Flash's. M-L.
   `ToolbarView` (`BAR_HEIGHT`, `ITEMS_X`) copy values the loaded layout holds; read them with
   `findTemplateChild` as `RoomChatInputView` does. S.
 - **TableView highlights.** Each `TextCell` runs its own 16 ms interval for its highlight; one shared
-  ticker. S.
+  ticker. S. **Left:** Flash's `TableView` cells each fade on their own timer too, and only a
+  highlighted cell runs one; the cost is re-renders while it fades, not the timers.
 - **Chat definitions for Nitro Studio.** `chat/ChatStyleDefinitions.ts`, `chat/ChatConstants.ts` and
   the bubble layout depend only on nitro-api and are copied into Nitro Studio; moving them down a
   package retires those copies. M.
