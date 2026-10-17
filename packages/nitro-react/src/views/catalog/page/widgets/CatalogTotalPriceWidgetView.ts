@@ -3,7 +3,7 @@ import { TemplateBindings } from '@nitrodevco/nitro-theme';
 import { useEffect, useState } from 'react';
 
 import { CatalogWidgetEventEnum, CatalogWidgetSpinnerEvent } from '#base/context/catalog';
-import { useConfigData, useConfigValue } from '#base/context/system';
+import { useConfigBoolean, useConfigData } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { calculateBundlePrice, CURRENCY_TYPE_SILVER, getCurrencyIconStyle, getSeasonalCurrencyActivityPointType } from '#base/utils';
 
@@ -108,7 +108,7 @@ const totalPriceView = (offer: IPurchasableOffer | undefined, quantity: number, 
 export const CatalogTotalPriceWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ activeOffer, setActiveOffer ] = useState<IPurchasableOffer | undefined>(undefined);
     const [ quantity, setQuantity ] = useState(1);
-    const multiplePurchaseEnabled = (useConfigValue<boolean>('catalog.multiple.purchase.enabled') === true) && !page.isBuilderPage;
+    const multiplePurchaseEnabled = (useConfigBoolean('catalog.multiple.purchase.enabled')) && !page.isBuilderPage;
     const config = useConfigData();
 
     useCatalogWidgetEvent(page, CatalogWidgetSpinnerEvent.VALUE_CHANGED, (event) => {

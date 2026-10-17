@@ -22,7 +22,7 @@ import { useState } from 'react';
 import { claimEarnings } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { EARNINGS_ALL_CATEGORIES, EARNINGS_CLAIM_ALL_BUTTON, EARNINGS_REWARD_CATEGORIES, earningsCategoryValues, earningsClaimButtonName, useEarningsStore } from '#base/context/earnings';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 
 /** `vault_view`'s frame as built, which `_window.center()` centres before any row is hidden. */
@@ -47,8 +47,8 @@ export const EarningsView = ({ onClose }: EarningsViewProps) => {
     const values = useEarningsStore(x => x.values);
     const disabledElements = useEarningsStore(x => x.disabledElements);
     const wiredChestVisible = useEarningsStore(x => x.wiredChestVisible);
-    const gamesIconEnabled = useConfigValue<boolean>('games_icon_enabled') === true;
-    const gameEarningsEnabled = useConfigValue<boolean>('wired.game_earnings') === true;
+    const gamesIconEnabled = useConfigBoolean('games_icon_enabled');
+    const gameEarningsEnabled = useConfigBoolean('wired.game_earnings');
 
     // `_window.center()`, before any row is hidden: centred at the layout's full size.
     const [ position ] = useState(() => {

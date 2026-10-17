@@ -39,7 +39,7 @@ import { useEffect, useMemo } from 'react';
 import { resetInventoryUnseenCounters } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { UnseenItemCategory, useInventoryActions, useInventoryTradingActive, useInventoryUnseenItemCount } from '#base/context/inventory';
-import { useConfigValue, useWindowActions, useWindowParams, WindowParams } from '#base/context/system';
+import { useConfigBoolean, useWindowActions, useWindowParams, WindowParams } from '#base/context/system';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateLibrary } from '#base/theme';
 import { getLowestPoint } from '#base/views/shared/flashWindowUtils';
 
@@ -77,9 +77,9 @@ const COUNTER_TEMPLATE = 'habbo-window-manager-com/unseen_item_counter_xml';
 export const InventoryView = () => {
     const { tab: activeTab = 'furni' } = useWindowParams('inventory');
     const { toggleWindow, showWindow, updateWindowParams } = useWindowActions();
-    const allowScaling = useConfigValue<boolean>('inventory.allow.scaling') === true;
-    const botsEnabled = useConfigValue<boolean>('inventory.bots.enabled') === true;
-    const web3TradeEnabled = useConfigValue<boolean>('web3trade.enabled') === true;
+    const allowScaling = useConfigBoolean('inventory.allow.scaling');
+    const botsEnabled = useConfigBoolean('inventory.bots.enabled');
+    const web3TradeEnabled = useConfigBoolean('web3trade.enabled');
     // `HabboInventory.tradingActive`: either trade.
     const tradingActive = useInventoryTradingActive();
     const dockHeight = useInventoryTradingDockHeight();

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { confirmMarketplacePurchase } from '#base/commands';
 import { useCatalogMarketplaceActions, useCatalogStore } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useSystemStore, useTranslation } from '#base/context/system';
 import { TemplateWindow } from '#base/theme';
 import { getMarketplaceOfferTexts, MARKETPLACE_PURCHASE_CONFIRM_TYPE_HIGHER, MARKETPLACE_PURCHASE_CONFIRM_TYPE_NORMAL } from '#base/utils';
 
@@ -36,7 +36,7 @@ export const CatalogMarketplaceConfirmationView = () => {
     const wallItems = useSystemStore(x => x.wallItems);
     const hasAverageText = useSystemStore(x => x.localizations['catalog.marketplace.offer_details.average_price'] !== undefined);
     const hasCountText = useSystemStore(x => x.localizations['catalog.marketplace.offer_details.offer_count'] !== undefined);
-    const disclaimerEnabled = (useConfigValue<boolean>('disclaimer.credit_spending.enabled') === true);
+    const disclaimerEnabled = (useConfigBoolean('disclaimer.credit_spending.enabled'));
     // `setDisclaimerAccepted`, for the confirmation on show.
     const [ accepted, setAccepted ] = useState<{ for: unknown; value: boolean }>({ for: undefined, value: false });
     const [ frame ] = useState(() => ({ id: 'catalog-marketplace-purchase-confirmation', centered: true, rememberPosition: false, onClose: () => setMarketplaceConfirmation(undefined) }));

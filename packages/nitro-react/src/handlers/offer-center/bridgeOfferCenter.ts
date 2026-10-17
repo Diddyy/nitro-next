@@ -12,7 +12,7 @@
  */
 import { isOfferProviderEnabled, loadOfferProviders, onSponsorPayClose, onSponsorPayLoaded, onSponsorPayOffer, onSupersonicCampaignsReady, onSupersonicPopup } from '#base/commands';
 import { offerCenterStore } from '#base/context/offer-center';
-import { systemStore } from '#base/context/system';
+import { configBoolean } from '#base/context/system';
 
 /** `OfferCenter.PROVIDER_POLLING_FREQUENCY`. */
 const PROVIDER_POLLING_FREQUENCY = 1800000;
@@ -20,11 +20,7 @@ const PROVIDER_POLLING_FREQUENCY = 1800000;
 const SPONSOR_PAY_RESET_DELAY = 150000;
 
 /** `HabboClubCenter.initComponent`'s condition for `catalog.getOfferCenter(this)`. */
-export const isOfferCenterEnabled = (): boolean => {
-    const { config } = systemStore.getState();
-
-    return (config['offers.enabled'] === true) && (config['offers.habboclub.enabled'] === true);
-};
+export const isOfferCenterEnabled = (): boolean => configBoolean('offers.enabled') && configBoolean('offers.habboclub.enabled');
 
 export const bridgeOfferCenter = () => {
     if (!isOfferCenterEnabled()) return () => {};

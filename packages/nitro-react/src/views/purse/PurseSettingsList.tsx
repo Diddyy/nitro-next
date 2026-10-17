@@ -1,6 +1,6 @@
 import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useTranslation, useWindowActions } from '#base/context/system';
 
 import { ToolbarSettingsView } from '../toolbar/ToolbarSettingsView';
 
@@ -14,8 +14,8 @@ export const PurseSettingsList = ({ onClose }: { onClose: () => void }) => {
     const { showWindow } = useWindowActions();
     // `SettingsExtension`'s two optional rows: `getBoolean` defaults to false, so a hotel that
     // does not set the key does not get the row.
-    const discordEnabled = useConfigValue<boolean>('discord.enabled') === true;
-    const wordFilterEnabled = useConfigValue<boolean>('user.custom.filter.enabled') === true;
+    const discordEnabled = useConfigBoolean('discord.enabled');
+    const wordFilterEnabled = useConfigBoolean('user.custom.filter.enabled');
 
     const openSetting = (open: () => void) => () => {
         open();

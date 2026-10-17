@@ -55,7 +55,7 @@ import {
     canOfferInventoryFurniToWiredTrade, getInventoryFurniRecyclableCount, getInventoryFurniSecondsToExpiration, getInventoryFurniSelectedItem, getInventoryFurniTradeableCount, getInventoryFurniTypeFilters, getInventoryFurniUnlockedCount, getNextInventoryFurniItemIndex, getStuffDataChestName, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_FURNI_MAIN_FILTERS, INVENTORY_RECYCLER_STATE_ACTIVE, InventoryFurniGroup, isInventoryFurniGroupWallItem, passInventoryFurniFilter, peekInventoryFurni, useInventoryFurniActions, useInventoryStore, useInventoryTradingActive,
 } from '#base/context/inventory';
 import { useRoom } from '#base/context/room';
-import { useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { useAccountSafetyLocked } from '#base/context/user';
 import { useWiredTradingStore } from '#base/context/wired-trading';
 import { TemplateBindings, TemplateItem, TemplateWindow } from '#base/theme';
@@ -118,9 +118,9 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const requirement = useWiredTradingStore(x => x.tradeRequirement);
     const floorItems = useSystemStore(x => x.floorItems);
     const wallItems = useSystemStore(x => x.wallItems);
-    const multiItemTrading = useConfigValue<boolean>('multi.item.trading.enabled') ?? false;
+    const multiItemTrading = useConfigBoolean('multi.item.trading.enabled');
     // `HabboInventory.web3tradeEnabled`: without it a trade never hides the NFT furni.
-    const web3TradeEnabled = useConfigValue<boolean>('web3trade.enabled') === true;
+    const web3TradeEnabled = useConfigBoolean('web3trade.enabled');
     const marketplaceEnabled = useInventoryStore(x => x.marketplaceConfiguration.isEnabled);
     const recyclerRunning = useInventoryStore(x => x.recyclerState === INVENTORY_RECYCLER_STATE_ACTIVE);
     const safetyLocked = useAccountSafetyLocked();

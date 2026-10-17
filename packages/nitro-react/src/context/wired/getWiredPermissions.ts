@@ -9,13 +9,13 @@
  */
 
 import { roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean } from '#base/context/system';
 import { ClientGates, hasClientGate } from '#base/context/user';
 
 import { wiredStore } from './store/WiredStore';
 
 /** `WiredMenuController.isEnabled`. */
-export const getWiredMenuEnabled = (): boolean => systemStore.getState().config['wired.menu.enabled'] === true;
+export const getWiredMenuEnabled = (): boolean => configBoolean('wired.menu.enabled');
 
 /** `WiredMenuController.isRoomOwnerOrStaff` - `false` outside a room. */
 export const getWiredIsRoomOwnerOrStaff = (): boolean => {

@@ -4,7 +4,7 @@ import { Ticker } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
 import { getRoom } from '#base/context/room';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 
 import { useRoomEventDispatcher } from './useRoomEventDispatcher';
 
@@ -42,7 +42,7 @@ const toLevel = (scale: number) => Math.log(scale) / Math.LN2;
  * to it; answering it here as well would turn the canvas straight back.
  */
 export const useRoomZoom = () => {
-    const enabled = useConfigValue<boolean>('zoom.enabled') === true;
+    const enabled = useConfigBoolean('zoom.enabled');
     const [ scale, setScale ] = useState(DEFAULT_SCALE);
     const targetRef = useRef<number | undefined>(undefined);
 

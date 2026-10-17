@@ -19,7 +19,7 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 
 import { OFFER_PROVIDERS, offerCenterStore, OfferProviderName } from '#base/context/offer-center';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 
 /** `SponsorPayProvider`'s `SponsorPay.loadIntegration` argument: `offers.sponsorpay.appid`. */
 const getSponsorPayAppId = (): string => {
@@ -32,7 +32,7 @@ const getSponsorPayAppId = (): string => {
 const externalInterfaceAvailable = (): boolean => (typeof window !== 'undefined');
 
 /** `SupersonicProvider.enabled`. */
-const supersonicEnabled = (): boolean => (systemStore.getState().config['offers.supersonic.enabled'] === true) && externalInterfaceAvailable();
+const supersonicEnabled = (): boolean => (configBoolean('offers.supersonic.enabled')) && externalInterfaceAvailable();
 
 /** `SponsorPayProvider.enabled`. */
 const sponsorPayEnabled = (): boolean => (getSponsorPayAppId() !== '') && externalInterfaceAvailable();

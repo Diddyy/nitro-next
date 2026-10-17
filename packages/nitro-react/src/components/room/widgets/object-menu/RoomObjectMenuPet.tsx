@@ -4,7 +4,7 @@ import { ChatComposer, CompostPlantComposer, HarvestPetComposer, MountPetCompose
 import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsRoomOwner, useOwnRoomObjectId, useRoomPetInfo, useRoomPetsActions, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
-import { systemStore, useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { systemStore, useConfigBoolean, useTranslation, useWindowActions } from '#base/context/system';
 import { useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useRoomObjectModify, useRoomUserData } from '#base/hooks';
@@ -61,13 +61,13 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
     const ownUserId = useOwnUserId();
     const ownCarryItem = useRoomUserData(useOwnRoomObjectId())?.carryItem ?? 0;
     const isRoomOwner = useIsRoomOwner();
-    const handItemGivePetEnabled = useConfigValue<boolean>('handitem.give.pet.enabled') === true;
-    const compostingEnabled = useConfigValue<boolean>('monsterplants.composting.enabled') === true;
+    const handItemGivePetEnabled = useConfigBoolean('handitem.give.pet.enabled');
+    const compostingEnabled = useConfigBoolean('monsterplants.composting.enabled');
     const { showConfirm, showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const petType = petTypeFromFigure(userData?.figure);
-    const nestBreedingEnabled = useConfigValue<boolean>(`nest.breeding.${NEST_BREEDING_TYPES[petType] ?? 'none'}.enabled`) ?? false;
+    const nestBreedingEnabled = useConfigBoolean(`nest.breeding.${NEST_BREEDING_TYPES[petType] ?? 'none'}.enabled`);
 
     if (!userData) return null;
 

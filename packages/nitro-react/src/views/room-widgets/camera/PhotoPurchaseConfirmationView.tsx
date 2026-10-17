@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react';
 
 import { openClientLink, PhotoPurchaseState, returnToViewfinder, setPhotoPurchaseState, showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert, useCameraStore } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { useOwnCredits, useUserStore } from '#base/context/user';
 import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 
@@ -44,9 +44,9 @@ const PhotoPurchaseConfirmation = () => {
     const { send } = useWebSocketContext();
     const ownCredits = useOwnCredits();
     const ownDuckets = useUserStore(x => x.activityPoints[0] ?? 0);
-    const competitionEnabled = useConfigValue<boolean>('camera.competition.enabled') === true;
-    const disclaimerEnabled = useConfigValue<boolean>('disclaimer.credit_spending.enabled') === true;
-    const publishingEnabled = useConfigValue<boolean>('camera.photo.publishing.enabled') === true;
+    const competitionEnabled = useConfigBoolean('camera.competition.enabled');
+    const disclaimerEnabled = useConfigBoolean('disclaimer.credit_spending.enabled');
+    const publishingEnabled = useConfigBoolean('camera.photo.publishing.enabled');
     const [ disclaimerAccepted, setDisclaimerAccepted ] = useState(!disclaimerEnabled);
     // `disableButtons(true)`: once a purchase or a publish was asked for, Cancel reads Close.
     const [ closeCaption, setCloseCaption ] = useState(false);

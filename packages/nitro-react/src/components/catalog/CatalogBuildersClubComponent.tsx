@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 
 import { useCatalogRootNode, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useIsWindowVisible } from '#base/context/system';
+import { useConfigBoolean, useIsWindowVisible } from '#base/context/system';
 import { bridgeCatalogRoomChanged, registerCatalogBuildersClubHandlers, registerCatalogHandlers } from '#base/handlers';
 import { useCatalogPageRequest, useCatalogPurchaseFlow, useRegisterHandlers, useRoomEventDispatcher } from '#base/hooks';
 import { CatalogView } from '#base/views/catalog/CatalogView';
@@ -26,7 +26,7 @@ export const CatalogBuildersClubComponent = () => {
     const isVisible = useIsWindowVisible('builders_catalog');
     const catalogType = useCatalogType();
     const rootNode = useCatalogRootNode();
-    const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
+    const buildersClubEnabled = useConfigBoolean('builders.club.enabled');
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();
     const furniCountRequested = useRef(false);

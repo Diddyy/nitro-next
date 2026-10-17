@@ -4,7 +4,7 @@ import { openCatalogRoomAdsExtendPage, openClientLink, ROOM_AD_CATALOG_PAGE } fr
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useIsInRoom, useOwnControllerLevel } from '#base/context/room';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean, useConfigValue } from '#base/context/system';
 import { ClientGates, useClientGate } from '#base/context/user';
 import { Box } from '#base/theme';
 import { NavigatorRoomEventInfoView } from '#base/views/navigator/NavigatorRoomEventInfoView';
@@ -37,9 +37,9 @@ export const NavigatorRoomEventInfoComponent = () => {
     const inRoom = useIsInRoom();
     const controllerLevel = useOwnControllerLevel();
     const eventMod = useClientGate(ClientGates.RoomEventModerator);
-    const eventInfoEnabled = useConfigValue<boolean>('eventinfo.enabled') === true;
+    const eventInfoEnabled = useConfigBoolean('eventinfo.enabled');
     const newIdentity = Number(useConfigValue<number>('new.identity') ?? 0);
-    const newIdentityHidesUi = useConfigValue<boolean>('new.identity.hide.ui') === true;
+    const newIdentityHidesUi = useConfigBoolean('new.identity.hide.ui');
     const { send } = useWebSocketContext();
 
     const enabled = eventInfoEnabled && ((newIdentity === 0) || !newIdentityHidesUi);

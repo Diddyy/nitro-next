@@ -29,7 +29,7 @@ import {
     limitGroupMemberPage,
 } from '#base/context/groups';
 import { navigatorStore } from '#base/context/navigator';
-import { systemStore, translate as t } from '#base/context/system';
+import { configBoolean, systemStore, translate as t } from '#base/context/system';
 import { ClientGates, hasClientGate, userStore } from '#base/context/user';
 
 import { openClubCenter } from './catalogClubCommands';
@@ -40,13 +40,6 @@ type Send = WebSocketConnection['send'];
 
 /** `GROUPS_TRACKING_CATEGORY` - every group action logs against the same category. */
 const GROUPS_TRACKING_CATEGORY = 'HabboGroups';
-
-/** `getBoolean`: only `true` / `"true"` / `"1"` count, anything else is Flash's `false` default. */
-const getBoolean = (key: string): boolean => {
-    const value = systemStore.getState().config[key];
-
-    return (value === true) || (value === 'true') || (value === '1');
-};
 
 /** `HabboGroupsManager.hasVip` - `SessionDataManager.hasVip`, which is the VIP club level. */
 export const hasGroupVip = (): boolean => Number(userStore.getState().clubLevel) >= Number(ClubLevelEnum.Vip);
@@ -163,7 +156,7 @@ export const confirmGroupMemberKick = (send: Send, userId: number, furniCount: n
  * the group already shown closes the window instead of asking again.
  */
 export const toggleGroupMembers = (send: Send, groupId: number, searchType: number = GUILD_MEMBER_SEARCH_MEMBERS) => {
-    if (!getBoolean('groupMembers.enabled')) return;
+    if (!configBoolean('groupMembers.enabled')) return;
 
     const { members, membersGroupId, openGroupMembers, closeGroupMembers } = groupStore.getState();
 

@@ -51,7 +51,7 @@ import { useMessengerStore } from '#base/context/messenger';
 import { useNavigatorStore } from '#base/context/navigator';
 import { getRewardTrackClaimableCount, getRewardTrackTrackClaimableCount, useRewardTrackStore } from '#base/context/reward-track';
 import { useOwnRoomObjectId } from '#base/context/room';
-import { ToolbarTransitionIcon, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
+import { ToolbarTransitionIcon, useConfigBoolean, useConfigValue, useIsLandingViewVisible, useSystemActions, useSystemStore, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId, useUserStore } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useHintTarget, useRoomObjectSelect, useTween, useViewportSize } from '#base/hooks';
@@ -205,9 +205,9 @@ export const ToolbarView = () => {
     const landingViewVisible = useIsLandingViewVisible();
     // `setToolbarState`'s `_local_4`: a room state, or collapsed from one.
     const inRoom = !landingViewVisible;
-    const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
-    const storiesEnabled = useConfigValue<boolean>('toolbar.stories.enabled') === true;
-    const gamesEnabled = useConfigValue<boolean>('games_icon_enabled') === true;
+    const buildersClubEnabled = useConfigBoolean('builders.club.enabled');
+    const storiesEnabled = useConfigBoolean('toolbar.stories.enabled');
+    const gamesEnabled = useConfigBoolean('games_icon_enabled');
     const showWiredMenuButton = useWiredShowToolbarMenuButton();
     const cameraLaunchPosition = useConfigValue<string>('camera.launch.ui.position');
     const cameraAllowed = useOwnPerkAllowed(PerkCodes.Camera);
@@ -221,14 +221,14 @@ export const ToolbarView = () => {
     const inventoryLastPage = useInventoryStore(x => x.lastPage);
     // `MeMenuNewController`: the guide (`guides.enabled` and the perk), talents (`talent.track.enabled`)
     // and collectibles (both hub flags) buttons; mini mail is always hidden.
-    const guidesEnabled = useConfigValue<boolean>('guides.enabled') === true;
+    const guidesEnabled = useConfigBoolean('guides.enabled');
     const guideAllowed = useOwnPerkAllowed(PerkCodes.UseGuideTool);
-    const talentTrackEnabled = useConfigValue<boolean>('talent.track.enabled') === true;
-    const classicCollectiblesHubEnabled = useConfigValue<boolean>('classic.collectibles.hub.enabled') === true;
-    const collectiblesHubEnabled = useConfigValue<boolean>('collectibles.hub.enabled') === true;
+    const talentTrackEnabled = useConfigBoolean('talent.track.enabled');
+    const classicCollectiblesHubEnabled = useConfigBoolean('classic.collectibles.hub.enabled');
+    const collectiblesHubEnabled = useConfigBoolean('collectibles.hub.enabled');
     // `ProgMenuController`: quests unless `toolbar.hide.quests`, daily tasks with `dailytasks.enabled`.
-    const hideQuests = useConfigValue<boolean>('toolbar.hide.quests') === true;
-    const dailyTasksEnabled = useConfigValue<boolean>('dailytasks.enabled') === true;
+    const hideQuests = useConfigBoolean('toolbar.hide.quests');
+    const dailyTasksEnabled = useConfigBoolean('dailytasks.enabled');
     const unseenInventoryCount = useInventoryUnseenTotalCount();
     const unseenMiniMailCount = useMessengerStore(x => x.miniMailUnreadCount);
     const unreadForumsCount = useGroupStore(x => x.unreadForumsCount);
@@ -314,7 +314,7 @@ export const ToolbarView = () => {
 
     const ownRoomObjectId = useOwnRoomObjectId();
     const { selectObject } = useRoomObjectSelect();
-    const simpleMeMenu = useConfigValue<boolean>('simple.memenu.enabled') === true;
+    const simpleMeMenu = useConfigBoolean('simple.memenu.enabled');
 
     /*
      * `AvatarInfoWidgetHandler.onToolbarClicked`: every click on the me menu icon in a room, with

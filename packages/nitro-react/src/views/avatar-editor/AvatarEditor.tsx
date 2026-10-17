@@ -52,7 +52,7 @@ import { closeAvatarEditorEffect, hasAvatarEditorInvalidClubItems, hasAvatarEdit
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
 import { avatarEditorStore, DEFAULT_WARDROBE_SLOTS, normalizeGender, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useOwnClubLevel, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { AvatarEditorColorData, AvatarEditorPartData, useAvatarEditorData, usePartThumbnailLifetime, useWindowVisibility } from '#base/hooks';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture, useTemplate } from '#base/theme';
@@ -255,17 +255,17 @@ export const AvatarEditor = () => {
     // `NftWardrobeParamView`: the outfit `collectible_avatar_info` names, until the category changes.
     const [ nftInfoOutfit, setNftInfoOutfit ] = useState<INftWardrobeItem | null>(null);
     const outfitTemplate = useTemplate(`${LIBRARY}/Outfit`);
-    const zoom = useConfigValue<boolean>('zoom.enabled') === true;
+    const zoom = useConfigBoolean('zoom.enabled');
     const { parts, palettes } = useAvatarEditorData(activeSetType);
     const { hide } = useWindowVisibility('avatar_editor');
-    const miscEnabled = useConfigValue<boolean>('clothing.misc.tab.enabled') === true;
-    const effectsEnabled = useConfigValue<boolean>('effects.in.avatar.editor') === true;
+    const miscEnabled = useConfigBoolean('clothing.misc.tab.enabled');
+    const effectsEnabled = useConfigBoolean('effects.in.avatar.editor');
     const maxWardrobeSlots = useConfigValue<number>(WARDROBE_SLOTS_KEY) ?? DEFAULT_WARDROBE_SLOTS;
     // `startSellablePurchase`: the catalogue page `catalog.clothes.page` names.
     const clothesPage = useConfigValue<string>('catalog.clothes.page');
     // `generateDataContent`: the `GET_MORE` thumb with `avatareditor.support.sellablefurni`. This hotel
     // leaves it unset; the official one shows the thumb (editor-plus.png, avatareditor.png), so unset is on.
-    const sellableSupport = useConfigValue<boolean>('avatareditor.support.sellablefurni') ?? OFFICIAL_SELLABLE_SUPPORT;
+    const sellableSupport = useConfigBoolean('avatareditor.support.sellablefurni', OFFICIAL_SELLABLE_SUPPORT);
     const { showWindow } = useWindowActions();
     const t = useTranslation();
     // The sub tab, part and colour under the pointer (`WME_OVER` / `WME_OUT`).

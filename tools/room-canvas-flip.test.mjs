@@ -121,7 +121,10 @@ const hookFixture = (enabled = true) => {
         '@nitrodevco/nitro-renderer': {}, 'pixi.js': { Point, Rectangle },
         react: { useRef: value => (ref = { current: value }) },
         '#base/context/room': { useRoom: () => room, useRoomStore: select => select({}) },
-        '#base/context/system': { useConfigValue: key => key === 'zoom.enabled' ? enabled : undefined },
+        '#base/context/system': {
+            useConfigValue: key => key === 'zoom.enabled' ? enabled : undefined,
+            useConfigBoolean: key => (key === 'zoom.enabled') && (enabled === true),
+        },
         '#base/context/user': { useUserStore: select => select({}) },
         './useRoomEventDispatcher': { useRoomEventDispatcher: (type, handler) => { listeners[type] = handler; } },
     };

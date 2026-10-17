@@ -1,7 +1,7 @@
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 
 import { AVATAR_FACE_SIZE, AvatarFaceImage } from '#base/components';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { Box } from '#base/theme';
 import { GroupBadgeImage } from '#base/views/shared/GroupBadgeImage';
 
@@ -23,7 +23,7 @@ export interface FriendListFaceProps {
  * at half size.
  */
 export const FriendListFace = ({ figure, gender = AvatarGenderType.Unisex, groupBadge = false }: FriendListFaceProps) => {
-    const zoom = useConfigValue<boolean>('zoom.enabled') === true;
+    const zoom = useConfigBoolean('zoom.enabled');
     const scale = zoom ? 0.5 : 1;
 
     if (groupBadge) {

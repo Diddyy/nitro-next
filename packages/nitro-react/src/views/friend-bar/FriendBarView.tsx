@@ -35,7 +35,7 @@ import { forwardRef, useCallback, useRef, useState } from 'react';
 
 import { findNewFriends, followFriendFromBar, openProfile, startFriendBarConversation } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useIsWindowVisible, useToolbarAreaWidth, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useIsWindowVisible, useToolbarAreaWidth, useTranslation, useWindowActions } from '#base/context/system';
 import { FriendBarNotification, UiFlagEnum, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserActions, useUserMessengerActions, useUserStore } from '#base/context/user';
 import { easeOutCubic, useTween, useViewportSize } from '#base/hooks';
 import { Region, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useOutsideClick, useTemplate } from '#base/theme';
@@ -70,7 +70,7 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
     const friends = useFriendBarFriends();
     const requests = useFriendRequests();
     const notificationsByFriend = useUserStore(x => x.friendBarNotifications);
-    const requestsEnabled = useConfigValue<boolean>('friendbar.requests.enabled') === true;
+    const requestsEnabled = useConfigBoolean('friendbar.requests.enabled');
     const friendListOpen = useIsWindowVisible('friendlist');
     const collapsed = useFriendBarCollapsed();
     const toolbarAreaWidth = useToolbarAreaWidth();

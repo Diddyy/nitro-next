@@ -35,7 +35,11 @@ const fixture = ({ width = 800, height = 600, small = false, follow = false, dis
         'pixi.js': { Matrix, Point, Rectangle },
         react: { useRef: value => (ref = { current: value }) },
         '#base/context/room': { useRoom: () => room, useRoomStore: select => select(state) },
-        '#base/context/system': { useConfigValue: key => key === 'room.camera.follow_user' ? followEnabled : configuredSpeed },
+        '#base/context/system': {
+            useConfigValue: key => key === 'room.camera.follow_user' ? followEnabled : configuredSpeed,
+            // Flash's `getBoolean`: only the follow flag is set; `zoom.enabled` reads as unset.
+            useConfigBoolean: key => (key === 'room.camera.follow_user') && (followEnabled === true),
+        },
         '#base/context/user': { useUserStore: select => select({ isRoomCameraFollowDisabled: disabledByUser }) },
         './useRoomEventDispatcher': { useRoomEventDispatcher() {} },
     });

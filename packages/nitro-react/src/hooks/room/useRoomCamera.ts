@@ -15,7 +15,7 @@ import { Matrix, Point, Rectangle } from 'pixi.js';
 import { useRef } from 'react';
 
 import { useRoom, useRoomStore } from '#base/context/room';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean, useConfigValue } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 
 import { useRoomEventDispatcher } from './useRoomEventDispatcher';
@@ -74,8 +74,8 @@ export const useRoomCamera = () => {
         && (configuredMoveSpeedDenominator > 0)
         ? configuredMoveSpeedDenominator
         : 12;
-    const followEnabled = useConfigValue<boolean>('room.camera.follow_user') === true;
-    const zoomEnabled = useConfigValue<boolean>('zoom.enabled') === true;
+    const followEnabled = useConfigBoolean('room.camera.follow_user');
+    const zoomEnabled = useConfigBoolean('zoom.enabled');
     const cameraDataRef = useRef<RoomCameraData>(createCameraData(undefined));
 
     const setCameraTarget = (target: IVector3D) => {

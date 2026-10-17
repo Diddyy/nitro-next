@@ -19,7 +19,7 @@ import { GetBadgeLeaderboardComposer } from '@nitrodevco/nitro-packets';
 
 import { BadgeLeaderboardPageData, badgeLeaderboardStore } from '#base/context/badge-leaderboard';
 import { WebSocketConnection } from '#base/context/communication';
-import { systemStore, translate as t } from '#base/context/system';
+import { configBoolean, translate as t } from '#base/context/system';
 
 import { openProfile } from './roomUserCommands';
 
@@ -56,10 +56,8 @@ const RARITY_INFO_KEYS = [ 'uncommon', 'rare', 'epic', 'mythical', 'legendary', 
 /** `getFrameStyle`'s rarity styles, by rarity 1-6. */
 const RARITY_FRAME_STYLES = [ 10007, 10002, 10003, 10004, 10005, 10006 ];
 
-const config = () => systemStore.getState().config;
-
 /** `isUncommonBadgeRarityEnabled`. */
-const isUncommonBadgeRarityEnabled = () => config()['badge_rarity.uncommon'] === true;
+const isUncommonBadgeRarityEnabled = () => configBoolean('badge_rarity.uncommon');
 
 /** `getSupportedRarities`. */
 export const getBadgeLeaderboardSupportedRarities = (): number[] => (isUncommonBadgeRarityEnabled() ? [ 1, ...BASE_SUPPORTED_RARITIES ] : [ ...BASE_SUPPORTED_RARITIES ]);

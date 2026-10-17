@@ -12,7 +12,7 @@ import { CATALOG_SEARCH_PAGE_ID, CatalogPage, CatalogStore, PetImageRequest } fr
 import { catalogPurchaseStore } from '#base/context/catalog-purchase';
 import { WebSocketConnection } from '#base/context/communication';
 import { GameTokensOffer } from '#base/context/game-tokens';
-import { systemStore } from '#base/context/system';
+import { configBoolean } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { calculateBundlePrice, gameTokensOfferAsPurchasableOffer } from '#base/utils';
 
@@ -113,7 +113,7 @@ const openPurchaseConfirmation = (store: CatalogStoreApi, offer: IPurchasableOff
     let priceInCredits = offer.priceInCredits;
     let priceInActivityPoints = offer.priceInActivityPoints;
 
-    if ((systemStore.getState().config['catalog.multiple.purchase.enabled'] === true) && (catalogType !== CatalogTypeEnum.BuildersClub)) {
+    if ((configBoolean('catalog.multiple.purchase.enabled')) && (catalogType !== CatalogTypeEnum.BuildersClub)) {
         priceInCredits = calculateBundlePrice(true, offer.priceInCredits, quantity);
         priceInActivityPoints = calculateBundlePrice(true, offer.priceInActivityPoints, quantity);
     }

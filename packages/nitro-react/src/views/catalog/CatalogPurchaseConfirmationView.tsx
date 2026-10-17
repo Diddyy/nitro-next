@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { buyFromPurchaseDialog, closePurchaseDialog } from '#base/commands';
 import { CatalogPurchaseRequest, useCatalogPurchaseActions, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigData, useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useConfigData, useSystemStore, useTranslation } from '#base/context/system';
 import { Box, TemplateWindow, useTemplateLibrary } from '#base/theme';
 import { getDiscountItemsCount, getOfferProduct } from '#base/utils';
 
@@ -60,8 +60,8 @@ const CatalogPurchaseConfirmationDialogView = ({ purchase }: { purchase: Catalog
     // The offer's product data as the page offer resolved it (`getOfferProductData`), else the table's.
     const storedProductData = useSystemStore(x => x.productData[purchase.offer.localizationId]);
     const productData = getOfferProduct(purchase.offer)?.productData ?? storedProductData;
-    const multiplePurchaseEnabled = (useConfigValue<boolean>('catalog.multiple.purchase.enabled') === true) && (catalogType !== CatalogTypeEnum.BuildersClub);
-    const disclaimerEnabled = (useConfigValue<boolean>('disclaimer.credit_spending.enabled') === true);
+    const multiplePurchaseEnabled = (useConfigBoolean('catalog.multiple.purchase.enabled')) && (catalogType !== CatalogTypeEnum.BuildersClub);
+    const disclaimerEnabled = (useConfigBoolean('disclaimer.credit_spending.enabled'));
     const config = useConfigData();
     const templates = useTemplateLibrary(CATALOG_LIBRARY);
     // `setDisclaimerAccepted`: accepted for the purchase on show only - a new offer starts unticked.

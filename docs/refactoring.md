@@ -117,6 +117,12 @@ session's form creation for every `hasCustomTypePicker` definition. S-M.
 `groupCommands`, `avatarEditorCommands` and `catalogRecyclerCommands` have their own readers. A
 value copied from the hotel's external variables as text reads false at every `=== true` site.
 Change: `configBoolean(key)` and `configString(key)` over the system store, used everywhere. S-M.
+**Done:** `configBoolean` / `configString` (`context/system/configValues.ts`) outside React and
+`useConfigBoolean` (`context/system/selectors`) in components, both Flash's `getBoolean` with a
+fallback only for an unset key; every `config[key] === true` and the 108
+`useConfigValue<boolean>(key) === true` / `?? x` reads in views go through them, and the private
+readers in `groupCommands` and `avatarEditorCommands` are gone. (`catalogRecyclerCommands`' reader
+is for numbers.) Read a flag with these, never `=== true`.
 
 ## Convention drift
 
@@ -206,3 +212,4 @@ copies' timing agrees with Flash's. M-L.
 - Item 4, window pointer drags (`useWindowPointerDrag`).
 - Item 5, group forum state in the store, and the link's go-to scroll.
 - Item 6, chat bubble positions in a flipped room.
+- Item 8, boolean configuration read as Flash does (`configBoolean`, `useConfigBoolean`).

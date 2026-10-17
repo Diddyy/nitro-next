@@ -7,7 +7,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useRaidProtectionStore } from '#base/context/raid-protection';
 import { useOwnControllerLevel } from '#base/context/room';
-import { useConfigValue, useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
 import { ClientGates, PerkCodes, useClientGate, useOwnPerkAllowed } from '#base/context/user';
 import { RoomInfoView } from '#base/views/room-widgets/room-info/RoomInfoView';
 
@@ -38,16 +38,16 @@ export const RoomInfoWidget = () => {
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     // `RoomInfoViewCtrl.layoutButtons`: the mute-all button needs the hotel's flag as well as the right.
-    const muteAllEnabled = useConfigValue<boolean>('room_moderation.mute_all.enabled') === true;
+    const muteAllEnabled = useConfigBoolean('room_moderation.mute_all.enabled');
     // `RoomInfoViewCtrl.refreshButtons`: the word filter button needs the hotel's flag as well.
-    const roomFilterEnabled = useConfigValue<boolean>('room.custom.filter.enabled') === true;
+    const roomFilterEnabled = useConfigBoolean('room.custom.filter.enabled');
     const { send } = useWebSocketContext();
     const { setRoomRating, setRoomFavourite, updateEnteredRoom } = useNavigatorActions();
     // `onRaidProtectionStateChanged`: the button follows the capabilities as they come and go.
     const raidCapabilities = useRaidProtectionStore(x => x.capabilities);
-    const raidProtectionEnabled = useConfigValue<boolean>('raid.protection.enabled') === true;
-    const showEmbed = useConfigValue<boolean>('embed.showInRoomInfo') === true;
-    const roomReportEnabled = useConfigValue<boolean>('room.report.enabled') === true;
+    const raidProtectionEnabled = useConfigBoolean('raid.protection.enabled');
+    const showEmbed = useConfigBoolean('embed.showInRoomInfo');
+    const roomReportEnabled = useConfigBoolean('room.report.enabled');
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const userHash = useConfigValue<string>('user.hash') ?? '';
     const thumbnailCameraAllowed = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);

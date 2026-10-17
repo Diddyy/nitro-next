@@ -36,7 +36,7 @@ import {
     getInventoryBadgeRarityIds, getInventoryBadges, INVENTORY_BADGE_FILTER_ACHIEVEMENTS, INVENTORY_BADGE_FILTER_ALL, INVENTORY_BADGE_FILTER_NORMAL, INVENTORY_BADGE_RARITY_ALL, INVENTORY_BADGE_RARITY_COMMON, INVENTORY_BADGES_ACTIVE,
     INVENTORY_BADGES_INACTIVE, INVENTORY_MAX_ACTIVE_BADGES, InventoryBadge, isInventoryBadgeRarityFilterEnabled, passInventoryBadgeFilter, useInventoryBadgesActions, useInventoryStore,
 } from '#base/context/inventory';
-import { useBadgePointLimits, useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgePointLimits, useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { TemplateItem } from '#base/theme';
 import { getBadgeDesc, getBadgeName, shouldShowBadgeOwnerCount } from '#base/utils';
 
@@ -60,7 +60,7 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
     const { selectBadge, markBadgeThumbWindows } = useInventoryBadgesActions();
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
     // `BadgesModel.isUncommonBadgeRarityEnabled`: without it the uncommon tier is shown as common.
-    const uncommonRarityEnabled = useConfigValue<boolean>('badge_rarity.uncommon') === true;
+    const uncommonRarityEnabled = useConfigBoolean('badge_rarity.uncommon');
     const [ kindFilter, setKindFilter ] = useState(INVENTORY_BADGE_FILTER_ALL);
     const [ rarityFilter, setRarityFilter ] = useState(INVENTORY_BADGE_RARITY_ALL);
     // The `filter` box's caption, and the search term the last update took from it.

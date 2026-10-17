@@ -19,7 +19,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 
 import { selectCollectiblesTab } from '#base/commands';
 import { COLLECTIBLES_TAB_COLLECTIONS, COLLECTIBLES_TAB_INFO, COLLECTIBLES_TAB_MINT, COLLECTIBLES_TAB_REWARDS, COLLECTIBLES_TAB_SHOP, COLLECTIBLES_TAB_TRANSFER, useCollectiblesStore } from '#base/context/collectibles';
-import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
 
@@ -81,9 +81,9 @@ export const CollectiblesView = () => {
     const levelColor = useCollectiblesStore(x => x.levelColor);
     const silver = useUserStore(x => x.silver);
     const emeralds = useUserStore(x => x.emeralds);
-    const shopEnabled = useConfigValue<boolean>('nft.shop.enabled') === true;
-    const mintingEnabled = useConfigValue<boolean>('nft.minting.enabled') === true;
-    const transferEnabled = useConfigValue<boolean>('collectibles.transfer.enabled') === true;
+    const shopEnabled = useConfigBoolean('nft.shop.enabled');
+    const mintingEnabled = useConfigBoolean('nft.minting.enabled');
+    const transferEnabled = useConfigBoolean('collectibles.transfer.enabled');
 
     const flags: Record<string, boolean> = { 'nft.shop.enabled': shopEnabled, 'nft.minting.enabled': mintingEnabled, 'collectibles.transfer.enabled': transferEnabled };
 

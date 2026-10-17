@@ -1,5 +1,5 @@
 import { useIsInRoom } from '#base/context/room';
-import { useConfigActions, useConfigValue } from '#base/context/system';
+import { useConfigActions, useConfigBoolean, useConfigValue } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { openWebPage } from '#base/utils';
 import { MysteryBoxToolbarExtensionView } from '#base/views/room-widgets/furniture/MysteryBoxToolbarExtensionView';
@@ -16,8 +16,8 @@ import { MysteryBoxToolbarExtensionView } from '#base/views/room-widgets/furnitu
  * `mysterybox.faq.url` (`HabboWebTools.openWebPage`).
  */
 export const MysteryBoxToolbarExtensionComponent = () => {
-    const active = useConfigValue<boolean>('mysterybox.tracker.active') === true;
-    const minimised = useConfigValue<boolean>('mystery_box_toolbar_extension_minimised') === true;
+    const active = useConfigBoolean('mysterybox.tracker.active');
+    const minimised = useConfigBoolean('mystery_box_toolbar_extension_minimised');
     const faqUrl = useConfigValue<string>('mysterybox.faq.url') ?? '';
     const boxColor = useUserStore(x => x.mysteryBoxColor);
     const keyColor = useUserStore(x => x.mysteryKeyColor);

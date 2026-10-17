@@ -25,7 +25,7 @@ import { useState } from 'react';
 import { closeCollectiblesPurchase, confirmCollectiblesPurchase } from '#base/commands';
 import { useCollectiblesStore } from '#base/context/collectibles';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigData, useConfigValue, useSystemStore } from '#base/context/system';
+import { useConfigBoolean, useConfigData, useSystemStore } from '#base/context/system';
 import { LayoutImage, TemplateWindow, ThemeImage, useTemplate, useTemplateFrame } from '#base/theme';
 import { priceDisplayBindings } from '#base/views/catalog/page/widgets/catalogPrice';
 import { CollectiblesPreviewSlots, CollectiblesProductPreview } from '#base/views/shared/CollectiblesProductPreview';
@@ -57,7 +57,7 @@ export const CollectiblesPurchaseConfirmationView = () => {
     const productCode = purchaseOffer?.offer.productCode ?? '';
     const productName = useSystemStore(x => x.productData[productCode]?.name);
     const config = useConfigData();
-    const disclaimerEnabled = (useConfigValue<boolean>('disclaimer.credit_spending.enabled') === true);
+    const disclaimerEnabled = (useConfigBoolean('disclaimer.credit_spending.enabled'));
     // `setDisclaimerAccepted`: accepted for the offer on show only - a new offer starts unticked.
     const [ acceptedFor, setAcceptedFor ] = useState<unknown>(undefined);
     const priceDisplay = useTemplate('habbo-catalog-com/price_display');

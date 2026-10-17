@@ -30,7 +30,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createFlat, openClubCenter } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ROOM_CREATE_LAYOUTS, RoomCreateLayout, useNavigatorStore } from '#base/context/navigator';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnClubLevel, useOwnHasClub } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
 import { LayoutImage, TemplateBindings, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
@@ -114,7 +114,7 @@ export const NavigatorRoomCreateView = () => {
     const hasClub = useOwnHasClub();
     const isStaff = useClientGate(ClientGates.RoomCreateStaffOptions);
     const staffCategories = useClientGate(ClientGates.StaffCategories);
-    const clubBuyDisabled = useConfigValue<boolean>('habbo_club_buy_disabled') === true;
+    const clubBuyDisabled = useConfigBoolean('habbo_club_buy_disabled');
     const { hide } = useWindowVisibility('navigator_room_create');
     const { send } = useWebSocketContext();
     const t = useTranslation();

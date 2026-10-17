@@ -9,7 +9,7 @@ import { AcceptFriendComposer, DeclineFriendComposer, EventLogComposer, FollowFr
 
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { FriendListHighlightedTabs, UserStore, userStore } from '#base/context/user';
 
 import { sendFriendRequest } from './roomUserCommands';
@@ -192,9 +192,9 @@ export const sendRoomInvite = (send: Send, friendIds: number[], message: string)
  * A click opens the conversation (`messenger/<id>`).
  */
 export const notifyFriendOnline = (friend: IMessengerFriend) => {
-    const { config, getLocalizationValue } = systemStore.getState();
+    const { getLocalizationValue } = systemStore.getState();
 
-    if (config['friend_online_indicator.enabled'] !== true) return;
+    if (!configBoolean('friend_online_indicator.enabled')) return;
 
     switch (userStore.getState().onlineIndicatorPreference) {
         case 1:

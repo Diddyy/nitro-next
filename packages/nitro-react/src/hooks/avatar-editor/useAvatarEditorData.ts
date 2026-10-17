@@ -10,7 +10,7 @@ import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
 import { useMemo } from 'react';
 
 import { useAvatarEditorStore } from '#base/context/avatar-editor';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { useOwnClubLevel } from '#base/context/user';
 import { firstSelectableColorId, getAvatarEditorPartSets, toCssHexColor } from '#base/utils';
 
@@ -45,8 +45,8 @@ export const useAvatarEditorData = (setType: string): { parts: AvatarEditorPartD
     const figureSetIds = useAvatarEditorStore(x => x.figureSetIds);
     // Widened to a plain number: `ClubLevelEnum` values compare against the structure's numeric club levels.
     const clubLevel: number = useOwnClubLevel();
-    const clubItemsFirst = useConfigValue<boolean>('avatareditor.show.clubitems.first') === true;
-    const clubItemsDimmed = useConfigValue<boolean>('avatareditor.show.clubitems.dimmed') === true;
+    const clubItemsFirst = useConfigBoolean('avatareditor.show.clubitems.first');
+    const clubItemsDimmed = useConfigBoolean('avatareditor.show.clubitems.dimmed');
 
     return useMemo(() => {
         const renderManager = GetAvatarRenderManager();

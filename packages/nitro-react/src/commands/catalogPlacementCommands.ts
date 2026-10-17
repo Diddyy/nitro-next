@@ -35,7 +35,7 @@ import { CATALOG_SEARCH_PAGE_ID, CatalogStore, CatalogWidgetEventEnum, getCatalo
 import { CatalogPlacedObjectPurchaseData, catalogPurchaseStore, ICatalogDragAndDropReceiver } from '#base/context/catalog-purchase';
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, getRoomPatterns, roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { createRecolorableStuffData, getOfferProduct, RECOLORABLE_FURNITURE_LAYOUT, setObjectAlphaMultiplier } from '#base/utils';
 
 import { BUILDER_FURNI_PLACEABLE_STATUS_OKAY, getBuilderFurniPlaceableStatusForOffer } from './catalogBuildersClubCommands';
@@ -175,7 +175,7 @@ export const isCatalogOfferDraggable = (store: CatalogStoreApi, offer: IPurchasa
     const { isRoomOwner, isGuildRoom, controllerLevel } = roomStore.getState();
     const product = getOfferProduct(offer);
 
-    if ((systemStore.getState().config['catalog.drag_and_drop'] !== true) || !getRoom()) return false;
+    if ((!configBoolean('catalog.drag_and_drop')) || !getRoom()) return false;
     if (activePage && !activePage.allowDragging) return false;
 
     const mayPlace = (catalogType === CatalogTypeEnum.Normal)

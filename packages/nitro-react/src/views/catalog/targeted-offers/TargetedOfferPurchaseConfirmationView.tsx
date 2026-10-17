@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { maximizeTargetedOffer, purchaseTargetedOffer } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigData, useConfigValue } from '#base/context/system';
+import { useConfigBoolean, useConfigData } from '#base/context/system';
 import { TargetedOffer } from '#base/context/targeted-offers';
 import { useTargetedOfferLocalization } from '#base/hooks';
 import { TemplateWindow, useTemplateLibrary } from '#base/theme';
@@ -50,8 +50,8 @@ export const TargetedOfferPurchaseConfirmationView = ({ offer, quantity }: Targe
     const getLocalization = useTargetedOfferLocalization(offer);
     const config = useConfigData();
     const templates = useTemplateLibrary(CATALOG_LIBRARY);
-    const disclaimerEnabled = (useConfigValue<boolean>('disclaimer.credit_spending.enabled') === true);
-    const multiplePurchaseEnabled = (useConfigValue<boolean>('catalog.multiple.purchase.enabled') === true);
+    const disclaimerEnabled = (useConfigBoolean('disclaimer.credit_spending.enabled'));
+    const multiplePurchaseEnabled = (useConfigBoolean('catalog.multiple.purchase.enabled'));
     const [ disclaimerSelected, setDisclaimerSelected ] = useState(false);
 
     const maximize = () => maximizeTargetedOffer(send, offer);

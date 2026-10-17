@@ -24,7 +24,7 @@ import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { verifyClubLevel } from '#base/commands';
 import { AvatarEditorWardrobeOutfit } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { useOwnHasClub } from '#base/context/user';
 import { TemplateItem, TemplateWindow, useAvatarImageTexture } from '#base/theme';
 
@@ -63,7 +63,7 @@ const WardrobeSlotImage = ({ figure, gender, zoom }: { figure: string; gender: A
 };
 
 export const AvatarEditorWardrobe = ({ slots, slotCount, onSave, onLoad }: AvatarEditorWardrobeProps) => {
-    const zoom = useConfigValue<boolean>('zoom.enabled') === true;
+    const zoom = useConfigBoolean('zoom.enabled');
     const { send } = useWebSocketContext();
     const count = Math.max(slotCount, slots.length);
     const usable = useOwnHasClub();

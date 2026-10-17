@@ -10,7 +10,7 @@
  * laid out - so the two agree on how much room the trade takes.
  */
 import { isTradingCreditFurniPresent, isWeb3Trading, useInventoryStore } from '#base/context/inventory';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { useWiredTradingStore } from '#base/context/wired-trading';
 
 /** `TradingView.TRADE_UI_SPACING`: `resizeWindow`'s `Util.moveAllChildrenToColumn(window, 7)`. */
@@ -45,7 +45,7 @@ export const useInventoryTradingSections = () => {
     const requiredSilverFee = useInventoryStore(x => x.tradingRequiredSilverFee);
     const ownUser = useInventoryStore(x => x.tradingOwnUser);
     const otherUser = useInventoryStore(x => x.tradingOtherUser);
-    const warningsEnabled = useConfigValue<boolean>('trading.warning.enabled') === true;
+    const warningsEnabled = useConfigBoolean('trading.warning.enabled');
 
     return { showSilver: isWeb3Trading(requiredSilverFee, ownUser, otherUser), showHighlight: warningsEnabled && isTradingCreditFurniPresent(ownUser, otherUser), warningsEnabled };
 };

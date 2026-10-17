@@ -18,7 +18,7 @@ import { AvatarFigurePartType } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
 
 import { avatarEditorStore } from '#base/context/avatar-editor';
-import { systemStore } from '#base/context/system';
+import { configBoolean } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { firstSelectableColorId, getAvatarEditorPartSets } from '#base/utils';
 
@@ -31,9 +31,7 @@ const CATEGORY_SET_TYPES: readonly string[] = [
 ];
 const MISC_SET_TYPES: readonly string[] = [ AvatarFigurePartType.Pet, AvatarFigurePartType.Misc ];
 
-const configFlag = (key: string) => systemStore.getState().config[key] === true;
-
-const editorSetTypes = () => (configFlag('clothing.misc.tab.enabled') ? [ ...CATEGORY_SET_TYPES, ...MISC_SET_TYPES ] : CATEGORY_SET_TYPES);
+const editorSetTypes = () => (configBoolean('clothing.misc.tab.enabled') ? [ ...CATEGORY_SET_TYPES, ...MISC_SET_TYPES ] : CATEGORY_SET_TYPES);
 
 /** The editing figure's worn part set and colours for a set type, as the structure has them. */
 const wornOf = (setType: string) => {
@@ -75,8 +73,8 @@ const replacePart = (setType: string, clubLevel: number, colorIds: number[]) => 
         gender,
         clubLevel,
         figureSetIds,
-        clubItemsFirst: configFlag('avatareditor.show.clubitems.first'),
-        clubItemsDimmed: configFlag('avatareditor.show.clubitems.dimmed'),
+        clubItemsFirst: configBoolean('avatareditor.show.clubitems.first'),
+        clubItemsDimmed: configBoolean('avatareditor.show.clubitems.dimmed'),
     }).find(partSet => partSet.clubLevel <= clubLevel);
     const mandatory = GetAvatarRenderManager().getMandatoryAvatarPartSetIds(gender, clubLevel).includes(setType);
 

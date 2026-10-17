@@ -37,7 +37,7 @@ import { useEffect, useState } from 'react';
 import { confirmHelpReportedUser, forgetUnlistedReportedUser, hasSelectedHelpLines, requestCfhReportsStatus, requestSanctionStatus, selectHelpReportedUser, startHelpReport, submitCallForHelp, toggleHelpChatLine, toggleHelpImLine } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { HelpReportEntry, HelpUserItem, useHelpStore } from '#base/context/help';
-import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { useOwnUserId } from '#base/context/user';
 import { ModalDialog, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
 import { AvatarImageWidgetHead } from '#base/views/shared/AvatarImageWidgetHead';
@@ -107,7 +107,7 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
     const { showAlert } = useWindowActions();
     const zendeskUrl = useConfigValue<string>('zendesk.url');
     const faqUrl = useConfigValue<string>('cfh.faq.url');
-    const reportsStatusEnabled = useConfigValue<boolean>('my.reports.status.enabled') === true;
+    const reportsStatusEnabled = useConfigBoolean('my.reports.status.enabled');
     const minimumLength = useConfigValue<number>('help.cfh.length.minimum') ?? MESSAGE_MINIMUM_LENGTH_DEFAULT;
     const frame = useTemplateFrame({ id: 'help_topics_flow', modal: true, rememberPosition: false, resizeDirection: 'none', onClose });
     const ownUserId = useOwnUserId();

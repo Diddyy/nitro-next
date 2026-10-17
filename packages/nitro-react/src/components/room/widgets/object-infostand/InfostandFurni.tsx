@@ -18,7 +18,7 @@ import { openClientLink, openGroupInfo, openProfile, openRentConfirmationWindow,
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
 import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomStore, useRoomWidgetActions } from '#base/context/room';
-import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useTranslation, useWindowActions } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useWiredHasWritePermission, useWiredShowInspectButton } from '#base/context/wired';
 import { useCanPlaceWithBuildersClub, useRoomFurnitureData, useRoomObjectInteraction, useRoomObjectModify, useSecondsClock } from '#base/hooks';
@@ -61,10 +61,10 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const nowPlayingSongId = useRoomStore(x => x.nowPlayingSongId);
     const songInfoById = useRoomStore(x => x.songInfoById);
     const groupDetails = useGroupStore(x => (furniData?.groupId ? x.detailsById[furniData.groupId] : undefined));
-    const useButtonEnabled = useConfigValue<boolean>('infostand.use.button.enabled') === true;
+    const useButtonEnabled = useConfigBoolean('infostand.use.button.enabled');
     const clockMs = useSecondsClock();
-    const placeMoreEnabled = useConfigValue<boolean>('infostand.place_more.enabled') === true;
-    const buildersClubEnabled = useConfigValue<boolean>('builders.club.enabled') === true;
+    const placeMoreEnabled = useConfigBoolean('infostand.place_more.enabled');
+    const buildersClubEnabled = useConfigBoolean('builders.club.enabled');
     const canPlaceWithBuildersClub = useCanPlaceWithBuildersClub();
     const { modifyRoomObject } = useRoomObjectModify();
     const { changeItemState } = useRoomObjectInteraction();

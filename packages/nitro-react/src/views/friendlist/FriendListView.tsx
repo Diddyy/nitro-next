@@ -17,7 +17,7 @@ import {
 } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsActions, useFriendsStore } from '#base/context/friend';
-import { useConfigValue, useTranslation, useWindowActions, useWindowParams, WindowParams } from '#base/context/system';
+import { useConfigBoolean, useTranslation, useWindowActions, useWindowParams, WindowParams } from '#base/context/system';
 import { useFriendRequests, useOfflineFriends, useOnlineFriends, useOwnUserId, useUserMessengerActions, useUserStore } from '#base/context/user';
 import { getGlobalRect, getLayoutChildByName, getLayoutListItems, getStoredFramePosition, GlobalRect, TemplateBindings, TemplateFrameOptions, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
 import { getLowestPoint, layoutChildrenInArea } from '#base/views/shared/flashWindowUtils';
@@ -100,9 +100,9 @@ export const FriendListView = () => {
     const friendRequestsListShown = useUserStore(x => x.friendRequestsListShown);
     const { clearAnsweredFriendRequests, markFriendRequestsListShown, setFriendListTabHighlighted } = useUserMessengerActions();
 
-    const messagesPersisted = useConfigValue<boolean>('friend_list.persistent_message_status.enabled') === true;
-    const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
-    const selectAllEnabled = useConfigValue<boolean>('friend_list.select_all.enabled') === true;
+    const messagesPersisted = useConfigBoolean('friend_list.persistent_message_status.enabled');
+    const relationshipsEnabled = useConfigBoolean('relationship.status.enabled');
+    const selectAllEnabled = useConfigBoolean('friend_list.select_all.enabled');
 
     /** `FriendCategory.open` and `pageIndex`, by category. */
     const [ openCategories, setOpenCategories ] = useState<number[]>([ 0 ]);

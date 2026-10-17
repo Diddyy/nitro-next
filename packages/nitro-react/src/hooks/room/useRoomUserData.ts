@@ -8,7 +8,7 @@ import { IHabboUserBadge, IRelationshipStatusInfo } from '@nitrodevco/nitro-pack
 
 import { countFriends } from '#base/commands';
 import { useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { useIsSystemShutdown, useOwnUserId, useUserStore } from '#base/context/user';
 
 import { useRoomObjectModelVersion } from './useRoomObjectModelVersion';
@@ -114,7 +114,7 @@ export const useRoomUserData = (objectId: number): AvatarInfo | undefined => {
     const friendListFull = useUserStore(x => countFriends(x.friends) >= x.userFriendLimit);
     const groupBadge = useUserStore(x => (userData ? (x.groupBadges[userData.groupId] ?? '') : ''));
     // `InfoStandWidgetHandler.isActivityDisplayEnabled`: `getBoolean`, so off unless the hotel sets it.
-    const activityDisplayEnabled = useConfigValue<boolean>('activity.point.display.enabled') === true;
+    const activityDisplayEnabled = useConfigBoolean('activity.point.display.enabled');
     const modelVersion = useRoomObjectModelVersion(objectId, RoomObjectCategoryEnum.Unit);
 
     if (!room || !userData) return undefined;

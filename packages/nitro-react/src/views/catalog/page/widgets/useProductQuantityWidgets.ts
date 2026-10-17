@@ -2,7 +2,7 @@ import { IPurchasableOffer } from '@nitrodevco/nitro-api';
 import { useRef } from 'react';
 
 import { CatalogPage, CatalogWidgetBundleDisplayExtraInfoEvent, CatalogWidgetEventEnum, CatalogWidgetSpinnerEvent, useCatalogStore } from '#base/context/catalog';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 
 /** `ExtraInfoItemData.TYPE_RESET_MESSAGE`: the row `setBundleInfoWidgetToOffer` resets the bundle info with. */
@@ -20,7 +20,7 @@ const EXTRA_INFO_TYPE_RESET_MESSAGE = 5;
  */
 export const useProductQuantityWidgets = (page: CatalogPage) => {
     const totalPriceWidgetInitialized = useRef(false);
-    const multiplePurchaseEnabled = (useConfigValue<boolean>('catalog.multiple.purchase.enabled') === true) && !page.isBuilderPage;
+    const multiplePurchaseEnabled = (useConfigBoolean('catalog.multiple.purchase.enabled')) && !page.isBuilderPage;
     const ruleset = useCatalogStore(x => x.bundleDiscountRuleset);
     const flatPriceSteps = useCatalogStore(x => x.bundleDiscountFlatPriceSteps);
     const bundleDiscountEnabled = !page.isBuilderPage;

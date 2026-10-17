@@ -17,7 +17,7 @@ import { useState } from 'react';
 
 import { resetPhoneNumberCollection, setOnlineIndicatorPreference, setRoomCameraFollowDisabled, setRoomInvitesIgnored, setWiredWhisperDisabled } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { useWiredStore } from '#base/context/wired';
 
@@ -38,9 +38,9 @@ export const ToolbarOtherSettingsView = ({ onClose }: { onClose: () => void }) =
     const cameraFollowDisabled = useUserStore(x => x.isRoomCameraFollowDisabled);
     const onlineIndicatorPreference = useUserStore(x => x.onlineIndicatorPreference);
     const wiredWhisperDisabled = useWiredStore(x => x.wiredWhisperDisabled);
-    const cameraFollowEnabled = useConfigValue<boolean>('room.camera.follow_user') === true;
-    const smsVerificationEnabled = useConfigValue<boolean>('sms.identity.verification.enabled') === true;
-    const smsButtonEnabled = useConfigValue<boolean>('sms.identity.verification.button.enabled') === true;
+    const cameraFollowEnabled = useConfigBoolean('room.camera.follow_user');
+    const smsVerificationEnabled = useConfigBoolean('sms.identity.verification.enabled');
+    const smsButtonEnabled = useConfigBoolean('sms.identity.verification.button.enabled');
     const phoneVerificationStatus = useConfigValue<number>('phone.verification.status') ?? 0;
     const phoneCollectionStatus = useConfigValue<number>('phone.collection.status') ?? 0;
     // Flash hides the button on the click and never shows it again for this window.

@@ -6,7 +6,7 @@
 import { WiredSetPreferencesComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { systemStore } from '#base/context/system';
+import { configBoolean } from '#base/context/system';
 import { wiredStore } from '#base/context/wired';
 import { WIRED_STYLE_DEFAULT, WIRED_STYLES, WiredStyleName } from '#base/wired';
 
@@ -34,7 +34,7 @@ export const setWiredUiStyle = (wiredUiStyle: string) => {
 
     state.setWiredPreferences({ wiredUiStyle });
 
-    if (systemStore.getState().config['wired.ui_picker_enabled'] !== true) return;
+    if (!configBoolean('wired.ui_picker_enabled')) return;
 
     const styleName = (wiredUiStyle === '') ? WIRED_STYLE_DEFAULT : wiredUiStyle;
 

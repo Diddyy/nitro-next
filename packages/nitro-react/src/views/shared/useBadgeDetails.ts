@@ -7,7 +7,7 @@
  */
 import { getBadgeRarityLabelKey, getBadgeRarityWhiteBackgroundTagColor } from '@nitrodevco/nitro-api';
 
-import { useBadgePointLimits, useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgePointLimits, useConfigBoolean, useTranslation } from '#base/context/system';
 import { getBadgeDesc, getBadgeName, shouldShowBadgeOwnerCount } from '#base/utils';
 
 /** What the window shows. */
@@ -26,7 +26,7 @@ export const useBadgeDetails = () => {
     const t = useTranslation();
     const badgePointLimits = useBadgePointLimits();
     // `isUncommonBadgeRarityEnabled`.
-    const uncommonRarityEnabled = useConfigValue<boolean>('badge_rarity.uncommon') === true;
+    const uncommonRarityEnabled = useConfigBoolean('badge_rarity.uncommon');
 
     return (code: string, ownerCount?: number, rarityId?: number): BadgeDetails => {
         const rarityLabel = (rarityId !== undefined) ? t(getBadgeRarityLabelKey(rarityId, uncommonRarityEnabled)) : undefined;

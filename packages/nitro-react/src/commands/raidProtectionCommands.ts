@@ -18,7 +18,7 @@ import { WebSocketConnection } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
 import { RaidProtectionDraft, raidProtectionStore } from '#base/context/raid-protection';
 import { roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 
 type Send = WebSocketConnection['send'];
 
@@ -39,7 +39,7 @@ const MAX_ROOM_ID = 2147483647;
 const raid = () => raidProtectionStore.getState();
 
 /** `isFeatureEnabled`: the hotel's `raid.protection.enabled`. */
-export const isRaidProtectionEnabled = () => systemStore.getState().config['raid.protection.enabled'] === true;
+export const isRaidProtectionEnabled = () => configBoolean('raid.protection.enabled');
 
 /** `isLiveCurrentRoom`: the navigator's current room, with its session started. */
 const isLiveCurrentRoom = (roomId: number) => (roomId > 0) && (navigatorStore.getState().currentRoomId === roomId) && (roomStore.getState().room?.roomId === roomId);

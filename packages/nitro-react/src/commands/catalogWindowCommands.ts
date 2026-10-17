@@ -12,13 +12,13 @@
 import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
 
 import { getCatalogWindowName } from '#base/context/catalog';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { ClientGates, hasClientGate } from '#base/context/user';
 
 export const toggleCatalog = (catalogType: CatalogTypeEnum) => {
-    const { config, visibleWindows, showWindow, hideWindow } = systemStore.getState();
+    const { visibleWindows, showWindow, hideWindow } = systemStore.getState();
 
-    if (!hasClientGate(ClientGates.BuildersClubCatalog) && (config['builders.club.enabled'] !== true)) catalogType = CatalogTypeEnum.Normal;
+    if (!hasClientGate(ClientGates.BuildersClubCatalog) && (!configBoolean('builders.club.enabled'))) catalogType = CatalogTypeEnum.Normal;
 
     const name = getCatalogWindowName(catalogType);
     const otherName = getCatalogWindowName((catalogType === CatalogTypeEnum.BuildersClub) ? CatalogTypeEnum.Normal : CatalogTypeEnum.BuildersClub);

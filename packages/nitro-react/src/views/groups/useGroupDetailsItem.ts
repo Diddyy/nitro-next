@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { canDeleteAnyGroup, deleteGroup, goToGroupBaseRoom, joinGroup, leaveGroup, openGroupForum, openGroupFurniCatalog, openGroupManagement, showGroupBases, toggleGroupMembers } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { findTemplateChild, measureTemplateText, TemplateElement, TemplateItem, templateTextMargins, TemplateWindows, useTemplate } from '#base/theme';
 
 /** `GroupDetailsCtrl`'s step down the link column, from `pending_members_region`. */
@@ -47,7 +47,7 @@ const GROUP_TYPE_REGIONS = [ 0, 1, 2 ] as const;
 
 export const useGroupDetailsItem = (groupId: number): TemplateItem | undefined => {
     const details = useGroupStore(x => x.detailsById[groupId]);
-    const groupDeletionEnabled = useConfigValue<boolean>('group.deletion.enabled') === true;
+    const groupDeletionEnabled = useConfigBoolean('group.deletion.enabled');
     const { send } = useWebSocketContext();
     const template = useTemplate('habbo-groups-com/group');
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';

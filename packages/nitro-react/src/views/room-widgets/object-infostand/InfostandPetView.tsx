@@ -1,7 +1,7 @@
 import { ISimpleRoomObjectData, PetType, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { PetInfoMessageType } from '@nitrodevco/nitro-packets';
 
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useTranslation } from '#base/context/system';
 import { useChatPetFace } from '#base/hooks';
 import { Box, CountdownWidget, LayoutImage, Region, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage } from '#base/theme';
 import { petTypeFromFigure } from '#base/utils';
@@ -167,7 +167,7 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isO
     const t = useTranslation();
     const { texture: petTexture } = useChatPetFace(figure, posture, { scale: RoomGeometryScaleType.ZoomedIn, direction: 2 });
     // `InfoStandPetView.setSpecialSkillLevel`: `getBoolean("pet.enhancements.enabled")`.
-    const petEnhancementsEnabled = useConfigValue<boolean>('pet.enhancements.enabled') === true;
+    const petEnhancementsEnabled = useConfigBoolean('pet.enhancements.enabled');
     // `InfoStandPetView.update`: `type == 16`, the type from the pet's figure (`getPetType`) - not its breed.
     const petType = petTypeFromFigure(figure);
     const isMonsterplant = !!info && (petType === PetType.MONSTERPLANT);

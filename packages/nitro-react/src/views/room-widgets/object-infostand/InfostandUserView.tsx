@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { openClientLink, openProfile, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_SMILE, requestUserDetails, showGroupBadgeInfo } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomStore } from '#base/context/room';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { useRoomUserData } from '#base/hooks';
 import { LayoutImage, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture } from '#base/theme';
 import { isHandItem } from '#base/utils';
@@ -86,11 +86,11 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
     const [ nameHovered, setNameHovered ] = useState(false);
     const lastMottoSent = useRef(0);
     const mottoMaxLength = useConfigValue<number>('motto.max.length') ?? 38;
-    const mottoChangeEnabled = useConfigValue<boolean>('infostand.motto.change.enabled') === true;
+    const mottoChangeEnabled = useConfigBoolean('infostand.motto.change.enabled');
     // `InfoStandWidgetHandler.isActivityDisplayEnabled` shows `score_spacer`, `score_text` and `score_value`.
-    const activityDisplayEnabled = useConfigValue<boolean>('activity.point.display.enabled') === true;
+    const activityDisplayEnabled = useConfigBoolean('activity.point.display.enabled');
     // `InfoStandUserView.createWindow`: `relationship_status_container.visible = getBoolean("relationship.status.enabled")`.
-    const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
+    const relationshipsEnabled = useConfigBoolean('relationship.status.enabled');
     const t = useTranslation();
     const { send } = useWebSocketContext();
     const avatar = useAvatarImageTexture(info?.figure || undefined, info?.gender ?? AvatarGenderType.Male, { cropped: true, direction: AVATAR_DIRECTION });

@@ -14,7 +14,7 @@ import { StoreApi } from 'zustand';
 
 import { CatalogStore, CatalogWidgetEventEnum } from '#base/context/catalog';
 import { getRoom, roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean } from '#base/context/system';
 
 import { showNotification } from './notificationCommands';
 
@@ -105,7 +105,7 @@ export const dispatchBuilderSubscriptionUpdated = (store: CatalogStoreApi) => {
 export const getBuilderFurniPlaceableStatus = (store: CatalogStoreApi, now: number = performance.now()): number => {
     const { isRoomOwner, isGuildRoom, controllerLevel, ownRoomIndex, usersByRoomObjectId } = roomStore.getState();
 
-    if (!isRoomOwner && isGuildRoom && (systemStore.getState().config['builders.club.furniture.placement.group.room.enabled'] !== true)) return BUILDER_FURNI_PLACEABLE_STATUS_GUILD_ROOM;
+    if (!isRoomOwner && isGuildRoom && (!configBoolean('builders.club.furniture.placement.group.room.enabled'))) return BUILDER_FURNI_PLACEABLE_STATUS_GUILD_ROOM;
 
     if (Number(controllerLevel) < Number(RoomControllerLevelEnum.GuildAdmin)) return BUILDER_FURNI_PLACEABLE_STATUS_NOT_ROOM_OWNER_OR_GROUP_ADMIN;
 

@@ -6,12 +6,12 @@
  */
 import { closeHabbiconPurchaseConfirmation } from '#base/commands';
 import { useHabbiconsStore } from '#base/context/habbicons';
-import { useConfigValue, useIsWindowVisible, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useIsWindowVisible, useWindowActions } from '#base/context/system';
 import { HabbiconPurchaseConfirmationView } from '#base/views/habbicons/HabbiconPurchaseConfirmationView';
 import { HabbiconView } from '#base/views/habbicons/HabbiconView';
 
 export const HabbiconsComponent = () => {
-    const enabled = useConfigValue<boolean>('habbicons.enabled') === true;
+    const enabled = useConfigBoolean('habbicons.enabled');
     const hubVisible = useIsWindowVisible('habbicons');
     const purchase = useHabbiconsStore(x => x.purchase);
     const { hideWindow } = useWindowActions();

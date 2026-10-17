@@ -3,7 +3,7 @@ import { BlockUserComposer, UnblockUserComposer } from '@nitrodevco/nitro-packet
 
 import { askForAFriend, canBeAskedForAFriend, openClientLink, openProfile, searchRoomsByOwner, selectProfileGroup, showGroupBases, toggleProfileFavouriteGroup } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
+import { useConfigBoolean, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useOwnUserId, useUserStore } from '#base/context/user';
 import { useProfileActions, useProfileStore } from '#base/context/user-profile';
 import { UserProfileView } from '#base/views/user-profile/UserProfileView';
@@ -23,8 +23,8 @@ export const UserProfileComponent = () => {
     // `refreshHeader`: the add friend button follows the friend list, so one made a friend elsewhere loses it.
     const canAskForFriend = useUserStore(state => !!profile && canBeAskedForAFriend(profile.userId, state));
     const { markFriendRequestSent, selectGroup } = useProfileActions();
-    const activityDisplayEnabled = useConfigValue<boolean>('activity.point.display.enabled') === true;
-    const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
+    const activityDisplayEnabled = useConfigBoolean('activity.point.display.enabled');
+    const relationshipsEnabled = useConfigBoolean('relationship.status.enabled');
 
     if (!visible || !profile || !userId || (profile.userId !== userId)) return null;
 

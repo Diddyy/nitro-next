@@ -18,7 +18,7 @@ import { ClaimDailyTaskComposer, DAILY_TASK_STATUS_ACTIVE, DAILY_TASK_STATUS_CLA
 import { WebSocketConnection } from '#base/context/communication';
 import { dailyTasksStore } from '#base/context/daily-tasks';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore, translate as t } from '#base/context/system';
+import { configBoolean, translate as t } from '#base/context/system';
 
 type Send = WebSocketConnection['send'];
 
@@ -34,7 +34,7 @@ let lastRequestTime = -REQUEST_TASKS_TIMEOUT_MS;
 const tasks = () => dailyTasksStore.getState();
 
 /** `isEnabled`. */
-export const isDailyTasksEnabled = () => systemStore.getState().config['dailytasks.enabled'] === true;
+export const isDailyTasksEnabled = () => configBoolean('dailytasks.enabled');
 
 /** `DailyTaskInfo.secondsLeft`: 0 for a task sent with none, else counted down from when it came. */
 export const getDailyTaskSecondsLeft = (task: IDailyTaskInfo, now: number = Date.now()): number => {

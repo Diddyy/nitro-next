@@ -47,7 +47,7 @@ import { GetTicker, RoomShakingEffect } from '@nitrodevco/nitro-renderer';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { ClientGates, hasClientGate, PerkCodes, userStore } from '#base/context/user';
 
 import { startTakingPhoto } from './cameraCommands';
@@ -160,13 +160,13 @@ export const runRoomChatCommand = (send: Send, text: string): boolean => {
             toggleDemonicTriggers();
             return true;
         case ':news':
-            if (systemStore.getState().config['client.news.embed.enabled'] !== true) return false;
+            if (!configBoolean('client.news.embed.enabled')) return false;
             openNews();
             return true;
         case ':mail':
             // `HabboWebTools.openMinimail`: with no page around the client, `openWebHabblet('minimail')`
             // knows no such habblet and opens nothing.
-            return systemStore.getState().config['client.minimail.embed.enabled'] === true;
+            return configBoolean('client.minimail.embed.enabled');
         case ':iddqd':
         case ':flip':
             // `RoomEngineZoomEvent(activeRoomId, -1, true)`: the room turned upside down.
@@ -194,7 +194,7 @@ export const runRoomChatCommand = (send: Send, text: string): boolean => {
             expression(send, AvatarExpressionEnum.Blow);
             return true;
         case ':67':
-            if ((systemStore.getState().config['avatar.expression.67.enabled'] !== true) || !hasVip()) return false;
+            if ((!configBoolean('avatar.expression.67.enabled')) || !hasVip()) return false;
             expression(send, AvatarExpressionEnum.Expression67);
             return true;
         case ':jump':

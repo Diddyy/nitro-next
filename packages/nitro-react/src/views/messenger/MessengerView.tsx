@@ -47,7 +47,7 @@ import {
     groupMessengerEntries, MESSENGER_ENTRY_INFO, MESSENGER_ENTRY_INVITATION, MESSENGER_ENTRY_NOTIFICATION, MESSENGER_ENTRY_OTHER, MESSENGER_ENTRY_OWN, MESSENGER_ITEM_WIDTH_INSET,
     MESSENGER_NO_CONVERSATION, MESSENGER_NOTIFICATION_ICON_WIDTH, MessengerChatEntry, MessengerConversation, useMessengerActions, useMessengerStore,
 } from '#base/context/messenger';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean, useConfigValue } from '#base/context/system';
 import { useFriends, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { Box, findTemplateChild, getGlobalRect, Template, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { HabbiconPickerLook, HabbiconPickerView } from '#base/views/habbicons/HabbiconPickerView';
@@ -144,7 +144,7 @@ export const MessengerView = () => {
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const [ frameSize, setFrameSize ] = useState<{ width: number; height: number } | null>(null);
     const frame = useTemplateFrame({ id: 'messenger', defaultPosition: { x: 120, y: 120 }, resizeDirection: 'all', onResize: setFrameSize, onClose: hideMessenger, closeButtonVariant: '102' });
-    const habbiconsEnabled = useConfigValue<boolean>('habbicons.enabled') === true;
+    const habbiconsEnabled = useConfigBoolean('habbicons.enabled');
     const [ pickerAt, setPickerAt ] = useState<{ x: number; bottom: number } | null>(null);
     // A press on the button that just closed the picker from outside must not open it again.
     const pickerClosedAtRef = useRef(0);

@@ -5,7 +5,7 @@ import { ambassadorAlert, askForAFriend, banUser, giveRights, ignoreUser, kickUs
 import { reportUser } from '#base/commands/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useOwnRoomObjectId, useRoomIsPlayingGame, useRoomStore } from '#base/context/room';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { useAccountSafetyLocked, useOwnIsAmbassador, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { TRADE_REASON_ROOM, TRADE_REASON_SHUTDOWN, useRoomUserData } from '#base/hooks';
@@ -53,14 +53,14 @@ export const useAvatarMenu = (objectData: ISimpleRoomObjectData, onClose: () => 
     const accountSafetyLocked = useAccountSafetyLocked();
     const isAmbassador = useOwnIsAmbassador();
     const isPlayingGame = useRoomIsPlayingGame();
-    const citizenshipTrack = useConfigValue<boolean>('talent.track.citizenship.enabled') ?? false;
+    const citizenshipTrack = useConfigBoolean('talent.track.citizenship.enabled');
     // `AvatarMenuView`: the config flag, and not while the room's configuration items block hand item control.
     const isHanditemControlBlocked = useRoomStore(x => x.isHanditemControlBlocked);
-    const handItemGiveEnabled = (useConfigValue<boolean>('handitem.give.enabled') === true) && !isHanditemControlBlocked;
-    const relationshipsEnabled = useConfigValue<boolean>('relationship.status.enabled') === true;
+    const handItemGiveEnabled = (useConfigBoolean('handitem.give.enabled')) && !isHanditemControlBlocked;
+    const relationshipsEnabled = useConfigBoolean('relationship.status.enabled');
     const replenishCost = useConfigValue<number>('respect.replenish_cost_duckets') ?? 50;
     const showWiredInspect = useWiredShowInspectButton();
-    const reportShown = useConfigValue<boolean>('infostand.report.show') === true;
+    const reportShown = useConfigBoolean('infostand.report.show');
     const t = useTranslation();
     const { send } = useWebSocketContext();
 

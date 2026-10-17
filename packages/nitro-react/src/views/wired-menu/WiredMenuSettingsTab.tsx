@@ -15,7 +15,7 @@
  */
 import { changeWiredMenuPreferences, reloadWiredRoom, rollbackWiredRoom, setWiredPermission, setWiredTimezone } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { useWiredHasWritePermission, useWiredIsRoomOwnerOrStaff, useWiredStore, WIRED_MODIFY_PERMISSION_LEVELS, WIRED_READ_PERMISSION_LEVELS } from '#base/context/wired';
 import { TemplateBindings, TemplateWindow } from '#base/theme';
 import { snakeToTitle, WIRED_STYLE_DEFAULT, WIRED_STYLE_OPTIONS } from '#base/wired';
@@ -59,7 +59,7 @@ export const WiredMenuSettingsTab = () => {
     const isRoomOwnerOrStaff = useWiredIsRoomOwnerOrStaff();
     const hasWritePermission = useWiredHasWritePermission();
     const timezonesConfig = useConfigValue<string>('wired.timezones');
-    const uiPickerEnabled = useConfigValue<boolean>('wired.ui_picker_enabled') === true;
+    const uiPickerEnabled = useConfigBoolean('wired.ui_picker_enabled');
 
     const { modify, read } = permissionBoxes(Math.max(0, modifyMask), Math.max(0, readMask));
 

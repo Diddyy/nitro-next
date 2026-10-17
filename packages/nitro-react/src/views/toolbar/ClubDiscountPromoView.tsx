@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { requestClubExtendOfferFromPromo } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useQuestsStore } from '#base/context/quests';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { getPurseClubType, useOwnClubSubscription } from '#base/context/user';
 import { Box, TemplateWindow, TemplateWindows } from '#base/theme';
 
@@ -59,7 +59,7 @@ const glintAt = (step: number) => {
 };
 
 export const ClubDiscountPromoView = () => {
-    const enabled = useConfigValue<boolean>('club.membership.extend.vip.promotion.enabled') === true;
+    const enabled = useConfigBoolean('club.membership.extend.vip.promotion.enabled');
     const vipQuestsPromoAttached = useQuestsStore(x => x.vipQuestsPromoAttached);
     const subscription = useOwnClubSubscription();
     const minutesLeft = subscription.minutesUntilExpiration;

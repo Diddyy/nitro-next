@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomPetCommands, useRoomPetInfo, useRoomUserByObjectId } from '#base/context/room';
-import { useConfigValue, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
+import { useConfigBoolean, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useChatPetFace } from '#base/hooks';
 import { Box, ColorLayer, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useTemplateFrame } from '#base/theme';
 import { petTypeFromFigure } from '#base/utils';
@@ -95,7 +95,7 @@ const PetTrainingWindow = ({ petId }: { petId: number }) => {
     const info = useRoomPetInfo(petId);
     const commands = useRoomPetCommands(petId);
     const user = useRoomUserByObjectId(objectId);
-    const enhancements = useConfigValue<boolean>('pet.enhancements.enabled') === true;
+    const enhancements = useConfigBoolean('pet.enhancements.enabled');
     const { hideWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();

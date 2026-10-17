@@ -3,7 +3,7 @@ import { CreditFurniRedeemComposer } from '@nitrodevco/nitro-packets';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { FurnitureCreditView } from '#base/views/room-widgets/furniture/FurnitureCreditView';
 
 /**
@@ -17,7 +17,7 @@ export const FurnitureCreditWidget = () => {
     const room = useRoom();
     const { closeRoomWidget } = useRoomWidgetActions();
     const { send } = useWebSocketContext();
-    const nftConvertingEnabled = useConfigValue<boolean>('nft.credit.converting.enabled') ?? false;
+    const nftConvertingEnabled = useConfigBoolean('nft.credit.converting.enabled');
 
     const onClose = () => closeRoomWidget(RoomObjectWidgetRequestEvent.CREDITFURNI);
 

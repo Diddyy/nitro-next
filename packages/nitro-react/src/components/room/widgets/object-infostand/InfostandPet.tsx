@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsRoomOwner, useOwnControllerLevel, useRoomPetInfo, useRoomPlayTestMode, useRoomUserByObjectId } from '#base/context/room';
-import { useConfigValue, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useWindowActions } from '#base/context/system';
 import { useOwnIsAnyRoomController, useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useRoomObjectModify } from '#base/hooks';
 import { InfostandPetView } from '#base/views/room-widgets/object-infostand/InfostandPetView';
@@ -37,7 +37,7 @@ export const InfostandPet = ({ objectData, onClose }: { objectData: ISimpleRoomO
     const { decreasePetRespects } = useUserActions();
     const { showWindow } = useWindowActions();
     const { modifyRoomObject } = useRoomObjectModify();
-    const petSelectEnabled = useConfigValue<boolean>('petSelect.enabled') === true;
+    const petSelectEnabled = useConfigBoolean('petSelect.enabled');
     const { send } = useWebSocketContext();
 
     useEffect(() => {

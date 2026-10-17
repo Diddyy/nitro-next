@@ -30,7 +30,7 @@ import type { Texture } from 'pixi.js';
 import { WebSocketConnection } from '#base/context/communication';
 import { HabbiconEntryModel, HabbiconSetModel, habbiconsStore } from '#base/context/habbicons';
 import { getUnseenItemCount, inventoryStore, isUnseenItem, UnseenItemCategory } from '#base/context/inventory';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { textureFromCanvas } from '#base/theme';
 import { cutHabbiconFrame, dimHabbiconPreview, getOfferProduct, HABBICON_COLLECTION_ICON_OUTLINE, HABBICONS_COLLECTION_ICONS_SPRITESHEET_FILE, HABBICONS_METADATA_FILE, HABBICONS_SPRITESHEET_FILE, outlineHabbiconBitmap, parseHabbiconMetadata, resolveHabbiconAssetRoot } from '#base/utils';
 
@@ -40,7 +40,7 @@ import { removeInventoryUnseenItem, resetInventoryUnseenCategory, resetInventory
 type Send = WebSocketConnection['send'];
 
 /** `HabbiconController.habbiconsEnabled`. */
-export const habbiconsEnabled = (): boolean => systemStore.getState().config['habbicons.enabled'] === true;
+export const habbiconsEnabled = (): boolean => configBoolean('habbicons.enabled');
 
 /** The asset manager name a habbicon's preview is kept under, for a caller that wants it by name (a notification bubble). */
 export const habbiconPreviewAssetName = (habbiconId: number): string => `habbicon_preview_${habbiconId}`;

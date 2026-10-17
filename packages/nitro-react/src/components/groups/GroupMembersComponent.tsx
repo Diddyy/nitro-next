@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 import { applyGroupMemberAction, blockGroupMember, openProfile, removeGroupMember, searchGroupMembers, stepGroupMemberPage } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupActions, useGroupStore } from '#base/context/groups';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { useOwnUserId } from '#base/context/user';
 import { GroupMembersView } from '#base/views/groups/GroupMembersView';
 
@@ -23,7 +23,7 @@ export const GroupMembersComponent = () => {
     const members = useGroupStore(x => x.members);
     const filterText = useGroupStore(x => x.filterText);
     const searching = useGroupStore(x => x.searching);
-    const blockingEnabled = useConfigValue<boolean>('group.blocking.enabled') === true;
+    const blockingEnabled = useConfigBoolean('group.blocking.enabled');
     const ownUserId = useOwnUserId();
     const { closeGroupMembers, setGroupMembersFilterText, setGroupMembersSearching } = useGroupActions();
     const { send } = useWebSocketContext();

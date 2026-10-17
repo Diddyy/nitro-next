@@ -6,7 +6,7 @@ import { forwardToRoom, openClientLink, searchRoomTag } from '#base/commands';
 import { useChatHistoryActions } from '#base/context/chat-history';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
-import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { UiFlagEnum, useRoomToolsCollapsed, userStore, useUserActions, useUserStore } from '#base/context/user';
 import { useWiredStore } from '#base/context/wired';
 import { useRoomZoom } from '#base/hooks';
@@ -48,7 +48,7 @@ export const RoomToolsWidget = () => {
     const { toggleWindow } = useWindowActions();
     const { level, canZoomIn, canZoomOut, zoomIn, zoomOut } = useRoomZoom();
 
-    const infoEnabled = useConfigValue<boolean>('room.enter.info.enabled') === true;
+    const infoEnabled = useConfigBoolean('room.enter.info.enabled');
     const infoDelay = useConfigValue<number>('room.enter.info.collapse.delay') ?? DEFAULT_INFO_COLLAPSE_DELAY;
     const urlPrefix = useConfigValue<string>('url.prefix') ?? '';
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';

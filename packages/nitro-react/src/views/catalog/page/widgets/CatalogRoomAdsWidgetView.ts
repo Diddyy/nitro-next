@@ -7,7 +7,7 @@ import { CatalogRoomAdPurchaseData, CatalogRoomAdPurchaseInfo, CatalogWidgetEven
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorStore } from '#base/context/navigator';
 import { useRoom } from '#base/context/room';
-import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useConfigData, useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent, useRoomEventDispatcher } from '#base/hooks';
 import { useLatest, useTemplateLibrary } from '#base/theme';
 
@@ -63,7 +63,7 @@ export const CatalogRoomAdsWidgetView = ({ page }: CatalogWidgetProps) => {
     const roomAdPurchaseData = useCatalogStore(x => x.roomAdPurchaseData);
     const eventCategories = useNavigatorStore(x => x.eventCategories);
     const durationMinutes = useConfigValue<number>('room_ad.duration.minutes') ?? DEFAULT_ROOM_AD_DURATION_MINUTES;
-    const limitedExtension = (useConfigValue<boolean>('roomad.limited_extension') === true);
+    const limitedExtension = (useConfigBoolean('roomad.limited_extension'));
     const room = useRoom();
     const store = useCatalogStoreApi();
     const { updateRoomAdPurchaseData, clearRoomAdPurchaseData } = useCatalogRoomAdActions();

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { CatalogWidgetSpinnerEvent, useCatalogStore } from '#base/context/catalog';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { getDiscountItemsCount } from '#base/utils';
 
@@ -42,7 +42,7 @@ export const CatalogSpinnerWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ valueText, setValueText ] = useState('1');
     const [ discountItemsCount, setDiscountItemsCount ] = useState(0);
     const ruleset = useCatalogStore(x => x.bundleDiscountRuleset);
-    const multiplePurchaseEnabled = (useConfigValue<boolean>('catalog.multiple.purchase.enabled') === true) && !page.isBuilderPage;
+    const multiplePurchaseEnabled = (useConfigBoolean('catalog.multiple.purchase.enabled')) && !page.isBuilderPage;
     const bundleDiscountEnabled = !page.isBuilderPage;
     const t = useTranslation();
 

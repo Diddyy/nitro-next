@@ -35,7 +35,7 @@ import {
     INVENTORY_TRADING_STATE_COUNTDOWN, inventoryStore,
 } from '#base/context/inventory';
 import { roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { detectTradingNameScam, hasTradingNameScamMatches } from '#base/utils';
 
@@ -125,10 +125,10 @@ export const registerInventoryTradingHandlers = ({ subscribe }: WebSocketConnect
             // Flash drops a close for a trade it has already stopped.
             if (!tradingActive) return;
 
-            const { getLocalizationValue, showAlert, config } = systemStore.getState();
+            const { getLocalizationValue, showAlert } = systemStore.getState();
 
             if (data.reason === INVENTORY_TRADING_CLOSE_REASON_COMMIT_ERROR) {
-                if (config['trading.commiterror.enabled'] === true) {
+                if (configBoolean('trading.commiterror.enabled')) {
                     showAlert(getLocalizationValue('inventory.trading.notification.commiterror.caption'), getLocalizationValue('inventory.trading.notification.commiterror.info'));
                 }
             } else if (data.userId !== inventoryStore.getState().tradingOwnUser.userId) {

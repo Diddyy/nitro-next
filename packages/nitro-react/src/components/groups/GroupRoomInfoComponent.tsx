@@ -6,14 +6,14 @@
 import { joinGroup, openGroupInfo, openGroupManagement } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupActions, useGroupStore } from '#base/context/groups';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean } from '#base/context/system';
 import { GroupRoomInfoView } from '#base/views/groups/GroupRoomInfoView';
 
 export const GroupRoomInfoComponent = () => {
     const roomGroupId = useGroupStore(x => x.roomGroupId);
     const details = useGroupStore(x => (x.roomGroupId ? x.detailsById[x.roomGroupId] : undefined));
     const expanded = useGroupStore(x => x.expanded);
-    const enabled = useConfigValue<boolean>('groupRoomInfo.enabled') === true;
+    const enabled = useConfigBoolean('groupRoomInfo.enabled');
     const { toggleGroupRoomInfoExpanded } = useGroupActions();
     const { send } = useWebSocketContext();
 
