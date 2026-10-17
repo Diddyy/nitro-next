@@ -412,6 +412,16 @@ export const loadTexture = (url: string): Promise<Texture | undefined> => {
 };
 
 /**
+ * Forgets what a url loaded - Flash's `resourceManager.removeAsset(url)` - so the next one shown
+ * downloads it again: a picture the server replaced at the same address (a room's thumbnail taken
+ * again). Not destroyed: a sprite may still draw it until its component reads the url again.
+ */
+export const forgetTextureUrl = (url: string): void => {
+    textureCache.delete(url);
+    GetAssetManager().removeTexture(url);
+};
+
+/**
  * Resolves an arbitrary asset URL to a Pixi Texture, downloading it through the shared
  * GetAssetManager() if it isn't already cached. Since the UI and the room share one
  * renderer/context (see `PixiApplicationRoot`), a texture used by both is fetched,

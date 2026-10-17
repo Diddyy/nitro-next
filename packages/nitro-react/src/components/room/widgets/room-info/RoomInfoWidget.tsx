@@ -9,6 +9,7 @@ import { useRaidProtectionStore } from '#base/context/raid-protection';
 import { useOwnControllerLevel } from '#base/context/room';
 import { useConfigValue, useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
 import { ClientGates, PerkCodes, useClientGate, useOwnPerkAllowed } from '#base/context/user';
+import { forgetTextureUrl } from '#base/theme';
 import { RoomInfoView } from '#base/views/room-widgets/room-info/RoomInfoView';
 
 /** `RateFlatMessageComposer(1)` - a like only ever adds one. */
@@ -77,10 +78,12 @@ export const RoomInfoWidget = () => {
             thumbnailUrl={thumbnailUrl}
             showThumbnail={thumbnailCameraAllowed}
             canAddThumbnail={thumbnailCameraAllowed && canEditRoomSettings}
-            // `onAddRoomThumbnail`: the camera's link, then `close()`.
+            // `onAddRoomThumbnail`: the camera's link, `close()`, then the room's thumbnail dropped from the
+            // resources, so the one about to be taken is downloaded rather than the old one shown.
             onAddThumbnail={() => {
                 openClientLink(send, 'roomThumbnailCamera/open');
                 hideWindow('room_info');
+                forgetTextureUrl(`${thumbnailUrlBase}${roomId}.png`);
             }}
             showEmbed={showEmbed}
             groupId={currentRoomInfo.groupId}
