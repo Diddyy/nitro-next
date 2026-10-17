@@ -8,4 +8,5 @@ export * from './RoomPreviewer';
 export * from './roomViewColor';
 export * from './RoomWrapper';
 export * from './touchPlacementDrop';
+export * from './useRoomViewfinder';
 export * from './widgets';

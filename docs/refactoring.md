@@ -200,7 +200,9 @@ id follow the room engine's session. Found on the way: the navigator never ran `
 
 - **Room cameras.** `RoomThumbnailCameraWidget` and `StarterRoomCameraWidget` are near copies, and
   neither uses `collectRoomPhotoData` (`commands/cameraCommands.ts`). A `useRoomViewfinder` hook;
-  the starter camera's UI moved to a view. S-M.
+  the starter camera's UI moved to a view. S-M. **Done:** `components/room/useRoomViewfinder.ts` (the texture, its
+  per-frame redraw and unfit check, and `collect` over `collectRoomPhotoData`); the starter
+  camera's window is `views/room-widgets/starter-room-camera/StarterRoomCameraView.tsx`. Not checked live.
 - **Second clocks.** Seven views run their own one-second `setInterval` clock (`QuestsView`,
   `DailyTasksView`, `useAvatarEditorEffects`, `ModIssueHandlerView`, `ModIssueBrowserView`,
   `RoomEffectsView`, `VariableLeaderboardWidget`) beside `hooks/useSecondsClock.ts`. An epoch

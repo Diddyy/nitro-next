@@ -13,20 +13,16 @@
  *   zooming out or turning the room over (`onRoomZoomed`).
  */
 import { RenderRoomThumbnailComposer } from '@nitrodevco/nitro-packets';
-import { GetRoomStage, GetTicker, SpriteDataCollector, TextureUtils } from '@nitrodevco/nitro-renderer';
-import { Matrix, Rectangle, RenderTexture, Sprite } from 'pixi.js';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
-import { isRoomUnfit } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
-import { useConfigValue, useIsWindowVisible, useWindowActions } from '#base/context/system';
-import { useOwnSecurityLevel } from '#base/context/user';
+import { useIsWindowVisible, useWindowActions } from '#base/context/system';
 import { GetSoundManager, HabboSoundTypesEnum } from '#base/sound';
 import { TemplateWindow, useTemplateFrame } from '#base/theme';
 import { buildRenderRoomMessageData } from '#base/utils';
 
-import { GetRoomBackgroundColor } from '../../roomBackgroundColor';
+import { useRoomViewfinder } from '../../useRoomViewfinder';
 
 const TEMPLATE = 'habbo-room-ui-com/iro_room_thumbnail_camera_xml';
 
@@ -45,67 +41,23 @@ export const RoomThumbnailCameraWidget = () => {
 const RoomThumbnailCameraView = () => {
     const { hideWindow } = useWindowActions();
     const { send } = useWebSocketContext();
-    const room = useRoom();
-    const securityLevel = useOwnSecurityLevel();
-    const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
-    const groupBadgeUrl = useConfigValue<string>('group.badge.url') ?? '';
     const close = () => hideWindow('room_thumbnail_camera');
     const frame = useTemplateFrame({ id: 'room-thumbnail-camera', centered: true, rememberPosition: false, resizeDirection: 'none', onClose: close });
     // Once the picture is sent: the buttons are disabled and the viewfinder stops (`removeUpdateReceiver`).
     const [ sent, setSent ] = useState(false);
-    const [ texture ] = useState(() => RenderTexture.create({ width: VIEWFINDER_SIZE, height: VIEWFINDER_SIZE }));
-    const viewfinder = useRef<Sprite>(null);
-
-    useEffect(() => () => texture.destroy(true), [ texture ]);
-
-    useEffect(() => {
-        if (sent) return;
-
-        const update = () => {
-            // `startTakingPhoto` / `onRoomZoomed`: the camera works at normal zoom and up, upright - checked every frame.
-            if (isRoomUnfit()) {
-                hideWindow('room_thumbnail_camera');
-
-                return;
-            }
-
-            const sprite = viewfinder.current;
-
-            if (!sprite) return;
-
-            const position = sprite.getGlobalPosition();
-
-            TextureUtils.writeToTexture(GetRoomStage(), texture, true, new Matrix().translate(-position.x, -position.y));
-        };
-
-        GetTicker().add(update);
-
-        return () => {
-            GetTicker().remove(update);
-        };
-    }, [ sent, texture, hideWindow ]);
+    const { texture, viewfinder, collect } = useRoomViewfinder(VIEWFINDER_SIZE, VIEWFINDER_SIZE, !sent, close);
 
     /** `windowProcedure`'s `button_capture`. */
     const capture = async () => {
         GetSoundManager().playSound(HabboSoundTypesEnum.CAMERA_SHUTTER);
 
-        const canvas = room?.canvas;
-        const sprite = viewfinder.current;
+        const collected = collect();
 
-        if (!room || !canvas || !sprite) return;
-
-        const position = sprite.getGlobalPosition();
-        const viewport = new Rectangle(Math.round(position.x), Math.round(position.y), VIEWFINDER_SIZE, VIEWFINDER_SIZE);
-        const collector = new SpriteDataCollector(room, canvas, imageLibraryUrl, groupBadgeUrl);
-        const sprites = collector.getFurniData(viewport, -1);
-        const modifiers = collector.getRoomRenderingModifiers();
-        const planes = collector.getRoomPlanes(viewport, GetRoomBackgroundColor());
+        if (!collected) return;
 
         setSent(true);
 
-        const data = await buildRenderRoomMessageData({ planes, sprites, modifiers, roomId: room.roomId, topSecurityLevel: securityLevel, time: Date.now() });
-
-        send(new RenderRoomThumbnailComposer({ data }));
+        send(new RenderRoomThumbnailComposer({ data: await buildRenderRoomMessageData(collected.render) }));
     };
 
     return (
