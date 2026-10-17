@@ -1502,6 +1502,12 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     const parentTint = useContext(ParentTintContext);
     const binding = state?.binding;
     const rect: TemplateRect = state?.rect ?? element;
+    // Clipped once, the window keeps the clipping box and only stops cutting when nothing reaches
+    // out any more: the box going would take its children out and draw them anew, losing what they
+    // hold - a slider knob moved off its overhang, its drag (`useDragTarget`) with it.
+    const [ clipped, setClipped ] = useState(!!rect.clip);
+
+    if (rect.clip && !clipped) setClipped(true);
     // A list's `show` decides for its items; otherwise the binding, over the layout.
     const hidden = !reveal && !(shown ?? binding?.visible ?? !element.hidden);
 
@@ -1611,7 +1617,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
      * `groupParameterFilteredChildrenUnderPoint` looks at no child of a clipping window outside it.
      */
     const drawn = (face: ReactNode) => {
-        if (!rect.clip || element.tag === 'selector') {
+        if (!clipped || element.tag === 'selector') {
             return (
                 <>
                     {face}
@@ -1628,7 +1634,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             <>
                 <Box
                     pointerTransparent
-                    layout={{ ...FILL, overflow: 'hidden' }}
+                    layout={{ ...FILL, overflow: rect.clip ? 'hidden' : 'visible' }}
                 >
                     <ClipEscapeContext.Provider value={escapeLayer}>
                         {face}
@@ -1689,6 +1695,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 dragTarget={dragTargetOf(element) || undefined}
                 dragTrigger={dragTriggerOf(element) || undefined}
                 boundToParentRect={element.params?.boundToParent || undefined}
+                dropToLayout={binding?.dropToLayout}
                 disabled={binding?.disabled}
                 // A clickable face takes the tap itself; the region around it holding the same
                 // handler would run it again as the tap bubbles.
