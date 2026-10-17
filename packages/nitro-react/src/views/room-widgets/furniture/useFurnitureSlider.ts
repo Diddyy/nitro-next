@@ -7,6 +7,9 @@ import { LayoutImage, TemplateBindings, TemplateWindows } from '#base/theme';
 /** `slider_movement_area`'s width less `slider_button`'s: `_referenceWidth` (206 - 12). */
 const REFERENCE_WIDTH = 194;
 
+/** `slider_button`'s y in the layout. */
+const BUTTON_LAYOUT_Y = 7;
+
 export interface FurnitureSliderOptions {
     /** The window holding `slider_base` and `slider_movement_area`: `brightness_container`, `hue_container`... */
     container: string;
@@ -42,10 +45,20 @@ export interface FurnitureSlider {
  * button at y 7, which the 17-high movement area clips to its top 10 pixels; the first time
  * anything moves it (`set x` to a new x, or a drag), `setRectangle`'s `bound_to_parent_rect` branch
  * pulls it up by its overhang to y 0, where it stays.
+ *
+ * The drag itself is the template's: `slider_button`'s params make it a `mouse_dragging_target`
+ * and trigger (33073), so the engine moves it by an offset on top of its laid-out place
+ * (`useDragTarget`, `WindowMouseDragger`). This hook only reads the drag - the same whole-pixel
+ * move, bounded to the area - and lays the button out so that layout and offset together put it
+ * where `setValue` says. It used to move the button as well, so the button ran at twice the
+ * pointer's speed, hit the left end and stayed off its value after the release.
  */
 export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEvent, onChange }: FurnitureSliderOptions): FurnitureSlider => {
     const pointerDrag = useWindowPointerDrag();
-    const [ dragX, setDragX ] = useState<number | null>(null);
+    /** Where the template's drag has moved the button from its laid-out place; it stays after a drag. */
+    const [ dragOffset, setDragOffset ] = useState({ x: 0, y: 0 });
+    /** The laid-out place held while a drag is under way, so the engine's offset alone moves it. */
+    const [ held, setHeld ] = useState<{ x: number; y: number | undefined } | null>(null);
     /** The background toner's button stays where it was dropped, while the value is still the one read from there. */
     const [ dropped, setDropped ] = useState<{ x: number; value: number } | null>(null);
     const [ moved, setMoved ] = useState(false);
@@ -53,11 +66,14 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
     const getSliderPosition = (next: number) => Math.trunc(REFERENCE_WIDTH * ((next - min) / (max - min)));
     const getValue = (x: number) => Math.trunc((x / REFERENCE_WIDTH) * (max - min)) + min;
 
-    const restingX = (dropped && (dropped.value === value)) ? dropped.x : getSliderPosition(value);
-    const x = dragX ?? restingX;
+    /** Where the button shows, in the movement area. */
+    const x = (dropped && (dropped.value === value)) ? dropped.x : getSliderPosition(value);
 
     // `set x` goes through `setRectangle` only when the x changes, and that is what drops it to y 0.
     if (!moved && (x !== 0)) setMoved(true);
+
+    const layoutX = held ? held.x : x - dragOffset.x;
+    const layoutY = held ? held.y : (moved ? 0 - dragOffset.y : undefined);
 
     const report = (buttonX: number) => {
         const next = getValue(buttonX);
@@ -71,23 +87,28 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
     const onPointerDown = (event: FederatedPointerEvent) => {
         const target = event.currentTarget as PixiContainer | null;
 
-        if (!target) return;
+        if (!target || (event.button !== 0)) return;
 
         // `WindowMouseDragger`: the grab offset is kept, so the pressed pixel stays under the pointer.
         const startClient = { x: event.clientX, y: event.clientY };
         const startGlobal = { x: event.global.x, y: event.global.y };
-        // The button's space as the press found it: what draws it may move with it, so the pointer
+        // The button's space as the press found it: what draws it moves with it, so the pointer
         // is read against where it was, not where the drag has taken it.
         const space = target.worldTransform.clone();
         const grabX = space.applyInverse(startGlobal).x;
         const startX = x;
+        const heldX = layoutX;
+        // The layout's own y 7 until something has moved the button.
+        const heldY = layoutY ?? BUTTON_LAYOUT_Y;
         let current = startX;
+        let anyMove = false;
+
+        setHeld({ x: heldX, y: layoutY });
 
         if (reportOnEveryEvent) report(current);
 
         const move = (moveEvent: PointerEvent) => {
-            // Any move of the drag goes through `setRectangle`, which bounds y to the area.
-            setMoved(true);
+            anyMove = true;
 
             const pointerX = space.applyInverse({ x: startGlobal.x + (moveEvent.clientX - startClient.x), y: startGlobal.y + (moveEvent.clientY - startClient.y) }).x;
             const next = Math.min(REFERENCE_WIDTH, Math.max(0, startX + Math.trunc(pointerX - grabX)));
@@ -96,8 +117,6 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
 
             current = next;
 
-            setDragX(next);
-
             if (reportOnEveryEvent) report(next);
         };
 
@@ -105,7 +124,12 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
         pointerDrag.start(event.pointerId, {
             onMove: move,
             onEnd: () => {
-                setDragX(null);
+                // Any move of the drag goes through `setRectangle`, which bounds y to the area (0).
+                setDragOffset({ x: current - heldX, y: anyMove ? 0 - heldY : dragOffset.y });
+
+                if (anyMove) setMoved(true);
+
+                setHeld(null);
                 report(current);
             },
         });
@@ -125,9 +149,9 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
 
             if (!button) return;
 
-            if (moved) button.setY(0);
+            if (layoutY !== undefined) button.setY(layoutY);
 
-            button.setX(x);
+            button.setX(layoutX);
         },
     };
 };
