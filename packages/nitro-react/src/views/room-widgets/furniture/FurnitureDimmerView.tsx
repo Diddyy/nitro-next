@@ -88,7 +88,9 @@ export const FurnitureDimmerView = ({
                 ...slider.bindings,
                 off_border: { visible: !isOn },
                 off_image: { asset: LayoutImage(`${LIBRARY}/dimmer_info.png`) },
-                tabbedview: { visible: isOn },
+                // Hidden while off, not rebuilt: Turn on shows the same tabs and slider again, the knob
+                // where it was let go (`DimmerView.update` only flips `visible`).
+                tabbedview: { visible: isOn, keepMounted: true },
                 ...Object.fromEntries(TABS.map((tab, index) => [ tab, {
                     visible: index < presets.length,
                     selected: presets[index]?.id === selectedPresetId,
