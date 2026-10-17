@@ -97,11 +97,18 @@ export const preparePlaneSampling = (texture: RenderTexture): RenderTexture => {
     return texture;
 };
 
+/**
+ * The one empty tree every clear renders. Pixi makes each container it renders a render group with
+ * its own instruction set and batcher, released only when that container is destroyed: a fresh
+ * container per clear left a batcher behind for every plane redraw.
+ */
+const clearContainer = new Container();
+
 /** `fillRect(rect, 0x00FFFFFF)`: every pixel transparent. */
 export const clearPlaneCanvas = (canvas: RenderTexture): void => {
     flushPlaneCanvasBatchFor(canvas);
 
-    TextureUtils.getRenderer().render({ container: new Container(), target: canvas, clear: true });
+    TextureUtils.getRenderer().render({ container: clearContainer, target: canvas, clear: true });
 };
 
 /** `fillRect(rect, 0xFF000000 | color)`: every pixel replaced by the opaque colour. */
