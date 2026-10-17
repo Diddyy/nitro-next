@@ -22,29 +22,21 @@ export const useLocalizationLoader = () => {
 
     const isLocalizationReady = () => !needsUpdate;
 
+    // Resolves in place, in key order (a reference to a later key reads it unresolved). Only the
+    // few values holding a `${` are touched: ~80 of ~54k, the rest kept their regex pass for nothing.
     const processJson = (data: Record<string, string>) => {
-        const resolveReferences = (data: Record<string, string>) => {
-            const resolvedConfig = { ...data };
+        const getValue = (key: string) => data[key] ?? `\${${key}}`;
 
-            const getValue = (key: string) => resolvedConfig[key] ?? `\${${key}}`;
+        delete data[''];
 
-            for (const key in resolvedConfig) {
-                if (key === '') {
-                    delete resolvedConfig[key];
+        for (const key in data) {
+            const value = data[key];
 
-                    continue;
-                }
+            if ((typeof value === 'string') && value.includes('${'))
+                data[key] = value.replace(/\$\{([^}]+)\}/g, (_, refKey) => getValue(refKey));
+        }
 
-                if (typeof resolvedConfig[key] === 'string')
-                    resolvedConfig[key] = resolvedConfig[key].replace(/\$\{([^}]+)\}/g, (_, refKey) =>
-
-                        getValue(refKey));
-            }
-
-            return resolvedConfig;
-        };
-
-        return resolveReferences(data);
+        return data;
     };
 
     useEffect(() => {
@@ -58,7 +50,7 @@ export const useLocalizationLoader = () => {
         }
 
         const load = async (urls: string[]) => {
-            let data: Record<string, string> = {};
+            const data: Record<string, string> = {};
 
             for (const url of urls) {
                 try {
@@ -72,13 +64,14 @@ export const useLocalizationLoader = () => {
 
                     const responseData = parseLocalizationData(await response.text());
 
-                    data = { ...data, ...responseData };
+                    // Later files override earlier keys; merged in place, not copied per file.
+                    Object.assign(data, responseData);
                 } catch (err) {
                     NitroLogger.error(err);
                 }
             }
 
-            setLocalization(processJson({ ...data }));
+            setLocalization(processJson(data));
             setNeedsUpdate(false);
         };
 
