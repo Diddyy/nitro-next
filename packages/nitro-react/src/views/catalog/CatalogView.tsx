@@ -113,7 +113,9 @@ export const CatalogView = () => {
         return () => clearInterval(interval);
     }, [ isBuilder, store ]);
 
-    if (!rootNode || !templates) return null;
+    // `toggleCatalog`: the main window shows at once and `refreshCatalogIndex` fills it in when the
+    // index comes (HabboCatalog.as `showMainWindow` right after the request) - not once it is in.
+    if (!templates) return null;
 
     const mode = isBuilder ? 'builders_club' : 'normal';
     const windowTemplateId = catalogTemplateId(nonTabbed ? 'catalog_ubuntu' : 'catalog_ubuntu_with_tabs');
@@ -192,7 +194,7 @@ export const CatalogView = () => {
         ? searchResult.nodes.flatMap((node, index) => nodeItems(node, `search/${index}:${node.pageName}`, true))
         : (activeNodes[0] ? childItems(activeNodes[0], 'nodes') : []);
 
-    const tabs = rootNode.children.filter(x => x.visible);
+    const tabs = rootNode?.children.filter(x => x.visible) ?? [];
 
     const bindings: TemplateBindings = {
         '': {
