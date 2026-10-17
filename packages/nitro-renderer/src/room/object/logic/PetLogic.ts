@@ -8,6 +8,7 @@ import {
     MouseEventType, PetType, RoomObjectMouseEvent, RoomObjectMoveEvent, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 
 import { PetFigureData } from '../../../session';
+import { GetTickerTime } from '../../../utils';
 import {
     ObjectAvatarChatUpdateMessage,
     ObjectAvatarDirectionUpdateMessage,
@@ -135,7 +136,9 @@ export class PetLogic extends MovingObjectLogic {
         if (message instanceof ObjectAvatarChatUpdateMessage) {
             this.object.model.setValue(RoomObjectVariableEnum.FigureTalk, 1);
 
-            this._talkingEndTimestamp = this.time + message.numberOfWords * 1000;
+            // The clock's time (`getTimer()`), not the last update's: a pet that talks before its
+            // first update would otherwise stop at once.
+            this._talkingEndTimestamp = GetTickerTime() + message.numberOfWords * 1000;
 
             return;
         }
@@ -149,7 +152,7 @@ export class PetLogic extends MovingObjectLogic {
         if (message instanceof ObjectAvatarPetGestureUpdateMessage) {
             this.object.model.setValue(RoomObjectVariableEnum.FigureGesture, message.gesture);
 
-            this._gestureEndTimestamp = this.time + 3000;
+            this._gestureEndTimestamp = GetTickerTime() + 3000;
 
             return;
         }
@@ -162,7 +165,7 @@ export class PetLogic extends MovingObjectLogic {
         }
 
         if (message instanceof ObjectAvatarExperienceUpdateMessage) {
-            this.object.model.setValue(RoomObjectVariableEnum.FigureExperienceTimestamp, this.time);
+            this.object.model.setValue(RoomObjectVariableEnum.FigureExperienceTimestamp, GetTickerTime());
             this.object.model.setValue(RoomObjectVariableEnum.FigureGainedExperience, message.gainedExperience);
 
             return;
