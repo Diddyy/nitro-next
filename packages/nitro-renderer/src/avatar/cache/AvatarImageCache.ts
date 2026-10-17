@@ -1,4 +1,4 @@
-import { AvatarBodyPartType, AvatarDirectionAngle, AvatarFigurePartType, AvatarGeometryType, AvatarScaleType, AvatarSetType, IActiveActionData, IAvatarCanvas, IAvatarImage, IGraphicAsset } from '@nitrodevco/nitro-api';
+import { AvatarBodyPartType, AvatarDirectionAngle, AvatarFigurePartType, AvatarGeometryType, AvatarScaleType, AvatarSetType, IActiveActionData, IAvatarCanvas, IAvatarImage, IGraphicAsset, RoomObjectSpriteData } from '@nitrodevco/nitro-api';
 import { Container, Matrix, Point, Rectangle, Sprite, Texture } from 'pixi.js';
 
 import { GetTickerTime } from '#renderer/utils';
@@ -37,6 +37,10 @@ export class AvatarImageCache {
     private _unionImages: ImageData[] = [];
     private _matrix: Matrix = new Matrix();
     private _disposed: boolean = false;
+    /** Flash `§_-Xb§`: the parts collected for the camera's server render, until `getServerRenderData` takes them. */
+    private _serverRenderData: RoomObjectSpriteData[] = [];
+    /** Flash `_cachedPartName`: the name `tryResolveAsset` found its asset under. */
+    private _cachedPartName: string = '';
 
     constructor(structure: AvatarStructure, avatar: IAvatarImage, assets: AssetAliasCollection, scale: AvatarScaleType, largeScaledSmall: boolean = false) {
         this._structure = structure;
@@ -122,7 +126,13 @@ export class AvatarImageCache {
         this._defaultAction = AvatarImageCache.getDefaultActionFromGeometryType(type);
     }
 
-    public getImageContainer(setType: AvatarBodyPartType, frameNumber: number): AvatarImageBodyPartContainer | undefined {
+    /**
+     * `forServerRender` is Flash's third argument (`AvatarImage.getAvatarPartsForCamera`): the body
+     * part's parts go to the server render data, offset by the body part's own offset, and nothing
+     * is returned. Flash renders them past its caches; here they are read from a fresh part list and
+     * no image is built, so the caches and the drawn avatar stay as they were.
+     */
+    public getImageContainer(setType: AvatarBodyPartType, frameNumber: number, forServerRender: boolean = false): AvatarImageBodyPartContainer | undefined {
         const cache = this.getBodyPartCache(setType);
         let direction = cache.direction;
         let action = cache.action;
@@ -175,6 +185,21 @@ export class AvatarImageCache {
 
                 removes = animation.removeData;
             }
+        }
+
+        if (forServerRender) {
+            const first = this._serverRenderData.length;
+
+            this.collectServerRenderData(direction, this._structure.getParts(setType, this._avatar.getFigure(), activeAction, this._geometryType, direction, removes, this._avatar, layerItems), frame, action);
+
+            const offset = this._structure.getFrameBodyPartOffset(activeAction, direction, frame, setType);
+
+            for (let i = first; i < this._serverRenderData.length; i++) {
+                this._serverRenderData[i].x += point.x + offset.x;
+                this._serverRenderData[i].y += point.y + offset.y;
+            }
+
+            return undefined;
         }
 
         let actionCache = cache.getActionCache(activeAction);
@@ -246,40 +271,11 @@ export class AvatarImageCache {
             // the back view has no face; a hand item slot with nothing in it draws nothing
             if ((direction === 7 && (container.partType === AvatarFigurePartType.Face || container.partType === AvatarFigurePartType.Eyes)) || (container.partType === AvatarFigurePartType.RightHandItem && !container.partId)) continue;
 
-            const partId = container.partId;
-            const animationFrame = container.getFrameDefinition(frameCount);
+            const resolved = this.resolvePart(container, direction, isFlipped, frameCount, assetPartDefinition);
 
-            let partType = container.partType;
-            let assetDirection = direction;
-            let frameNumber = 0;
-            let flipH = false;
+            assetPartDefinition = resolved.assetPartDefinition;
 
-            if (animationFrame) {
-                frameNumber = animationFrame.number;
-
-                if (animationFrame.assetPartDefinition && animationFrame.assetPartDefinition !== '') assetPartDefinition = animationFrame.assetPartDefinition;
-            } else frameNumber = container.getFrameIndex(frameCount);
-
-            if (isFlipped) {
-                if ((assetPartDefinition === AvatarImageCache.ACTION_WAVE && (partType === AvatarFigurePartType.LeftHand || partType === AvatarFigurePartType.LeftSleeve || partType === AvatarFigurePartType.LeftCoatSleeve || partType === AvatarFigurePartType.MiscLeft))
-                    || (assetPartDefinition === AvatarImageCache.ACTION_DRINK && (partType === AvatarFigurePartType.RightHand || partType === AvatarFigurePartType.RightSleeve || partType === AvatarFigurePartType.RightCoatSleeve || partType === AvatarFigurePartType.MiscRight))
-                    || (assetPartDefinition === AvatarImageCache.ACTION_BLOW && partType === AvatarFigurePartType.RightHand)
-                    || (assetPartDefinition === AvatarImageCache.ACTION_SIGN && partType === AvatarFigurePartType.LeftHand)
-                    || (assetPartDefinition === AvatarImageCache.ACTION_RESPECT && partType === AvatarFigurePartType.LeftHand)
-                    || partType === AvatarFigurePartType.RightHandItem
-                    || partType === AvatarFigurePartType.LeftHandItem
-                    || partType === AvatarFigurePartType.ChestPrint) {
-                    flipH = true;
-                } else {
-                    if (direction === 4) assetDirection = 2;
-                    else if (direction === 5) assetDirection = 1;
-                    else if (direction === 6) assetDirection = 0;
-
-                    if (container.flippedPartType && container.flippedPartType !== partType) partType = container.flippedPartType;
-                }
-            }
-
-            const asset = this.tryResolveAsset(assetPartDefinition, partType, partId, assetDirection, frameNumber);
+            const { asset, partType, flipH } = resolved;
 
             if (!asset) continue;
 
@@ -338,6 +334,110 @@ export class AvatarImageCache {
         return new AvatarImageBodyPartContainer(image, offset, isCacheable, faceOffset);
     }
 
+    /** One part of `renderBodyPart`'s loop: the asset it draws with, its part type after flipping, whether it is mirrored, and the asset part definition from then on. */
+    private resolvePart(container: AvatarImagePartContainer, direction: number, isFlipped: boolean, frameCount: number, assetPartDefinition: string): { asset: IGraphicAsset | undefined; partType: AvatarFigurePartType; flipH: boolean; assetPartDefinition: string } {
+        const partId = container.partId;
+        const animationFrame = container.getFrameDefinition(frameCount);
+
+        let partType = container.partType;
+        let assetDirection = direction;
+        let frameNumber = 0;
+        let flipH = false;
+
+        if (animationFrame) {
+            frameNumber = animationFrame.number;
+
+            if (animationFrame.assetPartDefinition && animationFrame.assetPartDefinition !== '') assetPartDefinition = animationFrame.assetPartDefinition;
+        } else frameNumber = container.getFrameIndex(frameCount);
+
+        if (isFlipped) {
+            if ((assetPartDefinition === AvatarImageCache.ACTION_WAVE && (partType === AvatarFigurePartType.LeftHand || partType === AvatarFigurePartType.LeftSleeve || partType === AvatarFigurePartType.LeftCoatSleeve || partType === AvatarFigurePartType.MiscLeft))
+                || (assetPartDefinition === AvatarImageCache.ACTION_DRINK && (partType === AvatarFigurePartType.RightHand || partType === AvatarFigurePartType.RightSleeve || partType === AvatarFigurePartType.RightCoatSleeve || partType === AvatarFigurePartType.MiscRight))
+                || (assetPartDefinition === AvatarImageCache.ACTION_BLOW && partType === AvatarFigurePartType.RightHand)
+                || (assetPartDefinition === AvatarImageCache.ACTION_SIGN && partType === AvatarFigurePartType.LeftHand)
+                || (assetPartDefinition === AvatarImageCache.ACTION_RESPECT && partType === AvatarFigurePartType.LeftHand)
+                || partType === AvatarFigurePartType.RightHandItem
+                || partType === AvatarFigurePartType.LeftHandItem
+                || partType === AvatarFigurePartType.ChestPrint) {
+                flipH = true;
+            } else {
+                if (direction === 4) assetDirection = 2;
+                else if (direction === 5) assetDirection = 1;
+                else if (direction === 6) assetDirection = 0;
+
+                if (container.flippedPartType && container.flippedPartType !== partType) partType = container.flippedPartType;
+            }
+        }
+
+        const asset = this.tryResolveAsset(assetPartDefinition, partType, partId, assetDirection, frameNumber);
+
+        return { asset, partType, flipH, assetPartDefinition };
+    }
+
+    /** Flash `getServerRenderData`: the parts collected since the last call, handed over and forgotten. */
+    public getServerRenderData(): RoomObjectSpriteData[] {
+        const data = this._serverRenderData;
+
+        this._serverRenderData = [];
+
+        return data;
+    }
+
+    /**
+     * `renderBodyPart` with its server render data on (Flash's fifth argument): each part the
+     * body part draws, as the sprite the camera's server render draws it with - its asset's name
+     * (aliases resolved), where it lies against the avatar's foot, mirrored or not, and its colour.
+     */
+    private collectServerRenderData(direction: number, containers: AvatarImagePartContainer[], frameCount: number, action: IActiveActionData): void {
+        if (!containers || !containers.length || !action?.definition) return;
+
+        const isFlipped = AvatarDirectionAngle.DIRECTION_IS_FLIPPED[direction] ?? false;
+
+        let assetPartDefinition = action.definition.assetPartDefinition;
+
+        for (let i = containers.length - 1; i >= 0; i--) {
+            const container = containers[i];
+
+            if ((direction === 7 && (container.partType === AvatarFigurePartType.Face || container.partType === AvatarFigurePartType.Eyes)) || (container.partType === AvatarFigurePartType.RightHandItem && !container.partId)) continue;
+
+            const resolved = this.resolvePart(container, direction, isFlipped, frameCount, assetPartDefinition);
+
+            assetPartDefinition = resolved.assetPartDefinition;
+
+            const { asset, flipH } = resolved;
+
+            if (!asset?.texture) continue;
+
+            const offset = new Point(-(asset.x), -(asset.y));
+
+            if (flipH) offset.x += ((this._scale === AvatarScaleType.Large) ? 65 : 31);
+
+            const sprite = new RoomObjectSpriteData();
+
+            sprite.name = this._assets.getAssetName(this._cachedPartName);
+            sprite.x = -(offset.x) - 33;
+            sprite.y = -(offset.y);
+            sprite.z = this._serverRenderData.length * -0.0001;
+            sprite.width = asset.rectangle.width;
+            sprite.height = asset.rectangle.height;
+            sprite.flipH = flipH;
+
+            if (assetPartDefinition === AvatarImageCache.LAY_BASE_ACTION) sprite.x += 53;
+
+            if (isFlipped) {
+                sprite.flipH = !sprite.flipH;
+
+                if (sprite.flipH) sprite.x = -(sprite.x) - asset.texture.width;
+                else sprite.x += 65;
+            }
+
+            // Flash: the part's colour transform as `0xRRGGBB`, when it is colourable and has one
+            if (container.isColorable && (container.color || container.isBlendable)) sprite.color = `0x${(container.color?.rgb ?? 0xFFFFFF).toString(16).padStart(6, '0')}`;
+
+            this._serverRenderData.push(sprite);
+        }
+    }
+
     private ensureCanvas(): boolean {
         if (!this._canvas) this._canvas = this._structure.getCanvas(this._scale, this._geometryType);
 
@@ -351,10 +451,22 @@ export class AvatarImageCache {
     private tryResolveAsset(assetPartDefinition: string, partType: AvatarFigurePartType, partId: string, direction: number, frameNumber: number): IGraphicAsset | undefined {
         const scale = this._largeScaledSmall ? AvatarScaleType.Large : this._scale;
 
-        return this._assets.getAsset(`${scale}_${assetPartDefinition}_${partType}_${partId}_${direction}_${frameNumber}`)
-            ?? this._assets.getAsset(`${scale}_${assetPartDefinition}_${partType}_${partId}_${direction}_0`)
-            ?? this._assets.getAsset(`${scale}_${this._defaultAction}_${partType}_${partId}_${direction}_${frameNumber}`)
-            ?? this._assets.getAsset(`${scale}_${this._defaultAction}_${partType}_${partId}_${direction}_0`);
+        for (const name of [
+            `${scale}_${assetPartDefinition}_${partType}_${partId}_${direction}_${frameNumber}`,
+            `${scale}_${assetPartDefinition}_${partType}_${partId}_${direction}_0`,
+            `${scale}_${this._defaultAction}_${partType}_${partId}_${direction}_${frameNumber}`,
+            `${scale}_${this._defaultAction}_${partType}_${partId}_${direction}_0`,
+        ]) {
+            const asset = this._assets.getAsset(name);
+
+            if (asset) {
+                this._cachedPartName = name;
+
+                return asset;
+            }
+        }
+
+        return undefined;
     }
 
     private static getDefaultActionFromGeometryType(type: AvatarGeometryType): string {
