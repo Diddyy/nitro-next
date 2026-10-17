@@ -530,6 +530,8 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
             if (distance <= PREVIEW_ZOOM_SPEED_SLOW) {
                 progress = zoomTarget;
                 setZoomProgress(progress);
+                // Arrived: the tick stops here rather than setting the same value every frame.
+                GetTicker().remove(step);
 
                 return;
             }
