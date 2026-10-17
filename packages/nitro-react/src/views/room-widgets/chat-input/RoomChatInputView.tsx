@@ -493,6 +493,11 @@ export const RoomChatInputView = () => {
         setValue(remainder);
     };
 
+    // The field calls it through a ref. Every closure of a render shares that render's scope, so a cached closure keeps its
+    // whole render: `sendChat` (new each room) and `toggleStyles`, cached at different renders, linked each render to an
+    // older one and kept every room the session had entered.
+    const sendChatRef = useLatest(sendChat);
+
     /** A suggestion taken: the line becomes what it completes to, and the field keeps the keyboard. */
     const takeSuggestion = (index: number) => {
         const replacement = suggestions[index]?.replacement;
@@ -721,7 +726,7 @@ export const RoomChatInputView = () => {
             }}
             selectionAfterChange={replacementCursor}
             selectionRequestId={selectionRequestId}
-            onEnter={event => sendChat(event.shiftKey)}
+            onEnter={event => sendChatRef.current(event.shiftKey)}
             onKeyDown={onKeyDown}
             marks={invalidArguments}
             focused={focused}
