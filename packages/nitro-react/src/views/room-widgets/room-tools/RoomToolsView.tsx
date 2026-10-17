@@ -71,12 +71,6 @@ const WINDOW_BG_WIDTH = 164;
 const COLLAPSED_OFFSET_X = ROOM_TOOLS_SIDE_BAR_WIDTH - WINDOW_BG_WIDTH - 1;
 /** `TOOLBAR_EXPAND_TARGET_X`: `window_bg`'s x, open. */
 const EXPAND_TARGET_X = 1;
-/**
- * The history buttons' backgrounds' layout `color` (`0x44A88D`): grey art meant to be tinted. The
- * template draws a bitmap's own layout colour as no tint, so it is set as code would set it (found by
- * the `#bg` / `#icon` tag, `findChildByTag`).
- */
-const HISTORY_TINT = { color: 0x44a88d };
 /** `RoomToolsToolbarCtrl.ANIMATION_DURATION_MS`. */
 const ANIMATION_DURATION_MS = 140;
 
@@ -153,9 +147,6 @@ export const RoomToolsView = ({
                     button_history_back: { disabled: !canGoBack, onPointerTap: onGoBack },
                     button_history: { disabled: !canOpenHistory, onPointerTap: onToggleHistory },
                     button_history_forward: { disabled: !canGoForward, onPointerTap: onGoForward },
-                    'button_history_back/##bg': HISTORY_TINT,
-                    'button_history/##icon': HISTORY_TINT,
-                    'button_history_forward/##bg': HISTORY_TINT,
                 }}
                 arrange={arrange}
             />
