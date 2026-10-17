@@ -16,11 +16,12 @@ import { FurnitureTemplatePanel } from './FurnitureTemplatePanel';
  *
  * `loadPhoto` names the sender and the date only for a photo that has a sender (`senderNameButton`
  * hidden otherwise, by `clearImage`). `captionContainer` stays hidden, as Flash never shows it.
- * `reportButton` reports the photo (`openReportImage`, `HabboHelp.startPhotoReportingInNewCfhFlow`).
+ * `reportButton` reports the photo (`openReportImage`, `HabboHelp.startPhotoReportingInNewCfhFlow`),
+ * `senderNameButton` opens the sender's profile (`GetExtendedProfileMessageComposer(senderId)`) and
+ * `nextButton` / `previousButton` browse the room's other wall items of the same type (`drawImage`
+ * shows them for two or more, and never for an inventory item).
  * What this port leaves out: the remove button of `buttonContainer` (the `deleteCard` confirmation is
- * not ported), the next and previous buttons (they browse the room's
- * other wall items of the same type, which the widget does not list), the sender's name opening
- * their profile, the moderator's name copy (`name_copy_wrapper`) and the share area.
+ * not ported), the moderator's name copy (`name_copy_wrapper`) and the share area.
  */
 export interface FurnitureExternalImageViewProps {
     imageUrl: string;
@@ -32,6 +33,12 @@ export interface FurnitureExternalImageViewProps {
     reportVisible: boolean;
     /** `reportButton`: `openReportImage`. */
     onReport: () => void;
+    /** `nextButton` / `previousButton`: shown for two or more wall items of the type in the room. */
+    browseVisible: boolean;
+    /** `showNext` (1) / `showPrevious` (-1). */
+    onBrowse: (step: number) => void;
+    /** `senderNameButton`: the sender's profile. */
+    onSender: () => void;
     onClose: () => void;
 }
 
@@ -43,7 +50,7 @@ const BROWSE_BUTTON_SIZE = 64;
 /** `imageLoader`'s layout size, which `clearImage` fills black (less its 1px outline) until the photo is in. */
 const EMPTY_IMAGE_SIZE = 322;
 
-export const FurnitureExternalImageView = ({ imageUrl, creatorName, time, reportVisible, onReport, onClose }: FurnitureExternalImageViewProps) => {
+export const FurnitureExternalImageView = ({ imageUrl, creatorName, time, reportVisible, onReport, browseVisible, onBrowse, onSender, onClose }: FurnitureExternalImageViewProps) => {
     const viewport = useViewportSize();
     const texture = useTextureFromUrl(imageUrl || undefined);
     const date = new Date(time);
@@ -124,9 +131,9 @@ export const FurnitureExternalImageView = ({ imageUrl, creatorName, time, report
                 reportButton: { onPointerTap: onReport },
                 removeButtonContainer: { visible: false },
                 closebutton: { onPointerTap: onClose },
-                previousButton: { visible: false },
-                nextButton: { visible: false },
-                senderNameButton: { visible: !!creatorName.length },
+                previousButton: { visible: browseVisible, onPointerTap: () => onBrowse(-1) },
+                nextButton: { visible: browseVisible, onPointerTap: () => onBrowse(1) },
+                senderNameButton: { visible: !!creatorName.length, onPointerTap: onSender },
                 senderName: { caption: creatorName, setCaptionAfterBuild: true },
                 creationDate: { caption: creatorName.length ? `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}` : '', setCaptionAfterBuild: true },
             }}

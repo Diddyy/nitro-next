@@ -83,9 +83,10 @@ export interface PhotoData {
 }
 
 /**
- * A photo furni's `furniture_data`: JSON whose keys come in two spellings, a one-letter one and
- * a written-out one, and Flash read both. A photo that is only an id has its real data on the
- * extra-data service instead, which is not fetched here.
+ * A photo furni's `furniture_data`, or the extra data service's answer for one: JSON whose keys
+ * come in two spellings, a one-letter one and a written-out one, and Flash read both
+ * (`ExternalImageWidget.loadPhoto`). A photo that is only an id (`readPhotoExtraDataId`) has its
+ * real data on the extra data service instead.
  */
 export const parsePhotoData = (furnitureData: string | undefined): PhotoData | undefined => {
     if (!furnitureData || !furnitureData.length) return undefined;
@@ -120,6 +121,22 @@ export const parsePhotoData = (furnitureData: string | undefined): PhotoData | u
         time: parseInt(read('t', 'time'), 10) || 0,
         caption: read('m', 'caption'),
     };
+};
+
+/**
+ * `ExternalImageWidget.readFurniJson`: the photo's extra data id, when its data names one (a
+ * camera poster is only `{"t":<ms>,"id":"<id>"}`); '' for data that is the photo itself, or no JSON.
+ */
+export const readPhotoExtraDataId = (furnitureData: string | undefined): string => {
+    if (!furnitureData || !furnitureData.length) return '';
+
+    try {
+        const id = (JSON.parse(furnitureData) as Record<string, unknown>)?.id;
+
+        return (typeof id === 'string') ? id : '';
+    } catch {
+        return '';
+    }
 };
 
 /**

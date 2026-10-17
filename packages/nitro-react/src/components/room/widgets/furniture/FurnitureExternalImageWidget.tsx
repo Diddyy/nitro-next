@@ -1,12 +1,16 @@
-import { RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
+import { NitroLogger, RoomObjectCategoryEnum, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
 import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
+import { useEffect, useState } from 'react';
 
 import type { InventoryExternalImageRequest } from '#base/commands';
+import { openProfile } from '#base/commands';
 import { reportPhoto } from '#base/commands/helpCommands';
+import { useWebSocketContext } from '#base/context/communication';
 import { getInventoryWallItemById, useInventoryStore } from '#base/context/inventory';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
-import { parsePhotoData, resolvePhotoUrl } from '#base/utils';
+import type { PhotoData } from '#base/utils';
+import { parsePhotoData, readPhotoExtraDataId, resolvePhotoUrl } from '#base/utils';
 import { FurnitureExternalImageView } from '#base/views/room-widgets/furniture/FurnitureExternalImageView';
 
 /** Posters keep their picture at the root of the image host; selfies live a folder deeper. */
@@ -29,10 +33,49 @@ const getExternalImageType = (type: string | undefined): string => {
 };
 
 /**
+ * `readFurniJson`: data with an `id` names a photo whose details are on the extra data service -
+ * `loadExternalData` loads `extra_data_service_url` + the id and `loadPhoto` reads the answer as it
+ * would the furni's own data; any other data is the photo itself. Undefined while the answer is out,
+ * and for one that failed (Flash logs it and leaves the empty picture `clearImage` drew).
+ */
+const usePhotoData = (furnitureData: string | undefined): { photo: PhotoData | undefined; extraDataId: string } => {
+    const extraDataServiceUrl = useConfigValue<string>('extra_data_service_url') ?? '';
+    const extraDataId = readPhotoExtraDataId(furnitureData);
+    const [ loaded, setLoaded ] = useState<{ id: string; photo: PhotoData | undefined } | undefined>(undefined);
+
+    useEffect(() => {
+        if (!extraDataId) return;
+
+        let current = true;
+
+        fetch(extraDataServiceUrl + extraDataId)
+            .then((response) => {
+                if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+
+                return response.text();
+            })
+            // `onExternalDataLoaded`: an empty answer shows nothing.
+            .then(text => current && text.length && setLoaded({ id: extraDataId, photo: parsePhotoData(text) }))
+            .catch(error => NitroLogger.warn('Extra data loading failed', error));
+
+        return () => {
+            current = false;
+        };
+    }, [ extraDataId, extraDataServiceUrl ]);
+
+    if (!extraDataId) return { photo: parsePhotoData(furnitureData), extraDataId: '' };
+
+    return { photo: (loaded?.id === extraDataId) ? loaded.photo : undefined, extraDataId };
+};
+
+/**
  * A photo on the wall. The picture itself is not the client's - the furni carries a scrap of
- * JSON naming it, and the image is fetched from the stories host the configuration points at.
- * A photo that carries only an id keeps its details on a separate service, which the port does
- * not call, so that kind shows nothing.
+ * JSON naming it (or only its id, the rest on the extra data service), and the image is fetched
+ * from the stories host the configuration points at.
+ *
+ * The browse buttons (`showNext` / `showPrevious`) step through the room's wall items of the shown
+ * one's type, in the room engine's order (`getWallItemsOfCurrentTypeInRoom`), round from the last
+ * to the first; they show for two or more, never for an inventory item.
  *
  * The inventory's `viewItemButton` shows a photo it holds the same way (`showWithFurniID`, through
  * `showInventoryUseProductSelection`): the wall item with that strip id, its type the wall item
@@ -41,60 +84,76 @@ const getExternalImageType = (type: string | undefined): string => {
 export const FurnitureExternalImageWidget = () => {
     const request = useRoomWidget<Partial<InventoryExternalImageRequest>>(RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE);
     const room = useRoom();
+    const { send } = useWebSocketContext();
     const { closeRoomWidget } = useRoomWidgetActions();
     const furniGroups = useInventoryStore(x => x.furniGroups);
     const imageUrlBase = useConfigValue<string>('stories.image_url_base') ?? '';
     // `ExternalImageWidgetHandler.isSelfieReportingEnabled`.
     const selfieReportingConfig = useConfigValue<string | boolean>('stories.report.selfie.enabled');
     const selfieReportingEnabled = (selfieReportingConfig === 'true') || (selfieReportingConfig === true);
+    // `showWithRoomObject`'s object: the one asked for, until the browse buttons show another.
+    const [ browsed, setBrowsed ] = useState<{ request: unknown; objectId: number } | undefined>(undefined);
+
+    const inventoryItemId = request?.data?.inventoryItemId;
+    const inventoryItem = (inventoryItemId !== undefined) ? getInventoryWallItemById(furniGroups, inventoryItemId) : undefined;
+    const objectId = (browsed && (browsed.request === request)) ? browsed.objectId : (request?.objectId ?? -1);
+    const roomObject = (request && room && (inventoryItemId === undefined)) ? room.getRoomObject(objectId, request.category ?? RoomObjectCategoryEnum.Wall) : undefined;
+    const furnitureData = inventoryItem ? inventoryItem.stuffData.getLegacyString() : roomObject?.model.getValue<string>(RoomObjectVariableEnum.FurnitureData);
+    const { photo, extraDataId } = usePhotoData(furnitureData);
 
     if (!request || !room) return null;
 
     const onClose = () => closeRoomWidget(RoomObjectWidgetRequestEvent.EXTERNAL_IMAGE);
 
-    const inventoryItemId = request.data?.inventoryItemId;
-
     if (inventoryItemId !== undefined) {
-        const item = getInventoryWallItemById(furniGroups, inventoryItemId);
-        const photo = item && parsePhotoData(item.stuffData.getLegacyString());
-
-        if (!item || !photo) return null;
+        if (!inventoryItem) return null;
 
         // `§_-UX§ = getWallItemType(type)`.
-        const type = getExternalImageType(GetRoomContentLoader().getFurnitureWallNameForTypeId(item.typeId));
+        const type = getExternalImageType(GetRoomContentLoader().getFurnitureWallNameForTypeId(inventoryItem.typeId));
 
         return (
             <FurnitureExternalImageView
-                imageUrl={resolvePhotoUrl(photo.url, imageUrlBase, type === PHOTO_POSTER_TYPE)}
-                creatorName={photo.creatorName}
-                time={photo.time}
-                caption={photo.caption}
+                imageUrl={photo ? resolvePhotoUrl(photo.url, imageUrlBase, type === PHOTO_POSTER_TYPE) : ''}
+                creatorName={photo?.creatorName ?? ''}
+                time={photo?.time ?? 0}
+                caption={photo?.caption ?? ''}
                 reportVisible={false}
+                browseVisible={false}
                 onReport={() => undefined}
+                onBrowse={() => undefined}
+                onSender={() => photo && openProfile(send, photo.creatorId)}
                 onClose={onClose}
             />
         );
     }
 
-    const roomObject = room.getRoomObject(request.objectId, request.category);
-
     if (!roomObject) return null;
 
-    const photo = parsePhotoData(roomObject.model.getValue<string>(RoomObjectVariableEnum.FurnitureData));
     const type = getExternalImageType(roomObject.type);
+    // `getWallItemsOfCurrentTypeInRoom`: the room's wall items of the shown one's type.
+    const sameType = room.getRoomObjectsForCategory(RoomObjectCategoryEnum.Wall).filter(x => x.type === roomObject.type);
+    const onBrowse = (step: number) => {
+        if (!sameType.length) return;
 
-    if (!photo) return null;
+        const index = sameType.findIndex(x => x.id === roomObject.id);
+        const next = (index + step + sameType.length) % sameType.length;
+
+        setBrowsed({ request, objectId: sameType[next].id });
+    };
 
     return (
         <FurnitureExternalImageView
-            imageUrl={resolvePhotoUrl(photo.url, imageUrlBase, type === PHOTO_POSTER_TYPE)}
-            creatorName={photo.creatorName}
-            time={photo.time}
-            caption={photo.caption}
+            imageUrl={photo ? resolvePhotoUrl(photo.url, imageUrlBase, type === PHOTO_POSTER_TYPE) : ''}
+            creatorName={photo?.creatorName ?? ''}
+            time={photo?.time ?? 0}
+            caption={photo?.caption ?? ''}
             reportVisible={(type === PHOTO_POSTER_TYPE) || selfieReportingEnabled}
+            browseVisible={sameType.length > 1}
             // `openReportImage`: the sender, their name, the photo's extra data id (none for a photo that
             // carries its own url) and the wall item.
-            onReport={() => reportPhoto(photo.creatorId, photo.creatorName, '', request.objectId)}
+            onReport={() => reportPhoto(photo?.creatorId ?? 0, photo?.creatorName ?? '', extraDataId, roomObject.id)}
+            onBrowse={onBrowse}
+            onSender={() => photo && openProfile(send, photo.creatorId)}
             onClose={onClose}
         />
     );
