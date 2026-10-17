@@ -14,7 +14,7 @@
  * virtualised, so a part's libraries only start downloading once its cell has actually been
  * rendered into view - opening a tab with hundreds of parts no longer fetches all of them.
  */
-import { AvatarFigurePartType, AvatarGenderType, AvatarScaleType, AvatarSetType, IAvatarImage, IFigurePartSet, IGraphicAsset, IPartColor } from '@nitrodevco/nitro-api';
+import { AvatarFigurePartType, AvatarGenderType, AvatarScaleType, AvatarSetType, IAvatarFigureContainer, IAvatarImage, IFigurePartSet, IGraphicAsset, IPartColor } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager, TexturePool } from '@nitrodevco/nitro-renderer';
 import { RenderTexture, Texture } from 'pixi.js';
 import { useEffect, useSyncExternalStore } from 'react';
@@ -77,8 +77,23 @@ export interface PartThumbnail {
     height: number;
 }
 
-const thumbnails = new Map<string, PartThumbnail>();
+/**
+ * The clothing thumbnails built while an editor is open, each with the figure (`<type>-<id>`) whose
+ * libraries it draws from - held through the render manager's library purge until the editor
+ * closes, as a grid draws those libraries' own textures: a purged library is a destroyed texture
+ * still drawn, an empty cell. Flash copied each thumbnail into its own bitmap (`renderThumb`).
+ */
+const thumbnails = new Map<string, { thumbnail: PartThumbnail; figure: IAvatarFigureContainer }>();
 const pending = new Map<string, Promise<PartThumbnail | undefined>>();
+/** Bumped when an editor closes: a download that finishes after that is not kept (nothing shows it). */
+let thumbnailGeneration = 0;
+
+const keepThumbnail = (key: string, thumbnail: PartThumbnail, figure: IAvatarFigureContainer): PartThumbnail => {
+    thumbnails.set(key, { thumbnail, figure });
+    GetAvatarRenderManager().holdFigure(figure);
+
+    return thumbnail;
+};
 
 const partKey = (partSet: IFigurePartSet): string => `${partSet.type}-${partSet.id}`;
 
@@ -236,7 +251,7 @@ const getThumbnail = (partSet: IFigurePartSet): PartThumbnail | Promise<PartThum
     const key = partKey(partSet);
     const cached = thumbnails.get(key);
 
-    if (cached) return cached;
+    if (cached) return cached.thumbnail;
 
     const inFlight = pending.get(key);
 
@@ -244,16 +259,13 @@ const getThumbnail = (partSet: IFigurePartSet): PartThumbnail | Promise<PartThum
 
     const renderManager = GetAvatarRenderManager();
     const figureContainer = renderManager.createFigureContainer(key);
+    const generation = thumbnailGeneration;
 
     // Assets already loaded: resolve synchronously so the first render already has them.
     if (renderManager.isFigureContainerReady(figureContainer)) {
         const built = buildThumbnail(partSet);
 
-        if (built) {
-            thumbnails.set(key, built);
-
-            return built;
-        }
+        if (built) return keepThumbnail(key, built, figureContainer);
     }
 
     // The listener form rather than `downloadAvatarFigureAsync`: it queues the request until the
@@ -267,11 +279,7 @@ const getThumbnail = (partSet: IFigurePartSet): PartThumbnail | Promise<PartThum
             for (let attempt = 0; attempt < BUILD_RETRIES; attempt++) {
                 const built = buildThumbnail(partSet);
 
-                if (built) {
-                    thumbnails.set(key, built);
-
-                    return built;
-                }
+                if (built) return (generation === thumbnailGeneration) ? keepThumbnail(key, built, figureContainer) : built;
 
                 await new Promise(next => setTimeout(next, BUILD_RETRY_DELAY_MS));
             }
@@ -342,7 +350,20 @@ export const usePartThumbnail = (part: PartThumbnailRequest | undefined, setType
     return useSyncExternalStore(subscribe, getSnapshot);
 };
 
-/** Mount once per editor: the face textures are released when it closes. */
+/** Lets go of the clothing thumbnails and the libraries they held: the purge may unload those now. */
+const releaseThumbnails = () => {
+    const renderManager = GetAvatarRenderManager();
+
+    for (const { figure } of thumbnails.values()) renderManager.releaseFigure(figure);
+
+    thumbnails.clear();
+    thumbnailGeneration++;
+};
+
+/** Mount once per editor: the face textures and the clothing thumbnails are released when it closes. */
 export const usePartThumbnailLifetime = (): void => {
-    useEffect(() => () => releaseHeadThumbnails(), []);
+    useEffect(() => () => {
+        releaseHeadThumbnails();
+        releaseThumbnails();
+    }, []);
 };
