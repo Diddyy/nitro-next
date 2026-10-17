@@ -12,6 +12,7 @@ import { GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
 import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, showConnectionClosed } from '#base/commands';
+import { recordBugReportPacket } from '#base/context/bugreport';
 import { onboardingStore } from '#base/context/onboarding';
 import { useCommunicationIncoming, useCommunicationOutgoing } from '#base/hooks/communication';
 
@@ -194,8 +195,11 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
                 if (length > reader.remaining()) break;
 
                 const extracted = reader.readBytes(length);
+                const header = extracted.readShort();
 
-                wrappers.push(new EvaWireDataWrapper(extracted.readShort(), extracted));
+                recordBugReportPacket('in', header, incomingByHeader.current.get(header)?.name ?? '', length + 4);
+
+                wrappers.push(new EvaWireDataWrapper(header, extracted));
 
                 consumed += length + 4;
             }
@@ -305,7 +309,11 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
 
                 NitroLogger.packets('OutgoingComposer', header, name, message);
 
-                ws.current.send(encoded.getBuffer());
+                const buffer = encoded.getBuffer();
+
+                recordBugReportPacket('out', header, name, buffer.byteLength);
+
+                ws.current.send(buffer);
             } catch (e) {
                 NitroLogger.error(e);
             }

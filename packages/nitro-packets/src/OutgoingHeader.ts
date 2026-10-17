@@ -506,6 +506,7 @@ export class OutgoingHeader {
     public static ToggleStaffPickComposer = 1675;
     public static TriggerHabbiconComposer = 1358;
     public static TryPhoneNumberComposer = 3079;
+    public static TurboBugReportCaptureComposer = 21001;
     public static TurboClientCapabilitiesComposer = 30000;
     public static TurboCommandSuggestComposer = 30003;
     public static TurboStarterRoomPictureComposer = 30006;

@@ -506,6 +506,7 @@ import {
     ToggleStaffPickComposer,
     TriggerHabbiconComposer,
     TryPhoneNumberComposer,
+    TurboBugReportCaptureComposer,
     TurboClientCapabilitiesComposer,
     TurboCommandSuggestComposer,
     TurboStarterRoomPictureComposer,
@@ -1155,6 +1156,7 @@ export const GetOutgoingPackets = () => {
         [OutgoingHeader.WiredUpdateRoomComposer]: WiredUpdateRoomComposer,
 
         // Turbo extensions (not Habbo's): see TurboClientCapabilitiesComposer.
+        [OutgoingHeader.TurboBugReportCaptureComposer]: TurboBugReportCaptureComposer,
         [OutgoingHeader.TurboClientCapabilitiesComposer]: TurboClientCapabilitiesComposer,
         [OutgoingHeader.TurboCommandSuggestComposer]: TurboCommandSuggestComposer,
         [OutgoingHeader.TurboStarterRoomPictureComposer]: TurboStarterRoomPictureComposer,
