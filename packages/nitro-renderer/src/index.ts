@@ -403,6 +403,7 @@ export * from './room/RoomSpriteCanvas';
 export * from './room/utils/ColorTransitioner';
 export * from './room/utils/LegacyWallGeometry';
 export * from './room/utils/ObjectMouseData';
+export * from './room/utils/petImageValue';
 export * from './room/utils/RoomAreaSelectionManager';
 export * from './room/utils/RoomEnterEffect';
 export * from './room/utils/RoomGeometry';

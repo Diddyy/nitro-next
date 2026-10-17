@@ -191,6 +191,8 @@ copies' timing agrees with Flash's. M-L.
 - **Pet images.** The pet figure string is built in `usePetImageTexture`, `useCollectiblePetTexture`,
   `useChatPetFace` and nitro-renderer's `Room.getRoomObjectPetImageArgs` (and in Nitro Studio). One
   exported builder in nitro-renderer. Directions differ by unit (degrees, eighths), not by mistake. S.
+  **Done** in the client: nitro-renderer's `petImageValue` (`tools/pet-image-value.test.mjs`). Nitro
+  Studio's copy (`preview/engine/chat.ts`) can use it too - that is the Studio repository's change.
 - **Image caches.** `useChatAvatarHead` keeps its own avatar cache beside nitro-theme's
   `useAvatarImageTexture` and renders inside `getSnapshot`; `useChatPetFace` and
   `usePartThumbnail` repeat the same retained-texture structure. M.

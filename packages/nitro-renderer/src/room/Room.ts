@@ -103,7 +103,7 @@ import { VariableFxRoomData } from './object/variablefx/VariableFxRoomData';
 import { isVariableFxVisualizationHost } from './object/visualization/variablefx/IVariableFxVisualizationRoomData';
 import { RoomEventHandler } from './RoomEventHandler';
 import { RoomSpriteCanvas } from './RoomSpriteCanvas';
-import { RoomAreaSelectionManager, RoomObjectHighLighter, TileObjectMap } from './utils';
+import { petImageValue, RoomAreaSelectionManager, RoomObjectHighLighter, TileObjectMap } from './utils';
 
 /**
  * One room: Flash's `RoomInstance` (its object managers and model) with the per-room half of
@@ -1934,17 +1934,7 @@ export class Room implements IRoom {
 
         if (!type) return undefined;
 
-        let value = `${typeId} ${paletteId} ${color.toString(16)}`;
-
-        if (headOnly) value = `${value} head`;
-
-        if (customParts) {
-            value = `${value} ${customParts.length}`;
-
-            for (const part of customParts) value = `${value} ${part.layerId} ${part.partId} ${part.paletteId}`;
-        }
-
-        return { type, value };
+        return { type, value: petImageValue(typeId, paletteId, color, headOnly, customParts) };
     }
 
     public async setRoomOverlayIconSprite(objectId: number, category: RoomObjectCategoryEnum, realRoomObject: boolean, extra: string = '', posture: string = ''): Promise<void> {

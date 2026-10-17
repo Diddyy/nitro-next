@@ -1,5 +1,5 @@
 import { RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
-import { GetAssetManager, GetRoomContentLoader, GetRoomEngine, PetFigureData } from '@nitrodevco/nitro-renderer';
+import { GetAssetManager, GetRoomContentLoader, GetRoomEngine, PetFigureData, petImageValue } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 import { useLayoutEffect, useSyncExternalStore } from 'react';
 
@@ -56,15 +56,7 @@ const renderPetFace = (figureData: PetFigureData, posture: string | undefined, s
 
     if (!type) return Promise.resolve(undefined);
 
-    let value = `${figureData.typeId} ${figureData.paletteId} ${figureData.color.toString(16)}`;
-
-    if (headOnly) value = `${value} head`;
-
-    value = `${value} ${figureData.customParts.length}`;
-
-    for (const part of figureData.customParts) value = `${value} ${part.layerId} ${part.partId} ${part.paletteId}`;
-
-    return GetRoomEngine().getGenericRoomObjectTexture(type, value, new Vector3d(direction * 45), scale, undefined, 0, undefined, 0, 0, posture ?? '');
+    return GetRoomEngine().getGenericRoomObjectTexture(type, petImageValue(figureData.typeId, figureData.paletteId, figureData.color, headOnly, figureData.customParts), new Vector3d(direction * 45), scale, undefined, 0, undefined, 0, 0, posture ?? '');
 };
 
 /** `ChatBubbleFactory.getPetImage`'s scale and direction: the zoomed-out (32px) scale, facing direction 2. */

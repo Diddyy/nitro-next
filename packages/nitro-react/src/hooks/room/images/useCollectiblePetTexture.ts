@@ -1,5 +1,5 @@
 import { RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
-import { GetRoomContentLoader, GetRoomEngine, PetFigureData } from '@nitrodevco/nitro-renderer';
+import { GetRoomContentLoader, GetRoomEngine, PetFigureData, petImageValue } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 
 import { useOwnedEngineTexture } from './useRoomEngineTexture';
@@ -24,9 +24,7 @@ export const useCollectiblePetTexture = (figure: string | undefined, direction: 
 
         if (!type) return Promise.resolve(undefined);
 
-        let value = `${figureData.typeId} ${figureData.paletteId} ${figureData.color.toString(16)} ${figureData.customParts.length}`;
-
-        for (const part of figureData.customParts) value = `${value} ${part.layerId} ${part.partId} ${part.paletteId}`;
+        const value = petImageValue(figureData.typeId, figureData.paletteId, figureData.color, false, figureData.customParts);
 
         return GetRoomEngine().getGenericRoomObjectTexture(type, value, new Vector3d(direction), RoomGeometryScaleType.ZoomedIn, listener, 0, undefined, 0, 0, PET_POSTURE);
     }, { nearest: true });

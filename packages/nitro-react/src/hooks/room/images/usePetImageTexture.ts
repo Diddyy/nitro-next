@@ -1,26 +1,10 @@
 import { RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
-import { GetRoomContentLoader, GetRoomEngine } from '@nitrodevco/nitro-renderer';
+import { GetRoomContentLoader, GetRoomEngine, petImageValue } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 
 import { PetImageRequest } from '#base/context/catalog';
 
 import { useOwnedEngineTexture } from './useRoomEngineTexture';
-
-/**
- * `RoomEngine.getPetImage`'s figure string: type, palette and colour in hex, then - only when
- * custom parts are given, even none - their count and each part's layer, part and palette.
- */
-const petImageValue = (request: PetImageRequest) => {
-    let value = `${request.typeId} ${request.paletteId} ${request.color.toString(16)}`;
-
-    if (request.customParts) {
-        value = `${value} ${request.customParts.length}`;
-
-        for (const part of request.customParts) value = `${value} ${part.layerId} ${part.partId} ${part.paletteId}`;
-    }
-
-    return value;
-};
 
 /**
  * A pet render - `getPetImage` at the request's scale, the catalogue's 64 by default - as the texture the engine drew into
@@ -34,7 +18,7 @@ const petImageValue = (request: PetImageRequest) => {
  */
 export const usePetImageTexture = (request: PetImageRequest | undefined, onImageReady?: () => void): Texture | undefined => {
     const type = request ? GetRoomContentLoader().getPetNameForType(request.typeId) : undefined;
-    const value = request ? petImageValue(request) : '';
+    const value = request ? petImageValue(request.typeId, request.paletteId, request.color, false, request.customParts) : '';
     const direction = request?.direction ?? 0;
     // `getPetImage`'s last argument: a monster plant is drawn at the growth stage its level names.
     const posture = request?.posture ?? '';

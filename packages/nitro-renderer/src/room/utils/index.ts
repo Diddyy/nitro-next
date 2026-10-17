@@ -1,6 +1,7 @@
 export * from './ColorTransitioner';
 export * from './LegacyWallGeometry';
 export * from './ObjectMouseData';
+export * from './petImageValue';
 export * from './RoomAreaSelectionManager';
 export * from './RoomEnterEffect';
 export * from './RoomGeometry';
