@@ -108,7 +108,11 @@ const additiveTexture = (texture: Texture): Texture => {
 
     if (copy) return copy;
 
-    const { pixels, width, height } = GetRenderer().extract.pixels({ target: new Sprite(texture), resolution: 1, antialias: false });
+    const sprite = new Sprite(texture);
+    const { pixels, width, height } = GetRenderer().extract.pixels({ target: sprite, resolution: 1, antialias: false });
+
+    sprite.destroy();
+
     const canvas = createCanvas(width, height);
     const image = canvas.getContext('2d').createImageData(width, height);
 

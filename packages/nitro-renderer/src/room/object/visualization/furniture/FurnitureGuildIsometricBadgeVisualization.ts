@@ -78,7 +78,11 @@ export class FurnitureGuildIsometricBadgeVisualization extends IsometricImageFur
         sprite.x = 0;
         sprite.y = 0;
 
-        return TextureUtils.generateTexture(sprite);
+        const badge = TextureUtils.generateTexture(sprite);
+
+        sprite.destroy();
+
+        return badge;
     }
 
     protected override getLayerColor(scale: RoomGeometryScaleType, layerId: number, colorId: number): number {
