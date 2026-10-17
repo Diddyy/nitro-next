@@ -1,12 +1,13 @@
+import { NoobnessLevelEnum } from '@nitrodevco/nitro-api';
 import { RateFlatComposer, SetUIFlagsComposer } from '@nitrodevco/nitro-packets';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 
 import { forwardToRoom, openClientLink, searchRoomTag } from '#base/commands';
 import { useChatHistoryActions } from '#base/context/chat-history';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
-import { UiFlagEnum, useRoomToolsCollapsed, useUserActions, useUserStore } from '#base/context/user';
+import { UiFlagEnum, useRoomToolsCollapsed, userStore, useUserActions, useUserStore } from '#base/context/user';
 import { useWiredStore } from '#base/context/wired';
 import { useRoomZoom } from '#base/hooks';
 import { RoomShareView } from '#base/views/room-widgets/room-tools/RoomShareView';
@@ -26,7 +27,10 @@ const LIKE_POINTS = 1;
  * in, the visit-history list, and the share panel.
  *
  * Whether the column is open is an account preference rather than a client one - Flash kept it in
- * bit 2 of the session's `uiFlags` - so opening or closing it tells the server.
+ * bit 2 of the session's `uiFlags` - so opening or closing it tells the server. The preference only
+ * says where it starts: `RoomToolsWidget`'s constructor collapses it for anyone still new
+ * (`isNoob`) or who left it shut, and from then on its own strip opens and shuts it
+ * (`RoomToolsToolbarCtrl.onWindowEvent`: `setCollapsed(!isCollapsed)`, then `setRoomToolsState`).
  */
 export const RoomToolsWidget = () => {
     const t = useTranslation();
@@ -39,7 +43,7 @@ export const RoomToolsWidget = () => {
     const collapsed = useRoomToolsCollapsed();
     const freeFlowChatDisabled = useUserStore(x => x.freeFlowChatDisabled);
     const hasWiredAchievements = useWiredStore(x => x.wiredAchievements.length > 0);
-    const { setUiFlag } = useUserActions();
+    const { setUiFlag, setRoomToolsCollapsed } = useUserActions();
     const { stepRoomVisitHistory, setRoomRating } = useNavigatorActions();
     const { toggleWindow } = useWindowActions();
     const { level, canZoomIn, canZoomOut, zoomIn, zoomOut } = useRoomZoom();
@@ -59,6 +63,15 @@ export const RoomToolsWidget = () => {
     // A different room is a different card, and it starts out showing.
     if (roomId !== info.roomId) setInfo({ roomId, visible: infoEnabled && !!roomId });
 
+    // `RoomToolsWidget`'s constructor: each room's tools start shut for anyone still new, else as the account left them.
+    useLayoutEffect(() => {
+        if (!roomId) return;
+
+        const { noobnessLevel, uiFlags } = userStore.getState();
+
+        setRoomToolsCollapsed((Number(noobnessLevel) !== Number(NoobnessLevelEnum.NotNoob)) || !(uiFlags & UiFlagEnum.RoomToolsExpanded));
+    }, [ roomId, setRoomToolsCollapsed ]);
+
     /*
      * The card announces the room on the way in and slides away again by itself, on Flash's
      * `collapseAfterDelay` timer.
@@ -75,6 +88,7 @@ export const RoomToolsWidget = () => {
 
     const toggleCollapsed = () => {
         setHistoryOpen(false);
+        setRoomToolsCollapsed(!collapsed);
         send(new SetUIFlagsComposer({ flags: setUiFlag(UiFlagEnum.RoomToolsExpanded, collapsed) }));
     };
 

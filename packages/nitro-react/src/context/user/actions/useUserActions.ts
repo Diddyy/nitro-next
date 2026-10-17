@@ -18,6 +18,7 @@ const actions = {
     setChatSizePreference: state.setChatSizePreference,
     setFreeFlowChatDisabled: state.setFreeFlowChatDisabled,
     setUiFlags: state.setUiFlags,
+    setRoomToolsCollapsed: state.setRoomToolsCollapsed,
     setRoomCameraFollowDisabled: state.setRoomCameraFollowDisabled,
     setRoomInvitesIgnored: state.setRoomInvitesIgnored,
     setOnlineIndicatorPreference: state.setOnlineIndicatorPreference,

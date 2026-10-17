@@ -53,6 +53,11 @@ type State = {
      * each, kept whole because `SetUIFlagsComposer` sends the whole word back.
      */
     uiFlags: number;
+    /**
+     * `RoomToolsToolbarCtrl.isCollapsed`: the room tools folded to their strip. Set once as the room's tools are
+     * built (`RoomToolsWidget`), then only by their own strip; `RoomToolsCtrlBase` starts it collapsed.
+     */
+    roomToolsCollapsed: boolean;
     /** `AccountPreferencesEventMessage.preferedChatStyle` - the bubble style the user's own messages are sent with. */
     preferredChatStyle: number;
     /** `AccountPreferencesEventMessage.freeFlowChatDisabled` - hides the in-room bubbles entirely. */
@@ -125,6 +130,7 @@ type Actions = {
     setChatSizePreference: (chatSizePreference: number) => void;
     setFreeFlowChatDisabled: (freeFlowChatDisabled: boolean) => void;
     setUiFlags: (uiFlags: number) => void;
+    setRoomToolsCollapsed: (roomToolsCollapsed: boolean) => void;
     setRoomCameraFollowDisabled: (isRoomCameraFollowDisabled: boolean) => void;
     setRoomInvitesIgnored: (roomInvitesIgnored: boolean) => void;
     setOnlineIndicatorPreference: (onlineIndicatorPreference: number) => void;
@@ -160,6 +166,7 @@ const initialState: State = {
     onlineIndicatorPreference: 0,
     discordPreferences: null,
     uiFlags: 0,
+    roomToolsCollapsed: true,
     preferredChatStyle: 0,
     freeFlowChatDisabled: false,
     chatSizePreference: 0,
@@ -194,6 +201,7 @@ export const createUserStore = () => createStore<UserStore>()((set, get, store) 
     setChatSizePreference: (chatSizePreference: number) => set({ chatSizePreference }),
     setFreeFlowChatDisabled: (freeFlowChatDisabled: boolean) => set({ freeFlowChatDisabled }),
     setUiFlags: (uiFlags: number) => set({ uiFlags }),
+    setRoomToolsCollapsed: (roomToolsCollapsed: boolean) => set({ roomToolsCollapsed }),
     setRoomCameraFollowDisabled: (isRoomCameraFollowDisabled: boolean) => set({ isRoomCameraFollowDisabled }),
     setRoomInvitesIgnored: (roomInvitesIgnored: boolean) => set({ roomInvitesIgnored }),
     setOnlineIndicatorPreference: (onlineIndicatorPreference: number) => set({ onlineIndicatorPreference }),

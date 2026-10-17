@@ -7,7 +7,7 @@ import { AvatarFaceImage } from '#base/components';
 import { NOTIFICATION_ASSETS, NotificationAssetName, NotificationItem, NotificationLayoutName, NotificationOptions } from '#base/context/notifications';
 import { useInterpolate, useTranslation } from '#base/context/system';
 import { usePetImageTexture } from '#base/hooks';
-import { Box, LayoutImage, measureTemplateText, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage, useLayoutEvent } from '#base/theme';
+import { Box, LayoutImage, measureTemplateText, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage, useLayoutEvent, useTextureFromUrl } from '#base/theme';
 import { CollectiblesPreviewSlots, CollectiblesProductPreview } from '#base/views/shared/CollectiblesProductPreview';
 
 import { NOTIFICATION_SIDE_MARGIN } from './notificationStack';
@@ -76,6 +76,38 @@ const NotificationPetImage = ({ pet }: { pet: NonNullable<NotificationOptions['p
             bitmap={{ stretchedX: false, stretchedY: false, pivot: 'center' }}
             eventMode="none"
             layout={{ position: 'absolute', left: 0, top: 0, width: ICON_SIZE, height: ICON_SIZE }}
+        />
+    );
+};
+
+/**
+ * `setNotificationIcon`: a bitmap smaller than the icon both ways is copied into the middle of a
+ * 50x50 one as it is; any other is padded to a square of its longer side, which the `notification_icon`
+ * window (stretched both ways, as its layout leaves it) then scales to 50x50 - so it shrinks to fit
+ * whole, never out of shape.
+ */
+const NotificationIconImage = ({ src }: { src: string }) => {
+    const texture = useTextureFromUrl(src);
+
+    if (!texture) return null;
+
+    const { width, height } = texture;
+    const fitsInside = (width < ICON_SIZE) && (height < ICON_SIZE);
+    const side = fitsInside ? ICON_SIZE : Math.max(width, height);
+    const scale = ICON_SIZE / side;
+
+    return (
+        <ThemeImage
+            texture={texture}
+            bitmap={{ stretchedX: true, stretchedY: true }}
+            eventMode="none"
+            layout={{
+                position: 'absolute',
+                left: Math.trunc((side - width) / 2) * scale,
+                top: Math.trunc((side - height) / 2) * scale,
+                width: width * scale,
+                height: height * scale,
+            }}
         />
     );
 };
@@ -170,7 +202,7 @@ export const NotificationsBubble = ({ item, frame, zIndex, onHover, onClick, onS
         '#notification_text': { caption: text },
         '#notification_icon': pet
             ? { asset: '', children: <NotificationPetImage pet={pet} /> }
-            : { asset: imageSource(item.image), pivot: 'center' },
+            : { asset: '', children: item.image ? <NotificationIconImage src={imageSource(item.image)} /> : undefined },
     };
 
     switch (item.layout) {
