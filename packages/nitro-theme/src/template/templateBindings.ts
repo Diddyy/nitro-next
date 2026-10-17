@@ -247,6 +247,12 @@ export interface TemplateBinding {
      */
     keepMounted?: boolean;
     /**
+     * A drag target (`mouse_dragging_target`) its code puts back once dropped: the drag moves it as
+     * Flash's `WindowMouseDragger` does, and at the release the move goes, leaving it where the code
+     * lays it out - a slider's button, set to where its value says (`DimmerViewAlphaSlider.setValue`).
+     */
+    dropToLayout?: boolean;
+    /**
      * Clones added after its own children (`addChild` of a window built with `buildFromXML` or
      * cloned), laid out with them - placed by their own rects and their `arrange`.
      */
@@ -586,6 +592,7 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && (a.options === b.options || (!!a.options && !!b.options && a.options.length === b.options.length && a.options.every((option, index) => option === b.options?.[index])))
         && a.children === b.children
         && a.keepMounted === b.keepMounted
+        && a.dropToLayout === b.dropToLayout
         && a.background === b.background
         && a.pivot === b.pivot
         && a.rotation === b.rotation
