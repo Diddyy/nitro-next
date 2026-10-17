@@ -98,16 +98,31 @@ The leaderboard projector stays its own: it ports WIN63's `VariableLeaderboardLo
 which measures differently and already flips. Not checked live yet (Turbo was down): `:flip` a room
 and chat.
 
-### 7. Wired source types resolved for conditions only
+### 7. Wired source types resolved at `createForm`, which Flash does not do
 
-`wired/elements/condition/conditionShared.ts` (`resolveConditionMergedTypes`) moves a saved
-target the picker does not offer onto the option it shows; only five condition definitions call
-it. Fifteen other definitions with `hasCustomTypePicker` (`ChangeVariable`, `GiveVariable`,
-`RemoveVariable`, `PlaceFurni`, `ProgressAchievement`, `ProgressRewardTrack`, `GiveFromChest`,
-`InitiateTransaction`, `CustomContract`, `JumpStrength`, `Projectile`, `SelectorFilter`,
-`VariableFilter`, `VariablePlaceholder`, `VariableLeaderboardAddon`) show the first option but save
-the unresolved value. Change: check Flash's actions and addons, then resolve once in the
-session's form creation for every `hasCustomTypePicker` definition. S-M.
+The review assumed Flash saves the picker's first option for a saved source type the picker does
+not offer, and that 15 elements lacked that resolution. The AS3 says the opposite: Flash saves the
+raw value unchanged - see [Wired](wired.md#a-source-type-the-picker-does-not-offer). The same holds
+for every `hasCustomTypePicker` element (ChangeVariable, GiveVariable, RemoveVariable, PlaceFurni,
+ProgressAchievement, ProgressRewardTrack, GiveFromChest, InitiateTransaction, CustomContract,
+JumpStrength, Projectile, SelectorFilter, VariableFilter, VariablePlaceholder; the leaderboard addon
+is newer than the AS3 here, but its merged type is always global, so the case cannot arise).
+
+So the places the port resolves the form are the unfaithful ones:
+
+- `resolveConditionMergedTypes` (`wired/elements/condition/conditionShared.ts`) in HasVariable,
+  VariableAge, VariableValue and ChestHasAmount;
+- `resolveVariableReferenceTarget` (`wired/elements/action/ActionVariableReference.ts`), used at
+  `createForm` by PlaceFurni, ProgressAchievement, ProgressRewardTrack, CustomContract, JumpStrength,
+  Projectile, SelectorFilter, VariableFilter and VariablePlaceholder;
+- selector `WithVariable` (`resolveSourceTypeSelection` in its `createForm`); trigger
+  `VariableUpdate` resolves too and needs its own check.
+
+Change: keep the raw target in every form, remove those resolutions, and leave the fallback to the
+pickers' display (`WiredSourceTypePicker`, `WiredNewSourceTypePicker`, which already show the first
+option). Fix the docblocks that state the wrong rule (`sourceTypeColors.ts`, `conditionShared.ts`,
+`ActionVariableReference.ts`, `WiredVariableSections.ts`). Saving such a box then sends what the
+server sent. S-M. Documented only, not changed.
 
 ### 8. Boolean configuration read five ways
 
@@ -212,4 +227,5 @@ copies' timing agrees with Flash's. M-L.
 - Item 4, window pointer drags (`useWindowPointerDrag`).
 - Item 5, group forum state in the store, and the link's go-to scroll.
 - Item 6, chat bubble positions in a flipped room.
+- Item 7, documented: Flash keeps an unoffered source type; the port's resolutions are listed.
 - Item 8, boolean configuration read as Flash does (`configBoolean`, `useConfigBoolean`).

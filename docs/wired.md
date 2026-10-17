@@ -25,3 +25,25 @@ environment, preferences, element memory, and the wired menu's slices) and
 `context/wired-trading` (chests, contracts, the wired trade, transactions, rewards). Both are
 singletons; `resetRoom` clears only what Flash drops with the room. The dialog's controller is
 `commands/wiredCommands.ts` (`UserDefinedRoomEventsCtrl`), the menu's `wiredMenuCommands.ts`.
+
+## A source type the picker does not offer
+
+An element with its own type picker (`hasCustomTypePicker`: the variable conditions and actions,
+`ValueOrVariableSection` / `ChooseVariableSection` users) can open on a saved source type its
+picker does not list - `CONTEXT` while `wired.variables.context_visible` is off, say. Flash
+**saves that value unchanged** (AS3 under `roomevents/wired_setup`):
+
+- The picker is built once per window (`createInputs` -> `buildInputs`, cached), with
+  `SourceTypeSelectorParam`'s selection left at 0, which `mergedSourceOptions` always offers, so
+  `SourceTypePicker.initialize` activates it without a click - and before any box is edited.
+- Opening a box copies the saved int into the element's field (`onEditStart`), writes it back
+  through `getMergedType` / `setMergedType` (`onEditStartUpdateCommonUI`), then calls
+  `getSourceTypeSelector().select(field)` (`onEditInitialized`). `select` clicks only an option
+  equal to the value; an unoffered one changes nothing.
+- Saving reads the field (`readIntParamsFromForm` pushes it as it is).
+
+Only a click on another option changes the field. So the form keeps the raw target, and only the
+picker's display falls back to its first option (`WiredSourceTypePicker`, `WiredNewSourceTypePicker`
+- a fresh Flash window's look; a cached one shows the last edit's choice). Resolving the form at
+`createForm` is not Flash's behaviour - see [Refactoring backlog](refactoring.md) item 7 for the
+places the port still does it.
