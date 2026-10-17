@@ -1,3 +1,4 @@
+import { TextureUtils } from '@nitrodevco/nitro-renderer';
 import { CanvasSource, Texture } from 'pixi.js';
 import { useEffect, useMemo } from 'react';
 
@@ -6,9 +7,10 @@ import { useEffect, useMemo } from 'react';
 export const CanvasPicture = ({ canvas, size, offset = 0, onNode, transient = false }: { canvas: HTMLCanvasElement; size: number; offset?: number; onNode?: (node: unknown) => void; transient?: boolean }) => {
     const texture = useMemo(() => (transient ? new Texture({ source: new CanvasSource({ resource: canvas }) }) : Texture.from(canvas)), [ canvas, transient ]);
 
-    // Destroyed after the frame that still draws it.
+    // Destroyed after the frame that still draws it, with the UI's batches rebuilt first: a batch keeps the
+    // texture bound until then, and a bound texture destroyed is a "PixiJS Warning [BindGroup]" each time.
     useEffect(() => () => {
-        if (transient) setTimeout(() => texture.destroy(true), 0);
+        if (transient) setTimeout(() => TextureUtils.destroyTexture(texture), 0);
     }, [ texture, transient ]);
 
     // Every render is a redraw of the canvas.

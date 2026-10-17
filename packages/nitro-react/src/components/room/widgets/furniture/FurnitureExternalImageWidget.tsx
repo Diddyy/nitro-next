@@ -13,6 +13,22 @@ import { FurnitureExternalImageView } from '#base/views/room-widgets/furniture/F
 const PHOTO_POSTER_TYPE = 'photo_poster';
 
 /**
+ * Flash `getType`: the kind of picture a furni type holds - the two camera posters are a
+ * `photo_poster`, the plain wall item a `selfie`, anything else `legacy`.
+ */
+const getExternalImageType = (type: string | undefined): string => {
+    switch (type) {
+        case 'external_image_wallitem_poster':
+        case 'external_image_wallitem_poster_small':
+            return PHOTO_POSTER_TYPE;
+        case 'external_image_wallitem':
+            return 'selfie';
+        default:
+            return 'legacy';
+    }
+};
+
+/**
  * A photo on the wall. The picture itself is not the client's - the furni carries a scrap of
  * JSON naming it, and the image is fetched from the stories host the configuration points at.
  * A photo that carries only an id keeps its details on a separate service, which the port does
@@ -45,7 +61,7 @@ export const FurnitureExternalImageWidget = () => {
         if (!item || !photo) return null;
 
         // `§_-UX§ = getWallItemType(type)`.
-        const type = GetRoomContentLoader().getFurnitureWallNameForTypeId(item.typeId);
+        const type = getExternalImageType(GetRoomContentLoader().getFurnitureWallNameForTypeId(item.typeId));
 
         return (
             <FurnitureExternalImageView
@@ -65,16 +81,17 @@ export const FurnitureExternalImageWidget = () => {
     if (!roomObject) return null;
 
     const photo = parsePhotoData(roomObject.model.getValue<string>(RoomObjectVariableEnum.FurnitureData));
+    const type = getExternalImageType(roomObject.type);
 
     if (!photo) return null;
 
     return (
         <FurnitureExternalImageView
-            imageUrl={resolvePhotoUrl(photo.url, imageUrlBase, roomObject.type === PHOTO_POSTER_TYPE)}
+            imageUrl={resolvePhotoUrl(photo.url, imageUrlBase, type === PHOTO_POSTER_TYPE)}
             creatorName={photo.creatorName}
             time={photo.time}
             caption={photo.caption}
-            reportVisible={(roomObject.type === PHOTO_POSTER_TYPE) || selfieReportingEnabled}
+            reportVisible={(type === PHOTO_POSTER_TYPE) || selfieReportingEnabled}
             // `openReportImage`: the sender, their name, the photo's extra data id (none for a photo that
             // carries its own url) and the wall item.
             onReport={() => reportPhoto(photo.creatorId, photo.creatorName, '', request.objectId)}
