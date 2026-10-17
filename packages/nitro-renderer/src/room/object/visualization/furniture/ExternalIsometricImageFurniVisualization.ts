@@ -44,8 +44,16 @@ export class ExternalIsometricImageFurniVisualization extends IsometricImageFurn
                     // Disposed, or moved on to another picture, while this one downloaded.
                     if (this._cachedUrl !== url) return;
 
-                    // Uncached: `Texture.from` would otherwise keep every picture in Pixi's global cache for good.
-                    const texture = Texture.from(image, true);
+                    // Drawn to a canvas first: an image element is one Pixi copies to a canvas itself on upload,
+                    // with a "PixiJS Warning" for each picture. Uncached: `Texture.from` would otherwise keep
+                    // every picture in Pixi's global cache for good.
+                    const canvas = document.createElement('canvas');
+
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    canvas.getContext('2d')?.drawImage(image, 0, 0);
+
+                    const texture = Texture.from(canvas, true);
 
                     texture.source.scaleMode = 'linear';
 
