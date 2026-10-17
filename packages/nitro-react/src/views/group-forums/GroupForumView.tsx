@@ -25,15 +25,17 @@
  *   window on that post (`IHabboHelp.reportThread` / `reportMessage`); the author names in a row's
  *   details are `friendbar/user/<name>` links to the user's profile.
  *
- * Not ported: scrolling to the message a link names.
+ * A `groupforum/<group>/<thread>/<index>` link opens the page holding the message and scrolls it
+ * there once (`scrollToSpecificElement(index, true)`): the row before it ends at the list's top.
  */
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import type { IExtendedForumData, IForumData, IPostMessage, IThreadData } from '@nitrodevco/nitro-packets';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import {
     closeGroupForum, deleteGroupForumMessage, deleteGroupForumThread, getGroupForumThreadLastReadIndex, goToGroupForumMessage, GROUP_FORUM_PAGE_SIZE, GROUP_FORUM_STATE_HIDDEN_BY_ADMIN, GROUP_FORUM_STATE_HIDDEN_BY_STAFF, markGroupForumAsRead,
     markGroupForumsListAsRead, openClientLink, openGroupForumCompose, openGroupForumSettings, openGroupForumsList, openGroupForumWindow, openProfile, requestGroupForumMessages, requestGroupForumThreads,
-    setGroupForumWindowRect, undeleteGroupForumMessage, undeleteGroupForumThread, updateGroupForumThread,
+    setGroupForumWindowRect, takeGroupForumGoTo, undeleteGroupForumMessage, undeleteGroupForumThread, updateGroupForumThread,
 } from '#base/commands';
 import { reportGroupForumMessage, reportGroupForumThread } from '#base/commands/helpCommands';
 import { AvatarImage } from '#base/components';
@@ -171,6 +173,22 @@ export const GroupForumView = () => {
     const threadItem = useTemplate(THREAD_ITEM);
     const messageItem = useTemplate(MESSAGE_ITEM);
     const frame = useTemplateFrame({ id: 'group_forum', centered: true, rememberPosition: false, resizeDirection: 'all', onClose: () => closeGroupForum(send), onPositionChange: position => setGroupForumWindowRect(position) });
+    // The message rows' bottoms and the list's scroll range as `arrange` last laid them out.
+    const messageRowsRef = useRef<{ bottoms: number[]; maxScroll: number }>({ bottoms: [], maxScroll: 0 });
+    const [ messagesScrollV, setMessagesScrollV ] = useState<number | undefined>(undefined);
+    const messages = (view?.kind === 'messages') ? view.messages : undefined;
+
+    // `openMessagesList`: a page the link pointed into scrolls to its message, once (`resetGoTo`).
+    useLayoutEffect(() => {
+        if (!messages) return;
+
+        const index = takeGroupForumGoTo(messages.threadId);
+        const { bottoms, maxScroll } = messageRowsRef.current;
+        const bottom = bottoms[index - 1];
+
+        // `scrollToSpecificElement(index, true)`: `scrollV = row.bottom / maxScrollV`, the row before the message.
+        setMessagesScrollV(((index > 0) && (bottom !== undefined) && (maxScroll > 0)) ? Math.min(1, bottom / maxScroll) : undefined);
+    }, [ messages ]);
 
     if (!view || !forumItem || !threadItem || !messageItem) return null;
 
@@ -402,7 +420,7 @@ export const GroupForumView = () => {
         active: shortcut(t('groupforum.view.shortcuts.active')),
         popular: shortcut(t('groupforum.view.shortcuts.popular')),
         list_header: { caption: listHeader },
-        scrollable_message_list: { items: rows },
+        scrollable_message_list: { items: rows, scrollV: (view.kind === 'messages') ? messagesScrollV : undefined },
         back_button_label: { caption: t((view.kind === 'messages') ? 'groupforum.view.back' : 'groupforum.view.mark_read') },
         back_button: { onPointerTap: onBack },
         post_button: { visible: view.kind !== 'forums', disabled: postDisabled, onPointerTap: () => onPost() },
@@ -451,6 +469,13 @@ export const GroupForumView = () => {
 
             container.setHeight(y);
             row.setHeight(texts.height + container.y + container.height);
+        }
+
+        if (view.kind === 'messages') {
+            const rows = listRows(list);
+            const contentHeight = inner.container?.height ?? rows.reduce((height, row) => Math.max(height, row.y + row.height), 0);
+
+            messageRowsRef.current = { bottoms: rows.map(row => row.y + row.height), maxScroll: Math.max(0, contentHeight - inner.height) };
         }
     };
 

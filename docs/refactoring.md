@@ -82,7 +82,10 @@ does not clear the module copy. `goToGroupForumMessage` sets `goToMessageIndex`,
 page and never goes to the message. **Verified.**
 
 Change: `forumView` as the only copy, the request bookkeeping in `GroupForumSlice`, and the go-to
-read where the thread opens. M.
+read where the thread opens. M. **Done:** the controller's fields are `GroupForumSlice.forumSession`
+(`patchForumSession`), so the store's reset clears them; `GroupForumView` takes the go-to once per
+arriving page and scrolls as `scrollToSpecificElement(index, true)` does. Not checked live yet: Turbo
+was down; check with a thread of more than 20 messages and a `groupforum/<g>/<t>/<index>` link.
 
 ### 6. Chat bubble positions in a flipped room
 
@@ -197,3 +200,4 @@ copies' timing agrees with Flash's. M-L.
 - Item 2, one room-frame placement hook (`useRoomFramePlacement`).
 - Item 3, room object values read during render (`useRoomObjectModelVersion`).
 - Item 4, window pointer drags (`useWindowPointerDrag`).
+- Item 5, group forum state in the store, and the link's go-to scroll.

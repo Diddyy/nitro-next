@@ -16,9 +16,9 @@
 import type { IExtendedForumData, IPostMessage, IThreadData } from '@nitrodevco/nitro-packets';
 import { useEffect, useRef, useState } from 'react';
 
-import { closeGroupForumCompose, getGroupForumSinceLastPost, GROUP_FORUM_MESSAGE_MAX_LENGTH, GROUP_FORUM_POST_COOLDOWN_MS, GROUP_FORUM_SUBJECT_MAX_LENGTH, openClientLink, postGroupForumMessage, postGroupForumThread } from '#base/commands';
+import { closeGroupForumCompose, getGroupForumSinceLastPost, GROUP_FORUM_MESSAGE_MAX_LENGTH, GROUP_FORUM_SUBJECT_MAX_LENGTH, openClientLink, postGroupForumMessage, postGroupForumThread } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { GroupForumCompose, useGroupActions } from '#base/context/groups';
+import { GROUP_FORUM_POST_COOLDOWN_MS, GroupForumCompose, useGroupActions } from '#base/context/groups';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';

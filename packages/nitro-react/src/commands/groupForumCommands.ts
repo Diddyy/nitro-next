@@ -21,7 +21,7 @@ import type { IExtendedForumData, IForumData, IPostMessage, IThreadData } from '
 import { GetForumsListComposer, GetForumStatsComposer, GetMessagesComposer, GetThreadComposer, GetThreadsComposer, GetUnreadForumsCountComposer, IForumReadMarker, ModerateMessageComposer, ModerateThreadComposer, PostMessageComposer, UpdateForumReadMarkerComposer, UpdateForumSettingsComposer, UpdateThreadComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { GroupForumsList, GroupForumThreadsList, GroupForumView, groupStore } from '#base/context/groups';
+import { GroupForumSession, GroupForumsList, GroupForumView, groupStore } from '#base/context/groups';
 import { translate as t } from '#base/context/system';
 
 import { showNotification } from './notificationCommands';
@@ -35,33 +35,21 @@ export const GROUP_FORUM_PAGE_SIZE = 20;
 const LIST_CODES: Record<string, number> = { active: 0, popular: 1, my: 2 };
 export const GROUP_FORUM_LIST_MY = 2;
 
-/** `ComposeMessageView`'s limits: the subject (`SUBJECT_MAX_LENGTH`), the message and the wait between two posts (`_-i1x`). */
+/** `ComposeMessageView`'s limits: the subject (`SUBJECT_MAX_LENGTH`) and the message; the wait between two posts is the store's (`GROUP_FORUM_POST_COOLDOWN_MS`). */
 export const GROUP_FORUM_SUBJECT_MAX_LENGTH = 120;
 export const GROUP_FORUM_MESSAGE_MAX_LENGTH = 4000;
-export const GROUP_FORUM_POST_COOLDOWN_MS = 30000;
 
 /** `ModerateThread` / `ModerateMessage` states: shown again, hidden by the group, hidden by staff. */
 export const GROUP_FORUM_STATE_SHOWN = 1;
 export const GROUP_FORUM_STATE_HIDDEN_BY_ADMIN = 10;
 export const GROUP_FORUM_STATE_HIDDEN_BY_STAFF = 20;
 
-let requestedForumsListCode = -1;
-let requestedGroupId = -1;
-let forumData: IExtendedForumData | undefined;
-let threadId = 0;
-let lastReadMessageId = 0;
-let forumsList: GroupForumsList | undefined;
-let threadsList: GroupForumThreadsList | undefined;
-let lastReadMessageIndexByThread = new Map<number, number>();
-let goToThreadId = -1;
-let goToMessageIndex = -1;
-/** `_lastPostTime`: when the last post was sent, `getTimer()` - it starts a cooldown before it. */
-let lastPostTime = -GROUP_FORUM_POST_COOLDOWN_MS;
-/** `GroupForumView._window`'s rect, where the compose and settings windows open beside it (`x + width`, `y`). */
-let forumWindowRect = { x: 0, y: 0, width: 0 };
-let composeKey = 0;
-
 const groups = () => groupStore.getState();
+
+/** `GroupForumController`'s fields (`GroupForumSession`), as the store holds them now. */
+const session = (): GroupForumSession => groups().forumSession;
+
+const patch = (changes: Partial<GroupForumSession>) => groups().patchForumSession(changes);
 
 const isWindowOpen = () => !!groups().forumView;
 
@@ -98,6 +86,7 @@ const showView = (view: GroupForumView) => groups().setForumView(view);
 /** The view's forums list follows the controller's (`_-li`), which unread updates replace. */
 const refreshViewForumsList = () => {
     const view = groups().forumView;
+    const { forumsList } = session();
 
     if (!view || !forumsList) return;
 
@@ -106,6 +95,8 @@ const refreshViewForumsList = () => {
 
 /** `markForumAsRead`: the open forum's read marker, when it moved or `all` marks it read. */
 export const markGroupForumAsRead = (send: Send, all: boolean = false) => {
+    const { forumData, lastReadMessageId } = session();
+
     if (forumData && (all || (lastReadMessageId > forumLastReadMessageId(forumData)))) {
         const marker: IForumReadMarker = all
             ? { groupId: forumData.groupId, lastReadMessageId: Math.max(forumData.totalMessages, lastReadMessageId), markAll: lastReadMessageId === 0 }
@@ -114,12 +105,13 @@ export const markGroupForumAsRead = (send: Send, all: boolean = false) => {
         send(new UpdateForumReadMarkerComposer({ markers: [ marker ] }));
     }
 
-    lastReadMessageId = 0;
-    lastReadMessageIndexByThread = new Map();
+    patch({ lastReadMessageId: 0, lastReadMessageIndexByThread: new Map() });
 };
 
 /** `markForumsAsRead`: every listed forum with unread messages. */
 export const markGroupForumsListAsRead = (send: Send) => {
+    const { forumsList } = session();
+
     if (!forumsList) return;
 
     const markers = forumsList.forums.filter(forum => forum.unreadMessages > 0).map(forum => ({ groupId: forum.groupId, lastReadMessageId: forum.totalMessages, markAll: true }));
@@ -133,13 +125,13 @@ export const markGroupForumsListAsRead = (send: Send) => {
 /** `openForumsList`. */
 export const openGroupForumsList = (send: Send, listCode: number, startIndex: number = 0) => {
     markGroupForumAsRead(send);
-    requestedForumsListCode = listCode;
-    requestedGroupId = -1;
+    patch({ requestedForumsListCode: listCode, requestedGroupId: -1 });
     send(new GetForumsListComposer({ listCode, startIndex, amount: GROUP_FORUM_PAGE_SIZE }));
 };
 
 /** `onForumsList`. */
 export const onGroupForumsList = (incoming: GroupForumsList) => {
+    const { forumData, lastReadMessageId, requestedForumsListCode } = session();
     let list = incoming;
 
     if (forumData && (lastReadMessageId > 0)) list = updateListUnreadMessages(list, forumData, lastReadMessageId);
@@ -148,16 +140,14 @@ export const onGroupForumsList = (incoming: GroupForumsList) => {
 
     if (requestedForumsListCode !== list.listCode) return;
 
-    forumsList = list;
+    patch({ forumsList: list });
     showView({ kind: 'forums', forums: list });
 };
 
 /** `initForum`. */
 const initForum = (send: Send, groupId: number) => {
     markGroupForumAsRead(send);
-    requestedForumsListCode = -1;
-    requestedGroupId = groupId;
-    lastReadMessageId = 0;
+    patch({ requestedForumsListCode: -1, requestedGroupId: groupId, lastReadMessageId: 0 });
     send(new GetForumStatsComposer({ groupId }));
 };
 
@@ -175,8 +165,7 @@ export const openGroupForumWindow = (send: Send, groupId: number) => {
 
 /** `goToMessageIndex`: the page holding the message. */
 export const goToGroupForumMessage = (send: Send, groupId: number, thread: number, messageIndex: number) => {
-    goToThreadId = thread;
-    goToMessageIndex = messageIndex % GROUP_FORUM_PAGE_SIZE;
+    patch({ goToThreadId: thread, goToMessageIndex: messageIndex % GROUP_FORUM_PAGE_SIZE });
     requestGroupForumMessages(send, groupId, thread, Math.floor(messageIndex / GROUP_FORUM_PAGE_SIZE) * GROUP_FORUM_PAGE_SIZE);
 };
 
@@ -198,7 +187,7 @@ export const openGroupForumLink = (send: Send, parts: string[]) => {
 
     if (groupId === 0) return;
 
-    forumsList = undefined;
+    patch({ forumsList: undefined });
 
     if (parts.length === 2) {
         openGroupForumWindow(send, groupId);
@@ -217,11 +206,11 @@ export const openGroupForumLink = (send: Send, parts: string[]) => {
 
 /** `onForumData`. */
 export const onGroupForumData = (forum: IExtendedForumData) => {
-    if (requestedGroupId !== forum.groupId) return;
+    if (session().requestedGroupId !== forum.groupId) return;
 
     if (forum.readPermissionError.length > 0) {
         closeGroupForumView();
-        requestedGroupId = 0;
+        patch({ requestedGroupId: 0 });
 
         const operation = t('groupforum.view.error.operation_read');
 
@@ -230,41 +219,50 @@ export const onGroupForumData = (forum: IExtendedForumData) => {
         return;
     }
 
-    forumData = forum;
-    lastReadMessageId = forumLastReadMessageId(forum);
+    patch({ forumData: forum, lastReadMessageId: forumLastReadMessageId(forum) });
 };
 
 /** `onThreadList`. */
 export const onGroupForumThreads = (groupId: number, startIndex: number, threads: IThreadData[]) => {
+    const { forumData, forumsList } = session();
+
     if (!forumData || (forumData.groupId !== groupId)) return;
 
-    threadsList = { totalThreads: forumData.totalThreads, startIndex, threads };
+    const threadsList = { totalThreads: forumData.totalThreads, startIndex, threads };
+
+    patch({ threadsList });
     showView({ kind: 'threads', forums: forumsList, forum: forumData, threads: threadsList });
 };
 
 /** `getThreadLastReadMessageIndex`. */
-export const getGroupForumThreadLastReadIndex = (thread: number) => lastReadMessageIndexByThread.get(thread) ?? -1;
+export const getGroupForumThreadLastReadIndex = (thread: number) => session().lastReadMessageIndexByThread.get(thread) ?? -1;
 
 /** `updateUnreadMessageCounts`. */
 const updateUnreadMessageCounts = (messageId: number, thread: number, messageIndex: number) => {
+    const { forumData, forumsList, lastReadMessageId, lastReadMessageIndexByThread } = session();
+
     if (messageId > lastReadMessageId) {
-        lastReadMessageId = messageId;
+        patch({ lastReadMessageId: messageId });
 
         if (forumsList && forumData) {
-            forumsList = updateListUnreadMessages(forumsList, forumData, messageId);
+            const updated = updateListUnreadMessages(forumsList, forumData, messageId);
 
-            if (forumsList.listCode === GROUP_FORUM_LIST_MY) setUnreadForumsCount(unreadForumsOf(forumsList));
+            patch({ forumsList: updated });
+
+            if (updated.listCode === GROUP_FORUM_LIST_MY) setUnreadForumsCount(unreadForumsOf(updated));
         }
     }
 
-    lastReadMessageIndexByThread.set(thread, messageIndex);
+    patch({ lastReadMessageIndexByThread: new Map(lastReadMessageIndexByThread).set(thread, messageIndex) });
 };
 
 /** `onThreadMessageList`. */
 export const onGroupForumMessages = (groupId: number, thread: number, startIndex: number, messages: IPostMessage[]) => {
+    const { forumData, forumsList, threadsList } = session();
+
     if (!forumData || (forumData.groupId !== groupId) || !threadsList) return;
 
-    threadId = thread;
+    patch({ threadId: thread });
 
     const threadData = threadsList.threads.find(entry => entry.threadId === thread);
 
@@ -282,24 +280,29 @@ export const onGroupForumMessages = (groupId: number, thread: number, startIndex
 
 /** `onUpdateThread`: a thread changed (or `GetThread`'s answer, which starts a one-thread list). */
 export const onGroupForumThreadUpdated = (groupId: number, thread: IThreadData) => {
+    const { forumData, threadsList } = session();
+
     if (!forumData || (forumData.groupId !== groupId)) return;
 
     const view = groups().forumView;
 
     if (threadsList && view && threadsList.threads.some(entry => entry.threadId === thread.threadId)) {
-        threadsList = { ...threadsList, threads: threadsList.threads.map(entry => ((entry.threadId === thread.threadId) ? thread : entry)) };
+        const updated = { ...threadsList, threads: threadsList.threads.map(entry => ((entry.threadId === thread.threadId) ? thread : entry)) };
 
-        if ((view.kind === 'threads') || (view.kind === 'messages')) showView({ ...view, threads: threadsList });
+        patch({ threadsList: updated });
+
+        if ((view.kind === 'threads') || (view.kind === 'messages')) showView({ ...view, threads: updated });
 
         return;
     }
 
-    threadsList = { totalThreads: 1, startIndex: 0, threads: [ thread ] };
+    patch({ threadsList: { totalThreads: 1, startIndex: 0, threads: [ thread ] } });
 };
 
 /** `onUpdateMessage`: a message of the open thread changed. */
 export const onGroupForumMessageUpdated = (groupId: number, thread: number, message: IPostMessage) => {
     const view = groups().forumView;
+    const { forumData, threadId } = session();
 
     if (!forumData || (forumData.groupId !== groupId) || (threadId !== thread) || (view?.kind !== 'messages')) return;
 
@@ -312,11 +315,16 @@ export const onGroupForumMessageUpdated = (groupId: number, thread: number, mess
 export const onGroupForumThreadPosted = (send: Send, groupId: number, thread: IThreadData) => {
     closeGroupForumCompose();
 
+    const { forumData } = session();
+
     if (forumData && (forumData.groupId === groupId)) updateUnreadMessageCounts(thread.lastMessageId, thread.threadId, thread.nMessages - 1);
+
+    // Read again: `updateUnreadMessageCounts` may have moved the list's counts.
+    const { forumsList } = session();
 
     if (forumsList) {
         // `ForumData.addNewThread`.
-        forumsList = { ...forumsList, forums: forumsList.forums.map(forum => ((forum.groupId !== groupId) ? forum : { ...forum, lastMessageAuthorId: thread.lastMessageAuthorId, lastMessageAuthorName: thread.lastMessageAuthorName, lastMessageId: thread.lastMessageId, lastMessageTimeAsSecondsAgo: thread.lastMessageTimeAsSecondsAgo, totalThreads: forum.totalThreads + 1, totalMessages: forum.totalMessages + 1, unreadMessages: 0 })) };
+        patch({ forumsList: { ...forumsList, forums: forumsList.forums.map(forum => ((forum.groupId !== groupId) ? forum : { ...forum, lastMessageAuthorId: thread.lastMessageAuthorId, lastMessageAuthorName: thread.lastMessageAuthorName, lastMessageId: thread.lastMessageId, lastMessageTimeAsSecondsAgo: thread.lastMessageTimeAsSecondsAgo, totalThreads: forum.totalThreads + 1, totalMessages: forum.totalMessages + 1, unreadMessages: 0 })) } });
     }
 
     if (!isWindowOpen() || !forumData || (forumData.groupId !== groupId)) return;
@@ -328,39 +336,32 @@ export const onGroupForumThreadPosted = (send: Send, groupId: number, thread: IT
 export const onGroupForumMessagePosted = (send: Send, groupId: number, thread: number, message: IPostMessage) => {
     closeGroupForumCompose();
 
+    const { forumData, threadId } = session();
+
     if (!isWindowOpen() || !forumData || (forumData.groupId !== groupId) || (thread !== threadId)) return;
 
     requestGroupForumMessages(send, groupId, threadId, message.messageIndex - (message.messageIndex % GROUP_FORUM_PAGE_SIZE));
 };
 
 /**
- * `getGoToMessageIndex` / `getGoToThreadId` / `resetGoTo`: where the opened thread should scroll to, once.
- *
- * Nothing calls it yet. Flash's `GroupForumView.openMessagesList` reads it after building the
- * `MessageListView` and, for an index above 0 in that thread, calls
- * `scrollToSpecificElement(index, true)` (the row at `index - 1`, `scrollV = row.bottom / maxScrollV`)
- * before `resetGoTo`. `GroupForumView` does not port that scroll (its docblock lists it as not
- * ported): it needs the message rows laid out and sized (`arrange`) before the list's `scrollV` can
- * be worked out, and the index taken once per arriving page. Only a `groupforum/<group>/<thread>/<index>`
- * link sets an index above 0.
+ * `getGoToMessageIndex` / `getGoToThreadId` / `resetGoTo`: the message a
+ * `groupforum/<group>/<thread>/<index>` link named, once - `GroupForumView.openMessagesList`
+ * scrolls its page to it (`scrollToSpecificElement(index, true)`) for an index above 0 in that thread.
  */
 export const takeGroupForumGoTo = (thread: number): number => {
+    const { goToMessageIndex, goToThreadId } = session();
+
     if ((goToMessageIndex <= 0) || (goToThreadId !== thread)) return -1;
 
-    const index = goToMessageIndex;
+    patch({ goToThreadId: -1, goToMessageIndex: -1 });
 
-    goToThreadId = -1;
-    goToMessageIndex = -1;
-
-    return index;
+    return goToMessageIndex;
 };
 
 /** `closeMainView`, without the read marker (`closeGroupForum` sends it). */
 const closeGroupForumView = () => {
     groups().setForumView(undefined);
-    forumData = undefined;
-    requestedForumsListCode = -1;
-    requestedGroupId = -1;
+    patch({ forumData: undefined, requestedForumsListCode: -1, requestedGroupId: -1 });
 };
 
 /** `GroupForumView.dispose` -> `closeMainView`. */
@@ -401,8 +402,8 @@ export const deleteGroupForumMessage = (send: Send, forum: IExtendedForumData, t
 export const undeleteGroupForumMessage = (send: Send, forum: IForumData, thread: number, messageId: number) => send(new ModerateMessageComposer({ groupId: forum.groupId, threadId: thread, messageId, state: GROUP_FORUM_STATE_SHOWN }));
 
 /** `GroupForumView._window`: where it is, so the windows it opens go beside it. */
-export const setGroupForumWindowRect = (rect: Partial<typeof forumWindowRect>) => {
-    forumWindowRect = { ...forumWindowRect, ...rect };
+export const setGroupForumWindowRect = (rect: Partial<GroupForumSession['forumWindowRect']>) => {
+    patch({ forumWindowRect: { ...session().forumWindowRect, ...rect } });
 };
 
 /** `ComposeMessageView.dispose`. */
@@ -417,8 +418,11 @@ export const openGroupForumCompose = (forum: IExtendedForumData, thread: IThread
 
     if (open?.posting) return;
 
+    const { forumWindowRect, composeKey } = session();
+
+    patch({ composeKey: composeKey + 1 });
     groups().setForumCompose({
-        key: ++composeKey,
+        key: composeKey + 1,
         forum,
         thread,
         quote,
@@ -431,14 +435,19 @@ export const openGroupForumCompose = (forum: IExtendedForumData, thread: IThread
 /** `ForumSettingsView`'s window: opened beside the forum's, or the open one taken to this forum's settings. */
 export const openGroupForumSettings = (forum: IExtendedForumData) => {
     const open = groups().forumSettings;
+    const { forumWindowRect, composeKey } = session();
+    let key = composeKey + 1;
 
-    groups().setForumSettings({ key: open?.forum === forum ? open.key : ++composeKey, forum, x: open?.x ?? (forumWindowRect.x + forumWindowRect.width), y: open?.y ?? forumWindowRect.y });
+    if (open?.forum === forum) key = open.key;
+    else patch({ composeKey: key });
+
+    groups().setForumSettings({ key, forum, x: open?.x ?? (forumWindowRect.x + forumWindowRect.width), y: open?.y ?? forumWindowRect.y });
 };
 
 export const closeGroupForumSettings = () => groups().setForumSettings(undefined);
 
 /** `getTimer() - lastPostTime`: how long ago the last post was sent. */
-export const getGroupForumSinceLastPost = () => performance.now() - lastPostTime;
+export const getGroupForumSinceLastPost = () => performance.now() - session().lastPostTime;
 
 /** A text field's lines are separated by a carriage return in Flash, which is what the hotel stores. */
 const toFlashLines = (text: string) => text.replace(/\r?\n/g, '\r');
@@ -446,13 +455,13 @@ const toFlashLines = (text: string) => text.replace(/\r?\n/g, '\r');
 /** `postNewThread`. */
 export const postGroupForumThread = (send: Send, groupId: number, subject: string, message: string) => {
     send(new PostMessageComposer({ groupId, threadId: 0, subject, message: toFlashLines(message) }));
-    lastPostTime = performance.now();
+    patch({ lastPostTime: performance.now() });
 };
 
 /** `postNewMessage`. */
 export const postGroupForumMessage = (send: Send, groupId: number, thread: number, message: string) => {
     send(new PostMessageComposer({ groupId, threadId: thread, subject: '', message: toFlashLines(message) }));
-    lastPostTime = performance.now();
+    patch({ lastPostTime: performance.now() });
 };
 
 /** `updateForumSettings`. */
