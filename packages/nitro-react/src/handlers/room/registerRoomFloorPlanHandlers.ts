@@ -18,6 +18,7 @@ import { BuildersClubSubscriptionStatusMessage, FloorHeightMapMessage, RoomEntry
 
 import { WebSocketConnection } from '#base/context/communication';
 import { roomStore } from '#base/context/room';
+import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -46,6 +47,11 @@ export const registerRoomFloorPlanHandlers = ({ subscribe }: WebSocketConnection
 
     let bcCountdownTimer: ReturnType<typeof setInterval> | undefined;
 
+    // `onRoomDisposed` (`REE_DISPOSED`): the editor closes with the room it edits - also when a save reloads that room.
+    const unsubscribeRoom = roomStore.subscribe((state, previous) => {
+        if (previous.room && (state.room !== previous.room)) systemStore.getState().hideWindow('floor_plan_editor');
+    });
+
     const unsubscribe = subscribeAll(subscribe, [
         on(FloorHeightMapMessage, (data) => {
             // `FloorPlanCache.onFloorHeightMap` - the received map is also what a revert goes back to.
@@ -73,6 +79,7 @@ export const registerRoomFloorPlanHandlers = ({ subscribe }: WebSocketConnection
     ]);
 
     return () => {
+        unsubscribeRoom();
         unsubscribe();
         clearInterval(bcCountdownTimer);
     };
