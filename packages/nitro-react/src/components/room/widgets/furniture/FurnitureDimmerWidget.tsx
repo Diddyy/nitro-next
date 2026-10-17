@@ -34,7 +34,7 @@ export const FurnitureDimmerWidget = () => {
     // preset items (`DimmerFurniWidget.storeCurrentSetting`), so a tab shows its edit again.
     const [ saved, setSaved ] = useState<Record<number, Mood>>({});
     const [ lastObjectId, setLastObjectId ] = useState<number>(-1);
-    const [ lastPresetData, setLastPresetData ] = useState<RoomDimmerPresetsMessageType | undefined>(undefined);
+    const [ lastPresets, setLastPresets ] = useState<RoomDimmerPresetsMessageType['presets'] | undefined>(undefined);
 
     const objectId = request?.objectId ?? -1;
 
@@ -45,9 +45,12 @@ export const FurnitureDimmerWidget = () => {
         setDraft(undefined);
     }
 
-    // New presets start the dialog over on the selected one (`DimmerFurniWidget.onPresets`).
-    if (presetData !== lastPresetData) {
-        setLastPresetData(presetData);
+    // New presets start the dialog over on the selected one (`DimmerFurniWidget.onPresets`). The
+    // dimmer's own state coming back - after Apply, Turn off, Turn on - only says on or off
+    // (`onDimmerState` sets `isOn` and `DimmerView.update` redoes the buttons): the preset shown
+    // and its edit stay, so the brightness knob stays where it was let go.
+    if (presetData?.presets !== lastPresets) {
+        setLastPresets(presetData?.presets);
         setSelectedPresetId(-1);
         setDraft(undefined);
         setSaved({});
