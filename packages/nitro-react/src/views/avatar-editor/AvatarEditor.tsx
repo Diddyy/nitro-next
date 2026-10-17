@@ -414,22 +414,29 @@ export const AvatarEditor = () => {
 
     // `HabboAvatarEditorManager.loadOwnAvatarInEditor` as the editor opens: once the server has named a worn NFT outfit
     // (`hasNftOutfit` - any token id, the empty one too, until the next save) only the fallback look is loaded, and an empty
-    // fallback loads nothing, so a change left unsaved is still there when the editor opens again (official: lab30 Q3). Else
-    // the session's look. The editor can mount before the user's info arrives, so the look is (re)loaded whenever the
-    // server-side one changes too, and opening with an empty figure never sticks.
-    const opened = useRef(false);
+    // fallback loads nothing, so a change left unsaved is still there when the editor opens again. After a save the token is
+    // cleared (`saveCurrentSelection`) and every later opening loads the session's look (official: lab30 + lab32, 2/2). It runs
+    // once an opening: nothing in the editor listens to the user's figure, so a figure update while it is open (a booth, a
+    // mannequin) leaves the look being edited alone. The editor can mount before the user's info arrives, so opening with an
+    // empty figure never sticks.
+    const ownLoaded = useRef(false);
 
     useEffect(() => {
-        if (clothingChange) return;
+        if (clothingChange) {
+            ownLoaded.current = false;
+
+            return;
+        }
 
         if (!ownFigure && !ownGender) return;
 
+        if (ownLoaded.current) return;
+
+        ownLoaded.current = !!ownFigure;
+
         const { nftCurrentTokenId, nftFallbackFigure: fallbackFigure, nftFallbackGender: fallbackGender, boothLook } = avatarEditorStore.getState();
-        const opening = !opened.current;
 
-        opened.current = true;
-
-        if (opening && !boothLook && (nftCurrentTokenId !== null)) {
+        if (!boothLook && (nftCurrentTokenId !== null)) {
             if (fallbackFigure !== '') loadFigure(fallbackFigure, fallbackGender);
 
             return;
