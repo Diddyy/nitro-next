@@ -9,6 +9,10 @@ import { FurnitureDimmerView } from '#base/views/room-widgets/furniture/Furnitur
 /** `#RRGGBB`, upper case, the shape `RoomSession.sendRoomDimmerSavePresetMessage` puts on the wire. */
 const colorHex = (color: number) => `#${color.toString(16).padStart(6, '0').toUpperCase()}`;
 
+type Mood = { color: number; brightness: number; effectId: number };
+
+const sameMood = (a: Mood, b: Mood) => a.color === b.color && a.brightness === b.brightness && a.effectId === b.effectId;
+
 /**
  * The room dimmer. Opening it asks the server for the room's three saved moods; everything the
  * dialog shows comes back in that one packet, so there is no state to keep between openings.
@@ -25,8 +29,12 @@ export const FurnitureDimmerWidget = () => {
 
     const presetData = request?.data;
     const [ selectedPresetId, setSelectedPresetId ] = useState<number>(-1);
-    const [ draft, setDraft ] = useState<{ color: number; brightness: number; effectId: number } | undefined>(undefined);
+    const [ draft, setDraft ] = useState<Mood | undefined>(undefined);
+    // Moods saved from this dialog since the presets came, by preset id: Flash keeps them in its own
+    // preset items (`DimmerFurniWidget.storeCurrentSetting`), so a tab shows its edit again.
+    const [ saved, setSaved ] = useState<Record<number, Mood>>({});
     const [ lastObjectId, setLastObjectId ] = useState<number>(-1);
+    const [ lastPresetData, setLastPresetData ] = useState<RoomDimmerPresetsMessageType | undefined>(undefined);
 
     const objectId = request?.objectId ?? -1;
 
@@ -35,6 +43,14 @@ export const FurnitureDimmerWidget = () => {
         setLastObjectId(objectId);
         setSelectedPresetId(-1);
         setDraft(undefined);
+    }
+
+    // New presets start the dialog over on the selected one (`DimmerFurniWidget.onPresets`).
+    if (presetData !== lastPresetData) {
+        setLastPresetData(presetData);
+        setSelectedPresetId(-1);
+        setDraft(undefined);
+        setSaved({});
     }
 
     // Opening the dialog is what asks for the presets; a second dimmer asks again.
@@ -51,21 +67,45 @@ export const FurnitureDimmerWidget = () => {
 
     if (!preset) return null;
 
-    const current = draft ?? { color: preset.color, brightness: preset.light, effectId: preset.type };
+    const moodOf = (entry: typeof preset): Mood => saved[entry.id] ?? { color: entry.color, brightness: entry.light, effectId: entry.type };
+
+    const current = draft ?? moodOf(preset);
+
+    /** `storeCurrentSetting`: while on, the mood shown is saved to its preset, unless it is that preset already and not applied. */
+    const store = (apply: boolean) => {
+        if (!presetData.isOn) return;
+        if (!apply && sameMood(current, moodOf(preset))) return;
+
+        setSaved({ ...saved, [preset.id]: current });
+        send(new RoomDimmerSavePresetComposer({
+            presetNumber: preset.id,
+            effectTypeId: current.effectId,
+            colorHex: colorHex(current.color),
+            brightness: current.brightness,
+            apply,
+            objectId,
+        }));
+    };
 
     /** Lights your own room with the mood being edited, without telling anyone else. */
-    const preview = (next: { color: number; brightness: number; effectId: number }) => {
+    const preview = (next: Mood) => {
         setDraft(next);
         room.updateRoomObjectRoomColor(next.color, next.brightness, next.effectId === 2);
     };
 
+    // Flash `DimmerView.onTabClick` stores the mood being left, unapplied, before it shows the next.
     const selectPreset = (id: number) => {
         const chosen = presetData.presets.find(entry => entry.id === id);
 
+        if (!chosen || chosen.id === preset.id) return;
+
+        store(false);
         setSelectedPresetId(id);
         setDraft(undefined);
 
-        if (chosen) room.updateRoomObjectRoomColor(chosen.color, chosen.light, chosen.type === 2);
+        const mood = moodOf(chosen);
+
+        room.updateRoomObjectRoomColor(mood.color, mood.brightness, mood.effectId === 2);
     };
 
     return (
@@ -80,14 +120,7 @@ export const FurnitureDimmerWidget = () => {
             onChangeColor={color => preview({ ...current, color })}
             onChangeBrightness={brightness => preview({ ...current, brightness })}
             onChangeEffect={effectId => preview({ ...current, effectId })}
-            onApply={() => send(new RoomDimmerSavePresetComposer({
-                presetNumber: presetId,
-                effectTypeId: current.effectId,
-                colorHex: colorHex(current.color),
-                brightness: current.brightness,
-                apply: true,
-                objectId,
-            }))}
+            onApply={() => store(true)}
             onToggle={() => send(new RoomDimmerChangeStateComposer({ objectId }))}
             onClose={() => closeRoomWidget(RoomObjectWidgetRequestEvent.DIMMER)}
         />
