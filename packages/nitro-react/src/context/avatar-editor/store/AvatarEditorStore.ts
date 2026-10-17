@@ -17,6 +17,12 @@ export type AvatarEditorWardrobeOutfit = {
     gender: AvatarGenderType;
 } | null;
 
+/**
+ * What belongs to the main editor (Flash instance 0) rather than to the one window there is: the look it edits and where it
+ * stands, set aside while a booth borrows the window.
+ */
+type MainEditorState = Pick<State, 'activeCategory' | 'activeSubType' | 'parts' | 'gender' | 'savedFigure' | 'savedGender' | 'selectedNftOutfitId' | 'nftRollbackFigure' | 'nftRollbackGender'> & { figure: string };
+
 type State = {
     activeCategory: AvatarEditorCategory;
     activeSubType: Record<AvatarEditorCategory, AvatarEditorSetType>;
@@ -62,10 +68,15 @@ type State = {
      */
     initialised: boolean;
     /**
-     * The look being edited is a booth's (`FurnitureClothingChangeWidgetHandler`: its own editor instance in Flash), not the
-     * main editor's, so opening the main editor loads the user's own look whatever `hasNftOutfit` says.
+     * The look being edited is a booth's (`FurnitureClothingChangeWidgetHandler` opens editor instance 1, which
+     * `HabboAvatarEditorManager.close` disposes), not the main editor's.
      */
     boothLook: boolean;
+    /**
+     * The main editor as the booth found it (instance 0 is only hidden meanwhile, so its unsaved look is still there when it
+     * opens again); `null` when it had never opened - Flash has no instance 0 yet, so it starts on the user's look.
+     */
+    mainEditor: MainEditorState | null;
 };
 
 type Actions = {
@@ -97,7 +108,10 @@ type Actions = {
     /** `saveCurrentSelection`: the pick is worn, so the next save leaves effects alone. */
     clearAvatarEffectPicked: () => void;
     setInitialised: () => void;
-    setBoothLook: (boothLook: boolean) => void;
+    /** A booth borrows the window: the main editor's own state is set aside (once, however many booth looks follow). */
+    lendToBooth: () => void;
+    /** The main editor has the window again: its state comes back. False when it had never opened before the booth. */
+    returnFromBooth: () => boolean;
 };
 
 const initialState: State = {
@@ -133,6 +147,7 @@ const initialState: State = {
     avatarEffectPicked: false,
     initialised: false,
     boothLook: false,
+    mainEditor: null,
 };
 
 export type AvatarEditorStore = State & Actions & {
@@ -211,7 +226,25 @@ export const createAvatarEditorStore = () => createStore<AvatarEditorStore>()((s
     pickAvatarEffectType: avatarEffectType => set({ avatarEffectType, avatarEffectPicked: true }),
     clearAvatarEffectPicked: () => set({ avatarEffectPicked: false }),
     setInitialised: () => set({ initialised: true }),
-    setBoothLook: boothLook => set({ boothLook }),
+    lendToBooth: () => set((state) => {
+        if (state.boothLook) return {};
+
+        const { activeCategory, activeSubType, parts, figure, gender, savedFigure, savedGender, selectedNftOutfitId, nftRollbackFigure, nftRollbackGender } = state;
+
+        return {
+            boothLook: true,
+            mainEditor: state.initialised ? { activeCategory, activeSubType, parts, figure, gender, savedFigure, savedGender, selectedNftOutfitId, nftRollbackFigure, nftRollbackGender } : null,
+        };
+    }),
+    returnFromBooth: () => {
+        const { boothLook, mainEditor } = get();
+
+        if (!boothLook) return true;
+
+        set({ ...mainEditor, boothLook: false, mainEditor: null });
+
+        return mainEditor !== null;
+    },
     setWardrobeSlot: (index, outfit) => set((state) => {
         const wardrobe = [ ...state.wardrobe ];
 
