@@ -10,7 +10,7 @@
  */
 import { EventLogComposer, PurchaseTargetedOfferComposer, SetTargetedOfferStateComposer, ShopTargetedOfferViewedComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
 import {
     HabboMallOffer, isTargetedOfferExpired, purchasedTargetedOffer, TARGETED_OFFER_DIALOG_LAYOUT, TARGETED_OFFER_DIALOG_VARIATION_LAYOUT, TARGETED_OFFER_STATE_MAXIMIZED, TARGETED_OFFER_STATE_MINIMIZED,
@@ -18,8 +18,6 @@ import {
 } from '#base/context/targeted-offers';
 
 import { openCreditsHabblet } from './catalogClubCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `§_-u1N§.TARGETED_OFFER_OPEN_CREDITS_PAGE_CLICKED`. */
 export const TARGETED_OFFER_OPEN_CREDITS_PAGE_CLICKED = 'targeted.offer.open.credits.page.clicked';

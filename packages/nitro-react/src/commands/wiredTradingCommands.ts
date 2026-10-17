@@ -18,7 +18,7 @@ import {
     WithdrawAllFromChestComposer, WithdrawCoinsFromChestComposer, WithdrawItemsFromChestComposer,
 } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
@@ -27,8 +27,6 @@ import {
     WIRED_TRADE_STATE_READY, WIRED_TRANSACTION_PAGE_SIZE, WiredChestFurniData, wiredTradingStore,
 } from '#base/context/wired-trading';
 import { getFurnitureData } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 /** `SelfDonationTool.ALLOWED_ENVIRONMENT_IDS`. */
 const SELF_DONATION_ENVIRONMENT_IDS = [ 's1', 's2', 'd63', 'dev', 'local' ];

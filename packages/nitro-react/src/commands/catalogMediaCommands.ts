@@ -7,9 +7,7 @@
  */
 import { GetOfficialSongIdComposer, GetSongInfoComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
-
-type Send = WebSocketConnection['send'];
+import { Send } from '#base/context/communication';
 
 /** `onSelectProduct`: the song id behind a disk whose extra parameter is an official song's code. */
 export const requestOfficialSongId = (send: Send, officialSongId: string) => send(new GetOfficialSongIdComposer({ officialSongId }));

@@ -11,7 +11,7 @@ import { StoreApi } from 'zustand';
 
 import { CatalogStore, CatalogWidgetEventEnum } from '#base/context/catalog';
 import { catalogPurchaseStore } from '#base/context/catalog-purchase';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { systemStore } from '#base/context/system';
 import { getOfferProduct } from '#base/utils';
@@ -21,7 +21,6 @@ import { purchaseProduct } from './catalogRoomAdCommands';
 import { purchaseGameTokensOffer } from './gameTokensCommands';
 import { habbiconsEnabled, isHabbiconOwned, showHabbiconAlreadyOwnedAlert } from './habbiconCommands';
 
-type Send = WebSocketConnection['send'];
 type CatalogStoreApi = StoreApi<CatalogStore>;
 
 /** What `giveGift` reads off the gift dialog. */

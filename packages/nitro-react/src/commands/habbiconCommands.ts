@@ -27,7 +27,7 @@ import { BuyHabbiconCollectionComposer, BuyHabbiconComposer, ClaimHabbiconCompos
 import { AvatarLogic, GetAssetManager, HabbiconAssetManager } from '@nitrodevco/nitro-renderer';
 import type { Texture } from 'pixi.js';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { HabbiconEntryModel, HabbiconSetModel, habbiconsStore } from '#base/context/habbicons';
 import { getUnseenItemCount, inventoryStore, isUnseenItem, UnseenItemCategory } from '#base/context/inventory';
 import { configBoolean, systemStore } from '#base/context/system';
@@ -36,8 +36,6 @@ import { cutHabbiconFrame, dimHabbiconPreview, getOfferProduct, HABBICON_COLLECT
 
 import { resetPlacedOfferData } from './catalogPlacementCommands';
 import { removeInventoryUnseenItem, resetInventoryUnseenCategory, resetInventoryUnseenCategoryIfEmpty } from './inventoryUnseenCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `HabbiconController.habbiconsEnabled`. */
 export const habbiconsEnabled = (): boolean => configBoolean('habbicons.enabled');

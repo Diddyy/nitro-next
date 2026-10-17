@@ -13,14 +13,12 @@ import { RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import type { IWiredObjectInspectionData, IWiredVariable } from '@nitrodevco/nitro-packets';
 import { VariableExtraSourceTypes, WiredGetVariablesForObjectComposer, WiredSetObjectVariableValueComposer, WiredSetObjectVariableValueOperation } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
 import { getWiredHasWritePermission, WIRED_INSPECTION_STATE_AWAITING_VARIABLES, WIRED_INSPECTION_STATE_DISPLAYING, WIRED_INSPECTION_STATE_FETCHING, WIRED_INSPECTION_STATE_NOTHING, WIRED_MENU_ERROR_INSPECTION_FAILED, WIRED_MENU_TAB_INSPECTION, WiredInspectionPreview, WiredStore, wiredStore, WiredVariableValueRow } from '#base/context/wired';
 import { addToVariablePickerHistory, getIntFromString, sortVariables, WIRED_INT_MIN, WIRED_SOURCE_FURNI, WIRED_SOURCE_USER } from '#base/wired';
 
 import { getAllWiredVariables } from './wiredSynchronizerCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `WiredMenuInspectionTab.POLL_VARIABLES_MS`. */
 const POLL_VARIABLES_MS = 500;

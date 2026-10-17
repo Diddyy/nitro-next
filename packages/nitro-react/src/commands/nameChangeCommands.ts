@@ -7,10 +7,8 @@
  */
 import { ChangeUserNameInRoomComposer, CheckUserNameComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /** `ChangeUserNameResultMessageEvent.RESULT_OK`, which both results share. */
 const RESULT_OK = 0;

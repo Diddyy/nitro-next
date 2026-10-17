@@ -7,11 +7,9 @@
 import { FurnitureSpecialType } from '@nitrodevco/nitro-api';
 import { BreedPetsComposer, GetPetCommandsComposer, GetPetInfoComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /** `BreedPetsMessageComposer`'s states: ask the other plant's owner, call it off, accept. */
 export const BREED_ASK = 0;

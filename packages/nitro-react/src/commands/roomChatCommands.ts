@@ -49,7 +49,7 @@ import { AvatarExpressionEnum, ClubLevelEnum, RoomControllerLevelEnum, RoomObjec
 import { AvatarExpressionComposer, CancelTypingComposer, ChatComposer, PeerUsersClassificationComposer, RoomUsersClassificationComposer, ShoutComposer, SignComposer, StartTypingComposer, VisitUserComposer, WhisperComposer, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker, RoomShakingEffect } from '@nitrodevco/nitro-renderer';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { configBoolean, systemStore } from '#base/context/system';
 import { ClientGates, hasClientGate, PerkCodes, userStore } from '#base/context/user';
@@ -62,8 +62,6 @@ import { goToRoom } from './navigatorCommands';
 import { openFurniChooser, openUserChooser } from './roomChooserCommands';
 import { createRoomScreenshot, enableRoomFpsCounter, toggleDemonicTriggers, toggleRoomMouseHidden } from './roomDebugCommands';
 import { ambassadorAlert, dropCarryItem, ignoreUser, kickUser, muteUser, unignoreUser } from './roomUserCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `sendSpecialCommandMessage`: the command goes to the server as a chat message. */
 const sendSpecialCommand = (send: Send, text: string) => send(new ChatComposer({ text, styleId: 0 }));

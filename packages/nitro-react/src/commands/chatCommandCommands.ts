@@ -5,11 +5,9 @@
  */
 import { TurboCommandSuggestComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { userStore } from '#base/context/user';
 import { chatCommandSuggestKey } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 export const requestChatCommandSuggestions = (send: Send, command: string, parameter: number, prefix: string, syntax = '', argumentText = '') => {
     const requestId = userStore.getState().beginChatCommandSuggest(chatCommandSuggestKey(command, parameter, prefix, syntax, argumentText));

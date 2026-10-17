@@ -17,7 +17,7 @@
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { EventLogComposer, FollowFriendComposer, GetExtendedProfileComposer, GetHabboGroupDetailsComposer, GetMessengerHistoryComposer, IHistoricConsoleMessage, SendHabbiconComposer, SendMsgComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import {
     MESSENGER_ENTRY_INFO, MESSENGER_ENTRY_INVITATION, MESSENGER_ENTRY_NOTIFICATION, MESSENGER_ENTRY_OTHER, MESSENGER_ENTRY_OWN, MESSENGER_ERROR_MESSAGES,
     MESSENGER_HISTORY_REFETCH_MS, MESSENGER_NO_CONVERSATION, MessengerChatEntry, MessengerConversation, MessengerMessage, messengerStore,
@@ -27,8 +27,6 @@ import { userStore } from '#base/context/user';
 import { GetSoundManager, HabboSoundTypesEnum } from '#base/sound';
 
 import { noteHabbiconUsed } from './habbiconCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `MainView.scrollBack`: with fewer than this many entries rendered, older history is asked for. */
 const HISTORY_REQUEST_BELOW = 40;

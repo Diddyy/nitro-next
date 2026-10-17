@@ -10,15 +10,13 @@
 import type { IWiredUserPermanentVariablesList, IWiredUserVariablesPage, IWiredVariable } from '@nitrodevco/nitro-packets';
 import { WiredGetUserPermanentVariablesComposer, WiredGetVariableOwnersPageComposer, WiredSetObjectVariableValueOperation, WiredSetUserPermanentVariableComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom } from '#base/context/room';
 import { getWiredHasWritePermission, WIRED_VARIABLE_MANAGEMENT_PAGE_SIZE, WiredStore, wiredStore } from '#base/context/wired';
 import { addToVariablePickerHistory, getIntFromString, WIRED_INT_MIN } from '#base/wired';
 
 import { getAllWiredVariables, getCachedWiredVariableById } from './wiredSynchronizerCommands';
-
-type Send = WebSocketConnection['send'];
 
 const patch: WiredStore['patchWiredVariableManagement'] = changes => wiredStore.getState().patchWiredVariableManagement(changes);
 

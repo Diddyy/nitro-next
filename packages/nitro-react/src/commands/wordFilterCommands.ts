@@ -6,10 +6,8 @@
  */
 import { AddToCustomFilterComposer, GetCustomFilterComposer, RemoveFromCustomFilterComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { userStore } from '#base/context/user';
-
-type Send = WebSocketConnection['send'];
 
 /** `prepareWindow`: the list the window shows. */
 export const requestCustomFilter = (send: Send) => send(new GetCustomFilterComposer({}));

@@ -8,10 +8,8 @@
  */
 import { SetSoundSettingsComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { SOUND_VOLUME_SCALE, userStore } from '#base/context/user';
-
-type Send = WebSocketConnection['send'];
 
 /** `previewVolume`: applied here and nowhere else - the server is not told. */
 export const previewSoundVolumes = (uiVolume: number, furniVolume: number, traxVolume: number) =>

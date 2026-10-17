@@ -15,12 +15,10 @@
  */
 import { ClaimDailyTaskComposer, DAILY_TASK_STATUS_ACTIVE, DAILY_TASK_STATUS_CLAIMED, DAILY_TASK_STATUS_COMPLETED, GetDailyTasksComposer, IDailyTaskInfo } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { dailyTasksStore } from '#base/context/daily-tasks';
 import { notificationStore } from '#base/context/notifications';
 import { configBoolean, translate as t } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /** `REQUEST_TASKS_TIMEOUT_MS`. */
 const REQUEST_TASKS_TIMEOUT_MS = 10000;

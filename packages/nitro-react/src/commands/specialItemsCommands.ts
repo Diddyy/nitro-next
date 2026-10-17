@@ -13,12 +13,10 @@
  */
 import { ClaimProductComposer, HasClaimedProductComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { SPECIAL_ITEM_TYPE_FURNI, SPECIAL_ITEMS_CLAIM_STATE_BROWSING, SPECIAL_ITEMS_CLAIM_STATE_CLAIMABLE, SPECIAL_ITEMS_CLAIM_STATE_FETCHING, SPECIAL_ITEMS_CLAIM_STATE_NOT_APPLICABLE, SpecialItem, specialItemsStore } from '#base/context/special-items';
 import { systemStore } from '#base/context/system';
 import { configReader } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 /** `getProperty` over the current config - see `configReader`. */
 const hotelConfig = () => configReader(systemStore.getState().config);

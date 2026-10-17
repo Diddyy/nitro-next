@@ -26,7 +26,7 @@ import { EventLogComposer, GetBadgesComposer, GetClubGiftInfoComposer, GetClubOf
 import { StoreApi } from 'zustand';
 
 import { CatalogStore, CLUB_CENTER_DATA_UPDATE_INTERVAL, CLUB_OFFERS_SOURCE_CLUB_CENTER, ClubBuyOfferData } from '#base/context/catalog';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { systemStore, translate as t } from '#base/context/system';
 import { getPurseClubType, userStore } from '#base/context/user';
 import { clubBuyOfferAsPurchasableOffer, configReader } from '#base/utils';
@@ -37,7 +37,6 @@ import { resetPlacedOfferData } from './catalogPlacementCommands';
 import { purchaseWillBeGift } from './catalogPurchaseFlowCommands';
 import { openClientLink } from './clientLinkCommands';
 
-type Send = WebSocketConnection['send'];
 type CatalogStoreApi = StoreApi<CatalogStore>;
 
 /** `getProperty` / `getBoolean` over the current config - see `configReader`. */

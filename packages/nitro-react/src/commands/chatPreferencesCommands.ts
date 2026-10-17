@@ -6,10 +6,8 @@
 import { SetChatStylePreferenceComposer } from '@nitrodevco/nitro-packets';
 
 import { clampChatFontSizeMode } from '#base/chat';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { userStore } from '#base/context/user';
-
-type Send = WebSocketConnection['send'];
 
 /** `HabboFreeFlowChat.preferedChatStyle = styleId`: kept, then sent with the current `chatFontSizeMode`. */
 export const setPreferredChatStyle = (send: Send, preferredChatStyle: number) => {

@@ -15,7 +15,7 @@ import { RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitr
 import type { IWiredVariable } from '@nitrodevco/nitro-packets';
 import { ApplySnapshotComposer, GetGuildMembershipsComposer, ProgressTreasureHuntComposer, UpdateActionComposer, UpdateAddonComposer, UpdateConditionComposer, UpdateSelectorComposer, UpdateTriggerComposer, UpdateVariableComposer, WiredClickUserComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
@@ -28,8 +28,6 @@ import { getWiredElementByCode } from '#base/wired/WiredElementRegistry';
 import { openClientLink } from './clientLinkCommands';
 import { wiredMenuFurniSelected, wiredMenuUserSelected } from './wiredMenuInspectionCommands';
 import { getAllWiredVariables, removeWiredVariablesListener } from './wiredSynchronizerCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `time_display` of the copy / paste / save bubbles. */
 const NOTIFICATION_TIME_DISPLAY_MS = 2500;

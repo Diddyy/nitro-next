@@ -12,11 +12,9 @@
 import type { IWiredVariable, WiredAllVariablesDiffsMessageType } from '@nitrodevco/nitro-packets';
 import { WiredGetAllVariablesDiffsComposer, WiredGetAllVariablesHashComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { WIRED_VARIABLES_STATUS_AWAIT_DIFFS, WIRED_VARIABLES_STATUS_AWAIT_HASH, WIRED_VARIABLES_STATUS_IDLE, wiredStore, WiredVariablesListener } from '#base/context/wired';
 import { sortVariables } from '#base/wired';
-
-type Send = WebSocketConnection['send'];
 
 /** `REQUEST_OFFSET` - an answer younger than this is served from the cache without asking again. */
 const REQUEST_OFFSET_MS = 800;

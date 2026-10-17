@@ -18,13 +18,11 @@
 import { GetConfigValue } from '@nitrodevco/nitro-api';
 import { AppealCfhComposer, CallForHelpComposer, CallForHelpFromForumMessageComposer, CallForHelpFromForumThreadComposer, CallForHelpFromIMComposer, CallForHelpFromPhotoComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { HelpReportEntry, helpStore } from '#base/context/help';
 import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
-
-type Send = WebSocketConnection['send'];
 
 /** `HabboHelp.TOPICS_WITHOUT_IGNORE_AND_UNFRIEND`. */
 const TOPICS_WITHOUT_IGNORE_AND_UNFRIEND = [ 21 ];

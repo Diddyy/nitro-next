@@ -10,13 +10,11 @@
  *
  * The rest of Flash's chat commands are not ported; the chat input sends them as chat.
  */
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 
 import { openClientLink } from './clientLinkCommands';
 import { closeWiredSetup } from './wiredCommands';
 import { switchWiredPlayTestMode } from './wiredMenuCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** Runs `text` when it is a wired chat command; `true` when it was one. */
 export const runWiredChatCommand = (send: Send, text: string): boolean => {

@@ -10,10 +10,8 @@ import { GetRoomAdPurchaseInfoComposer, PurchaseFromCatalogComposer, PurchaseRoo
 import { StoreApi } from 'zustand';
 
 import { CATALOG_ROOM_AD_PURCHASE_DATA_DEFAULTS, CatalogRoomAdExtension, CatalogStore } from '#base/context/catalog';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /**
  * `getRoomAdsPurchaseInfo`: ask which rooms the user may advertise. The last answer is dropped

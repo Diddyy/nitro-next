@@ -7,14 +7,12 @@
  */
 import { AcceptFriendComposer, DeclineFriendComposer, EventLogComposer, FollowFriendComposer, FriendRequestQuestCompleteComposer, FriendRequestStateType, HabboSearchComposer, IFriendRequest, IMessengerFriend, MessengerFriendRelationType, RemoveFriendComposer, SendRoomInviteComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { configBoolean, systemStore } from '#base/context/system';
 import { FriendListHighlightedTabs, UserStore, userStore } from '#base/context/user';
 
 import { sendFriendRequest } from './roomUserCommands';
-
-type Send = WebSocketConnection['send'];
 
 /**
  * `FriendCategories.getFriendCount(false)`, less the group chats. Flash counts every entry of its

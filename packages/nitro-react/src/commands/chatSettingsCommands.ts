@@ -8,10 +8,8 @@
 import { RoomChatBubbleWidthType, RoomChatModeType, RoomChatScrollSpeedType } from '@nitrodevco/nitro-api';
 import { SetChatPreferencesComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { userStore } from '#base/context/user';
-
-type Send = WebSocketConnection['send'];
 
 /** `sanitizeChatMode` / `sanitizeChatBubbleWidth` / `sanitizeChatScrollSpeed`: an unknown value is the default. */
 const sanitize = <T extends number>(value: number, allowed: readonly T[], fallback: T): T =>

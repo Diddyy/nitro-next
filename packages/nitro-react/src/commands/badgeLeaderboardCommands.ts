@@ -18,12 +18,10 @@ import type { BadgeLeaderboardResultMessageType, IBadgeLeaderboardEntryData } fr
 import { GetBadgeLeaderboardComposer } from '@nitrodevco/nitro-packets';
 
 import { BadgeLeaderboardPageData, badgeLeaderboardStore } from '#base/context/badge-leaderboard';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { configBoolean, translate as t } from '#base/context/system';
 
 import { openProfile } from './roomUserCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `PAGE_SIZE`. */
 export const BADGE_LEADERBOARD_PAGE_SIZE = 10;

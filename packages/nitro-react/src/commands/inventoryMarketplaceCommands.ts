@@ -11,12 +11,10 @@
  */
 import { BuyMarketplaceTokensComposer, GetMarketplaceCanMakeOfferComposer, GetMarketplaceConfigurationComposer, GetMarketplaceItemStatsComposer, MakeOfferComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { INVENTORY_FURNI_CATEGORY_POSTER, InventoryFurniGroup, InventoryFurniItem, inventoryStore } from '#base/context/inventory';
 import { systemStore } from '#base/context/system';
 import { MARKETPLACE_FURNI_TYPE_FLOOR, MARKETPLACE_FURNI_TYPE_WALL, MARKETPLACE_MAKE_OFFER_RESULT_OK, MARKETPLACE_STATS_CATEGORY_FLOOR, MARKETPLACE_STATS_CATEGORY_UNIQUE, MARKETPLACE_STATS_CATEGORY_WALL, MarketplaceItemStats } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 /** `MarketplaceModel.DEFAULT_BULK_OFFER_LIMIT`. */
 const DEFAULT_BULK_OFFER_LIMIT = 500;

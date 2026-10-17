@@ -6,13 +6,11 @@
  */
 import { CommunityGoalVoteComposer, ForwardToARandomPromotedRoomComposer, ForwardToASubmittableRoomComposer, ForwardToRandomCompetitionRoomComposer, IsUserPartOfCompetitionMessageType, PromoArticleData, RequestABadgeComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { hotelViewProperty, PROMO_ARTICLE_LINK_CLIENT, PROMO_ARTICLE_LINK_WEB, systemStore } from '#base/context/system';
 
 import { openClientLink } from './clientLinkCommands';
 import { goToPrivateRoom } from './navigatorCommands';
-
-type Send = WebSocketConnection['send'];
 
 /**
  * `PromoArticleWidget.followLink`: a web link opens its page (`HabboWebTools.openWebPage`, in the

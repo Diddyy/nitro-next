@@ -23,4 +23,7 @@ type WebSocketStore = {
  */
 export type WebSocketConnection = Pick<WebSocketStore, 'send' | 'subscribe'>;
 
+/** The connection's `send`, the first argument of every command. */
+export type Send = WebSocketConnection['send'];
+
 export const WebSocketContext = createContext<WebSocketStore | undefined>(undefined);

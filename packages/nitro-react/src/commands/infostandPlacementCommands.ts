@@ -13,12 +13,10 @@
 import { RoomEngineObjectPlacedEvent, RoomObjectCategoryEnum, RoomObjectPlacementSource } from '@nitrodevco/nitro-api';
 import { BuildersClubPlaceRoomItemComposer, BuildersClubPlaceWallItemComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { InfostandPlaceMoreFurni, roomStore } from '#base/context/room';
 
 import { initializeRoomObjectInsert } from './catalogPlacementCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `requestItemToMover`: the furni's ghost, as the infostand's, by its builders club offer. */
 export const requestInfostandItemToMover = (furni: InfostandPlaceMoreFurni) => {

@@ -21,12 +21,10 @@ import { AvatarEffectActivatedComposer, AvatarEffectSelectedComposer, GetHotLook
 import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
 
 import { avatarEditorStore } from '#base/context/avatar-editor';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { configBoolean, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { firstSelectableColorId, getAvatarEditorPartSets } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 /** `HotLooksModel.MAXIMUM_HOT_LOOKS`. */
 const HOT_LOOKS_AMOUNT = 20;

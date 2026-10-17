@@ -33,14 +33,13 @@ import { StoreApi } from 'zustand';
 
 import { CATALOG_SEARCH_PAGE_ID, CatalogStore, CatalogWidgetEventEnum, getCatalogWindowName } from '#base/context/catalog';
 import { CatalogPlacedObjectPurchaseData, catalogPurchaseStore, ICatalogDragAndDropReceiver } from '#base/context/catalog-purchase';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { getRoom, getRoomPatterns, roomStore } from '#base/context/room';
 import { configBoolean, systemStore } from '#base/context/system';
 import { createRecolorableStuffData, getOfferProduct, RECOLORABLE_FURNITURE_LAYOUT, setObjectAlphaMultiplier } from '#base/utils';
 
 import { BUILDER_FURNI_PLACEABLE_STATUS_OKAY, getBuilderFurniPlaceableStatusForOffer } from './catalogBuildersClubCommands';
 
-type Send = WebSocketConnection['send'];
 type CatalogStoreApi = StoreApi<CatalogStore>;
 
 /** The furni classes that change a room plane instead of being an object in it. */

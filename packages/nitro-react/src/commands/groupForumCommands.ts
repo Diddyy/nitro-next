@@ -20,13 +20,11 @@
 import type { IExtendedForumData, IForumData, IPostMessage, IThreadData } from '@nitrodevco/nitro-packets';
 import { GetForumsListComposer, GetForumStatsComposer, GetMessagesComposer, GetThreadComposer, GetThreadsComposer, GetUnreadForumsCountComposer, IForumReadMarker, ModerateMessageComposer, ModerateThreadComposer, PostMessageComposer, UpdateForumReadMarkerComposer, UpdateForumSettingsComposer, UpdateThreadComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { GroupForumSession, GroupForumsList, GroupForumView, groupStore } from '#base/context/groups';
 import { translate as t } from '#base/context/system';
 
 import { showNotification } from './notificationCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `pageSize` / `ThreadsListData.PAGE_SIZE`. */
 export const GROUP_FORUM_PAGE_SIZE = 20;

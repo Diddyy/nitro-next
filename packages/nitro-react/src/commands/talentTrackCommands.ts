@@ -6,12 +6,10 @@
  */
 import { GetTalentTrackComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
 import { PerkCodes, userStore } from '#base/context/user';
 import { configReader } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 /** `SessionDataManager.currentTalentTrack`: citizenship until it is passed (when that track is on), then helper. */
 export const currentTalentTrack = () => {

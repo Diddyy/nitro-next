@@ -12,11 +12,9 @@ import { GetRenderer, SpriteDataCollector } from '@nitrodevco/nitro-renderer';
 import { Rectangle } from 'pixi.js';
 
 import { CameraPhoto, cameraStore, PhotoPurchase, PhotoPurchaseState } from '#base/context/camera';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /** `getRoomCanvasScale() < 1 || getRoomCanvasIsFlipped()`. */
 export const isRoomUnfit = () => {

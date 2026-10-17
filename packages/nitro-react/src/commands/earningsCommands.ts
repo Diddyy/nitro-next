@@ -16,12 +16,10 @@
  */
 import { IncomeRewardClaimComposer, IncomeRewardStatusComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { earningsDucketValueForCategory, earningsStore } from '#base/context/earnings';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
-
-type Send = WebSocketConnection['send'];
 
 /** `getInteger("duckets.soft_limit", 2147483647)`'s default. */
 const DUCKETS_SOFT_LIMIT_DEFAULT = 2147483647;

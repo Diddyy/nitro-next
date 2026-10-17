@@ -242,7 +242,8 @@ id follow the room engine's session. Found on the way: the navigator never ran `
 - **Chat definitions for Nitro Studio.** `chat/ChatStyleDefinitions.ts`, `chat/ChatConstants.ts` and
   the bubble layout depend only on nitro-api and are copied into Nitro Studio; moving them down a
   package retires those copies. M.
-- **`type Send`** is redeclared in 67 files; export it once from `context/communication`. S.
+- **`type Send`** is redeclared in 67 files; export it once from `context/communication`. S. **Done:**
+  `Send` (`context/communication/WebSocketContext.ts`), in all 78 files that spelled it out.
 
 ## Decisions to make
 

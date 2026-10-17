@@ -7,10 +7,8 @@ import { GetGuildCreationInfoComposer, GetGuildMembershipsComposer } from '@nitr
 import { StoreApi } from 'zustand';
 
 import { CatalogGuildSelector, CatalogStore } from '#base/context/catalog';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /** `registerGuildSelectorWidget`: the widget the memberships go to, and the request for them. */
 export const registerGuildSelectorWidget = (send: Send, store: StoreApi<CatalogStore>, widget: CatalogGuildSelector) => {

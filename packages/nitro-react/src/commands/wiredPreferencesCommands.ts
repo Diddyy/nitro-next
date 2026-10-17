@@ -5,14 +5,12 @@
  */
 import { WiredSetPreferencesComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { configBoolean } from '#base/context/system';
 import { wiredStore } from '#base/context/wired';
 import { WIRED_STYLE_DEFAULT, WIRED_STYLES, WiredStyleName } from '#base/wired';
 
 import { closeWiredSetup } from './wiredCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `WiredMenuController.sendPreferences`. */
 export const sendWiredPreferences = (send: Send) => {

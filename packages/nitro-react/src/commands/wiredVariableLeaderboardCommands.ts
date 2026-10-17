@@ -5,11 +5,9 @@
  */
 import { IVariableLeaderboardContext, VariableLeaderboardReplaceSubscriptionComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { desiredLeaderboardChunks, leaderboardPageCount, VariableLeaderboardOverlay, wiredStore } from '#base/context/wired';
 import { sameLeaderboardConfig, sameLeaderboardLocation, VariableLeaderboardConfig, VariableLeaderboardLocation } from '#base/wired';
-
-type Send = WebSocketConnection['send'];
 
 /** `VariableLeaderboardOverlayState.resetQueryScope`. */
 export const resetLeaderboardQueryScope = (overlay: VariableLeaderboardOverlay, selectedVariableId: string | null): VariableLeaderboardOverlay => ({ ...overlay, selectedVariableId, page: 0, direction: 0, totalCount: null, chunks: {}, subscribedChunks: [], subscribedVariableId: null });

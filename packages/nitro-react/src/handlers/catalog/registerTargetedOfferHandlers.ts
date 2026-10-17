@@ -25,7 +25,7 @@
 import { GetNextTargetedOfferComposer, TargetedOfferEventMessage, TargetedOfferNotFoundEventMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
 import { maximizeTargetedOffer, minimizeTargetedOffer, onHabboMallOffer } from '#base/commands';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send, WebSocketConnection } from '#base/context/communication';
 import { createHabboMallOffer, createTargetedOffer, TARGETED_OFFER_STATE_MINIMIZED } from '#base/context/targeted-offers';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -35,7 +35,7 @@ const MALL_OFFER_RESULT_CALLBACK = 'targetedWebOfferCheckResponse';
 const MALL_OFFER_FAILED_CALLBACK = 'targetedWebOfferCheckFailed';
 
 /** `MallOfferExternalInterfaceHelper`'s constructor: the callbacks, then `TargetedWebOffer.checkOffer`. */
-const startMallOfferHelper = (send: WebSocketConnection['send']) => {
+const startMallOfferHelper = (send: Send) => {
     // `onShopOfferResult`.
     Reflect.set(globalThis, MALL_OFFER_RESULT_CALLBACK, (data: unknown) => {
         if ((data === null) || (data === undefined)) return;

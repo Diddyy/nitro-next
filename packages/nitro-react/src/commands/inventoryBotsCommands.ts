@@ -12,14 +12,12 @@
 import { RoomObjectCategoryEnum, RoomObjectPlacementSource, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { GetBotInventoryComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 import { roomStore } from '#base/context/room';
 
 import { initializeRoomObjectInsert } from './catalogPlacementCommands';
 import { hideInventoryForPlacement } from './inventoryCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `BotsModel.requestInventory`. */
 export const requestBotInventory = (send: Send) => send(new GetBotInventoryComposer({}));

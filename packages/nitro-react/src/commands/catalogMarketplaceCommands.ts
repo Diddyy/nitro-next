@@ -15,12 +15,11 @@ import { BuyMarketplaceOfferComposer, CancelAllMarketplaceOffersComposer, Cancel
 import { StoreApi } from 'zustand';
 
 import { CatalogStore } from '#base/context/catalog';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { isMarketplaceOwnCategoryClearable, isMarketplacePosterItem, MARKETPLACE_OWN_CATEGORY_OPEN, MARKETPLACE_PURCHASE_CONFIRM_TYPE_NORMAL, MarketplaceOfferData, resolveMarketplaceStatsCategory } from '#base/utils';
 
-type Send = WebSocketConnection['send'];
 type CatalogStoreApi = StoreApi<CatalogStore>;
 
 /**

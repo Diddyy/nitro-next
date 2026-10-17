@@ -6,12 +6,10 @@
  */
 import { ClaimProductComposer, HasClaimedProductComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { cursedDragonAdoptionStore } from '#base/context/cursed-dragon-adoption';
 import { systemStore } from '#base/context/system';
 import { configReader } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 /** `initComponent`: `getProperty("cursed_dragon_adoption.claim_id")`, else `cursed_dragon_adoption`. */
 const claimId = () => configReader(systemStore.getState().config).configString('cursed_dragon_adoption.claim_id') || 'cursed_dragon_adoption';

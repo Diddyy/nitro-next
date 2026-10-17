@@ -16,7 +16,7 @@ import {
     GetNftTradeInventoryComposer, RemoveItemFromTradeComposer, RemoveNftFromTradeComposer, SilverFeeComposer, UnacceptTradingComposer,
 } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import {
     canAddToTrading, getInventoryFurniItemsForTrade, INVENTORY_FURNI_CATEGORY_GUILD_FURNI, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADE_MAX_ITEMS, INVENTORY_TRADING_COUNTDOWN_SECONDS, INVENTORY_TRADING_STATE_CANCELLED,
     INVENTORY_TRADING_STATE_COMPLETED, INVENTORY_TRADING_STATE_CONFIRMED, INVENTORY_TRADING_STATE_CONFIRMING,
@@ -26,8 +26,6 @@ import { notificationStore } from '#base/context/notifications';
 import { systemStore } from '#base/context/system';
 
 import { updateInventoryFurniLocks } from './inventoryCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `TradingModel.getGuildFurniType`-shaped key: what `canAddItemToTrade` compares an offer against. */
 const getTradeStackKey = (item: Pick<InventoryFurniItem, 'isWallItem' | 'typeId' | 'category' | 'stuffData'>): string => {

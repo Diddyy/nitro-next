@@ -11,14 +11,12 @@
 import { RoomChatTypeEnum } from '@nitrodevco/nitro-api';
 import { LatencyPingReportComposer, LatencyPingRequestComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { LatencyTracker } from '#base/utils';
 
 import { GENERIC_CHAT_STYLE, insertRoomChat } from './freeFlowChatCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `getTimer()`: whole milliseconds since the client started. */
 const getTimer = () => Math.trunc(performance.now());

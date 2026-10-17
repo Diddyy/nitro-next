@@ -25,14 +25,12 @@
  */
 import { ResetUnseenItemsComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { inventoryStore, isUnseenItem, UnseenItemCategory } from '#base/context/inventory';
 import { systemStore } from '#base/context/system';
 
 /** `InventoryView`'s frame id: the window `isMainViewActive` asks about. */
 const INVENTORY_FRAME_ID = 'inventory';
-
-type Send = WebSocketConnection['send'];
 
 /** The inventory's pages (`InventoryMainView`'s tab names) whose unseen items a switch away resets. */
 export type InventoryUnseenPage = 'furni' | 'rentables' | 'pets' | 'badges' | 'collectibles' | 'bots';

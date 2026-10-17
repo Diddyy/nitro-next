@@ -10,9 +10,7 @@
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { ChangeUserNameComposer, CheckUserNameComposer, SelectInitialRoomComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
-
-type Send = WebSocketConnection['send'];
+import { Send } from '#base/context/communication';
 
 /** `checkName`: an empty name is not asked about. */
 export const checkOnboardingName = (send: Send, name: string): boolean => {

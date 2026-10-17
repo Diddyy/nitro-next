@@ -20,12 +20,10 @@ import type { RewardTrackClaimResultMessageType, RewardTrackPremiumPurchaseResul
 import { ClaimRewardTrackPrizeComposer, PurchaseRewardTrackPremiumComposer } from '@nitrodevco/nitro-packets';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { rewardTrackStore, RewardTrackTask } from '#base/context/reward-track';
 import { systemStore, translate as t } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /** The window manager's bitmaps, as the layouts' `asset_uri`s name them. */
 export const rewardTrackAsset = (name: string) => `habbo-window-manager-com-${name}`;

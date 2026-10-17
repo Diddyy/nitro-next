@@ -13,10 +13,8 @@
  */
 import { GetSnowWarGameTokensOfferComposer, PurchaseSnowWarGameTokensOfferComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { gameTokensStore } from '#base/context/game-tokens';
-
-type Send = WebSocketConnection['send'];
 
 /**
  * `buySnowWarTokensOffer(localizationId)`: a known offer goes to the purchase confirmation; an

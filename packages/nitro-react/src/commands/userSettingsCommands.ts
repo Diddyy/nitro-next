@@ -5,10 +5,8 @@
  */
 import { ResetPhoneNumberStateComposer, SetIgnoreRoomInvitesComposer, SetOnlineIndicatorPreferenceComposer, SetRoomCameraPreferencesComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { userStore } from '#base/context/user';
-
-type Send = WebSocketConnection['send'];
 
 /** `ignore_room_invites_checkbox`: `messenger.setRoomInvitesIgnored` + `SetIgnoreRoomInvitesMessageComposer`. */
 export const setRoomInvitesIgnored = (send: Send, roomInvitesIgnored: boolean) => {

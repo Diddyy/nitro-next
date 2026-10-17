@@ -11,12 +11,10 @@ import {
     AmbassadorAlertComposer, AssignRightsComposer, AvatarExpressionComposer, BanUserWithDurationComposer, ChangeMottoComposer, ChangePostureComposer, CommandBotComposer, DanceComposer, DropCarryItemComposer, GetExtendedProfileComposer, GetRelationshipStatusInfoComposer, GetSelectedBadgesComposer, IgnoreUserComposer, KickUserComposer, MuteUserComposer, OpenTradingComposer, PassCarryItemComposer, RemoveBotFromFlatComposer, RemoveRightsComposer, ReplenishRespectComposer, RequestFriendComposer, RespectUserComposer, SetRelationshipStatusComposer, SignComposer, UnignoreUserComposer, UnmuteUserComposer,
 } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
-
-type Send = WebSocketConnection['send'];
 
 /** `RoomWidgetUserActionMessage` ban types, sent to the server as they are. */
 export type RoomBanType = 'RWUAM_BAN_USER_HOUR' | 'RWUAM_BAN_USER_DAY' | 'RWUAM_BAN_USER_PERM';

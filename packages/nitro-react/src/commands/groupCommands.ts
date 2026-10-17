@@ -22,7 +22,7 @@ import {
     UnblockGroupMemberComposer, UpdateGuildBadgeComposer, UpdateGuildColorsComposer, UpdateGuildIdentityComposer, UpdateGuildSettingsComposer,
 } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import {
     badgeSettingsFromLayers, GROUP_MANAGEMENT_VIEW_BADGE, GROUP_MANAGEMENT_VIEW_COLORS, GROUP_MANAGEMENT_VIEW_IDENTITY, GROUP_MANAGEMENT_VIEW_SETTINGS,
     GROUP_MAX_DESCRIPTION_LENGTH, GROUP_MAX_NAME_LENGTH, GROUP_MEMBER_REQUEST_PAGE_RATELIMIT, groupStore, limitGroupManagementStep,
@@ -35,8 +35,6 @@ import { ClientGates, hasClientGate, userStore } from '#base/context/user';
 import { openClubCenter } from './catalogClubCommands';
 import { openClientLink } from './clientLinkCommands';
 import { goToRoom, performNavigatorSearch } from './navigatorCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `GROUPS_TRACKING_CATEGORY` - every group action logs against the same category. */
 const GROUPS_TRACKING_CATEGORY = 'HabboGroups';

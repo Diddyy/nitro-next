@@ -14,13 +14,11 @@
 import type { IRaidProtectionSettings } from '@nitrodevco/nitro-packets';
 import { GetRaidProtectionSettingsComposer, SaveRaidProtectionSettingsComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
 import { RaidProtectionDraft, raidProtectionStore } from '#base/context/raid-protection';
 import { getRoom } from '#base/context/room';
 import { configBoolean, systemStore } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /** `SENSITIVITY_VALUES`: low, medium, high. */
 export const RAID_PROTECTION_SENSITIVITY_VALUES = [ 0, 1, 2 ];

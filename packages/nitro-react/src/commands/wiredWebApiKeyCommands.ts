@@ -6,10 +6,10 @@
  */
 import { WiredGenerateWebApiKeyComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { wiredStore } from '#base/context/wired';
 
-export const generateWiredWebApiKey = (send: WebSocketConnection['send'], isReadKey: boolean) => {
+export const generateWiredWebApiKey = (send: Send, isReadKey: boolean) => {
     const { setup } = wiredStore.getState();
 
     if (!setup) return;

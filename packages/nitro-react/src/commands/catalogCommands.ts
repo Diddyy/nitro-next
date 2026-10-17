@@ -10,7 +10,7 @@ import { StoreApi } from 'zustand';
 
 import { CATALOG_SEARCH_PAGE_ID, CatalogPage, CatalogStore, PetImageRequest } from '#base/context/catalog';
 import { catalogPurchaseStore } from '#base/context/catalog-purchase';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { GameTokensOffer } from '#base/context/game-tokens';
 import { configBoolean } from '#base/context/system';
 import { userStore } from '#base/context/user';
@@ -21,7 +21,6 @@ import { onCatalogWindowToggled, syncPlacedOfferWithPurchase } from './catalogPl
 import { disposePurchaseDialog } from './catalogPurchaseFlowCommands';
 import { isHabbiconOfferOwned, showHabbiconAlreadyOwnedAlert } from './habbiconCommands';
 
-type Send = WebSocketConnection['send'];
 type CatalogStoreApi = StoreApi<CatalogStore>;
 
 /** `CatalogNavigator.getNodesByOfferId`: the nodes that list an offer, only the visible ones when asked. */

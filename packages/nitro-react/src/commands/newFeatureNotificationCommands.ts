@@ -10,15 +10,13 @@
  */
 import { GetSecondsUntilComposer, HasClaimedProductComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { singularNotificationStore } from '#base/context/singular-notifications';
 import { systemStore } from '#base/context/system';
 import { configReader } from '#base/utils';
 
 import { openClientLink } from './clientLinkCommands';
 import { hasRewardTrack, isRewardTrackComplete } from './rewardTrackCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `setTimeout(maybeShowNewFeatureNotificationByKey, 2000, key, attempt + 1)` while `attempt < 3`. */
 const RETRY_DELAY_MS = 2000;

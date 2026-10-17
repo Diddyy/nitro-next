@@ -13,7 +13,7 @@ import { RoomObjectCategoryEnum, RoomObjectUserType } from '@nitrodevco/nitro-ap
 import type { IVariableInfoAndHolders, IWiredVariable } from '@nitrodevco/nitro-packets';
 import { isWiredVariablePersisted, VariableType, WiredDeleteAllVariableHoldersComposer, WiredGetAllVariableHoldersComposer, WiredGetVariableOwnersPageComposer, WiredVariableTarget } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
@@ -21,8 +21,6 @@ import { getWiredHasWritePermission, WIRED_MENU_TAB_OVERVIEW, WIRED_VARIABLE_MAN
 import { variableValueWithString } from '#base/wired';
 
 import { getAllWiredVariables } from './wiredSynchronizerCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `WiredMenuOverviewTab.POLL_MS`. */
 const POLL_MS = 500;

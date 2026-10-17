@@ -4,13 +4,11 @@
  */
 import { AcceptQuestComposer, ActivateQuestComposer, GetQuestsComposer, IQuestMessageData, OpenQuestTrackerComposer, RejectQuestComposer, StartCampaignComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { questsStore } from '#base/context/quests';
 import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { configReader } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 /** `HabboQuestEngine.requestQuests`. */
 export const requestQuests = (send: Send) => send(new GetQuestsComposer({}));

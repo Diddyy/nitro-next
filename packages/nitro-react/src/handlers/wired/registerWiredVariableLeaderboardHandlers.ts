@@ -6,7 +6,7 @@
 import { CloseConnectionMessage, IVariableLeaderboardDescriptor, RoomEntryInfoMessage, VariableLeaderboardChunkUpdateMessage, VariableLeaderboardReplaceSubscriptionComposer, VariableLeaderboardSnapshotMessage } from '@nitrodevco/nitro-packets';
 
 import { reconcileLeaderboardSubscription, resetLeaderboardQueryScope } from '#base/commands';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send, WebSocketConnection } from '#base/context/communication';
 import { leaderboardPageCount, leaderboardPageSize, VARIABLE_LEADERBOARD_MAX_OVERLAYS, wiredStore } from '#base/context/wired';
 import { VARIABLE_LEADERBOARD_COLUMN_USERNAME, VARIABLE_LEADERBOARD_MAX_COLUMNS, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID } from '#base/wired';
 
@@ -42,7 +42,7 @@ const resolveSelection = (descriptor: IVariableLeaderboardDescriptor, selected: 
  * by their descriptor's. A size that changed starts the leaderboard over at its first page
  * (`VariableLeaderboardPagingState.entriesPerPage`) and subscribes to the chunks that page needs.
  */
-const syncEntriesPerPage = (send: WebSocketConnection['send']) => {
+const syncEntriesPerPage = (send: Send) => {
     const { leaderboards, leaderboardLocationEdit, leaderboardLocationEditId, setLeaderboardSnapshot } = wiredStore.getState();
     let changed = false;
 

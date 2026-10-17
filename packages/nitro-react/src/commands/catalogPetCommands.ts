@@ -8,9 +8,7 @@ import { ApproveNameComposer, GetSellablePetPalettesComposer } from '@nitrodevco
 import { StoreApi } from 'zustand';
 
 import { CatalogSellablePetPalette, CatalogStore } from '#base/context/catalog';
-import { WebSocketConnection } from '#base/context/communication';
-
-type Send = WebSocketConnection['send'];
+import { Send } from '#base/context/communication';
 
 /** `approveName(name, type)`'s type for a pet's name - the only one the catalogue sends. */
 export const APPROVE_NAME_TYPE_PET = 1;

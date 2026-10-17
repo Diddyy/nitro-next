@@ -6,9 +6,7 @@
  */
 import { ActivateQuestComposer, CancelQuestComposer, ForwardToACompetitionRoomComposer, GetConcurrentUsersGoalProgressComposer, GetConcurrentUsersRewardComposer, GetDailyQuestComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
-
-type Send = WebSocketConnection['send'];
+import { Send } from '#base/context/communication';
 
 /** `sendGetDailyQuest`: the `index`th daily quest of a difficulty. */
 export const requestDailyQuest = (send: Send, easy: boolean, index: number) => send(new GetDailyQuestComposer({ easy, index }));

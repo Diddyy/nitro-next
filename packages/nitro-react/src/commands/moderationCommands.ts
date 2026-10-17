@@ -11,10 +11,8 @@ import {
     ModToolPreferencesComposer, ModToolSanctionComposer, ModTradingLockComposer, PickIssuesComposer, ReleaseIssuesComposer,
 } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { MOD_CHATLOG_ROOM, ModerationIssueSends, moderationIssueStore } from '#base/context/moderation';
-
-type Send = WebSocketConnection['send'];
 
 /** Not taken from an issue (`getIssueId` with no issue): the composers then leave the issue id out. */
 const NO_ISSUE = -1;

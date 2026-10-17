@@ -9,10 +9,8 @@
  */
 import { GetBadgesComposer, SetActivatedBadgesComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
-
-type Send = WebSocketConnection['send'];
 
 /** `getAllMyBadgeIds`' request: `BadgesModel.requestInitialization` once, while the model is empty. */
 export const requestInventoryBadgesIfEmpty = (send: Send) => {

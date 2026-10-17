@@ -11,7 +11,7 @@
 import { RoomEngineObjectPlacedEvent, RoomObjectCategoryEnum, RoomObjectPlacementSource, RoomObjectWidgetRequestEvent } from '@nitrodevco/nitro-api';
 import { RequestFurniInventoryComposer, RequestFurniInventoryWhenNotInRoomComposer, RequestRoomPropertySetComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { findNextInventoryFurniToPlace, getInventoryFurniItemsForTrade, getInventoryFurniSelectedItem, getInventoryFurniTotalCount, getInventoryFurniUnlockedCount, getInventoryWallItemById, INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADE_MAX_ITEMS, InventoryFurniItem, inventoryStore, isRoomLayoutCategory } from '#base/context/inventory';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
@@ -21,8 +21,6 @@ import { getFurnitureData } from '#base/utils';
 import { cancelRoomObjectInsert, initializeRoomObjectInsert } from './catalogPlacementCommands';
 import { offerSelectedFurniToUserTrade } from './inventoryTradingCommands';
 import { requestAddItemsToWiredTrade } from './wiredTradingCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `FurniModel.requestInitialization`: the room-less variant outside a room (`roomEntered` / `roomLeft`). */
 export const requestFurniInventory = (send: Send) => send(getRoom() ? new RequestFurniInventoryComposer({}) : new RequestFurniInventoryWhenNotInRoomComposer({}));

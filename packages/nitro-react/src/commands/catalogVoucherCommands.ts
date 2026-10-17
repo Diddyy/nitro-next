@@ -4,6 +4,6 @@
  */
 import { RedeemVoucherComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 
-export const redeemVoucher = (send: WebSocketConnection['send'], voucher: string) => send(new RedeemVoucherComposer({ code: voucher }));
+export const redeemVoucher = (send: Send, voucher: string) => send(new RedeemVoucherComposer({ code: voucher }));

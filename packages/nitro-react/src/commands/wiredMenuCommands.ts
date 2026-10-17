@@ -18,7 +18,7 @@
 import type { IWiredErrorLogsError, IWiredTransactionLogList } from '@nitrodevco/nitro-packets';
 import { LockAllChestsComposer, ProgressTreasureHuntComposer, WiredClearErrorLogsComposer, WiredGetErrorLogsComposer, WiredGetRoomSettingsComposer, WiredGetRoomStatsComposer, WiredSetRoomSettingsComposer, WiredTransactionGetRoomLogsComposer, WiredTransactionLogListType, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
@@ -28,8 +28,6 @@ import { clearWiredInspectionHighlights, inspectWiredFurni, inspectWiredUser, po
 import { jumpToWiredVariableByName, pollWiredOverview, startViewingWiredOverview, stopViewingWiredOverview } from './wiredMenuOverviewCommands';
 import { sendWiredPreferences, setWiredUiStyle } from './wiredPreferencesCommands';
 import { openWiredRoomLogs } from './wiredRoomLogsCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `WiredMenuMonitorTab.POLL_MONITOR_MS`. */
 const POLL_MONITOR_MS = 500;

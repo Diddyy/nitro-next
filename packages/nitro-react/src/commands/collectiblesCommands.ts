@@ -30,7 +30,7 @@ import {
     COLLECTION_PREVIEW_STATUS_REWARD, collectionHasBonusItem, collectionHasRewardItem, COLLECTIONS_SORT_PROGRESS, COLLECTIONS_SORT_SCORE, createCollectiblesCollection, getCollectibleRarityColor, getCollectionProgressPercentage, isCollectionBonusClaimed,
     isCollectionBonusSnapshotPassed, isCollectionRewardClaimed, NFT_COLLECTION_CLAIMING_AWAITING, NFT_COLLECTION_CLAIMING_NONE, wrapBaseItem, wrapCollectionItem, wrapMintableItem,
 } from '#base/context/collectibles';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { inventoryStore, isInventoryFurniGroupWallItem } from '#base/context/inventory';
 import { notificationStore } from '#base/context/notifications';
 import { systemStore, translate as t } from '#base/context/system';
@@ -39,8 +39,6 @@ import { configReader, getBadgeName, getFurnitureData, openWebPage } from '#base
 
 import { showNotEnoughActivityPointsAlert } from './catalogClubCommands';
 import { checkFurniInventoryInitialization } from './inventoryCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** The bubble every collectibles notification uses: `info`, with the curator stamp. */
 const COLLECTIBLES_NOTIFICATION_ICON = 'icon_curator_stamp_large_png';

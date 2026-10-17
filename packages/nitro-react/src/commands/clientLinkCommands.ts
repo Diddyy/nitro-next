@@ -6,7 +6,7 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { hintStore } from '#base/context/hints';
 import { systemStore, WindowParams } from '#base/context/system';
 import { PerkCodes, userStore } from '#base/context/user';
@@ -31,8 +31,6 @@ import { openRewardTrackLink } from './rewardTrackCommands';
 import { openRoomThumbnailCameraLink } from './roomThumbnailCameraCommands';
 import { openSpecialItemsDisplay } from './specialItemsCommands';
 import { openWiredRewardView, openWiredSelfDonation } from './wiredTradingCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `HabboNewNavigator.getSearchCodeForTabLink`. */
 const TAB_LINK_SEARCH_CODES: Record<string, string> = { me: 'myworld_view' };

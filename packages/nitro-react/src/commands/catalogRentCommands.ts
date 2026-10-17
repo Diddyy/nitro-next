@@ -13,12 +13,10 @@ import { FurnitureTypeEnum, IFurnitureData } from '@nitrodevco/nitro-api';
 import { ExtendRentOrBuyoutFurniComposer, ExtendRentOrBuyoutStripItemComposer, GetRentOrBuyoutOfferComposer } from '@nitrodevco/nitro-packets';
 
 import { catalogPurchaseStore, RENT_CONFIRMATION_MODE_INFOSTAND, RENT_CONFIRMATION_MODE_INVENTORY } from '#base/context/catalog-purchase';
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { userStore } from '#base/context/user';
 
 import { showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert } from './catalogClubCommands';
-
-type Send = WebSocketConnection['send'];
 
 /**
  * `openRentConfirmationWindow(furniData, isBuyout, objectId, stripId)` -> `show`: the open window

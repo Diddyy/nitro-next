@@ -18,7 +18,7 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
 import { EventLogComposer, ForwardToSomeRoomComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
 import { onboardingStore } from '#base/context/onboarding';
 import { systemStore } from '#base/context/system';
@@ -26,8 +26,6 @@ import { userStore } from '#base/context/user';
 import { configReader } from '#base/utils';
 
 import { goToHomeRoom } from './navigatorCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `getInteger("nux.noob.lobby.popup.delay", 70)`. */
 const DEFAULT_POPUP_DELAY_SECONDS = 70;

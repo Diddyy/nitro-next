@@ -15,7 +15,7 @@
  */
 import { GetRecyclerPrizesComposer, GetRecyclerStatusComposer, IPrizeLevelMessageData, RecycleItemsComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { INVENTORY_RECYCLER_STATE_ACTIVE, INVENTORY_RECYCLER_STATE_READY, inventoryStore, isInventoryFurniGroupWallItem, peekInventoryFurni } from '#base/context/inventory';
 import {
     RECYCLER_STATUS_OFF, RECYCLER_STATUS_READY, RECYCLER_STATUS_WAITING_FOR_SERVER, RECYCLER_SYSTEM_STATUS_CLOSED, RECYCLER_SYSTEM_STATUS_TIMEOUT, RecyclerPrizeLevel, RecyclerSlotItem, recyclerStore,
@@ -25,8 +25,6 @@ import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { wiredTradingStore } from '#base/context/wired-trading';
 import { getFurnitureDataForProductType } from '#base/utils';
-
-type Send = WebSocketConnection['send'];
 
 /** `FurniSlotItem`'s categories: a floor item and a wall item (`HabboInventory.recycleSelectedFurni`). */
 export const RECYCLER_SLOT_CATEGORY_FLOOR = 10;

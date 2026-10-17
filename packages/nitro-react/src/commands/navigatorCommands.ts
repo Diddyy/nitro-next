@@ -11,12 +11,10 @@ import {
     SetNewNavigatorWindowPreferencesComposer, UpdateHomeRoomComposer, UpdateRoomCategoryAndTradeSettingsComposer, UpdateRoomFilterComposer,
 } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { groupStore } from '#base/context/groups';
 import { navigatorStore } from '#base/context/navigator';
 import { systemStore } from '#base/context/system';
-
-type Send = WebSocketConnection['send'];
 
 /** The prefixes a tag and an owner search carry, as the navigator's own filter menu sends them. */
 const TAG_FILTER_PREFIX = 'tag:';

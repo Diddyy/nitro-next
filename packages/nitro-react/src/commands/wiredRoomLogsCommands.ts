@@ -8,10 +8,8 @@
 import type { IWiredLogPage } from '@nitrodevco/nitro-packets';
 import { WiredGetRoomLogsComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { WIRED_ROOM_LOGS_PAGE_SIZE, wiredStore } from '#base/context/wired';
-
-type Send = WebSocketConnection['send'];
 
 export interface WiredRoomLogsRequest {
     page: number;

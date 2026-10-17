@@ -11,15 +11,13 @@
 import { RoomObjectCategoryEnum, RoomObjectPlacementSource, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { GetPetInventoryComposer, PlacePetComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 import { roomStore } from '#base/context/room';
 import { getMonsterPlantPosture } from '#base/utils';
 
 import { initializeRoomObjectInsert } from './catalogPlacementCommands';
 import { hideInventoryForPlacement } from './inventoryCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** `PetsModel.requestPetInventory`. */
 export const requestPetInventory = (send: Send) => send(new GetPetInventoryComposer({}));

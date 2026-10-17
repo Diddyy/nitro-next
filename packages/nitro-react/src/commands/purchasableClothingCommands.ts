@@ -9,9 +9,7 @@
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { CustomizeAvatarWithFurniComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
-
-type Send = WebSocketConnection['send'];
+import { Send } from '#base/context/communication';
 
 /** `PENDING_PURCHASABLE_CLOTHING_TIMEOUT_MS`. */
 const PENDING_TIMEOUT_MS = 5000;

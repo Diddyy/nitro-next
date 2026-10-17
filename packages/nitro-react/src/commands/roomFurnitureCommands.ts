@@ -4,9 +4,7 @@
  */
 import { UseFurnitureComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
-
-type Send = WebSocketConnection['send'];
+import { Send } from '#base/context/communication';
 
 /** `UseFurnitureMessageComposer(objectId, param)`. */
 export const sendUseFurniture = (send: Send, objectId: number, param: number = 0) => send(new UseFurnitureComposer({ objectId, param }));

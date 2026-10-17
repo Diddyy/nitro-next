@@ -5,12 +5,10 @@
  */
 import { EventLogComposer, FindNewFriendsComposer, FollowFriendComposer, SetUIFlagsComposer } from '@nitrodevco/nitro-packets';
 
-import { WebSocketConnection } from '#base/context/communication';
+import { Send } from '#base/context/communication';
 import { UiFlagEnum, userStore } from '#base/context/user';
 
 import { openMessengerConversation } from './messengerCommands';
-
-type Send = WebSocketConnection['send'];
 
 /** The `EventLogMessageComposer` every friend bar action sends: category `Navigation`, type `Friend Bar`. */
 const logFriendBarAction = (send: Send, action: string) => send(new EventLogComposer({ event: 'Navigation', data: 'Friend Bar', action, extraString: '', extraInt: 0 }));
