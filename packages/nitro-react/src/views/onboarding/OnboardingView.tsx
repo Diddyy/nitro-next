@@ -26,7 +26,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { ONBOARDING_ACTION_NAME_CHANGE, ONBOARDING_ACTION_ROOM_SELECT, useOnboardingActions, useOnboardingStore } from '#base/context/onboarding';
 import { useTranslation } from '#base/context/system';
 import { useViewportSize } from '#base/hooks';
-import { Box, Gradient, Region, useTextureFromUrl } from '#base/theme';
+import { Box, Gradient, Region, toCssHexColor, useTextureFromUrl } from '#base/theme';
 
 import { onboardingAsset } from './onboardingAsset';
 import { OnboardingAvatarEditorView } from './OnboardingAvatarEditorView';
@@ -51,8 +51,6 @@ const MAIN_WIDTH = NAME_FIELD.x + 330;
 /** Tall enough for both steps' lowest buttons; a press only reaches what is inside it. */
 const ONBOARDING_MAIN_HEIGHT = 520;
 
-const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
-
 /** `Background`: the gradient, then the tiles over it. */
 const OnboardingBackground = ({ width, height }: { width: number; height: number }) => {
     const tiles = useTextureFromUrl(onboardingAsset('background_tiles'));
@@ -62,7 +60,7 @@ const OnboardingBackground = ({ width, height }: { width: number; height: number
     return (
         <>
             <Region
-                backgroundColor={hex(TOP_COLOR)}
+                backgroundColor={toCssHexColor(TOP_COLOR)}
                 layout={{ position: 'absolute', left: 0, top: 0, width, height: quarter }}
             />
             <Gradient
@@ -72,7 +70,7 @@ const OnboardingBackground = ({ width, height }: { width: number; height: number
                 layout={{ position: 'absolute', left: 0, top: quarter, width, height: half - quarter }}
             />
             <Region
-                backgroundColor={hex(BOTTOM_COLOR)}
+                backgroundColor={toCssHexColor(BOTTOM_COLOR)}
                 layout={{ position: 'absolute', left: 0, top: half, width, height: height - half }}
             />
             {tiles && (

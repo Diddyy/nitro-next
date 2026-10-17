@@ -16,6 +16,7 @@
 import { Box, BoxLayout, FlashTextFieldOverrides, LayoutImage, ThemeImage, ThemeText } from '@nitrodevco/nitro-theme';
 
 import { useTranslation } from '#base/context/system';
+import { twoDigits } from '#base/utils/twoDigits';
 
 const UNIT_NAMES = [ 'weeks', 'days', 'hours', 'minutes', 'seconds' ] as const;
 const UNIT_SECONDS = [ 604800, 86400, 3600, 60, 1 ] as const;
@@ -85,7 +86,7 @@ export const CountdownWidget = ({ seconds, digits = 3, colorableFormat, layout, 
                             layout={{ position: 'absolute', left: 0, top: 0 }}
                         />
                         <ThemeText
-                            text={`${(value < 10) ? '0' : ''}${value}`}
+                            text={twoDigits(value)}
                             textStyle="il_regular"
                             textOptions={{ fontSize: 13, fill: '#ffffff', align: 'center' }}
                             flashFormat={{ bold: true }}

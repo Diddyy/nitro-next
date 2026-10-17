@@ -7,7 +7,7 @@ import { CATALOG_NO_GUILD_SELECTED, CatalogGuildSelector, CatalogPage, CatalogWi
 import { useWebSocketContext } from '#base/context/communication';
 import { ClientGates, useClientGate, useOwnUserId } from '#base/context/user';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { Dropmenu, getOrBuildTexture, TemplateWindow, ThemeImage } from '#base/theme';
+import { Dropmenu, getOrBuildTexture, TemplateWindow, ThemeImage, toCssHexColor } from '#base/theme';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
 import { catalogTemplateId } from '../catalogTemplates';
@@ -21,7 +21,7 @@ const GUILD_COLORS_BMP_WIDTH = 21;
 const GUILD_COLORS_BMP_HEIGHT = 14;
 
 /** A group colour as the server sends it (`rrggbb`, `parseInt(color, 16)`), as a fill colour. */
-const groupColor = (color: string) => `#${(parseInt(color, 16) || 0).toString(16).padStart(6, '0')}`;
+const groupColor = (color: string) => toCssHexColor(parseInt(color, 16) || 0);
 
 /**
  * `createGuildColorsBitmap`: 21x14 in black, the primary colour filling the left half and the

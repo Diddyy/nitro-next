@@ -199,7 +199,10 @@ copies' timing agrees with Flash's. M-L.
 - **Small helpers already in nitro-theme.** Hex colour (`OnboardingView`, `OnboardingWidgets`,
   `FurnitureDimmerWidget`, `CatalogGuildSelectorWidgetView`), clamp (`VariableFxState`,
   `VariableFxPreviewStatus`), two digits (`CountdownWidget`, `InfostandPetView`); three furni-name
-  lookups with different fallbacks. S.
+  lookups with different fallbacks. S. **Done:** they use `toCssHexColor`, `clamp` (re-exported as
+  `utils/clamp`) and `twoDigits`. Left as they are: the dimmer's colour text is upper case, so not the
+  same helper; the furni-name lookups' fallbacks are their Flash classes' own (`FurniChooserWidgetHandler`
+  starts from the object's type, the infostand from nothing).
 - **Large files.** `RoomChatInputView` (completion, NUX reminder, flood countdown, placement hooks),
   `CatalogProductViewWidgetView` (avatar pose, preview population, zoom easing - whose effect also
   misses `zoomProgress` in its dependencies), `AvatarEditor` (NFT handling, save flow),

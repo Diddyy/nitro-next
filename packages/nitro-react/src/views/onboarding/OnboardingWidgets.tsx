@@ -17,14 +17,12 @@
 import { BLEND_MODES, Container as PixiContainer, Texture } from 'pixi.js';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
-import { Box, BoxLayout, getTextureSilhouette, ThemeImage, ThemeText, useLayoutSize, useTextureFromUrl } from '#base/theme';
+import { Box, BoxLayout, getTextureSilhouette, ThemeImage, ThemeText, toCssHexColor, useLayoutSize, useTextureFromUrl } from '#base/theme';
 
 import { onboardingAsset } from './onboardingAsset';
 
 /** `LoaderUI.HITCH_TEXT_BODY_COLOUR`. */
 export const HITCH_TEXT_BODY_COLOUR = '#7ecaee';
-
-const colorString = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 interface OnboardingTextProps {
     text: string;
@@ -297,7 +295,7 @@ interface OnboardingColorButtonProps {
 /** `ColorButton` (44x46): the round chip filled with the colour, its frame drawn over it. */
 export const OnboardingColorButton = ({ rgb, selected, onPress, layout }: OnboardingColorButtonProps) => {
     const inside = useTextureFromUrl(onboardingAsset('color_round_chip_in'));
-    const chip: Texture | undefined = inside && getTextureSilhouette(inside, colorString(rgb));
+    const chip: Texture | undefined = inside && getTextureSilhouette(inside, toCssHexColor(rgb));
     const skin = (frame: string) => (
         <>
             {chip && (
@@ -395,7 +393,7 @@ export const OnboardingBalloon = ({ width, height, color, point = 'none', pointX
         {(point === 'down') && (
             <ThemeImage
                 src={onboardingAsset('block_dark_point_down')}
-                tint={colorString(color)}
+                tint={toCssHexColor(color)}
                 layout={{ position: 'absolute', left: pointX, top: height }}
             />
         )}

@@ -4,7 +4,7 @@ import { PetInfoMessageType } from '@nitrodevco/nitro-packets';
 import { useConfigBoolean, useTranslation } from '#base/context/system';
 import { useChatPetFace } from '#base/hooks';
 import { Box, CountdownWidget, LayoutImage, Region, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage } from '#base/theme';
-import { petTypeFromFigure } from '#base/utils';
+import { petTypeFromFigure, twoDigits } from '#base/utils';
 
 import { arrangeInfostandButtons } from './infostandButtons';
 
@@ -123,7 +123,7 @@ const formatSeconds = (value: number) => {
     const minutes = Math.floor((total - (hours * 3600)) / 60);
     const seconds = total - (hours * 3600) - (minutes * 60);
 
-    return `${hours}:${(minutes < 10) ? '0' : ''}${minutes}:${(seconds < 10) ? '0' : ''}${seconds}`;
+    return `${hours}:${twoDigits(minutes)}:${twoDigits(seconds)}`;
 };
 
 /**

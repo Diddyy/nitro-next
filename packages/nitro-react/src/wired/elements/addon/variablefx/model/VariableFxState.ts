@@ -11,6 +11,8 @@
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 import { VariableFxConfigData } from '@nitrodevco/nitro-renderer';
 
+import { clamp } from '#base/utils/clamp';
+
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_USER } from '../../../../WiredElement';
 import { VariableFxAudience, VariableFxIconAlignment } from './VariableFxEditorEnums';
 import { getVariableFxCategory, getVariableFxStyle, getVariableFxSubRendererOptions, variableFxCategoryUsesValueRange, variableFxOptionIn, variableFxRendererSupportsSegments } from './VariableFxEditorMetadata';
@@ -95,8 +97,6 @@ export const createVariableFxState = (categoryId: number): VariableFxState => ({
     audienceVariableId: '',
     audienceVariableValue: 0,
 });
-
-const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
 
 /** `sanitizeIconAlignment` - right and double are kept, anything else is left. */
 const sanitizeIconAlignment = (alignment: number): number =>
