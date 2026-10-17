@@ -44,9 +44,11 @@ const DEFAULT_ARROW_LAYOUT: BoxLayout = { right: 5, top: 2, width: 16, height: 1
  * `habbo_window_layout_dropmenu` / `_black` / `illumina_light_dropmenu`, 6 in `_dropmenu_3`. In every
  * one that is where the open list's text starts too: `_DROPLIST_ITEMLIST`'s x (`listInset`) plus the
  * item's `_BTN_TEXT` left margin (4 in each `dropmenu_item*` layout), so the caption lines up with it.
+ * A style with no skin of its own (`ros_room_settings`' style 2 menus) is drawn by the default one
+ * (`habbo_element_description` names no style 2 dropmenu), as the frame already is: its item too.
  */
-const titleInsetLeft = (variant: string, inset: DropmenuListInset | undefined): number => {
-    const item = themeVariantOf<ThemeWithStatesVariant>('dropmenuItem', variant);
+const titleInsetLeft = (variant: string, defaultVariant: string, inset: DropmenuListInset | undefined): number => {
+    const item = themeVariantOf<ThemeWithStatesVariant>('dropmenuItem', variant) ?? themeVariantOf<ThemeWithStatesVariant>('dropmenuItem', defaultVariant);
 
     return (inset?.left ?? 0) + Number(expandSides(item?.layout)?.paddingLeft ?? 0);
 };
@@ -81,7 +83,7 @@ export const DropmenuFrame: ForwardRefExoticComponent<DropmenuFrameProps & RefAt
                     paddingRight: inset.right,
                     paddingBottom: (DROPMENU_EXPANDED_MARGIN - inset.top) + (scrolls ? 0 : DROPMENU_EXPANDED_PADDING_ITEM_HEIGHT),
                 }
-            : { paddingLeft: titleInsetLeft(resolvedVariant, inset), paddingRight: 2 };
+            : { paddingLeft: titleInsetLeft(resolvedVariant, defaultVariant ?? '0', inset), paddingRight: 2 };
         const content = wrapTextChildren(children, { textStyle: resolvedTextStyle, textColor: resolvedTextColor });
 
         return (
