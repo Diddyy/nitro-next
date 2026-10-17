@@ -359,7 +359,9 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
          * `onRoomExit` -> `NavigatorData.onRoomExit`: the room's event goes, and the event card
          * (`roomEventInfoCtrl.close`) and its settings (`roomEventViewCtrl.close`) with it.
          */
+        // `IncomingMessages.onRoomExit`: `data.onRoomExit()` and the room's windows closed.
         on(CloseConnectionMessage, () => {
+            navigator().exitCurrentRoom();
             navigator().setRoomEventData(undefined);
             navigator().setRoomEventSettingsVisible(false);
             closeRoomFilterForRoomChange();

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
-import { navigatorStore, NavigatorWindowGeometry } from '../store/NavigatorStore';
+import { navigatorStore } from '../store/NavigatorStore';
+import { NavigatorWindowGeometry } from '../store/NavigatorWindowSlice';
 
 /**
  * Where the navigator window was when it was last up - `NavigatorView`'s `_lastWindowX`,

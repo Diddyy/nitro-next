@@ -180,7 +180,14 @@ their direct sends, as the conventions allow. Not checked live (Turbo was down).
 `context/navigator/store/NavigatorStore.ts` (515 lines) covers about eight concerns without slices.
 The current room's id and owner are also kept in `groupStore`, `moderationStore`, `roomStore` and a
 closure in `registerRoomDirectoryHandlers`. Change: slices; derive the room's identity where the
-copies' timing agrees with Flash's. M-L.
+copies' timing agrees with Flash's. M-L. **Done:** eight slices (search, window, categories,
+current room, room visits, room entry, room event, room settings) behind the same `NavigatorStore`
+type. The groups copy went: `HabboGroupsManager._roomId` is set and kept as `NavigatorData`'s
+id is, so `onGuildCreated` reads the navigator's. The others stay, as their timings differ in
+Flash too: moderation's `currentFlatId` is reset on leaving, `roomStore` and the room directory's
+id follow the room engine's session. Found on the way: the navigator never ran `onRoomExit` or
+`onRoomEnter`'s reset of the entered room's info; it does now
+(`tools/navigator-current-room.test.mjs`). Not checked live (Turbo was down).
 
 ## Duplication and size
 
@@ -250,3 +257,4 @@ copies' timing agrees with Flash's. M-L.
 - Item 8, boolean configuration read as Flash does (`configBoolean`, `useConfigBoolean`).
 - Item 9, moderation through actions hooks and `moderationCommands`.
 - Item 10, views send packets only through commands.
+- Item 12, navigator store slices; the groups copy of the room id derived.

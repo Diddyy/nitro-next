@@ -49,7 +49,6 @@ const actions = {
     setGroupRoomInfo: state.setGroupRoomInfo,
     toggleGroupRoomInfoExpanded: state.toggleGroupRoomInfoExpanded,
     closeGroupRoomInfo: state.closeGroupRoomInfo,
-    setGroupCurrentRoom: state.setGroupCurrentRoom,
     setForumCompose: state.setForumCompose,
 };
 

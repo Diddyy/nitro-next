@@ -22,6 +22,7 @@ import {
 import { confirmGroupMemberKick, forwardToRoom, reloadGroupMembers, requestGroupDetails, requestGuildEditorData } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { groupStore } from '#base/context/groups';
+import { navigatorStore } from '#base/context/navigator';
 import { systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -37,7 +38,7 @@ export const registerGroupHandlers = ({ send, subscribe }: WebSocketConnection) 
         setGroupDetails, forgetGroup, closeGroupInfo,
         setGroupMembers, updateGroupMember,
         openGroupCreation, openGroupEdit, closeGroupManagement, addGroupManagementRoom, setGuildEditorData, setCreatedGroupId, setHcRequiredFor,
-        setGroupRoomExpectation, setGroupRoomInfo, closeGroupRoomInfo, setGroupCurrentRoom,
+        setGroupRoomExpectation, setGroupRoomInfo, closeGroupRoomInfo,
     } = groupStore.getState();
 
     /** `onJoinFailed` / `onGuildEditFailed`: one localized alert per reason, with the key as its own fallback. */
@@ -103,7 +104,8 @@ export const registerGroupHandlers = ({ send, subscribe }: WebSocketConnection) 
             closeGroupManagement();
             setGroupRoomExpectation(data.groupId);
 
-            if (groupStore.getState().currentRoomId === data.baseRoomId) return;
+            // `_roomId` is the navigator's current room: both are `RoomEntryInfoMessage`'s, kept on leaving.
+            if (navigatorStore.getState().currentRoomId === data.baseRoomId) return;
 
             forwardToRoom(send, data.baseRoomId);
         }),
@@ -150,14 +152,13 @@ export const registerGroupHandlers = ({ send, subscribe }: WebSocketConnection) 
         }),
 
         /*
-         * `onRoomEnter`: the details window and the banner belong to the room being left, and the
-         * room entered is the one `onGuildCreated` compares a new group's base against. The members
-         * window is not closed - it outlives a room change in the client too.
+         * `onRoomEnter`: the details window and the banner belong to the room being left. The room
+         * entered (`_roomId`) is the navigator's `currentRoomId`. The members window is not closed -
+         * it outlives a room change in the client too.
          */
-        on(RoomEntryInfoMessage, (data) => {
+        on(RoomEntryInfoMessage, () => {
             closeGroupInfo();
             closeGroupRoomInfo();
-            setGroupCurrentRoom(data.roomId);
         }),
 
         on(CloseConnectionMessage, () => {
