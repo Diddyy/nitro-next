@@ -43,7 +43,7 @@ Every one of these has a header in Turbo but no parser registered for it.
 | Recycler | `GetRecyclerStatus`, `GetRecyclerPrizes`, `RecycleItems` | `commands/catalogRecyclerCommands.ts` |
 | Special items | `ClaimProduct`, `HasClaimedProduct` | `commands/specialItemsCommands.ts` |
 | Game tokens | `GetSnowWarGameTokensOffer`, `PurchaseSnowWarGameTokensOffer` | `commands/gameTokensCommands.ts` |
-| NFT collectibles | `GetNftClaims`, `ClaimNftClaims`, `GetNftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBox`, `ProgressTreasureHunt` | `commands/collectiblesCommands.ts`, `useRoomFurnitureActionHandler` |
+| NFT collectibles | `GetNftClaims`, `ClaimNftClaims`, `GetNftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBox`, `ProgressTreasureHunt` | `commands/collectiblesRewardClaimsCommands.ts`, `collectiblesShopCommands.ts`, `collectiblesPurchaseCommands.ts`, `collectiblesCommands.ts`, `useRoomFurnitureActionHandler` |
 | NFT trading | `GetNftTradeInventory`, `AddNftToTrade`, `RemoveNftFromTrade` | `commands/inventoryTradingCommands.ts` |
 | Wired | `WiredGetRoomLogs`, `WiredUpdateRoom`, `WiredGetVariableOwnersPage`, `WiredGetUserPermanentVariables`, `WiredSetUserPermanentVariable`, `WiredGenerateWebApiKey` | `commands/wiredRoomLogsCommands.ts`, `wiredMenuCommands.ts`, `wiredVariableManagementCommands.ts`, `wiredWebApiKeyCommands.ts` |
 | Wired trading | `SelfDonateItem` | `commands/wiredTradingCommands.ts` |

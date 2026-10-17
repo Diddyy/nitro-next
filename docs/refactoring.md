@@ -233,7 +233,11 @@ id follow the room engine's session. Found on the way: the navigator never ran `
   `CatalogProductViewWidgetView` (avatar pose, preview population, zoom easing - its effect reads
   `zoomProgress` only as the start value, by design; its tick now stops on arrival), `AvatarEditor` (NFT handling, save flow),
   `commands/collectiblesCommands.ts` (split along its section banners; its slices only expose
-  generic `patch*` actions). M each.
+  generic `patch*` actions). M each. **Done:** hooks beside each view (`useChatInputCompletion`,
+  `useChatNuxReminder`, `useChatFloodCountdown`, `useChatInputPlacement`; `useProductPreview`,
+  `useProductPreviewAvatarPose`, `useProductPreviewZoom`; `useAvatarEditorNfts`,
+  `useAvatarEditorSave`) and nine `collectibles*Commands.ts` modules, one per section, every export
+  kept. The collectibles slices' generic `patch*` actions are unchanged. Not checked live.
 - **Wired boilerplate.** 34 definitions are only `{ holder, code, createForm: () => ({}) }`, and the
   variable-picker merged-section block repeats across definitions. A helper for each. S. **Done:**
   `noInputElement(holder, code)` (`WiredElement.ts`) for the 26 that are exactly that; each keeps
