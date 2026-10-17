@@ -39,11 +39,14 @@ let loaded: string | null = null;
 /** The parsed items to the texts and the renderer - every item of each kind, as the store now holds them. */
 const processFurnitureData = () => {
     const { floorItems, wallItems, setLocalizationForFurniture } = systemStore.getState();
+    const kinds = [ Object.values(floorItems), Object.values(wallItems) ] as IFurnitureData[][];
 
-    for (const items of [ Object.values(floorItems), Object.values(wallItems) ] as IFurnitureData[][]) {
+    // One texts update for both kinds: each update copies the whole texts map (~54k keys + the names).
+    setLocalizationForFurniture(kinds.flat());
+
+    for (const items of kinds) {
         if (!items.length) continue;
 
-        setLocalizationForFurniture(items);
         GetRoomContentLoader().processFurnitureData(items);
     }
 };
