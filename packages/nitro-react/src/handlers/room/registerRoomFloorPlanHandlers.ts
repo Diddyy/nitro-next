@@ -7,8 +7,11 @@
  * which tiles are in use.
  *
  * The room's map, entry tile and thickness land in the room store and go with the room. The
- * Builder's Club subscription is the account's and lands in the user store, where the editor's
- * countdown finds it again the next time it opens.
+ * Builder's Club subscription is the account's and lands in the user store, with the editor's
+ * countdown: `onBcStatus` starts `_bcSecondsCountdownTimer` at the first status and it takes ten
+ * seconds off every ten seconds for the rest of the session, editor open or not (Flash builds the
+ * editor once, with the window manager). A membership that runs out while the editor is closed
+ * therefore finds its save disabled when it opens.
  */
 import { RoomThicknessType } from '@nitrodevco/nitro-api';
 import { BuildersClubSubscriptionStatusMessage, FloorHeightMapMessage, RoomEntryTileMessage, RoomOccupiedTilesMessage, RoomVisualizationSettingsMessage } from '@nitrodevco/nitro-packets';
@@ -24,6 +27,10 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * `RoomVisualizationSettingsMessage` hands over the multiplier the room draws with, and anything
  * that is not one of the four the client offers is read as the normal thickness.
  */
+/** `BCFloorPlanEditor._bcSecondsCountdownTimer`: `new Timer(10000)`, and each tick takes ten off. */
+const BC_COUNTDOWN_MS = 10000;
+const BC_COUNTDOWN_SECONDS = 10;
+
 const thicknessFromMultiplier = (multiplier: number): RoomThicknessType => {
     switch (multiplier) {
         case 0.25: return RoomThicknessType.Thinnest;
@@ -35,9 +42,11 @@ const thicknessFromMultiplier = (multiplier: number): RoomThicknessType => {
 
 export const registerRoomFloorPlanHandlers = ({ subscribe }: WebSocketConnection) => {
     const { setFloorPlanReceivedModel, setFloorPlanFixedWallsHeight, setFloorPlanEntryPoint, setFloorPlanEntryPointDir, setFloorPlanOccupiedTiles, setFloorPlanThickness } = roomStore.getState();
-    const { setBuildersClubSubscription } = userStore.getState();
+    const { setBuildersClubSubscription, decreaseBuildersClubSecondsLeft } = userStore.getState();
 
-    return subscribeAll(subscribe, [
+    let bcCountdownTimer: ReturnType<typeof setInterval> | undefined;
+
+    const unsubscribe = subscribeAll(subscribe, [
         on(FloorHeightMapMessage, (data) => {
             // `FloorPlanCache.onFloorHeightMap` - the received map is also what a revert goes back to.
             setFloorPlanReceivedModel(data.modelData);
@@ -53,6 +62,18 @@ export const registerRoomFloorPlanHandlers = ({ subscribe }: WebSocketConnection
 
         on(RoomVisualizationSettingsMessage, data => setFloorPlanThickness(thicknessFromMultiplier(data.wallThickness), thicknessFromMultiplier(data.floorThickness))),
 
-        on(BuildersClubSubscriptionStatusMessage, data => setBuildersClubSubscription(data.secondsLeft, data.secondsLeftWithGrace, data.furniLimit, data.maxFurniLimit)),
+        on(BuildersClubSubscriptionStatusMessage, (data) => {
+            setBuildersClubSubscription(data.secondsLeft, data.secondsLeftWithGrace, data.furniLimit, data.maxFurniLimit);
+
+            // `onBcCountdownTimerEvent` keeps counting past zero; nothing reads below it, so the store is left alone there.
+            bcCountdownTimer ??= setInterval(() => {
+                if (userStore.getState().buildersClubSecondsLeft > 0) decreaseBuildersClubSecondsLeft(BC_COUNTDOWN_SECONDS);
+            }, BC_COUNTDOWN_MS);
+        }),
     ]);
+
+    return () => {
+        unsubscribe();
+        clearInterval(bcCountdownTimer);
+    };
 };

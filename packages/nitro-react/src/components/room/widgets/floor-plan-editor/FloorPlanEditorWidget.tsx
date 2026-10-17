@@ -10,7 +10,8 @@
  *   `RoomInfoView`, and repeated here so a stale window closes itself on the way into a room
  *   where the rights are gone.
  * - `BCFloorPlanEditor.createEditorWindow` / `onBcCountdownTimerEvent` enable the save only while
- *   Builder's Club has time left, or for `hasSecurity(4)`.
+ *   Builder's Club has time left, or for `hasSecurity(4)`. The countdown runs for the whole
+ *   session, in `registerRoomFloorPlanHandlers`.
  * - `onPerkAllowances`: `BUILDER_AT_WORK` is what lifts the 3025 tile cap.
  *
  * Flash asked for the entry tile and the occupied tiles every time the window was shown, and the
@@ -23,13 +24,9 @@ import { requestFloorPlanData, saveFloorPlan, saveFloorPlanImport } from '#base/
 import { useWebSocketContext } from '#base/context/communication';
 import { useOwnControllerLevel, useRoomFloorPlanActions, useRoomStore } from '#base/context/room';
 import { useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
-import { ClientGates, PerkCodes, useClientGate, useOwnPerkAllowed, useUserActions, useUserStore } from '#base/context/user';
+import { ClientGates, PerkCodes, useClientGate, useOwnPerkAllowed, useUserStore } from '#base/context/user';
 import { createFloorPlanModel, floorPlanModelText, FloorPlanTile } from '#base/utils';
 import { FloorPlanEditorView } from '#base/views/room-widgets/floor-plan-editor/FloorPlanEditorView';
-
-/** `BCFloorPlanEditor._bcSecondsCountdownTimer` ticks every ten seconds and takes ten off. */
-const BC_COUNTDOWN_MS = 10000;
-const BC_COUNTDOWN_SECONDS = 10;
 
 export const FloorPlanEditorWidget = () => {
     const t = useTranslation();
@@ -52,7 +49,6 @@ export const FloorPlanEditorWidget = () => {
     const buildersClubSecondsLeft = useUserStore(x => x.buildersClubSecondsLeft);
 
     const { hideWindow, showSimpleAlert } = useWindowActions();
-    const { decreaseBuildersClubSecondsLeft } = useUserActions();
     const { setFloorPlanRows, setFloorPlanReceivedModel, setFloorPlanEntryPoint, setFloorPlanEntryPointDir, setFloorPlanThickness, setFloorPlanFixedWallsHeight } = useRoomFloorPlanActions();
 
     /** `FloorPlanCache._showedPopup` - one alert per received map, however many times the limit is hit. */
@@ -68,14 +64,6 @@ export const FloorPlanEditorWidget = () => {
 
         requestFloorPlanData(send);
     }, [ isVisible, send ]);
-
-    useEffect(() => {
-        if (!isVisible || (buildersClubSecondsLeft <= 0)) return;
-
-        const interval = setInterval(() => decreaseBuildersClubSecondsLeft(BC_COUNTDOWN_SECONDS), BC_COUNTDOWN_MS);
-
-        return () => clearInterval(interval);
-    }, [ isVisible, buildersClubSecondsLeft, decreaseBuildersClubSecondsLeft ]);
 
     if (!isVisible) return null;
 

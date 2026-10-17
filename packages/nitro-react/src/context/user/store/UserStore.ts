@@ -75,8 +75,8 @@ type State = {
     nftChatStyles: number[];
     /**
      * `BuildersClubSubscriptionStatusMessage` - how long the account's Builder's Club has left, in
-     * seconds. `BCFloorPlanEditor` counts it down while the editor is open and disables the save
-     * once it runs out, so it is the account's fact rather than the room's.
+     * seconds. `BCFloorPlanEditor` counts it down for the whole session from the first status and
+     * disables the save once it runs out, so it is the account's fact rather than the room's.
      */
     buildersClubSecondsLeft: number;
     /** The same subscription with its grace period, which is what the catalogue's Builder's Club page shows. */
