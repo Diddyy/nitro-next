@@ -17,6 +17,7 @@ import { ClockReachTimeView } from '#base/views/wired-setup/elements/trigger/Clo
 import { PerformActionView } from '#base/views/wired-setup/elements/trigger/PerformActionView';
 import { PeriodicLongView } from '#base/views/wired-setup/elements/trigger/PeriodicLongView';
 import { PeriodicShortView } from '#base/views/wired-setup/elements/trigger/PeriodicShortView';
+import { RoomInitializedView } from '#base/views/wired-setup/elements/trigger/RoomInitializedView';
 import { ScoreAchievedView } from '#base/views/wired-setup/elements/trigger/ScoreAchievedView';
 import { StateChangeView } from '#base/views/wired-setup/elements/trigger/StateChangeView';
 import { TransactionCompletedView } from '#base/views/wired-setup/elements/trigger/TransactionCompletedView';
@@ -42,6 +43,7 @@ import { performActionTrigger } from './PerformAction';
 import { periodicLongTrigger } from './PeriodicLong';
 import { periodicShortTrigger } from './PeriodicShort';
 import { receiveSignalTrigger } from './ReceiveSignal';
+import { roomInitializedTrigger } from './RoomInitialized';
 import { scoreAchievedTrigger } from './ScoreAchieved';
 import { stateChangeTrigger } from './StateChange';
 import { transactionCompletedTrigger } from './TransactionCompleted';
@@ -82,4 +84,5 @@ export const triggerElements: WiredElementEntry[] = [
     defineWiredElement(userClicksUserTrigger, UserClicksUserView),
     defineWiredElement(transactionCompletedTrigger, TransactionCompletedView),
     defineWiredElement(transactionFailedTrigger, TransactionFailedView),
+    defineWiredElement(roomInitializedTrigger, RoomInitializedView),
 ];
