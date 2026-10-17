@@ -3,11 +3,7 @@
  *
  * No params, no inputs (`INPUTS_TYPE_NONE`) and no inverted twin.
  */
-import type { WiredElementDefinition } from '../../WiredElement';
+import { noInputElement } from '../../WiredElement';
 import { ConditionCodes } from './conditionCodes';
 
-export const canPerformMoveCondition: WiredElementDefinition<Record<string, never>> = {
-    holder: 'condition',
-    code: ConditionCodes.CAN_PERFORM_MOVE,
-    createForm: () => ({}),
-};
+export const canPerformMoveCondition = noInputElement('condition', ConditionCodes.CAN_PERFORM_MOVE);

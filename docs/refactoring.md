@@ -209,7 +209,11 @@ copies' timing agrees with Flash's. M-L.
   `commands/collectiblesCommands.ts` (split along its section banners; its slices only expose
   generic `patch*` actions). M each.
 - **Wired boilerplate.** 34 definitions are only `{ holder, code, createForm: () => ({}) }`, and the
-  variable-picker merged-section block repeats across definitions. A helper for each. S.
+  variable-picker merged-section block repeats across definitions. A helper for each. S. **Done:**
+  `noInputElement(holder, code)` (`WiredElement.ts`) for the 26 that are exactly that; each keeps
+  its file and Flash docblock, as `docs/wired.md` has one file per element class. The picker block is
+  identical only in `HasVariable` and `RemoveVariable` - the others vary in title, custom sources or
+  `setMergedType` - so it is left.
 - **Template numbers in code.** `AvatarEditor` (`CONTENT_HEIGHT`, `SIDE_CONTAINER_X`) and
   `ToolbarView` (`BAR_HEIGHT`, `ITEMS_X`) copy values the loaded layout holds; read them with
   `findTemplateChild` as `RoomChatInputView` does. S.

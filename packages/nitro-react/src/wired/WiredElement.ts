@@ -178,6 +178,9 @@ export interface WiredElementEntry {
     View?: WiredElementView<unknown>;
 }
 
+/** An element with no params and no inputs (`INPUTS_TYPE_NONE`): its holder and code, and an empty form. */
+export const noInputElement = (holder: WiredHolderKey, code: number): WiredElementDefinition<Record<string, never>> => ({ holder, code, createForm: () => ({}) });
+
 /** Pairs a definition with its view and erases the form type for the registry. */
 export const defineWiredElement = <F>(definition: WiredElementDefinition<F>, View?: WiredElementView<F>): WiredElementEntry => ({
     definition: definition,
