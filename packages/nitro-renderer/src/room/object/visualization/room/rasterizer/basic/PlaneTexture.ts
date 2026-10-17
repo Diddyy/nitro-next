@@ -46,6 +46,11 @@ export class PlaneTexture {
         return this.getPlaneTextureBitmap(normal)?.bitmap;
     }
 
+    /** Flash `getAssetName`: the asset the bitmap for `normal` was made from. */
+    public getAssetName(normal: IVector3D): string | undefined {
+        return this.getPlaneTextureBitmap(normal)?.assetName;
+    }
+
     public getPlaneTextureBitmap(normal: IVector3D | undefined): PlaneTextureBitmap | undefined {
         if (!normal) return undefined;
 

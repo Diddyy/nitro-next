@@ -2,12 +2,13 @@ import { IVector3D } from '@nitrodevco/nitro-api';
 import { RenderTexture } from 'pixi.js';
 
 import { PlaneBitmapData } from '../utils';
+import type { Plane } from './basic/Plane';
 
 /**
  * What a `RoomPlane` draws its texture with. Ports Flash's obfuscated rasterizer interface
- * `§_-ED§`, less three members nothing in the port can call: `initializeDimensions` (no Flash class
- * calls it, and `LandscapeRasterizer` only stored what it was given), `reinitialize` (no Flash class
- * calls it either) and `getLayers` (only `RoomPlane.getDrawingDatas` asks, which the port lacks).
+ * `§_-ED§`, less two members nothing in the port can call: `initializeDimensions` (no Flash class
+ * calls it, and `LandscapeRasterizer` only stored what it was given) and `reinitialize` (no Flash
+ * class calls it either).
  */
 export interface IPlaneRasterizer {
     /**
@@ -31,4 +32,6 @@ export interface IPlaneRasterizer {
         timeSinceStartMs?: number,
     ): PlaneBitmapData | undefined;
     getTextureIdentifier(scale: number, normal: IVector3D | undefined): string;
+    /** The layers of the plane type `planeId` (or `default`) as last drawn: what `RoomPlane.getDrawingDatas` sends a photo. */
+    getLayers(planeId: string): ReturnType<Plane['getLayers']>;
 }

@@ -63,6 +63,11 @@ export class PlaneMaterialCell {
         this._cachedBitmapData = undefined;
     }
 
+    /** Flash `getAssetName`: the texture's asset for `normal`. */
+    public getAssetName(normal: IVector3D): string | undefined {
+        return this._texture?.getAssetName(normal);
+    }
+
     public getHeight(normal: IVector3D): number {
         return this._texture?.getBitmap(normal)?.height ?? 0;
     }
