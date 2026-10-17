@@ -237,7 +237,9 @@ id follow the room engine's session. Found on the way: the navigator never ran `
   `setMergedType` - so it is left.
 - **Template numbers in code.** `AvatarEditor` (`CONTENT_HEIGHT`, `SIDE_CONTAINER_X`) and
   `ToolbarView` (`BAR_HEIGHT`, `ITEMS_X`) copy values the loaded layout holds; read them with
-  `findTemplateChild` as `RoomChatInputView` does. S.
+  `findTemplateChild` as `RoomChatInputView` does. S. **Done:** both read from their loaded layouts
+  (`bottom_bar_left`'s height and `toolbar_items`' x; `AvatarEditorContent`'s height and
+  `sideContainer`'s x); the editor's frame waits for its content's layout. Not checked live.
 - **TableView highlights.** Each `TextCell` runs its own 16 ms interval for its highlight; one shared
   ticker. S. **Left:** Flash's `TableView` cells each fade on their own timer too, and only a
   highlighted cell runs one; the cost is re-renders while it fades, not the timers.

@@ -54,7 +54,7 @@ import { ToolbarTransitionIcon, useConfigBoolean, useConfigValue, useIsLandingVi
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId, useUserStore } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useHintTarget, useRoomObjectSelect, useTween, useViewportSize } from '#base/hooks';
-import { Box, Region, Template, TemplateBindings, TemplateElement, TemplateWindow, TemplateWindows, useLayoutEvent, useTemplate } from '#base/theme';
+import { Box, findTemplateChild, Region, Template, TemplateBindings, TemplateElement, TemplateWindow, TemplateWindows, useLayoutEvent, useTemplate } from '#base/theme';
 import { configReader } from '#base/utils';
 import { FriendBarView } from '#base/views/friend-bar/FriendBarView';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
@@ -66,10 +66,7 @@ const BAR_TEMPLATE = 'habbo-toolbar-com/bottom_bar_left_xml';
 
 /** `bottom_background_border`: 54 high, 3 of it below the desktop (`updatePosition`). */
 const BACKGROUND_HEIGHT = 54;
-/** `bottom_bar_left`: the window's height, and so its distance from the desktop's bottom (`checkSize`). */
-const BAR_HEIGHT = 46;
-/** `toolbar_items`' x in the window, and the space between its items. */
-const ITEMS_X = 19;
+/** The space between `toolbar_items`' items. */
 const ITEM_SPACING = 8;
 /** `computeToolbarAreaWidth` while collapsed. */
 const COLLAPSED_AREA_WIDTH = 185;
@@ -281,11 +278,15 @@ export const ToolbarView = () => {
             x,
             lineX: next,
             width: (45 * (visible.size + 1)) + 10 + 150,
-            areaWidth: isCollapsed ? COLLAPSED_AREA_WIDTH : (ITEMS_X + next),
+            areaWidth: isCollapsed ? COLLAPSED_AREA_WIDTH : (itemsX + next),
         };
     };
 
     const toggles = template ? readToggles(template) : [];
+    // `bottom_bar_left`: the window's height, and so its distance from the desktop's bottom (`checkSize`).
+    const barHeight = template?.height ?? 0;
+    // `toolbar_items`' x in the window.
+    const itemsX = (template && findTemplateChild(template.elements, 'toolbar_items')?.x) ?? 0;
     // A hint target box fills its icon's region.
     const sizeOf = (name: string) => {
         const toggle = toggles.find(entry => entry.name === name);
@@ -498,7 +499,7 @@ export const ToolbarView = () => {
                         width={viewportWidth + 20}
                     />
                 </Box>
-                <Box layout={{ position: 'absolute', left: 0, top: BACKGROUND_HEIGHT - BAR_HEIGHT }}>
+                <Box layout={{ position: 'absolute', left: 0, top: BACKGROUND_HEIGHT - barHeight }}>
                     <TemplateWindow
                         id={BAR_TEMPLATE}
                         width={barWidth}

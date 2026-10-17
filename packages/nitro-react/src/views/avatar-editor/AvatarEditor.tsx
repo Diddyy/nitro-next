@@ -55,7 +55,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigBoolean, useConfigValue, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useOwnClubLevel, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { AvatarEditorColorData, AvatarEditorPartData, useAvatarEditorData, usePartThumbnailLifetime, useWindowVisibility } from '#base/hooks';
-import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture, useTemplate } from '#base/theme';
+import { findTemplateChild, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture, useTemplate } from '#base/theme';
 import { firstSelectableColorId } from '#base/utils';
 
 import { AvatarEditorPartImage } from './AvatarEditorPartImage';
@@ -188,8 +188,7 @@ const SAVE_TIMEOUT_MS = 1500;
 /** `showPalettes`: two palettes share the parts grid's width, 10 apart. */
 const PALETTE_GAP = 10;
 
-/** `AvatarEditorContent` is 490 high; the frame's `maincontent` sits 33 down with 2 under it. */
-const CONTENT_HEIGHT = 490;
+/** The frame's `maincontent` sits 33 down with 2 under it. */
 const FRAME_CHROME_HEIGHT = 35;
 
 /**
@@ -208,8 +207,7 @@ const AVATAR_ANCHOR = {
     y: ((AVATAR_WIDGET_ZOOM * AVATAR_WIDGET_HEIGHT) / 2) + AVATAR_WIDGET_OFFSET_Y,
 };
 
-/** `sideContainer`'s x, the wardrobe layout's width, and `setSideContent`'s width for an empty side. */
-const SIDE_CONTAINER_X = 487;
+/** The wardrobe layout's width, and `setSideContent`'s width for an empty side. */
 const WARDROBE_WIDTH = 182;
 const EMPTY_SIDE_WIDTH = 1;
 
@@ -252,6 +250,7 @@ export const AvatarEditor = () => {
     // `NftWardrobeParamView`: the outfit `collectible_avatar_info` names, until the category changes.
     const [ nftInfoOutfit, setNftInfoOutfit ] = useState<INftWardrobeItem | null>(null);
     const outfitTemplate = useTemplate(`${LIBRARY}/Outfit`);
+    const contentTemplate = useTemplate(`${LIBRARY}/AvatarEditorContent`);
     const zoom = useConfigBoolean('zoom.enabled');
     const { parts, palettes } = useAvatarEditorData(activeSetType);
     const { hide } = useWindowVisibility('avatar_editor');
@@ -527,7 +526,8 @@ export const AvatarEditor = () => {
     const effectsShown = shownCategory === AvatarEditorCategory.Effects;
     // `setSideContent`: the content reaches `sideContainer`'s right edge - the wardrobe's width with it,
     // 1 with nothing in it - so the name banner ends where the frame's right border begins.
-    const contentWidth = SIDE_CONTAINER_X + (wardrobeVisible ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
+    const sideContainerX = (contentTemplate && findTemplateChild(contentTemplate.elements, 'sideContainer')?.x) ?? 0;
+    const contentWidth = sideContainerX + (wardrobeVisible ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
 
     const nftItems: TemplateItem[] = outfitTemplate
         ? nftOutfits.map((outfit) => {
@@ -773,12 +773,15 @@ export const AvatarEditor = () => {
         }
     };
 
+    // The frame is sized from the content's layout, so it waits for it.
+    if (!contentTemplate) return null;
+
     return (
         <TemplateWindow
             id={`${LIBRARY}/AvatarEditorFrame`}
             frame={frame}
             width={contentWidth}
-            height={CONTENT_HEIGHT + FRAME_CHROME_HEIGHT}
+            height={contentTemplate.height + FRAME_CHROME_HEIGHT}
             bindings={{
                 maincontent: {
                     children: (
