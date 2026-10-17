@@ -103,15 +103,25 @@ const buildId = () => {
     }
 };
 
+/**
+ * Names the build in the page itself, `<meta name="nitro-build" content="...">`, so which commit a
+ * host serves can be read from its `index.html` without running the client.
+ */
+const buildMeta = (build: string): Plugin => ({
+    name: 'nitro-build-meta',
+    transformIndexHtml: () => [ { tag: 'meta', attrs: { name: 'nitro-build', content: build }, injectTo: 'head' } ],
+});
+
 export default defineConfig(({ mode }) => {
     const prebundleWorkspace = mode === 'prebundle';
     const bundledDev = mode === 'bundled';
+    const build = buildId();
 
     return {
     // The repository root's `.env` - where a host such as Ploi writes the site's environment.
     envDir: r('../..'),
     define: {
-        __NITRO_BUILD__: JSON.stringify(buildId()),
+        __NITRO_BUILD__: JSON.stringify(build),
     },
     experimental: {
         bundledDev,
@@ -158,6 +168,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
         pruneBundledAssets(),
+        buildMeta(build),
         react(),
         babel({
             plugins: ['babel-plugin-react-compiler'],
