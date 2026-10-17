@@ -5,6 +5,7 @@ export * from './ChatBubbleMotion';
 export * from './ChatBubbleText';
 export * from './ChatConstants';
 export * from './ChatMarkup';
+export * from './chatScreenPoint';
 export * from './ChatStyle';
 export * from './ChatStyleDefinitions';
 export * from './ChatStyleLibrary';

@@ -92,7 +92,11 @@ was down; check with a thread of more than 20 messages and a `groupforum/<g>/<t>
 `components/room/widgets/chat/ChatFlowProvider.tsx` (`getUserScreenLocation`) projects a room
 location with `canvas.scale`; `Room.getRoomObjectScreenLocation` uses the negative scale when the
 canvas is flipped, as does `VariableLeaderboardLocationProjector`. **Verified.** Change: one
-shared projection, checked in a flipped room. S.
+shared projection, checked in a flipped room. S. **Done:** `chat/chatScreenPoint.ts`, Flash's
+`HabboFreeFlowChat.getScreenPointFromRoomLocation` with the flip (`tools/chat-screen-point.test.mjs`).
+The leaderboard projector stays its own: it ports WIN63's `VariableLeaderboardLocationProjector`,
+which measures differently and already flips. Not checked live yet (Turbo was down): `:flip` a room
+and chat.
 
 ### 7. Wired source types resolved for conditions only
 
@@ -201,3 +205,4 @@ copies' timing agrees with Flash's. M-L.
 - Item 3, room object values read during render (`useRoomObjectModelVersion`).
 - Item 4, window pointer drags (`useWindowPointerDrag`).
 - Item 5, group forum state in the store, and the link's go-to scroll.
+- Item 6, chat bubble positions in a flipped room.

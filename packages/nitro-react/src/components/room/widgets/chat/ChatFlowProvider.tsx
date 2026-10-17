@@ -3,7 +3,7 @@ import { GetRenderer, GetTicker } from '@nitrodevco/nitro-renderer';
 import { Point, PointData, Ticker } from 'pixi.js';
 import { ReactNode, useEffect, useMemo, useRef } from 'react';
 
-import { ChatBubbleMotion, chatBubbleWidthFromSetting, ChatFlowStage, IChatFlowHost, IChatFlowSettings } from '#base/chat';
+import { ChatBubbleMotion, chatBubbleWidthFromSetting, ChatFlowStage, chatScreenPoint, IChatFlowHost, IChatFlowSettings } from '#base/chat';
 import { useRoom, useRoomChatActions } from '#base/context/room';
 import { useUserStore } from '#base/context/user';
 import { ChatFlowContext, ChatFlowContextValue, useRoomObjectSelect } from '#base/hooks';
@@ -62,24 +62,13 @@ export const ChatFlowProvider = ({ children }: ChatFlowProviderProps) => {
 
             return room.getRoomInstanceRenderingCanvasOffset();
         },
-        // `_Str_21534` - the same projection `Room.getRoomObjectScreenLocation` does, for a remembered location.
+        // `HabboFreeFlowChat.getScreenPointFromRoomLocation`.
         getUserScreenLocation: (roomId: number, location: IVector3D | undefined): Point => {
             const canvas = room?.canvas;
 
             if (!room || !canvas) return new Point(0, 0);
 
-            let x = ((canvas.width >> 1) * canvas.scale);
-            let y = ((canvas.height >> 1) * canvas.scale);
-
-            if (location) {
-                const screenPoint = canvas.geometry.getScreenPoint(location);
-                const offset = room.getRoomInstanceRenderingCanvasOffset();
-
-                x += (screenPoint.x * canvas.scale) + offset.x;
-                y += (screenPoint.y * canvas.scale) + offset.y;
-            }
-
-            return new Point(x, y);
+            return chatScreenPoint(canvas, room.getRoomInstanceRenderingCanvasOffset(), location);
         },
         getUnitLocation: (roomId: number, objectId: number): IVector3D | undefined => {
             if (!room || (room.roomId !== roomId)) return undefined;
