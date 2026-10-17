@@ -23,13 +23,14 @@
  */
 import type { IDailyTaskInfo, IDailyTaskReward } from '@nitrodevco/nitro-packets';
 import { DAILY_TASK_STATUS_ACTIVE, DAILY_TASK_STATUS_CLAIMED } from '@nitrodevco/nitro-packets';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import { claimDailyTask, finishDailyTaskCompletion, getDailyTaskSecondsLeft, hideDailyTasks, isDailyTaskExpired, openClubCatalogPage, requestDailyTasks, showUnclaimedDailyTasks } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useDailyTasksStore } from '#base/context/daily-tasks';
 import { useInterpolate, useTranslation } from '#base/context/system';
 import { useOwnHasClub } from '#base/context/user';
+import { useClock } from '#base/hooks';
 import { findTemplateChild, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 import { ProductIconView } from '#base/views/shared/ProductIconView';
@@ -66,16 +67,8 @@ export const DailyTasksView = () => {
     const { send } = useWebSocketContext();
     const frame = useTemplateFrame({ id: 'daily_tasks', defaultPosition: { x: 43, y: 37 }, resizeDirection: 'none', onClose: hideDailyTasks });
     const unclaimedFrame = useTemplateFrame({ id: 'daily_tasks_unclaimed', defaultPosition: { x: 43, y: 37 }, resizeDirection: 'none', onClose: () => showUnclaimedDailyTasks(false) });
-    const [ now, setNow ] = useState(() => Date.now());
-
     // `update`: the title's time left, and the list asked for when there is none or it ran out.
-    useEffect(() => {
-        if (!shown) return;
-
-        const timer = setInterval(() => setNow(Date.now()), UPDATE_INTERVAL_MS);
-
-        return () => clearInterval(timer);
-    }, [ shown ]);
+    const now = useClock('epoch', UPDATE_INTERVAL_MS, shown);
 
     const longestSecondsLeft = tasks.reduce((longest, task) => Math.max(longest, getDailyTaskSecondsLeft(task, now)), 0);
     const needsTasks = shown && ((tasks.length === 0) || (longestSecondsLeft < STALE_SECONDS));

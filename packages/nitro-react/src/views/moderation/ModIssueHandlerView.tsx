@@ -5,6 +5,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useHelpStore } from '#base/context/help';
 import { highestPriorityIssue, ISSUE_RESOLUTION_RESOLVED, ISSUE_RESOLUTION_USELESS, issueOpenTime, MOD_CHATLOG_CFH, moderationChatlogKey, useModerationActions, useModerationIssueActions, useModerationIssueStore, useModerationStore } from '#base/context/moderation';
 import { useWindowActions } from '#base/context/system';
+import { useClock } from '#base/hooks';
 import { findTemplateChild, TemplateItem, TemplateWindow, useLatest, useTemplate } from '#base/theme';
 
 import { issueCategoryName, issueSourceName } from './issueNames';
@@ -44,7 +45,6 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     const userInfoTemplate = useTemplate('habbo-moderation-com/user_info_xml');
     const [ handleNext, setHandleNext ] = useState(true);
     const [ openedAt ] = useState(() => performance.now());
-    const [ now, setNow ] = useState(() => performance.now());
     const issue = bundle && highestPriorityIssue(bundle);
     const issueId = issue?.issueId ?? 0;
     const reporterId = issue?.reporterUserId ?? 0;
@@ -88,11 +88,7 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     }));
 
     // `registerUpdateReceiver(this, 1000)`: the open times move on each second.
-    useEffect(() => {
-        const timer = setInterval(() => setNow(performance.now()), 1000);
-
-        return () => clearInterval(timer);
-    }, []);
+    const now = useClock('monotonic', 1000);
 
     useEffect(() => {
         if (issueId) requestCfhChatlog(send, issueId);

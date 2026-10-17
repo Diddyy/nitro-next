@@ -21,7 +21,7 @@
  *   (`deselectAllEffects(true)`: selected -1). Flash keeps that mark until a save, so a pick in an
  *   editor closed without saving is still worn by the next save.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { activateAvatarEffect, selectAvatarEffect } from '#base/commands';
 import { useAvatarEditorActions, useAvatarEditorStore } from '#base/context/avatar-editor';
@@ -29,6 +29,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { useAvatarEffects, useUserActions } from '#base/context/user';
 import { secondsLeftOf, UserAvatarEffect } from '#base/context/user/store/avatarEffectsModel';
+import { useClock } from '#base/hooks';
 import { ColorLayer, LayoutImage, Template, TemplateBindings, TemplateItem, useTemplate } from '#base/theme';
 import { twoDigits } from '#base/utils';
 
@@ -91,17 +92,10 @@ export const useAvatarEditorEffects = (shown: boolean) => {
     const template = useTemplate(GRID_ITEM_TEMPLATE);
     const buyPage = useConfigValue<string>('avatareditor.effects.buy.button.catalog.page.name') ?? '';
     const [ hovered, setHovered ] = useState<number | null>(null);
-    const [ now, setNow ] = useState(() => Date.now());
     const selected = effects.find(effect => effect.type === avatarEffectType) ?? null;
 
     // `onSecondsTimer`: the time left counts down each second while the tab is up.
-    useEffect(() => {
-        if (!shown) return;
-
-        const timer = setInterval(() => setNow(Date.now()), 1000);
-
-        return () => clearInterval(timer);
-    }, [ shown ]);
+    const now = useClock('epoch', 1000, shown);
 
     const item = (from: Template, key: string, type: number, effect: UserAvatarEffect | null): TemplateItem => {
         const isSelected = (effect ? effect.type : NO_EFFECT) === (selected ? selected.type : NO_EFFECT);

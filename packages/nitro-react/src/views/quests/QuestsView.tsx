@@ -10,14 +10,14 @@
  * `waitPeriodSeconds` is no field of the packet (only `NextQuestTimer` sets it), so the delayed quest
  * texts (`delay_desc_txt`, `quests.list.questdelayed`) stay hidden here as they do in the list.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { acceptQuest, rejectQuest } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useQuestsStore } from '#base/context/quests';
 import { useConfigData, useTranslation, useWindowActions } from '#base/context/system';
 import { useOwnHasClub } from '#base/context/user';
-import { useViewportSize } from '#base/hooks';
+import { useClock, useViewportSize } from '#base/hooks';
 import { TemplateWindow, useTemplateFrame, useTemplateLibrary } from '#base/theme';
 
 import { EntryContext, isEntryShown, QUEST_LIBRARY, questEntry } from './questEntries';
@@ -41,17 +41,12 @@ export const QuestsView = ({ onClose }: { onClose: () => void }) => {
     const { showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const viewport = useViewportSize();
-    const [ now, setNow ] = useState(() => Date.now());
     const rejected = useRef(new Set<number>());
     // `prepareWindow`: `_window.center()`, once.
     const frame = useTemplateFrame({ id: 'quests', defaultPosition: { x: Math.round((viewport.width - WINDOW_WIDTH) / 2), y: Math.round((viewport.height - WINDOW_HEIGHT) / 2) }, onClose });
 
     // `update`: `refresh(true)` every second while the window is up.
-    useEffect(() => {
-        const interval = setInterval(() => setNow(Date.now()), REFRESH_MS);
-
-        return () => clearInterval(interval);
-    }, []);
+    const now = useClock('epoch', REFRESH_MS);
 
     // `refreshEntry`: a seasonal quest whose time ran out is rejected if it was taken.
     useEffect(() => {

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { autoPickModerationBundle, pickModerationBundle, releaseAllModerationBundles, releaseModerationBundle } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { bundleHighestPriority, bundleMessageCount, bundleOpenTime, bundlesOfTab, highestPriorityIssue, IssueBundleTab, useModerationIssueActions, useModerationIssueStore } from '#base/context/moderation';
 import { useUserStore } from '#base/context/user';
+import { useClock } from '#base/hooks';
 import { findTemplateChild, LayoutImage, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 import { issueCategoryName, issueSourceName } from './issueNames';
@@ -40,7 +41,7 @@ export const ModIssueBrowserView = () => {
     const snapshot = useModerationIssueStore(x => x.snapshot);
     const { showBrowser, setBrowserTab, handleBundle } = useModerationIssueActions();
     const template = useTemplate(TEMPLATE);
-    const [ now, setNow ] = useState(() => performance.now());
+    const now = useClock('monotonic', UPDATE_INTERVAL_MS);
     // `createMainFrame`: centred on the desktop.
     const [ frame ] = useState(() => ({
         id: 'moderation-issue-browser',
@@ -48,12 +49,6 @@ export const ModIssueBrowserView = () => {
         rememberPosition: false,
         onClose: () => showBrowser(false),
     }));
-
-    useEffect(() => {
-        const timer = setInterval(() => setNow(performance.now()), UPDATE_INTERVAL_MS);
-
-        return () => clearInterval(timer);
-    }, []);
 
     if (!template) return null;
 

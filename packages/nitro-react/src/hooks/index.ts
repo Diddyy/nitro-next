@@ -7,6 +7,7 @@ export * from './logic';
 export * from './navigator';
 export * from './room';
 export * from './system';
+export * from './useClock';
 export * from './useSecondsClock';
 export * from './useTween';
 export * from './useViewportSize';

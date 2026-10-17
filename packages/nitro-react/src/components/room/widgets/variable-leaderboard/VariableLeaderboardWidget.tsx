@@ -22,12 +22,13 @@
  */
 import { IRoom } from '@nitrodevco/nitro-api';
 import { IVariableLeaderboardChoice, IVariableLeaderboardDescriptor } from '@nitrodevco/nitro-packets';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 
 import { dragLeaderboardLocation, moveLeaderboardPage, openProfile, selectLeaderboardVariable } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
 import { leaderboardPageCount, leaderboardPageRows, leaderboardPageSize, useWiredStore, VariableLeaderboardLocationEdit, VariableLeaderboardOverlay } from '#base/context/wired';
+import { useClock } from '#base/hooks';
 import { VariableLeaderboardBodyState, VariableLeaderboardView } from '#base/views/room-widgets/variable-leaderboard/VariableLeaderboardView';
 import { suggestLeaderboardDisplayName, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID, VariableLeaderboardLocation } from '#base/wired';
 
@@ -175,15 +176,7 @@ export const VariableLeaderboardWidget = () => {
     // `choice_dropdown`'s `visible`, by leaderboard, and the choice row under the pointer.
     const [ openDropdowns, setOpenDropdowns ] = useState<ReadonlySet<number>>(new Set());
     const [ hoveredChoice, setHoveredChoice ] = useState<{ overlayInstanceId: number; variableId: string } | null>(null);
-    const [ now, setNow ] = useState(() => Date.now());
-
-    useEffect(() => {
-        if (!leaderboards.length) return;
-
-        const timer = setInterval(() => setNow(Date.now()), RELATIVE_TIME_REFRESH_MS);
-
-        return () => clearInterval(timer);
-    }, [ leaderboards.length ]);
+    const now = useClock('epoch', RELATIVE_TIME_REFRESH_MS, leaderboards.length > 0);
 
     const setDropdown = useCallback((overlayInstanceId: number, open: boolean) => setOpenDropdowns((current) => {
         const next = new Set(current);

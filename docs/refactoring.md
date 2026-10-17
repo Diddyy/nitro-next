@@ -204,7 +204,9 @@ id follow the room engine's session. Found on the way: the navigator never ran `
 - **Second clocks.** Seven views run their own one-second `setInterval` clock (`QuestsView`,
   `DailyTasksView`, `useAvatarEditorEffects`, `ModIssueHandlerView`, `ModIssueBrowserView`,
   `RoomEffectsView`, `VariableLeaderboardWidget`) beside `hooks/useSecondsClock.ts`. An epoch
-  variant of it. S.
+  variant of it. S. **Done:** `hooks/useClock.ts` - an epoch or monotonic clock at each
+  view's own period (500 ms to 30 s, as before), one shared interval per period, and paused for a
+  view that ran its clock only while shown.
 - **Pet images.** The pet figure string is built in `usePetImageTexture`, `useCollectiblePetTexture`,
   `useChatPetFace` and nitro-renderer's `Room.getRoomObjectPetImageArgs` (and in Nitro Studio). One
   exported builder in nitro-renderer. Directions differ by unit (degrees, eighths), not by mistake. S.

@@ -26,11 +26,12 @@
  * draws them; it is not in the boot preload, so the first of these to be drawn pulls its bundle in.
  * `effect_selector`, in the room UI's library, is built by no class of this revision.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
 import { UserAvatarEffect } from '#base/context/user';
 import { secondsLeftOf } from '#base/context/user/store/avatarEffectsModel';
+import { useClock } from '#base/hooks';
 import { Box, LayoutImage, LayoutWindow, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
 import { twoDigits } from '#base/utils';
 
@@ -97,17 +98,9 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose, le
     const inactiveTemplate = useTemplate(INACTIVE_TEMPLATE);
     /** The row the pointer is over, with the state `EffectView.update` last built it in. */
     const [ hovered, setHovered ] = useState<{ type: number; isInUse: boolean; isActive: boolean } | null>(null);
-    const [ now, setNow ] = useState(() => Date.now());
     const anyCounting = effects.some(effect => effect.isActive && !effect.isPermanent);
-
     // `EffectView`'s timer: one tick a second, only while something is counting down.
-    useEffect(() => {
-        if (!anyCounting) return undefined;
-
-        const timer = setInterval(() => setNow(Date.now()), 1000);
-
-        return () => clearInterval(timer);
-    }, [ anyCounting ]);
+    const now = useClock('epoch', 1000, anyCounting);
 
     if (!selectedTemplate || !unselectedTemplate || !inactiveTemplate) return null;
 
