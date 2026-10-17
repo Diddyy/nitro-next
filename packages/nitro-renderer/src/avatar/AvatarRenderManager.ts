@@ -23,6 +23,8 @@ export class AvatarRenderManager implements IAvatarRenderManager {
     private _blockedFigure: AvatarFigureContainer | undefined;
     /** Every full avatar image alive, so `resetAllCaches` can reach them (they drop out on dispose). */
     private _activeImages: Set<AvatarImage> = new Set();
+    /** Figures drawn straight from their libraries' textures, outside any avatar image (`holdFigure`). */
+    private _heldFigures: Set<IAvatarFigureContainer> = new Set();
     private _figureMapReady: boolean = false;
     private _effectMapReady: boolean = false;
 
@@ -243,8 +245,22 @@ export class AvatarRenderManager implements IAvatarRenderManager {
     }
 
     /**
+     * Keeps a figure's libraries loaded through `purgeAssets` until `releaseFigure`: for what draws
+     * their textures without an avatar image (the avatar editor's part thumbnails). Flash never
+     * unloaded a clothing library, so nothing there could draw one after it went.
+     */
+    public holdFigure(container: IAvatarFigureContainer): void {
+        this._heldFigures.add(container);
+    }
+
+    public releaseFigure(container: IAvatarFigureContainer): void {
+        this._heldFigures.delete(container);
+    }
+
+    /**
      * Unloads the clothing and effect libraries no live avatar image needs. The placeholder and
-     * blocked figures are kept too: those images are not registered, and redraw from their libraries.
+     * blocked figures are kept too: those images are not registered, and redraw from their libraries;
+     * so are the held figures (`holdFigure`).
      */
     public purgeAssets(): void {
         const figures: IAvatarFigureContainer[] = [];
@@ -264,6 +280,8 @@ export class AvatarRenderManager implements IAvatarRenderManager {
 
         if (this._placeHolderFigure) figures.push(this._placeHolderFigure);
         if (this._blockedFigure) figures.push(this._blockedFigure);
+
+        figures.push(...this._heldFigures);
 
         this._avatarAssetDownloadManager.purge(figures);
         this._effectAssetDownloadManager.purge(effects);
