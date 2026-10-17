@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 
 import { getRoomObjectBeingPlaced, useRoom, useRoomMouseActions, useRoomStore } from '#base/context/room';
 import { useRoomCamera } from '#base/hooks';
-import { useLatest } from '#base/theme';
+import { DOUBLE_CLICK_MS, useLatest } from '#base/theme';
 
 import { touchPlacementDrop } from './touchPlacementDrop';
 
@@ -255,8 +255,31 @@ export const RoomCanvas = () => {
 
         let didMouseMove = false;
         let isMouseDown = false;
-        let lastClick = 0;
-        let clickCount = 0;
+        // Flash's room double click is the native `doubleClick` (`RoomSpriteCanvas` listens for it): the second click
+        // within the OS's double-click time and distance, counted by the OS when the presses happen. A mouse press's
+        // own `detail` is that count; a press with none (a finger) is timed by its input stamps against the default.
+        let pressStamp = -1;
+        let nativePress: { detail: number; timeStamp: number } | null = null;
+        let lastTapStamp = -Infinity;
+        let tapCount = 0;
+        const canvasElement = GetRenderer().canvas;
+        // When the input happened (a normalized touch has no stamp of its own: when it is handled).
+        const inputStamp = (event: FederatedPointerEvent) => ((event.nativeEvent instanceof Event) ? event.nativeEvent.timeStamp : event.timeStamp);
+        const handleNativeMouseDown = (event: MouseEvent) => {
+            nativePress = { detail: event.detail, timeStamp: event.timeStamp };
+        };
+        const clickCountOf = (event: FederatedPointerEvent) => {
+            if ((event.pointerType === 'mouse') && nativePress && (nativePress.timeStamp >= pressStamp) && (nativePress.detail > 0)) return nativePress.detail;
+
+            const stamp = inputStamp(event);
+
+            tapCount = ((stamp - lastTapStamp) <= DOUBLE_CLICK_MS) ? (tapCount + 1) : 1;
+            lastTapStamp = stamp;
+
+            return tapCount;
+        };
+
+        canvasElement.addEventListener('mousedown', handleNativeMouseDown, true);
 
         /*
          * The room only hears moves over itself, so a drag that crosses the toolbar, the chat bar or
@@ -361,22 +384,7 @@ export const RoomCanvas = () => {
 
             let eventType = event.type === 'tap' ? 'click' : event.type;
 
-            if (eventType === 'click') {
-                if (lastClick) {
-                    clickCount = 1;
-
-                    if (lastClick >= Date.now() - 300) clickCount++;
-                }
-
-                lastClick = Date.now();
-
-                if (clickCount === 2) {
-                    if (!didMouseMove) eventType = MouseEventType.DOUBLE_CLICK;
-
-                    clickCount = 0;
-                    lastClick = 0;
-                }
-            }
+            if ((eventType === 'click') && ((clickCountOf(event) % 2) === 0) && !didMouseMove) eventType = MouseEventType.DOUBLE_CLICK;
 
             switch (eventType) {
                 case 'click':
@@ -390,6 +398,7 @@ export const RoomCanvas = () => {
                     break;
                 case 'pointerdown':
                     eventType = MouseEventType.MOUSE_DOWN;
+                    pressStamp = inputStamp(event);
                     didMouseMove = false;
                     isMouseDown = true;
                     break;
@@ -429,6 +438,7 @@ export const RoomCanvas = () => {
             container.off('globalpointermove', handleGlobalPointerMove);
             container.off('pointerupoutside', handlePointerUpOutside);
             window.removeEventListener('pointercancel', handlePointerCancel);
+            canvasElement.removeEventListener('mousedown', handleNativeMouseDown, true);
             GetRenderer().off('resize', resizeCanvas);
             GetTicker().remove(tick);
 
