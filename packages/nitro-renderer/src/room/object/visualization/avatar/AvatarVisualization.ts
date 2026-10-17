@@ -11,6 +11,7 @@ import {
     type IRoomGeometry,
     IRoomObject, IRoomObjectModel,
     IVariableFxStatusModelData,
+    RoomObjectSpriteData,
     RoomObjectSpriteTypeEnum,
     RoomObjectVariableEnum,
 } from '@nitrodevco/nitro-api';
@@ -455,6 +456,88 @@ export class AvatarVisualization
                 }
             }
         }
+    }
+
+    /**
+     * Flash `getSpriteList`: the avatar as the camera's server render draws it (`SpriteDataCollector`
+     * places these at the avatar's spot) - its figure's parts, its effect's sprites at the normal
+     * size, and the shadow sprite last.
+     */
+    public override getSpriteList(): RoomObjectSpriteData[] {
+        if (!this._avatarImage) return [];
+
+        let shadow: RoomObjectSpriteData | undefined = undefined;
+        const shadowSprite = this.getSprite(AvatarVisualization.SPRITE_INDEX_SHADOW);
+
+        if (shadowSprite) {
+            shadow = new RoomObjectSpriteData();
+            shadow.alpha = shadowSprite.alpha;
+            shadow.x = shadowSprite.offsetX;
+            shadow.y = shadowSprite.offsetY;
+            shadow.name = shadowSprite.name;
+            shadow.width = shadowSprite.width;
+            shadow.height = shadowSprite.height;
+        }
+
+        const sprites = this._avatarImage.getServerRenderData();
+        // Flash places the effect sprites for the large (64) avatar, whatever the room's zoom
+        const scale = 64;
+
+        for (const spriteData of this._avatarImage.getSprites()) {
+            const layerData = this._avatarImage.getLayerData(spriteData);
+            const direction = this._avatarImage.getDirection();
+
+            let frameNumber = 0;
+            let offsetX = spriteData.getDirectionOffsetX(direction);
+            let offsetY = spriteData.getDirectionOffsetY(direction);
+            const offsetZ = spriteData.getDirectionOffsetZ(direction);
+            let dd = spriteData.hasDirections ? direction : 0;
+
+            if (layerData) {
+                frameNumber = layerData.animationFrame;
+                offsetX += layerData.dx;
+                offsetY += layerData.dy;
+                dd += layerData.dd;
+            }
+
+            if (dd < 0) dd += 8;
+            else if (dd > 7) dd -= 8;
+
+            const assetName = `${this._avatarImage.getScale()}_${spriteData.member}_${dd}_${frameNumber}`;
+            const asset = this._avatarImage.getAsset(assetName);
+
+            if (!asset) continue;
+
+            const sprite = new RoomObjectSpriteData();
+
+            sprite.x = asset.offsetX - (scale / 2) + offsetX;
+            sprite.y = asset.offsetY + offsetY;
+
+            if (spriteData.hasStaticY) sprite.y += this._verticalOffset * scale / (2 * AvatarVisualization.BASE_Y_SCALE);
+
+            if (spriteData.ink === 33) sprite.blendMode = 'add';
+
+            sprite.name = assetName;
+            sprite.z = (this._isLaying ? AvatarVisualization.AVATAR_SPRITE_LAYING_DEPTH : 0) - 0.001 * this.totalSprites * offsetZ;
+            sprite.width = asset.rectangle ? asset.rectangle.width : 60;
+            sprite.height = asset.rectangle ? asset.rectangle.height : 60;
+
+            sprites.push(sprite);
+        }
+
+        const avatarSpriteData = this._avatarImage.avatarSpriteData;
+
+        if (avatarSpriteData?.paletteIsGrayscale && avatarSpriteData.reds) {
+            const color = avatarSpriteData.reds[0].toString();
+
+            for (const sprite of sprites) {
+                if ((sprite.name.indexOf('h_std_fx') === -1) && (sprite.name.indexOf('h_std_sd') === -1)) sprite.color = color;
+            }
+        }
+
+        if (shadow) sprites.push(shadow);
+
+        return sprites;
     }
 
     private static getHighlightFilters(): Filter[] {

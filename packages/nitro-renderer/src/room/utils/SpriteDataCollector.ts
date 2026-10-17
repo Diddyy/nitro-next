@@ -9,9 +9,9 @@ import { PlaneDrawingData } from '../object/visualization/room/PlaneDrawingData'
  * (`getFurniData`), the rendering modifiers (`getRoomRenderingModifiers`, always `{}`), and the
  * room's planes as drawing data (`getRoomPlanes`) with a background plane under them.
  *
- * Not ported, because the port's renderer has nothing to read them from: the avatars' and
- * mannequins' own sprite lists (`IRoomObjectSpriteVisualization.getSpriteList` returns none, so a
- * mannequin's `mannequin_` sprites go and an avatar is only the sprites the canvas has of it), a
+ * Each avatar comes as its figure's parts (`AvatarVisualization.getSpriteList`). Not ported, because
+ * the port's renderer has nothing to read them from: a mannequin's own sprite list
+ * (`FurnitureMannequinVisualization.getSpriteList` returns none, so its `mannequin_` sprites go), a
  * palette sprite's `paletteSourceName` (the asset collections keep no palette XML), and the planes'
  * layers (`RoomPlane.getDrawingDatas`: masks and texture columns) - each plane is the one drawing
  * data Flash falls back to, its colour alone.

@@ -1,6 +1,7 @@
 import { ImageLike, Point, RenderTexture, Texture } from 'pixi.js';
 
 import { IGraphicAsset } from '../asset';
+import { RoomObjectSpriteData } from '../room/utils/RoomObjectSpriteData';
 import { IActiveActionData } from './actions';
 import { IAnimationLayerData, IAvatarDataContainer, ISpriteDataContainer } from './animation';
 import { AvatarActionStateType, AvatarFigurePartType, AvatarScaleType, AvatarSetType } from './enum';
@@ -34,6 +35,8 @@ export interface IAvatarImage {
     getScale(): AvatarScaleType;
     getPartColor(partType: AvatarFigurePartType): IPartColor | undefined;
     getSprites(): ISpriteDataContainer[];
+    /** Flash `getServerRenderData`: the figure's parts as the camera's server render draws them. */
+    getServerRenderData(): RoomObjectSpriteData[];
     getCanvasOffsets(): number[];
     getAsset(name: string): IGraphicAsset | undefined;
     getDirection(): number;
