@@ -16,7 +16,8 @@
  */
 import { useEffect, useState } from 'react';
 
-import { openClientLink, PhotoPurchaseState, publishPhoto, purchasePhoto, returnToViewfinder, setPhotoPurchaseState, showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert, useCameraStore } from '#base/commands';
+import { openClientLink, publishPhoto, purchasePhoto, returnToViewfinder, setPhotoPurchaseState, showNotEnoughActivityPointsAlert, showNotEnoughCreditsAlert } from '#base/commands';
+import { PhotoPurchaseState, useCameraStore } from '#base/context/camera';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigBoolean } from '#base/context/system';
 import { useOwnCredits, useUserStore } from '#base/context/user';

@@ -5,8 +5,9 @@
  */
 import { CloseConnectionMessage, IVariableLeaderboardDescriptor, RoomEntryInfoMessage, VariableLeaderboardChunkUpdateMessage, VariableLeaderboardReplaceSubscriptionComposer, VariableLeaderboardSnapshotMessage } from '@nitrodevco/nitro-packets';
 
+import { reconcileLeaderboardSubscription, resetLeaderboardQueryScope } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
-import { desiredLeaderboardChunks, leaderboardPageCount, leaderboardPageSize, VARIABLE_LEADERBOARD_MAX_OVERLAYS, VariableLeaderboardOverlay, wiredStore } from '#base/context/wired';
+import { leaderboardPageCount, leaderboardPageSize, VARIABLE_LEADERBOARD_MAX_OVERLAYS, wiredStore } from '#base/context/wired';
 import { VARIABLE_LEADERBOARD_COLUMN_USERNAME, VARIABLE_LEADERBOARD_MAX_COLUMNS, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID } from '#base/wired';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -36,40 +37,12 @@ const resolveSelection = (descriptor: IVariableLeaderboardDescriptor, selected: 
     return descriptor.choices.some(choice => choice.variableId === selected) ? selected : descriptor.defaultVariableId;
 };
 
-/** `VariableLeaderboardOverlayState.resetQueryScope`. */
-const resetQueryScope = (overlay: VariableLeaderboardOverlay, selectedVariableId: string | null): VariableLeaderboardOverlay => ({ ...overlay, selectedVariableId, page: 0, direction: 0, totalCount: null, chunks: {}, subscribedChunks: [], subscribedVariableId: null });
-
-/** The connection the handlers were registered on: the paging below sends through it. */
-let sendComposer: WebSocketConnection['send'] | null = null;
-
-/**
- * `reconcileSubscription`: sends the chunks the page needs when they differ from the ones
- * subscribed to, and keeps the chunks still wanted.
- */
-const reconcile = (overlay: VariableLeaderboardOverlay): VariableLeaderboardOverlay => {
-    const { leaderboardRoomId, leaderboardSnapshotReceived } = wiredStore.getState();
-
-    if (!leaderboardRoomId || !leaderboardSnapshotReceived || !overlay.selectedVariableId) return overlay;
-
-    const wanted = desiredLeaderboardChunks(overlay);
-
-    if ((overlay.subscribedVariableId === overlay.selectedVariableId) && (wanted.join() === overlay.subscribedChunks.join())) return overlay;
-
-    const chunks: Record<number, VariableLeaderboardOverlay['chunks'][number]> = {};
-
-    for (const index of wanted) if (overlay.chunks[index]) chunks[index] = overlay.chunks[index];
-
-    sendComposer?.(new VariableLeaderboardReplaceSubscriptionComposer({ overlayInstanceId: overlay.descriptor.overlayInstanceId, queryRevision: overlay.descriptor.queryRevision, selectedVariableId: overlay.selectedVariableId, chunkIndices: wanted }));
-
-    return { ...overlay, chunks, subscribedChunks: wanted, subscribedVariableId: overlay.selectedVariableId };
-};
-
 /**
  * `refreshView`'s page size: the edited leaderboard pages by the size its editor describes, the rest
  * by their descriptor's. A size that changed starts the leaderboard over at its first page
  * (`VariableLeaderboardPagingState.entriesPerPage`) and subscribes to the chunks that page needs.
  */
-const syncEntriesPerPage = () => {
+const syncEntriesPerPage = (send: WebSocketConnection['send']) => {
     const { leaderboards, leaderboardLocationEdit, leaderboardLocationEditId, setLeaderboardSnapshot } = wiredStore.getState();
     let changed = false;
 
@@ -81,17 +54,15 @@ const syncEntriesPerPage = () => {
 
         changed = true;
 
-        return reconcile({ ...overlay, entriesPerPage, page: 0, direction: 0 });
+        return reconcileLeaderboardSubscription(send, { ...overlay, entriesPerPage, page: 0, direction: 0 });
     });
 
     if (changed) setLeaderboardSnapshot(next);
 };
 
 export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    sendComposer = send;
-
     const unsubscribeStore = wiredStore.subscribe((state, previous) => {
-        if ((state.leaderboardLocationEdit !== previous.leaderboardLocationEdit) || (state.leaderboards !== previous.leaderboards)) syncEntriesPerPage();
+        if ((state.leaderboardLocationEdit !== previous.leaderboardLocationEdit) || (state.leaderboards !== previous.leaderboards)) syncEntriesPerPage(send);
     });
 
     const unsubscribePackets = subscribeAll(subscribe, [
@@ -126,7 +97,7 @@ export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: We
                 if (index < 0) {
                     if (next.length >= VARIABLE_LEADERBOARD_MAX_OVERLAYS) continue;
 
-                    next.push(resetQueryScope({ descriptor, selectedVariableId: null, entriesPerPage: leaderboardPageSize(descriptor), page: 0, direction: 0, totalCount: null, chunks: {}, subscribedChunks: [], subscribedVariableId: null }, resolveSelection(descriptor, null)));
+                    next.push(resetLeaderboardQueryScope({ descriptor, selectedVariableId: null, entriesPerPage: leaderboardPageSize(descriptor), page: 0, direction: 0, totalCount: null, chunks: {}, subscribedChunks: [], subscribedVariableId: null }, resolveSelection(descriptor, null)));
                     changed.add(descriptor.overlayInstanceId);
 
                     continue;
@@ -138,13 +109,13 @@ export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: We
 
                 const selection = resolveSelection(descriptor, known.selectedVariableId);
 
-                next[index] = ((descriptor.queryRevision !== known.descriptor.queryRevision) || (selection !== known.selectedVariableId)) ? resetQueryScope({ ...known, descriptor }, selection) : { ...known, descriptor };
+                next[index] = ((descriptor.queryRevision !== known.descriptor.queryRevision) || (selection !== known.selectedVariableId)) ? resetLeaderboardQueryScope({ ...known, descriptor }, selection) : { ...known, descriptor };
 
                 if (next[index] !== known) changed.add(descriptor.overlayInstanceId);
             }
 
             setLeaderboardSnapshot(next);
-            setLeaderboardSnapshot(wiredStore.getState().leaderboards.map(overlay => changed.has(overlay.descriptor.overlayInstanceId) ? reconcile(overlay) : overlay));
+            setLeaderboardSnapshot(wiredStore.getState().leaderboards.map(overlay => changed.has(overlay.descriptor.overlayInstanceId) ? reconcileLeaderboardSubscription(send, overlay) : overlay));
         }),
 
         // `onChunkUpdate`.
@@ -161,7 +132,7 @@ export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: We
             const lastPage = leaderboardPageCount(updated) - 1;
 
             // `applyExactTotal`: a total that shrank below the page moves the page back.
-            setLeaderboard(reconcile((updated.page > lastPage) ? { ...updated, page: lastPage, direction: -1 } : updated));
+            setLeaderboard(reconcileLeaderboardSubscription(send, (updated.page > lastPage) ? { ...updated, page: lastPage, direction: -1 } : updated));
         }),
     ]);
 
@@ -169,26 +140,4 @@ export const registerWiredVariableLeaderboardHandlers = ({ send, subscribe }: We
         unsubscribeStore();
         unsubscribePackets();
     };
-};
-
-/** `selectVariable`: another of the leaderboard's variables, from the first page. */
-export const selectLeaderboardVariable = (overlayInstanceId: number, variableId: string) => {
-    const overlay = wiredStore.getState().leaderboards.find(existing => existing.descriptor.overlayInstanceId === overlayInstanceId);
-
-    if (!overlay || (variableId === overlay.selectedVariableId) || !overlay.descriptor.choices.some(choice => choice.variableId === variableId)) return;
-
-    wiredStore.getState().setLeaderboard(reconcile(resetQueryScope(overlay, variableId)));
-};
-
-/** `showPreviousPage` / `showNextPage` (`movePage`). */
-export const moveLeaderboardPage = (overlayInstanceId: number, delta: number) => {
-    const overlay = wiredStore.getState().leaderboards.find(existing => existing.descriptor.overlayInstanceId === overlayInstanceId);
-
-    if (!overlay || (overlay.totalCount === null)) return;
-
-    const page = overlay.page + delta;
-
-    if ((page < 0) || (page >= leaderboardPageCount(overlay)) || (page === overlay.page)) return;
-
-    wiredStore.getState().setLeaderboard(reconcile({ ...overlay, page, direction: (page > overlay.page) ? 1 : -1 }));
 };

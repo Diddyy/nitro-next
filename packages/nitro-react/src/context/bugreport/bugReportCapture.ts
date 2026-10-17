@@ -8,7 +8,7 @@
 import { GetRenderer, GetRoomStage } from '@nitrodevco/nitro-renderer';
 import { Rectangle } from 'pixi.js';
 
-import { roomStore } from '#base/context/room';
+import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { configReader } from '#base/utils';
 
@@ -133,7 +133,7 @@ const takeScreenshot = async (): Promise<Uint8Array> => {
         const renderer = GetRenderer();
         const stage = GetRoomStage();
 
-        if (!renderer || !stage || !roomStore.getState().room) return new Uint8Array(0);
+        if (!renderer || !stage || !getRoom()) return new Uint8Array(0);
 
         const width = renderer.screen.width;
         const height = renderer.screen.height;

@@ -23,7 +23,7 @@ import { GetChatStyleLibrary } from '#base/chat';
 import { WebSocketConnection } from '#base/context/communication';
 import { helpStore } from '#base/context/help';
 import { navigatorStore } from '#base/context/navigator';
-import { roomStore } from '#base/context/room';
+import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
@@ -31,7 +31,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
 
 /** `ChatEventHandler.onRoomChat`. */
 const onRoomChat = (objectId: number, text: string, styleId: number) => {
-    const room = roomStore.getState().room;
+    const room = getRoom();
     const userData = roomStore.getState().getUserByRoomObjectId(objectId);
     const enteredRoom = navigatorStore.getState().enteredRoom;
 

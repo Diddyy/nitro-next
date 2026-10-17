@@ -6,7 +6,7 @@ import { AcceptQuestComposer, ActivateQuestComposer, GetQuestsComposer, IQuestMe
 
 import { WebSocketConnection } from '#base/context/communication';
 import { questsStore } from '#base/context/quests';
-import { roomStore } from '#base/context/room';
+import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { configReader } from '#base/utils';
 
@@ -215,7 +215,7 @@ export const toggleQuestDetails = (quest: IQuestMessageData) => {
 
 /** `QuestDetails.onAcceptQuest`: `AcceptQuest` in a room, `ActivateQuest` outside one; the window closes. */
 export const acceptQuestFromDetails = (send: Send, quest: IQuestMessageData) => {
-    if (roomStore.getState().room) send(new AcceptQuestComposer({ questId: quest.id }));
+    if (getRoom()) send(new AcceptQuestComposer({ questId: quest.id }));
     else send(new ActivateQuestComposer({ questId: quest.id }));
 
     closeQuestDetails();

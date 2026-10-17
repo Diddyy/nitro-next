@@ -2,7 +2,7 @@ import { GetConfigValue } from '@nitrodevco/nitro-api';
 import { AvatarEffectActivatedComposer, AvatarEffectActivatedMessage, AvatarEffectAddedMessage, AvatarEffectExpiredMessage, AvatarEffectSelectedComposer, AvatarEffectSelectedMessage, AvatarEffectsMessage, RoomEntryInfoMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { wearAgain } from '#base/context/user/store/avatarEffectsModel';
@@ -23,7 +23,7 @@ export const registerAvatarEffectsHandlers = ({ subscribe, send }: WebSocketConn
      * any room, shows nothing.
      */
     const showEffectsWindow = () => {
-        if (!roomStore.getState().room) return;
+        if (!getRoom()) return;
 
         systemStore.getState().showWindow('avatar_effects');
     };

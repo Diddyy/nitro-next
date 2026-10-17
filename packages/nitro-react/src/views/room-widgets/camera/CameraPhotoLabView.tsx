@@ -20,8 +20,9 @@
 import { FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useMemo, useState } from 'react';
 
-import { closePhotoLab, openPhotoPurchase, returnToViewfinder, sendPhotoRenderData, useCameraStore } from '#base/commands';
+import { closePhotoLab, openPhotoPurchase, returnToViewfinder, sendPhotoRenderData } from '#base/commands';
 import { AchievementCategory, useAchievementsStore } from '#base/context/achievements';
+import { useCameraStore } from '#base/context/camera';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useWindowPointerDrag } from '#base/hooks';

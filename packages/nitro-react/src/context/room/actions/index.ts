@@ -2,6 +2,7 @@
 export * from './useRoomBotsActions';
 export * from './useRoomChatActions';
 export * from './useRoomChooserActions';
+export * from './useRoomCustomUserNotificationActions';
 export * from './useRoomDoorbellActions';
 export * from './useRoomFloorPlanActions';
 export * from './useRoomFriendRequestActions';

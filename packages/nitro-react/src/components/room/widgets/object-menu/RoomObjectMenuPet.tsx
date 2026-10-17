@@ -1,10 +1,10 @@
-import { FurnitureSpecialType, ISimpleRoomObjectData, PetType, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectUserType } from '@nitrodevco/nitro-api';
+import { ISimpleRoomObjectData, PetType, RoomObjectCategoryEnum, RoomObjectOperationType, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { ChatComposer, CompostPlantComposer, HarvestPetComposer, MountPetComposer, PassCarryItemToPetComposer, RemoveSaddleFromPetComposer, RespectPetComposer, TogglePetBreedingPermissionComposer, TogglePetRidingPermissionComposer } from '@nitrodevco/nitro-packets';
 
-import { openClientLink } from '#base/commands';
+import { openClientLink, openPetRevivalOffer } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsRoomOwner, useOwnRoomObjectId, useRoomPetInfo, useRoomPetsActions, useRoomStore, useRoomUserByObjectId } from '#base/context/room';
-import { systemStore, useConfigBoolean, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useTranslation, useWindowActions } from '#base/context/system';
 import { useOwnUserId, useUserActions, useUserStore } from '#base/context/user';
 import { useWiredShowInspectButton } from '#base/context/wired';
 import { useRoomObjectModify, useRoomUserData } from '#base/hooks';
@@ -25,12 +25,6 @@ const NEST_BREEDING_TYPES: Record<number, string> = {
 
 /** `pet.command.46`: what a nest-bred pet is told to start breeding. */
 const BREED_COMMAND = 46;
-
-/** `findFurnitureData(20, 16)`: the furniture of category (`specialtype`) 20, the monsterplant revival, whose first custom parameter is pet type 16. */
-const REVIVAL_PET_TYPE = '16';
-
-const findRevivalFurniture = () => Object.values(systemStore.getState().floorItems)
-    .find(furniture => (furniture.specialType === FurnitureSpecialType.MonsterplantRevival) && (furniture.customParams.split(' ')[0] === REVIVAL_PET_TYPE) && (furniture.purchaseOfferId >= 0));
 
 /** `updateButtons`: `treat` is enabled while the plant's energy is under this share of its maximum. */
 const TREAT_ENERGY_RATIO = 0.98;
@@ -121,10 +115,7 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
             case 'wired_inspect': openClientLink(send, `wiredmenu/open/inspection/1/${objectId}`); break;
             // `openCatalogPage(findFurnitureData(20, 16))`: the revival's offer (`RWUAM_REVIVE_PET` itself does nothing).
             case 'revive': {
-                const revival = findRevivalFurniture();
-
-                if (revival) showWindow('catalog', { offerId: revival.purchaseOfferId });
-
+                openPetRevivalOffer();
                 break;
             }
             // `openTrainingView`: the training window (`PetCommandTool`) on this pet.

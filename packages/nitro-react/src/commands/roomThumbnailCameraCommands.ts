@@ -5,13 +5,13 @@
  */
 import type { ThumbnailStatusMessageType } from '@nitrodevco/nitro-packets';
 
-import { roomStore } from '#base/context/room';
+import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 
 /** `startTakingPhoto`: not while zoomed out or turned over - Flash's own text, not a localisation. */
 export const startRoomThumbnailCamera = () => {
     const { showWindow, showAlert } = systemStore.getState();
-    const canvas = roomStore.getState().room?.canvas;
+    const canvas = getRoom()?.canvas;
 
     if (canvas && ((canvas.scale < 1) || canvas.isFlipped)) {
         showAlert('Camera only works on normal zoom!', 'Return to normal zoom level and try again!');

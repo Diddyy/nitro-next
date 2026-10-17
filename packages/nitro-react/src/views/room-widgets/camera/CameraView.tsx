@@ -23,8 +23,9 @@
 import { Rectangle } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
-import { CameraPhoto, collectRoomPhotoData, editPhoto, isRoomUnfit, openClientLink, requestAchievements, requestCameraConfiguration, snapshotRoomCanvas } from '#base/commands';
+import { collectRoomPhotoData, editPhoto, isRoomUnfit, openClientLink, requestAchievements, requestCameraConfiguration, snapshotRoomCanvas } from '#base/commands';
 import { GetRoomBackgroundColor } from '#base/components';
+import { CameraPhoto } from '#base/context/camera';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
 import { useConfigValue, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';

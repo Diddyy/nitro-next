@@ -12,7 +12,7 @@ import {
 } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
@@ -33,7 +33,7 @@ const DEFAULT_REPLENISH_COST = 50;
 /** The activity point type duckets are counted in. */
 const DUCKETS = 0;
 
-const roomId = () => roomStore.getState().room?.roomId ?? 0;
+const roomId = () => getRoom()?.roomId ?? 0;
 
 /** Everything the infostand shows about a user that the room does not already carry. */
 export const requestUserDetails = (send: Send, webId: number) => {

@@ -1,8 +1,10 @@
 /**
  * Monsterplant breeding: `BreedPetsMessageComposer`'s states, and `AvatarInfoWidget`'s waiting
  * confirmation shown to whoever proposed it, which calls the breeding off when cancelled - and a
- * pet's commands and info asked for (`RoomSession.requestPetCommands`, `UserDataManager.requestPetInfo`).
+ * pet's commands and info asked for (`RoomSession.requestPetCommands`, `UserDataManager.requestPetInfo`),
+ * and a dead monsterplant's revival offer.
  */
+import { FurnitureSpecialType } from '@nitrodevco/nitro-api';
 import { BreedPetsComposer, GetPetCommandsComposer, GetPetInfoComposer } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
@@ -61,3 +63,14 @@ export const requestPetCommands = (send: Send, petId: number) => send(new GetPet
 
 /** `UserDataManager.requestPetInfo`: the pet's level and experience (`RWUAM_REQUEST_PET_UPDATE`). */
 export const requestPetInfo = (send: Send, petId: number) => send(new GetPetInfoComposer({ petId }));
+
+/** `findFurnitureData(20, 16)`: the furniture of category (`specialtype`) 20, the monsterplant revival, whose first custom parameter is pet type 16. */
+const REVIVAL_PET_TYPE = '16';
+
+/** `RWUAM_REVIVE_PET`'s `openCatalogPage(findFurnitureData(20, 16))`: the revival's offer, when the catalogue sells one. */
+export const openPetRevivalOffer = () => {
+    const { floorItems, showWindow } = systemStore.getState();
+    const revival = Object.values(floorItems).find(furniture => (furniture.specialType === FurnitureSpecialType.MonsterplantRevival) && (furniture.customParams.split(' ')[0] === REVIVAL_PET_TYPE) && (furniture.purchaseOfferId >= 0));
+
+    if (revival) showWindow('catalog', { offerId: revival.purchaseOfferId });
+};

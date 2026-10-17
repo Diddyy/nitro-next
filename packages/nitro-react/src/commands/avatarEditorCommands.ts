@@ -16,13 +16,13 @@
  * requests: what it asks for as it opens, the wardrobe slots, and the save of a look, a clothing
  * booth's outfit, an NFT outfit or an effect.
  */
-import { AvatarFigurePartType, AvatarGenderType } from '@nitrodevco/nitro-api';
+import { AvatarEditorCategory, AvatarFigurePartType, AvatarGenderType } from '@nitrodevco/nitro-api';
 import { AvatarEffectActivatedComposer, AvatarEffectSelectedComposer, GetHotLooksComposer, GetSelectedNftWardrobeOutfitComposer, GetUserNftWardrobeComposer, GetWardrobeComposer, SaveUserNftWardrobeComposer, SaveWardrobeOutfitComposer, SetClothingChangeDataComposer, UpdateFigureDataComposer } from '@nitrodevco/nitro-packets';
 import { GetAvatarRenderManager } from '@nitrodevco/nitro-renderer';
 
 import { avatarEditorStore } from '#base/context/avatar-editor';
 import { WebSocketConnection } from '#base/context/communication';
-import { configBoolean } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { firstSelectableColorId, getAvatarEditorPartSets } from '#base/utils';
 
@@ -163,3 +163,21 @@ export const selectAvatarEffect = (send: Send, effectType: number) => send(new A
 
 /** `EffectsModel.useEffect`: an effect not running yet is switched on first. */
 export const activateAvatarEffect = (send: Send, effectType: number) => send(new AvatarEffectActivatedComposer({ effectType }));
+
+/** `AvatarEffect.subType` of a costume. */
+const COSTUME_SUB_TYPE = 1;
+
+/**
+ * `CustomUserNotificationWidget`'s `buy_costumes`: the avatar editor on its effects tab when the
+ * user owns a costume, else the catalogue's `costumes` page.
+ */
+export const openCostumes = () => {
+    if (userStore.getState().avatarEffects.some(effect => effect.subType === COSTUME_SUB_TYPE)) {
+        avatarEditorStore.getState().setActiveCategory(AvatarEditorCategory.Effects);
+        systemStore.getState().showWindow('avatar_editor');
+
+        return;
+    }
+
+    systemStore.getState().showWindow('catalog', { pageName: 'costumes' });
+};

@@ -17,7 +17,7 @@ import { GetRaidProtectionSettingsComposer, SaveRaidProtectionSettingsComposer }
 import { WebSocketConnection } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
 import { RaidProtectionDraft, raidProtectionStore } from '#base/context/raid-protection';
-import { roomStore } from '#base/context/room';
+import { getRoom } from '#base/context/room';
 import { configBoolean, systemStore } from '#base/context/system';
 
 type Send = WebSocketConnection['send'];
@@ -42,7 +42,7 @@ const raid = () => raidProtectionStore.getState();
 export const isRaidProtectionEnabled = () => configBoolean('raid.protection.enabled');
 
 /** `isLiveCurrentRoom`: the navigator's current room, with its session started. */
-const isLiveCurrentRoom = (roomId: number) => (roomId > 0) && (navigatorStore.getState().currentRoomId === roomId) && (roomStore.getState().room?.roomId === roomId);
+const isLiveCurrentRoom = (roomId: number) => (roomId > 0) && (navigatorStore.getState().currentRoomId === roomId) && (getRoom()?.roomId === roomId);
 
 /** `isCurrentEnteredRoom`: the live current room, whose room info is in. */
 const isCurrentEnteredRoom = (roomId: number) => isLiveCurrentRoom(roomId) && (navigatorStore.getState().enteredRoom?.info.roomId === roomId);

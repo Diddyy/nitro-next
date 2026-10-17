@@ -24,13 +24,12 @@ import { IRoom } from '@nitrodevco/nitro-api';
 import { IVariableLeaderboardChoice, IVariableLeaderboardDescriptor } from '@nitrodevco/nitro-packets';
 import { memo, useCallback, useEffect, useState } from 'react';
 
-import { openProfile } from '#base/commands';
+import { dragLeaderboardLocation, moveLeaderboardPage, openProfile, selectLeaderboardVariable } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
-import { leaderboardPageCount, leaderboardPageRows, leaderboardPageSize, useWiredStore, VariableLeaderboardLocationEdit, VariableLeaderboardOverlay, wiredStore } from '#base/context/wired';
-import { moveLeaderboardPage, selectLeaderboardVariable } from '#base/handlers';
+import { leaderboardPageCount, leaderboardPageRows, leaderboardPageSize, useWiredStore, VariableLeaderboardLocationEdit, VariableLeaderboardOverlay } from '#base/context/wired';
 import { VariableLeaderboardBodyState, VariableLeaderboardView } from '#base/views/room-widgets/variable-leaderboard/VariableLeaderboardView';
-import { sameLeaderboardLocation, suggestLeaderboardDisplayName, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID, VariableLeaderboardLocation } from '#base/wired';
+import { suggestLeaderboardDisplayName, VARIABLE_LEADERBOARD_NULL_VARIABLE_ID, VariableLeaderboardLocation } from '#base/wired';
 
 import { ScaledRoomOverlay } from '../../overlay';
 import { placeLeaderboardWindow, unprojectLeaderboardWindow } from './VariableLeaderboardLocationProjector';
@@ -79,13 +78,9 @@ const createDraftDescriptor = (edit: VariableLeaderboardLocationEdit): IVariable
 
 /** `updateDraggedWindowPosition` -> `updateDraggedLocation`: the dragged window's location becomes the draft's. */
 const onLeaderboardDragged = (room: IRoom) => (x: number, y: number, width: number, height: number) => {
-    const edit = wiredStore.getState().leaderboardLocationEdit;
     const location = unprojectLeaderboardWindow(room, x, y, width, height);
 
-    // Most drag steps stay on the same room pixel: nothing to tell the editor.
-    if (!edit || !location || sameLeaderboardLocation(location, edit.draft.location)) return;
-
-    wiredStore.getState().setLeaderboardLocationEdit({ ...edit, draft: { ...edit.draft, location } });
+    if (location) dragLeaderboardLocation(location);
 };
 
 /** `getBodyState`: no variable or no entry, a chunk the page needs still to come, or the rows. */
@@ -140,11 +135,11 @@ const LeaderboardPanel = memo(({ room, overlay, edit, faded, now, dropdownOpen, 
                 onToggleChoices={() => setDropdown(id, !dropdownOpen)}
                 onHoverChoice={variableId => setHoveredChoice(variableId ? { overlayInstanceId: id, variableId } : null)}
                 onSelectChoice={(variableId) => {
-                    selectLeaderboardVariable(id, variableId);
+                    selectLeaderboardVariable(send, id, variableId);
                     setDropdown(id, false);
                 }}
-                onPrevious={() => moveLeaderboardPage(id, -1)}
-                onNext={() => moveLeaderboardPage(id, 1)}
+                onPrevious={() => moveLeaderboardPage(send, id, -1)}
+                onNext={() => moveLeaderboardPage(send, id, 1)}
                 onProfile={userId => openProfile(send, userId)}
             />
         </ScaledRoomOverlay>

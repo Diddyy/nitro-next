@@ -88,6 +88,7 @@ export * from './wiredPreferencesCommands';
 export * from './wiredRoomLogsCommands';
 export * from './wiredSynchronizerCommands';
 export * from './wiredTradingCommands';
+export * from './wiredVariableLeaderboardCommands';
 export * from './wiredVariableManagementCommands';
 export * from './wiredWebApiKeyCommands';
 export * from './wordFilterCommands';

@@ -11,8 +11,8 @@
 import { VARIABLE_LEADERBOARD_PAGE_SIZES, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 import { useEffect, useMemo } from 'react';
 
-import { setWiredMergedSourceType } from '#base/commands';
-import { useWiredStore, wiredStore } from '#base/context/wired';
+import { endLeaderboardLocationEdit, setWiredMergedSourceType, updateLeaderboardLocationEdit } from '#base/commands';
+import { useWiredStore } from '#base/context/wired';
 import {
     changeLeaderboardColumn,
     getWiredRoomVariables,
@@ -24,7 +24,6 @@ import {
     leaderboardGeneralWarning,
     leaderboardNeedsColumnTypeInfo,
     leaderboardSortOptions,
-    sameLeaderboardConfig,
     sameLeaderboardLocation,
     selectLeaderboardFilterVariable,
     setLeaderboardColumnCount,
@@ -71,7 +70,6 @@ const PAGE_SIZE_WIDTH = 80;
 export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardAddonForm> = ({ form, setForm, triggerable, ctx }) => {
     const style = useWiredStyle();
     const variables = getWiredRoomVariables(triggerable);
-    const setLocationEdit = useWiredStore(x => x.setLeaderboardLocationEdit);
     const draftLocation = useWiredStore(x => x.leaderboardLocationEdit?.draft.location ?? null);
     const config = useMemo(() => leaderboardConfigFromForm(form, ctx.roomVariables), [ form, ctx.roomVariables ]);
     // `beginEdit`'s `_active`: the edit runs for a readable box with its context.
@@ -82,18 +80,11 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
 
     // `onEditInitialized` -> `beginLocationEdit`, then `updateEditDraft` on every change.
     useEffect(() => {
-        if (!active || !form.context) return;
-
-        const current = wiredStore.getState().leaderboardLocationEdit;
-
-        // A dragged location coming back through the form is the draft the store already has.
-        if (current && (current.context === form.context) && sameLeaderboardConfig(current.draft, config)) return;
-
-        setLocationEdit({ context: form.context, draft: config });
-    }, [ active, form.context, config, setLocationEdit ]);
+        if (active && form.context) updateLeaderboardLocationEdit(form.context, config);
+    }, [ active, form.context, config ]);
 
     // `onEditEnd` -> `endLocationEdit`.
-    useEffect(() => () => setLocationEdit(null), [ setLocationEdit ]);
+    useEffect(() => endLeaderboardLocationEdit, []);
 
     // `onLocationChanged`: a drag in the room moved the leaderboard.
     useEffect(() => {

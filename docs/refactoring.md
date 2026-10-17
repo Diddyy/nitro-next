@@ -175,6 +175,13 @@ their direct sends, as the conventions allow. Not checked live (Turbo was down).
 - `handlers/wired/registerWiredVariableLeaderboardHandlers.ts` keeps `send` in a module variable
   and exports user commands a widget imports from `#base/handlers`. S.
 
+**Done:** `context/camera` holds the camera store, with actions for what its commands wrote with
+`setState`. The views' store reads moved to commands (`openCostumes`, `openPetRevivalOffer`, the
+leaderboard location edit's `updateLeaderboardLocationEdit` / `endLeaderboardLocationEdit` /
+`dragLeaderboardLocation`), and their actions come from actions hooks. `getRoom()` at every site.
+The leaderboard's subscription, variable and page commands are in
+`commands/wiredVariableLeaderboardCommands.ts`, taking `send` like other commands.
+
 ### 12. Navigator store and copies of the current room
 
 `context/navigator/store/NavigatorStore.ts` (515 lines) covers about eight concerns without slices.
@@ -257,4 +264,5 @@ id follow the room engine's session. Found on the way: the navigator never ran `
 - Item 8, boolean configuration read as Flash does (`configBoolean`, `useConfigBoolean`).
 - Item 9, moderation through actions hooks and `moderationCommands`.
 - Item 10, views send packets only through commands.
+- Item 11, the camera store in `context`, store reads out of views, `getRoom()`, leaderboard commands.
 - Item 12, navigator store slices; the groups copy of the room id derived.

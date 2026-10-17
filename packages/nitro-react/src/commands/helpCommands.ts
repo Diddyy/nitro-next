@@ -20,7 +20,7 @@ import { AppealCfhComposer, CallForHelpComposer, CallForHelpFromForumMessageComp
 
 import { WebSocketConnection } from '#base/context/communication';
 import { HelpReportEntry, helpStore } from '#base/context/help';
-import { roomStore } from '#base/context/room';
+import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
@@ -66,7 +66,7 @@ export const collectSelectedChatEntries = (): (number | string)[] => helpStore.g
  * sender, their name, the photo's extra data id and its wall item, in the room the user is in.
  */
 export const reportPhoto = (senderId: number, senderName: string, extraDataId: string, roomObjectId: number) => {
-    helpStore.getState().setReportedRoomId(roomStore.getState().room?.roomId ?? -1);
+    helpStore.getState().setReportedRoomId(getRoom()?.roomId ?? -1);
     helpStore.getState().setReportedUserId(senderId);
     helpStore.getState().setReportedPhoto(senderName, roomObjectId, extraDataId);
     systemStore.getState().showWindow('help', { entry: 'photo', openedAt: performance.now() });

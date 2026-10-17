@@ -1,12 +1,10 @@
-import { AvatarEditorCategory, CatalogTypeEnum } from '@nitrodevco/nitro-api';
+import { CatalogTypeEnum } from '@nitrodevco/nitro-api';
 
-import { openClubCenter, showVipBenefits } from '#base/commands';
-import { avatarEditorStore } from '#base/context/avatar-editor';
+import { openClubCenter, openCostumes, showVipBenefits } from '#base/commands';
 import { getCatalogStore } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { CustomUserNotificationType } from '#base/context/room';
-import { systemStore, useConfigData, useTranslation } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { useConfigData, useTranslation } from '#base/context/system';
 import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 import { configReader } from '#base/utils';
 
@@ -41,9 +39,6 @@ const VIP_TEXT_PREFIX: Partial<Record<CustomUserNotificationType, string>> = { v
 /** And the talent show texts and picture by this suffix. */
 const RESPECT_SUFFIX: Partial<Record<CustomUserNotificationType, string>> = { respectfailedstage: 'stage', respectfailedaudience: 'audience' };
 
-/** `AvatarEffect.subType` of a costume. */
-const COSTUME_SUB_TYPE = 1;
-
 export interface CustomUserNotificationViewProps {
     type: CustomUserNotificationType;
     /** `CustomUserNotificationWidget.close`. */
@@ -59,13 +54,7 @@ export const CustomUserNotificationView = ({ type, onClose }: CustomUserNotifica
     const respectSuffix = RESPECT_SUFFIX[type];
 
     const buyCostumes = () => {
-        if (userStore.getState().avatarEffects.some(effect => effect.subType === COSTUME_SUB_TYPE)) {
-            avatarEditorStore.getState().setActiveCategory(AvatarEditorCategory.Effects);
-            systemStore.getState().showWindow('avatar_editor');
-        } else {
-            systemStore.getState().showWindow('catalog', { pageName: 'costumes' });
-        }
-
+        openCostumes();
         onClose();
     };
 
