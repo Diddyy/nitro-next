@@ -86,6 +86,33 @@ export class PlaneMaterialCellMatrix {
         return this._normalMaxY;
     }
 
+    /** Flash `isBottomAligned` (its build 1745 decompiles the align check against a constant of the same value). */
+    public isBottomAligned(): boolean {
+        return this._align === PlaneMaterialCellMatrix.ALIGN_BOTTOM;
+    }
+
+    /** Flash `getColumns`: the columns, or for random repeat a random run of them `width` pixels wide. */
+    public getColumns(width: number): PlaneMaterialCellColumn[] {
+        if (this._repeatMode !== PlaneMaterialCellMatrix.REPEAT_MODE_RANDOM) return this._columns.filter(column => !!column);
+
+        const columns: PlaneMaterialCellColumn[] = [];
+        let total = 0;
+
+        while (total < width) {
+            const column = this._columns[PlaneMaterialCellMatrix.nextRandomColumnIndex(this._columns.length)];
+
+            if (!column) break;
+
+            columns.push(column);
+
+            if (column.width <= 1) break;
+
+            total += column.width;
+        }
+
+        return columns;
+    }
+
     public get isStatic(): boolean {
         return this._isStatic;
     }

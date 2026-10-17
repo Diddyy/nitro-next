@@ -75,7 +75,9 @@ export class RoomObjectCache {
                     const data = new RoomObjectSpriteData();
 
                     data.objectId = item.objectId;
-                    data.x = Math.round(sprite.x);
+                    // Flash's canvas draws a flipped sprite from a mirrored copy of its bitmap, so its x is where the picture
+                    // starts; here it is mirrored in place (`scale -1`) and reaches back a width from the sprite's x.
+                    data.x = Math.round(sprite.x) - (sprite.sprite.flipH ? sprite.sprite.width : 0);
                     data.y = Math.round(sprite.y);
                     data.z = sprite.z;
                     data.name = sprite.sprite.libraryAssetName;

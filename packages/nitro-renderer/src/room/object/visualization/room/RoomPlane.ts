@@ -1,6 +1,7 @@
 import {
     IAssetPlaneVisualizationLayer,
     IMaskEntry,
+    IPlaneDrawingData,
     IRoomGeometry,
     IRoomPlane,
     IVector3D,
@@ -12,7 +13,9 @@ import { ExtendedSprite, TexturePool, TextureUtils } from '#renderer/utils';
 
 import { RoomGeometry } from '../../../utils';
 import { PlaneMaskManager } from './mask';
+import { PlaneDrawingData } from './PlaneDrawingData';
 import { PlaneTextureCache } from './PlaneTextureCache';
+import { PlaneVisualizationLayer } from './rasterizer/basic/PlaneVisualizationLayer';
 import { IPlaneRasterizer } from './rasterizer/IPlaneRasterizer';
 import { acquirePlaneTarget, clearPlaneCanvas, copyToPlaneCanvas, createPlaneCanvas, fillPlaneCanvas, preparePlaneSampling, releasePlaneCanvas, releasePlaneTarget } from './rasterizer/PlaneCanvas';
 import { RoomPlaneBitmapMask } from './RoomPlaneBitmapMask';
@@ -30,10 +33,9 @@ type PlaneDataType = 'floorData' | 'wallData';
  * first floor or wall material cell as `getTextureAndColorForPlane` does.
  *
  * Walls and landscapes are copied onto the plane in pixel-stepped column strips (`drawStepped`),
- * as Flash's `draw` does; anything else is drawn through the plane's matrix. Not ported:
- * `getDrawingDatas` (and `resolveMasks` under it), the per-layer drawing data only the photo
- * camera reads - Flash's `§_-91p§` (the port's `SpriteDataCollector`) sends it to the server in `RenderRoomMessageComposer`.
- * The port's `SpriteDataCollector` sends each plane as its colour alone instead.
+ * as Flash's `draw` does; anything else is drawn through the plane's matrix. `getDrawingDatas` (and
+ * `resolveMasks` under it) describe the plane for the photo camera: Flash's `§_-91p§` (the port's
+ * `SpriteDataCollector`) sends them to the server in `RenderRoomMessageComposer`.
  */
 /** The default plane angles (the port's `PlaneRasterizer` carries the same pair) for the per-size plane geometries. */
 const HORIZONTAL_ANGLE_DEFAULT = 45;
@@ -891,6 +893,110 @@ export class RoomPlane implements IRoomPlane {
         container.destroy({ children: true });
 
         return this._maskTexture;
+    }
+
+    /** Flash `blend`: the layer's colour multiplied by the plane's (`Canvas.colorize`). */
+    private static blend(planeColor: number, layerColor: number): number {
+        const channel = (shift: number) => Math.trunc((((layerColor >> shift) & 0xFF) * ((planeColor >> shift) & 0xFF)) / 255);
+
+        return ((channel(16) << 16) | (channel(8) << 8) | channel(0)) >>> 0;
+    }
+
+    /** Flash `screenWidth`: the plane's left side as screen pixels across. */
+    private screenWidth(geometry: IRoomGeometry): number {
+        const origin = geometry.getScreenPoint(new Vector3d(0, 0, 0));
+        const step = geometry.getScreenPoint(new Vector3d(0, 1, 0));
+
+        return Math.round(this._leftSide.length * Math.abs(origin.x - step.x));
+    }
+
+    /**
+     * Flash `resolveMasks`: the plane's bitmap masks (a door, a window) as the asset each draws and
+     * where on the plane's texture, for the photo camera. Flash reads the masks of the last draw; the
+     * port's masks are the ones it draws next, the same once the room is on screen.
+     */
+    private resolveMasks(geometry: IRoomGeometry): PlaneDrawingData | undefined {
+        if (!this._useMask) return undefined;
+
+        const drawingData = new PlaneDrawingData();
+        const normal = geometry.getCoordinatePosition(this._normal);
+        // Flash measures the plane's texture (its bitmap), not the plane: the size the masks are drawn on.
+        const texture = this._activeTexture?.texture;
+
+        if (!texture) return drawingData;
+
+        const { width, height } = texture;
+
+        for (const mask of this._bitmapMasks) {
+            const planeMask = this._maskManager?.getMask(mask.type);
+            const assetName = planeMask?.getAssetName(geometry.scale);
+            const asset = assetName ? planeMask?.getGraphicAsset(geometry.scale, normal) : undefined;
+
+            if (!assetName || !asset) continue;
+
+            const x = Math.trunc(width * (1 - (mask.leftSideLoc / this._leftSide.length)));
+            const y = Math.trunc(height * (1 - (mask.rightSideLoc / this._rightSide.length)));
+
+            drawingData.addMask(assetName, new Point(x + asset.offsetX, y + asset.offsetY), asset.flipH, asset.flipV);
+        }
+
+        return drawingData;
+    }
+
+    /**
+     * Flash `getDrawingDatas`: one drawing data per layer of the plane's visualization - its texture's
+     * asset names column by column (a column whose cells do not repeat ends in `""`) or, without a
+     * texture, its colour - each carrying the plane's masks; the plane's colour alone when it has no layer.
+     */
+    public getDrawingDatas(geometry: IRoomGeometry): IPlaneDrawingData[] {
+        const drawingDatas: IPlaneDrawingData[] = [];
+
+        if (!this.visible) return drawingDatas;
+
+        const masks = this.resolveMasks(geometry);
+
+        for (const layer of this._rasterizer?.getLayers(this._id ?? '') ?? []) {
+            if (!(layer instanceof PlaneVisualizationLayer)) continue;
+
+            const material = layer.getMaterial();
+
+            if (!this._hasTexture || !material) {
+                drawingDatas.push(new PlaneDrawingData(masks, RoomPlane.blend(this._color, layer.getColor())));
+
+                continue;
+            }
+
+            const normal = geometry.getCoordinatePosition(this._normal);
+            const matrix = material.getMaterialCellMatrix(normal);
+
+            if (!matrix) continue;
+
+            const drawingData = new PlaneDrawingData(masks, RoomPlane.blend(this._color, layer.getColor()), matrix.isBottomAligned());
+
+            Randomizer.setSeed(RoomPlane.TYPE_UNDEFINED);
+
+            for (const column of matrix.getColumns(this.screenWidth(geometry))) {
+                const assetNames: string[] = [];
+
+                for (const cell of column.getCells()) {
+                    const assetName = cell.getAssetName(normal);
+
+                    if (assetName) assetNames.push(assetName);
+                }
+
+                if (!assetNames.length) continue;
+
+                if (!column.isRepeated()) assetNames.push('');
+
+                drawingData.addAssetColumn(assetNames);
+            }
+
+            if (drawingData.assetNameColumns.length) drawingDatas.push(drawingData);
+        }
+
+        if (!drawingDatas.length) drawingDatas.push(new PlaneDrawingData(masks, this._color));
+
+        return drawingDatas;
     }
 
     public get canBeVisible(): boolean {

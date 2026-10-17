@@ -50,6 +50,16 @@ export class PlaneMaterialCellColumn {
         return this._isStatic;
     }
 
+    /** Flash `isRepeated`: the cells repeat down the column. */
+    public isRepeated(): boolean {
+        return this._repeatMode !== PlaneMaterialCellColumn.REPEAT_MODE_NONE;
+    }
+
+    /** Flash `getCells`. */
+    public getCells(): PlaneMaterialCell[] {
+        return this._cells;
+    }
+
     public get width(): number {
         return this._width;
     }

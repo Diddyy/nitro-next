@@ -7,14 +7,13 @@ import { PlaneDrawingData } from '../object/visualization/room/PlaneDrawingData'
  * Flash's obfuscated `§_-91p§` (Nitro's name `SpriteDataCollector`): what the server needs to draw a part of the room the way the
  * client shows it (`RoomEngine.getRenderRoomMessage`) - the sprites over the viewport as JSON
  * (`getFurniData`), the rendering modifiers (`getRoomRenderingModifiers`, always `{}`), and the
- * room's planes as drawing data (`getRoomPlanes`) with a background plane under them.
+ * room's planes as drawing data (`getRoomPlanes`: each layer's texture columns, colour and masks,
+ * `RoomPlane.getDrawingDatas`) with a background plane under them.
  *
  * Each avatar comes as its figure's parts (`AvatarVisualization.getSpriteList`). Not ported, because
  * the port's renderer has nothing to read them from: a mannequin's own sprite list
  * (`FurnitureMannequinVisualization.getSpriteList` returns none, so its `mannequin_` sprites go), a
- * palette sprite's `paletteSourceName` (the asset collections keep no palette XML), and the planes'
- * layers (`RoomPlane.getDrawingDatas`: masks and texture columns) - each plane is the one drawing
- * data Flash falls back to, its colour alone.
+ * palette sprite's `paletteSourceName` (the asset collections keep no palette XML).
  */
 export class SpriteDataCollector {
     private static MANNEQUIN_MAGIC_X_OFFSET = 1;
@@ -269,11 +268,12 @@ export class SpriteDataCollector {
             if ((Math.abs(outsideX) === 4) || (Math.abs(outsideY) === 4)) continue;
 
             const cornerPoints = SpriteDataCollector.sortQuadPoints(corners[0], corners[1], corners[2], corners[3]);
-            const drawingData = new PlaneDrawingData(undefined, plane.color);
 
-            drawingData.cornerPoints = cornerPoints;
-            drawingData.z = z;
-            planes.push(drawingData);
+            for (const drawingData of plane.getDrawingDatas(geometry)) {
+                drawingData.cornerPoints = cornerPoints;
+                drawingData.z = z;
+                planes.push(drawingData);
+            }
         }
 
         planes.unshift(this.makeBackgroundPlane(viewport, backgroundColor, planes));
