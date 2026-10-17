@@ -230,7 +230,10 @@ export class AvatarAssetDownloadManager {
         while (this._pendingDownloadQueue.length && (this._currentDownloads.length < AvatarAssetDownloadManager.MAX_SIMULTANEOUS_DOWNLOADS)) {
             const library = this._pendingDownloadQueue.shift();
 
-            if (!library) continue;
+            // Ready while it waited (`downloadAvatarFigureAsync` fetches outside the queue): there is no
+            // download to finish, so a slot taken for it would never be given back - enough of those and
+            // the queue stops for good (the avatar editor's part thumbnails stayed on the download icon).
+            if (!library || library.isReady) continue;
 
             this._currentDownloads.push(library);
 
