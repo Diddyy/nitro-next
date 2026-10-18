@@ -339,6 +339,7 @@ export * from './Inventory/Furni/FurniListAddOrUpdateEventMessage';
 export * from './Inventory/Furni/FurniListEventMessage';
 export * from './Inventory/Furni/FurniListInvalidateEventMessage';
 export * from './Inventory/Furni/FurniListRemoveEventMessage';
+export * from './Inventory/Furni/FurniListRemoveMultipleEventMessage';
 export * from './Inventory/Furni/PostItPlacedEventMessage';
 export * from './Inventory/Furni/RecyclerFinishedMessage';
 export * from './Inventory/Furni/RecyclerPrizesMessage';

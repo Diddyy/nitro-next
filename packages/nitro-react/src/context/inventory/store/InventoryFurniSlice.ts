@@ -74,6 +74,11 @@ type Actions = {
      */
     removeFurni: (stripId: number) => boolean;
     /**
+     * `FurniModel.removeFurnis`: every strip id that is held goes; true when any was, which is when
+     * `onFurniListRemoveMultiple` goes on to `resetUnseenItems`.
+     */
+    removeFurnis: (stripIds: readonly number[]) => boolean;
+    /**
      * `FurniModel.onImageUpdateTimerEvent`: every group whose first item is a rented one whose time has
      * run out is removed (`removeFurni`); how many went.
      */
@@ -398,6 +403,19 @@ export const createInventoryFurniSlice: StateCreator<InventoryFurniSlice & Inven
         const draft = new FurniGroupsDraft(x.furniGroups);
 
         if (!removeItem(draft, stripId)) return false;
+
+        set({ furniGroups: draft.groups, ...keepFurniSelection(draft.groups, x) });
+
+        return true;
+    },
+    removeFurnis: (stripIds) => {
+        const x = get();
+        const draft = new FurniGroupsDraft(x.furniGroups);
+        let removed = false;
+
+        for (const stripId of stripIds) removed = removeItem(draft, stripId) || removed;
+
+        if (!removed) return false;
 
         set({ furniGroups: draft.groups, ...keepFurniSelection(draft.groups, x) });
 
