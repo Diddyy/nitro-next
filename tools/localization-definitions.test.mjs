@@ -40,6 +40,8 @@ const fetch = (url) => {
 const bundleFiles = new Map();
 const bundleLoads = [];
 const bundleReads = [];
+/** The bundle's JSON entries, as the bundle reader has parsed them already. */
+const bundleJson = new Map();
 const encoder = new TextEncoder();
 const setBundleText = (language, text) => bundleFiles.set(`default_localizations_${language}.txt`, encoder.encode(text).buffer);
 
@@ -51,7 +53,7 @@ const stubs = {
         bundleReads.push(file);
 
         return (bundle === 'habbo-localization-com') ? bundleFiles.get(file) : undefined;
-    } }) },
+    }, getBundleFile: (bundle, file) => ((bundle === 'habbo-localization-com') ? bundleJson.get(file) : undefined) }) },
     '#base/context/system': { systemStore: { getState: () => state } },
     '#base/utils': { ...localizationData, loadTemplateBundle: (library) => {
         bundleLoads.push(library);
@@ -135,6 +137,28 @@ await test('boot: a default language the bundle lacks falls back to English, as 
     delete state.config['localization.default.language'];
 
     assert.equal(commands.getDefaultLocalizationLanguage(), 'en');
+});
+
+await test('boot: a bundle of DefaultLocalizations_<lang>.json maps is read too, with Flash\'s value rules', async () => {
+    const texts = new Map(bundleFiles);
+
+    bundleFiles.clear();
+    bundleJson.set('DefaultLocalizations_en.json', { a: 'json en a', d: ' json en d ', multi: 'one\\ntwo' });
+    state.config = { ...state.config, 'localization.default.language': 'en' };
+
+    await commands.initializeLocalizations({ a: 'hotel a' });
+
+    assert.equal(commands.getActiveLocalizationLanguage(), 'en');
+    assert.equal(state.localizations.a, 'hotel a');
+    assert.equal(state.localizations.d, 'json en d');
+    assert.equal(state.localizations.multi, 'one\ntwo');
+
+    bundleJson.clear();
+
+    for (const [ file, bytes ] of texts) bundleFiles.set(file, bytes);
+
+    await commands.initializeLocalizations({ a: 'hotel a' });
+    delete state.config['localization.default.language'];
 });
 
 await test(':lang swaps the bundle language, keeping the hotel\'s texts over it; an unknown code changes nothing', () => {

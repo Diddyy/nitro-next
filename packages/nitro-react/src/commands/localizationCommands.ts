@@ -26,7 +26,7 @@ import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
 import { systemStore } from '#base/context/system';
-import { loadTemplateBundle, parseLocalizationData } from '#base/utils';
+import { loadTemplateBundle, normalizeLocalizationMap, parseLocalizationData } from '#base/utils';
 
 /** The library the default localizations are embedded in, whose bundle carries every language's (`loadTemplateBundle`). */
 const LOCALIZATION_LIBRARY = 'habbo-localization-com';
@@ -72,11 +72,21 @@ const resolveLocalizationReferences = (data: Record<string, string>): Record<str
     return data;
 };
 
-/** One language's entry in the library's bundle, parsed; undefined when the bundle has none for it. */
+/**
+ * One language's entry in the library's bundle, parsed; undefined when the bundle has none for it.
+ * Either Flash's text (`default_localizations_<lang>.txt`), parsed here and only for this language, or
+ * the workspace's JSON map (`DefaultLocalizations_<lang>.json`), which the bundle reader parses as it
+ * loads - every language's at once - and which only has Flash's value rules applied here.
+ */
 const readDefaultLocalizations = (language: string): Record<string, string> | undefined => {
-    const bytes = GetAssetManager().getBundleBinary(LOCALIZATION_LIBRARY, `default_localizations_${language}.txt`);
+    const assetManager = GetAssetManager();
+    const bytes = assetManager.getBundleBinary(LOCALIZATION_LIBRARY, `default_localizations_${language}.txt`);
 
-    return bytes ? parseLocalizationData(TEXT_DECODER.decode(bytes)) : undefined;
+    if (bytes) return parseLocalizationData(TEXT_DECODER.decode(bytes));
+
+    const map = assetManager.getBundleFile<Record<string, unknown>>(LOCALIZATION_LIBRARY, `DefaultLocalizations_${language}.json`);
+
+    return map ? normalizeLocalizationMap(map) : undefined;
 };
 
 /**
