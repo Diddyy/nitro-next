@@ -8,9 +8,9 @@ import { useWindowActions } from '#base/context/system';
 import { useClock } from '#base/hooks';
 import { findTemplateChild, TemplateItem, TemplateWindow, useLatest, useTemplate } from '#base/theme';
 
+import { chatlogItems, useChatlogArrange } from './chatlogItems';
 import { issueCategoryName, issueSourceName } from './issueNames';
-import { chatlogItems, useChatlogArrange } from './ModChatlogView';
-import { userInfoBindings } from './ModUserInfoView';
+import { userInfoBindings } from './userInfoBindings';
 
 const TEMPLATE = 'habbo-moderation-com/issue_handler_xml';
 

@@ -194,6 +194,14 @@ a prefix. Nothing carries a `Pixi` or `Dom` suffix: the client renders with Pixi
 like `BoxPixi` used to mean it had a DOM twin. `Pixi` in a name is the library
 (`PixiApplicationRoot`, `usePixiTexture`, the `Container as PixiContainer` alias), never a target.
 
+A `.tsx` module exports components only. A function or hook that another file imports goes into a
+`.ts` module of its own beside it (`views/moderation/chatlogItems.ts`, `userInfoBindings.ts`), or into
+`commands`, `utils` or `hooks` when it is not the view's own. Exported constants are allowed. Vite's
+Fast Refresh cannot hot-swap a module that also exports something else: every save then logs
+`hmr invalidate ... Could not Fast Refresh ("<name>" export is incompatible)` and re-runs the module's
+importers, losing their state. `react-refresh/only-export-components` reports it as a warning,
+which counts as a new warning at the verification gate.
+
 - Text goes through `ThemeText` with a `textStyle` key (see [text rendering](text.md)); tooltips through `Region`.
   `Frame` needs an explicit `layout.height`, or its content is clipped. A `CheckBox` and its
   label are siblings in a row `Box`, not nested.
