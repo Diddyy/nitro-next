@@ -1018,27 +1018,7 @@ const ownFaceOf = (element: TemplateElement, rect: TemplateRect, context: Contex
         );
     }
 
-    if (BITMAP_TAGS.has(element.tag)) {
-        const src = bitmapSourceOf(element, binding, context.imageUrl);
-
-        if (!src) return null;
-
-        return (
-            <TemplateBitmap
-                src={src}
-                previous={bitmapSourceOf(element, undefined, context.imageUrl)}
-                // `BitmapDataRenderer.draw` multiplies the bitmap by the window's `color` - the layout's
-                // (`WindowParser` sets it) or its code's (`IWindow.color`); white leaves it as it is.
-                tint={tintOf(element, binding)}
-                frame={binding?.frame}
-                bitmap={{ ...bitmapVars(element.vars), ...(binding?.pivot !== undefined && { pivot: binding.pivot }), ...(binding?.rotation !== undefined && { rotation: binding.rotation }) }}
-                // `IBitmapWrapperWindow.greyscale` - the layout's `greyscale` var (a sub menu's `<name>_icon_grey`), or its code's.
-                greyscale={binding?.greyscale ?? flashBool(element.vars.greyscale)}
-                dynamicRole={dynamicRoleOf(element)}
-                layout={{ ...FILL, width: rect.width, height: rect.height }}
-            />
-        );
-    }
+    if (BITMAP_TAGS.has(element.tag)) return bitmapFaceOf(element, context, binding, { ...FILL, width: rect.width, height: rect.height });
 
     // `BadgeImageWidget`: the badge the code names, drawn with the widget's `badge_image:` bitmap vars.
     if (element.tag === 'widget' && element.vars.widget_type === 'badge_image') {
@@ -1434,6 +1414,47 @@ const TemplateBitmap = ({ src, previous, ...image }: ImageProps & { src: string;
             )
         : null;
 };
+
+/** A bitmap window's image (`BitmapDataRenderer.draw`), in `layout`, at `alpha`. */
+const bitmapFaceOf = (element: TemplateElement, context: Context, binding: TemplateBinding | undefined, layout: BoxLayout, alpha?: number): ReactNode => {
+    const src = bitmapSourceOf(element, binding, context.imageUrl);
+
+    if (!src) return null;
+
+    return (
+        <TemplateBitmap
+            src={src}
+            previous={bitmapSourceOf(element, undefined, context.imageUrl)}
+            // `BitmapDataRenderer.draw` multiplies the bitmap by the window's `color` - the layout's
+            // (`WindowParser` sets it) or its code's (`IWindow.color`); white leaves it as it is.
+            tint={tintOf(element, binding)}
+            frame={binding?.frame}
+            bitmap={{ ...bitmapVars(element.vars), ...(binding?.pivot !== undefined && { pivot: binding.pivot }), ...(binding?.rotation !== undefined && { rotation: binding.rotation }) }}
+            // `IBitmapWrapperWindow.greyscale` - the layout's `greyscale` var (a sub menu's `<name>_icon_grey`), or its code's.
+            greyscale={binding?.greyscale ?? flashBool(element.vars.greyscale)}
+            dynamicRole={dynamicRoleOf(element)}
+            alpha={alpha}
+            layout={layout}
+        />
+    );
+};
+
+/**
+ * A bitmap window drawn as its image alone, at its rect, with no box around it: one with nothing in it
+ * (no children, nothing its code adds), no clip, no `BLEND_<mode>` tag (a box blends the face) and no
+ * `#icon` / `#bg` dynamic style (whose nudge moves the image inside the box), placed absolutely - an item
+ * of a list's flow keeps its box, which holds its place while the image loads. The box held only the
+ * image: passive, with no hit area, it was never hit (nor is the passive image), and its alpha
+ * multiplies into the image's the same way. So the drawing, the presses and the draw order stay as
+ * they were, one display object less per bitmap - the avatar editor's colour palette is 65 of them.
+ */
+const drawsAsBareBitmap = (element: TemplateElement, binding: TemplateBinding | undefined, flow: Flow | undefined, clipped: boolean): boolean => BITMAP_TAGS.has(element.tag)
+    && !flow
+    && !clipped
+    && (element.children.length === 0)
+    && !binding?.children
+    && !flashBlendMode(flashBlendTag(element))
+    && !dynamicRoleOf(element);
 
 /** A bubble's `direction` var: the side its pointer is on. */
 const POINTER_DIRECTIONS = new Set<PointerDirection>([ 'up', 'down', 'left', 'right' ]);
@@ -1922,6 +1943,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             </Box>
         );
     }
+
+    if (drawsAsBareBitmap(element, binding, flow, clipped)) return bitmapFaceOf(element, context, binding, rectOf(rect), alpha);
 
     return (
         <Box
