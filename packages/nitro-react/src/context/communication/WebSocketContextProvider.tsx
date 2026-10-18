@@ -15,6 +15,7 @@ import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, showConnectio
 import { recordBugReportPacket } from '#base/context/bugreport';
 import { onboardingStore } from '#base/context/onboarding';
 import { useCommunicationIncoming, useCommunicationOutgoing } from '#base/hooks/communication';
+import { isPreviewHost } from '#base/utils';
 
 import { useConfigValue } from '../system';
 import { WebSocketContext } from './WebSocketContext';
@@ -41,7 +42,8 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
 
     const connect = () => {
         try {
-            if (!socketUrl || !socketUrl.length || ws.current || hasConnected.current) return;
+            // The preview host never connects, whatever its config names (`previewHost`).
+            if (isPreviewHost() || !socketUrl || !socketUrl.length || ws.current || hasConnected.current) return;
 
             hasConnected.current = true;
 

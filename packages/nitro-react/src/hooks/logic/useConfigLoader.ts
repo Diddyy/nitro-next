@@ -2,6 +2,7 @@ import { NitroLogger } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';
 
 import { useConfigActions, useConfigData } from '#base/context/system';
+import { PREVIEW_ALLOWED_ORIGINS_KEY } from '#base/utils';
 
 /**
  * Loads the client configuration once, and mirrors every change into the globals and logger flags
@@ -49,7 +50,10 @@ export const useConfigLoader = () => {
             const dataToProcess = { ...data, ...window.NitroConfig };
             const urlParams = new URLSearchParams(window.location.search);
 
-            if (urlParams.size > 0) urlParams.forEach((value, key) => dataToProcess[key] = value);
+            // The query never names who may drive the preview host: whoever frames the page writes its URL.
+            if (urlParams.size > 0) urlParams.forEach((value, key) => {
+                if (key !== PREVIEW_ALLOWED_ORIGINS_KEY) dataToProcess[key] = value;
+            });
 
             window.NitroParsedConfig = { ...dataToProcess };
 
