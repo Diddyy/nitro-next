@@ -761,6 +761,7 @@ export * from './Userdefinedroomevents/WiredFurniConditionEventMessage';
 export * from './Userdefinedroomevents/WiredFurniSelectorEventMessage';
 export * from './Userdefinedroomevents/WiredFurniTriggerEventMessage';
 export * from './Userdefinedroomevents/WiredFurniVariableEventMessage';
+export * from './Userdefinedroomevents/Wiredlink/WiredLinkOperationResultMessage';
 export * from './Userdefinedroomevents/Wiredmenu/Data/IWiredErrorLogsError';
 export * from './Userdefinedroomevents/Wiredmenu/Data/IWiredLogEntry';
 export * from './Userdefinedroomevents/Wiredmenu/Data/IWiredLogPage';
