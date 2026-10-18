@@ -38,6 +38,10 @@ the Studio's `shared/layout.ts` maps each folder to its `nitro-config.json` key)
   `bundled/templates/habbo-avatar-render-lib.nitro` (read from `asset.bundles.templates`, with the
   avatar additions), built from its gamedata on import, edit and publish. The renderer compiles
   none of it in.
+- The default localizations go out the same way: every `gamedata/DefaultLocalizations_<lang>.json`
+  as `default_localizations_<lang>.txt` in the localization library's bundle,
+  `bundled/templates/habbo-localization-com.nitro`, built on import and edit. The client parses
+  one language of it at a time (`localization.default.language`, then `:lang <code>`).
 - Keep `nitro-config.json` aligned with the workspace's external variables and generated asset URLs.
   Check the actual files served to the client as well as the workspace's source files.
 - Preserve workspace-specific assets when updating from Habbo. Use the workspace's history

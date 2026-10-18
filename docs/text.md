@@ -81,12 +81,18 @@ The words come from two files, loaded in Flash's order by `useLocalizationLoader
 way `CoreLocalizationManager.parseLocalizationData` does (`utils/localizationData.ts`: the key ends
 at the first `=`, `\n` is a line break):
 
-1. `gamedata.urls.defaultLocalizations` - the client's embedded `default_localizations` with the
-   language's file over it. Most `wiredmenu.*` texts exist only here.
+1. The `habbo-localization-com` library's bundle (`asset.bundles.templates` with `%libname%` the
+   library) - the client's embedded `default_localizations` with the language's file over it, one
+   `default_localizations_<lang>.txt` per language. Only one language is parsed at a time
+   (`localizationCommands.ts`): `localization.default.language`'s at boot (default `en`, and `en`
+   when the bundle has none for it, as `loadDefaultEmbedLocalizations` falls back), and another
+   when `:lang <code>` asks for it, with the hotel's texts laid back over it. Most `wiredmenu.*`
+   texts exist only here.
 2. `gamedata.urls.externalTexts` - the hotel's texts, which override the first.
 
 Both come from Nitro Studio (`packages/nitro-studio`): the hotel's texts from its Habbo
-import, the default localizations from the client release (Workspace > Habbo, client data);
+import, the default localizations from the client release (Workspace > Habbo, client data),
+each `DefaultLocalizations_<lang>.json` built into the library's bundle (`localization-bundle.ts`);
 a text that is wrong or cut off is fixed there, never patched in the client. Use Flash's
 key and Flash's parameter names (`t('infostand.text.badges_rank', '', { rank: '#3' })` fills
 `%rank%`). A key that neither file has and no Flash class or layout names is one the port made up:

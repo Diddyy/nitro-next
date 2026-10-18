@@ -1,5 +1,15 @@
 /**
- * The hotel's other languages - Flash `CoreLocalizationManager`'s localization definitions, which
+ * The client's languages: the default localizations embedded in the `habbo-localization-com`
+ * library, and the hotel's other languages.
+ *
+ * The library carries every language's default localizations - one
+ * `default_localizations_<lang>.txt` each in its bundle, written by Nitro Studio - and only one is
+ * read and parsed at a time, as Flash's `HabboLocalizationManager.loadDefaultEmbedLocalizations`
+ * reads its embedded assets: `localization.default.language`'s at boot (English when the bundle has
+ * none for it), and another one when `:lang <code>` asks for it. The hotel's texts override every
+ * language's, so a swap lays the new language's down and the hotel's texts back over it.
+ *
+ * The hotel's other languages are Flash `CoreLocalizationManager`'s localization definitions, which
  * `HabboLocalizationManager.configureLocalizationLocations` registers from the configuration and
  * the `:lang <name>` chat command activates (`ChatInputWidgetHandler`).
  *
@@ -13,9 +23,121 @@
  * is set again, as in Flash.
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
+import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
 import { systemStore } from '#base/context/system';
-import { parseLocalizationData } from '#base/utils';
+import { loadTemplateBundle, parseLocalizationData } from '#base/utils';
+
+/** The library the default localizations are embedded in, whose bundle carries every language's (`loadTemplateBundle`). */
+const LOCALIZATION_LIBRARY = 'habbo-localization-com';
+
+/** `loadDefaultEmbedLocalizations`'s fallback language, and the one used when the config names none. */
+const FALLBACK_LANGUAGE = 'en';
+
+const TEXT_DECODER = new TextDecoder();
+
+/** The hotel's texts as they were last loaded, laid back over a language's default localizations when `:lang` swaps them. */
+let hotelTexts: Record<string, string> = {};
+
+/** The language whose default localizations are shown; empty before the first are read. */
+let activeLanguage = '';
+
+/** The language the client starts in: `localization.default.language`, else English. */
+export const getDefaultLocalizationLanguage = (): string => {
+    const value = systemStore.getState().config['localization.default.language'];
+
+    return ((typeof value === 'string') && value.length) ? value.toLowerCase() : FALLBACK_LANGUAGE;
+};
+
+/** The language whose default localizations are shown. */
+export const getActiveLocalizationLanguage = (): string => activeLanguage;
+
+/**
+ * Every `${key}` in a text replaced by that key's text, as the loader always resolved them; a key
+ * there is no text for stays as it is. An empty key is dropped.
+ */
+const resolveLocalizationReferences = (data: Record<string, string>): Record<string, string> => {
+    const resolved = { ...data };
+    const getValue = (key: string) => resolved[key] ?? `\${${key}}`;
+
+    for (const key in resolved) {
+        if (key === '') {
+            delete resolved[key];
+
+            continue;
+        }
+
+        if (typeof resolved[key] === 'string') resolved[key] = resolved[key].replace(/\$\{([^}]+)\}/g, (_, refKey: string) => getValue(refKey));
+    }
+
+    return resolved;
+};
+
+/** One language's entry in the library's bundle, parsed; undefined when the bundle has none for it. */
+const readDefaultLocalizations = (language: string): Record<string, string> | undefined => {
+    const bytes = GetAssetManager().getBundleBinary(LOCALIZATION_LIBRARY, `default_localizations_${language}.txt`);
+
+    return bytes ? parseLocalizationData(TEXT_DECODER.decode(bytes)) : undefined;
+};
+
+/**
+ * `HabboLocalizationManager.loadDefaultEmbedLocalizations`: the language's default localizations,
+ * or - with `fallback`, for a language the bundle has none for - English's. Undefined when there is
+ * neither, or no bundle.
+ */
+const loadDefaultEmbedLocalizations = (language: string, fallback: boolean): { language: string; texts: Record<string, string> } | undefined => {
+    const texts = readDefaultLocalizations(language);
+
+    if (texts) return { language, texts };
+
+    if (fallback && (language !== FALLBACK_LANGUAGE)) {
+        NitroLogger.log(`Could not load default localizations default_localizations_${language} : Trying with default_localizations_${FALLBACK_LANGUAGE}...`);
+
+        return loadDefaultEmbedLocalizations(FALLBACK_LANGUAGE, false);
+    }
+
+    NitroLogger.error(`Could not load default_localizations_${language}`);
+
+    return undefined;
+};
+
+/**
+ * The boot's texts: the default language's default localizations from the library's bundle, with
+ * the hotel's texts over them, and every `${key}` between them resolved. A hotel whose config names
+ * no template bundle url, or whose bundle fails, starts with the hotel's texts alone.
+ */
+export const initializeLocalizations = async (externalTexts: Record<string, string>): Promise<void> => {
+    hotelTexts = externalTexts;
+
+    const defaults = (await loadTemplateBundle(LOCALIZATION_LIBRARY)) ? loadDefaultEmbedLocalizations(getDefaultLocalizationLanguage(), true) : undefined;
+
+    if (!defaults) NitroLogger.error(`The ${LOCALIZATION_LIBRARY} bundle has no default localizations - only the hotel's texts are shown`);
+
+    activeLanguage = defaults?.language ?? '';
+
+    systemStore.getState().setLocalization(resolveLocalizationReferences({ ...defaults?.texts, ...hotelTexts }));
+};
+
+/**
+ * The default localizations of `language` made the ones shown, the hotel's texts laid back over
+ * them. False when the bundle has none for it - no fallback, so a mistyped `:lang` changes nothing.
+ * A key the new language lacks keeps its old text, as Flash's `parseLocalizationData` leaves it.
+ */
+export const activateDefaultLocalizations = (language: string): boolean => {
+    const code = language.toLowerCase();
+
+    if (code === activeLanguage) return true;
+
+    const defaults = loadDefaultEmbedLocalizations(code, false);
+
+    if (!defaults) return false;
+
+    activeLanguage = defaults.language;
+
+    systemStore.getState().setLocalization(resolveLocalizationReferences({ ...defaults.texts, ...hotelTexts }));
+
+    return true;
+};
 
 /** `LocalizationDefinition`: `code` is `<language>_<country>.<encoding>` (`en_US.iso-8859-1`). */
 export interface LocalizationDefinition {
@@ -135,6 +257,8 @@ const loadLocalizationFromUrl = async (hashesUrl: string): Promise<boolean> => {
             if (!localizations[key].length) delete localizations[key];
         }
 
+        hotelTexts = { ...hotelTexts, ...localizations };
+
         systemStore.getState().setLocalization(localizations);
 
         return true;
@@ -146,16 +270,17 @@ const loadLocalizationFromUrl = async (hashesUrl: string): Promise<boolean> => {
 };
 
 /**
- * `CoreLocalizationManager.activateLocalizationDefinition`: false for a name no definition has;
- * otherwise its texts start loading, and true comes back before they arrive. Flash's `:lang`
- * returns null either way, so nothing is said in the chat.
+ * `:lang <name>`: the default localizations of that language, when the library's bundle has them
+ * (`activateDefaultLocalizations`), and `CoreLocalizationManager.activateLocalizationDefinition` -
+ * the texts of the hotel definition of that name, when the config has one, which start loading and
+ * arrive after true comes back. False when neither knows the name. Flash's `:lang` returns null
+ * either way, so nothing is said in the chat.
  */
 export const activateLocalizationDefinition = (name: string): boolean => {
+    const swapped = !!name && activateDefaultLocalizations(name);
     const definition = getLocalizationDefinitions().get(name);
 
-    if (!definition) return false;
+    if (definition) void loadLocalizationFromUrl(definition.url);
 
-    void loadLocalizationFromUrl(definition.url);
-
-    return true;
+    return swapped || !!definition;
 };

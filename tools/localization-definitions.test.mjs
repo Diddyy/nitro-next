@@ -1,7 +1,8 @@
 /**
  * `:lang <name>` - `HabboLocalizationManager.configureLocalizationLocations` and
- * `CoreLocalizationManager.activateLocalizationDefinition` / `loadLocalizationFromURL`
- * (`nitro-react/src/commands/localizationCommands.ts`).
+ * `CoreLocalizationManager.activateLocalizationDefinition` / `loadLocalizationFromURL`, and the
+ * default localizations of the `habbo-localization-com` bundle it swaps
+ * (`loadDefaultEmbedLocalizations`; `nitro-react/src/commands/localizationCommands.ts`).
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -35,17 +36,34 @@ const fetch = (url) => {
     return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(body) });
 };
 
+/** The `habbo-localization-com` bundle's entries, by file; `bundleLoads` and `bundleReads` record what was asked of it. */
+const bundleFiles = new Map();
+const bundleLoads = [];
+const bundleReads = [];
+const encoder = new TextEncoder();
+const setBundleText = (language, text) => bundleFiles.set(`default_localizations_${language}.txt`, encoder.encode(text).buffer);
+
 const errors = [];
 const commands = {};
 const stubs = {
     '@nitrodevco/nitro-api': { NitroLogger: { error: (...args) => errors.push(args), log: () => {} } },
+    '@nitrodevco/nitro-renderer': { GetAssetManager: () => ({ getBundleBinary: (bundle, file) => {
+        bundleReads.push(file);
+
+        return (bundle === 'habbo-localization-com') ? bundleFiles.get(file) : undefined;
+    } }) },
     '#base/context/system': { systemStore: { getState: () => state } },
-    '#base/utils': localizationData,
+    '#base/utils': { ...localizationData, loadTemplateBundle: (library) => {
+        bundleLoads.push(library);
+
+        return Promise.resolve(true);
+    } },
 };
 
 runInNewContext(transpile(new URL('../packages/nitro-react/src/commands/localizationCommands.ts', import.meta.url)), {
     exports: commands,
     fetch,
+    TextDecoder,
     require: (name) => {
         assert.ok(stubs[name], `Unexpected dependency: ${name}`);
 
@@ -87,6 +105,58 @@ await test('definitions are read from localization.<n> until one is missing; a r
 
     assert.deepEqual([ ...definitions.keys() ], [ 'en', 'de' ]);
     assert.deepEqual({ ...definitions.get('de') }, { languageCode: 'de', countryCode: 'DE', encoding: 'iso-8859-1', name: 'German', url: 'https://de/gamedata/hashes' });
+});
+
+await test('boot: only the default language\'s entry is read, the hotel\'s texts over it and ${key} resolved', async () => {
+    setBundleText('en', 'a=en a\nd=en d\nref=${d}!\nonly.default=yes');
+    setBundleText('fi', 'a=fi a\nd=fi d\nref=${d}!\nonly.default=kyllä');
+    state.config = { ...state.config, 'localization.default.language': 'FI' };
+
+    await commands.initializeLocalizations({ a: 'hotel a' });
+
+    assert.deepEqual(bundleLoads, [ 'habbo-localization-com' ]);
+    assert.deepEqual(bundleReads, [ 'default_localizations_fi.txt' ]);
+    assert.equal(commands.getActiveLocalizationLanguage(), 'fi');
+    assert.equal(state.localizations.a, 'hotel a');
+    assert.equal(state.localizations.d, 'fi d');
+    assert.equal(state.localizations.ref, 'fi d!');
+    assert.equal(state.localizations['only.default'], 'kyllä');
+});
+
+await test('boot: a default language the bundle lacks falls back to English, as loadDefaultEmbedLocalizations does', async () => {
+    state.config = { ...state.config, 'localization.default.language': 'xx' };
+
+    await commands.initializeLocalizations({ a: 'hotel a' });
+
+    assert.equal(commands.getActiveLocalizationLanguage(), 'en');
+    assert.equal(state.localizations.d, 'en d');
+    assert.equal(state.localizations.a, 'hotel a');
+
+    delete state.config['localization.default.language'];
+
+    assert.equal(commands.getDefaultLocalizationLanguage(), 'en');
+});
+
+await test(':lang swaps the bundle language, keeping the hotel\'s texts over it; an unknown code changes nothing', () => {
+    assert.equal(commands.activateLocalizationDefinition('fi'), true);
+    assert.equal(commands.getActiveLocalizationLanguage(), 'fi');
+    assert.equal(state.localizations.d, 'fi d');
+    assert.equal(state.localizations.ref, 'fi d!');
+    assert.equal(state.localizations.a, 'hotel a');
+
+    errors.length = 0;
+
+    assert.equal(commands.activateLocalizationDefinition('xx'), false);
+    assert.equal(commands.getActiveLocalizationLanguage(), 'fi');
+    assert.equal(state.localizations.d, 'fi d');
+
+    assert.equal(commands.activateLocalizationDefinition('en'), true);
+    assert.equal(state.localizations.d, 'en d');
+    assert.equal(state.localizations['only.default'], 'yes');
+
+    // The rest of this file is about the hotel definitions alone.
+    bundleFiles.clear();
+    state.localizations = { a: 'old a', b: 'old b' };
 });
 
 await test('an unknown name is not activated and loads nothing', async () => {
