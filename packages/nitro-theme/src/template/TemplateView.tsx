@@ -19,7 +19,7 @@
  */
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Graphics as PixiGraphics, RenderLayer } from 'pixi.js';
-import { createContext, memo, ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { createContext, memo, ReactNode, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { Border } from '../Border';
 import { Box, BoxLayout } from '../Box';
@@ -56,9 +56,10 @@ import { localizeCaption } from './localizeCaption';
 import { isMarkupTemplateText, knownTemplateTextStyle, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
-import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect, templateTextMargins, templateUsesParentGraphics } from './templateLayout';
+import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect, TemplateScroll, templateTextMargins, templateUsesParentGraphics } from './templateLayout';
 import { TemplateFieldScroll, TemplateScrollbar, TemplateScrollField, TemplateScrollTarget } from './TemplateScroll';
 import { TemplateScrollAxis, TemplateScrollStore } from './templateScrollStore';
+import { TemplateWindowRectContext } from './templateWindowRect';
 
 export type { Template, TemplateElement } from './templateData';
 
@@ -436,9 +437,12 @@ const childDrawOrder = (element: TemplateElement): { order: number[]; moved: Set
     const moved = new Set<number>();
     const split = new Set<number>();
     const lifted = new Map<number, number>();
+    // Each child's kind, once: a long list's items are each checked against every earlier one.
+    const inParent = element.children.map(child => templateUsesParentGraphics(child));
+    const withOwnWindows: number[] = [];
 
     element.children.forEach((child, index) => {
-        if (!templateUsesParentGraphics(child)) {
+        if (!inParent[index]) {
             order.push(index);
 
             return;
@@ -447,11 +451,13 @@ const childDrawOrder = (element: TemplateElement): { order: number[]; moved: Set
         // An earlier sibling drawn into the context itself, with windows of their own under it: its
         // face stays under this child, in tree order in the one bitmap, and only those windows rise
         // over it - `club_center_xml`'s post-it over the blue box, under its link.
-        element.children.forEach((earlier, earlierIndex) => {
-            if ((earlierIndex < index) && templateUsesParentGraphics(earlier) && !drawsIntoParentOnly(earlier) && overlaps(child, displayRectsOf(earlier))) lifted.set(earlierIndex, index);
-        });
+        for (const earlierIndex of withOwnWindows) {
+            if (overlaps(child, displayRectsOf(element.children[earlierIndex]))) lifted.set(earlierIndex, index);
+        }
 
-        const under = order.findIndex(earlier => !templateUsesParentGraphics(element.children[earlier]) && overlaps(child, displayRectsOf(element.children[earlier])));
+        if (!drawsIntoParentOnly(child)) withOwnWindows.push(index);
+
+        const under = order.findIndex(earlier => !inParent[earlier] && overlaps(child, displayRectsOf(element.children[earlier])));
 
         if (under < 0) {
             order.push(index);
@@ -1583,7 +1589,10 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     });
     // The window's colour, for a child drawn with it (a captioned container's header).
     const ownTint = tintOf(element, binding);
-    const children = (
+    // What its code adds, which can read the window's laid-out rect (`useTemplateWindowRect`).
+    const ownChildren = binding?.children && <TemplateWindowRectContext.Provider value={rect}>{binding.children}</TemplateWindowRectContext.Provider>;
+    // Its children, all of them or those a scrolled list builds (a selector is never one).
+    const childrenOf = (views: ReactNode[]) => (
         <ParentTintContext.Provider value={ownTint ?? parentTint}>
             {element.tag === 'selector'
                 ? (
@@ -1603,10 +1612,11 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                             ))}
                         </Box>
                     )
-                : treeOrderedChildren(drawOrder, moved, new Map(drawOrder.map((index, position) => [ index, childViews[position] ])), drawLayers, split, clipEscape, lifted)}
-            {binding?.children}
+                : treeOrderedChildren(drawOrder, moved, new Map(drawOrder.map((index, position) => [ index, views[position] ])), drawLayers, split, clipEscape, lifted)}
+            {ownChildren}
         </ParentTintContext.Provider>
     );
+    const children = childrenOf(childViews);
 
     /**
      * The face and the children, as a window that clips draws them: its mask cuts only what is drawn
@@ -1639,7 +1649,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                     <ClipEscapeContext.Provider value={escapeLayer}>
                         {face}
                         {treeOrderedChildren(drawOrder, moved, views, drawLayers, split, escapeLayer, lifted)}
-                        {binding?.children}
+                        {ownChildren}
                     </ClipEscapeContext.Provider>
                 </Box>
                 {!clipEscape && <DrawSlot layer={escapeLayer} />}
@@ -1868,33 +1878,18 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
     // scrolls, the scrollbar beside it while there is more than fits - each where its window layout
     // put it (`TemplateScroll`); the scroll itself, the wheel and the thumb are the theme's.
     if (rect.scroll) {
-        const { viewport, scrollbar, content } = rect.scroll;
-
         return (
-            <Box
-                pointerTransparent
-                layout={rectOf(rect, flow)}
+            <ScrolledList
+                element={element}
+                context={context}
+                rect={rect}
+                scroll={rect.scroll}
+                flow={flow}
                 alpha={alpha}
-            >
-                {fade(faceOf(element, rect, context, binding))}
-                <ScrollArea
-                    orientation="vertical"
-                    variant={scrollbar?.style}
-                    hideDisabledScrollbar={binding?.autoHideScrollBar ?? true}
-                    scrollV={binding?.scrollV}
-                    scrollEndKey={binding?.scrollEndKey}
-                    scrollResetKey={binding?.scrollResetKey}
-                    onReachStart={binding?.onReachStart}
-                    layout={{ position: 'absolute', left: 0, top: 0, width: rect.width, height: rect.height, gap: 0 }}
-                    viewportLayout={{ position: 'absolute', left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}
-                    scrollbarLayout={scrollbar
-                        ? { position: 'absolute', left: scrollbar.x, top: scrollbar.y, width: scrollbar.width, height: scrollbar.height }
-                        : { position: 'absolute', left: rect.width, top: 0, width: 0, height: rect.height }}
-                    contentLayout={{ position: 'relative', width: content.width, height: content.height }}
-                >
-                    {children}
-                </ScrollArea>
-            </Box>
+                binding={binding}
+                face={fade(faceOf(element, rect, context, binding))}
+                itemsIn={inView => childrenOf(drawOrder.map((index, position) => (inView(element.children[index]) ? childViews[position] : null)))}
+            />
         );
     }
 
@@ -1935,6 +1930,69 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             alpha={alpha}
         >
             {drawn(fade(faceOf(element, rect, context, binding)))}
+        </Box>
+    );
+};
+
+/**
+ * A scrollable list or grid, with only the items in view and a quarter of a viewport past it built: the
+ * layout places every item (the content keeps their extent, the scrollbar its range), so one not built moves
+ * nothing, and a long list - a catalogue page's offers, a category's pages - costs what shows, not
+ * all of it, each time it opens. Flash builds every item and loads their pictures a few at a time
+ * (`ItemGridCatalogWidget.loadItemGridGraphics`); here an item's picture loads once it is built.
+ */
+const ScrolledList = ({ element, context, rect, scroll, flow, alpha, binding, face, itemsIn }: {
+    element: TemplateElement;
+    context: Context;
+    rect: TemplateRect;
+    scroll: TemplateScroll;
+    flow?: Flow;
+    alpha: number;
+    binding?: TemplateBinding;
+    face: ReactNode;
+    itemsIn: (inView: (child: TemplateElement) => boolean) => ReactNode;
+}) => {
+    const { viewport, scrollbar, content } = scroll;
+    // A quarter of a viewport past each edge, in steps of a quarter, so the items built change only as
+    // one comes within reach: what shows is always built (the scroll is told before the frame draws).
+    const step = Math.max(1, Math.floor(viewport.height / 4));
+    const reach = step;
+    const [ band, setBand ] = useState(0);
+    const onScrollChange = useCallback((offset: number) => setBand(Math.floor(offset / step)), [ step ]);
+    const top = band * step;
+    const inView = (child: TemplateElement) => {
+        const at = context.store.get(child)?.rect ?? child;
+
+        return ((at.y + at.height) > (top - reach)) && (at.y < (top + viewport.height + reach));
+    };
+    // Which items are within reach, again whenever the layout moves one.
+    useSyncExternalStore(context.store.subscribe, () => element.children.reduce((key, child) => key + (inView(child) ? '1' : '0'), ''));
+
+    return (
+        <Box
+            pointerTransparent
+            layout={rectOf(rect, flow)}
+            alpha={alpha}
+        >
+            {face}
+            <ScrollArea
+                orientation="vertical"
+                variant={scrollbar?.style}
+                hideDisabledScrollbar={binding?.autoHideScrollBar ?? true}
+                scrollV={binding?.scrollV}
+                scrollEndKey={binding?.scrollEndKey}
+                scrollResetKey={binding?.scrollResetKey}
+                onReachStart={binding?.onReachStart}
+                onScrollChange={onScrollChange}
+                layout={{ position: 'absolute', left: 0, top: 0, width: rect.width, height: rect.height, gap: 0 }}
+                viewportLayout={{ position: 'absolute', left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}
+                scrollbarLayout={scrollbar
+                    ? { position: 'absolute', left: scrollbar.x, top: scrollbar.y, width: scrollbar.width, height: scrollbar.height }
+                    : { position: 'absolute', left: rect.width, top: 0, width: 0, height: rect.height }}
+                contentLayout={{ position: 'relative', width: content.width, height: content.height }}
+            >
+                {itemsIn(inView)}
+            </ScrollArea>
         </Box>
     );
 };
