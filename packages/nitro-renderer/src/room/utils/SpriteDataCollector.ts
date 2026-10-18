@@ -1,6 +1,7 @@
 import { IPlaneDrawingData, IPlaneVisualization, IRoom, IRoomObjectSpriteData, IRoomObjectSpriteVisualization, IRoomPlane, IRoomRenderingCanvas, RoomObjectCategoryEnum, Vector3d } from '@nitrodevco/nitro-api';
 import { Point, Rectangle } from 'pixi.js';
 
+import { GetRoomContentLoader } from '../GetRoomContentLoader';
 import { PlaneDrawingData } from '../object/visualization/room/PlaneDrawingData';
 
 /**
@@ -10,10 +11,10 @@ import { PlaneDrawingData } from '../object/visualization/room/PlaneDrawingData'
  * room's planes as drawing data (`getRoomPlanes`: each layer's texture columns, colour and masks,
  * `RoomPlane.getDrawingDatas`) with a background plane under them.
  *
- * Each avatar comes as its figure's parts (`AvatarVisualization.getSpriteList`). Not ported, because
- * the port's renderer has nothing to read them from: a mannequin's own sprite list
- * (`FurnitureMannequinVisualization.getSpriteList` returns none, so its `mannequin_` sprites go), a
- * palette sprite's `paletteSourceName` (the asset collections keep no palette XML).
+ * Each avatar comes as its figure's parts (`AvatarVisualization.getSpriteList`), a pet as its canvas
+ * sprites, each paletted one with its palette's source (`paletteSourceName`). Not ported, because
+ * the port's renderer has nothing to read it from: a mannequin's own sprite list
+ * (`FurnitureMannequinVisualization.getSpriteList` returns none, so its `mannequin_` sprites go).
  */
 export class SpriteDataCollector {
     private static MANNEQUIN_MAGIC_X_OFFSET = 1;
@@ -129,8 +130,16 @@ export class SpriteDataCollector {
     private getSpriteDataObject(sprite: IRoomObjectSpriteData, viewport: Rectangle): Record<string, unknown> {
         const data: Record<string, unknown> = {};
         let name = sprite.name;
+        let paletteId: string | undefined;
 
-        if (name.indexOf('@') !== -1) name = name.split('@')[0];
+        if (name.indexOf('@') !== -1) [ name, paletteId ] = name.split('@');
+
+        // A paletted sprite (a pet's `monkey_64_a_2_0@2`) names its palette's source, which the server colours the asset with.
+        if (paletteId && sprite.type) {
+            const palette = GetRoomContentLoader().getCollection(sprite.type)?.getPaletteData(Number(paletteId));
+
+            if (palette?.source) data.paletteSourceName = palette.source;
+        }
 
         name = name.replace('%image.library.url%', this._imageLibraryUrl);
 

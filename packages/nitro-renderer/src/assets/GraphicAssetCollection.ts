@@ -183,6 +183,11 @@ export class GraphicAssetCollection implements IGraphicAssetCollection {
         return this._palettes.get(paletteId);
     }
 
+    /** Flash `getPaletteXML`: a palette as the library defines it (its `source` names its file), read from the library's data. */
+    public getPaletteData(paletteId: number): IAssetPalette | undefined {
+        return this._data.palettes?.find(palette => palette.id === paletteId);
+    }
+
     public addReference(): void {
         this._referenceCount++;
         this._lastReferenceTimestamp = GetTickerTime();
