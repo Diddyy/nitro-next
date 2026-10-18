@@ -52,6 +52,7 @@ export * from './Catalog/HabbiconShopDataMessage';
 export * from './Catalog/HabboClubExtendOfferMessage';
 export * from './Catalog/HabboClubOffersMessage';
 export * from './Catalog/HasClaimedProductResponseMessage';
+export * from './Catalog/IsOfferGiftableMessage';
 export * from './Catalog/LimitedEditionSoldOutEventMessage';
 export * from './Catalog/LimitedOfferAppearingNextMessage';
 export * from './Catalog/LtdRaffleEnteredMessage';
