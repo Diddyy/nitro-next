@@ -20,7 +20,7 @@ export const registerQuestHandlers = ({ subscribe, send }: WebSocketConnection) 
     return subscribeAll(subscribe, [
         on(QuestsMessage, data => onQuests(data.quests)),
         on(QuestMessage, data => onQuestMessage(data.quest)),
-        on(QuestCancelledMessage, data => onQuestCancelledMessage(data.quest.chainCode)),
+        on(QuestCancelledMessage, data => onQuestCancelledMessage(data.quest.chainCode, data.expired)),
         on(QuestCompletedMessage, data => onQuestCompletedMessage(send, data.quest, data.showDialog)),
         on(CitizenshipVipOfferPromoEnabledMessage, () => onCitizenshipVipQuestsPromoEnabled()),
         on(CloseConnectionMessage, () => {
