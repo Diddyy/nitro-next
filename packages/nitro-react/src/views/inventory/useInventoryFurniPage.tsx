@@ -255,12 +255,10 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
 
                             if (requestSelectedFurniPlacement(send, true)) heldGroup.current = -1;
                         },
-                        // A tap's `detail` is its click count: the second is `WME_DOUBLE_CLICK`.
-                        onPointerTap: (event) => {
+                        onPointerTap: () => {
                             heldGroup.current = -1;
-
-                            if (event.detail === 2) onCurrentAction();
                         },
+                        onDoubleClick: () => onCurrentAction(),
                     },
                 },
             }))

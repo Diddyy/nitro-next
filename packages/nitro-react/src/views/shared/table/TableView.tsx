@@ -40,7 +40,7 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { Border, Box, BoxLayout, getGlobalRect, GlobalRect, Region, ScrollArea, TextInput, ThemeImage, ThemeText, useLatest, useLayoutSize, useOutsideClick } from '#base/theme';
+import { Border, Box, BoxLayout, getGlobalRect, GlobalRect, isDoubleClick, Region, ScrollArea, TextInput, ThemeImage, ThemeText, useLatest, useLayoutSize, useOutsideClick } from '#base/theme';
 
 import { fitTableText, measureTableText } from './tableText';
 
@@ -291,8 +291,8 @@ const TextCell = ({ cell, alignment, width, onEdit }: CellProps) => {
     const isInspecting = (inputValue !== null);
 
     // TableCellView.onDoubleClick
-    const openInput = (event: FederatedPointerEvent) => {
-        if (event.detail < 2) return;
+    const openInput = () => {
+        if (!isDoubleClick()) return;
 
         setInputValue(textFieldValue ?? text);
     };

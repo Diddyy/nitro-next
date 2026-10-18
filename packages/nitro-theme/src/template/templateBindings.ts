@@ -7,6 +7,7 @@ import type { FederatedPointerEvent } from 'pixi.js';
 import type { ReactNode } from 'react';
 
 import type { EtchingPosition, FlashTextStyleSheet } from '../font/flash-text';
+import { isDoubleClick } from '../utils/clickCount';
 import type { PivotPoint } from '../utils/flashBitmap';
 import type { SpriteFrame } from '../utils/spriteFrame';
 import type { Template, TemplateElement } from './templateData';
@@ -136,7 +137,7 @@ export interface TemplateBinding {
      */
     onLink?: (link: string) => void;
     /**
-     * `WME_DOUBLE_CLICK`: a second click on the element within `DOUBLE_CLICK_MS` of the first. Both
+     * `WME_DOUBLE_CLICK`: the element's click when it is the OS's double click (`isDoubleClick`). Both
      * clicks are still `onPointerTap`s, as Flash sends `WME_CLICK` for each before the double click.
      */
     onDoubleClick?: (event: FederatedPointerEvent) => void;
@@ -601,9 +602,6 @@ export const sameTemplateBinding = (a: TemplateBinding | undefined, b: TemplateB
         && (a.show === b.show || (!!a.show && !!b.show && a.show.length === b.show.length && a.show.every((name, index) => name === b.show?.[index])));
 };
 
-/** The longest gap between two clicks that makes them a double click (the Windows default Flash Player follows). */
-export const DOUBLE_CLICK_MS = 500;
-
 /** What one element of a drawn template reads: its binding, and the rect its window's rules gave it. */
 export interface TemplateElementState {
     binding?: TemplateBinding;
@@ -624,8 +622,6 @@ export class TemplateBindingStore {
     private _current = new Map<TemplateElement, TemplateElementState>();
     private _latest = new Map<TemplateElement, TemplateBinding>();
     private _handlers = new Map<TemplateElement, Partial<Record<TemplateHandler | HeaderButtonField, (...args: never[]) => void>>>();
-    /** When each element was last tapped, for its double click. */
-    private _lastTaps = new Map<TemplateElement, number>();
     private _listeners = new Set<() => void>();
     private _changed = false;
 
@@ -719,28 +715,12 @@ export class TemplateBindingStore {
         };
     }
 
-    /** The element's click, and its double click when it is the second within `DOUBLE_CLICK_MS`. */
+    /** The element's click, and its double click when the OS counts it one (`MouseEventProcessor` sends `click` before `doubleClick`). */
     private tap(element: TemplateElement, event: FederatedPointerEvent): void {
         const latest = this._latest.get(element);
 
         latest?.onPointerTap?.(event);
 
-        if (!latest?.onDoubleClick) {
-            this._lastTaps.delete(element);
-
-            return;
-        }
-
-        const now = performance.now();
-        const last = this._lastTaps.get(element);
-
-        if ((last !== undefined) && ((now - last) <= DOUBLE_CLICK_MS)) {
-            this._lastTaps.delete(element);
-            latest.onDoubleClick(event);
-
-            return;
-        }
-
-        this._lastTaps.set(element, now);
+        if (isDoubleClick()) this._latest.get(element)?.onDoubleClick?.(event);
     }
 }

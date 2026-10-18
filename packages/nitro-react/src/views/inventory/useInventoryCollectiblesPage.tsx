@@ -122,10 +122,8 @@ export const useInventoryCollectiblesPage = ({ active, templates }: InventoryPag
                     ...inventoryNftThumbBindings(group.item, group.unlockedAssetCount, group.key === selectedKey),
                     // `itemEventProc`: a click selects, a double click offers one copy.
                     '': {
-                        onPointerTap: (event) => {
-                            if (event.detail === 2) offer(group, 1);
-                            else selectTradingNft(group.key);
-                        },
+                        onPointerTap: () => selectTradingNft(group.key),
+                        onDoubleClick: () => offer(group, 1),
                     },
                 },
             }))
