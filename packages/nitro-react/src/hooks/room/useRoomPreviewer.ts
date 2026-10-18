@@ -1,10 +1,12 @@
-import { FurnitureUsagePolicyEnum, IObjectData, IRoom, IRoomPreviewerData, IVector3D, LegacyDataType, RoomEngineObjectEvent, RoomGeometryScaleType, RoomId, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
+import { FurnitureUsagePolicyEnum, IObjectData, IRoom, IRoomPreviewerData, IVector3D, LegacyDataType, RoomEngineObjectEvent, RoomGeometryScaleType, RoomId, RoomObjectBadgeAssetEvent, RoomObjectCategoryEnum, RoomObjectUserType, RoomObjectVariableEnum, Vector3d } from '@nitrodevco/nitro-api';
 import { GetAvatarRenderManager, GetRoomEngine, GetTicker, GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, PointData } from 'pixi.js';
 import { RefObject, useEffect, useRef } from 'react';
 
 import { useLatest } from '#base/theme';
 import { createRoomMapForSize, getValidRoomObjectDirection } from '#base/utils';
+
+import { useRoomBadgeAssetHandler } from './useRoomBadgeAssetHandler';
 
 /** The id of the one object a previewer room shows. */
 export const ROOM_PREVIEWER_OBJECT_ID = 1;
@@ -68,6 +70,12 @@ export interface RoomPreviewerApi {
 export type RoomPreviewerTarget = PixiContainer;
 
 /**
+ * The previewers mounted on each previewer room. Previewers can share a room id, so the room's
+ * object event handler is only cleared when the last of them unmounts.
+ */
+const previewerMounts = new WeakMap<IRoom, number>();
+
+/**
  * The engine room a previewer draws into, created and given its small showcase floor on first
  * use. `createRoom` hands back the existing room for an id, and the floor is only laid while the
  * room is uninitialized, so reading this during render is idempotent - the room outlives any one
@@ -128,6 +136,8 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
     const anchorRef = useRef<PointData | undefined>(anchor);
     const anchorX = anchor?.x;
     const anchorY = anchor?.y;
+    const { handleBadgeAssetEvent } = useRoomBadgeAssetHandler(room);
+    const handleBadgeAssetEventRef = useLatest(handleBadgeAssetEvent);
 
     useEffect(() => {
         anchorRef.current = ((anchorX !== undefined) && (anchorY !== undefined)) ? { x: anchorX, y: anchorY } : undefined;
@@ -630,7 +640,21 @@ export const useRoomPreviewer = (roomId: number, targetRef: RefObject<RoomPrevie
             room.eventDispatcher.addEventListener(RoomEngineObjectEvent.CONTENT_UPDATED, onObjectEvent),
         ];
 
+        // `RoomObjectEventHandler.handleObjectGroupBadgeEvent`: Flash's engine handled every room's
+        // object events, a previewer's too, so a badge display shows its badge here. The other
+        // requests a showcase's object can raise stay unanswered, as they were.
+        previewerMounts.set(room, (previewerMounts.get(room) ?? 0) + 1);
+        room.eventHandler.setRoomObjectEventHandler((event) => {
+            if (event instanceof RoomObjectBadgeAssetEvent) handleBadgeAssetEventRef.current(event);
+        });
+
         return () => {
+            const mounts = (previewerMounts.get(room) ?? 1) - 1;
+
+            previewerMounts.set(room, mounts);
+
+            if (!mounts) room.eventHandler.setRoomObjectEventHandler(undefined);
+
             GetTicker().remove(tick);
             layoutNode?.off('layout', onLayout);
             listeners.map(x => x?.());

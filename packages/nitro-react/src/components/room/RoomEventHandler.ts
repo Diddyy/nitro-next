@@ -30,7 +30,7 @@ export const RoomEventHandler = () => {
     const { changeItemState } = useRoomObjectInteraction();
     const { selectAvatar } = useRoomObjectSelect();
     const { handleRoomWidgetRequestEvent } = useRoomWidgetRequestHandler();
-    const { handleBadgeAssetEvent } = useRoomBadgeAssetHandler();
+    const { handleBadgeAssetEvent } = useRoomBadgeAssetHandler(room);
     const { handleFurnitureActionEvent } = useRoomFurnitureActionHandler();
     const { handleRoomAdEvent } = useRoomAdHandler();
     const dimmerRequest = useRoomWidget<RoomDimmerPresetsMessageType>(RoomObjectWidgetRequestEvent.DIMMER);

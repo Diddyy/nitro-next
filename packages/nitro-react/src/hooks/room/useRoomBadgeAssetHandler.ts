@@ -1,8 +1,7 @@
-import { NitroLogger, RoomObjectBadgeAssetEvent } from '@nitrodevco/nitro-api';
+import { IRoom, NitroLogger, RoomObjectBadgeAssetEvent } from '@nitrodevco/nitro-api';
 import { GetRenderer, GetRoomContentLoader, ObjectGroupBadgeUpdateMessage } from '@nitrodevco/nitro-renderer';
 import { RenderTexture, Sprite, Texture } from 'pixi.js';
 
-import { useRoom } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
 import { loadTexture } from '#base/theme';
 
@@ -88,9 +87,12 @@ const createSmallTexture = (texture: Texture): Texture | undefined => {
  * something to hold while the download runs, and again with the real asset name once it is in
  * the collection. The logic ignores the first of those, which is why that name is not
  * registered anywhere.
+ *
+ * Flash answered it for any room, the room previewers included (`requestBadgeImageAsset` reads
+ * room 0's `temporary_room`), so a badge display shows its badge in the catalogue and inventory
+ * previews too - which is why the room is passed in rather than read from the room store.
  */
-export const useRoomBadgeAssetHandler = () => {
-    const room = useRoom();
+export const useRoomBadgeAssetHandler = (room: IRoom | undefined) => {
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
 
