@@ -107,6 +107,7 @@ export * from './tooltip/useTooltipHandlers';
 export * from './utils/boxBlur';
 export * from './utils/buttonGroupFactory';
 export * from './utils/buttonVariants';
+export * from './utils/clickCount';
 export * from './utils/cssHexColor';
 export * from './utils/destroyOwnedTexture';
 export * from './utils/dropmenuPlacement';
