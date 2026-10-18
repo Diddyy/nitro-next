@@ -7,7 +7,7 @@ import { useChatHistoryActions } from '#base/context/chat-history';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
-import { UiFlagEnum, useRoomToolsCollapsed, userStore, useUserActions, useUserStore } from '#base/context/user';
+import { UiFlagEnum, useRoomToolsCollapsed, userStore, useUserActions } from '#base/context/user';
 import { useWiredStore } from '#base/context/wired';
 import { useRoomZoom } from '#base/hooks';
 import { RoomShareView } from '#base/views/room-widgets/room-tools/RoomShareView';
@@ -41,7 +41,6 @@ export const RoomToolsWidget = () => {
     const roomVisitIndex = useNavigatorStore(x => x.roomVisitIndex);
     const canRateCurrentRoom = useNavigatorStore(x => x.canRateCurrentRoom);
     const collapsed = useRoomToolsCollapsed();
-    const freeFlowChatDisabled = useUserStore(x => x.freeFlowChatDisabled);
     const hasWiredAchievements = useWiredStore(x => x.wiredAchievements.length > 0);
     const { setUiFlag, setRoomToolsCollapsed } = useUserActions();
     const { stepRoomVisitHistory, setRoomRating } = useNavigatorActions();
@@ -128,8 +127,8 @@ export const RoomToolsWidget = () => {
         },
     );
 
-    // `RoomToolsWidget`: `setChatHistoryButton(freeFlowChat != null)` - the history belongs to the free flow chat.
-    if (!freeFlowChatDisabled) buttons.push({
+    // `RoomToolsWidget`: `setChatHistoryButton(freeFlowChat != null)` - the history belongs to the free flow chat, always there.
+    buttons.push({
         key: 'button_chat_history',
         // `toggleVisibility`.
         onPress: toggleChatHistory,

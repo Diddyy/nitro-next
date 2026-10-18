@@ -5,6 +5,7 @@ export type AccountPreferencesEventMessageType = {
     uiVolume: number;
     furniVolume: number;
     traxVolume: number;
+    /** Read and discarded by Flash (`AccountPreferencesParser.parse`): the chat is always the free flow, its line-by-line mode is `chatMode`. */
     freeFlowChatDisabled: boolean;
     roomInvitesIgnored: boolean;
     roomCameraFollowDisabled: boolean;
