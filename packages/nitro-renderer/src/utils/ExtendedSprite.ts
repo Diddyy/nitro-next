@@ -165,7 +165,7 @@ export class ExtendedSprite extends Sprite {
 
         if (!super.containsPoint({ x, y })) return false;
 
-        if (this.alphaTolerance <= 0) return true;
+        if (this.alphaTolerance < 0) return true;
 
         const texture = this.texture;
         const textureSource = texture.source;
@@ -219,7 +219,7 @@ export class ExtendedSprite extends Sprite {
         return hitMap;
     }
 
-    /** One bit per alpha byte, set where it reaches `threshold`, eight pixels to a byte. */
+    /** One bit per alpha byte, set where it is above `threshold` (Flash: `alpha > alphaTolerance`), eight pixels to a byte. */
     private static packAlpha(alpha: Uint8Array, threshold: number): Uint8Array {
         const length = alpha.length;
         const bits = new Uint8Array((length + 7) >> 3);
@@ -227,18 +227,18 @@ export class ExtendedSprite extends Sprite {
         let index = 0;
 
         for (; index < whole; index += 8) {
-            bits[index >> 3] = (alpha[index] >= threshold ? 1 : 0)
-                | (alpha[index + 1] >= threshold ? 2 : 0)
-                | (alpha[index + 2] >= threshold ? 4 : 0)
-                | (alpha[index + 3] >= threshold ? 8 : 0)
-                | (alpha[index + 4] >= threshold ? 16 : 0)
-                | (alpha[index + 5] >= threshold ? 32 : 0)
-                | (alpha[index + 6] >= threshold ? 64 : 0)
-                | (alpha[index + 7] >= threshold ? 128 : 0);
+            bits[index >> 3] = (alpha[index] > threshold ? 1 : 0)
+                | (alpha[index + 1] > threshold ? 2 : 0)
+                | (alpha[index + 2] > threshold ? 4 : 0)
+                | (alpha[index + 3] > threshold ? 8 : 0)
+                | (alpha[index + 4] > threshold ? 16 : 0)
+                | (alpha[index + 5] > threshold ? 32 : 0)
+                | (alpha[index + 6] > threshold ? 64 : 0)
+                | (alpha[index + 7] > threshold ? 128 : 0);
         }
 
         for (; index < length; index++) {
-            if (alpha[index] >= threshold) bits[index >> 3] |= 1 << (index & 7);
+            if (alpha[index] > threshold) bits[index >> 3] |= 1 << (index & 7);
         }
 
         return bits;
