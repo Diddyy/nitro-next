@@ -12,6 +12,9 @@
  * already loaded - and the rest is shared out over the steps done, here the config, the three
  * gamedata files, the five loads above and the connection. A load that throws shows its message on
  * the screen (`showError`), worded by the category its message suggests (`unk_1329f9`).
+ *
+ * The preview host (`previewHost`) loads the same, but never connects: once it is all in,
+ * `PreviewHostView` replaces the screen instead of the client.
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import {
@@ -24,10 +27,11 @@ import { preloadChatStyles } from '#base/chat';
 import { rebootAfterGpuLoss } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, WindowLayer } from '#base/theme';
-import { loadAssetBundle, preloadAssetBundles, unloadAssetBundle } from '#base/utils';
+import { isPreviewHost, loadAssetBundle, preloadAssetBundles, unloadAssetBundle } from '#base/utils';
 
 import { MainView } from './MainView';
 import { LoadingScreenView } from './views/loading-screen/LoadingScreenView';
+import { PreviewHostView } from './views/preview/PreviewHostView';
 import { SystemDialogsView } from './views/system/SystemDialogsView';
 
 /** `HabboAir.unk_cabede`: where the percentage starts. */
@@ -73,7 +77,7 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
     const isDataReady = dataLoaded === dataTotal;
 
     useEffect(() => {
-        if (!isEngineReady || !isDataReady) return;
+        if (!isEngineReady || !isDataReady || isPreviewHost()) return;
 
         connect();
     }, [ isEngineReady, isDataReady, connect ]);
@@ -117,7 +121,8 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
         void setup();
     }, [ isRendererReady ]);
 
-    const isReady = isEngineReady && isDataReady && isAuthenticated;
+    // The preview host is up once everything is loaded: it has no connection to wait for.
+    const isReady = isEngineReady && isDataReady && (isAuthenticated || isPreviewHost());
 
     // `HabboCommunicationDemo.disconnected` opens an alert over the existing desktop.
     // Keep its mounted scene after logout; authentication still ends in the socket provider.
@@ -130,7 +135,7 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
         if (showClient) unloadAssetBundle('loading-screen');
     }, [ showClient ]);
     const stepsDone = 1 + dataLoaded + setupDone + (isAuthenticated ? 1 : 0);
-    const stepsTotal = 1 + dataTotal + SETUP_STEPS + 1;
+    const stepsTotal = 1 + dataTotal + SETUP_STEPS + (isPreviewHost() ? 0 : 1);
     const progress = Math.min(1, INITIAL_PROGRESS + ((stepsDone / stepsTotal) * (1 - INITIAL_PROGRESS)));
 
     return (
@@ -138,7 +143,7 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
             onReady={() => setIsRendererReady(true)}
             onGpuLost={rebootAfterGpuLoss}
         >
-            {showClient && <MainView />}
+            {showClient && (isPreviewHost() ? <PreviewHostView /> : <MainView />)}
             {!showClient && !isDisconnected && splash && (
                 <LoadingScreenView
                     progress={progress}

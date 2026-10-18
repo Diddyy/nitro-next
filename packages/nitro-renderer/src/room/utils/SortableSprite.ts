@@ -10,6 +10,10 @@ export class SortableSprite implements ISortableSprite {
     private _y: number = 0;
     private _z: number = 0;
 
+    /** `drawnRoomSpriteShift` on each axis: where the picture is drawn, in screen pixels from x / y. */
+    public drawShiftX: number = 0;
+    public drawShiftY: number = 0;
+
     public dispose(): void {
         this._z = -SortableSprite.Z_INFINITY;
         this._sprite = null!;

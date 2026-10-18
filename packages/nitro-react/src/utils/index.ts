@@ -37,6 +37,7 @@ export * from './monsterPlantPosture';
 export * from './onboardingAvatarEditor';
 export * from './openWebPage';
 export * from './petTypeFromFigure';
+export * from './previewHost';
 export * from './recolorablePalette';
 export * from './renderRoomMessage';
 export * from './replaceFirst';

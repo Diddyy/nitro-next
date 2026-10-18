@@ -1,4 +1,4 @@
-import { AvatarActionStateType, AvatarBodyPartType, AvatarDirectionAngle, AvatarFigurePartType, AvatarGeometryType, AvatarScaleType, AvatarSetType, IActiveActionData, IAnimationLayerData, IAvatarDataContainer, IAvatarEffectListener, IAvatarFigureContainer, IAvatarImage, IGraphicAsset, IPartColor, ISpriteDataContainer } from '@nitrodevco/nitro-api';
+import { AvatarActionStateType, AvatarBodyPartType, AvatarDirectionAngle, AvatarFigurePartType, AvatarGeometryType, AvatarScaleType, AvatarSetType, IActiveActionData, IAnimationLayerData, IAvatarDataContainer, IAvatarEffectListener, IAvatarFigureContainer, IAvatarImage, IGraphicAsset, IPartColor, ISpriteDataContainer, RoomObjectSpriteData } from '@nitrodevco/nitro-api';
 import { Container, Filter, ImageLike, Point, PointData, Rectangle, RenderTexture, Sprite, Texture } from 'pixi.js';
 
 import { ExtendedSprite, GetTickerTime, TexturePool, TextureUtils } from '#renderer/utils';
@@ -512,8 +512,10 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
 
         if (!texture) return undefined;
 
-        const base64 = await TextureUtils.getRenderer().extract.base64(new Sprite(texture));
+        const sprite = new Sprite(texture);
+        const base64 = await TextureUtils.getRenderer().extract.base64(sprite);
 
+        sprite.destroy();
         TexturePool.releaseTexture(texture);
 
         return base64;
@@ -803,6 +805,24 @@ export class AvatarImage implements IAvatarImage, IAvatarEffectListener {
 
     public getSprites(): ISpriteDataContainer[] {
         return this._sprites;
+    }
+
+    /** Flash `getServerRenderData`: the whole figure's parts, collected now, for the camera's server render. */
+    public getServerRenderData(): RoomObjectSpriteData[] {
+        this.getAvatarPartsForCamera(AvatarSetType.Full);
+
+        return this._cache.getServerRenderData();
+    }
+
+    /** Flash `getAvatarPartsForCamera`: every body part of the set, the nearest last, into the cache's server render data. */
+    private getAvatarPartsForCamera(setType: AvatarSetType): void {
+        if (!this._mainAction?.definition) return;
+
+        if (!this._structure.getCanvas(this._scale, this._mainAction.definition.geometryType)) return;
+
+        const parts = this.getBodyParts(setType, this._mainAction.definition.geometryType, this._mainDirection);
+
+        for (let i = parts.length - 1; i >= 0; i--) this._cache.getImageContainer(parts[i], this._frameCounter, true);
     }
 
     public getCanvasOffsets(): number[] {

@@ -1,14 +1,15 @@
 /**
  * The inventory's furni list - the furni half of Flash `inventory/IncomingMessages`
  * (`onFurniList`, `onFurnitureAddOrUpdate`, `onFurniListRemove`, `onFurniListInvalidate`,
- * `onPostItPlaced`) and
+ * `onFurniListRemoveMultiple`, `onPostItPlaced`) and
  * what `FurniModel` does with each, plus the trade locks `WiredTradingModel` asks it for.
  *
  * - `onFurniList`: the list comes in fragments; they are collected (`addMessageFragment`, the
  *   buffer sized by the first fragment's total) and inserted once all are in.
  * - `onFurniListRemove`: an item the list held going resets the furni page's unseen items
  *   (`FurniModel.resetUnseenItems`), whichever page is showing - `ResetUnseenItems` for category 1
- *   when anything in it was new.
+ *   when anything in it was new. `onFurniListRemoveMultiple` does the same once for all its ids
+ *   (`FurniModel.removeFurnis`), when any of them was held.
  * - `FurniModel.initListImages` starts its 50 ms timer once the list is in; from then on every
  *   200 ms (`onImageUpdateTimerEvent`) a rented item whose time has run out leaves the list, the
  *   inventory open or not.
@@ -24,10 +25,8 @@
  *   cancelled or completed closes its sub page, whose `'empty'` switch is `removeAllLocks`. The
  *   user's own cancel is answered by `WiredTradeCancelled`, so it clears the locks here too.
  *   These run after `registerWiredTradeHandlers`, which has stored the offer by then.
- *
- * Not handled: `FurniListRemoveMultipleMessage`, which this client has no packet class for.
  */
-import { FurniListAddOrUpdateEventMessage, FurniListEventMessage, FurniListInvalidateEventMessage, FurniListRemoveEventMessage, IFurniListAddOrUpdateFurni, PostItPlacedEventMessage, WiredTradeCancelledMessage, WiredTradeCompletedMessage, WiredTradeItemsUpdateMessage } from '@nitrodevco/nitro-packets';
+import { FurniListAddOrUpdateEventMessage, FurniListEventMessage, FurniListInvalidateEventMessage, FurniListRemoveEventMessage, FurniListRemoveMultipleEventMessage, IFurniListAddOrUpdateFurni, PostItPlacedEventMessage, WiredTradeCancelledMessage, WiredTradeCompletedMessage, WiredTradeItemsUpdateMessage } from '@nitrodevco/nitro-packets';
 
 import { itemAddedToInventory, removeAllInventoryFurniLocks, requestFurniInventory, resetInventoryFurniUnseenItems, updateInventoryFurniLocks } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -42,7 +41,7 @@ type Fragment = Map<number, IFurniListAddOrUpdateFurni>;
 const RENT_EXPIRY_CHECK_INTERVAL_MS = 200;
 
 export const registerInventoryFurniHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { insertFurniture, addOrUpdateFurni, removeFurni, removeExpiredRentedFurni, invalidateFurni, updatePostItCount } = inventoryStore.getState();
+    const { insertFurniture, addOrUpdateFurni, removeFurni, removeFurnis, removeExpiredRentedFurni, invalidateFurni, updatePostItCount } = inventoryStore.getState();
     // `FurniModel.§_-Qa§`, the image update timer.
     let imageUpdateTimer: ReturnType<typeof setInterval> | undefined;
     // `IncomingMessages.§_-M1Y§`: the fragments of the list on its way in.
@@ -86,6 +85,10 @@ export const registerInventoryFurniHandlers = ({ send, subscribe }: WebSocketCon
 
         on(FurniListRemoveEventMessage, (data) => {
             if (removeFurni(data.stripId)) resetInventoryFurniUnseenItems(send);
+        }),
+
+        on(FurniListRemoveMultipleEventMessage, (data) => {
+            if (removeFurnis(data.stripIds)) resetInventoryFurniUnseenItems(send);
         }),
 
         on(FurniListInvalidateEventMessage, () => {

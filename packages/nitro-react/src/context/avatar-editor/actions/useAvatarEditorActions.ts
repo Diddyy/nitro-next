@@ -29,7 +29,8 @@ const actions = {
     pickAvatarEffectType: state.pickAvatarEffectType,
     clearAvatarEffectPicked: state.clearAvatarEffectPicked,
     setInitialised: state.setInitialised,
-    setBoothLook: state.setBoothLook,
+    lendToBooth: state.lendToBooth,
+    returnFromBooth: state.returnFromBooth,
 };
 
 export const useAvatarEditorActions = () => actions;

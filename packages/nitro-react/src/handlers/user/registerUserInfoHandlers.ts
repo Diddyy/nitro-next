@@ -148,7 +148,6 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             setOnlineIndicatorPreference(data.onlineIndicatorPreference);
             setChatPreferences({
                 preferredChatStyle: data.preferedChatStyle,
-                freeFlowChatDisabled: data.freeFlowChatDisabled,
                 // `HabboFreeFlowChat.onAccountPreferences`: `clampChatFontSizeMode(chatSizePreference)`.
                 chatSizePreference: clampChatFontSizeMode(data.chatSizePreference),
                 chatMode: data.chatMode,

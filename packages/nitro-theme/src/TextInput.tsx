@@ -9,6 +9,7 @@ import type { ScrollController } from './hooks/useScrollController';
 import { ColorLayer } from './layer';
 import { ThemeText } from './ThemeText';
 import { DEFAULT_TEXT_STYLE, escapeMarkup, flashFaceOverride, getPixiTextStyle, resolveFlashStyle, TextStyleKey } from './utils';
+import { whenPressCounted } from './utils/clickCount';
 
 /** A run of a `TextInput`'s value, `start` to `end` (exclusive), drawn in `color` (`#rrggbb`). */
 export interface TextInputMark {
@@ -233,8 +234,6 @@ const UNFOCUSED_SELECTION_COLOR = '#888888';
 const UNFOCUSED_SELECTION_ALPHA = 0.35;
 /** Caret placement on click scans the prefix widths of the line under the pointer; a huge line would make that scan noticeable, so it's capped. */
 const MAX_CLICK_SCAN = 500;
-/** A second press this soon after the first, on the same character boundary, is a double-click: it selects the word. */
-const DOUBLE_CLICK_MS = 500;
 /** What a double-click selects around the pointer: a run of letters, digits and `_`. */
 const WORD_CHARACTER = /[\p{L}\p{N}_]/u;
 
@@ -838,7 +837,6 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
         const indexAtRef = useLatest(indexAt);
 
         const stopDragRef = useRef<(() => void) | null>(null);
-        const lastPressRef = useRef({ time: 0, index: -1 });
 
         useEffect(() => () => stopDragRef.current?.(), []);
 
@@ -863,26 +861,6 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             if (!input || !node || (document.activeElement !== input)) return;
 
             const index = indexAt(event.getLocalPosition(node));
-            const now = performance.now();
-            const last = lastPressRef.current;
-
-            lastPressRef.current = { time: now, index };
-
-            if (!event.shiftKey && (last.index === index) && ((now - last.time) < DOUBLE_CLICK_MS)) {
-                const text = input.value;
-                let start = index;
-                let end = index;
-
-                while ((start > 0) && WORD_CHARACTER.test(text[start - 1])) start--;
-                while ((end < text.length) && WORD_CHARACTER.test(text[end])) end++;
-
-                // A third press starts over rather than selecting the word again.
-                lastPressRef.current = { time: 0, index: -1 };
-                select(input, start, end);
-
-                return;
-            }
-
             const anchor = (event.shiftKey && wasFocused)
                 ? ((input.selectionDirection === 'backward') ? (input.selectionEnd ?? index) : (input.selectionStart ?? index))
                 : index;
@@ -901,6 +879,23 @@ export const TextInput: ForwardRefExoticComponent<TextInputProps & RefAttributes
             node.on('globalpointermove', onMove);
             window.addEventListener('pointerup', stop);
             stopDragRef.current = stop;
+
+            // The OS's double click (the second press of each pair, as `TextField` counts it) takes the word instead.
+            if (event.shiftKey) return;
+
+            whenPressCounted(event, (count) => {
+                if ((count % 2) !== 0) return;
+
+                const text = input.value;
+                let start = index;
+                let end = index;
+
+                while ((start > 0) && WORD_CHARACTER.test(text[start - 1])) start--;
+                while ((end < text.length) && WORD_CHARACTER.test(text[end])) end++;
+
+                stop();
+                select(input, start, end);
+            });
         };
 
         const fill = focused ? focusedBackgroundColor : backgroundColor;

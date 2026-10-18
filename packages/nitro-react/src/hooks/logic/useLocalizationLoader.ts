@@ -28,7 +28,7 @@ export const useLocalizationLoader = () => {
         const urls = Array.isArray(localizationUrl) ? localizationUrl : [ localizationUrl ];
 
         const load = async (urls: string[]) => {
-            let data: Record<string, string> = {};
+            const data: Record<string, string> = {};
 
             for (const url of urls) {
                 try {
@@ -42,7 +42,8 @@ export const useLocalizationLoader = () => {
 
                     const responseData = parseLocalizationData(await response.text());
 
-                    data = { ...data, ...responseData };
+                    // Later files override earlier keys; merged in place, not copied per file.
+                    Object.assign(data, responseData);
                 } catch (err) {
                     NitroLogger.error(err);
                 }

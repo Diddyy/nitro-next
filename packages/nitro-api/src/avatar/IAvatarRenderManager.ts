@@ -38,8 +38,11 @@ export interface IAvatarRenderManager {
     refreshAliases(): void;
     /** Every live avatar image drops its caches (assets were replaced). */
     resetAllCaches(): void;
-    /** Unloads every downloaded, non-mandatory figure library. */
+    /** Unloads every downloaded, non-mandatory figure library no live avatar image or held figure needs. */
     purgeAssets(): void;
+    /** Keeps a figure's libraries through `purgeAssets` - for what draws their textures without an avatar image - until `releaseFigure`. */
+    holdFigure(container: IAvatarFigureContainer): void;
+    releaseFigure(container: IAvatarFigureContainer): void;
     /** The carry-item ids the CarryItem action knows about. */
     getItemIds(): string[];
     injectFigureData(data: IFigureData): void;

@@ -10,6 +10,11 @@ export interface DragTargetOptions {
      * the parent's right/bottom edge (so one wider than its parent ends up at a negative x).
      */
     boundToParentRect?: boolean;
+    /**
+     * The move goes at the release: the code lays the target out where it belongs from then on (a
+     * slider's button, put where its value says), so no move is left on top for that to allow for.
+     */
+    dropToLayout?: boolean;
 }
 
 export interface DragTarget {
@@ -37,7 +42,7 @@ const ZERO: Point = { x: 0, y: 0 };
  * the parent's space so a scaled parent drags one to one. Screen pixels are taken as the stage's,
  * as `useFrameDrag` takes them.
  */
-export const useDragTarget = (enabled: boolean, { boundToParentRect = false }: DragTargetOptions = {}): DragTarget => {
+export const useDragTarget = (enabled: boolean, { boundToParentRect = false, dropToLayout = false }: DragTargetOptions = {}): DragTarget => {
     const nodeRef = useRef<PixiContainer | null>(null);
     const offsetRef = useRef<Point>(ZERO);
     const stopRef = useRef<(() => void) | null>(null);
@@ -108,7 +113,15 @@ export const useDragTarget = (enabled: boolean, { boundToParentRect = false }: D
 
         // `WindowMouseOperator.handler`: a `mouseUp` anywhere ends it.
         const up = (upEvent: PointerEvent) => {
-            if (upEvent.pointerId === pointerId) stop();
+            if (upEvent.pointerId !== pointerId) return;
+
+            stop();
+
+            if (dropToLayout) {
+                offsetRef.current = ZERO;
+
+                setOffset(ZERO);
+            }
         };
 
         stopRef.current = stop;

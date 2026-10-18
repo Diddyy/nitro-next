@@ -9,7 +9,7 @@ import { useClock } from '#base/hooks';
 import { findTemplateChild, TemplateItem, TemplateWindow, useLatest, useTemplate } from '#base/theme';
 
 import { issueCategoryName, issueSourceName } from './issueNames';
-import { chatlogItems } from './ModChatlogView';
+import { chatlogItems, useChatlogArrange } from './ModChatlogView';
 import { userInfoBindings } from './ModUserInfoView';
 
 const TEMPLATE = 'habbo-moderation-com/issue_handler_xml';
@@ -60,6 +60,7 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     // `show`: an automatic report (source 3) still on topic 28 starts on topic 1.
     const autoTriggered = (issue?.categoryId === 3) && (issueTopic === 28);
     const [ topicSelection, setTopicSelection ] = useState<number | undefined>(undefined);
+    const evidenceArrange = useChatlogArrange();
     const selectedTopic = topicSelection ?? topicIds.indexOf(autoTriggered ? 1 : issueTopic);
 
     // `show`: requestSanctionData(bundle, -1), then topic 1 for an automatic report on 28.
@@ -142,6 +143,7 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
             id={TEMPLATE}
             frame={frame}
             bindings={{
+                ...evidenceArrange.bindings,
                 issues_item_list: { items: issueItems },
                 msg_item_list: { items: messageItems },
                 caller_user_info: { items: userInfo(caller) },
@@ -192,6 +194,7 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
                     },
                 },
             }}
+            arrange={evidenceArrange.arrange}
         />
     );
 };

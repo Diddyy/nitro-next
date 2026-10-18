@@ -47,8 +47,10 @@ export const BadgeDetailsPopup = ({ templateId, anchor, side, details }: BadgeDe
         name: { caption: details.name },
         description: { visible: !!details.description.length, caption: details.description },
         rarity_tag: details.rarity ? { visible: true, color: details.rarity.color } : { visible: false },
-        rarity_border: { caption: details.rarity?.text ?? '' },
-        rarity: { caption: details.rarity?.text ?? '', color: RARITY_TEXT_COLOR },
+        // Set on the built window, as `populateBadgeDetails` does: `rarity_border` then widens the
+        // tag to the text (`reflect_horizontal_resize_to_parent`), past the layout's 92.
+        rarity_border: { caption: details.rarity?.text ?? '', setCaptionAfterBuild: true },
+        rarity: { caption: details.rarity?.text ?? '', color: RARITY_TEXT_COLOR, setCaptionAfterBuild: true },
         owner_count: { visible: details.ownerCount !== undefined, caption: details.ownerCount ?? '' },
     };
 

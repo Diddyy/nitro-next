@@ -1,5 +1,5 @@
 import { AvatarActionStateType, IRoom, IRoomWidgetRequest, IVector3D, LegacyDataType, RoomObjectCategoryEnum, RoomObjectVariableEnum, SlideAvatarMoveType, Vector3d } from '@nitrodevco/nitro-api';
-import { DiceValueMessage, FurniRecolorUpdateMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveConfirmMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, PickupObjectComposer, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
+import { DiceValueMessage, FurniRecolorUpdateMessage, FurnitureAliasesMessage, IRoomFloorItem, IRoomWallItem, ItemAddMessage, ItemDataUpdateMessage, ItemRemoveMessage, ItemRemoveMultipleMessage, ItemsMessage, ItemsStateUpdateMessage, ItemStateUpdateMessage, ItemUpdateMessage, ObjectAddMessage, ObjectDataUpdateMessage, ObjectRemoveConfirmMessage, ObjectRemoveMessage, ObjectRemoveMultipleMessage, ObjectsDataUpdateMessage, ObjectsMessage, ObjectUpdateMessage, OneWayDoorStatusMessage, PickupObjectComposer, SlideObjectBundleMessage, WiredMovementsMessage } from '@nitrodevco/nitro-packets';
 import { GetRoomContentLoader, LegacyWallGeometry, ObjectMoveUpdateMessage } from '@nitrodevco/nitro-renderer';
 
 import { createPickupTransition } from '#base/commands';
@@ -177,8 +177,10 @@ export const registerRoomFurnitureHandlers = ({ subscribe, send }: WebSocketConn
             for (const objectId of data.objectIds) {
                 createPickupTransition(room, objectId, RoomObjectCategoryEnum.Floor, data.pickerId);
                 room.removeRoomObjectFloor(objectId, data.byInvisibleFurniManager);
-                room.refreshTileObjectMap();
             }
+
+            // RoomMessageHandler.onObjectRemoveMultiple refreshes the tile map once, after the last one.
+            room.refreshTileObjectMap();
         }),
 
         on(ObjectsDataUpdateMessage, (data) => {
@@ -234,6 +236,17 @@ export const registerRoomFurnitureHandlers = ({ subscribe, send }: WebSocketConn
 
             createPickupTransition(room, data.objectId, RoomObjectCategoryEnum.Wall, data.pickerId);
             room.removeRoomObjectWall(data.objectId);
+        }),
+
+        on(ItemRemoveMultipleMessage, (data) => {
+            const room = getRoom();
+
+            if (!room) return;
+
+            for (const objectId of data.objectIds) {
+                createPickupTransition(room, objectId, RoomObjectCategoryEnum.Wall, data.pickerId);
+                room.removeRoomObjectWall(objectId);
+            }
         }),
 
         on(ItemsMessage, (data) => {

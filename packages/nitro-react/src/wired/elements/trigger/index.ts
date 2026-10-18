@@ -13,6 +13,7 @@ export * from './PerformAction';
 export * from './PeriodicLong';
 export * from './PeriodicShort';
 export * from './ReceiveSignal';
+export * from './RoomInitialized';
 export * from './ScoreAchieved';
 export * from './StateChange';
 export * from './TransactionCompleted';

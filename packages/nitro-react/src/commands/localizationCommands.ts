@@ -54,23 +54,22 @@ export const getActiveLocalizationLanguage = (): string => activeLanguage;
 
 /**
  * Every `${key}` in a text replaced by that key's text, as the loader always resolved them; a key
- * there is no text for stays as it is. An empty key is dropped.
+ * there is no text for stays as it is. An empty key is dropped. Resolves in place, in key order (a
+ * reference to a later key reads it unresolved), so `data` must be a map of the caller's own. Only
+ * the few values holding a `${` are touched: ~80 of ~54k.
  */
 const resolveLocalizationReferences = (data: Record<string, string>): Record<string, string> => {
-    const resolved = { ...data };
-    const getValue = (key: string) => resolved[key] ?? `\${${key}}`;
+    const getValue = (key: string) => data[key] ?? `\${${key}}`;
 
-    for (const key in resolved) {
-        if (key === '') {
-            delete resolved[key];
+    delete data[''];
 
-            continue;
-        }
+    for (const key in data) {
+        const value = data[key];
 
-        if (typeof resolved[key] === 'string') resolved[key] = resolved[key].replace(/\$\{([^}]+)\}/g, (_, refKey: string) => getValue(refKey));
+        if ((typeof value === 'string') && value.includes('${')) data[key] = value.replace(/\$\{([^}]+)\}/g, (_, refKey: string) => getValue(refKey));
     }
 
-    return resolved;
+    return data;
 };
 
 /** One language's entry in the library's bundle, parsed; undefined when the bundle has none for it. */

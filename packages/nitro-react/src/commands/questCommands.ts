@@ -2,7 +2,7 @@
  * What the quest list does - Flash's `quest/QuestsList` and the `HabboQuestEngine` calls it makes:
  * `onToolbarClick` (and `showQuests` over it), `onQuests`, `onAcceptQuest` and `onCancelQuest`.
  */
-import { AcceptQuestComposer, ActivateQuestComposer, GetQuestsComposer, IQuestMessageData, OpenQuestTrackerComposer, RejectQuestComposer, StartCampaignComposer } from '@nitrodevco/nitro-packets';
+import { AcceptQuestComposer, ActivateQuestComposer, GetQuestsComposer, GetSeasonalQuestsOnlyComposer, IQuestMessageData, OpenQuestTrackerComposer, RejectQuestComposer, StartCampaignComposer } from '@nitrodevco/nitro-packets';
 
 import { Send } from '#base/context/communication';
 import { questsStore } from '#base/context/quests';
@@ -12,6 +12,9 @@ import { configReader } from '#base/utils';
 
 /** `HabboQuestEngine.requestQuests`. */
 export const requestQuests = (send: Send) => send(new GetQuestsComposer({}));
+
+/** `HabboQuestEngine.requestSeasonalQuests`. */
+export const requestSeasonalQuests = (send: Send) => send(new GetSeasonalQuestsOnlyComposer({}));
 
 /**
  * `QuestsList.onToolbarClick` (`QuestController.onToolbarClick` with the seasonal calendar off): the
@@ -159,16 +162,20 @@ export const onQuestMessage = (quest: IQuestMessageData) => {
  * coming it then asks for the next quest (`OpenQuestTracker`) and hides unless a `Quest` arrives
  * within 600 ms (`onNewQuestNotReceived`), with one it just hides. The details close when up for
  * this quest (`QuestDetails.onQuestCompleted`), and the dialog is prepared (`QuestCompleted`).
+ * A seasonal calendar quest (`IncomingMessages.onQuestCompleted` -> `MainWindow.onSeasonalQuestCompleted`,
+ * listening whether the calendar is enabled or not) hides its tracker after the tick instead of
+ * asking for the next quest (`forceWindowCloseAfterAnimationsFinished`) and asks for the seasonal quests.
  */
 export const onQuestCompletedMessage = (send: Send, quest: IQuestMessageData, showDialog: boolean) => {
     const { trackers, setTracker, details } = questsStore.getState();
     const chainCode = quest.chainCode;
+    const seasonal = isSeasonalCalendarQuest(quest);
 
     if (trackers[chainCode]) {
         clearTrackerTimer(chainCode);
         setTracker(chainCode, { quest, phase: 'completed', completedAt: Date.now() });
         trackerTimers.set(chainCode, setTimeout(() => {
-            if (showDialog) {
+            if (showDialog || seasonal) {
                 hideTracker(chainCode);
 
                 return;
@@ -182,10 +189,16 @@ export const onQuestCompletedMessage = (send: Send, quest: IQuestMessageData, sh
     if (!details || (details.id === quest.id)) closeQuestDetails();
 
     onQuestCompleted(quest, showDialog);
+
+    if (seasonal) requestSeasonalQuests(send);
 };
 
-/** `QuestController.onQuestCancelled`: the chain's tracker slides out, the details close for its campaign, the dialog goes. */
-export const onQuestCancelledMessage = (chainCode: string) => {
+/**
+ * `IncomingMessages.onQuestCancelled`: `QuestController.onQuestCancelled` - the chain's tracker slides
+ * out, the details close for its campaign, the dialog goes - then, for a quest that ran out of time,
+ * the `quests.expired` alert.
+ */
+export const onQuestCancelledMessage = (chainCode: string, expired: boolean) => {
     const { details } = questsStore.getState();
 
     hideTracker(chainCode);
@@ -193,6 +206,12 @@ export const onQuestCancelledMessage = (chainCode: string) => {
     if (!details || (details.chainCode === chainCode)) closeQuestDetails();
 
     closeQuestCompleted();
+
+    if (!expired) return;
+
+    const { getLocalizationValue, showSimpleAlert } = systemStore.getState();
+
+    showSimpleAlert({ caption: getLocalizationValue('quests.expired.title'), message: getLocalizationValue('quests.expired.body') });
 };
 
 /** `QuestController.onRoomExit` (`CloseConnection`): the details close; the trackers' Details link hides with the room (drawn from the room state). */

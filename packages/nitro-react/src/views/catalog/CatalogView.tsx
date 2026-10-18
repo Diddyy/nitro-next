@@ -29,7 +29,7 @@ import { refreshBuilderStatus, updateBuilderStatus } from '#base/commands';
 import { CATALOG_HEADER_DESCRIPTION, CATALOG_HEADER_IMAGE, CatalogPage, getCatalogPageImage, getCatalogPageText, getCatalogWindowName, isNonTabbedCatalog, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogNavigation, useWindowVisibility } from '#base/hooks';
-import { Box, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLayoutSize, useTemplateLibrary } from '#base/theme';
+import { Box, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLayoutSize, useTemplateLibrary, useTemplateWindowRect } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 import { useCatalogSearch } from './navigation/useCatalogSearch';
@@ -60,17 +60,22 @@ const BUILDER_STATUS_UPDATE_INTERVAL = 500;
 /** `refreshBuilderStatus` sets every status value as `<font color="#ff8d00"><b>value</b></font>`. */
 const builderStatusValue = (value: string) => `<font color="#ff8d00"><b>${value}</b></font>`;
 
-/** `layoutContainer`'s laid-out height, which the page takes (`window.height = container.height`). */
+/**
+ * `layoutContainer`'s laid-out height, which the page takes (`window.height = container.height`):
+ * the window layout's from the start, so the page is not laid out and drawn a second time at its
+ * template's height first, then the drawn box's.
+ */
 const CatalogLayoutContainer = () => {
     const [ node, setNode ] = useState<PixiContainer | null>(null);
     const { height } = useLayoutSize(node);
+    const laidOut = useTemplateWindowRect();
 
     return (
         <Box
             ref={setNode}
             layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
         >
-            <CatalogPageView height={height || undefined} />
+            <CatalogPageView height={height || laidOut?.height || undefined} />
         </Box>
     );
 };
@@ -113,7 +118,9 @@ export const CatalogView = () => {
         return () => clearInterval(interval);
     }, [ isBuilder, store ]);
 
-    if (!rootNode || !templates) return null;
+    // `toggleCatalog`: the main window shows at once and `refreshCatalogIndex` fills it in when the
+    // index comes (HabboCatalog.as `showMainWindow` right after the request) - not once it is in.
+    if (!templates) return null;
 
     const mode = isBuilder ? 'builders_club' : 'normal';
     const windowTemplateId = catalogTemplateId(nonTabbed ? 'catalog_ubuntu' : 'catalog_ubuntu_with_tabs');
@@ -192,7 +199,7 @@ export const CatalogView = () => {
         ? searchResult.nodes.flatMap((node, index) => nodeItems(node, `search/${index}:${node.pageName}`, true))
         : (activeNodes[0] ? childItems(activeNodes[0], 'nodes') : []);
 
-    const tabs = rootNode.children.filter(x => x.visible);
+    const tabs = rootNode?.children.filter(x => x.visible) ?? [];
 
     const bindings: TemplateBindings = {
         '': {

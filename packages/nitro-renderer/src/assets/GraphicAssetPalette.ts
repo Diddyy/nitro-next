@@ -24,10 +24,15 @@ export class GraphicAssetPalette implements IGraphicAssetPalette {
      * The asset is a frame of a sheet that lives only on the GPU (its bitmap is closed once uploaded,
      * `TextureUtils.makeGpuResident`), so its pixels are read back by drawing it: extracting the
      * texture itself would hand back the whole sheet - and on WebGPU as a canvas with no 2D context,
-     * which left every palette drawing the unpaletted art.
+     * which left every palette drawing the unpaletted art. The sprite drawn is destroyed after: a
+     * drawn container keeps a render group, and the renderer its batchers, until it is destroyed.
      */
     public applyPalette(texture: Texture): Texture {
-        const { pixels, width, height } = TextureUtils.getPixels({ target: new Sprite(texture), resolution: 1, antialias: false });
+        const sprite = new Sprite(texture);
+        const { pixels, width, height } = TextureUtils.getPixels({ target: sprite, resolution: 1, antialias: false });
+
+        sprite.destroy();
+
         const canvas = document.createElement('canvas');
 
         canvas.width = width;

@@ -1,20 +1,20 @@
 import { IPlaneDrawingData, IPlaneVisualization, IRoom, IRoomObjectSpriteData, IRoomObjectSpriteVisualization, IRoomPlane, IRoomRenderingCanvas, RoomObjectCategoryEnum, Vector3d } from '@nitrodevco/nitro-api';
 import { Point, Rectangle } from 'pixi.js';
 
+import { GetRoomContentLoader } from '../GetRoomContentLoader';
 import { PlaneDrawingData } from '../object/visualization/room/PlaneDrawingData';
 
 /**
  * Flash's obfuscated `§_-91p§` (Nitro's name `SpriteDataCollector`): what the server needs to draw a part of the room the way the
  * client shows it (`RoomEngine.getRenderRoomMessage`) - the sprites over the viewport as JSON
  * (`getFurniData`), the rendering modifiers (`getRoomRenderingModifiers`, always `{}`), and the
- * room's planes as drawing data (`getRoomPlanes`) with a background plane under them.
+ * room's planes as drawing data (`getRoomPlanes`: each layer's texture columns, colour and masks,
+ * `RoomPlane.getDrawingDatas`) with a background plane under them.
  *
- * Not ported, because the port's renderer has nothing to read them from: the avatars' and
- * mannequins' own sprite lists (`IRoomObjectSpriteVisualization.getSpriteList` returns none, so a
- * mannequin's `mannequin_` sprites go and an avatar is only the sprites the canvas has of it), a
- * palette sprite's `paletteSourceName` (the asset collections keep no palette XML), and the planes'
- * layers (`RoomPlane.getDrawingDatas`: masks and texture columns) - each plane is the one drawing
- * data Flash falls back to, its colour alone.
+ * Each avatar comes as its figure's parts (`AvatarVisualization.getSpriteList`), a pet as its canvas
+ * sprites, each paletted one with its palette's source (`paletteSourceName`). Not ported, because
+ * the port's renderer has nothing to read it from: a mannequin's own sprite list
+ * (`FurnitureMannequinVisualization.getSpriteList` returns none, so its `mannequin_` sprites go).
  */
 export class SpriteDataCollector {
     private static MANNEQUIN_MAGIC_X_OFFSET = 1;
@@ -130,8 +130,16 @@ export class SpriteDataCollector {
     private getSpriteDataObject(sprite: IRoomObjectSpriteData, viewport: Rectangle): Record<string, unknown> {
         const data: Record<string, unknown> = {};
         let name = sprite.name;
+        let paletteId: string | undefined;
 
-        if (name.indexOf('@') !== -1) name = name.split('@')[0];
+        if (name.indexOf('@') !== -1) [ name, paletteId ] = name.split('@');
+
+        // A paletted sprite (a pet's `monkey_64_a_2_0@2`) names its palette's source, which the server colours the asset with.
+        if (paletteId && sprite.type) {
+            const palette = GetRoomContentLoader().getCollection(sprite.type)?.getPaletteData(Number(paletteId));
+
+            if (palette?.source) data.paletteSourceName = palette.source;
+        }
 
         name = name.replace('%image.library.url%', this._imageLibraryUrl);
 
@@ -269,11 +277,12 @@ export class SpriteDataCollector {
             if ((Math.abs(outsideX) === 4) || (Math.abs(outsideY) === 4)) continue;
 
             const cornerPoints = SpriteDataCollector.sortQuadPoints(corners[0], corners[1], corners[2], corners[3]);
-            const drawingData = new PlaneDrawingData(undefined, plane.color);
 
-            drawingData.cornerPoints = cornerPoints;
-            drawingData.z = z;
-            planes.push(drawingData);
+            for (const drawingData of plane.getDrawingDatas(geometry)) {
+                drawingData.cornerPoints = cornerPoints;
+                drawingData.z = z;
+                planes.push(drawingData);
+            }
         }
 
         planes.unshift(this.makeBackgroundPlane(viewport, backgroundColor, planes));

@@ -3,11 +3,20 @@ import { Filter, Sprite, Texture, TextureSource } from 'pixi.js';
 
 import { TextureUtils } from '.';
 
-/** One frame's alpha, row by row at the source's resolution, and the source version it was read at. */
+/**
+ * One frame's hit mask, row by row at the source's resolution: one bit per pixel, set where its
+ * alpha reaches `threshold` - all the hit test asks of a pixel, in an eighth of the bytes.
+ */
 interface HitMap {
-    alpha: Uint8Array;
+    bits: Uint8Array;
     width: number;
     height: number;
+    threshold: number;
+    version: number;
+}
+
+/** One frame's alpha bytes and the source version they were read at. */
+interface FrameAlpha extends SourceAlpha {
     version: number;
 }
 
@@ -34,6 +43,8 @@ export class ExtendedSprite extends Sprite {
      * so only the frames something was pointed at are read, each the size of the frame.
      */
     private static readonly _hitMaps = new WeakMap<Texture, HitMap>();
+    /** Per texture, the frame's alpha bytes for an avatar frame to be built from (`getFrameAlpha`). */
+    private static readonly _frameAlpha = new WeakMap<Texture, FrameAlpha>();
     /** Bumped when a source is drawn again (`removeHitmap`): a map read before is stale. */
     private static readonly _sourceVersions = new WeakMap<TextureSource, number>();
     /** A source's alpha read back from the GPU whole (`readSourceAlpha`), and the version it was read at. */
@@ -73,9 +84,22 @@ export class ExtendedSprite extends Sprite {
         else this._alphaProviders.delete(source);
     }
 
-    /** The texture's frame alpha, as the hit test reads it: cached per texture and source version. */
+    /** The texture's frame alpha bytes - an avatar part's, for its frame's alpha: cached per texture and source version. */
     public static getFrameAlpha(texture: Texture): SourceAlpha | undefined {
-        return this.getHitMap(texture);
+        const version = ExtendedSprite._sourceVersions.get(texture.source) ?? 0;
+        const cached = ExtendedSprite._frameAlpha.get(texture);
+
+        if (cached && (cached.version === version)) return cached;
+
+        const read = ExtendedSprite.readFrameAlpha(texture);
+
+        if (!read) return undefined;
+
+        const frameAlpha = { ...read, version };
+
+        ExtendedSprite._frameAlpha.set(texture, frameAlpha);
+
+        return frameAlpha;
     }
 
     /**
@@ -141,14 +165,14 @@ export class ExtendedSprite extends Sprite {
 
         if (!super.containsPoint({ x, y })) return false;
 
-        if (this.alphaTolerance <= 0) return true;
+        if (this.alphaTolerance < 0) return true;
 
         const texture = this.texture;
         const textureSource = texture.source;
 
         if (!textureSource) return false;
 
-        const hitMap = ExtendedSprite.getHitMap(texture);
+        const hitMap = ExtendedSprite.getHitMap(texture, this.alphaTolerance);
 
         if (!hitMap) return false;
 
@@ -166,25 +190,58 @@ export class ExtendedSprite extends Sprite {
 
         if ((dx < 0) || (dy < 0) || (dx >= hitMap.width) || (dy >= hitMap.height)) return false;
 
-        return hitMap.alpha[dx + dy * hitMap.width] >= this.alphaTolerance;
+        const index = dx + dy * hitMap.width;
+
+        return ((hitMap.bits[index >> 3] >> (index & 7)) & 1) === 1;
     }
 
-    /** The texture's frame alpha, read once per source version. */
-    private static getHitMap(texture: Texture): HitMap | undefined {
+    /**
+     * The texture's frame mask at `threshold`, read once per source version. Every sprite tests at
+     * Flash's one tolerance (`MATCH_OPAQUE_PIXELS`, the others never read a pixel), so a frame
+     * has one mask; another tolerance builds it again.
+     */
+    private static getHitMap(texture: Texture, threshold: number): HitMap | undefined {
         const version = ExtendedSprite._sourceVersions.get(texture.source) ?? 0;
         const cached = ExtendedSprite._hitMaps.get(texture);
 
-        if (cached && (cached.version === version)) return cached;
+        if (cached && (cached.version === version) && (cached.threshold === threshold)) return cached;
 
-        const read = ExtendedSprite.readFrameAlpha(texture);
+        // An avatar part's bytes are already held for its frame; anything else is read only for the mask.
+        const bytes = ExtendedSprite._frameAlpha.get(texture);
+        const read = (bytes && (bytes.version === version)) ? bytes : ExtendedSprite.readFrameAlpha(texture);
 
         if (!read) return undefined;
 
-        const hitMap = { ...read, version };
+        const hitMap = { bits: ExtendedSprite.packAlpha(read.alpha, threshold), width: read.width, height: read.height, threshold, version };
 
         ExtendedSprite._hitMaps.set(texture, hitMap);
 
         return hitMap;
+    }
+
+    /** One bit per alpha byte, set where it is above `threshold` (Flash: `alpha > alphaTolerance`), eight pixels to a byte. */
+    private static packAlpha(alpha: Uint8Array, threshold: number): Uint8Array {
+        const length = alpha.length;
+        const bits = new Uint8Array((length + 7) >> 3);
+        const whole = length & ~7;
+        let index = 0;
+
+        for (; index < whole; index += 8) {
+            bits[index >> 3] = (alpha[index] > threshold ? 1 : 0)
+                | (alpha[index + 1] > threshold ? 2 : 0)
+                | (alpha[index + 2] > threshold ? 4 : 0)
+                | (alpha[index + 3] > threshold ? 8 : 0)
+                | (alpha[index + 4] > threshold ? 16 : 0)
+                | (alpha[index + 5] > threshold ? 32 : 0)
+                | (alpha[index + 6] > threshold ? 64 : 0)
+                | (alpha[index + 7] > threshold ? 128 : 0);
+        }
+
+        for (; index < length; index++) {
+            if (alpha[index] > threshold) bits[index >> 3] |= 1 << (index & 7);
+        }
+
+        return bits;
     }
 
     /**
@@ -194,7 +251,7 @@ export class ExtendedSprite extends Sprite {
      * and only then the frame read back from the GPU - a render texture, or a sheet whose bitmap was
      * closed after upload (`furniture.sheets.gpu_resident`).
      */
-    private static readFrameAlpha(texture: Texture): Omit<HitMap, 'version'> | undefined {
+    private static readFrameAlpha(texture: Texture): SourceAlpha | undefined {
         const source = texture.source;
         const resolution = source.resolution;
         const frame = texture.frame;
@@ -221,9 +278,14 @@ export class ExtendedSprite extends Sprite {
             }
         }
 
-        const whole = ExtendedSprite.readSourceAlpha(source);
+        // A frame that is the whole source (a plane, an avatar frame) takes the read as it is; only a
+        // sheet's read is kept, for its other frames to be cut from.
+        const isWholeSource = (left === 0) && (top === 0) && (width === source.pixelWidth) && (height === source.pixelHeight);
+        const whole = ExtendedSprite.readSourceAlpha(source, !isWholeSource);
 
         if (!whole) return undefined;
+
+        if (isWholeSource && (whole.width === width) && (whole.height === height)) return { alpha: whole.alpha, width, height };
 
         const alpha = new Uint8Array(width * height);
 
@@ -249,8 +311,9 @@ export class ExtendedSprite extends Sprite {
      * be cut from. Whole, not frame by frame: WebGPU's `getPixels` ignores the texture's frame and copies
      * the full source from its corner (WebGL reads only the frame), so reading per frame would
      * index the wrong pixels there - and a sheet would be read back once for every frame tested.
+     * `keep` caches it; a read for a frame that is the whole source isn't, the frame's map holds it.
      */
-    private static readSourceAlpha(source: TextureSource): { alpha: Uint8Array; width: number; height: number } | undefined {
+    private static readSourceAlpha(source: TextureSource, keep: boolean): { alpha: Uint8Array; width: number; height: number } | undefined {
         const version = ExtendedSprite._sourceVersions.get(source) ?? 0;
         const cached = ExtendedSprite._sourceAlpha.get(source);
 
@@ -261,7 +324,7 @@ export class ExtendedSprite extends Sprite {
         if (provided) {
             const read = { ...provided, version };
 
-            ExtendedSprite._sourceAlpha.set(source, read);
+            if (keep) ExtendedSprite._sourceAlpha.set(source, read);
 
             return read;
         }
@@ -275,13 +338,13 @@ export class ExtendedSprite extends Sprite {
 
         const read = { ...ExtendedSprite.sliceAlpha(result.pixels, result.width, 0, 0, result.width, result.height), version };
 
-        ExtendedSprite._sourceAlpha.set(source, read);
+        if (keep) ExtendedSprite._sourceAlpha.set(source, read);
 
         return read;
     }
 
     /** The alpha bytes of a rectangle of an RGBA buffer `stride` pixels wide. */
-    private static sliceAlpha(rgba: Uint8Array | Uint8ClampedArray, stride: number, left: number, top: number, width: number, height: number): Omit<HitMap, 'version'> {
+    private static sliceAlpha(rgba: Uint8Array | Uint8ClampedArray, stride: number, left: number, top: number, width: number, height: number): SourceAlpha {
         const alpha = new Uint8Array(width * height);
 
         for (let row = 0; row < height; row++) {

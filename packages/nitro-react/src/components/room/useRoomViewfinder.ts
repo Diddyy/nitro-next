@@ -25,7 +25,8 @@ export const useRoomViewfinder = (width: number, height: number, live: boolean, 
     const viewfinder = useRef<Sprite>(null);
     const onUnfitRef = useLatest(onUnfit);
 
-    useEffect(() => () => texture.destroy(true), [ texture ]);
+    // Destroyed with the room's and the UI's batches rebuilt first: the viewfinder drew it this frame.
+    useEffect(() => () => TextureUtils.destroyTexture(texture), [ texture ]);
 
     useEffect(() => {
         if (!live) return;

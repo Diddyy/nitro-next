@@ -67,6 +67,9 @@ import { useAvatarEditorSave } from './useAvatarEditorSave';
 
 const LIBRARY = 'habbo-avatar-editor-com';
 
+/** `FurnitureClothingChangeWidgetHandler`: the booth's editor shows these tabs only (`AvatarEditorView._availableCategories`). */
+const BOOTH_CATEGORIES: readonly AvatarEditorCategory[] = [ AvatarEditorCategory.Torso, AvatarEditorCategory.Legs ];
+
 /** `AvatarEditorView._allCategories` in `mainTabs`' order; effects and misc each behind a setting. */
 const CATEGORIES: readonly { category: AvatarEditorCategory; setting?: string }[] = [
     { category: AvatarEditorCategory.Generic },
@@ -193,7 +196,7 @@ export const AvatarEditor = () => {
     const avatarEffectType = useAvatarEditorStore(x => x.avatarEffectType);
     const figureSetIds = useAvatarEditorStore(x => x.figureSetIds);
     const activeSetType = activeSubType[activeCategory];
-    const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setInitialised, setBoothLook } = useAvatarEditorActions();
+    const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setInitialised, lendToBooth, returnFromBooth } = useAvatarEditorActions();
     const hotLooks = useAvatarEditorStore(x => x.hotLooks);
     const outfitTemplate = useTemplate(`${LIBRARY}/Outfit`);
     const contentTemplate = useTemplate(`${LIBRARY}/AvatarEditorContent`);
@@ -291,38 +294,50 @@ export const AvatarEditor = () => {
     // `HabboAvatarEditorManager.close`, however the window goes.
     useEffect(() => () => closeAvatarEditorEffect(), []);
 
-    // A booth brings its own outfit; loading it here keeps the editing figure something only the editor sets.
+    // A booth brings its own outfit; loading it here keeps the editing figure something only the editor sets. It is editor
+    // instance 1, made anew each time (`openEditor(1, this, ["torso","legs"])`, `selectDefaultCategory`: torso), so the
+    // main editor's own look is set aside until it opens again.
     useEffect(() => {
         if (!clothingChange) return;
 
-        setBoothLook(true);
+        lendToBooth();
+        setActiveCategory(AvatarEditorCategory.Torso);
         loadFigure(clothingChange.figure, clothingChange.gender, true);
     }, [ clothingChange?.objectId, clothingChange?.figure, clothingChange?.gender ]);
 
     // `HabboAvatarEditorManager.loadOwnAvatarInEditor` as the editor opens: once the server has named a worn NFT outfit
     // (`hasNftOutfit` - any token id, the empty one too, until the next save) only the fallback look is loaded, and an empty
-    // fallback loads nothing, so a change left unsaved is still there when the editor opens again (official: lab30 Q3). Else
-    // the session's look. The editor can mount before the user's info arrives, so the look is (re)loaded whenever the
-    // server-side one changes too, and opening with an empty figure never sticks.
-    const opened = useRef(false);
+    // fallback loads nothing, so a change left unsaved is still there when the editor opens again. After a save the token is
+    // cleared (`saveCurrentSelection`) and every later opening loads the session's look (official: lab30 + lab32, 2/2). It runs
+    // once an opening: nothing in the editor listens to the user's figure, so a figure update while it is open (a booth, a
+    // mannequin) leaves the look being edited alone. The editor can mount before the user's info arrives, so opening with an
+    // empty figure never sticks. After a booth the main editor gets its own look back first (instance 0 was only hidden), and
+    // the booth's `GetSelectedNftWardrobe` answer reaches it too (each instance listens, `HabboAvatarEditor.init`), so the
+    // token it names counts here as well; a main editor that never opened before the booth starts on the user's look.
+    const ownLoaded = useRef(false);
 
     useEffect(() => {
-        if (clothingChange) return;
+        if (clothingChange) {
+            ownLoaded.current = false;
+
+            return;
+        }
 
         if (!ownFigure && !ownGender) return;
 
-        const { nftCurrentTokenId, nftFallbackFigure: fallbackFigure, nftFallbackGender: fallbackGender, boothLook } = avatarEditorStore.getState();
-        const opening = !opened.current;
+        if (ownLoaded.current) return;
 
-        opened.current = true;
+        ownLoaded.current = !!ownFigure;
 
-        if (opening && !boothLook && (nftCurrentTokenId !== null)) {
+        const mainExisted = returnFromBooth();
+        const { nftCurrentTokenId, nftFallbackFigure: fallbackFigure, nftFallbackGender: fallbackGender } = avatarEditorStore.getState();
+
+        if (mainExisted && (nftCurrentTokenId !== null)) {
             if (fallbackFigure !== '') loadFigure(fallbackFigure, fallbackGender);
 
             return;
         }
 
-        setBoothLook(false);
         loadFigure(ownFigure || DEFAULT_FIGURES[ownGender] || '', ownGender, true);
     }, [ ownFigure, ownGender, !!clothingChange ]);
 
@@ -355,6 +370,7 @@ export const AvatarEditor = () => {
     };
 
     const categories = CATEGORIES.filter(({ category }) => {
+        if (clothingChange) return BOOTH_CATEGORIES.includes(category);
         if (category === AvatarEditorCategory.Misc) return miscEnabled;
         if (category === AvatarEditorCategory.Effects) return effectsEnabled;
 
@@ -368,7 +384,9 @@ export const AvatarEditor = () => {
     // `setSideContent`: the content reaches `sideContainer`'s right edge - the wardrobe's width with it,
     // 1 with nothing in it - so the name banner ends where the frame's right border begins.
     const sideContainerX = (contentTemplate && findTemplateChild(contentTemplate.elements, 'sideContainer')?.x) ?? 0;
-    const contentWidth = sideContainerX + (wardrobeVisible ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
+    // `isSideContentEnabled`: the booth's editor has no side content, so no wardrobe (`AvatarEditorView.update`).
+    const sideShown = wardrobeVisible && !clothingChange;
+    const contentWidth = sideContainerX + (sideShown ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
 
     // `HotLooksView.update`: the looks of the gender being edited, each an `Outfit` whose button is
     // enabled for a real look (`OutfitView`); a press puts the look on (`HotLooksModel.selectHotLook`).
@@ -396,8 +414,9 @@ export const AvatarEditor = () => {
         // `setSideContent('wardrobe')` / `'nothing'`.
         // `setViewToCategory`: disabled on the NFT tab.
         wardrobe: { disabled: shownCategory === AvatarEditorCategory.Nfts, onPointerTap: () => setWardrobeVisible(!wardrobeVisible) },
+        wardrobeButtonContainer: { visible: !clothingChange },
         sideContainer: {
-            children: wardrobeVisible && (
+            children: sideShown && (
                 <AvatarEditorWardrobe
                     slots={wardrobe}
                     slotCount={maxWardrobeSlots}
@@ -559,7 +578,7 @@ export const AvatarEditor = () => {
 
     const arrange = ({ find }: TemplateWindows) => {
         // `setSideContent`: `sideContainer` as wide as the wardrobe, or 1 with nothing in it.
-        find('sideContainer')?.setWidth(wardrobeVisible ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
+        find('sideContainer')?.setWidth(sideShown ? WARDROBE_WIDTH : EMPTY_SIDE_WIDTH);
 
         // `showPalettes`: one palette as wide as the parts grid, or two sharing it.
         const grid = find('thumbs');
@@ -589,6 +608,8 @@ export const AvatarEditor = () => {
             width={contentWidth}
             height={contentTemplate.height + FRAME_CHROME_HEIGHT}
             bindings={{
+                // `getFrame(categories, title)`: the booth names its editor.
+                ...(clothingChange ? { '': { caption: '${widget.furni.clothingchange.editor.title}' } } : {}),
                 maincontent: {
                     children: (
                         <TemplateWindow

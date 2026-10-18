@@ -17,11 +17,18 @@
  * `""`; a caller that passes a default for one of them gets `""` rather than that default.
  */
 const LINE_SEPARATOR = /\n\r+|\n+|\r+/gm;
-const SURROUNDING_WHITESPACE = /^\s+|\s+$/g;
 const ESCAPED_NEWLINE = /\\n/gm;
 
-/** A value as Flash stores it: trimmed, `\n` escapes resolved. */
-export const normalizeLocalizationValue = (value: string): string => value.replace(SURROUNDING_WHITESPACE, '').replace(ESCAPED_NEWLINE, '\n');
+/**
+ * A value as Flash stores it: trimmed, `\n` escapes resolved. `trim` removes the same characters
+ * as Flash's `/^\s+|\s+$/g`; the escape pass runs only on the values that have one (the texts
+ * file has ~54k lines, so the per-line regex passes were most of its parse time).
+ */
+export const normalizeLocalizationValue = (value: string): string => {
+    const trimmed = value.trim();
+
+    return trimmed.includes('\\n') ? trimmed.replace(ESCAPED_NEWLINE, '\n') : trimmed;
+};
 
 /** Parses a Flash `external_texts` file (`key=value` lines). */
 export const parseLocalizationText = (text: string): Record<string, string> => {
@@ -34,7 +41,7 @@ export const parseLocalizationText = (text: string): Record<string, string> => {
 
         if (separator <= 0) continue;
 
-        const key = line.substring(0, separator).replace(SURROUNDING_WHITESPACE, '');
+        const key = line.substring(0, separator).trim();
         data[key] = normalizeLocalizationValue(line.substring(separator + 1));
     }
 

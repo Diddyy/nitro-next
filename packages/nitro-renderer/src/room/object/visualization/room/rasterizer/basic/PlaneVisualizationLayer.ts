@@ -32,6 +32,16 @@ export class PlaneVisualizationLayer {
         this._color = color;
     }
 
+    /** Flash `getMaterial`. */
+    public getMaterial(): PlaneMaterial | undefined {
+        return this._material;
+    }
+
+    /** Flash `getColor`. */
+    public getColor(): number {
+        return this._color;
+    }
+
     public dispose(): void {
         this._material = undefined;
     }

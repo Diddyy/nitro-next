@@ -8,9 +8,11 @@ export interface AvatarImageTexture {
     texture: Texture | undefined;
     width: number;
     height: number;
+    /** Drawn as the placeholder figure (`IAvatarImage.isPlaceholder`) while the figure's libraries download; redrawn when they land. */
+    placeholder: boolean;
 }
 
-const EMPTY: AvatarImageTexture = { texture: undefined, width: 0, height: 0 };
+const EMPTY: AvatarImageTexture = { texture: undefined, width: 0, height: 0, placeholder: false };
 
 interface AvatarRenderRequest {
     figure: string;
@@ -78,7 +80,7 @@ const drawRender = (key: string, render: AvatarRender) => {
 
     const texture = (scale !== 1) ? render.reduced : full;
 
-    render.result = texture ? { texture, width: texture.width, height: texture.height } : EMPTY;
+    render.result = texture ? { texture, width: texture.width, height: texture.height, placeholder: avatarImage.isPlaceholder() } : EMPTY;
 };
 
 const subscribeRender = (request: AvatarRenderRequest, onChange: () => void) => {

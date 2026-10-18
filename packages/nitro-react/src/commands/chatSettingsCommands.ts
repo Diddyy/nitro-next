@@ -30,7 +30,6 @@ export const updateChatPreferences = (send: Send, chatMode: number, chatBubbleWi
 
     state.setChatPreferences({
         preferredChatStyle: state.preferredChatStyle,
-        freeFlowChatDisabled: state.freeFlowChatDisabled,
         chatSizePreference: state.chatSizePreference,
         chatMode: mode,
         chatBubbleWidth: bubbleWidth,

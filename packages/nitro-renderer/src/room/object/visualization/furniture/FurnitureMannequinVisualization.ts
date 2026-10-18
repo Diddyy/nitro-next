@@ -179,7 +179,13 @@ export class FurnitureMannequinVisualization extends FurnitureVisualization impl
     private static copyImage(image: Texture | undefined): Texture | undefined {
         if (!image || !image.width || !image.height) return undefined;
 
-        return TextureUtils.createAndWriteRenderTexture(image.width, image.height, new Sprite(image));
+        const sprite = new Sprite(image);
+        const copy = TextureUtils.createAndWriteRenderTexture(image.width, image.height, sprite);
+
+        // a drawn container keeps a render group, and the renderer its batchers, until it is destroyed
+        sprite.destroy();
+
+        return copy;
     }
 
     /** A sprite still drawing an asset about to be disposed would draw a destroyed texture. */

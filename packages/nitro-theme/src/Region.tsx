@@ -61,6 +61,8 @@ export interface RegionProps extends ThemeProps<RegionVariant> {
      * past its parent's box (`WindowController.setRectangle`).
      */
     boundToParentRect?: boolean;
+    /** A `dragTarget` whose move goes at the release, its code laying it out where it belongs (`useDragTarget`). */
+    dropToLayout?: boolean;
     children?: ReactNode;
 }
 
@@ -83,10 +85,10 @@ export interface RegionProps extends ThemeProps<RegionVariant> {
  */
 export const Region: ForwardRefExoticComponent<RegionProps & RefAttributes<PixiContainer>> = forwardRef<PixiContainer, RegionProps>(
     ({
-        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, zIndex, visible, dropShadow, dynamicStyle, dynamicRole, backgroundColor, backgroundAlpha, cursor, blendMode, alpha, disabled, interactive = false, pointerTransparent, dragTarget = false, dragTrigger = false, boundToParentRect, children,
+        variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, zIndex, visible, dropShadow, dynamicStyle, dynamicRole, backgroundColor, backgroundAlpha, cursor, blendMode, alpha, disabled, interactive = false, pointerTransparent, dragTarget = false, dragTrigger = false, boundToParentRect, dropToLayout, children,
         onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
     }, ref) => {
-        const drag = useDragTarget(dragTarget, { boundToParentRect });
+        const drag = useDragTarget(dragTarget, { boundToParentRect, dropToLayout });
         const startDrag = useDragTrigger(dragTrigger, drag.controller);
         const onPointerDown = compose(onPointerDownProp, startDrag);
         const { ownCascade, config, state, handlers, resolvedTextStyle, resolvedTextColor } = useThemeVariant<RegionVariant>({

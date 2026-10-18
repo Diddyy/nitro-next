@@ -60,8 +60,6 @@ type State = {
     roomToolsCollapsed: boolean;
     /** `AccountPreferencesEventMessage.preferedChatStyle` - the bubble style the user's own messages are sent with. */
     preferredChatStyle: number;
-    /** `AccountPreferencesEventMessage.freeFlowChatDisabled` - hides the in-room bubbles entirely. */
-    freeFlowChatDisabled: boolean;
     /**
      * `HabboFreeFlowChat.chatFontSizeMode` - `AccountPreferencesEventMessage.chatSizePreference`,
      * clamped to 0 (S) - 4 (XXL): how much larger the bubbles' text is drawn (`chatFontSizeScale`).
@@ -105,7 +103,6 @@ export enum UiFlagEnum {
 
 export interface UserChatPreferences {
     preferredChatStyle: number;
-    freeFlowChatDisabled: boolean;
     chatSizePreference: number;
     chatMode: RoomChatModeType;
     chatBubbleWidth: RoomChatBubbleWidthType;
@@ -128,7 +125,6 @@ type Actions = {
     setPreferredChatStyle: (preferredChatStyle: number) => void;
     /** `HabboFreeFlowChat.chatFontSizeMode = mode` - the caller clamps it, as the setter does. */
     setChatSizePreference: (chatSizePreference: number) => void;
-    setFreeFlowChatDisabled: (freeFlowChatDisabled: boolean) => void;
     setUiFlags: (uiFlags: number) => void;
     setRoomToolsCollapsed: (roomToolsCollapsed: boolean) => void;
     setRoomCameraFollowDisabled: (isRoomCameraFollowDisabled: boolean) => void;
@@ -168,7 +164,6 @@ const initialState: State = {
     uiFlags: 0,
     roomToolsCollapsed: true,
     preferredChatStyle: 0,
-    freeFlowChatDisabled: false,
     chatSizePreference: 0,
     chatMode: RoomChatModeType.FreeFlow,
     chatBubbleWidth: RoomChatBubbleWidthType.Normal,
@@ -199,7 +194,6 @@ export const createUserStore = () => createStore<UserStore>()((set, get, store) 
     setChatPreferences: (preferences: UserChatPreferences) => set({ ...preferences }),
     setPreferredChatStyle: (preferredChatStyle: number) => set({ preferredChatStyle }),
     setChatSizePreference: (chatSizePreference: number) => set({ chatSizePreference }),
-    setFreeFlowChatDisabled: (freeFlowChatDisabled: boolean) => set({ freeFlowChatDisabled }),
     setUiFlags: (uiFlags: number) => set({ uiFlags }),
     setRoomToolsCollapsed: (roomToolsCollapsed: boolean) => set({ roomToolsCollapsed }),
     setRoomCameraFollowDisabled: (isRoomCameraFollowDisabled: boolean) => set({ isRoomCameraFollowDisabled }),
