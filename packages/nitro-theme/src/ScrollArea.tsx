@@ -1,5 +1,5 @@
 import { Container as PixiContainer, Graphics as PixiGraphics } from 'pixi.js';
-import { forwardRef, ReactNode, useEffect, useState } from 'react';
+import { forwardRef, ReactNode, useEffect, useLayoutEffect, useState } from 'react';
 
 import { Box, BoxLayout } from './Box';
 import { useScrollController } from './hooks';
@@ -102,7 +102,8 @@ export const ScrollArea = forwardRef<PixiContainer, ScrollAreaProps>(
 
         const verticalOffset = vertical.scrollOffset;
 
-        useEffect(() => {
+        // Before the frame draws, so the rows a list builds as they come into view are there when they show.
+        useLayoutEffect(() => {
             onScrollChange?.(verticalOffset);
         }, [ verticalOffset, onScrollChange ]);
 
