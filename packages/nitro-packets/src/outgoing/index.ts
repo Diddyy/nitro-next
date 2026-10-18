@@ -420,6 +420,7 @@ export * from './Room/Furniture/RentableSpaceStatusComposer';
 export * from './Room/Furniture/RoomDimmerChangeStateComposer';
 export * from './Room/Furniture/RoomDimmerGetPresetsComposer';
 export * from './Room/Furniture/RoomDimmerSavePresetComposer';
+export * from './Room/Furniture/SetAdjacentCustomStackingHeightComposer';
 export * from './Room/Furniture/SetAreaHideDataComposer';
 export * from './Room/Furniture/SetCustomStackingHeightComposer';
 export * from './Room/Furniture/SetMannequinFigureComposer';
