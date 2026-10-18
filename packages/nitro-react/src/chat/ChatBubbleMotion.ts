@@ -14,7 +14,7 @@ import { IChatFlowBubble, IChatFlowHost } from './simulation/IChatFlowBubble';
  */
 export interface ChatBubbleMotionOptions {
     data: ChatBubbleData;
-    host: Pick<IChatFlowHost, 'stageWidth' | 'getUserScreenLocation' | 'getUnitLocation'>;
+    host: Pick<IChatFlowHost, 'stageWidth' | 'getCanvasOffset' | 'getUserScreenLocation' | 'getUnitLocation'>;
     /** The rendered bubble's container and pointer sprite - read by ref, never during a React render. */
     container: RefObject<Container | null>;
     pointer: RefObject<Sprite | null>;
@@ -126,6 +126,13 @@ export class ChatBubbleMotion implements IChatFlowBubble {
         if (data.forcedScreenLocationX !== undefined) return new Point((host.stageWidth / 2) + data.forcedScreenLocationX, 500);
 
         return host.getUserScreenLocation(data.roomId, data.userLocation);
+    }
+
+    /** `scrolledUserPositionX` - `userScreenPos.x` less the room's pan offset, as an `int`. */
+    public get scrolledUserPositionX(): number {
+        const offset = this._options.host.getCanvasOffset(this.roomId);
+
+        return Math.trunc(this.userScreenLocation.x - (offset ? offset.x : 0));
     }
 
     /** `currentUserScreenPos` - where the speaking room unit is now; once it has left, where it stood when it spoke. */

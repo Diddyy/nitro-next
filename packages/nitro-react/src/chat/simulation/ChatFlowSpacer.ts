@@ -45,6 +45,10 @@ export class ChatFlowSpacer implements IChatFlowBubble {
         return new Point(0, 0);
     }
 
+    public get scrolledUserPositionX(): number {
+        return 0;
+    }
+
     public moveTo(x: number, y: number): void {
         this._x = x;
         this._y = y;

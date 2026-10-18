@@ -25,6 +25,10 @@ export class ChatBubbleSimulationEntity {
     protected _pendingDeltaY: number = 0;
     private _collidedWith: ChatBubbleSimulationEntity[] = [];
     private _isSpacer: boolean = false;
+    /** `scrolledUserPositionX` as last synced to. */
+    private _scrolledUserPositionX: number;
+    /** The speaker's projection moved the entity: the next `applyToVisualization` jumps rather than eases. */
+    private _warpPending: boolean = false;
 
     constructor(bubble: IChatFlowBubble, lineByLine: boolean = false) {
         this._visualization = bubble;
@@ -48,6 +52,8 @@ export class ChatBubbleSimulationEntity {
             this._wideRect.x = this._rect.x - ChatBubbleSimulationEntity.WIDE_MARGIN;
             this._wideRect.y = this._rect.y;
         }
+
+        this._scrolledUserPositionX = bubble.scrolledUserPositionX;
     }
 
     /** The on-screen bubble this entity stands for (undefined once disposed). */
@@ -148,12 +154,37 @@ export class ChatBubbleSimulationEntity {
     public applyToVisualization(instant: boolean = false): void {
         if (!this._visualization) return;
 
+        instant ||= this._warpPending;
+        this._warpPending = false;
+
         const overlap = this._visualization.overlap;
         const x = Math.trunc(this._x - overlap.x);
         const y = Math.trunc(this._y - overlap.y);
 
         if (!instant) this._visualization.moveTo(x, y);
         else this._visualization.setPosition(x, y);
+    }
+
+    /**
+     * `syncToUserScreenPosition`: when the speaker's spot moves on screen other than by a pan
+     * (a zoom, a resized canvas), the entity is carried along by the same amount, and the bubble
+     * jumps there on the next sync rather than easing.
+     */
+    public syncToUserScreenPosition(): void {
+        if (!this._visualization) return;
+
+        const scrolledUserPositionX = this._visualization.scrolledUserPositionX;
+        const delta = scrolledUserPositionX - this._scrolledUserPositionX;
+
+        if (delta === 0) return;
+
+        this._x += delta;
+        this._rect.x += delta;
+
+        if (this._wideRect) this._wideRect.x += delta;
+
+        this._scrolledUserPositionX = scrolledUserPositionX;
+        this._warpPending = true;
     }
 
     public set fullHeightCollision(flag: boolean) {

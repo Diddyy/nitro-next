@@ -30,6 +30,8 @@ export interface IChatFlowBubble {
     readonly hasHitDesktopMargin: boolean;
     /** Where the speaker is on screen right now. */
     readonly userScreenLocation: Point;
+    /** `scrolledUserPositionX` - the speaker's screen x less the room's pan offset, in whole pixels. */
+    readonly scrolledUserPositionX: number;
     readyToRecycle: boolean;
     /** Ease to a position over 150ms. */
     moveTo(x: number, y: number): void;

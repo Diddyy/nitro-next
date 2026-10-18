@@ -158,6 +158,10 @@ export class ChatFlowStage {
     public update(elapsedMs: number): void {
         this._simulationTime += elapsedMs;
 
+        for (const entity of this._bubbles) {
+            if (!entity.isSpacer) entity.syncToUserScreenPosition();
+        }
+
         this.resolveCollisions();
 
         if ((this._lastCycleAt + this._scrollUpTimerDelay) < this._simulationTime) {
