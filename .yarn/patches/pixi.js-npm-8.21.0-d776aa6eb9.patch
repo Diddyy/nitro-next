@@ -393,7 +393,7 @@ index 75de38551df6130b63ee6495562813c42ef9a24c..6d254712f8a6c9a0653ad7b7b42d10fb
  export { Batch, Batcher } from './batcher/shared/Batcher.mjs';
  export { BatcherPipe } from './batcher/shared/BatcherPipe.mjs';
 diff --git a/lib/rendering/renderers/gpu/BindGroupSystem.js b/lib/rendering/renderers/gpu/BindGroupSystem.js
-index efc1c53ae3aabf7c0b382096d9ae6322b03967d1..ce1e32a0151dff894ecf681b29c36f7d01b4d024 100644
+index efc1c53ae3aabf7c0b382096d9ae6322b03967d1..e29947ac9512d7988ec00d22c32d68fc5e3d5288 100644
 --- a/lib/rendering/renderers/gpu/BindGroupSystem.js
 +++ b/lib/rendering/renderers/gpu/BindGroupSystem.js
 @@ -1,8 +1,36 @@
@@ -433,7 +433,44 @@ index efc1c53ae3aabf7c0b382096d9ae6322b03967d1..ce1e32a0151dff894ecf681b29c36f7d
  class GpuBindGroupEntry {
    constructor(gpuBindGroup, now) {
      this.autoGarbageCollect = true;
-@@ -46,9 +74,14 @@ class BindGroupSystem {
+@@ -23,6 +51,17 @@ class GpuBindGroupEntry {
+ class BindGroupSystem {
+   constructor(renderer) {
+     this._hash = /* @__PURE__ */ Object.create(null);
++    /**
++     * How long, in ms, a cached bind group may go unbound before it is dropped. A key holds the ids of
++     * the resources bound, so every texture combination a batch, avatar frame or window ever drew made
++     * one, and the renderer's garbage collection kept each for `gcMaxUnusedTime` (a minute, swept every
++     * 30 s): thousands of native bind groups - and the texture views they hold - in a busy session.
++     * Making a bind group again costs microseconds; one still bound this frame is never dropped.
++     */
++    this.maxUnusedTime = 5e3;
++    /** How often, in ms, the cache is swept. */
++    this.sweepFrequency = 1e3;
++    this._lastSweep = 0;
+     this._renderer = renderer;
+     renderer.gc.addResourceHash(this, "_hash", "resource");
+     renderer.gc.addCollection(this, "_hash", "hash");
+@@ -31,6 +70,18 @@ class BindGroupSystem {
+     this._gpu = gpu;
+     this._hash = /* @__PURE__ */ Object.create(null);
+   }
++  postrender() {
++    const now = this._renderer.gc.now;
++    if (now - this._lastSweep < this.sweepFrequency) return;
++    this._lastSweep = now;
++    const hash = this._hash;
++    for (const key in hash) {
++      const entry = hash[key];
++      if (entry && (now - entry._gcLastUsed <= this.maxUnusedTime || !entry.autoGarbageCollect)) continue;
++      entry?.unload();
++      delete hash[key];
++    }
++  }
+   getBindGroup(bindGroup, program, groupIndex) {
+     const key = `${bindGroup._key}:${program._layoutKey << 4 | groupIndex}`;
+     const entry = this._hash[key];
+@@ -46,9 +97,14 @@ class BindGroupSystem {
      const entries = [];
      const renderer = this._renderer;
      for (const j in groupLayout) {
@@ -451,7 +488,7 @@ index efc1c53ae3aabf7c0b382096d9ae6322b03967d1..ce1e32a0151dff894ecf681b29c36f7d
        let gpuResource;
        if (resource._resourceType === "uniformGroup") {
 diff --git a/lib/rendering/renderers/gpu/BindGroupSystem.mjs b/lib/rendering/renderers/gpu/BindGroupSystem.mjs
-index 3f7c953cc7ff84ce42e3fa671b8f213e6e17d810..88e93a7460640e29cdffcd5e7e56ff5db584a250 100644
+index 3f7c953cc7ff84ce42e3fa671b8f213e6e17d810..67342c4ac31c0baf57b5ef9f1b197fdfd2490720 100644
 --- a/lib/rendering/renderers/gpu/BindGroupSystem.mjs
 +++ b/lib/rendering/renderers/gpu/BindGroupSystem.mjs
 @@ -1,6 +1,34 @@
@@ -489,7 +526,44 @@ index 3f7c953cc7ff84ce42e3fa671b8f213e6e17d810..88e93a7460640e29cdffcd5e7e56ff5d
  class GpuBindGroupEntry {
    constructor(gpuBindGroup, now) {
      this.autoGarbageCollect = true;
-@@ -44,9 +72,14 @@ class BindGroupSystem {
+@@ -21,6 +49,17 @@ class GpuBindGroupEntry {
+ class BindGroupSystem {
+   constructor(renderer) {
+     this._hash = /* @__PURE__ */ Object.create(null);
++    /**
++     * How long, in ms, a cached bind group may go unbound before it is dropped. A key holds the ids of
++     * the resources bound, so every texture combination a batch, avatar frame or window ever drew made
++     * one, and the renderer's garbage collection kept each for `gcMaxUnusedTime` (a minute, swept every
++     * 30 s): thousands of native bind groups - and the texture views they hold - in a busy session.
++     * Making a bind group again costs microseconds; one still bound this frame is never dropped.
++     */
++    this.maxUnusedTime = 5e3;
++    /** How often, in ms, the cache is swept. */
++    this.sweepFrequency = 1e3;
++    this._lastSweep = 0;
+     this._renderer = renderer;
+     renderer.gc.addResourceHash(this, "_hash", "resource");
+     renderer.gc.addCollection(this, "_hash", "hash");
+@@ -29,6 +68,18 @@ class BindGroupSystem {
+     this._gpu = gpu;
+     this._hash = /* @__PURE__ */ Object.create(null);
+   }
++  postrender() {
++    const now = this._renderer.gc.now;
++    if (now - this._lastSweep < this.sweepFrequency) return;
++    this._lastSweep = now;
++    const hash = this._hash;
++    for (const key in hash) {
++      const entry = hash[key];
++      if (entry && (now - entry._gcLastUsed <= this.maxUnusedTime || !entry.autoGarbageCollect)) continue;
++      entry?.unload();
++      delete hash[key];
++    }
++  }
+   getBindGroup(bindGroup, program, groupIndex) {
+     const key = `${bindGroup._key}:${program._layoutKey << 4 | groupIndex}`;
+     const entry = this._hash[key];
+@@ -44,9 +95,14 @@ class BindGroupSystem {
      const entries = [];
      const renderer = this._renderer;
      for (const j in groupLayout) {
