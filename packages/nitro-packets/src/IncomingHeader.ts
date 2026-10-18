@@ -264,6 +264,7 @@ export class IncomingHeader {
     public static InterstitialMessage = 2103;
     public static IsBadgeRequestFulfilledMessage = 3984;
     public static IsFirstLoginOfDayMessage = 2990;
+    public static IsOfferGiftableMessage = 3918;
     public static IssueCloseNotificationMessage = 1983;
     public static IssueDeletedMessage = 2666;
     public static IssueInfoMessage = 2141;
@@ -522,7 +523,6 @@ export class IncomingHeader {
     public static UnknownIncoming_U1dMessage = 3600;
     public static UnknownIncoming_W1AMessage = 132;
     public static UnknownIncoming_Z1vMessage = 3248;
-    public static UnknownIncoming_zBMessage = 3918;
     public static UnreadForumsCountMessage = 1041;
     public static UnseenItemsMessage = 987;
     public static UpdateMessage = 220;
