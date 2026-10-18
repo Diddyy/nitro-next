@@ -589,6 +589,7 @@ export * from './incoming/Room/Engine/HeightMapUpdateMessage';
 export * from './incoming/Room/Engine/ItemAddMessage';
 export * from './incoming/Room/Engine/ItemDataUpdateMessage';
 export * from './incoming/Room/Engine/ItemRemoveMessage';
+export * from './incoming/Room/Engine/ItemRemoveMultipleMessage';
 export * from './incoming/Room/Engine/ItemsMessage';
 export * from './incoming/Room/Engine/ItemsStateUpdateMessage';
 export * from './incoming/Room/Engine/ItemStateUpdateMessage';

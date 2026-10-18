@@ -583,6 +583,7 @@ export * from './Room/Engine/HeightMapUpdateMessage';
 export * from './Room/Engine/ItemAddMessage';
 export * from './Room/Engine/ItemDataUpdateMessage';
 export * from './Room/Engine/ItemRemoveMessage';
+export * from './Room/Engine/ItemRemoveMultipleMessage';
 export * from './Room/Engine/ItemsMessage';
 export * from './Room/Engine/ItemsStateUpdateMessage';
 export * from './Room/Engine/ItemStateUpdateMessage';
