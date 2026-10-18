@@ -13,8 +13,6 @@ const SLIDER_BUTTON_WIDTH = 20;
 const SLIDER_TRAVEL = SLIDER_WIDTH - SLIDER_BUTTON_WIDTH;
 /** `SLIDER_LIVE_UPDATE_INTERVAL_MS`: while the button is dragged the height goes out at most this often. */
 const SLIDER_LIVE_UPDATE_INTERVAL_MS = 30;
-/** The nudge the move buttons make here - see the docblock. */
-const STEP = 0.1;
 /** The frame's `height_max` (a walk tile, with `walktile_container`) and `height_min` (any other furni). */
 const WALK_HEIGHT = 210;
 const STACK_HEIGHT = 185;
@@ -24,9 +22,12 @@ export interface FurnitureStackHeightViewProps {
     multiWalkMode: boolean;
     /** A walk-magic tile: Flash's walk variant, with the multi walk toggle and the `widget.custom.walk.*` texts. */
     isWalkTile: boolean;
-    onApply: (height: number, multiWalkMode: boolean) => void;
+    /** Sends a height; `multiWalkMode` only from the checkbox. */
+    onApply: (height: number, multiWalkMode?: boolean) => void;
     /** Hands the tile back to normal stacking, the layout's "place on top". */
     onAboveStack: () => void;
+    /** `button_move_down` (true) / `button_move_up`: the server moves the tile to the next stacking height that way. */
+    onMoveAdjacent: (down: boolean) => void;
     onClose: () => void;
 }
 
@@ -60,12 +61,12 @@ const sliderXForHeight = (height: number) => Math.trunc(SLIDER_TRAVEL * Math.min
  * (`onInputHeightUnfocus`). `button_floor_level` sends 0, `button_above_stack` hands the tile back
  * to normal stacking, and `multiwalk_checkbox` sends the height with the flag.
  *
- * `button_move_up` / `button_move_down` send `SetAdjacentCustomStackingHeightComposer` in Flash,
- * letting the server pick the next stacking height; that composer is not in the port's packets,
- * so here they nudge the height by 0.1 and send it. The button's double click (whole tiles) is
+ * `button_move_up` / `button_move_down` send `SetAdjacentCustomStackingHeightComposer`, letting the
+ * server pick the next stacking height; they drop an unsent edit and show nothing themselves, the
+ * input follows the furni once the server has moved it. The button's double click (whole tiles) is
  * not ported.
  */
-export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, onApply, onAboveStack, onClose }: FurnitureStackHeightViewProps) => {
+export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, onApply, onAboveStack, onMoveAdjacent, onClose }: FurnitureStackHeightViewProps) => {
     const [ draft, setDraft ] = useState<string>(height.toString());
     const [ edited, setEdited ] = useState<boolean>(false);
     const [ lastHeight, setLastHeight ] = useState<number>(height);
@@ -80,12 +81,18 @@ export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, on
         setDraft(height.toString());
     }
 
-    const send = (value: number) => onApply(value, multiWalk);
+    const send = (value: number) => onApply(value);
 
     const setAltitude = (value: number) => {
         setEdited(false);
         setDraft(value.toString());
         send(value);
+    };
+
+    // `button_move_down` / `button_move_up`: an unsent edit is dropped and the input waits for where the server puts the furni.
+    const moveAdjacent = (down: boolean) => {
+        setEdited(false);
+        onMoveAdjacent(down);
     };
 
     // `slider`'s `WME_CLICK`, at the pointer's `localX` - a press that started on the button is the button's.
@@ -175,8 +182,8 @@ export const FurnitureStackHeightView = ({ height, multiWalkMode, isWalkTile, on
                 },
                 button_above_stack: { onPointerTap: onAboveStack },
                 button_floor_level: { onPointerTap: () => setAltitude(0) },
-                button_move_down: { onPointerTap: () => setAltitude(Math.max(0, Math.round((parseHeight(draft) - STEP) * 100) / 100)) },
-                button_move_up: { onPointerTap: () => setAltitude(Math.round((parseHeight(draft) + STEP) * 100) / 100) },
+                button_move_down: { onPointerTap: () => moveAdjacent(true) },
+                button_move_up: { onPointerTap: () => moveAdjacent(false) },
             }}
             arrange={({ find }) => find('slider_button')?.setX(sliderX)}
         />

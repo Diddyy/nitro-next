@@ -1324,6 +1324,7 @@ export * from './outgoing/Room/Furniture/RentableSpaceStatusComposer';
 export * from './outgoing/Room/Furniture/RoomDimmerChangeStateComposer';
 export * from './outgoing/Room/Furniture/RoomDimmerGetPresetsComposer';
 export * from './outgoing/Room/Furniture/RoomDimmerSavePresetComposer';
+export * from './outgoing/Room/Furniture/SetAdjacentCustomStackingHeightComposer';
 export * from './outgoing/Room/Furniture/SetAreaHideDataComposer';
 export * from './outgoing/Room/Furniture/SetCustomStackingHeightComposer';
 export * from './outgoing/Room/Furniture/SetMannequinFigureComposer';
