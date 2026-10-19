@@ -1,5 +1,5 @@
 /**
- * The recycler's setters. What the recycler does goes through `commands/catalogRecyclerCommands`
+ * The recycler's setters. What the recycler does goes through `commands/catalog/catalogRecyclerCommands`
  * (`RecyclerLogic`'s methods); the widgets set only what the animator draws. Read off the store
  * once: a component using these re-renders for nothing.
  */

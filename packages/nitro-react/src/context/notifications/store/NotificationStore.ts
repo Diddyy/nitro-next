@@ -6,7 +6,7 @@
  * bubbles and reports back when one starts to fade or is gone.
  *
  * It also holds the open `NotificationPopup`s - the other half of `HabboNotifications.showNotification`
- * (`commands/notificationCommands`), drawn by `views/notifications/NotificationPopupsView`.
+ * (`commands/notifications/notificationCommands`), drawn by `views/notifications/NotificationPopupsView`.
  *
  * The packet-driven bubbles of Flash's `notifications/IncomingMessages` are in
  * `handlers/notifications/registerNotificationHandlers`. The component's own windows are not in

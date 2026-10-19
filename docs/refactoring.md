@@ -78,11 +78,11 @@ chat history pulled past its top does not spring back - before this change as af
 
 ### 5. Group forum state kept twice
 
-`commands/groupForumCommands.ts` holds fourteen module-level variables; `forumsList`, `forumData`
-and `threadsList` duplicate `groupStore.forumView` and every handler writes both. A store reset
-does not clear the module copy. `goToGroupForumMessage` sets `goToMessageIndex`, but its reader
-`takeGroupForumGoTo` has no caller, so a `groupforum/<group>/<thread>/<index>` link opens the
-page and never goes to the message. **Verified.**
+`commands/groups/groupForumCommands.ts` holds fourteen module-level variables; `forumsList`,
+`forumData` and `threadsList` duplicate `groupStore.forumView` and every handler writes both. A
+store reset does not clear the module copy. `goToGroupForumMessage` sets `goToMessageIndex`, but
+its reader `takeGroupForumGoTo` has no caller, so a `groupforum/<group>/<thread>/<index>` link
+opens the page and never goes to the message. **Verified.**
 
 Change: `forumView` as the only copy, the request bookkeeping in `GroupForumSlice`, and the go-to
 read where the thread opens. M. **Done:** the controller's fields are `GroupForumSlice.forumSession`
@@ -146,12 +146,12 @@ is for numbers.) Read a flag with these, never `=== true`.
 
 ### 9. Moderation outside the store, action and command structure
 
-`context/moderation` has no action hooks and there is no `commands/moderationCommands.ts`; the
-moderation views call `getState()` 22 times and send 28 packets directly, and two import
-`moderationIssueSends` from `handlers/moderation`. **Verified** (`getState` count). Change:
-`useModerationActions`, `useModerationIssueActions` and a moderation commands file. The local
-drift tool's exemption saying moderation is not ported is stale. M. **Done:** `commands/moderationCommands.ts`
-holds every request and action the views sent (and `moderationIssueSends`, moved from the
+`context/moderation` has no action hooks and there is no
+`commands/moderation/moderationCommands.ts`; the moderation views call `getState()` 22 times and
+send 28 packets directly, and two import `moderationIssueSends` from `handlers/moderation`.
+**Verified** (`getState` count). Change: `useModerationActions`, `useModerationIssueActions` and a
+moderation commands file. The local drift tool's exemption saying moderation is not ported is
+stale. M. **Done:** `commands/moderation/moderationCommands.ts` holds every request and action the views sent (and `moderationIssueSends`, moved from the
 handlers); the views use `useModerationActions` / `useModerationIssueActions` / `useWindowActions`,
 with no `getState()` or `send(new …)` left. The drift exemption is removed. Not checked live (Turbo
 was down; it needs a moderator account).
@@ -167,7 +167,7 @@ their direct sends, as the conventions allow. Not checked live (Turbo was down).
 
 ### 11. Other store-access deviations
 
-- `commands/cameraCommands.ts` defines `cameraStore` and `useCameraStore` outside `context/`. S.
+- `commands/room/cameraCommands.ts` defines `cameraStore` and `useCameraStore` outside `context/`. S.
 - `getState()` in views: `CustomUserNotificationView`, `VariableLeaderboardWidget`,
   `VariableLeaderboardAddonView`, `RoomObjectMenuPet`; actions selected from a store in
   `ModActionView`, `ModRoomToolView`, `ModSendMessageView`, `VariableLeaderboardAddonView`,
@@ -183,7 +183,7 @@ their direct sends, as the conventions allow. Not checked live (Turbo was down).
 leaderboard location edit's `updateLeaderboardLocationEdit` / `endLeaderboardLocationEdit` /
 `dragLeaderboardLocation`), and their actions come from actions hooks. `getRoom()` at every site.
 The leaderboard's subscription, variable and page commands are in
-`commands/wiredVariableLeaderboardCommands.ts`, taking `send` like other commands.
+`commands/wired/wiredVariableLeaderboardCommands.ts`, taking `send` like other commands.
 
 ### 12. Navigator store and copies of the current room
 
@@ -202,7 +202,7 @@ id follow the room engine's session. Found on the way: the navigator never ran `
 ## Duplication and size
 
 - **Room cameras.** `RoomThumbnailCameraWidget` and `StarterRoomCameraWidget` are near copies, and
-  neither uses `collectRoomPhotoData` (`commands/cameraCommands.ts`). A `useRoomViewfinder` hook;
+  neither uses `collectRoomPhotoData` (`commands/room/cameraCommands.ts`). A `useRoomViewfinder` hook;
   the starter camera's UI moved to a view. S-M. **Done:** `components/room/useRoomViewfinder.ts` (the texture, its
   per-frame redraw and unfit check, and `collect` over `collectRoomPhotoData`); the starter
   camera's window is `views/room-widgets/starter-room-camera/StarterRoomCameraView.tsx`. Not checked live.
@@ -232,7 +232,7 @@ id follow the room engine's session. Found on the way: the navigator never ran `
 - **Large files.** `RoomChatInputView` (completion, NUX reminder, flood countdown, placement hooks),
   `CatalogProductViewWidgetView` (avatar pose, preview population, zoom easing - its effect reads
   `zoomProgress` only as the start value, by design; its tick now stops on arrival), `AvatarEditor` (NFT handling, save flow),
-  `commands/collectiblesCommands.ts` (split along its section banners; its slices only expose
+  `commands/collectibles/collectiblesCommands.ts` (split along its section banners; its slices only expose
   generic `patch*` actions). M each. **Done:** hooks beside each view (`useChatInputCompletion`,
   `useChatNuxReminder`, `useChatFloodCountdown`, `useChatInputPlacement`; `useProductPreview`,
   `useProductPreviewAvatarPose`, `useProductPreviewZoom`; `useAvatarEditorNfts`,

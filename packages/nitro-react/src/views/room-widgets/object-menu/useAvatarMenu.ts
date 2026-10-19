@@ -2,7 +2,7 @@ import { ISimpleRoomObjectData, RoomControllerLevelEnum } from '@nitrodevco/nitr
 import { useState } from 'react';
 
 import { ambassadorAlert, askForAFriend, banUser, giveRights, ignoreUser, kickUser, muteUser, openClientLink, openProfile, passCarryItem, RELATIONSHIP_BOBBA, RELATIONSHIP_HEART, RELATIONSHIP_NONE, RELATIONSHIP_SMILE, replenishRespect, respectUser, setRelationship, startTrading, takeRights, unignoreUser, unmuteUser, whisperUser } from '#base/commands';
-import { reportUser } from '#base/commands/helpCommands';
+import { reportUser } from '#base/commands/help/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useOwnRoomObjectId, useRoomIsPlayingGame, useRoomStore } from '#base/context/room';
 import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';

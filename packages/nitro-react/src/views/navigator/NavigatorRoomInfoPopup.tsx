@@ -42,7 +42,7 @@ import { Container as PixiContainer } from 'pixi.js';
 import { RefObject, useEffect, useRef, useState } from 'react';
 
 import { openGroupInfo, openProfile, searchRoomTag, setHomeRoom, setRoomFavourite } from '#base/commands';
-import { reportRoom } from '#base/commands/helpCommands';
+import { reportRoom } from '#base/commands/help/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
 import { useNavigatorStore } from '#base/context/navigator';

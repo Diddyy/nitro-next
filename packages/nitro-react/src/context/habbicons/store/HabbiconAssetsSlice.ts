@@ -6,7 +6,7 @@
  * Flash cut a preview out of the sheet the first time it was asked for; here every preview is
  * cut once the sheet is in, and so is the dimmed copy `HabbiconTileView.refresh` draws for a
  * habbicon the user has neither owned nor can claim (`_colorTransform` applied to a clone of the
- * preview). `commands/habbiconCommands.loadHabbiconAssets` does the loading.
+ * preview). `commands/habbicons/habbiconCommands.loadHabbiconAssets` does the loading.
  *
  * Not held: the half-size previews (`_previewBitmapsSmall`), the outlined collection icons, the
  * animation definitions (`§_-GE§`) and the runtime assets built from `animation/<id>.png`. Their

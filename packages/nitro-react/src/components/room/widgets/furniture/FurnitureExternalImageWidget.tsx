@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import type { InventoryExternalImageRequest } from '#base/commands';
 import { openProfile } from '#base/commands';
-import { reportPhoto } from '#base/commands/helpCommands';
+import { reportPhoto } from '#base/commands/help/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { getInventoryWallItemById, useInventoryStore } from '#base/context/inventory';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';

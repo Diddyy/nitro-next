@@ -8,7 +8,7 @@
  * (`GetTalentTrackMessageComposer(sessionDataManager.currentTalentTrack)`), which in Flash the talent
  * track window opens on. Here the request is sent and nothing opens: the talent track window
  * (`TalentTrackController`) is not ported, and nor is the answer's parser - see
- * `commands/talentTrackCommands.ts`. Flash's `trackTalentTrackOpen(track, "landingpagepromo")` is
+ * `commands/achievements/talentTrackCommands.ts`. Flash's `trackTalentTrackOpen(track, "landingpagepromo")` is
  * tracking the port does not send.
  */
 import { currentTalentTrack, requestTalentTrack } from '#base/commands';

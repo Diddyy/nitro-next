@@ -37,7 +37,7 @@ import {
     markGroupForumsListAsRead, openClientLink, openGroupForumCompose, openGroupForumSettings, openGroupForumsList, openGroupForumWindow, openProfile, requestGroupForumMessages, requestGroupForumThreads,
     setGroupForumWindowRect, takeGroupForumGoTo, undeleteGroupForumMessage, undeleteGroupForumThread, updateGroupForumThread,
 } from '#base/commands';
-import { reportGroupForumMessage, reportGroupForumThread } from '#base/commands/helpCommands';
+import { reportGroupForumMessage, reportGroupForumThread } from '#base/commands/help/helpCommands';
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { GroupForumView as GroupForumViewState, useGroupStore } from '#base/context/groups';

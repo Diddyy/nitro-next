@@ -2,7 +2,7 @@
  * `:lang <name>` - `HabboLocalizationManager.configureLocalizationLocations` and
  * `CoreLocalizationManager.activateLocalizationDefinition` / `loadLocalizationFromURL`, and the
  * default localizations of the `habbo-localization-com` bundle it swaps
- * (`loadDefaultEmbedLocalizations`; `nitro-react/src/commands/localizationCommands.ts`).
+ * (`loadDefaultEmbedLocalizations`; `nitro-react/src/commands/system/localizationCommands.ts`).
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -62,7 +62,7 @@ const stubs = {
     } },
 };
 
-runInNewContext(transpile(new URL('../packages/nitro-react/src/commands/localizationCommands.ts', import.meta.url)), {
+runInNewContext(transpile(new URL('../packages/nitro-react/src/commands/system/localizationCommands.ts', import.meta.url)), {
     exports: commands,
     fetch,
     TextDecoder,

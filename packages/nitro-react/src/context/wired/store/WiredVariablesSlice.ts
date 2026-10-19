@@ -1,7 +1,7 @@
 /**
  * The room's wired variables as the client last synchronized them -
  * `WiredVariablesSynchronizer`'s cache and its request state. The state machine itself (when to
- * ask for the hash, when for the diffs, who is told) is in `commands/wiredSynchronizerCommands.ts`;
+ * ask for the hash, when for the diffs, who is told) is in `commands/wired/wiredSynchronizerCommands.ts`;
  * this slice is what it keeps between packets.
  *
  * Flash holds `null` dictionaries until the first diff arrives, and tells "never synchronized"

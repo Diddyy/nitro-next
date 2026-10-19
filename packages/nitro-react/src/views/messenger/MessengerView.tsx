@@ -39,7 +39,7 @@
 import { useRef, useState } from 'react';
 
 import { followMessengerConversation, getMessengerFriend, hideMessenger, hideMessengerConversation, openHabbiconHub, openMessengerConversationProfile, requestMessengerHistory, selectMessengerConversation, sendMessengerHabbicon, sendMessengerMessage } from '#base/commands';
-import { reportUserFromIM } from '#base/commands/helpCommands';
+import { reportUserFromIM } from '#base/commands/help/helpCommands';
 import { AvatarImage } from '#base/components/AvatarImage';
 import { useWebSocketContext } from '#base/context/communication';
 import { useHabbiconsStore } from '#base/context/habbicons';

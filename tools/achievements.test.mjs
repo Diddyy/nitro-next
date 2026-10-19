@@ -49,7 +49,7 @@ await test('initialization requests authoritative badge limits and catalog once 
     const store = createAchievementsStore();
     class GetAchievementsComposer {}
     class GetBadgePointLimitsComposer {}
-    const { requestAchievements } = load('nitro-react/src/commands/achievementCommands', {
+    const { requestAchievements } = load('nitro-react/src/commands/achievements/achievementCommands', {
         '@nitrodevco/nitro-packets': { GetAchievementsComposer, GetBadgePointLimitsComposer },
         '#base/context/achievements': { achievementsStore: store },
         '#base/context/system': {}, '#base/context/wired': {},

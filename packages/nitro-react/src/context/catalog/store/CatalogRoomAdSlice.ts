@@ -6,7 +6,7 @@
  * room, category, the offer it selected), `PurchaseCatalogWidget` checks it before a
  * `ROOM_INITIATE_PURCHASE` buy, and `HabboCatalog.purchaseProduct` sends `PurchaseRoomAdMessageComposer`
  * instead of a plain purchase when the offer bought is the one it names
- * (`commands/catalogRoomAdCommands`). Flash's data object is shared and written in place; here
+ * (`commands/catalog/catalogRoomAdCommands`). Flash's data object is shared and written in place; here
  * every write is `updateRoomAdPurchaseData`, which creates it the way each Flash writer does
  * (`if (roomAdPurchaseData == null) roomAdPurchaseData = new RoomAdPurchaseData()`).
  *

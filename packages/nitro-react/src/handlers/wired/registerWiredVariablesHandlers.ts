@@ -1,6 +1,6 @@
 /**
  * The two answers of the wired variables synchronization - `WiredVariablesSynchronizer`'s
- * listeners. The state machine they drive is in `commands/wiredSynchronizerCommands.ts`; both
+ * listeners. The state machine they drive is in `commands/wired/wiredSynchronizerCommands.ts`; both
  * packets are ignored unless they answer a request that is still waiting.
  */
 import { WiredAllVariablesDiffsMessage, WiredAllVariablesHashMessage } from '@nitrodevco/nitro-packets';

@@ -3,7 +3,7 @@
  * `HabboCatalog` creates once and hands to the guild widgets.
  *
  * The one guild selector on show registers itself (`registerGuildSelectorWidget` in
- * `commands/catalogGuildCommands`, which also asks for the memberships), and
+ * `commands/catalog/catalogGuildCommands`, which also asks for the memberships), and
  * `GuildMembershipsMessage` is handed to it (`onGuildMembershipsMessageEvent`, in
  * `handlers/catalog/registerCatalogGuildHandlers`): it fills its list and selects the favourite
  * group, then the page's first offer. A widget that unmounts unregisters, and an answer with no

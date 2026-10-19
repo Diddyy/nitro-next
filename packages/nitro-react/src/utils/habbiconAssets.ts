@@ -2,7 +2,7 @@
  * The pure half of `habbicons/assets/HabbiconAssetManager`: where the habbicon assets live
  * (`HabboConfigurationManager.updateHabbiconAssetProperties` + `refreshAssetRoot`), what
  * `habbicons.json` says (`onMetadataLoaded`), and cutting a frame out of a sheet
- * (`extractFrameBitmapFromSheet`). The loading itself is `commands/habbiconCommands`.
+ * (`extractFrameBitmapFromSheet`). The loading itself is `commands/habbicons/habbiconCommands`.
  */
 import type { HabbiconAnimationStep, HabbiconDefinition, HabbiconRuntimeFrameDefinition } from '@nitrodevco/nitro-renderer';
 

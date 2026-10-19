@@ -2,7 +2,7 @@ import { RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, GetExtendedProfileComposer, MuteAllInRoomComposer, RateFlatComposer, RemoveOwnRoomRightsRoomComposer, ToggleStaffPickComposer, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
 
 import { canManageRaidProtection, openClientLink, openGroupInfo, openRoomFilter, searchRoomTag } from '#base/commands';
-import { reportRoom } from '#base/commands/helpCommands';
+import { reportRoom } from '#base/commands/help/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useRaidProtectionStore } from '#base/context/raid-protection';

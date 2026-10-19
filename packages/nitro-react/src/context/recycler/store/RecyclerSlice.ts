@@ -14,7 +14,7 @@
  * The logic is `HabboCatalog`'s and lives for the session, but the inventory reaches it too
  * (`HabboInventory.recycleSelectedFurni` -> `catalog.getRecycler()`), so the store is an app-wide
  * singleton rather than part of the window-scoped catalogue store. The methods themselves are in
- * `commands/catalogRecyclerCommands.ts`.
+ * `commands/catalog/catalogRecyclerCommands.ts`.
  */
 import { IFurnitureData } from '@nitrodevco/nitro-api';
 import { StateCreator } from 'zustand';

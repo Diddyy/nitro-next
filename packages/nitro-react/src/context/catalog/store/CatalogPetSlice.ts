@@ -2,7 +2,7 @@
  * The pet palettes the catalogue has been told a pet product sells in - Flash's
  * `HabboCatalog._sellablePetPalettes`, keyed by the product code (the pet offer's localization id).
  *
- * `getSellablePetPalettes` (`commands/catalogPetCommands`) answers from here and only asks the
+ * `getSellablePetPalettes` (`commands/catalog/catalogPetCommands`) answers from here and only asks the
  * server (`GetSellablePetPalettesComposer`) for a code it has no answer for; `onSellablePalettes`
  * replaces a code's row with what `SellablePetPalettesMessage` brought. Flash keeps the map for the
  * life of the catalogue - `HabboCatalog.reset` after a republish leaves it alone - so

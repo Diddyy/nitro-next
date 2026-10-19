@@ -5,7 +5,7 @@
  *
  * `addNotification` and `removeNotificationById` are Flash's `IHabboNotifications.addItem` and
  * `removeNotificationById`, for any feature that raises a bubble; the popup pair opens and closes
- * a `NotificationPopup` (open one through `showNotification` in `commands/notificationCommands`);
+ * a `NotificationPopup` (open one through `showNotification` in `commands/notifications/notificationCommands`);
  * the rest is the notifications view reporting back.
  */
 import { notificationStore } from '../store';

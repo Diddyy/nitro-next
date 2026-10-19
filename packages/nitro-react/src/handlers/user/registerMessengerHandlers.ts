@@ -19,7 +19,7 @@ import { on, subscribeAll } from '../packetSubscriptions';
  * user store because the room widgets read it too.
  *
  * And `HabboMessenger`'s console: new messages, their history, instant message errors and room
- * invites go to `MainView` (`commands/messengerCommands.ts`); a friend coming online or going
+ * invites go to `MainView` (`commands/user/messengerCommands.ts`); a friend coming online or going
  * offline is noted in an open conversation (`FriendCategories.onFriendListUpdate` ->
  * `setOnlineStatus`); a group chat's follow finishes on the group's details. Mini mail's unread
  * count is kept only while `client.minimail.embed.enabled` is on, as `HabboMessenger` only listens

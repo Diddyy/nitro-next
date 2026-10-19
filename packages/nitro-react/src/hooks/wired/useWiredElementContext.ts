@@ -2,7 +2,7 @@
  * The `WiredElementContext` an element's view is handed - what a Flash element reached through
  * `roomEvents` (`localization`, `getBoolean` / `getProperty`, `wiredMenu`, the session). The
  * non-React twin, for `createForm` and the save path, is `getWiredElementContext` in
- * `commands/wiredCommands.ts`.
+ * `commands/wired/wiredCommands.ts`.
  */
 import { useRoom } from '#base/context/room';
 import { useConfigData, useTranslation } from '#base/context/system';

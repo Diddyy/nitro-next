@@ -289,7 +289,7 @@ export const WIRED_VARIABLE_ID_NONE = 'n';
  * `ctx.roomVariables`, the list their pickers were `init`ed with. Without a variables list the id is
  * passed through, as `createVariablePickerState` keeps it, and an empty one is `'n'` too. The side
  * effect - recording the variable in the recent tab - is `rememberPickedVariables`, which
- * `commands/wiredCommands.ts` runs when it reads the form.
+ * `commands/wired/wiredCommands.ts` runs when it reads the form.
  */
 export const finalizePickerSelection = (variables: readonly IWiredVariable[] | null | undefined, state: WiredVariablePickerState): string => {
     if (!variables) return (state.variableId === '') ? WIRED_VARIABLE_ID_NONE : state.variableId;

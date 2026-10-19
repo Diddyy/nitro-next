@@ -8,7 +8,7 @@
  * `onBadgeReceived`, `onPetLevelNotification`, `onPetReceived`, `onRoomMessagesNotification`,
  * `onInfoFeedEnable`, `onBroadcastMessageEvent`, `onClaimProductResult`, `onClubGiftSelected`,
  * `onRoomEnter` (the moderation disclaimer, `showModerationDisclaimer`) and
- * `onNotificationDialogMessageEvent` (`showNotification`, in `commands/notificationCommands`,
+ * `onNotificationDialogMessageEvent` (`showNotification`, in `commands/notifications/notificationCommands`,
  * with `showCallCreatedNotification` for `cfh.created`). The MOTD, club gift and safety lock
  * windows and the `HabboAlertDialogManager` alerts are `registerSingularNotificationHandlers` and
  * `registerAlertDialogHandlers`. The feed items the class adds behind `notification.feed.enabled`

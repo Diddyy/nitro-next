@@ -4,7 +4,7 @@ import { useCatalogStoreApi } from '../useCatalogStoreApi';
  * The purchase flow's store actions a view may call itself: the purchase widget recording what it
  * would buy with (`CatalogPurchaseSlice.purchaseWidgetState`), and the confirmation its product
  * picture (`purchaseIconNode`). Everything that talks to the server
- * or opens a dialog goes through `commands/catalogPurchaseFlowCommands`. Read off the store once:
+ * or opens a dialog goes through `commands/catalog/catalogPurchaseFlowCommands`. Read off the store once:
  * a component using these re-renders for nothing.
  */
 export const useCatalogPurchaseActions = () => {

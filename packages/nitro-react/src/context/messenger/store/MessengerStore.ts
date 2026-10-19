@@ -7,7 +7,7 @@
  *
  * It lives for the whole session, as `MainView` does from `MessengerInitMessage` on: a message
  * that arrives while the window is closed is kept and flags its conversation unread. The rules -
- * starting, recording, combining, confirming, closing - are `commands/messengerCommands.ts`, which
+ * starting, recording, combining, confirming, closing - are `commands/user/messengerCommands.ts`, which
  * is `MainView`'s controller half; this store only holds what they decide.
  */
 import { AvatarGenderType } from '@nitrodevco/nitro-api';

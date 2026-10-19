@@ -18,7 +18,7 @@
  *   which fills a description's `%limit%` with it (`utils/badgeLocalization`).
  *
  * Who asks for the list: `HabboInventory.getAllMyBadgeIds` the first time it finds the model empty,
- * and the badges tab when it opens (`commands/inventoryBadgeCommands`).
+ * and the badges tab when it opens (`commands/inventory/inventoryBadgeCommands`).
  */
 import { BadgePointLimitsEventMessage, BadgeReceivedEventMessage, BadgesEventMessage, HabboUserBadgesMessage, IInventoryBadge } from '@nitrodevco/nitro-packets';
 

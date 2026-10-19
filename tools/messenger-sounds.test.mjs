@@ -52,7 +52,7 @@ const messenger = () => {
         getLocalizationValue: key => key,
     };
     const user = { userId: 1, name: 'me', figure: 'hd-1', friends: { [FRIEND]: { playerId: FRIEND, name: 'Friend', figure: 'hd-2', gender: 0, isOnline: true, persistedUser: false, pocketHabboUser: false } } };
-    const commands = load('nitro-react/src/commands/messengerCommands', {
+    const commands = load('nitro-react/src/commands/user/messengerCommands', {
         '@nitrodevco/nitro-api': { AvatarGenderType: { Male: 0 } },
         '@nitrodevco/nitro-packets': {
             EventLogComposer: class {}, FollowFriendComposer: class {}, GetExtendedProfileComposer: class {}, GetHabboGroupDetailsComposer: class {},

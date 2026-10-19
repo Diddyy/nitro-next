@@ -37,16 +37,16 @@ Every one of these has a header in Turbo but no parser registered for it.
 
 | Area | Packets | Client |
 |---|---|---|
-| Habbicons | `GetHabbiconShopData`, `GetHabbiconInfo`, `BuyHabbicon`, `BuyHabbiconCollection`, `ClaimHabbicon`, `FavoriteHabbicon`, `UnfavoriteHabbicon`, `TriggerHabbicon` | `commands/habbiconCommands.ts` |
-| Account word filter | `GetCustomFilter`, `AddToCustomFilter`, `RemoveFromCustomFilter` | `commands/wordFilterCommands.ts` |
-| Marketplace | `CancelAllMarketplaceOffers`, `ClearMarketplaceOwnHistory` | `commands/catalogMarketplaceCommands.ts` |
-| Recycler | `GetRecyclerStatus`, `GetRecyclerPrizes`, `RecycleItems` | `commands/catalogRecyclerCommands.ts` |
-| Special items | `ClaimProduct`, `HasClaimedProduct` | `commands/specialItemsCommands.ts` |
-| Game tokens | `GetSnowWarGameTokensOffer`, `PurchaseSnowWarGameTokensOffer` | `commands/gameTokensCommands.ts` |
-| NFT collectibles | `GetNftClaims`, `ClaimNftClaims`, `GetNftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBox`, `ProgressTreasureHunt` | `commands/collectiblesRewardClaimsCommands.ts`, `collectiblesShopCommands.ts`, `collectiblesPurchaseCommands.ts`, `collectiblesCommands.ts`, `useRoomFurnitureActionHandler` |
-| NFT trading | `GetNftTradeInventory`, `AddNftToTrade`, `RemoveNftFromTrade` | `commands/inventoryTradingCommands.ts` |
-| Wired | `WiredGetRoomLogs`, `WiredUpdateRoom`, `WiredGetVariableOwnersPage`, `WiredGetUserPermanentVariables`, `WiredSetUserPermanentVariable`, `WiredGenerateWebApiKey` | `commands/wiredRoomLogsCommands.ts`, `wiredMenuCommands.ts`, `wiredVariableManagementCommands.ts`, `wiredWebApiKeyCommands.ts` |
-| Wired trading | `SelfDonateItem` | `commands/wiredTradingCommands.ts` |
+| Habbicons | `GetHabbiconShopData`, `GetHabbiconInfo`, `BuyHabbicon`, `BuyHabbiconCollection`, `ClaimHabbicon`, `FavoriteHabbicon`, `UnfavoriteHabbicon`, `TriggerHabbicon` | `commands/habbicons/habbiconCommands.ts` |
+| Account word filter | `GetCustomFilter`, `AddToCustomFilter`, `RemoveFromCustomFilter` | `commands/user/wordFilterCommands.ts` |
+| Marketplace | `CancelAllMarketplaceOffers`, `ClearMarketplaceOwnHistory` | `commands/catalog/catalogMarketplaceCommands.ts` |
+| Recycler | `GetRecyclerStatus`, `GetRecyclerPrizes`, `RecycleItems` | `commands/catalog/catalogRecyclerCommands.ts` |
+| Special items | `ClaimProduct`, `HasClaimedProduct` | `commands/special-items/specialItemsCommands.ts` |
+| Game tokens | `GetSnowWarGameTokensOffer`, `PurchaseSnowWarGameTokensOffer` | `commands/game-tokens/gameTokensCommands.ts` |
+| NFT collectibles | `GetNftClaims`, `ClaimNftClaims`, `GetNftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBox`, `ProgressTreasureHunt` | `commands/collectibles/collectiblesRewardClaimsCommands.ts`, `collectiblesShopCommands.ts`, `collectiblesPurchaseCommands.ts`, `collectiblesCommands.ts`, `useRoomFurnitureActionHandler` |
+| NFT trading | `GetNftTradeInventory`, `AddNftToTrade`, `RemoveNftFromTrade` | `commands/inventory/inventoryTradingCommands.ts` |
+| Wired | `WiredGetRoomLogs`, `WiredUpdateRoom`, `WiredGetVariableOwnersPage`, `WiredGetUserPermanentVariables`, `WiredSetUserPermanentVariable`, `WiredGenerateWebApiKey` | `commands/wired/wiredRoomLogsCommands.ts`, `wiredMenuCommands.ts`, `wiredVariableManagementCommands.ts`, `wiredWebApiKeyCommands.ts` |
+| Wired trading | `SelfDonateItem` | `commands/wired-trading/wiredTradingCommands.ts` |
 
 `RedeemNftLootBox` is `UnknownOutgoing_41H` in Turbo's headers: Turbo knows the id but not the
 packet.

@@ -15,7 +15,7 @@
  *
  * The button is Flash's `openCreditsHabblet`, which opens the hotel's web shop
  * (`web.shop.relativeUrl`) beside the client; the port has no hotel web page to open it under - see
- * `purchaseCredits` in `commands/targetedOfferCommands.ts` - so it is drawn and does nothing.
+ * `purchaseCredits` in `commands/catalog/targetedOfferCommands.ts` - so it is drawn and does nothing.
  */
 import { hotelViewColorableBindings, HotelViewCommonSettings, hotelViewProperty, useConfigData, useSystemStore, useTranslation } from '#base/context/system';
 import { Box, TemplateBindings, TemplateWindow, TemplateWindows } from '#base/theme';

@@ -24,7 +24,7 @@ Stores: `context/wired` (`wiredStore`: the setup session, clipboard, variables s
 environment, preferences, element memory, and the wired menu's slices) and
 `context/wired-trading` (chests, contracts, the wired trade, transactions, rewards). Both are
 singletons; `resetRoom` clears only what Flash drops with the room. The dialog's controller is
-`commands/wiredCommands.ts` (`UserDefinedRoomEventsCtrl`), the menu's `wiredMenuCommands.ts`.
+`commands/wired/wiredCommands.ts` (`UserDefinedRoomEventsCtrl`), the menu's `wiredMenuCommands.ts`.
 
 ## A source type the picker does not offer
 

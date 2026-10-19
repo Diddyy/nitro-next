@@ -530,6 +530,13 @@ export const RoomChatInputView = () => {
             <TemplateWindow
                 id={CHAT_INPUT_TEMPLATE}
                 part="bubblecont"
+                // `block_text` lies 10 into `input_border`, under the `styles` button that covers the
+                // border's first 46: the countdown's start was hidden. It goes where `chat_input` is.
+                arrange={({ find }) => {
+                    const blockText = find('block_text');
+
+                    blockText?.setRectangle(layout.input.x, blockText.y, layout.input.width, blockText.height);
+                }}
                 bindings={{
                     // `hideFloodBlocking` / `showFloodBlocking`: the field or the countdown, never both.
                     block_text: { visible: isFloodBlocked, caption: t('chat.input.alert.flood', 'You are talking too fast. Wait %time% seconds.', { time: String(floodRemaining) }) },

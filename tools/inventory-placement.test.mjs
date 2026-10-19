@@ -57,7 +57,7 @@ const world = (groups, selectedId, selectedItemIndex = -1) => {
         setInventoryMoverRequested: (value) => { state.inventoryMoverRequested = value; },
         setInventoryMoverItemId: (value) => { state.inventoryMoverItemId = value; },
     };
-    const commands = load('nitro-react/src/commands/inventoryCommands', {
+    const commands = load('nitro-react/src/commands/inventory/inventoryCommands', {
         '@nitrodevco/nitro-api': {
             RoomObjectCategoryEnum: { Floor: 10, Wall: 20 },
             RoomObjectPlacementSource: { INVENTORY: 'inventory' },
@@ -101,7 +101,7 @@ const world = (groups, selectedId, selectedItemIndex = -1) => {
         },
         '#base/context/wired-trading': { wiredTradingStore: { getState: () => ({}) } },
         '#base/utils': { getFurnitureData: (lookup, typeId, isWallItem) => (isWallItem ? lookup.wallItems : lookup.floorItems)[typeId] },
-        './catalogPlacementCommands': {
+        '../catalog/catalogPlacementCommands': {
             initializeRoomObjectInsert: (source, id, category, typeId, instanceData, stuffData) => {
                 log.started.push({ source, id, category, instanceData, stuffData });
 
@@ -110,7 +110,7 @@ const world = (groups, selectedId, selectedItemIndex = -1) => {
             cancelRoomObjectInsert: () => { log.cancelled++; },
         },
         './inventoryTradingCommands': {},
-        './wiredTradingCommands': {},
+        '../wired-trading/wiredTradingCommands': {},
     });
     const placed = (objectId, flags = {}) => commands.onInventoryObjectPlaced({ objectId, placedInRoom: true, placedOnFloor: true, placedOnWall: false, ...flags });
 

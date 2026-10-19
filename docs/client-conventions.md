@@ -11,7 +11,8 @@ src/
   index.tsx     Mounts `Nitro`, the boot: the config first, then the gamedata beside the
                 renderer's bundles behind `NitroView`'s loading screen, the connection last.
                 `MainView` registers the packet handlers and mounts the windows and the room.
-  commands/     Plain functions that send packets and write stores - `<feature>Commands.ts`.
+  commands/     Plain functions that send packets and write stores - `<feature>/<name>Commands.ts`,
+                in the same feature directories as `handlers/`.
   context/      Zustand stores, one feature per directory. `context/communication` is the one
                 React context that is not a store: the socket, read with `useWebSocketContext()`
                 for `send`.
@@ -166,7 +167,7 @@ Rules:
   `showWindow('catalog', { pageName })`, consumed by a `use<Window><Thing>Request` hook shaped like
   `useCatalogPageRequest` (act when the data is ready, then clear the param). Register the param
   type in `context/system/store/WindowRegistry.ts`. In-client links (`catalog/open/pets`) go
-  through `openClientLink` in `commands/clientLinkCommands.ts`, which maps them onto this.
+  through `openClientLink` in `commands/system/clientLinkCommands.ts`, which maps them onto this.
 
 ### Components and views
 
