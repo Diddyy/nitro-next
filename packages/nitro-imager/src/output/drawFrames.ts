@@ -78,15 +78,20 @@ export const drawFrames = (frames: PlacedSprite[][], size: ImageSize): Canvas[] 
             container.addChild(sprite);
         }
 
+        // Extract draws its target without the target's own transform: the zoom goes on a child.
+        const root = new Container();
+
         if (zoom !== 1) container.scale.set(zoom);
 
+        root.addChild(container);
+
         const canvas = GetRenderer().extract.canvas({
-            target: container,
+            target: root,
             frame: new Rectangle(bounds.x * zoom, bounds.y * zoom, bounds.width * zoom, bounds.height * zoom),
             antialias: false,
         }) as unknown as Canvas;
 
-        container.destroy({ children: true });
+        root.destroy({ children: true });
 
         return (size === 's') ? halveImage(canvas) : canvas;
     });
