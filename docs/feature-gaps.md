@@ -14,7 +14,7 @@ Three sources, each worth re-running after a revision bump or a feature port:
 
 - **Packet coverage.** `node tools/packet-coverage.mjs` lists, by feature area, the incoming
   messages nothing in the client listens to and the outgoing composers nothing sends. At the time
-  of writing that is 110 of 579 incoming and 123 of 574 outgoing. A packet counts as used when its
+  of writing that is 96 of 585 incoming and 101 of 578 outgoing. A packet counts as used when its
   class name appears in the client's source, so a registered listener that does nothing still counts.
 - **The port's own notes.** Views, stores and handlers state what they leave out; search the
   client for `not ported` and `Not ported:`.
@@ -34,7 +34,9 @@ answer yet.
 | Help, call for help and guides | Pending calls, guide sessions, chat review, the safety quiz. Reporting a user, a room, an instant message or a photo is ported (`views/help`, `helpCommands`, the navigator's room info bubble). | `Help`, `Callforhelp` |
 | Talent track and the daily quest | Talent track levels, and the talent track window the hotel view's `habbotalentspromo` button asks for (`GetTalentTrack`). The hotel view's daily quest widget and element are ported. The quest list, details, tracker and completed dialog are ported (`views/quests`), community goals are the hotel view's; the achievement browser, score and standard award packets are implemented - see [achievement client](achievements.md). | `Quest`, `Talent` |
 | Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. Nothing calls `buySnowWarTokensOffer` (`commands/game-tokens/gameTokensCommands.ts`); the catalogue's game token offers are bought through `purchaseGameTokensOffer`. The staff chat command `:csmm` (`GameManager.generateChecksumMismatch`) waits on the game manager. | `Game` |
-| Campaign calendar | The advent calendar and its doors, and the seasonal daily offer that shares it. | `Campaign`, `Catalog` |
+| Campaign calendar | The advent calendar and its doors, the seasonal daily offer that shares it, and the seasonal quest calendar (`seasonalcalendar.MainWindow`, fed by `SeasonalQuestsMessage`). | `Campaign`, `Catalog`, `Quest` |
+| Phone number verification | `HabboPhoneNumber`'s collect window and its minimised view, behind `sms.identity.verification.enabled`. | `Gifts` |
+| Interstitial ads | `AdManager`'s interstitials, behind `interstitials.2016.enabled`. | `Advertisement` |
 | New user experience | The gift offer and the tutorial script. The new user flow - look, name and starter room (`OnBoardingHcFlow`) - is ported (`views/onboarding`); the room types, their pictures (`new.user.flow.room.image.url`) and the dice's looks (`new.user.flow.figures.male` / `.female`) are configuration - see Turbo's `docs/onboarding.md`. | `Nux` |
 | Room competitions | The room competition window (`RoomCompetitionController`) and voting. The hotel view's competition elements ask whether the user has entered, submit a room and forward to competition rooms, and its prizes and hall of fame widgets are drawn. | `Competition`, `Navigator` |
 | Name change | The avatar editor's `avatar_name_change` (`AvatarEditorNameChangeView`, behind `premium.name.change.enabled`). Its layouts (`avatar_editor_name_change`, `avatar_editor_name_change_item`) are only in the AS3's embedded assets: Habbo's JavaScript client dropped them, so the `habbo-avatar-editor-com` template bundle built from its library has neither. In Flash the window only checks a name - `select_name_button` has no handler. The own avatar menu's name change window (`NameChangeView`) is ported (`commands/user/nameChangeCommands.ts`). | `Avatar` |
@@ -46,7 +48,6 @@ answer yet.
 | Room | YouTube playback control from the server (`YoutubeControlVideoMessage`). | `FurnitureYoutubeView` |
 | Room camera | Photo competitions (`PhotoCompetitionComposer`, `CompetitionStatusMessage`); taking, buying and publishing photos and room thumbnails are ported (`views/room-widgets/camera`, `RoomThumbnailCameraWidget`). | `Camera` |
 | Crafting | Secret recipes (`CraftSecretComposer`, `GetCraftingRecipesAvailableComposer`). | |
-| Badges | Requesting a badge (`RequestABadgeComposer`). | |
 | Group forums | Scrolling to the message a link names. | `GroupForumView` |
 | Hotel view | Every widget type and generic widget element is drawn. What their buttons open is not always there: the talents promo asks for a talent track no window shows, the Habbo Way and safety quiz promos' buttons open windows that are not ported (`showHabboWay`, `SafetyBookletController`), and nothing reopens the room competition window (`reenableRoomCompetitionWindow`). The avatar image widget has no greyed placeholder while the figure loads, and the handlers' tracking calls (`trackGoogle`, `trackEventLog`) have no receiver. What the widgets wait on from the server is under [Hotel view: Turbo and the admin panel](#hotel-view-turbo-and-the-admin-panel). | `HotelViewWidgets`, `HotelViewGenericWidget` |
 | Account | Email change and status. | `Users` |
@@ -91,7 +92,7 @@ own) and `PetPortraitView` (a picture the breeding windows draw into their bitma
 
 ## Not gaps
 
-About 40 unused packets are protocol the port does not need:
+Many unused packets are protocol the port does not need:
 
 - **The old navigator.** Its search composers (`MyRoomsSearchComposer`, `PopularRoomsSearchComposer`,
   `RoomTextSearchComposer`, ...) and results (`GuestRoomSearchResultMessage`, `OfficialRoomsMessage`,
@@ -110,7 +111,15 @@ About 40 unused packets are protocol the port does not need:
   nothing sends `CanCreateRoomEventMessageComposer`, so an event is only made by buying a room ad.
   `CancelEventComposer`: the event settings window's end and cancel handlers are never wired to a
   button. `GetIsOfferGiftableComposer`: `HabboCatalog.checkGiftable` has no caller, and nothing
-  listens to `IsOfferGiftableMessageEvent`.
+  listens to `IsOfferGiftableMessageEvent`. `CreditVaultStatusComposer`:
+  `SessionDataManager.getCreditVaultStatus` has no caller. `TradingNotOpenEventMessage`:
+  `TradingModel` only logs it.
+- **Packets of a later revision nothing uses.** `SetFurnitureRegionDataComposer` (nothing in
+  WIN63-202610121624 sends it) and `WiredLinkOperationResultMessage` (the live hotel never opens
+  the Room Linker's link window). `UpdateWiredComposer` is the base class the wired update
+  composers extend, never sent itself.
+- **Discord rich presence.** `HabboDiscordManager` and its settings (`SetDiscordPreferencesComposer`)
+  drive the AIR shell's native `DiscordRichPresence`, which a page does not have.
 - **The notification feed** (`notifications/feed`). `HabboNotifications` declares its
   `NotificationController` and reads it, but never creates one, so the feed items `IncomingMessages`
   adds behind `notification.feed.enabled` have nowhere to go (and the hotel sets the key false).

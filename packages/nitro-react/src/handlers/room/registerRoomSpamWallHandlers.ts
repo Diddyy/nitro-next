@@ -19,10 +19,11 @@ export type SpamWallPostItData = {
 };
 
 /**
- * The spam wall - `SpamWallPostItWidgetHandler.onSpamWallPostItRequest`: a wall the user used asks
- * for a note (`RequestSpamWallPostItMessageEvent`), and the note's editor opens on it
- * (`RWSWPUE_OPEN_EDITOR`). Its type is `post_it`, or the type of the inventory wall item with that id
- * when that is a `post_it_` one.
+ * The spam wall - `SpamWallPostItWidgetHandler.onSpamWallPostItRequest`: the server asks for a note
+ * (`RequestSpamWallPostItMessageEvent`) with the id of an inventory post-it pad and the wall location
+ * it was dropped on - Turbo does when a user without rights drops a pad in a room with a post-it wall -
+ * and the note's editor opens on it (`RWSWPUE_OPEN_EDITOR`). Its type is `post_it`, or the type of the
+ * inventory wall item with that id when that is a `post_it_` one.
  */
 export const registerRoomSpamWallHandlers = ({ subscribe }: WebSocketConnection) => {
     const { openRoomWidget, updateRoomWidgetData } = roomStore.getState();

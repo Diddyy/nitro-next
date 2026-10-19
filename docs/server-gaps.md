@@ -10,7 +10,7 @@ This is the opposite of [Feature gaps](feature-gaps.md), which lists what the cl
 ported. A feature can be in both lists: the server's half here, the client's there.
 
 As of client revision `WIN63-202609091217-117204808` and Turbo revision `Revision20260909`:
-36 packets sent and 102 listened to. Update the list when a gap is closed on either side.
+17 packets sent and 55 listened to. Update the list when a gap is closed on either side.
 
 ## How the list is made
 
@@ -37,19 +37,20 @@ Every one of these has a header in Turbo but no parser registered for it.
 
 | Area | Packets | Client |
 |---|---|---|
-| Habbicons | `GetHabbiconShopData`, `GetHabbiconInfo`, `BuyHabbicon`, `BuyHabbiconCollection`, `ClaimHabbicon`, `FavoriteHabbicon`, `UnfavoriteHabbicon`, `TriggerHabbicon` | `commands/habbicons/habbiconCommands.ts` |
-| Account word filter | `GetCustomFilter`, `AddToCustomFilter`, `RemoveFromCustomFilter` | `commands/user/wordFilterCommands.ts` |
-| Marketplace | `CancelAllMarketplaceOffers`, `ClearMarketplaceOwnHistory` | `commands/catalog/catalogMarketplaceCommands.ts` |
 | Recycler | `GetRecyclerStatus`, `GetRecyclerPrizes`, `RecycleItems` | `commands/catalog/catalogRecyclerCommands.ts` |
-| Special items | `ClaimProduct`, `HasClaimedProduct` | `commands/special-items/specialItemsCommands.ts` |
 | Game tokens | `GetSnowWarGameTokensOffer`, `PurchaseSnowWarGameTokensOffer` | `commands/game-tokens/gameTokensCommands.ts` |
-| NFT collectibles | `GetNftClaims`, `ClaimNftClaims`, `GetNftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBox`, `ProgressTreasureHunt` | `commands/collectibles/collectiblesRewardClaimsCommands.ts`, `collectiblesShopCommands.ts`, `collectiblesPurchaseCommands.ts`, `collectiblesCommands.ts`, `useRoomFurnitureActionHandler` |
+| NFT collectibles | `ClaimNftClaims`, `NftStorePurchase`, `RedeemNftLootBox`, `ProgressTreasureHunt` | `commands/collectibles/collectiblesRewardClaimsCommands.ts`, `collectiblesPurchaseCommands.ts`, `collectiblesCommands.ts`, `useRoomFurnitureActionHandler` |
 | NFT trading | `GetNftTradeInventory`, `AddNftToTrade`, `RemoveNftFromTrade` | `commands/inventory/inventoryTradingCommands.ts` |
-| Wired | `WiredGetRoomLogs`, `WiredUpdateRoom`, `WiredGetVariableOwnersPage`, `WiredGetUserPermanentVariables`, `WiredSetUserPermanentVariable`, `WiredGenerateWebApiKey` | `commands/wired/wiredRoomLogsCommands.ts`, `wiredMenuCommands.ts`, `wiredVariableManagementCommands.ts`, `wiredWebApiKeyCommands.ts` |
+| Wired | `WiredGetVariableOwnersPage`, `WiredGetUserPermanentVariables`, `WiredSetUserPermanentVariable` | `commands/wired/wiredMenuOverviewCommands.ts`, `wiredVariableManagementCommands.ts` |
 | Wired trading | `SelfDonateItem` | `commands/wired-trading/wiredTradingCommands.ts` |
 
 `RedeemNftLootBox` is `UnknownOutgoing_41H` in Turbo's headers: Turbo knows the id but not the
 packet.
+
+The tool also reports `TurboBugReportCapture` (21001) here and `TurboBugReportRequest` (21000)
+below as `no Turbo header`. They are not gaps: they are the `bugreport` extension of Turbo's bug
+report plugin (`context/bugreport/bugReportCapture.ts`), not part of the revision, so the
+revision's headers never name them.
 
 ## Listened to by the client, never sent by Turbo
 
@@ -62,35 +63,29 @@ nothing sends it.
 | Room: spectators | `YouAreSpectator`, `YouAreNotSpectator` | never sent |
 | Room: chat | `SpecialSystemChat` | no serializer |
 | Room: furniture | `UseObject`, `GamePlayerValue` | never sent |
-| Room: polls and quizzes | `PollOffer`, `PollContents`, `PollError`, `Question`, `QuestionAnswered`, `QuestionFinished` | never sent |
+| Room: notifications | `CustomUserNotification` | never sent |
 | Room: mystery boxes | `ShowMysteryBoxWait`, `CancelMysteryBoxWait`, `GotMysteryBoxPrize` | never sent |
-| Room: crafting | `CraftableProducts`, `CraftingRecipe`, `CraftingRecipesAvailable`, `CraftingResult` | never sent |
 | Room: bots | `BotSkillListUpdate` | never sent |
 | Room: queue | `RoomQueueStatus` | never sent |
 | Room: sound | `PlayListSongAdded` | never sent |
 | Navigator | `ShowEnforceRoomCategoryDialog`, `RoomAdError` | never sent |
-| Habbicons | `UserHabbicons`, `UserHabbiconStatusChanged`, `HabbiconShopData`, `HabbiconInfo`, `RoomUseHabbicon` | no serializer |
-| Inventory | `FurniListAddOrUpdate`, `PostItPlaced` | never sent |
-| Marketplace | `MarketplaceConfiguration`, `MarketPlaceOffers`, `MarketPlaceOwnOffers`, `MarketplaceItemStats`, `MarketplaceCanMakeOfferResult`, `MarketplaceMakeOfferResult`, `MarketplaceBuyOfferResult`, `MarketplaceCancelOfferResult` | never sent |
-| Marketplace | `MarketplaceCancelAllOffersResult`, `MarketplaceClearOwnHistoryResult` | no serializer |
-| Catalogue | `BundleDiscountRuleset`, `LimitedEditionSoldOut`, `FurniRentOrBuyoutOffer`, `TargetedOffer`, `ScrSendKickbackInfo` | never sent |
+| Inventory | `FurniListRemoveMultiple` | never sent |
+| Catalogue | `FurniRentOrBuyoutOffer` | never sent |
 | Recycler | `RecyclerStatus`, `RecyclerPrizes`, `RecyclerFinished` | no serializer |
-| Special items | `ClaimProductResult`, `HasClaimedProductResponse` | no serializer |
 | Offer centre | `OfferRewardDelivered` | never sent |
-| Earnings | `IncomeRewardClaimResponse` (never sent), `IncomeRewardNotification` (no serializer) | |
 | Game tokens | `SnowWarGameTokens` | never sent |
-| User and account | `InClientLink` (its primitive has no link field), `UserNameChanged`, `ChangeUserNameResult`, `EmailStatusResult`, `AccountSafetyLockStatusChange`, `AvatarEffectSelected`, `ExtendedProfileChanged`, `BlockList` | never sent |
-| Chat styles | `UserNftChatStyles` (never sent), `UserPurchasableChatStyles`, `UserPurchasableChatStyleChanged` (no serializer) | |
-| Account word filter | `GetCustomFilterResult`, `ModifyCustomFilterResult` | no serializer |
+| Quests | `CitizenshipVipOfferPromoEnabled` | never sent |
+| Help | `CallForHelpReply`, `CallForHelpDisabledNotify` | never sent |
+| User and account | `InClientLink` (its serializer writes nothing), `EmailStatusResult`, `AccountSafetyLockStatusChange`, `AvatarEffectSelected` | never sent |
+| Chat styles | `UserPurchasableChatStyleChanged` | no serializer |
 | Messenger | `MiniMailNew`, `MiniMailUnreadCount` | never sent |
-| Notifications | `RoomMessageNotification`, `ElementPointer` (the hint arrow) | never sent |
+| Notifications | `RoomMessageNotification`, `ElementPointer` (the hint arrow), `EpicPopup` | never sent |
 | Hotel status | `InfoHotelClosed`, `LoginFailedHotelClosed` | never sent |
-| NFT collectibles | `CollectibleMintingEnabled`, `CollectibleWalletAddresses`, `CollectableMintableItemTypes`, `CollectibleMintTokenCount`, `CollectibleMintTokenOffers`, `CollectibleMintableItemResult`, `NftCollections`, `NftCollectionsScore`, `NftBonusItemClaimResult`, `NftRewardItemClaimResult`, `NftTransferFee`, `NftTransferAssetsResult` | never sent |
-| NFT collectibles | `NftClaims`, `NftClaimResult`, `NftStoreOffers`, `NftStorePurchase`, `RedeemNftLootBoxState`, `RedeemNftLootBoxResult` | no serializer |
+| NFT collectibles | `CollectibleMintableItemResult`, `NftBonusItemClaimResult`, `NftRewardItemClaimResult`, `NftTransferAssetsResult` | never sent |
+| NFT collectibles | `NftClaimResult`, `NftStorePurchase`, `RedeemNftLootBoxState`, `RedeemNftLootBoxResult` | no serializer |
 | Trading | `TradeSilverSet`, `TradeSilverFee` (never sent), `TradeNftAssets`, `TradeNftAssetInventory` (no serializer) | |
-| Wired | `WiredMenuError` (never sent); `WiredRoomLogs`, `WiredUserVariablesList`, `WiredUserPermanentVariables`, `WiredSetUserPermanentVariableResult`, `WiredWebApiKeyResult` (no serializer) | |
+| Wired | `WiredMenuError` (never sent); `WiredUserVariablesList`, `WiredUserPermanentVariables`, `WiredSetUserPermanentVariableResult` (no serializer) | |
 | Wired trading | `SelfDonationResult` | no serializer |
-| Moderation | `UserClassification` (the answer to `:uc` / `:anew`) | never sent |
 
 ## Known behaviour gaps
 
@@ -102,24 +97,13 @@ cannot find these; add them as they are found.
   and handled by an empty handler: Turbo has no room competitions or talent tracks, so the
   reception's competition and talents elements get no answer. The daily quest, concurrent users
   and room hopper widgets are answered.
-
-- **Post-it stacks.** `PlacePostIt` places the whole inventory item rather than one sheet of its
-  stack, and Turbo never answers with `PostItPlaced`, so the stack's count in the inventory does
-  not go down.
-- **Spam wall.** Turbo sends `RequestSpamWallPostIt` with the wall's room object id. Flash looks
-  that id up in the inventory to take a themed post-it's type, so with Turbo the note always opens
-  as a plain `post_it`.
 - **Mystery box keys.** `MysteryBoxKeys` is sent once at login with no box or key colour, so
   the tracker (`mysterybox.tracker.active`) never shows one, and Turbo has no mystery box furni
   to open.
-- **User classification.** `RoomUsersClassification` and `PeerUsersClassification` (`:uc`,
-  `:anew`) are parsed without their classification and handled by nothing, and the
-  `UserClassification` serializer writes no users.
-- **Pet products used from the inventory.** The furni page's `use_btn` sends
-  `CustomizePetWithFurni` with the inventory item's room item id (`ref`). Turbo's handler only
-  interacts with an item standing in the room, so a product still in the inventory does nothing.
-- **Friend bar notifications.** Of `FriendNotification`'s types Turbo sends only the room event
-  ones, as it has no achievements, quests or games to send the others for.
+- **Friend bar notifications.** Turbo sends `FriendNotification`'s room event, achievement and
+  quest types, but not the game ones (3 and 4), as it has no games.
+- **Post-it pads bought before Turbo kept a sheet count.** Their stuff data is empty, which Turbo
+  counts as one sheet and Flash (`int("")`) shows as a count of 0.
 
 ## Checking a client feature without the server
 
