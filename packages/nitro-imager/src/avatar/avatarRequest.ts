@@ -30,6 +30,8 @@ export interface AvatarRenderRequest {
     frame: number;
     /** Every frame of the animation, as an animated gif. */
     animate: boolean;
+    /** Cut to the figure's visible pixels, with a pixel of transparent gap around it. */
+    crop: boolean;
     format: ImageFormat;
 }
 
@@ -102,7 +104,8 @@ export class AvatarRequestError extends Error {}
  * - `img_format` `png` / `gif`
  *
  * and what the room draws besides: `dance=1-4`, `effect=<id>`, `frame=<n>` (or `frame_num`) and
- * `animate=1` (every frame as an animated gif). A value that is not one of these is an error, not
+ * `animate=1` (every frame as an animated gif), and `crop=1` (cut to the figure, the white space
+ * around it gone but for a pixel's gap). A value that is not one of these is an error, not
  * a guess.
  */
 export const parseAvatarRequest = (query: Record<string, string | undefined>): AvatarRenderRequest => {
@@ -161,6 +164,7 @@ export const parseAvatarRequest = (query: Record<string, string | undefined>): A
         effect: readInteger(query.effect, 'effect', 0, MAX_EFFECT_ID, 0),
         frame: readInteger(query.frame ?? query.frame_num, 'frame', 0, MAX_FRAME, 0),
         animate,
+        crop: readFlag(query.crop),
         format,
     };
 };
@@ -168,7 +172,7 @@ export const parseAvatarRequest = (query: Record<string, string | undefined>): A
 /** The request as one string, in a fixed order: the cache key. */
 export const avatarRequestKey = (request: AvatarRenderRequest): string => JSON.stringify([
     request.figure, request.gender, request.size, request.direction, request.headDirection, request.headOnly,
-    request.posture, request.actions, request.effect, request.frame, request.animate, request.format,
+    request.posture, request.actions, request.effect, request.frame, request.animate, request.crop, request.format,
 ]);
 
 const readInteger = (value: string | undefined, name: string, min: number, max: number, fallback: number): number => {

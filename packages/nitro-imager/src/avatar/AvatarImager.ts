@@ -4,6 +4,7 @@ import { AvatarAssetDownloadManager, AvatarVisualization, GetAssetManager, GetAv
 import { Texture } from 'pixi.js';
 
 import { ImagerConfig } from '../config';
+import { cropFrames } from '../output/cropFrames';
 import { drawFrames, PlacedSprite } from '../output/drawFrames';
 import { AvatarRenderRequest } from './avatarRequest';
 
@@ -14,6 +15,9 @@ const MANDATORY_TIMEOUT = 60_000;
  * room updates of `UPDATE_TIME_INCREASER` (41 ms): an animated image plays at the room's speed (82 ms).
  */
 export const AVATAR_FRAME_MS = AvatarVisualization.ANIMATION_FRAME_UPDATE_INTERVAL * RoomObjectSpriteVisualization.UPDATE_TIME_INCREASER;
+
+/** The transparent pixels a cropped image keeps around the figure. */
+const CROP_PADDING = 1;
 
 /** The most frames an animated image has, whatever the actions add up to. */
 const MAX_ANIMATION_FRAMES = 64;
@@ -47,6 +51,7 @@ const PURGE_CHECK_INTERVAL = 30_000;
  * so an avatar with no effect is its avatar canvas and an animation keeps one size throughout. Every
  * size is drawn from the large assets at the room's full scale; `s` is that image halved
  * afterwards, as the client's zoomed-out room is (`RoomDownsampleFilter`), effect sprites and all.
+ * A cropped image is then cut to what every frame shows, with `CROP_PADDING` around it.
  *
  * Every figure the imager is asked for leaves its clothing libraries loaded. Once more than
  * `maxLoadedLibraries` are - checked after every render and every `PURGE_CHECK_INTERVAL` - the
@@ -180,7 +185,9 @@ export class AvatarImager {
             }
 
             try {
-                return { frames: drawFrames(frames, request.size), missing };
+                const drawn = drawFrames(frames, request.size);
+
+                return { frames: request.crop ? cropFrames(drawn, CROP_PADDING) : drawn, missing };
             } finally {
                 for (const sprite of frames.flat()) if (sprite.isAvatar) sprite.texture.destroy(true);
             }

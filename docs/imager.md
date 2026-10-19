@@ -20,7 +20,7 @@ To run it on a server managed by Ploi, see [Running the imager on Ploi](imager-p
 
 | Request | Draws |
 |---|---|
-| `GET /avatar?figure=...` (or `/avatarimage`) | an avatar; Habbo's `avatarimage` parameters (`gender`, `size` s/n/l, `direction`, `head_direction`, `action`, `gesture`, `headonly`, `img_format`) plus `dance`, `effect`, `frame` and `animate` (an animated gif at the room's 82 ms a frame) |
+| `GET /avatar?figure=...` (or `/avatarimage`) | an avatar; Habbo's `avatarimage` parameters (`gender`, `size` s/n/l, `direction`, `head_direction`, `action`, `gesture`, `headonly`, `img_format`) plus `dance`, `effect`, `frame`, `animate` (an animated gif at the room's 82 ms a frame) and `crop` (cut to the figure with a 1 px transparent gap) |
 | `GET /pet?figure=...` (or `type=`) | a pet from its figure string (`type palette colour [parts]`) or its type, palette and `color`; `posture`, `gesture`, `size`, `direction`, `head_direction`, `headonly`, `frame`, `animate` (at the room's 41 ms a step), `img_format` |
 | `GET /furni?name=...` (or `id=`, `wall=1`) | a furniture item from its furnidata class name (`rare_dragonlamp*4`) or id; `state`, `size`, `direction`, `frame`, `animate`, `img_format` |
 | `GET /badge/<code>.gif` or `.png` | a group badge from its code |
@@ -53,7 +53,11 @@ and the image is the union of every sprite of every frame. Every size is drawn f
 assets at the room's full scale: `l` is that image doubled, and `s` is it halved afterwards, each
 2x2 block averaged, as the client composites a zoomed-out room and then downsamples it
 (`RoomDownsampleFilter`) - no `sh` art is used, and effect sprites halve with the rest.
-`headonly` is the head's cropped image.
+`headonly` is the head's cropped image. `crop` cuts the finished image - after the doubling or
+halving, so the gap is a pixel of the image served - to the union of every frame's visible pixels,
+and leaves one transparent pixel around it: a page or canvas that scales the image with smoothing
+samples past its edge, and without the gap would clip the figure's outermost pixels
+(`cropFrames`).
 
 It runs on Pixi's Canvas 2D renderer over `@napi-rs/canvas` (prebuilt, no GPU, no browser).
 `installNodeEnvironment` binds the browser classes the renderer and Pixi reach for -

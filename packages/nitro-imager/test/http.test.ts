@@ -46,6 +46,8 @@ void describe('parseAvatarRequest', () => {
         assert.deepEqual(request.actions, [ { action: AvatarActionStateType.Sleep }, { action: AvatarActionStateType.Dance, parameter: 2 } ]);
         assert.equal(request.effect, 4);
         assert.equal(request.format, 'gif');
+        assert.equal(request.crop, false);
+        assert.equal(parseAvatarRequest({ figure: 'hd-180-1', crop: '1' }).crop, true);
         assert.deepEqual(parseAvatarRequest({ figure: 'hd-180-1', gesture: 'spk' }).actions, [ { action: AvatarActionStateType.Talk } ]);
     });
 

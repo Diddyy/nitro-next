@@ -177,8 +177,9 @@ is wrong with it, never a guess.</p>
     <tr><td><code>frame</code> (or <code>frame_num</code>)</td><td><code>0</code>–<code>${MAX_FRAME}</code></td><td><code>0</code></td><td>Which frame of the animation a still image shows</td></tr>
     <tr><td><code>animate</code></td><td><code>1</code></td><td>off</td><td>Every frame, as an animated gif at the room's ${avatarFrameDelay} ms a frame</td></tr>
     <tr><td><code>img_format</code></td><td><code>png</code>, <code>gif</code></td><td><code>png</code>; <code>gif</code> when animated</td><td>The image's format. An animated image is always a gif</td></tr>
+    <tr><td><code>crop</code></td><td><code>1</code></td><td>off</td><td>Cut to the figure, the space around it gone but for a 1 px transparent gap; an animation to what any of its frames shows</td></tr>
 </table></div>
-<p>A flag (<code>headonly</code>, <code>animate</code>) is on when given with any value but <code>0</code> or <code>false</code>.</p>
+<p>A flag (<code>headonly</code>, <code>animate</code>, <code>crop</code>) is on when given with any value but <code>0</code> or <code>false</code>.</p>
 
 <h3>Examples</h3>
 <div class="gallery">
@@ -191,6 +192,7 @@ is wrong with it, never a guess.</p>
     ${example('&dance=1&animate=1', 'Dancing, animated')}
     ${example('&headonly=1&size=l', 'Head only, large')}
     ${example('&size=s', 'Small')}
+    ${example('&crop=1', 'Cropped')}
 </div>
 
 <h2 id="actions">Actions and gestures</h2>
@@ -275,6 +277,7 @@ a badge with no part that draws is a <code>404</code>.</p>
         <label>frame <input name="frame" type="number" min="0" max="${MAX_FRAME}" value="0"></label>
         <label>headonly <select name="headonly"><option value="">off</option><option value="1">on</option></select></label>
         <label>animate <select name="animate"><option value="">off</option><option value="1">on</option></select></label>
+        <label>crop <select name="crop"><option value="">off</option><option value="1">on</option></select></label>
     </div>
     <div class="preview"><img alt="The avatar"></div>
     <p class="url"><a></a> <span class="error"></span></p>
