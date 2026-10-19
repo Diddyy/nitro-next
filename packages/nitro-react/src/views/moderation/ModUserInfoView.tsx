@@ -12,7 +12,7 @@ import { userInfoBindings } from './userInfoBindings';
  * ("User Info") holding `user_info`, which shows "Loading..." until `ModeratorUserInfo` for the
  * player arrives (`load` asks it). Its buttons open the player's chatlog and the send-message
  * window, its room visits, and the mod action window (`onModActionButton`), which is off for "No
- * identity". The housekeeping links are not built yet.
+ * identity". Its housekeeping links (`userInfoBindings`) open the hotel's configured pages.
  */
 export const ModUserInfoView = ({ userId }: { userId: number }) => {
     const { send } = useWebSocketContext();

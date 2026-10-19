@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { requestModeratorRoomInfo, sendRoomModeration } from '#base/commands';
+import { openHousekeepingPage, requestModeratorRoomInfo, sendRoomModeration } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { MOD_CHATLOG_ROOM, moderationFrame, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
 import { useWindowActions } from '#base/context/system';
@@ -14,7 +14,8 @@ import { TemplateWindow } from '#base/theme';
  * boxes (`ModerateRoomMessageComposer` when one is ticked), enabled only while the moderator is in
  * that room and holds `roomAlertPermission` (`setSendButtonState`); kick needs `roomKickPermission`.
  * The input's layout text is a placeholder the first focus clears; an empty message alerts "You
- * must input a message to the user". "Edit in HK" is a housekeeping link, not built.
+ * must input a message to the user". "Edit in HK" (`onEditInHk`) opens the room's housekeeping page,
+ * `roomadmin.url` with its id.
  */
 export const ModRoomToolView = ({ roomId }: { roomId: number }) => {
     const { send } = useWebSocketContext();
@@ -66,6 +67,7 @@ export const ModRoomToolView = ({ roomId }: { roomId: number }) => {
                 owner_in_room_txt: { caption: room.ownerInRoom ? 'Yes' : 'No' },
                 user_count_txt: { caption: String(room.userCount) },
                 chatlog_but: { onPointerTap: () => showWindow({ kind: 'chatlog', type: MOD_CHATLOG_ROOM, id: room.flatId }, key) },
+                edit_in_hk_but: { onPointerTap: () => openHousekeepingPage('roomadmin.url', String(room.flatId)) },
                 kick_check: { selected: checks.kick, disabled: !init.roomKickPermission, onPointerTap: () => toggle('kick') },
                 lock_check: { selected: checks.lock, onPointerTap: () => toggle('lock') },
                 changename_check: { selected: checks.changeName, onPointerTap: () => toggle('changeName') },

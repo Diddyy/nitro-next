@@ -13,6 +13,8 @@ import {
 
 import { Send } from '#base/context/communication';
 import { MOD_CHATLOG_ROOM, ModerationIssueSends, moderationIssueStore } from '#base/context/moderation';
+import { systemStore } from '#base/context/system';
+import { configReader } from '#base/utils';
 
 /** Not taken from an issue (`getIssueId` with no issue): the composers then leave the issue id out. */
 const NO_ISSUE = -1;
@@ -128,6 +130,22 @@ export const sendRoomModeration = (send: Send, flatId: number, caution: boolean,
     send(new ModeratorActionComposer({ actionType: roomActionType(caution, checks.kick), message, extra: '' }));
 
     if (checks.lock || checks.changeName || checks.kick) send(new ModerateRoomComposer({ roomId: flatId, lockDoor: checks.lock, changeName: checks.changeName, kickUsers: checks.kick }));
+};
+
+/** `ModerationManager.openHkPage`'s window: one tab every housekeeping link reuses. */
+const HOUSEKEEPING_WINDOW = 'housekeeping';
+
+/**
+ * `ModerationManager.openHkPage(urlKey, param)`: the hotel's housekeeping page, the configured URL with
+ * the name or id appended - `habboinfotool.url` (a user), `moderatoractionlog.url` (their sanctions),
+ * `identityinformationtool.url` (their identity) and `roomadmin.url` (a room). Flash appends to the
+ * key's value even when the hotel has none, opening the bare name as a relative address; with no
+ * page configured nothing opens here.
+ */
+export const openHousekeepingPage = (urlKey: string, param: string) => {
+    const url = configReader(systemStore.getState().config).configString(urlKey);
+
+    if (url.length) window.open(url + param, HOUSEKEEPING_WINDOW);
 };
 
 /** `IssueHandler.closeIssue`: every issue of the bundle closed with a resolution. */

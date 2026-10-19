@@ -4,6 +4,8 @@
  */
 import { IModeratorUserInfoData } from '@nitrodevco/nitro-packets';
 
+import { openHousekeepingPage } from '#base/commands';
+
 /** `UserInfoCtrl.formatTime`. */
 const formatModerationTime = (seconds: number) => {
     if (seconds < 2 * 60) return `${seconds} secs ago`;
@@ -17,9 +19,16 @@ const formatModerationTime = (seconds: number) => {
 /** `UserInfoCtrl.setTxt`: the value, or the fallback when it is empty. */
 const txt = (value: string | undefined, fallback = '') => ({ caption: value ? value : fallback });
 
-/** `UserInfoCtrl.refresh`'s fields, and `setAlertTxt`'s counts with their "view" link only when there is one. */
+/**
+ * `UserInfoCtrl.refresh`'s fields, and `setAlertTxt`'s counts with their "view" link only when there is one.
+ * `prepare`'s housekeeping links: `habboinfotool_but` opens the user's info tool page, the caution, ban
+ * and trading lock "view" links their moderator action log (`showModeratorLog`), and the identity bans'
+ * one their identity (`showIdentityInformation`).
+ */
 export const userInfoBindings = (user: IModeratorUserInfoData | undefined): Record<string, object> => {
     if (!user) return { fields: { visible: false }, loading_txt: { visible: true } };
+
+    const showModeratorLog = () => openHousekeepingPage('moderatoractionlog.url', user.userName);
 
     const bindings: Record<string, object> = {
         fields: { visible: true },
@@ -33,20 +42,22 @@ export const userInfoBindings = (user: IModeratorUserInfoData | undefined): Reco
         last_purchase_txt: txt(user.lastPurchaseDate, 'No purchases'),
         email_address_txt: txt(user.primaryEmailAddress, 'No email found'),
         id_bans_txt: txt(String(user.identityRelatedBanCount)),
+        view_id_bans_txt: { onPointerTap: () => openHousekeepingPage('identityinformationtool.url', String(user.identityId)) },
+        habboinfotool_but: { onPointerTap: () => openHousekeepingPage('habboinfotool.url', user.userName) },
         user_class_txt: txt(user.userClassification, '-'),
         // Within 48 hours the time reddens with how recent it is.
         last_sanction_time_txt: { ...txt(user.lastSanctionTime), ...((user.sanctionAgeHours <= 48) ? { color: Math.floor((255 * (48 - user.sanctionAgeHours)) / 48) << 16 } : {}) },
     };
 
-    const alertTxt = (name: string, value: number) => {
+    const alertTxt = (name: string, value: number, onView?: () => void) => {
         bindings[name] = { caption: String(value) };
-        bindings[`view_${name}`] = { visible: (value > 0) };
+        bindings[`view_${name}`] = { visible: (value > 0), onPointerTap: onView };
     };
 
     alertTxt('abusive_cfh_count_txt', user.abusiveCfhCount);
-    alertTxt('caution_count_txt', user.cautionCount);
-    alertTxt('ban_count_txt', user.banCount);
-    alertTxt('trading_lock_count_txt', user.tradingLockCount);
+    alertTxt('caution_count_txt', user.cautionCount, showModeratorLog);
+    alertTxt('ban_count_txt', user.banCount, showModeratorLog);
+    alertTxt('trading_lock_count_txt', user.tradingLockCount, showModeratorLog);
 
     return bindings;
 };
