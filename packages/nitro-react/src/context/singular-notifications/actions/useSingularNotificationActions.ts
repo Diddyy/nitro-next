@@ -12,6 +12,7 @@ const actions = {
     closeMotdNotification: state.closeMotdNotification,
     closeEpicPopup: state.closeEpicPopup,
     closeClubGiftNotification: state.closeClubGiftNotification,
+    attachNewFeatureNotification: state.attachNewFeatureNotification,
     markNewFeatureNotificationOpened: state.markNewFeatureNotificationOpened,
     closeNewFeatureNotification: state.closeNewFeatureNotification,
     clearNewFeatureClaim: state.clearNewFeatureClaim,
