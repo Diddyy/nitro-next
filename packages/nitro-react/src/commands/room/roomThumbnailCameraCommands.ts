@@ -7,6 +7,8 @@ import type { ThumbnailStatusMessageType } from '@nitrodevco/nitro-packets';
 
 import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
+import { reloadTextureUrl } from '#base/theme';
+import { configReader } from '#base/utils';
 
 /** `startTakingPhoto`: not while zoomed out or turned over - Flash's own text, not a localisation. */
 export const startRoomThumbnailCamera = () => {
@@ -29,11 +31,20 @@ export const openRoomThumbnailCameraLink = (parts: string[]) => {
     if (parts[1] === 'open') startRoomThumbnailCamera();
 };
 
-/** `RoomThumbnailCameraWidgetHandler.onThumbnailStatus`: the camera goes, then the answer's alert. */
+/**
+ * `RoomThumbnailCameraWidgetHandler.onThumbnailStatus`: the camera goes, then the answer's alert. On
+ * success the room's thumbnail (`navigator.thumbnail.url_base` + `<flatId>.png`) is fetched anew, so
+ * the room info shows the new picture rather than what the browser kept from before it was taken.
+ */
 export const onThumbnailStatus = (data: ThumbnailStatusMessageType) => {
-    const { hideWindow, showAlert, interpolate } = systemStore.getState();
+    const { hideWindow, showAlert, interpolate, config } = systemStore.getState();
 
     hideWindow('room_thumbnail_camera');
+
+    const base = configReader(config).configString('navigator.thumbnail.url_base');
+    const roomId = getRoom()?.roomId;
+
+    if (data.isOk && base.length && roomId) void reloadTextureUrl(`${base}${roomId}.png`);
 
     if (data.isOk) showAlert(interpolate('${navigator.thumbnail.camera.title}'), interpolate('${navigator.thumbnail.camera.success}'));
     else if (data.isRenderLimitHit) showAlert(interpolate('${generic.alert.title}'), interpolate('${camera.render.count.info}'));
