@@ -32,14 +32,25 @@
  * (`maybeShowNewFeatureNotification`). The column holds them in the order `init` docked them
  * (`ExtensionView.attachExtension` pushes each at the end): one that waits for its times docks
  * after the ones that wait for nothing, whatever `notifications.new_feature.active` says.
+ *
+ * Not Flash's, each one absent keeping Flash's behaviour (the hotel panel's extensions):
+ * - `notifications.new_feature.show_from.<key>` (the server's time, as an expiry's): built only once
+ *   the server answers it reached, docking then if it is reached while the client runs;
+ * - `notifications.new_feature.close.<key>`: `forever` remembers the cancel link's click for the
+ *   user in this browser, so it is not shown again; `never` hides the cancel link;
+ * - `notifications.new_feature.audience.<key>`: `hc` only with Habbo Club, `non_hc` only without,
+ *   `new` only while the server calls the user a noob (`NoobnessLevel`);
+ * - the texts `notifications.new_feature.<key>.open_button` / `.cancel_link`: a normal one's button
+ *   and cancel link, over the layout's `notifications.button.view` / `notifications.button.cancel`.
  */
-import { ColorConverter } from '@nitrodevco/nitro-api';
-import { useEffect, useState } from 'react';
+import { ClubLevelEnum, ColorConverter, NoobnessLevelEnum } from '@nitrodevco/nitro-api';
+import { useEffect, useMemo, useState } from 'react';
 
-import { maybeShowNewFeatureNotifications, openNewFeatureLink, requestNewFeatureClaimState, requestNewFeatureSecondsUntil } from '#base/commands';
+import { isNewFeatureClosedForever, maybeShowNewFeatureNotifications, openNewFeatureLink, rememberNewFeatureClosedForever, requestNewFeatureClaimState, requestNewFeatureSecondsUntil } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useSingularNotificationActions, useSingularNotificationStore } from '#base/context/singular-notifications';
 import { HotelViewSecondsUntil, useConfigData, useIsLandingViewVisible, useSystemStore, useTranslation } from '#base/context/system';
+import { useOwnClubLevel, useOwnUserId, useUserStore } from '#base/context/user';
 import { useSecondsClock } from '#base/hooks';
 import { Box, CountdownWidget, TemplateBindings, TemplateWindow } from '#base/theme';
 import { configReader } from '#base/utils';
@@ -81,6 +92,28 @@ const TYPE_COUNTDOWN = 'countdown';
 const LINK_COLOR_NORMAL = 16777215;
 const LINK_COLOR_HIGHLIGHT = 12247545;
 
+/** Not Flash's: `notifications.new_feature.close.<key>`. */
+const CLOSE_FOREVER = 'forever';
+const CLOSE_NEVER = 'never';
+
+/** Not Flash's: `notifications.new_feature.audience.<key>`. */
+const AUDIENCE_HC = 'hc';
+const AUDIENCE_NON_HC = 'non_hc';
+const AUDIENCE_NEW = 'new';
+
+/** The longest `setTimeout` waits; a later show-from is looked at again when the client next starts. */
+const MAX_TIMER_MS = 2147483647;
+
+/** Whether the user is one the audience names; the noob one waits until the server has said (`noobnessLevel` -1). */
+const inAudience = (audience: string, clubLevel: ClubLevelEnum, noobnessLevel: number) => {
+    switch (audience) {
+        case AUDIENCE_HC: return clubLevel >= ClubLevelEnum.Club;
+        case AUDIENCE_NON_HC: return clubLevel < ClubLevelEnum.Club;
+        case AUDIENCE_NEW: return (noobnessLevel >= 0) && (noobnessLevel !== Number(NoobnessLevelEnum.NotNoob));
+        default: return true;
+    }
+};
+
 /** A `SecondsUntilMessage` for the time string, if one came after it was asked. */
 const answerSince = (answer: HotelViewSecondsUntil | undefined, askedAt: number) => (((answer !== undefined) && (answer.receivedAt >= askedAt)) ? answer : undefined);
 
@@ -117,10 +150,19 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     const type = configString(`notifications.new_feature.type.${featureKey}`) || TYPE_NORMAL;
     const expiry = configString(`notifications.new_feature.expiry.${featureKey}`);
     const countdownTo = (type === TYPE_COUNTDOWN) ? configString(`notifications.new_feature.count_down_to.${featureKey}`) : '';
+    const showFrom = configString(`notifications.new_feature.show_from.${featureKey}`);
+    const close = configString(`notifications.new_feature.close.${featureKey}`);
+    const audience = configString(`notifications.new_feature.audience.${featureKey}`);
+    const userId = useOwnUserId();
+    const clubLevel = useOwnClubLevel();
+    const noobnessLevel = useUserStore(x => x.noobnessLevel);
+    const closedBefore = useMemo(() => (close === CLOSE_FOREVER) && (userId > 0) && isNewFeatureClosedForever(userId, featureKey), [ close, userId, featureKey ]);
     // When the times were asked (`Infinity` until then): only an answer after it counts.
     const [ askedAt, setAskedAt ] = useState(Number.POSITIVE_INFINITY);
     const expiryAnswer = answerSince(useSystemStore(x => (expiry ? x.hotelViewSecondsUntil[expiry] : undefined)), askedAt);
     const countdownAnswer = answerSince(useSystemStore(x => (countdownTo ? x.hotelViewSecondsUntil[countdownTo] : undefined)), askedAt);
+    const showFromAnswer = answerSince(useSystemStore(x => (showFrom ? x.hotelViewSecondsUntil[showFrom] : undefined)), askedAt);
+    const [ showFromReached, setShowFromReached ] = useState(false);
     const now = useSecondsClock();
     const [ hovered, setHovered ] = useState(false);
     const autoOpenClaim = autoOpenClaimId(configString(`notifications.new_feature.auto_open_condition.${featureKey}`));
@@ -130,13 +172,33 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     const onHotelView = useIsLandingViewVisible();
 
     useEffect(() => {
-        if (!expiry && !countdownTo) return;
+        if (!expiry && !countdownTo && !showFrom) return;
 
         setAskedAt(performance.now());
 
         if (expiry) requestNewFeatureSecondsUntil(send, expiry);
         if (countdownTo) requestNewFeatureSecondsUntil(send, countdownTo);
-    }, [ expiry, countdownTo, send ]);
+        if (showFrom && (showFrom !== expiry) && (showFrom !== countdownTo)) requestNewFeatureSecondsUntil(send, showFrom);
+    }, [ expiry, countdownTo, showFrom, send ]);
+
+    // Not Flash's: the show-from reached now, or once the seconds answered have run.
+    useEffect(() => {
+        if (!showFromAnswer) return;
+
+        const wait = (showFromAnswer.seconds * 1000) - (performance.now() - showFromAnswer.receivedAt);
+
+        if (wait <= 0) {
+            setShowFromReached(true);
+
+            return;
+        }
+
+        if (wait > MAX_TIMER_MS) return;
+
+        const timer = setTimeout(() => setShowFromReached(true), wait);
+
+        return () => clearTimeout(timer);
+    }, [ showFromAnswer ]);
 
     const expired = !!expiryAnswer && (expiryAnswer.seconds <= 0);
 
@@ -146,7 +208,8 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     }, [ expired, featureKey, closeNewFeatureNotification ]);
 
     // `tryInitialize`: built once every time asked about is answered.
-    const built = !((expiry && !expiryAnswer) || expired || (countdownTo && !countdownAnswer));
+    const built = !((expiry && !expiryAnswer) || expired || (countdownTo && !countdownAnswer))
+        && (!showFrom || showFromReached) && inAudience(audience, clubLevel, noobnessLevel) && !closedBefore;
 
     // `init`: `attachExtension("new_feature_" + key)`, at the end of the column.
     useEffect(() => {
@@ -191,20 +254,27 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     // `initLayout`: the open button's lightness halfway from the colour's to the top.
     const hsl = ColorConverter.rgbToHSL(color);
     const buttonColor = ColorConverter.hslToRGB((255 - Math.trunc((255 - (hsl & 0xff)) / 2)) | (hsl & 0xffff00));
-    const cancel = () => closeNewFeatureNotification(featureKey);
+    const cancel = () => {
+        if ((close === CLOSE_FOREVER) && (userId > 0)) rememberNewFeatureClosedForever(userId, featureKey);
+
+        closeNewFeatureNotification(featureKey);
+    };
     const hover = { onPointerOver: () => setHovered(true), onPointerOut: () => setHovered(false) };
     const linkColor = hovered ? LINK_COLOR_HIGHLIGHT : LINK_COLOR_NORMAL;
 
     const bindings: TemplateBindings = {
         desc: { caption: t(`notifications.new_feature.${featureKey}.desc`, `notifications.new_feature.${featureKey}.desc`), setCaptionAfterBuild: true },
         static_bitmap: { asset: imageAsset(configString(`notifications.new_feature.image.${featureKey}`)) },
-        cancel_link_region: { visible: (type === TYPE_NORMAL) || (type === TYPE_COUNTDOWN) || opened, onPointerTap: cancel },
+        cancel_link_region: { visible: (close !== CLOSE_NEVER) && ((type === TYPE_NORMAL) || (type === TYPE_COUNTDOWN) || opened), onPointerTap: cancel },
     };
 
     if (type === TYPE_NORMAL) {
+        const openCaption = t(`notifications.new_feature.${featureKey}.open_button`, '');
+        const cancelCaption = t(`notifications.new_feature.${featureKey}.cancel_link`, '');
+
         bindings[''] = { color };
-        bindings.open_button = { color: buttonColor, onPointerTap: open };
-        bindings.cancel_link = { color: linkColor, onPointerTap: cancel };
+        bindings.open_button = { color: buttonColor, onPointerTap: open, ...(openCaption ? { caption: openCaption } : {}) };
+        bindings.cancel_link = { color: linkColor, onPointerTap: cancel, ...(cancelCaption ? { caption: cancelCaption } : {}) };
         bindings.cancel_link_region = { ...bindings.cancel_link_region, ...hover };
     } else {
         bindings.border = { color };
