@@ -1,6 +1,7 @@
 import { IGraphicAsset, RoomGeometryScaleType, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import { BLEND_MODES, Filter } from 'pixi.js';
-import { GlowFilter } from 'pixi-filters';
+
+import { createFlashGlowFilter } from '#renderer/utils';
 
 import { FurnitureChestVisualization } from './FurnitureChestVisualization';
 
@@ -57,7 +58,7 @@ export class FurnitureFurniChestVisualization extends FurnitureChestVisualizatio
     private _lastFloatUpdate: number = -1;
 
     private static getGlowFilter(): Filter[] {
-        if (!FurnitureFurniChestVisualization.FLOATING_ICON_GLOW_FILTER) FurnitureFurniChestVisualization.FLOATING_ICON_GLOW_FILTER = [ new GlowFilter({ color: 0xFFFFFF, alpha: 1, distance: 2, outerStrength: 10, innerStrength: 0, quality: 1 }) ];
+        if (!FurnitureFurniChestVisualization.FLOATING_ICON_GLOW_FILTER) FurnitureFurniChestVisualization.FLOATING_ICON_GLOW_FILTER = [ createFlashGlowFilter(0xFFFFFF, 1, 2, 2, 10, 1, false, false) ];
 
         return FurnitureFurniChestVisualization.FLOATING_ICON_GLOW_FILTER;
     }

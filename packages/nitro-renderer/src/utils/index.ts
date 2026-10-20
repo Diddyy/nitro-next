@@ -1,4 +1,5 @@
 export * from './ExtendedSprite';
+export * from './flash-filters';
 export * from './GetRenderer';
 export * from './GetRoomStage';
 export * from './GetTicker';

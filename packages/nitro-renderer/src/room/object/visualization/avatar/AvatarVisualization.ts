@@ -17,10 +17,9 @@ import {
 } from '@nitrodevco/nitro-api';
 import { AdvancedMap, AvatarActionStateType, AvatarActionStateTypeUtilities, AvatarGenderType, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { ColorMatrixFilter, Filter, Texture } from 'pixi.js';
-import { GlowFilter } from 'pixi-filters';
 
 import { GetAssetManager } from '#renderer/assets';
-import { GetTickerTime } from '#renderer/utils';
+import { createFlashGlowFilter, GetTickerTime } from '#renderer/utils';
 
 import { RoomObjectSpriteVisualization } from '../RoomObjectSpriteVisualization';
 import { IVariableFxVisualizationHost, IVariableFxVisualizationRoomData } from '../variablefx/IVariableFxVisualizationRoomData';
@@ -541,7 +540,7 @@ export class AvatarVisualization
     }
 
     private static getHighlightFilters(): Filter[] {
-        if (!AvatarVisualization.HIGHLIGHT_FILTERS) AvatarVisualization.HIGHLIGHT_FILTERS = [ new GlowFilter({ color: 0xFFFFFF, alpha: 1, distance: 6, outerStrength: 2, innerStrength: 0 }) ];
+        if (!AvatarVisualization.HIGHLIGHT_FILTERS) AvatarVisualization.HIGHLIGHT_FILTERS = [ createFlashGlowFilter(0xFFFFFF, 1, 6, 6) ];
 
         return AvatarVisualization.HIGHLIGHT_FILTERS;
     }
@@ -552,7 +551,7 @@ export class AvatarVisualization
 
             tint.matrix = [ 0.9, 0, 0, 0, 0, 0, 1, 0, 0, 40 / 255, 0, 0, 1, 0, 80 / 255, 0, 0, 0, 0.85, 0 ];
 
-            AvatarVisualization.VARIABLE_HOLDER_FILTERS = [ tint, new GlowFilter({ color: 0xBBF7FA, alpha: 1, distance: 4, outerStrength: 0, innerStrength: 4 }) ];
+            AvatarVisualization.VARIABLE_HOLDER_FILTERS = [ tint, createFlashGlowFilter(0xBBF7FA, 1, 4, 4, 4, 1, true, false) ];
         }
 
         return AvatarVisualization.VARIABLE_HOLDER_FILTERS;

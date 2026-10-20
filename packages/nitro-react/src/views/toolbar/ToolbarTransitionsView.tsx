@@ -5,9 +5,8 @@
  * and falls again (`-100 * |sin(t * PI)|`) - and is disposed when it lands (`Dispose`). Over every
  * window, under the tooltips, and never a mouse target.
  */
-import { GetTicker } from '@nitrodevco/nitro-renderer';
+import { createFlashGlowFilter, GetTicker } from '@nitrodevco/nitro-renderer';
 import { Sprite, Ticker } from 'pixi.js';
-import { GlowFilter } from 'pixi-filters';
 import { useEffect, useRef, useState } from 'react';
 
 import { ToolbarTransition, useSystemActions, useSystemStore } from '#base/context/system';
@@ -23,7 +22,7 @@ const JUMP_COUNT = 1;
 const ToolbarTransitionSprite = ({ transition }: { transition: ToolbarTransition }) => {
     const { removeToolbarTransition } = useSystemActions();
     const spriteRef = useRef<Sprite>(null);
-    const [ filters ] = useState(() => [ new GlowFilter({ color: 0xFFFFFF, alpha: 1, distance: 2, outerStrength: 10, innerStrength: 0, quality: 1 }) ]);
+    const [ filters ] = useState(() => [ createFlashGlowFilter(0xFFFFFF, 1, 2, 2, 255, 1, false, false) ]);
 
     useEffect(() => {
         const { id, x, y, deltaX, deltaY, durationMs } = transition;

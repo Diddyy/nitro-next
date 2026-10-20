@@ -1,8 +1,7 @@
 import { IRoom, IRoomObject, IRoomObjectHighLighter, RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import { ColorMatrix, ColorMatrixFilter, Filter } from 'pixi.js';
-import { GlowFilter } from 'pixi-filters';
 
-import { WiredFurnitureBorderFilter } from '../../utils';
+import { createFlashGlowFilter, WiredFurnitureBorderFilter } from '../../utils';
 import { FurnitureVisualization } from '../object';
 
 /**
@@ -25,9 +24,8 @@ import { FurnitureVisualization } from '../object';
  * - variable holders: nearly the same tint with a cyan inner glow - the furni twin of
  *   `AvatarVisualization`'s `figure_highlight_variable_holder` look.
  *
- * Pixi's colour matrix takes its offsets in 0-1 where Flash's are 0-255. A Flash inner
- * `GlowFilter(colour, 1, blur, blur, strength)` becomes a `GlowFilter` of that distance with only
- * an inner strength, the mapping `AvatarVisualization` uses.
+ * Pixi's colour matrix takes its offsets in 0-1 where Flash's are 0-255. The glows are Flash's own
+ * (`createFlashGlowFilter`, Flash's constructor arguments as they are).
  */
 export class RoomObjectHighLighter implements IRoomObjectHighLighter {
     private static FILTER_BW: Filter[] | undefined = undefined;
@@ -196,7 +194,7 @@ export class RoomObjectHighLighter implements IRoomObjectHighLighter {
 
     /** Shares the picked filter with `getFilterBW`, as Flash's two lists share theirs. */
     private static getFilterBWWall(): Filter[] {
-        if (!RoomObjectHighLighter.FILTER_BW_WALL) RoomObjectHighLighter.FILTER_BW_WALL = [ ...RoomObjectHighLighter.getFilterBW(), new GlowFilter({ color: 0xFFFFFF, alpha: 1, distance: 5, outerStrength: 0, innerStrength: 3 }) ];
+        if (!RoomObjectHighLighter.FILTER_BW_WALL) RoomObjectHighLighter.FILTER_BW_WALL = [ ...RoomObjectHighLighter.getFilterBW(), createFlashGlowFilter(0xFFFFFF, 1, 5, 5, 3, 1, true, false) ];
 
         return RoomObjectHighLighter.FILTER_BW_WALL;
     }
@@ -220,7 +218,7 @@ export class RoomObjectHighLighter implements IRoomObjectHighLighter {
     }
 
     private static getVariableHolderFilter(): Filter[] {
-        if (!RoomObjectHighLighter.VARIABLE_HOLDER_FILTER) RoomObjectHighLighter.VARIABLE_HOLDER_FILTER = [ RoomObjectHighLighter.createColorMatrixFilter([ 0.9, 0, 0, 0, 0, 0, 1, 0, 0, 40 / 255, 0, 0, 1, 0, 80 / 255, 0, 0, 0, 0.85, 0 ]), new GlowFilter({ color: 0xBBF7FA, alpha: 1, distance: 4, outerStrength: 0, innerStrength: 4 }) ];
+        if (!RoomObjectHighLighter.VARIABLE_HOLDER_FILTER) RoomObjectHighLighter.VARIABLE_HOLDER_FILTER = [ RoomObjectHighLighter.createColorMatrixFilter([ 0.9, 0, 0, 0, 0, 0, 1, 0, 0, 40 / 255, 0, 0, 1, 0, 80 / 255, 0, 0, 0, 0.85, 0 ]), createFlashGlowFilter(0xBBF7FA, 1, 4, 4, 4, 1, true, false) ];
 
         return RoomObjectHighLighter.VARIABLE_HOLDER_FILTER;
     }
