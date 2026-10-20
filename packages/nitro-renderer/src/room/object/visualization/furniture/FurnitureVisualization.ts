@@ -36,6 +36,10 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
     protected _selectedColor: number = 0;
     protected _furnitureLift: number = 0;
     protected _alphaMultiplier: number = 1;
+    /** WIRED Set Visibility: 1 - `furniture_wired_transparency` / 100, multiplied into every layer's alpha (Flash `§_-S1H§`). */
+    protected _wiredAlpha: number = 1;
+    /** WIRED Set Visibility's "allow clicks to pass through" (`furniture_wired_click_through`). */
+    protected _skipMouseHandling: boolean = false;
     /** The room hides layers tagged `invisible` (Flash `furniture_invisible_layer`). */
     protected _invisibleLayer: boolean = false;
     protected _alphaChanged: boolean = false;
@@ -285,6 +289,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
                 this._alphaChanged = true;
             }
 
+            this.updateWiredVisibility(model);
             this.updateWiredHighlight(model);
 
             const invisibleLayer = model.getValue<number>(RoomObjectVariableEnum.FurnitureInvisibleLayer) > 0;
@@ -303,6 +308,27 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
         this._variableFxManagerUpdateId = variableFxManagerUpdateId;
 
         return modelChanged || variableFxChanged;
+    }
+
+    /**
+     * WIRED Set Visibility (FurnitureVisualization.as:802-814, WIN63-202610201032): the transparency
+     * fades every layer, the shadow and the highlight, and "allow clicks to pass through" lets the
+     * mouse reach whatever is under the furni.
+     */
+    protected updateWiredVisibility(model: IRoomObjectModel): void {
+        let wiredTransparency = model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredTransparency);
+
+        if (wiredTransparency === undefined || isNaN(wiredTransparency)) wiredTransparency = 0;
+
+        const wiredAlpha = 1 - (Math.max(0, Math.min(100, wiredTransparency)) / 100);
+
+        if (this._wiredAlpha !== wiredAlpha) {
+            this._wiredAlpha = wiredAlpha;
+
+            this._alphaChanged = true;
+        }
+
+        this._skipMouseHandling = model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredClickThrough) > 0;
     }
 
     protected updateSprites(scale: RoomGeometryScaleType, update: boolean, animation: number): void {
@@ -376,7 +402,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
                 } else {
                     sprite.offsetX = assetData.offsetX;
                     sprite.offsetY = assetData.offsetY + this.getLayerYOffset(scale, this._direction, layerId);
-                    sprite.alpha = 48 * this._alphaMultiplier;
+                    sprite.alpha = 48 * this._alphaMultiplier * this._wiredAlpha;
                     sprite.alphaTolerance = AlphaTolerance.MATCH_NOTHING;
 
                     relativeDepth = 1;
@@ -388,7 +414,8 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
                 sprite.name = assetName;
                 sprite.libraryAssetName = this.getLibraryAssetNameForSprite(assetData, sprite);
                 sprite.posture = assetData.source ? this.getPostureForAsset(scale, assetData.source) : undefined;
-                sprite.clickHandling = this._clickHandling;
+                sprite.clickHandling = this._clickHandling && !this._skipMouseHandling;
+                sprite.skipMouseHandling = this._skipMouseHandling;
 
                 this.updateSpriteFilters(scale, sprite, layerId);
             } else {
@@ -498,7 +525,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
             sources.push(sprite);
         }
 
-        let alpha = this._alphaMultiplier;
+        let alpha = this._alphaMultiplier * this._wiredAlpha;
 
         if (this._lookThrough) alpha *= 0.2;
 
@@ -646,6 +673,8 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
         let alpha = this._data.getLayerAlpha(scale, direction, layerId);
 
         if (this._alphaMultiplier !== null) alpha = alpha * this._alphaMultiplier;
+
+        alpha = alpha * this._wiredAlpha;
 
         this._spriteAlphas[layerId] = alpha;
 

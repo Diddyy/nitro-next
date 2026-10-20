@@ -575,6 +575,8 @@ export class IncomingHeader {
     public static WiredContractUpdateResultMessage = 1331;
     public static WiredEnvironmentMessage = 378;
     public static WiredErrorLogsMessage = 3308;
+    public static WiredFurniTransparencyMessage = 7610;
+    public static WiredUserTransparencyMessage = 7611;
     public static WiredLinkOperationResultMessage = 3261;
     public static WiredFurniActionMessage = 2642;
     public static WiredFurniAddonMessage = 2823;
