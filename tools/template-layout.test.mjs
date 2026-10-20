@@ -32,10 +32,17 @@ await test('on_resize_align_center moves by half the change, truncated as the in
     const shrink = new LayoutWindow(undefined, { x: 0, y: 1, width: 71, height: 17 }, ALIGN_CENTER);
     const grow = new LayoutWindow(undefined, { x: 10, y: 1, width: 10, height: 17 }, ALIGN_CENTER);
 
-    shrink.setRectangle(0, 1, 24, 17); // 0 - (24 - 71) / 2 = 23.5 -> 23
-    grow.setRectangle(10, 1, 15, 17); // 10 - (15 - 10) / 2 = 7.5 -> 7
+    // `WindowController.setRectangle`: the half is an int (truncated towards zero) added to x, and
+    // the pixel it could not split (`_hCenterRem2`) is owed to the next width change.
+    shrink.setRectangle(0, 1, 24, 17); // 0 + int((71 - 24) / 2) = 0 + int(23.5) = 23, 1 owed
+    grow.setRectangle(10, 1, 15, 17); // 10 + int((10 - 15) / 2) = 10 + int(-2.5) = 8, -1 owed
     assert.equal(shrink.x, 23);
-    assert.equal(grow.x, 7);
+    assert.equal(shrink.hCenterRemainder, 1);
+    assert.equal(grow.x, 8);
+    assert.equal(grow.hCenterRemainder, -1);
+    shrink.setRectangle(23, 1, 71, 17); // 23 + int((1 - 47) / 2) = 0: grown back to where it was
+    assert.equal(shrink.x, 0);
+    assert.equal(shrink.hCenterRemainder, 0);
 });
 
 await test('on_resize_align_right and bottom keep that edge; a move skips the alignment', () => {
