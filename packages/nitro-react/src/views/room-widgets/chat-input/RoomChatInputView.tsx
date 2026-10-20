@@ -2,7 +2,7 @@ import { isNftChatStyle, isStaticChatStyle } from '@nitrodevco/nitro-theme/chat'
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { IChatStyle } from '#base/chat';
-import { openClientLink, openHabbiconHub, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, sayChat, sendChatTyping, setChatFontSizeMode, setPreferredChatStyle, shoutChat, triggerHabbicon, whisperChat, withSelectedAvatarName } from '#base/commands';
+import { openClientLink, openHabbiconHub, resetUnseenHabbicons, runRoomChatCommand, runWiredChatCommand, sayChat, sendChatTyping, setChatFontSizeMode, setPreferredChatStyle, shoutChat, trackEventLogOncePerSession, triggerHabbicon, whisperChat, withSelectedAvatarName } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { HabbiconsStore, useHabbiconsStore } from '#base/context/habbicons';
 import { getUnseenItemCount, UnseenItemCategory, useInventoryStore } from '#base/context/inventory';
@@ -393,6 +393,8 @@ export const RoomChatInputView = () => {
                     whisperChat(send, recipient, cleaned, styleId);
                     break;
             }
+
+            trackEventLogOncePerSession(send, 'Tutorial', 'interaction', 'avatar.chat');
         }
 
         isTypingRef.current = false;

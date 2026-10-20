@@ -1,6 +1,7 @@
 import { MouseEventType, RoomEngineObjectEvent, RoomObjectCategoryEnum, RoomObjectMouseEvent, RoomObjectOperationType, RoomObjectTileMouseEvent, RoomObjectUserTypeName, RoomObjectWallMouseEvent } from '@nitrodevco/nitro-api';
 import { ClickCharacterComposer, ClickFurniComposer, MoveAvatarComposer } from '@nitrodevco/nitro-packets';
 
+import { trackEventLogOncePerSession } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomIsPlayingGame, useRoomIsSpectating, useRoomMouseActions, useRoomPlacedObject, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
 
@@ -103,6 +104,9 @@ export const useRoomEventHandler = () => {
                         if (category === RoomObjectCategoryEnum.Room) {
                             if (!didWalk && event instanceof RoomObjectTileMouseEvent) {
                                 if (isDecorating || isSpectator) return;
+
+                                // `handleClickOnTile`: the first walk of the client session, blocked or not.
+                                trackEventLogOncePerSession(send, 'Tutorial', 'interaction', 'avatar.move');
 
                                 if (!room.isMoveBlocked) send(new MoveAvatarComposer({ targetX: event.tileXAsInt, targetY: event.tileYAsInt }));
                             }

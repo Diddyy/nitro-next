@@ -7,3 +7,4 @@ export * from './hotelViewCommands';
 export * from './latencyCommands';
 export * from './localizationCommands';
 export * from './toolbarTransitionCommands';
+export * from './trackingCommands';

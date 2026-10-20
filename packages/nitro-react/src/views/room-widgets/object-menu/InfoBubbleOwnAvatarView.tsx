@@ -1,7 +1,7 @@
 import { AvatarActionStateType, AvatarExpressionEnum, ClubLevelEnum, ISimpleRoomObjectData, PostureTypeEnum, RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
 import { ReactNode, useState } from 'react';
 
-import { changePosture, dropCarryItem, openClientLink, openProfile, setDance, showAvatarExpression, showSign, startNameChange } from '#base/commands';
+import { changePosture, dropCarryItem, openClientLink, openProfile, setDance, showAvatarExpression, showSign, startNameChange, trackEventLog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useIsRoomOwner, useOwnIsDancing, useRoomSessionActions, useRoomStore } from '#base/context/room';
 import { useConfigBoolean, useTranslation, useWindowActions } from '#base/context/system';
@@ -80,6 +80,8 @@ type MenuButton = {
     /** A VIP expression: without VIP the row is an advert and its press opens the catalogue. */
     vip?: boolean;
     staysOpen?: boolean;
+    /** The action of the `EventLog("OwnAvatarMenu", "click", ...)` the press logs. */
+    track?: string;
     onPress: () => void;
 };
 
@@ -126,33 +128,33 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
             { key: 'change_name', visible: info.allowNameChange, onPress: startNameChange },
             // Decorating is a club feature, and only where you may move furniture.
             { key: 'decorate', visible: hasClub && ((info.myControllerLevel >= RoomControllerLevelEnum.Guest) || isRoomOwner), onPress: () => setIsDecorating(true) },
-            { key: 'change_looks', visible: true, onPress: () => showWindow('avatar_editor') },
-            { key: 'wave', visible: !expressionsMenuEnabled, onPress: expression(AvatarExpressionEnum.Wave) },
+            { key: 'change_looks', visible: true, track: 'clothes', onPress: () => showWindow('avatar_editor') },
+            { key: 'wave', visible: !expressionsMenuEnabled, track: 'wave', onPress: expression(AvatarExpressionEnum.Wave) },
             { key: 'expressions', visible: expressionsMenuEnabled, staysOpen: true, onPress: toMode(MODE_EXPRESSIONS) },
             { key: 'dance_menu', visible: hasClub && !isRiding, enabled: !hasEffectOn, staysOpen: true, onPress: toMode(MODE_CLUB_DANCES) },
-            { key: 'dance', visible: !hasClub && !isDancing && !isRiding, enabled: !hasEffectOn, onPress: dance(1) },
-            { key: 'dance_stop', visible: !hasClub && isDancing && !isRiding, onPress: dance(0) },
+            { key: 'dance', visible: !hasClub && !isDancing && !isRiding, enabled: !hasEffectOn, track: 'dance_start', onPress: dance(1) },
+            { key: 'dance_stop', visible: !hasClub && isDancing && !isRiding, track: 'dance_stop', onPress: dance(0) },
             { key: 'signs', visible: signsEnabled, staysOpen: true, onPress: toMode(MODE_SIGNS) },
             { key: 'handitem', visible: handItemDropEnabled && isHandItem(info.carryItem), onPress: () => dropCarryItem(send) },
-            { key: 'effects', visible: !effectsDisabled && !isRiding, onPress: () => toggleWindow('avatar_effects') },
+            { key: 'effects', visible: !effectsDisabled && !isRiding, track: 'effects', onPress: () => toggleWindow('avatar_effects') },
             { key: 'wired_inspect', visible: showWiredInspect, onPress: () => openClientLink(send, `wiredmenu/open/inspection/1/${objectData.objectId}`) },
         ],
         [MODE_CLUB_DANCES]: [
-            { key: 'dance_stop', visible: true, enabled: isDancing, onPress: dance(0) },
-            { key: 'dance_1', visible: true, onPress: dance(1) },
-            { key: 'dance_2', visible: true, onPress: dance(2) },
-            { key: 'dance_3', visible: true, onPress: dance(3) },
-            { key: 'dance_4', visible: true, onPress: dance(4) },
+            { key: 'dance_stop', visible: true, enabled: isDancing, track: 'dance_stop', onPress: dance(0) },
+            { key: 'dance_1', visible: true, track: 'dance_start', onPress: dance(1) },
+            { key: 'dance_2', visible: true, track: 'dance_start', onPress: dance(2) },
+            { key: 'dance_3', visible: true, track: 'dance_start', onPress: dance(3) },
+            { key: 'dance_4', visible: true, track: 'dance_start', onPress: dance(4) },
             { key: 'back', visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
         ],
         [MODE_EXPRESSIONS]: [
-            { key: 'sit', visible: sittingEnabled && !isSwimming && !isRiding && (info.posture === String(AvatarActionStateType.Stand)), onPress: () => changePosture(send, PostureTypeEnum.Sit) },
-            { key: 'stand', visible: sittingEnabled && !isSwimming && !isRiding && info.canStandUp, onPress: () => changePosture(send, PostureTypeEnum.Stand) },
-            { key: 'wave', visible: true, enabled: !isSwimming, onPress: expression(AvatarExpressionEnum.Wave) },
-            { key: 'blow', visible: true, enabled: canUseVipExpressions, vip: true, onPress: expression(AvatarExpressionEnum.Blow) },
-            { key: '67', visible: expression67Enabled, enabled: canUseVipExpressions, vip: true, onPress: expression(AvatarExpressionEnum.Expression67) },
-            { key: 'laugh', visible: true, enabled: canUseVipExpressions, vip: true, onPress: expression(AvatarExpressionEnum.Laugh) },
-            { key: 'idle', visible: true, onPress: expression(AvatarExpressionEnum.Idle) },
+            { key: 'sit', visible: sittingEnabled && !isSwimming && !isRiding && (info.posture === String(AvatarActionStateType.Stand)), track: 'sit', onPress: () => changePosture(send, PostureTypeEnum.Sit) },
+            { key: 'stand', visible: sittingEnabled && !isSwimming && !isRiding && info.canStandUp, track: 'stand', onPress: () => changePosture(send, PostureTypeEnum.Stand) },
+            { key: 'wave', visible: true, enabled: !isSwimming, track: 'wave', onPress: expression(AvatarExpressionEnum.Wave) },
+            { key: 'blow', visible: true, enabled: canUseVipExpressions, vip: true, track: 'blow', onPress: expression(AvatarExpressionEnum.Blow) },
+            { key: '67', visible: expression67Enabled, enabled: canUseVipExpressions, vip: true, track: '67', onPress: expression(AvatarExpressionEnum.Expression67) },
+            { key: 'laugh', visible: true, enabled: canUseVipExpressions, vip: true, track: 'laugh', onPress: expression(AvatarExpressionEnum.Laugh) },
+            { key: 'idle', visible: true, track: 'idle', onPress: expression(AvatarExpressionEnum.Idle) },
             { key: 'back', visible: true, staysOpen: true, onPress: toMode(MODE_NORMAL) },
         ],
         [MODE_SIGNS]: [
@@ -170,6 +172,8 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
         }
 
         row.onPress();
+
+        if (row.track) trackEventLog(send, 'OwnAvatarMenu', 'click', row.track);
 
         if (!row.staysOpen) onClose();
     };
@@ -206,6 +210,7 @@ export const InfoBubbleOwnAvatarView = ({ objectData, onClose }: InfoBubbleOwnAv
             bindings[`sign_${sign}/button`] = {
                 ...button(`sign_${sign}/button`, () => {
                     showSign(send, sign);
+                    trackEventLog(send, 'OwnAvatarMenu', 'click', 'sign', '', sign);
                     onClose();
                 }),
                 children: SIGN_PICTURES[sign],

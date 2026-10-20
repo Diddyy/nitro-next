@@ -3,3 +3,4 @@ export * from './registerBugReportHandlers';
 export * from './registerFurnitureDataHandlers';
 export * from './registerHotelViewHandlers';
 export * from './registerLatencyHandlers';
+export * from './registerTrackingHandlers';

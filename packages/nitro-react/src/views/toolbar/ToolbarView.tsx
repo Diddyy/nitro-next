@@ -40,7 +40,7 @@ import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, FederatedPointerEvent, Ticker } from 'pixi.js';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
-import { goToHomeRoom, openClientLink, openProfile, quitRoom, showOwnRooms, showQuests, startTakingPhoto, toggleCatalog, toggleNavigator } from '#base/commands';
+import { goToHomeRoom, openClientLink, openProfile, quitRoom, showOwnRooms, showQuests, startTakingPhoto, toggleCatalog, toggleNavigator, trackEventLog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
 import { useGroupStore } from '#base/context/groups';
@@ -437,10 +437,11 @@ export const ToolbarView = () => {
             ...binding,
             visible: shown,
             alpha,
-            // `onIconClick`: `toggleWindowVisibility(name)`, then `hideMatchingHint(name)`.
+            // `onIconClick`: `toggleWindowVisibility(name)` - the icon's own action, then its EventLog - and `hideMatchingHint(name)`.
             ...(binding?.onPointerTap && {
                 onPointerTap: (event: FederatedPointerEvent) => {
                     binding.onPointerTap?.(event);
+                    trackEventLog(send, 'Toolbar', toggle.name, 'client.toolbar.clicked');
                     hideMatchingHint(toggle.name);
                 },
             }),
