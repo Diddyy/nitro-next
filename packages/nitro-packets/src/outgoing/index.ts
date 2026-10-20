@@ -191,6 +191,7 @@ export * from './Hotlooks/GetHotLooksComposer';
 export * from './Inventory/Achievements/GetAchievementsComposer';
 export * from './Inventory/Avatareffect/AvatarEffectActivatedComposer';
 export * from './Inventory/Avatareffect/AvatarEffectSelectedComposer';
+export * from './Inventory/Badges/GetBadgeInfoComposer';
 export * from './Inventory/Badges/GetBadgePointLimitsComposer';
 export * from './Inventory/Badges/GetBadgesComposer';
 export * from './Inventory/Badges/GetIsBadgeRequestFulfilledComposer';
