@@ -417,6 +417,7 @@ export * from './room/utils/TileObjectMap';
 export * from './session/pet/PetCustomPart';
 export * from './session/pet/PetFigureData';
 export * from './utils/ExtendedSprite';
+export * from './utils/flash-filters';
 export * from './utils/GetRenderer';
 export * from './utils/GetRoomStage';
 export * from './utils/GetTicker';
