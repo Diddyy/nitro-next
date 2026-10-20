@@ -51,6 +51,7 @@ import { SendSignalView } from '#base/views/wired-setup/elements/action/SendSign
 import { SetFurniAltitudeView } from '#base/views/wired-setup/elements/action/SetFurniAltitudeView';
 import { SetFurniHighlightView } from '#base/views/wired-setup/elements/action/SetFurniHighlightView';
 import { SetFurniStateToView } from '#base/views/wired-setup/elements/action/SetFurniStateToView';
+import { SetFurniTransparencyView } from '#base/views/wired-setup/elements/action/SetFurniTransparencyView';
 import { TeleportView } from '#base/views/wired-setup/elements/action/TeleportView';
 import { ToggleFurniStateView } from '#base/views/wired-setup/elements/action/ToggleFurniStateView';
 import { WriteToLogsView } from '#base/views/wired-setup/elements/action/WriteToLogsView';
@@ -106,6 +107,7 @@ import { sendSignalAction } from './SendSignal';
 import { setFurniAltitudeAction } from './SetFurniAltitude';
 import { setFurniHighlightAction } from './SetFurniHighlight';
 import { setFurniStateToAction } from './SetFurniStateTo';
+import { setFurniTransparencyAction } from './SetFurniTransparency';
 import { teleportAction } from './Teleport';
 import { teleportToRoomAction } from './TeleportToRoom';
 import { toggleFurniStateAction } from './ToggleFurniState';
@@ -170,4 +172,5 @@ export const actionElements: WiredElementEntry[] = [
     defineWiredElement(moveAsGroupAction, MoveAsGroupView),
     defineWiredElement(progressRewardTrackAction, ProgressRewardTrackView),
     defineWiredElement(resetRewardTrackAction, ResetRewardTrackView),
+    defineWiredElement(setFurniTransparencyAction, SetFurniTransparencyView),
 ];
