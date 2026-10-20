@@ -233,11 +233,18 @@ export interface NativeGlyph extends Omit<NativeGlyphRecord, 'renders'> {
     renders: (NativeGlyphRenderRecord & { rawImage: Uint8Array | null })[];
 }
 
+/** A profile's glyphs by code point; a `Map` is one, and the loader's table decodes on first `get`. */
+export interface NativeGlyphLookup {
+    readonly size: number;
+    has(codepoint: number): boolean;
+    get(codepoint: number): NativeGlyph | undefined;
+}
+
 export interface NativeProfile {
     schemaVersion?: number;
     runtime?: unknown;
     fontSha256?: string | null;
-    glyphs: Map<number, NativeGlyph>;
+    glyphs: NativeGlyphLookup;
     source: NativeProfileSource;
 }
 
