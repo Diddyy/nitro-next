@@ -5,8 +5,8 @@
  */
 import { Air32NativeTextRenderer, layoutNativeText, layoutNormalText } from './air32/Air32NativeTextRenderer';
 import { roundTiesEven } from './air32/mathColor';
-import { prepareAir32NativeBundle } from './air32/nativeFont';
-import { NativeFont, NativeFontBundle, NativeRenderOptions, NativeRenderResult, RasterCache, RenderTarget, TextRunLayout } from './air32/types';
+import { extendAir32NativeFont, prepareAir32NativeBundle } from './air32/nativeFont';
+import { NativeFont, NativeFontBundle, NativeGlyphBundle, NativeRenderOptions, NativeRenderResult, RasterCache, RenderTarget, TextRunLayout } from './air32/types';
 import { FlashTextFormat } from './flashTextFormat';
 
 interface NativeFontEntry {
@@ -44,6 +44,52 @@ export const registerNativeFontBundle = (family: string, weight: string, style: 
         rasterCache: { entries: new Map(), bytes: 0 },
     });
     fontRevision++;
+};
+
+/**
+ * Adds a glyph bundle's outlines to a face `registerNativeFontBundle` registered - see
+ * `setMissingGlyphLoader`. A face that was never registered is left alone.
+ */
+export const registerNativeGlyphs = (family: string, weight: string, style: string, bundle: NativeGlyphBundle): void => {
+    const entry = nativeFontsByKey.get(fontKey(family, weight, style));
+
+    if (!entry || !extendAir32NativeFont(entry.font, bundle)) return;
+
+    fontRevision++;
+};
+
+type MissingGlyphLoader = () => Promise<void>;
+
+let missingGlyphLoader: MissingGlyphLoader | undefined;
+let missingGlyphState: 'idle' | 'loading' | 'done' = 'idle';
+const glyphListeners = new Set<() => void>();
+
+/**
+ * Sets what fetches and registers the glyphs the boot bundle leaves out. The boot bundle carries
+ * every glyph of the Latin script and its punctuation; the fonts' other scripts (Cyrillic, Greek,
+ * Latin Extended-B, ...) would almost triple it for texts most sessions never show. Their
+ * `DefineFont3` metrics are in the boot bundle, though, so a text with one of their glyphs is
+ * known the moment it is measured: it falls back to browser text that once, starts this load,
+ * and every text waiting on it draws again when it lands (`onGlyphsAdded`). The loader logs its
+ * own failures; it never rejects.
+ */
+export const setMissingGlyphLoader = (loader: MissingGlyphLoader | undefined): void => {
+    missingGlyphLoader = loader;
+};
+
+/** Starts the missing-glyph load the first time a text needs it; one attempt per session. */
+const requestMissingGlyphs = (): void => {
+    if (missingGlyphState !== 'idle' || !missingGlyphLoader) return;
+
+    missingGlyphState = 'loading';
+
+    const finish = () => {
+        missingGlyphState = 'done';
+
+        for (const listener of [ ...glyphListeners ]) listener();
+    };
+
+    missingGlyphLoader().then(finish, finish);
 };
 
 /**
@@ -164,7 +210,12 @@ const unsupportedReason = (format: FlashTextFormat, text: string): string | null
     for (let index = 0; index < text.length; index++) {
         const code = text.charCodeAt(index);
 
-        if (!fontDrawsGlyph(entry, code)) return `no glyph for ${JSON.stringify(text[index])} (U+${code.toString(16).toUpperCase().padStart(4, '0')})`;
+        if (!fontDrawsGlyph(entry, code)) {
+            // The font has the glyph, in the bundle not loaded yet - not a character it lacks (emoji).
+            if (entry.font.swfGlyphs.get(code)?.hasInk) requestMissingGlyphs();
+
+            return `no glyph for ${JSON.stringify(text[index])} (U+${code.toString(16).toUpperCase().padStart(4, '0')})`;
+        }
     }
 
     return null;
@@ -185,6 +236,18 @@ export class FlashTextRenderer {
     /** Bumps whenever a font is registered, so a cached render can tell it is stale. */
     public static get revision(): number {
         return fontRevision;
+    }
+
+    /** Whether a text asked for glyphs that are still being fetched (`setMissingGlyphLoader`). */
+    public static get glyphsPending(): boolean {
+        return missingGlyphState === 'loading';
+    }
+
+    /** Calls `listener` once the missing-glyph load has finished, landed or not; returns the unsubscribe. */
+    public static onGlyphsAdded(listener: () => void): () => void {
+        glyphListeners.add(listener);
+
+        return () => glyphListeners.delete(listener);
     }
 
     public static supports(format: FlashTextFormat, text: string = ''): boolean {

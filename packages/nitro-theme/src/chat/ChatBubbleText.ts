@@ -14,6 +14,8 @@ export interface ChatBubbleTextRender {
     textHeight: number;
     /** `TextField.numLines`. */
     lineCount: number;
+    /** Drawn by the Flash text renderer - `false` when it fell back to the browser's text. */
+    exact: boolean;
     /** The `href` of the link (`<a href>`) whose glyphs hold a point of the text, if any. */
     linkAt: (x: number, y: number) => string | undefined;
 }
@@ -57,7 +59,8 @@ export const renderChatBubbleText = (markup: string, fontFace: string, fontSize:
     const tabs = tableTabs ? layoutChatTabs(markup, fontSizeScale, measureChatTabCells(format)) : null;
     const { runs, links } = parseFlashTextMarkupWithLinks(tabs?.markup ?? markup, format);
     const options = { wordWrap: true, wrapWidth: Math.max(1, Math.floor(wrapWidth)), breakWords: true, tabStops: tabs?.tabStops };
-    const rendered = renderFlashTextCanvas(runs, format, options) ?? renderBrowserTextCanvas(runs, options);
+    const exact = renderFlashTextCanvas(runs, format, options);
+    const rendered = exact ?? renderBrowserTextCanvas(runs, options);
 
     if (!rendered) return undefined;
 
@@ -70,5 +73,5 @@ export const renderChatBubbleText = (markup: string, fontFace: string, fontSize:
 
     const linked = { ...rendered, links };
 
-    return { texture, textWidth: Math.ceil(rendered.textWidth), textHeight: Math.ceil(rendered.textHeight), lineCount, linkAt: (x, y) => flashTextLinkAtPoint(linked, x, y) };
+    return { texture, textWidth: Math.ceil(rendered.textWidth), textHeight: Math.ceil(rendered.textHeight), lineCount, exact: !!exact, linkAt: (x, y) => flashTextLinkAtPoint(linked, x, y) };
 };
