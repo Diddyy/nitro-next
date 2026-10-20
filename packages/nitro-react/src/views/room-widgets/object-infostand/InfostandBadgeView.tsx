@@ -8,14 +8,16 @@
  * `SelectedBadgeData`; `showGroupBadgeInfo` (`WME_OVER` on `badge_group`, while the user has a group)
  * the group's name alone. `WME_OUT` disposes it (`hideBadgeInfo`).
  *
- * Not ported: `playGlow` - the badge widget's glow for a standalone rarity tier on hover.
+ * A user badge of a standalone rarity tier glows (`BadgeImageWidget.playGlow`, `BadgeGlowImage`) as
+ * `setBadge` shows it - `glowSignal` - and each time `showBadgeInfo` names it.
  */
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useState } from 'react';
 
 import { useConfigValue } from '#base/context/system';
-import { BoxLayout, getGlobalRect, GlobalRect, Region, useTextureFromUrl } from '#base/theme';
+import { BoxLayout, getGlobalRect, GlobalRect, Region } from '#base/theme';
 import { BadgeDetailsPopup } from '#base/views/shared/BadgeDetailsPopup';
+import { BadgeGlowImage } from '#base/views/shared/BadgeGlowImage';
 import { useBadgeDetails } from '#base/views/shared/useBadgeDetails';
 
 export interface InfostandBadgeViewProps {
@@ -28,28 +30,36 @@ export interface InfostandBadgeViewProps {
      */
     ownerCount?: number;
     rarityId?: number;
+    /** The slot's `glowColor` (`useBadgeGlowColors`); -1 or none for a badge that never glows. */
+    glowColor?: number;
+    /** Each new value is `setBadge` playing the glow (`playGlow` with `updateBadges`' flag set). */
+    glowSignal?: number;
     /** A group badge's details name the group (`userData.groupName`); without it none show. */
     groupName?: string;
     onPress?: () => void;
     layout?: BoxLayout;
 }
 
-export const InfostandBadgeView = ({ code, group = false, ownerCount, rarityId, groupName, onPress, layout }: InfostandBadgeViewProps) => {
+export const InfostandBadgeView = ({ code, group = false, ownerCount, rarityId, glowColor = -1, glowSignal, groupName, onPress, layout }: InfostandBadgeViewProps) => {
     const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const badgeDetails = useBadgeDetails();
     const [ anchor, setAnchor ] = useState<GlobalRect | null>(null);
+    const [ hovers, setHovers ] = useState(0);
 
     const url = !code?.length
         ? undefined
         : (group ? groupBadgeUrl.replace('%badgedata%', code) : badgeUrl.replace('%badgename%', code));
-    const texture = useTextureFromUrl(url);
 
     // `showBadgeInfo` returns without a badge in the slot; `showGroupBadgeInfo` without a group.
     const hasDetails = group ? !!groupName : !!code?.length;
 
     const showDetails = (event: FederatedPointerEvent) => {
-        if (hasDetails && (event.currentTarget instanceof PixiContainer)) setAnchor(getGlobalRect(event.currentTarget));
+        if (!hasDetails) return;
+
+        // `showBadgeInfo` glows a user badge before its details show; `showGroupBadgeInfo` has no glow.
+        if (!group) setHovers(count => count + 1);
+        if (event.currentTarget instanceof PixiContainer) setAnchor(getGlobalRect(event.currentTarget));
     };
 
     const details = (!anchor || !hasDetails)
@@ -64,12 +74,11 @@ export const InfostandBadgeView = ({ code, group = false, ownerCount, rarityId, 
             onPointerOut={() => setAnchor(null)}
             layout={{ width: 42, height: 42, alignItems: 'center', justifyContent: 'center', ...layout }}
         >
-            {texture && (
-                <pixiSprite
-                    texture={texture}
-                    layout={{ width: texture.width, height: texture.height }}
-                />
-            )}
+            <BadgeGlowImage
+                url={url}
+                glowColor={group ? -1 : glowColor}
+                glowSignal={((glowSignal === undefined) && !hovers) ? undefined : `${glowSignal ?? ''}:${hovers}`}
+            />
             {(anchor && details) && (
                 <BadgeDetailsPopup
                     templateId="habbo-room-ui-com/badge_details"

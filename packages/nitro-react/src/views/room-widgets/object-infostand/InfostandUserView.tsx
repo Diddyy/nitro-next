@@ -8,6 +8,7 @@ import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/
 import { useRoomUserData } from '#base/hooks';
 import { LayoutImage, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage, useAvatarImageTexture } from '#base/theme';
 import { isHandItem } from '#base/utils';
+import { useBadgeGlowColors } from '#base/views/shared/useBadgeGlow';
 
 import { InfostandBadgeView } from './InfostandBadgeView';
 
@@ -34,8 +35,7 @@ import { InfostandBadgeView } from './InfostandBadgeView';
  * (`params` centre both ways), so a resize re-centres it as `WE_RESIZED` does.
  *
  * Not drawn, as in this revision: `setRealName` looks for a `realname_text` the layout does not have,
- * and `xp` an `xp_text`. The rarity glow (`playGlow`) and the badge details window's rarity tag are
- * not ported.
+ * and `xp` an `xp_text`.
  */
 export interface InfostandUserViewProps {
     objectData: ISimpleRoomObjectData;
@@ -95,6 +95,15 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
     const avatar = useAvatarImageTexture(info?.figure || undefined, info?.gender ?? AvatarGenderType.Male, { cropped: true, direction: AVATAR_DIRECTION });
 
     const webId = info?.webId ?? -1;
+    const glowColorOf = useBadgeGlowColors();
+    // `onUserInfo` / `refreshBadges` (`shouldPlayGlowForUserInfo`): the badges glow as a user's infostand
+    // shows, and again when the badges it shows change - not when they only go missing for a moment.
+    const badgeSignature = (info?.badges ?? []).map(badge => `${badge.badgeIndex}:${badge.badgeCode}:${badge.badgeRarityId}`).join(',');
+    const [ badgeGlow, setBadgeGlow ] = useState({ webId, signature: badgeSignature, signal: 0 });
+
+    if ((badgeGlow.webId !== webId) || ((badgeGlow.signature !== badgeSignature) && badgeSignature.length)) {
+        setBadgeGlow({ webId, signature: badgeSignature, signal: badgeGlow.signal + 1 });
+    }
 
     // `handleGetUserInfoMessage`: every selection asks again, so the badges are current.
     useEffect(() => {
@@ -227,6 +236,8 @@ export const InfostandUserView = ({ objectData, onClose }: InfostandUserViewProp
                     code={selected?.badgeCode}
                     ownerCount={selected?.ownerCount}
                     rarityId={selected?.badgeRarityId}
+                    glowColor={glowColorOf(selected?.badgeRarityId)}
+                    glowSignal={badgeGlow.signal}
                     layout={{ position: 'absolute', left: 0, top: 0 }}
                 />
             ),

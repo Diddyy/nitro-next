@@ -8,15 +8,16 @@
  *   else's, and the blocked overlay while they are blocked (its link unblocks). A profile hidden from
  *   the viewer shows `full_profile_hidden` instead of the groups.
  * - `onUserBadges`: the five selected badges; hovering one shows its details to its right
- *   (`showBadgeInfo`, `extended_profile_badge_details`).
+ *   (`showBadgeInfo`, `extended_profile_badge_details`). A badge of a standalone rarity tier glows
+ *   (`BadgeImageWidget.playGlow`, `BadgeGlowImage`) as the profile shows - `setSelectedBadge` with
+ *   `_playGlowOnNextBadgeUpdate`, false only for the same user's profile shown again while open - and
+ *   each time `showBadgeInfo` names it.
  * - `refreshRelationships` (`relationship.status.enabled`): per status, a friend's name and head and
  *   "and N others", or the add-friends link and "no friends in this category". A name opens that
  *   friend's profile; with no friends of the status, an alert offers to find some.
  * - `refreshGroupList`: a `group_entry` per group in `groups_list`, the selected one lit, with the
  *   viewer's own favourite toggles; the selected group's details (`GroupDetailsCtrl`) in `group_cont`,
  *   or `no_groups` when there are none.
- *
- * Not ported: `playGlow`, the badge widget's glow for a standalone rarity tier.
  */
 import { AvatarGenderType } from '@nitrodevco/nitro-api';
 import { ExtendedProfileMessageType, IHabboUserBadge, IRelationshipStatusInfo } from '@nitrodevco/nitro-packets';
@@ -30,7 +31,9 @@ import { GetFriendlyTime } from '#base/utils';
 import { useGroupDetailsItem } from '#base/views/groups/useGroupDetailsItem';
 import { AvatarImageWidgetHead } from '#base/views/shared/AvatarImageWidgetHead';
 import { BadgeDetailsPopup } from '#base/views/shared/BadgeDetailsPopup';
+import { BadgeGlowImage } from '#base/views/shared/BadgeGlowImage';
 import { useBadgeDetails } from '#base/views/shared/useBadgeDetails';
+import { useBadgeGlowColors } from '#base/views/shared/useBadgeGlow';
 
 export interface UserProfileViewProps {
     profile: ExtendedProfileMessageType;
@@ -83,6 +86,8 @@ export const UserProfileView = ({
     const noGroupsTemplate = useTemplate('habbo-groups-com/no_groups');
     const badgeDetails = useBadgeDetails();
     const [ hoveredBadge, setHoveredBadge ] = useState<{ slot: number; anchor: GlobalRect } | null>(null);
+    const [ badgeHovers, setBadgeHovers ] = useState<number[]>(() => new Array<number>(BADGE_SLOTS).fill(0));
+    const glowColorOf = useBadgeGlowColors();
     const groupDetails = useGroupDetailsItem(selectedGroupId);
 
     const isSelf = profile.userId === ownUserId;
@@ -92,12 +97,28 @@ export const UserProfileView = ({
 
     const badgeBindings = (slot: number): TemplateBindings => {
         const badge = selectedBadges.get(slot);
+        // the view mounts with each show (keyed by user), so the first badges it has are the ones that glow
+        const shown = selectedBadges.size ? 1 : 0;
+        const hovers = badgeHovers[slot];
 
         return {
             [`badge_${slot}`]: {
-                asset: badge ? badgeUrl.replace('%badgename%', badge.badgeCode) : undefined,
+                // the layout's 42x42 widget, its badge centred (`badge_image:pivot_point` `center`)
+                children: (
+                    <Box layout={{ position: 'absolute', left: 0, top: 0, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }}>
+                        <BadgeGlowImage
+                            url={badge ? badgeUrl.replace('%badgename%', badge.badgeCode) : undefined}
+                            glowColor={glowColorOf(badge?.badgeRarityId)}
+                            glowSignal={(shown || hovers) ? `${shown}:${hovers}` : undefined}
+                        />
+                    </Box>
+                ),
                 onPointerOver: (event: FederatedPointerEvent) => {
-                    if (badge && (event.currentTarget instanceof PixiContainer)) setHoveredBadge({ slot, anchor: getGlobalRect(event.currentTarget) });
+                    if (!badge) return;
+
+                    setBadgeHovers(counts => counts.map((count, index) => ((index === slot) ? count + 1 : count)));
+
+                    if (event.currentTarget instanceof PixiContainer) setHoveredBadge({ slot, anchor: getGlobalRect(event.currentTarget) });
                 },
                 onPointerOut: () => setHoveredBadge(null),
             },
