@@ -29,6 +29,7 @@ const load = (path, dependencies) => {
 
 await test('the flash text layout breaks lines on \\r, \\r\\n and \\n', () => {
     const { layoutFlashTextLines } = load('nitro-theme/src/font/flash-text/flashTextBlock.ts', {
+        './air32/mathColor': load('nitro-theme/src/font/flash-text/air32/mathColor.ts', {}),
         './flashTextFormat': { normalizeFlashTextFormat: format => format },
         './FlashTextRenderer': { FlashTextRenderer: {} },
     });
