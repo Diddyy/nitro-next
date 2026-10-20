@@ -29,7 +29,9 @@
  * it never does (`stopAutoOpen`).
  *
  * `SingularNotificationController.initComponent` looks for them 2 seconds after it starts
- * (`maybeShowNewFeatureNotification`).
+ * (`maybeShowNewFeatureNotification`). The column holds them in the order `init` docked them
+ * (`ExtensionView.attachExtension` pushes each at the end): one that waits for its times docks
+ * after the ones that wait for nothing, whatever `notifications.new_feature.active` says.
  */
 import { ColorConverter } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';
@@ -84,6 +86,9 @@ const answerSince = (answer: HotelViewSecondsUntil | undefined, askedAt: number)
 
 export const NewFeatureNotificationsView = () => {
     const keys = useSingularNotificationStore(x => x.newFeatureNotifications);
+    const attached = useSingularNotificationStore(x => x.newFeatureNotificationsAttached);
+    // The docked ones in the order they docked, then the ones still waiting (drawing nothing yet).
+    const ordered = [ ...attached.filter(key => keys.includes(key)), ...keys.filter(key => !attached.includes(key)) ];
 
     useEffect(() => {
         const timer = setTimeout(maybeShowNewFeatureNotifications, SHOW_DELAY_MS);
@@ -93,7 +98,7 @@ export const NewFeatureNotificationsView = () => {
 
     return (
         <>
-            {keys.map(key => (
+            {ordered.map(key => (
                 <NewFeatureNotification
                     key={key}
                     featureKey={key}
@@ -107,7 +112,7 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
     const t = useTranslation();
     const { send } = useWebSocketContext();
     const opened = useSingularNotificationStore(x => x.newFeatureNotificationsOpened.includes(featureKey));
-    const { markNewFeatureNotificationOpened, closeNewFeatureNotification, clearNewFeatureClaim } = useSingularNotificationActions();
+    const { attachNewFeatureNotification, markNewFeatureNotificationOpened, closeNewFeatureNotification, clearNewFeatureClaim } = useSingularNotificationActions();
     const { configString } = configReader(useConfigData());
     const type = configString(`notifications.new_feature.type.${featureKey}`) || TYPE_NORMAL;
     const expiry = configString(`notifications.new_feature.expiry.${featureKey}`);
@@ -142,6 +147,11 @@ const NewFeatureNotification = ({ featureKey }: { featureKey: string }) => {
 
     // `tryInitialize`: built once every time asked about is answered.
     const built = !((expiry && !expiryAnswer) || expired || (countdownTo && !countdownAnswer));
+
+    // `init`: `attachExtension("new_feature_" + key)`, at the end of the column.
+    useEffect(() => {
+        if (built) attachNewFeatureNotification(featureKey);
+    }, [ built, featureKey, attachNewFeatureNotification ]);
 
     /** `openConfiguredLink`: the auto-open stopped, the cancel link shown, the link opened. */
     const open = () => {
