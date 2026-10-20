@@ -1,6 +1,7 @@
 /**
  * The stand-in for text the exact renderer cannot take - a character the captured fonts do not
- * carry, which for free-form text like chat means anything outside printable ASCII. The same
+ * carry, which for free-form text like chat means anything outside the Latin script and its
+ * punctuation (Cyrillic, Greek, emoji). The same
  * wrap, run and gutter handling as the exact block, drawn with the browser's own canvas text in
  * the client's fonts (registered from `font-faces.nitro`, see `flashFonts.ts`), so a bubble
  * keeps its layout either way.

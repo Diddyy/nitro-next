@@ -5,40 +5,77 @@
  */
 
 import { parseImp1 } from './imp1';
-import { NativeFont, NativeFontBundle, NativeGlyph, NativeProfile, NativeProfileSource, SwfFont } from './types';
+import { NativeFont, NativeFontBundle, NativeGlyph, NativeGlyphLookup, NativeGlyphRecord, NativeProfile, NativeProfileSource, SwfFont } from './types';
+
+function decodeNativeGlyph(record: NativeGlyphRecord): NativeGlyph {
+    const imp1 = parseImp1(decodeBase64(record.imp1Base64));
+
+    if (imp1.userId !== record.codepoint) throw new Error(`IMP1 user id does not match U+${record.codepoint.toString(16)}`);
+
+    const renders = (record.renders ?? []).map((render) => {
+        const rawImage = render.rawImageBase64 ? decodeBase64(render.rawImageBase64) : null;
+
+        if (rawImage && rawImage.length !== render.rowStride * render.imageHeight) {
+            throw new Error(`raw mapper image has an invalid size for U+${record.codepoint.toString(16)}`);
+        }
+
+        return { ...render, rawImage };
+    });
+
+    return { ...record, imp1, renders };
+}
+
+/**
+ * A profile's glyphs by code point, each decoded the first time it is drawn. A bundle carries
+ * every glyph of the Latin script and its punctuation, and a text uses a handful of them:
+ * decoding them all up front costs start-up time and holds outlines nothing draws.
+ */
+class LazyNativeGlyphs implements NativeGlyphLookup {
+    private readonly records = new Map<number, NativeGlyphRecord>();
+    private readonly decoded = new Map<number, NativeGlyph>();
+
+    constructor(records: readonly NativeGlyphRecord[]) {
+        for (const record of records) this.records.set(record.codepoint, record);
+    }
+
+    public get size(): number {
+        return this.records.size;
+    }
+
+    public has(codepoint: number): boolean {
+        return this.records.has(codepoint);
+    }
+
+    public get(codepoint: number): NativeGlyph | undefined {
+        let glyph = this.decoded.get(codepoint);
+
+        if (glyph) return glyph;
+
+        const record = this.records.get(codepoint);
+
+        if (!record) return undefined;
+
+        glyph = decodeNativeGlyph(record);
+        this.decoded.set(codepoint, glyph);
+
+        return glyph;
+    }
+}
 
 function prepareAir32NativeProfile(profile: NativeProfileSource): NativeProfile {
     if (!profile || !Array.isArray(profile.glyphs)) throw new TypeError('native profile must contain a glyphs array');
-
-    const glyphs = new Map<number, NativeGlyph>();
 
     for (const record of profile.glyphs) {
         if (!Number.isSafeInteger(record.codepoint) || typeof record.imp1Base64 != 'string') {
             throw new TypeError('native glyph records require codepoint and imp1Base64');
         }
-
-        const imp1 = parseImp1(decodeBase64(record.imp1Base64));
-
-        if (imp1.userId !== record.codepoint) throw new Error(`IMP1 user id does not match U+${record.codepoint.toString(16)}`);
-
-        const renders = (record.renders ?? []).map((render) => {
-            const rawImage = render.rawImageBase64 ? decodeBase64(render.rawImageBase64) : null;
-
-            if (rawImage && rawImage.length !== render.rowStride * render.imageHeight) {
-                throw new Error(`raw mapper image has an invalid size for U+${record.codepoint.toString(16)}`);
-            }
-
-            return { ...render, rawImage };
-        });
-
-        glyphs.set(record.codepoint, { ...record, imp1, renders });
     }
 
     return {
         schemaVersion: profile.schemaVersion,
         runtime: profile.runtime,
         fontSha256: profile.fontSha256,
-        glyphs,
+        glyphs: new LazyNativeGlyphs(profile.glyphs),
         source: profile,
     };
 }
@@ -57,7 +94,7 @@ function decodeBase64(base64: string): Uint8Array {
 }
 
 function prepareAir32NativeFont(nativeProfile: NativeProfileSource | NativeProfile, swfFont: SwfFont): NativeFont {
-    const profile = nativeProfile.glyphs instanceof Map ? nativeProfile as NativeProfile : prepareAir32NativeProfile(nativeProfile as NativeProfileSource);
+    const profile = Array.isArray(nativeProfile.glyphs) ? prepareAir32NativeProfile(nativeProfile as NativeProfileSource) : nativeProfile as NativeProfile;
 
     if (!swfFont
         || !Number.isSafeInteger(swfFont.emSquare)

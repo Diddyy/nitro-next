@@ -6,7 +6,7 @@
  * drawn without them, so they are in the boot preload and `preloadFlashFonts` awaits them.
  *
  * `font-faces.nitro` holds the `.ttf` faces the browser falls back to for a string the exact
- * renderer cannot take (anything outside printable ASCII, or a raw `fontFamily` override). Those
+ * renderer cannot take (anything outside the Latin script and its punctuation, or a raw `fontFamily` override). Those
  * are registered with `document.fonts` from the bundle's own bytes, and deliberately not awaited: at ~1.3MB they are far too much to hold up the first
  * frame, and the browser used to fetch them off `@font-face` on first use anyway.
  */

@@ -10,8 +10,7 @@
  * - `<br>`, and `<p>` paragraphs: each paragraph starts on its own line, and the last one
  *   adds no empty line after itself (`<p>a</p><p>b</p>` is two lines, as in Flash);
  * - the entities `&amp; &lt; &gt; &quot; &apos; &nbsp;` and numeric `&#39;` / `&#x27;`.
- *   `&nbsp;` becomes a plain space: the captured fonts carry printable ASCII only, and the
- *   no-break space draws as a space in them.
+ *   `&nbsp;` becomes a plain space.
  *
  * `<a href="...">` (the localizations' links, e.g. `wiredrewards.earnings`) draws as the text
  * around it - a `TextField` with no style sheet gives a link no look of its own - and is recorded
