@@ -45,7 +45,7 @@
  * Not carried: `:csmm` (`GameManager.generateChecksumMismatch`, for the game centre, which is not
  * ported).
  */
-import { AvatarExpressionEnum, ClubLevelEnum, RoomControllerLevelEnum, RoomObjectVariableEnum, RoomZoomEvent } from '@nitrodevco/nitro-api';
+import { AvatarExpressionEnum, ClubLevelEnum, RoomControllerLevelEnum, RoomZoomEvent } from '@nitrodevco/nitro-api';
 import { AvatarExpressionComposer, CancelTypingComposer, ChatComposer, PeerUsersClassificationComposer, RoomUsersClassificationComposer, ShoutComposer, SignComposer, StartTypingComposer, VisitUserComposer, WhisperComposer, WiredUpdateRoomComposer } from '@nitrodevco/nitro-packets';
 import { GetTicker, RoomShakingEffect } from '@nitrodevco/nitro-renderer';
 
@@ -286,7 +286,7 @@ export const runRoomChatCommand = (send: Send, text: string): boolean => {
             openClientLink(send, 'selfdonation/open');
             return true;
         case ':chooser':
-            if (((room.getRoomValue<number>(RoomObjectVariableEnum.ChooserDisabled) ?? 0) !== 1) || (controllerLevel >= Number(RoomControllerLevelEnum.Guest))) openUserChooser();
+            openUserChooser();
             return true;
         case ':furni':
             if ((controllerLevel >= Number(RoomControllerLevelEnum.Guest)) || hasClientGate(ClientGates.FurniChooserAnyRoom) || userStore.getState().isAmbassador) openFurniChooser();
