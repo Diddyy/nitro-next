@@ -310,7 +310,12 @@ export class RoomObjectSprite implements IRoomObjectSprite {
         return this._skipMouseHandling;
     }
 
+    /** Flash bumps the update id on a change, so the canvas copies it over (RoomObjectSprite.as:421-428). */
     public set skipMouseHandling(flag: boolean) {
+        if (this._skipMouseHandling === flag) return;
+
         this._skipMouseHandling = flag;
+
+        this._updateCounter++;
     }
 }

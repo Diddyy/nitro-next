@@ -117,6 +117,10 @@ export class AvatarVisualization
     private _highlightVariableHolder: boolean = false;
     private _blocked: boolean = false;
     private _alphaMultiplier: number = 1;
+    /** WIRED Set Visibility: 1 - `furniture_wired_transparency` / 100 (Flash `§_-S1H§`). */
+    private _wiredAlpha: number = 1;
+    /** WIRED Set Visibility's "allow clicks to pass through" (`furniture_wired_click_through`). */
+    private _skipMouseHandling: boolean = false;
     private _dance: number = 0;
     private _effect: number = 0;
     private _carryObject: number = 0;
@@ -217,6 +221,7 @@ export class AvatarVisualization
         const scale = geometry.scale;
         const effect = this._effect;
         const alphaMultiplier = this._alphaMultiplier;
+        const wiredAlpha = this._wiredAlpha;
 
         let didScaleUpdate = false;
         let didEffectUpdate = false;
@@ -241,7 +246,7 @@ export class AvatarVisualization
 
             if (effect !== this._effect) didEffectUpdate = true;
 
-            const didAlphaUpdate = alphaMultiplier !== this._alphaMultiplier;
+            const didAlphaUpdate = (alphaMultiplier !== this._alphaMultiplier) || (wiredAlpha !== this._wiredAlpha);
 
             if (didScaleUpdate || !this._avatarImage || didEffectUpdate || didAlphaUpdate) {
                 // Cached scale/effect images are disposed together by resetAvatar.
@@ -256,10 +261,10 @@ export class AvatarVisualization
                 const sprite = this.getSprite(AvatarVisualization.SPRITE_INDEX_AVATAR);
 
                 if (sprite && (this._avatarImage.isPlaceholder() || this._avatarImage.isBlocked())) {
-                    sprite.alpha = 150 * this._alphaMultiplier;
+                    sprite.alpha = 150 * this._alphaMultiplier * this._wiredAlpha;
                     sprite.color = this._avatarImage.isBlocked() ? AvatarVisualization.BLOCKED_AVATAR_COLOR : 0xFFFFFF;
                 } else if (sprite) {
-                    sprite.alpha = 255;
+                    sprite.alpha = 255 * this._alphaMultiplier * this._wiredAlpha;
                     sprite.color = 0xFFFFFF;
                 }
             }
@@ -373,7 +378,8 @@ export class AvatarVisualization
                     sprite.spriteType = RoomObjectSpriteTypeEnum.Avatar;
                 }
 
-                sprite.alpha = ((this._avatarImage.isPlaceholder() || this._avatarImage.isBlocked()) ? 150 : 255) * this._alphaMultiplier;
+                sprite.alpha = ((this._avatarImage.isPlaceholder() || this._avatarImage.isBlocked()) ? 150 : 255) * this._alphaMultiplier * this._wiredAlpha;
+                sprite.skipMouseHandling = this._skipMouseHandling;
             }
 
             const typingBubble = this.getAddition(AvatarVisualization.ADDITION_ID_TYPING_BUBBLE) as TypingBubbleAddition;
@@ -420,6 +426,8 @@ export class AvatarVisualization
 
                     if (sprite) {
                         sprite.alphaTolerance = AlphaTolerance.MATCH_NOTHING;
+                        // AvatarVisualization.as:1269 (WIN63-202610201032).
+                        sprite.alpha = 255 * this._alphaMultiplier * this._wiredAlpha;
                         sprite.visible = true;
 
                         const layerData = this._avatarImage.getLayerData(spriteData);
@@ -926,6 +934,18 @@ export class AvatarVisualization
             needsUpdate = true;
         }
 
+        // AvatarVisualization.as:535-543 (WIN63-202610201032): WIRED Set Visibility on a user.
+        const wiredTransparency = model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredTransparency);
+        const wiredAlpha = ((wiredTransparency === undefined) || isNaN(wiredTransparency)) ? 1 : (1 - (Math.max(0, Math.min(100, wiredTransparency)) / 100));
+        const skipMouseHandling = model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredClickThrough) > 0;
+
+        if ((wiredAlpha !== this._wiredAlpha) || (skipMouseHandling !== this._skipMouseHandling)) {
+            this._wiredAlpha = wiredAlpha;
+            this._skipMouseHandling = skipMouseHandling;
+
+            needsUpdate = true;
+        }
+
         if (this._carryObject > 0 && useObject > 0) {
             if (this._useObject !== this._carryObject) {
                 this._useObject = this._carryObject;
@@ -1318,6 +1338,8 @@ export class AvatarVisualization
 
         if (!sprite) return;
 
+        sprite.skipMouseHandling = this._skipMouseHandling;
+
         let hasShadow
             = this._posture === AvatarActionStateType.Walk || this._posture === AvatarActionStateType.Stand || (this._posture === AvatarActionStateType.Sit && this._canStandUp);
 
@@ -1345,7 +1367,7 @@ export class AvatarVisualization
 
                 if (this._shadow && this._shadow.texture) {
                     sprite.texture = this._shadow.texture;
-                    sprite.alpha = 50 * this._alphaMultiplier;
+                    sprite.alpha = 50 * this._alphaMultiplier * this._wiredAlpha;
                     sprite.relativeDepth = 1;
                 } else {
                     sprite.visible = false;

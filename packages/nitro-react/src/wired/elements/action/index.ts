@@ -49,6 +49,7 @@ export * from './SendSignal';
 export * from './SetFurniAltitude';
 export * from './SetFurniHighlight';
 export * from './SetFurniStateTo';
+export * from './SetFurniTransparency';
 export * from './Teleport';
 export * from './TeleportToRoom';
 export * from './ToggleFurniState';

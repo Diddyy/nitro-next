@@ -1,4 +1,4 @@
-import { WiredFurniHighlightMessage, WiredFurniVisualizationStateMessage, WiredUserHighlightMessage, WiredUserVisualizationStateMessage } from '@nitrodevco/nitro-packets';
+import { WiredFurniHighlightMessage, WiredFurniTransparencyMessage, WiredFurniVisualizationStateMessage, WiredUserHighlightMessage, WiredUserTransparencyMessage, WiredUserVisualizationStateMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
@@ -6,13 +6,30 @@ import { getRoom } from '#base/context/room';
 import { on, subscribeAll } from '../packetSubscriptions';
 
 /**
- * `RoomMessageHandler.onWiredFurniHighlight` / `onWiredUserHighlight` / `onWiredFurniVisualizationState` /
- * `onWiredUserVisualizationState` (WIN63-202610201032): WIRED Set Highlight and the room's Set Visibility /
+ * `RoomMessageHandler.onWiredFurniTransparency` / `onWiredUserTransparency` / `onWiredFurniHighlight` /
+ * `onWiredUserHighlight` / `onWiredFurniVisualizationState` / `onWiredUserVisualizationState` (WIN63-202610201032):
+ * WIRED Set Visibility, Set Highlight and the room's Set Visibility /
  * Set Highlight states on entry into the engine, which buffers those for objects not ready yet. A message
  * that did not parse is never handed on, as in Flash.
  */
 export const registerRoomWiredVisualizationHandlers = ({ subscribe }: WebSocketConnection) => {
     return subscribeAll(subscribe, [
+        on(WiredFurniTransparencyMessage, (data) => {
+            const room = getRoom();
+
+            if (!room || !data.valid) return;
+
+            room.updateWiredFurniTransparency(data.furniIds, data.transparency, data.allowClickThrough, data.easingMode);
+        }),
+
+        on(WiredUserTransparencyMessage, (data) => {
+            const room = getRoom();
+
+            if (!room || !data.valid) return;
+
+            room.updateWiredUserTransparency(data.roomIndices, data.transparency, data.allowClickThrough, data.easingMode);
+        }),
+
         on(WiredFurniHighlightMessage, (data) => {
             const room = getRoom();
 

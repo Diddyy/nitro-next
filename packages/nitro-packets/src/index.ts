@@ -776,6 +776,7 @@ export * from './incoming/Userdefinedroomevents/WiredFurniAddonEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniConditionEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniHighlightMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniSelectorEventMessage';
+export * from './incoming/Userdefinedroomevents/WiredFurniTransparencyMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniTriggerEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniVariableEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniVisualizationStateMessage';
@@ -861,6 +862,7 @@ export * from './incoming/Userdefinedroomevents/Wiredtrading/Transactions/WiredT
 export * from './incoming/Userdefinedroomevents/Wiredtrading/Transactions/WiredTransactionLogListMessage';
 export * from './incoming/Userdefinedroomevents/Wiredtrading/Transactions/WiredTransactionSuccessMessage';
 export * from './incoming/Userdefinedroomevents/WiredUserHighlightMessage';
+export * from './incoming/Userdefinedroomevents/WiredUserTransparencyMessage';
 export * from './incoming/Userdefinedroomevents/WiredUserVisualizationStateMessage';
 export * from './incoming/Userdefinedroomevents/WiredValidationErrorEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredWebApiKeyResultMessage';
