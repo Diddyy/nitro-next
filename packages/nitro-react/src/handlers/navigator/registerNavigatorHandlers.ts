@@ -1,7 +1,7 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
 import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, ConvertedRoomIdMessage, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorLiftedRoomsMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomAdErrorEventMessage, RoomEntryInfoMessage, RoomEventCancelMessage, RoomEventMessage, RoomFilterSettingsMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, ShowEnforceRoomCategoryDialogMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
-import { forwardToRoom, goToHomeRoom, goToRoom, reportRoom } from '#base/commands';
+import { forwardToRoom, goToHomeRoom, goToRoom, reportRoom, trackEventLog } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
 import { systemStore } from '#base/context/system';
@@ -30,6 +30,11 @@ const FORWARD_TYPE_GUEST_ROOM = 2;
  */
 export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnection) => {
     const navigator = () => navigatorStore.getState();
+    /** `IncomingMessages.forwardToRoom`: a forward the server asked for, and its `trackNavigationDataPoint`. */
+    const forwardFromServer = (roomId: number) => {
+        forwardToRoom(send, roomId);
+        trackEventLog(send, 'Navigation', 'Room Forward', 'go.roomforward', '', roomId);
+    };
     /** `RoomFilterCtrl.close` on a room enter or exit: the window hides, keeping its words, and edits no room. */
     const closeRoomFilterForRoomChange = () => {
         navigator().setRoomFilterFlatId(0);
@@ -153,7 +158,7 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
                 forwardId = parseInt(forwardIdParameter);
             }
 
-            if (forwardType === FORWARD_TYPE_GUEST_ROOM) forwardToRoom(send, forwardId);
+            if (forwardType === FORWARD_TYPE_GUEST_ROOM) forwardFromServer(forwardId);
             else if (forwardType === FORWARD_TYPE_NONE && data.roomIdToEnter > 0) {
                 if (data.roomIdToEnter !== data.homeRoomId) goToRoom(send, data.roomIdToEnter);
                 // the store already holds the home room id this message just set
@@ -164,14 +169,14 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
         }),
 
         // forwardToRoom(send, ): ask for the room info first; GetGuestRoomResult(roomForward) decides how to enter
-        on(RoomForwardMessage, data => forwardToRoom(send, data.roomId)),
+        on(RoomForwardMessage, data => forwardFromServer(data.roomId)),
 
         // `IncomingMessages.onConvertedRoomId`: the room a global id names - reported (`habboHelp.reportRoom`) or forwarded to.
         on(ConvertedRoomIdMessage, (data) => {
             const { webRoomReport, webRoomReportedName } = navigator();
 
             if (webRoomReport) reportRoom(data.convertedId, webRoomReportedName ?? '');
-            else forwardToRoom(send, data.convertedId);
+            else forwardFromServer(data.convertedId);
         }),
 
         // onRoomEnter(): we are inside the room (server-side entry, home room, teleport...) - fetch its info

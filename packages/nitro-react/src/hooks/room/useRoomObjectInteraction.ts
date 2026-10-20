@@ -1,6 +1,7 @@
 import { FurnitureUsagePolicyEnum, RoomObjectCategoryEnum, RoomObjectMouseEvent, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 import { MoveAvatarComposer, SetRandomStateComposer, UseFurnitureComposer, UseWallItemComposer } from '@nitrodevco/nitro-packets';
 
+import { trackEventLogOncePerSession } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomPlayTestMode, useRoomStore } from '#base/context/room';
 
@@ -55,6 +56,9 @@ export const useRoomObjectInteraction = () => {
                 break;
             }
         }
+
+        // `changeRoomObjectState`: the first furni use of the client session.
+        trackEventLogOncePerSession(send, 'Achievements', 'interaction', 'furniture.use');
 
         return true;
     };

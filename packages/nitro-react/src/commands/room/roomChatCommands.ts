@@ -58,7 +58,7 @@ import { goToRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
 import { showOwnPingChat } from '../system/latencyCommands';
 import { activateLocalizationDefinition } from '../system/localizationCommands';
-import { nextChatTrackingId } from '../system/trackingCommands';
+import { nextChatTrackingId, trackEventLog } from '../system/trackingCommands';
 import { startTakingPhoto } from './cameraCommands';
 import { openFurniChooser, openUserChooser } from './roomChooserCommands';
 import { createRoomScreenshot, enableRoomFpsCounter, toggleDemonicTriggers, toggleRoomMouseHidden } from './roomDebugCommands';
@@ -190,19 +190,25 @@ export const runRoomChatCommand = (send: Send, text: string): boolean => {
             return true;
         case ':d':
         case ';d':
-            if (hasVip()) expression(send, AvatarExpressionEnum.Laugh);
+            if (hasVip()) {
+                expression(send, AvatarExpressionEnum.Laugh);
+                trackEventLog(send, 'OwnAvatarMenu', 'chat', 'laugh');
+            }
             return false;
         case ':kiss':
             if (!hasVip()) return false;
             expression(send, AvatarExpressionEnum.Blow);
+            trackEventLog(send, 'OwnAvatarMenu', 'chat', 'blow');
             return true;
         case ':67':
             if ((!configBoolean('avatar.expression.67.enabled')) || !hasVip()) return false;
             expression(send, AvatarExpressionEnum.Expression67);
+            trackEventLog(send, 'OwnAvatarMenu', 'chat', '67');
             return true;
         case ':jump':
             if (!hasVip()) return false;
             expression(send, AvatarExpressionEnum.Jump);
+            trackEventLog(send, 'OwnAvatarMenu', 'chat', 'jump');
             return true;
         case ':kick':
         case ':shutup':
@@ -221,16 +227,22 @@ export const runRoomChatCommand = (send: Send, text: string): boolean => {
             return true;
         case ':idle':
             expression(send, AvatarExpressionEnum.Idle);
+            trackEventLog(send, 'OwnAvatarMenu', 'chat', 'idle');
             return true;
         case '_b':
             expression(send, AvatarExpressionEnum.Respect);
+            trackEventLog(send, 'OwnAvatarMenu', 'chat', 'respect');
             return true;
         case ':fps':
             GetTicker().maxFPS = Math.min(10000, Math.max(5, Math.trunc(Number(argument)) || 0));
             return true;
-        case ':sign':
-            send(new SignComposer({ signType: Math.trunc(Number(argument)) || 0 }));
+        case ':sign': {
+            const signType = Math.trunc(Number(argument)) || 0;
+
+            send(new SignComposer({ signType }));
+            trackEventLog(send, 'OwnAvatarMenu', 'chat', 'sign', '', signType);
             return true;
+        }
         case ':drop':
         case ':dropitem':
             dropCarryItem(send);
