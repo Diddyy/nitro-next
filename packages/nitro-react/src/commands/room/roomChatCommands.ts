@@ -58,6 +58,7 @@ import { goToRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
 import { showOwnPingChat } from '../system/latencyCommands';
 import { activateLocalizationDefinition } from '../system/localizationCommands';
+import { nextChatTrackingId } from '../system/trackingCommands';
 import { startTakingPhoto } from './cameraCommands';
 import { openFurniChooser, openUserChooser } from './roomChooserCommands';
 import { createRoomScreenshot, enableRoomFpsCounter, toggleDemonicTriggers, toggleRoomMouseHidden } from './roomDebugCommands';
@@ -311,8 +312,8 @@ export const runRoomChatCommand = (send: Send, text: string): boolean => {
     return false;
 };
 
-/** `RoomSession.sendChatMessage`: a line said in the chat style. */
-export const sayChat = (send: Send, text: string, styleId: number) => send(new ChatComposer({ text, styleId }));
+/** `RoomSession.sendChatMessage`: a line said in the chat style, with the tracking id its echo is timed by (`chatLagDetected`). */
+export const sayChat = (send: Send, text: string, styleId: number) => send(new ChatComposer({ text, styleId, trackingId: nextChatTrackingId() }));
 
 /** `RoomSession.sendShoutMessage`. */
 export const shoutChat = (send: Send, text: string, styleId: number) => send(new ShoutComposer({ text, styleId }));
