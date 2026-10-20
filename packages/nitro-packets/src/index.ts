@@ -1387,6 +1387,7 @@ export * from './outgoing/Userdefinedroomevents/OpenComposer';
 export * from './outgoing/Userdefinedroomevents/SetFurnitureLabelDataComposer';
 export * from './outgoing/Userdefinedroomevents/SetFurnitureLabelSettingsComposer';
 export * from './outgoing/Userdefinedroomevents/SetFurnitureRegionDataComposer';
+export * from './outgoing/Userdefinedroomevents/SynchronizeSharedAddonsComposer';
 export * from './outgoing/Userdefinedroomevents/UpdateActionComposer';
 export * from './outgoing/Userdefinedroomevents/UpdateAddonComposer';
 export * from './outgoing/Userdefinedroomevents/UpdateConditionComposer';

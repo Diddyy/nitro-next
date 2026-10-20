@@ -1,6 +1,6 @@
 /**
  * What every variable box shares - Flash's `variables.§_-RF§` interface (`initialVariableName`,
- * `variableType()`) and `§_-D1J§`, the base class all nine variable elements extend.
+ * `variableType()`) and `§_-D1J§`, the base class all ten variable elements extend.
  *
  * `initialVariableName` is the name the box was saved with (its string param, or the part before
  * the tab); `UserDefinedRoomEventsCtrl` shows the header's "view in menu" button when it is not

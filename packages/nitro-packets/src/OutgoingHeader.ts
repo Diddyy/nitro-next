@@ -473,6 +473,7 @@ export class OutgoingHeader {
     public static SetFurnitureLabelDataComposer = 7502;
     public static SetFurnitureLabelSettingsComposer = 7503;
     public static SetFurnitureRegionDataComposer = 7504;
+    public static SynchronizeSharedAddonsComposer = 7620;
     public static SetIgnoreRoomInvitesComposer = 1322;
     public static SetItemDataComposer = 3432;
     public static SetMannequinFigureComposer = 1420;

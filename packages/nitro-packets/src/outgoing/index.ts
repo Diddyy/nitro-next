@@ -482,6 +482,7 @@ export * from './Userdefinedroomevents/OpenComposer';
 export * from './Userdefinedroomevents/SetFurnitureLabelDataComposer';
 export * from './Userdefinedroomevents/SetFurnitureLabelSettingsComposer';
 export * from './Userdefinedroomevents/SetFurnitureRegionDataComposer';
+export * from './Userdefinedroomevents/SynchronizeSharedAddonsComposer';
 export * from './Userdefinedroomevents/UpdateActionComposer';
 export * from './Userdefinedroomevents/UpdateAddonComposer';
 export * from './Userdefinedroomevents/UpdateConditionComposer';
