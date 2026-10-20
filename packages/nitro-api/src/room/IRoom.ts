@@ -21,6 +21,7 @@ import {
     RoomObjectVariableEnum,
 } from './object';
 import { FurnitureLabelData } from './object/data/FurnitureLabelData';
+import { IWiredVisualizationStateEntry, WiredFurnitureHighlightData, WiredFurnitureTransparencyData } from './object/data/WiredFurnitureEffectData';
 import { ILegacyWallGeometry, IRoomAreaSelectionManager, IRoomObjectHighLighter, IStackingHeightMapReader, ITileObjectMap } from './utils';
 
 export interface IRoom {
@@ -212,6 +213,13 @@ export interface IRoom {
     /** Applies Variable FX statuses to the user/furniture objects they target. */
     updateVariableFxStatuses(statuses: IVariableFxStatusUpdateData[]): void;
     removeVariableFxStatuses(statuses: IVariableFxStatusRemoveData[]): void;
+    /** WIRED Set Visibility / Set Highlight on furni (a negative id is a wall item) and on users, pets and bots (room index). */
+    updateWiredFurniTransparency(furniIds: number[], transparency: number, allowClickThrough: boolean, easingMode: number): void;
+    updateWiredFurniHighlight(furniIds: number[], highlightType: number, strength: number, color: number, animationMode: number, easingMode: number): void;
+    initializeWiredFurniVisualizationStates(transparencies: IWiredVisualizationStateEntry<WiredFurnitureTransparencyData>[], highlights: IWiredVisualizationStateEntry<WiredFurnitureHighlightData>[]): void;
+    updateWiredUserTransparency(roomIndices: number[], transparency: number, allowClickThrough: boolean, easingMode: number): void;
+    updateWiredUserHighlight(roomIndices: number[], highlightType: number, strength: number, color: number, animationMode: number, easingMode: number): void;
+    initializeWiredUserVisualizationStates(transparencies: IWiredVisualizationStateEntry<WiredFurnitureTransparencyData>[], highlights: IWiredVisualizationStateEntry<WiredFurnitureHighlightData>[]): void;
     dispatchEvent(event: INitroEvent): void;
     readonly disposed: boolean;
     readonly roomId: number;

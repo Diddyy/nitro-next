@@ -2,8 +2,9 @@ import { IRoomObjectController, IRoomObjectEventHandler, IRoomObjectEventHandler
 
 import { GetTickerTime } from '#renderer/utils';
 
-import { ObjectMoveUpdateMessage, RoomObjectVariableFxStatusRemoveMessage, RoomObjectVariableFxStatusUpdateMessage } from '../../messages';
+import { ObjectMoveUpdateMessage, RoomObjectFurnitureHighlightUpdateMessage, RoomObjectFurnitureTransparencyUpdateMessage, RoomObjectVariableFxStatusRemoveMessage, RoomObjectVariableFxStatusUpdateMessage } from '../../messages';
 import { VariableFxStatusModelData, VariableFxStatusModelEntry } from '../variablefx/VariableFxStatusModelData';
+import { WiredFurnitureEffectState } from './furniture/WiredFurnitureEffectState';
 import { ObjectLogicBase } from './ObjectLogicBase';
 import { VariableFxLogicConfig } from './variablefx/VariableFxLogicConfig';
 import { VariableFxLogicConfigManager } from './variablefx/VariableFxLogicConfigManager';
@@ -36,6 +37,7 @@ export class MovingObjectLogic extends ObjectLogicBase implements IRoomObjectEve
     private _variableFxDirty: boolean = false;
     private _variableFxHovered: boolean = false;
     private _variableFxPublished: VariableFxStatusModelData | undefined = undefined;
+    private _wiredEffectState: WiredFurnitureEffectState | undefined = undefined;
 
     public override getEventTypes(): string[] {
         return this.mergeTypes(super.getEventTypes(), [
@@ -52,6 +54,11 @@ export class MovingObjectLogic extends ObjectLogicBase implements IRoomObjectEve
         }
 
         this.clearVariableFxStatuses();
+
+        if (this._wiredEffectState) {
+            this._wiredEffectState.dispose();
+            this._wiredEffectState = undefined;
+        }
 
         this._variableFxStatuses = undefined;
         this._variableFxLogicManager = undefined;
@@ -80,6 +87,8 @@ export class MovingObjectLogic extends ObjectLogicBase implements IRoomObjectEve
             }
 
             this.updateVariableFxPublication(time, model);
+
+            this._wiredEffectState?.update(time, model);
         }
 
         if (this._locationDelta.length > 0 || locationOffset) {
@@ -167,6 +176,10 @@ export class MovingObjectLogic extends ObjectLogicBase implements IRoomObjectEve
 
         handler._variableFxStatuses = undefined;
         handler._variableFxPublished = undefined;
+
+        this._wiredEffectState?.dispose();
+        this._wiredEffectState = handler._wiredEffectState;
+        handler._wiredEffectState = undefined;
     }
 
     public override setObject(object: IRoomObjectController): void {
@@ -186,6 +199,38 @@ export class MovingObjectLogic extends ObjectLogicBase implements IRoomObjectEve
 
     public set variableFxLogicManager(manager: VariableFxLogicConfigManager | undefined) {
         this._variableFxLogicManager = manager;
+    }
+
+    /**
+     * Handles a WIRED Set Visibility / Set Highlight for this object (Flash `FurnitureLogic`, `AvatarLogic` and
+     * `PetLogic.processUpdateMessage`, WIN63-202610201032); returns true when `message` was one of them.
+     */
+    protected processWiredEffectMessage(message: IRoomObjectUpdateMessage): boolean {
+        const model = this.object?.model;
+
+        if (message instanceof RoomObjectFurnitureTransparencyUpdateMessage) {
+            if (model) this.getWiredEffectState().setTransparency(message.transparency, message.allowClickThrough, message.easingMode, message.initialize, this.getWiredEffectUpdateTime(), model);
+
+            return true;
+        }
+
+        if (message instanceof RoomObjectFurnitureHighlightUpdateMessage) {
+            if (model) this.getWiredEffectState().setHighlight(message.highlightType, message.strength, message.color, message.animationMode, message.easingMode, message.initialize, this.getWiredEffectUpdateTime(), model);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private getWiredEffectState(): WiredFurnitureEffectState {
+        if (!this._wiredEffectState) this._wiredEffectState = new WiredFurnitureEffectState();
+
+        return this._wiredEffectState;
+    }
+
+    private getWiredEffectUpdateTime(): number {
+        return (this._lastUpdateTime > 0) ? this._lastUpdateTime : GetTickerTime();
     }
 
     /** Handles the Variable FX status messages; returns true when `message` was one of them. */

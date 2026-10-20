@@ -44,6 +44,8 @@ export * from './ObjectSelectedMessage';
 export * from './ObjectStateUpdateMessage';
 export * from './ObjectTileCursorUpdateMessage';
 export * from './ObjectVisibilityUpdateMessage';
+export * from './RoomObjectFurnitureHighlightUpdateMessage';
+export * from './RoomObjectFurnitureTransparencyUpdateMessage';
 export * from './RoomObjectUpdateMessage';
 export * from './RoomObjectVariableFxStatusRemoveMessage';
 export * from './RoomObjectVariableFxStatusUpdateMessage';

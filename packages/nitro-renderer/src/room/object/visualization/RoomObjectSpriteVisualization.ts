@@ -244,6 +244,15 @@ export class RoomObjectSpriteVisualization implements IRoomObjectSpriteVisualiza
         return this._sprites.length;
     }
 
+    /** Flash `additionalSpriteCount`: none here; a WIRED highlight's composite sprite in the furniture and avatar visualizations. */
+    public get additionalSpriteCount(): number {
+        return 0;
+    }
+
+    public getAdditionalSprite(_index: number): IRoomObjectSprite | undefined {
+        return undefined;
+    }
+
     public get updateObjectCounter(): number {
         return this._updateObjectCounter;
     }

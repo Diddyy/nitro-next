@@ -9,7 +9,7 @@ import {
     type IGraphicAsset,
     type IObjectVisualizationData,
     type IRoomGeometry,
-    IRoomObject, IRoomObjectModel,
+    IRoomObject, IRoomObjectModel, type IRoomObjectSprite,
     IVariableFxStatusModelData,
     RoomObjectSpriteData,
     RoomObjectSpriteTypeEnum,
@@ -21,6 +21,9 @@ import { ColorMatrixFilter, Filter, Texture } from 'pixi.js';
 import { GetAssetManager } from '#renderer/assets';
 import { createFlashGlowFilter, GetTickerTime } from '#renderer/utils';
 
+import { FurnitureHighlightComposite } from '../furniture/FurnitureHighlightComposite';
+import { FurnitureHighlightFilters } from '../furniture/FurnitureHighlightFilters';
+import { RoomObjectSprite } from '../RoomObjectSprite';
 import { RoomObjectSpriteVisualization } from '../RoomObjectSpriteVisualization';
 import { IVariableFxVisualizationHost, IVariableFxVisualizationRoomData } from '../variablefx/IVariableFxVisualizationRoomData';
 import { VariableFxStatusReconciler } from '../variablefx/VariableFxStatusReconciler';
@@ -125,6 +128,15 @@ export class AvatarVisualization
     private _layInside: boolean = false;
     private _isAnimating: boolean = false;
     private _extraSpritesStartIndex: number = 2;
+
+    /** WIRED Set Highlight (Flash `updateWiredHighlight`), as in `FurnitureVisualization`. */
+    private _wiredHighlightType: number = 0;
+    private _wiredHighlightStrength: number = 0;
+    private _wiredHighlightColor: number = 0xFFFFFF;
+    private _wiredHighlightFilters: Filter[] | undefined = undefined;
+    private _wiredHighlightFilterCache: Map<number, Filter[] | undefined> = new Map();
+    private _wiredHighlightComposite: FurnitureHighlightComposite | undefined = new FurnitureHighlightComposite();
+    private _wiredHighlightSprite: IRoomObjectSprite | undefined = undefined;
     private _forcedAnimFrames: number = 0;
     private _updatesUntilFrameUpdate: number = 0;
     private _updatesUntilCleanup: number = Math.random() * 200 + 200;
@@ -163,6 +175,14 @@ export class AvatarVisualization
         this._additions.clear();
         this._variableFxRoomData = undefined;
         this._shadow = undefined;
+
+        this._wiredHighlightComposite?.dispose();
+        this._wiredHighlightComposite = undefined;
+        this._wiredHighlightSprite?.dispose();
+        this._wiredHighlightSprite = undefined;
+        this._wiredHighlightFilters = undefined;
+        this._wiredHighlightFilterCache.clear();
+
         this._disposed = true;
     }
 
@@ -204,6 +224,7 @@ export class AvatarVisualization
         let objectUpdated = false;
 
         const modelUpdated = this.updateModel(this.object.model, scale, update);
+        const highlightUpdated = this.updateWiredHighlight(this.object.model);
 
         if (this._forceUpdate) {
             this.resetAvatar();
@@ -293,7 +314,11 @@ export class AvatarVisualization
 
             const changed = didScaleUpdate || modelUpdated || otherUpdate;
 
-            if (!(this._updatesUntilFrameUpdate <= 0 || changed)) return;
+            if (!(this._updatesUntilFrameUpdate <= 0 || changed)) {
+                if (highlightUpdated) this.updateWiredHighlightSprites();
+
+                return;
+            }
 
             // Flash runs this whole update on the frame tick, so a posture change and the move
             // that comes with it land together. Here the object moves every render frame: a
@@ -323,6 +348,8 @@ export class AvatarVisualization
                     if (highlighted) sprite.filters = AvatarVisualization.getHighlightFilters();
                     else if (this._highlightVariableHolder) sprite.filters = AvatarVisualization.getVariableHolderFilters();
                     else sprite.filters = AvatarVisualization.NO_FILTERS;
+
+                    this.applyWiredHighlightLayerFilters(sprite);
                 }
 
                 if (sprite.texture) {
@@ -449,12 +476,122 @@ export class AvatarVisualization
 
                         if (spriteData.ink === 33) sprite.blendMode = 'add';
                         else sprite.blendMode = 'normal';
+
+                        if (sprite.filters.length) sprite.filters = AvatarVisualization.NO_FILTERS;
+                        if (sprite.blendMode !== 'add') this.applyWiredHighlightLayerFilters(sprite);
                     }
 
                     _local_21++;
                 }
             }
+
+            this.updateWiredHighlightSprites();
+        } else if (highlightUpdated) {
+            this.updateWiredHighlightSprites();
+            this.updateSpriteCounter++;
         }
+    }
+
+    /** Flash `updateWiredHighlight`: whether the published type, quantized strength or colour changed. */
+    private updateWiredHighlight(model: IRoomObjectModel): boolean {
+        const typeValue = model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredHighlightType);
+        const type = (typeValue === undefined || isNaN(typeValue)) ? 0 : Math.trunc(typeValue);
+        const strength = FurnitureHighlightFilters.quantizeStrength(model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredHighlightStrength));
+        const colorValue = model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredHighlightColor);
+        const color = (colorValue === undefined || isNaN(colorValue)) ? 0xFFFFFF : (colorValue & 0xFFFFFF);
+
+        if (type === this._wiredHighlightType && strength === this._wiredHighlightStrength && color === this._wiredHighlightColor) return false;
+
+        if (type !== this._wiredHighlightType || color !== this._wiredHighlightColor) this._wiredHighlightFilterCache.clear();
+
+        this._wiredHighlightType = type;
+        this._wiredHighlightStrength = strength;
+        this._wiredHighlightColor = color;
+
+        if (strength === 0) {
+            this._wiredHighlightFilters = undefined;
+        } else {
+            if (!this._wiredHighlightFilterCache.has(strength)) this._wiredHighlightFilterCache.set(strength, FurnitureHighlightFilters.create(type, color, strength));
+
+            this._wiredHighlightFilters = this._wiredHighlightFilterCache.get(strength);
+        }
+
+        return true;
+    }
+
+    /** A highlight's colour matrix (Darken, Color tint, Brighten) goes after the sprite's own filters; its glows are the composite's. */
+    private applyWiredHighlightLayerFilters(sprite: IRoomObjectSprite): void {
+        if (!this._wiredHighlightFilters || FurnitureHighlightFilters.usesCompositeSilhouette(this._wiredHighlightType)) return;
+
+        sprite.filters = sprite.filters.concat(this._wiredHighlightFilters);
+    }
+
+    /**
+     * Flash `updateWiredHighlightSprites`: the glow round the avatar's own sprites (the figure and its effect's,
+     * not the shadow or the additions), behind them.
+     */
+    private updateWiredHighlightSprites(): void {
+        const composite = this._wiredHighlightComposite;
+
+        if (!composite) return;
+
+        if (!FurnitureHighlightFilters.usesCompositeSilhouette(this._wiredHighlightType) || !this._wiredHighlightFilters) {
+            composite.clear(this._wiredHighlightSprite, true);
+
+            if (!FurnitureHighlightFilters.usesCompositeSilhouette(this._wiredHighlightType)) this.reapplyWiredHighlightLayerFilters();
+
+            return;
+        }
+
+        const sources: IRoomObjectSprite[] = [];
+
+        for (let index = 0; index < this._extraSpritesStartIndex; index++) {
+            if (index === AvatarVisualization.SPRITE_INDEX_SHADOW) continue;
+
+            const sprite = this.getSprite(index);
+
+            if (!sprite || !sprite.visible || !sprite.texture || sprite.texture === Texture.EMPTY || sprite.alpha <= 0 || sprite.blendMode === 'add') continue;
+
+            sources.push(sprite);
+        }
+
+        if (!this._wiredHighlightSprite) this._wiredHighlightSprite = new RoomObjectSprite();
+
+        const avatarSprite = this.getSprite(AvatarVisualization.SPRITE_INDEX_AVATAR);
+
+        composite.update(this._wiredHighlightSprite, sources, this._wiredHighlightFilters, avatarSprite?.alpha ?? 255, this.object?.type ?? '', this._direction, false, true);
+    }
+
+    /** A highlight change between frame redraws: the colour matrix is put on (or taken off) the sprites now. */
+    private reapplyWiredHighlightLayerFilters(): void {
+        for (let index = 0; index < this._extraSpritesStartIndex; index++) {
+            if (index === AvatarVisualization.SPRITE_INDEX_SHADOW) continue;
+
+            const sprite = this.getSprite(index);
+
+            if (!sprite || sprite.blendMode === 'add') continue;
+
+            const base = (index === AvatarVisualization.SPRITE_INDEX_AVATAR) ? AvatarVisualization.getAvatarBaseFilters(sprite.filters) : AvatarVisualization.NO_FILTERS;
+
+            sprite.filters = this._wiredHighlightFilters ? base.concat(this._wiredHighlightFilters) : base;
+        }
+    }
+
+    /** The avatar sprite's filters without a highlight's colour matrix: the hover or variable holder filters, if any. */
+    private static getAvatarBaseFilters(current: Filter[]): Filter[] {
+        if (current.includes(AvatarVisualization.getHighlightFilters()[0])) return AvatarVisualization.getHighlightFilters();
+        if (current.includes(AvatarVisualization.getVariableHolderFilters()[0])) return AvatarVisualization.getVariableHolderFilters();
+
+        return AvatarVisualization.NO_FILTERS;
+    }
+
+    /** Flash `additionalSpriteCount` / `getAdditionalSprite`: the highlight composite, drawn after the avatar's sprites. */
+    public override get additionalSpriteCount(): number {
+        return this._wiredHighlightSprite ? 1 : 0;
+    }
+
+    public override getAdditionalSprite(index: number): IRoomObjectSprite | undefined {
+        return (index === 0) ? this._wiredHighlightSprite : undefined;
     }
 
     /**

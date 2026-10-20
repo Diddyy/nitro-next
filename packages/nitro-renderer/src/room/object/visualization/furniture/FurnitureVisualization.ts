@@ -1,13 +1,16 @@
-import { AlphaTolerance, IGraphicAsset, IObjectVisualizationData, IRoomGeometry, IRoomObjectSprite, IVariableFxStatusModelData, RoomGeometryScaleType, RoomObjectSpriteTypeEnum, RoomObjectVariableEnum, RoomObjectVisualizationType } from '@nitrodevco/nitro-api';
+import { AlphaTolerance, IGraphicAsset, IObjectVisualizationData, IRoomGeometry, IRoomObjectModel, IRoomObjectSprite, IVariableFxStatusModelData, RoomGeometryScaleType, RoomObjectSpriteTypeEnum, RoomObjectVariableEnum, RoomObjectVisualizationType } from '@nitrodevco/nitro-api';
 import { BLEND_MODES, Filter, Texture } from 'pixi.js';
 
 import { GetTickerTime } from '#renderer/utils';
 
 import { ColorData, LayerData } from '../data';
+import { RoomObjectSprite } from '../RoomObjectSprite';
 import { RoomObjectSpriteVisualization } from '../RoomObjectSpriteVisualization';
 import { StackedAdditionStack } from '../stacked/StackedAdditionStack';
 import { IVariableFxVisualizationHost, IVariableFxVisualizationRoomData } from '../variablefx/IVariableFxVisualizationRoomData';
 import { VariableFxStatusReconciler } from '../variablefx/VariableFxStatusReconciler';
+import { FurnitureHighlightComposite } from './FurnitureHighlightComposite';
+import { FurnitureHighlightFilters } from './FurnitureHighlightFilters';
 import { FurnitureVisualizationData } from './FurnitureVisualizationData';
 
 /**
@@ -86,6 +89,15 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
     private _variableFxAnchorY: number = 0;
     private _variableFxAnchorX: number = 0;
 
+    /** WIRED Set Highlight (Flash `updateWiredHighlight`): the type, quantized strength and colour drawn, and their filters. */
+    private _wiredHighlightType: number = 0;
+    private _wiredHighlightStrength: number = 0;
+    private _wiredHighlightColor: number = 0xFFFFFF;
+    private _wiredHighlightFilters: Filter[] | undefined = undefined;
+    private _wiredHighlightFilterCache: Map<number, Filter[] | undefined> = new Map();
+    private _wiredHighlightComposite: FurnitureHighlightComposite | undefined = new FurnitureHighlightComposite();
+    private _wiredHighlightSprite: IRoomObjectSprite | undefined = undefined;
+
     public override initialize(data: IObjectVisualizationData): boolean {
         this.reset();
 
@@ -102,6 +114,16 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
             this._variableFxStack.dispose();
             this._variableFxStack = undefined;
         }
+
+        if (this._wiredHighlightComposite) {
+            this._wiredHighlightComposite.dispose();
+            this._wiredHighlightComposite = undefined;
+        }
+
+        this._wiredHighlightSprite?.dispose();
+        this._wiredHighlightSprite = undefined;
+        this._wiredHighlightFilters = undefined;
+        this._wiredHighlightFilterCache.clear();
 
         super.dispose();
 
@@ -142,6 +164,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
         this.setDirection(-1);
         this.resetVariableFxStack();
         this.resetSpriteData();
+        this._wiredHighlightComposite?.clear(this._wiredHighlightSprite, true);
         this.createSprites(0);
     }
 
@@ -198,6 +221,7 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
 
         if (updateSprites || animation !== 0) {
             this.updateSprites(scale, updateSprites, animation);
+            this.updateWiredHighlightComposite(animation !== 0);
 
             this._scale = scale;
 
@@ -260,6 +284,8 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
 
                 this._alphaChanged = true;
             }
+
+            this.updateWiredHighlight(model);
 
             const invisibleLayer = model.getValue<number>(RoomObjectVariableEnum.FurnitureInvisibleLayer) > 0;
 
@@ -386,6 +412,16 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
         }
 
         const layerFilters = this.getLayerFilters(scale, this._direction, layerId);
+        // A highlight's colour matrix goes on every layer but the shadow; its glows are the composite's.
+        const highlightFilters = ((layerId === this._shadowLayerIndex) || FurnitureHighlightFilters.usesCompositeSilhouette(this._wiredHighlightType)) ? undefined : this._wiredHighlightFilters;
+
+        if (highlightFilters && highlightFilters.length) {
+            const combined = this._filters.concat(highlightFilters, layerFilters ?? []);
+
+            if (!FurnitureVisualization.listWillEqual(combined, sprite.filters)) sprite.filters = combined;
+
+            return;
+        }
 
         if (!layerFilters || !layerFilters.length) {
             if (sprite.filters !== this._filters) sprite.filters = this._filters;
@@ -402,6 +438,82 @@ export class FurnitureVisualization extends RoomObjectSpriteVisualization implem
         if (FurnitureVisualization.concatListWillEqual(this._filters, layerFilters, sprite.filters)) return;
 
         sprite.filters = this._filters.concat(layerFilters);
+    }
+
+    private static listWillEqual(list: Filter[], current: Filter[] | undefined): boolean {
+        return FurnitureVisualization.concatListWillEqual(list, FurnitureVisualization.NO_FILTERS, current);
+    }
+
+    /**
+     * Flash `updateWiredHighlight`: reads the WIRED Set Highlight the logic published (`furniture_wired_highlight_type`,
+     * `_strength`, `_color`); the strength is quantized so a pulse or an easing only builds a few filter lists, cached
+     * per strength until the type or colour changes.
+     */
+    private updateWiredHighlight(model: IRoomObjectModel): void {
+        const typeValue = model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredHighlightType);
+        const type = (typeValue === undefined || isNaN(typeValue)) ? 0 : Math.trunc(typeValue);
+        const strength = FurnitureHighlightFilters.quantizeStrength(model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredHighlightStrength));
+        const colorValue = model.getValue<number>(RoomObjectVariableEnum.FurnitureWiredHighlightColor);
+        const color = (colorValue === undefined || isNaN(colorValue)) ? 0xFFFFFF : (colorValue & 0xFFFFFF);
+
+        if (type === this._wiredHighlightType && strength === this._wiredHighlightStrength && color === this._wiredHighlightColor) return;
+
+        if (type !== this._wiredHighlightType || color !== this._wiredHighlightColor) this._wiredHighlightFilterCache.clear();
+
+        this._wiredHighlightType = type;
+        this._wiredHighlightStrength = strength;
+        this._wiredHighlightColor = color;
+        this._wiredHighlightFilters = this.getCachedWiredHighlightFilters();
+    }
+
+    private getCachedWiredHighlightFilters(): Filter[] | undefined {
+        if (this._wiredHighlightStrength === 0) return undefined;
+
+        if (!this._wiredHighlightFilterCache.has(this._wiredHighlightStrength)) this._wiredHighlightFilterCache.set(this._wiredHighlightStrength, FurnitureHighlightFilters.create(this._wiredHighlightType, this._wiredHighlightColor, this._wiredHighlightStrength));
+
+        return this._wiredHighlightFilterCache.get(this._wiredHighlightStrength);
+    }
+
+    /** Flash `updateWiredHighlightComposite`: the glow round the visible layers (not the shadow or the Variable FX stack). */
+    private updateWiredHighlightComposite(animated: boolean): void {
+        const composite = this._wiredHighlightComposite;
+
+        if (!composite) return;
+
+        if (!FurnitureHighlightFilters.usesCompositeSilhouette(this._wiredHighlightType) || !this._wiredHighlightFilters) {
+            composite.clear(this._wiredHighlightSprite, true);
+
+            return;
+        }
+
+        const sources: IRoomObjectSprite[] = [];
+
+        for (let index = 0; index < this.totalSprites; index++) {
+            if (index === this._shadowLayerIndex || index === this._variableFxSpriteIndex) continue;
+
+            const sprite = this.getSprite(index);
+
+            if (!sprite || !sprite.visible || !sprite.texture || sprite.texture === Texture.EMPTY || sprite.alpha <= 0 || sprite.blendMode === 'add') continue;
+
+            sources.push(sprite);
+        }
+
+        let alpha = this._alphaMultiplier;
+
+        if (this._lookThrough) alpha *= 0.2;
+
+        if (!this._wiredHighlightSprite) this._wiredHighlightSprite = new RoomObjectSprite();
+
+        composite.update(this._wiredHighlightSprite, sources, this._wiredHighlightFilters, Math.round(255 * Math.max(0, Math.min(1, alpha))), this._type ?? '', this._direction, false, animated);
+    }
+
+    /** Flash `additionalSpriteCount` / `getAdditionalSprite`: the highlight composite, drawn after the layers. */
+    public override get additionalSpriteCount(): number {
+        return this._wiredHighlightSprite ? 1 : 0;
+    }
+
+    public override getAdditionalSprite(index: number): IRoomObjectSprite | undefined {
+        return (index === 0) ? this._wiredHighlightSprite : undefined;
     }
 
     /** Flash `concatListWillEqual`: whether `first` followed by `second` is already `current`, item for item. */

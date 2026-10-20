@@ -141,6 +141,8 @@ export class FurnitureLogic extends MovingObjectLogic {
     public override processUpdateMessage(message: IRoomObjectUpdateMessage): void {
         if (!message) return;
 
+        if (this.processWiredEffectMessage(message)) return;
+
         if (this.processVariableFxStatusMessage(message)) return;
 
         if (message instanceof ObjectDataUpdateMessage) {

@@ -26,7 +26,7 @@ import {
     registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers, registerRoomPresentHandlers, registerRoomPurchasableClothingHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
     registerRoomSpamWallHandlers,
     registerRoomThumbnailCameraHandlers,
-    registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomYoutubeHandlers,
+    registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomWiredVisualizationHandlers, registerRoomYoutubeHandlers,
 } from './room';
 import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
 import { registerSpecialItemsHandlers } from './special-items';
@@ -76,6 +76,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomBotHandlers(socket),
         registerRoomUserHandlers(socket),
         registerRoomVariableFxHandlers(socket),
+        registerRoomWiredVisualizationHandlers(socket),
         // Furniture dialogs: a payload for a dialog that is not open is dropped by the store.
         registerRoomCraftingHandlers(socket),
         registerRoomDimmerHandlers(socket),
