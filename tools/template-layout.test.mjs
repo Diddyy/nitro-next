@@ -321,9 +321,19 @@ await test('a grid with resize_on_item_update takes its rows\' height', () => {
 const { layoutToTemplate } = await import('../packages/nitro-theme/src/template/layoutToTemplate.ts');
 const { readFileSync } = await import('node:fs');
 
+/**
+ * A layout from the git-ignored local reference bundles (`scripts/habbo-js-resources`, docs/development.md),
+ * read when a test first needs it: without the folder only the tests that use one fail, the rest still run.
+ */
+const reference = (path) => {
+    let template;
+
+    return () => (template ??= layoutToTemplate(readFileSync(new URL(`../scripts/habbo-js-resources/${path}`, import.meta.url), 'utf8')));
+};
+
 /** The client's own window layout of a scrollable list, style 0: a 23 wide `_ITEMLIST` and a 17 wide `_SCROLLBAR` in 40 x 40. */
-const listSkin = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-window-manager-com/habbo_window_layout_scrollable_itemlist_vertical.xml', import.meta.url), 'utf8'));
-const skinned = { ...input(undefined), skinOf: e => (e.tag === 'scrollable_itemlist_vertical' ? listSkin : undefined) };
+const listSkin = reference('habbo-window-manager-com/habbo_window_layout_scrollable_itemlist_vertical.xml');
+const skinned = { ...input(undefined), skinOf: e => (e.tag === 'scrollable_itemlist_vertical' ? listSkin() : undefined) };
 
 await test('a scrollable list whose items fit hides its scrollbar and gives the list the whole width', () => {
     const items = [ 0, 1 ].map(index => element('container', [ 0, 0, 180, 30 ], { name: `row${index}`, params: { scale: [ 'stretch', 'fixed' ] } }));
@@ -401,12 +411,12 @@ await test('a scrollable list resized smaller than its items shows its scrollbar
 });
 
 /** The client's tab context layout, style 3: a `_SELECTOR` inset 8 at either end, a `_CONTENT` under it. */
-const tabSkin = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-window-manager-com/habbo_window_layout_tab_context_3.xml', import.meta.url), 'utf8'));
+const tabSkin = reference('habbo-window-manager-com/habbo_window_layout_tab_context_3.xml');
 
 await test('a tab context puts its buttons in its selector, packed from the selector\'s inset whatever the layout placed them at', () => {
     const tabs = [ [ 0, 70 ], [ 75, 74 ], [ 144, 82 ] ].map(([ x, width ], index) => element('tab_button', [ x, 0, width, 32 ], { name: `tab${index}` }));
     const context = element('tab_context', [ 0, 2, 500, 30 ], { style: '3', children: tabs });
-    const rects = layoutTemplate([ context ], { ...input(undefined), skinOf: e => (e.tag === 'tab_context' ? tabSkin : undefined) });
+    const rects = layoutTemplate([ context ], { ...input(undefined), skinOf: e => (e.tag === 'tab_context' ? tabSkin() : undefined) });
 
     assert.deepEqual(tabs.map(tab => rects.get(tab).x), [ 8, 78, 152 ]);
 });
@@ -655,7 +665,7 @@ await test('_Str_14067: only the children that show count when a window takes it
 });
 
 await test('WindowParser: a layout\'s outer DropShadowFilter, with its defaults for what it leaves out', () => {
-    const template = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-room-ui-com/nestBreedingSuccess.xml', import.meta.url), 'utf8'));
+    const template = reference('habbo-room-ui-com/nestBreedingSuccess.xml')();
 
     assert.deepEqual(template.elements[0].dropShadow, { distance: 0, angle: 0, color: 0, alpha: 0.34901960784313724, blur: 20 });
 });
