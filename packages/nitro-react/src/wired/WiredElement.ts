@@ -52,6 +52,8 @@ export interface WiredElementContext {
     configBoolean: (key: string) => boolean;
     /** `getProperty(key)` on the component context. */
     configString: (key: string) => string;
+    /** Whether `getProperty(key)` is non-null: the variable is set, even to an empty value. */
+    configHas: (key: string) => boolean;
     /** `wiredMenu.isEnabled`. */
     menuEnabled: boolean;
     /** `wiredMenu.hasWritePermission`. */

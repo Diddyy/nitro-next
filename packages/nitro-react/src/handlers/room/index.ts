@@ -36,4 +36,5 @@ export * from './registerRoomSpamWallHandlers';
 export * from './registerRoomThumbnailCameraHandlers';
 export * from './registerRoomUserHandlers';
 export * from './registerRoomVariableFxHandlers';
+export * from './registerRoomWiredVisualizationHandlers';
 export * from './registerRoomYoutubeHandlers';

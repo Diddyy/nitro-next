@@ -36,6 +36,8 @@ export const createVolterLightStyle = ({ name, frameColor, backgroundColor, adva
         advancedBackgroundColor,
         softTextColor: null,
         redTextColor: null,
+        // The blue, green and yellow variants' `warningTextColor`.
+        warningTextColor: '#b45f06',
         templates: {
             ...base,
             ruler: { height: 1, lines: [ { color: '#222222', alpha: 1 } ] },

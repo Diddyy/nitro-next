@@ -13,3 +13,4 @@ export * from './type/MapDataType';
 export * from './type/NumberDataType';
 export * from './type/StringDataType';
 export * from './type/VoteDataType';
+export * from './WiredFurnitureEffectData';

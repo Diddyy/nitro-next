@@ -54,6 +54,7 @@ export const UBUNTU_WIRED_STYLE: WiredStyle = {
     yellowTextColor: '#84872a',
     softTextColor: '#333333',
     redTextColor: '#f53235',
+    warningTextColor: '#b45f06',
 
     templates: {
         ruler: { height: 1, lines: [ { color: '#b5b5b5', alpha: 1 } ] },

@@ -355,6 +355,8 @@ export interface WiredStyle {
     yellowTextColor: string | null;
     softTextColor: string | null;
     redTextColor: string | null;
+    /** `warningTextColor` - a warning under an input (`SetFurniHighlight`'s, `SliderSection`'s). */
+    warningTextColor: string;
 
     templates: WiredStyleTemplates;
 }

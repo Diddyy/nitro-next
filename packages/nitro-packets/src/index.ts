@@ -757,6 +757,7 @@ export * from './incoming/Userdefinedroomevents/Data/WiredFurniVariableDefParser
 export * from './incoming/Userdefinedroomevents/Data/WiredVariableAvailability';
 export * from './incoming/Userdefinedroomevents/Data/WiredVariableParser';
 export * from './incoming/Userdefinedroomevents/Data/WiredVariableTarget';
+export * from './incoming/Userdefinedroomevents/Data/WiredVisualizationStateParser';
 export * from './incoming/Userdefinedroomevents/FurnitureLabelsAndRegionsMessage';
 export * from './incoming/Userdefinedroomevents/FurnitureLabelsAndRegionsUpdateMessage';
 export * from './incoming/Userdefinedroomevents/Misc/SelfDonationResultMessage';
@@ -773,9 +774,11 @@ export * from './incoming/Userdefinedroomevents/WiredEnvironmentMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniActionEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniAddonEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniConditionEventMessage';
+export * from './incoming/Userdefinedroomevents/WiredFurniHighlightMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniSelectorEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniTriggerEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredFurniVariableEventMessage';
+export * from './incoming/Userdefinedroomevents/WiredFurniVisualizationStateMessage';
 export * from './incoming/Userdefinedroomevents/Wiredlink/WiredLinkOperationResultMessage';
 export * from './incoming/Userdefinedroomevents/Wiredmenu/Data/IWiredErrorLogsError';
 export * from './incoming/Userdefinedroomevents/Wiredmenu/Data/IWiredLogEntry';
@@ -857,6 +860,8 @@ export * from './incoming/Userdefinedroomevents/Wiredtrading/Transactions/WiredT
 export * from './incoming/Userdefinedroomevents/Wiredtrading/Transactions/WiredTransactionLogDetailsMessage';
 export * from './incoming/Userdefinedroomevents/Wiredtrading/Transactions/WiredTransactionLogListMessage';
 export * from './incoming/Userdefinedroomevents/Wiredtrading/Transactions/WiredTransactionSuccessMessage';
+export * from './incoming/Userdefinedroomevents/WiredUserHighlightMessage';
+export * from './incoming/Userdefinedroomevents/WiredUserVisualizationStateMessage';
 export * from './incoming/Userdefinedroomevents/WiredValidationErrorEventMessage';
 export * from './incoming/Userdefinedroomevents/WiredWebApiKeyResultMessage';
 export * from './incoming/Users/AccountSafetyLockStatusChangeMessage';

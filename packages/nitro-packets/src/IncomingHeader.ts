@@ -579,9 +579,11 @@ export class IncomingHeader {
     public static WiredFurniActionMessage = 2642;
     public static WiredFurniAddonMessage = 2823;
     public static WiredFurniConditionMessage = 3980;
+    public static WiredFurniHighlightMessage = 7600;
     public static WiredFurniSelectorMessage = 215;
     public static WiredFurniTriggerMessage = 354;
     public static WiredFurniVariableMessage = 3437;
+    public static WiredFurniVisualizationStateMessage = 7602;
     public static WiredMenuErrorMessage = 913;
     public static WiredMovementsMessage = 1959;
     public static WiredOpenContractMessage = 1267;
@@ -601,8 +603,10 @@ export class IncomingHeader {
     public static WiredTransactionLogDetailsMessage = 114;
     public static WiredTransactionLogListMessage = 3909;
     public static WiredTransactionSuccessMessage = 70;
+    public static WiredUserHighlightMessage = 7601;
     public static WiredUserPermanentVariablesMessage = 2342;
     public static WiredUserVariablesListMessage = 2797;
+    public static WiredUserVisualizationStateMessage = 7603;
     public static WiredValidationErrorMessage = 940;
     public static WiredVariablesForObjectMessage = 2945;
     public static WiredWebApiKeyResultMessage = 59;

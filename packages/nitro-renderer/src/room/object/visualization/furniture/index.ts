@@ -16,6 +16,8 @@ export * from './FurnitureGiftWrappedVisualization';
 export * from './FurnitureGuildCustomizedVisualization';
 export * from './FurnitureGuildIsometricBadgeVisualization';
 export * from './FurnitureHabboWheelVisualization';
+export * from './FurnitureHighlightComposite';
+export * from './FurnitureHighlightFilters';
 export * from './FurnitureIsometricBBVisualization';
 export * from './FurnitureMannequinVisualization';
 export * from './FurnitureParticleSystem';

@@ -30,7 +30,8 @@ import {
     IVariableFxConfigUpdateData,
     IVariableFxStatusRemoveData,
     IVariableFxStatusUpdateData,
-    IVector3D, LegacyDataType,
+    IVector3D, IWiredVisualizationStateEntry,
+    LegacyDataType,
     MapDataType,
     ObjectDataFlagsEnum,
     RoomBackgroundColorEvent,
@@ -49,6 +50,8 @@ import {
     RoomThicknessType,
     RoomToObjectOwnAvatarMoveEvent,
     Vector3d,
+    WiredFurnitureHighlightData,
+    WiredFurnitureTransparencyData,
 } from '@nitrodevco/nitro-api';
 import { Container, ImageLike, PointData, Rectangle, Sprite, Texture } from 'pixi.js';
 
@@ -95,6 +98,8 @@ import {
     ObjectRoomPlaneVisibilityUpdateMessage,
     ObjectRoomUpdateMessage,
     ObjectStateUpdateMessage,
+    RoomObjectFurnitureHighlightUpdateMessage,
+    RoomObjectFurnitureTransparencyUpdateMessage,
     RoomObjectUpdateMessage,
     RoomObjectVariableFxStatusRemoveMessage,
     RoomObjectVariableFxStatusUpdateMessage } from './messages';
@@ -196,6 +201,14 @@ export class Room implements IRoom {
      */
     private _bufferedLabels: Map<number, FurnitureLabelData> = new Map();
 
+    /**
+     * Flash `BufferedRoomObjectModelDataManager`'s `wired_transparency` / `wired_highlight` data (furni
+     * categories 10 and 20, users 100): a WIRED Set Visibility / Set Highlight for an object that is not
+     * ready yet, or that the invisible furni manager took away, kept until it is ready
+     * (`restoreWiredFurnitureTransparencyData` / `restoreWiredFurnitureHighlightData`). Keyed `category:id`.
+     */
+    private _bufferedWiredEffects: Map<string, { transparency?: WiredFurnitureTransparencyData; highlight?: WiredFurnitureHighlightData }> = new Map();
+
     constructor(roomId: number) {
         this._roomId = roomId;
         this._eventDispatcher = new EventDispatcher();
@@ -226,6 +239,7 @@ export class Room implements IRoom {
         }
 
         this._areaHides.clear();
+        this._bufferedWiredEffects.clear();
         this._stackingHeightMap = undefined;
         this._tileObjectMap?.dispose();
         this._tileObjectMap = undefined;
@@ -760,6 +774,8 @@ export class Room implements IRoom {
         }
 
         if (category === RoomObjectCategoryEnum.Floor) this.restoreFurnitureLabelOrRegion(object);
+
+        this.restoreWiredEffects(object, category);
 
         this.dispatchEvent(new RoomEngineObjectEvent(RoomEngineObjectEvent.CONTENT_UPDATED, this._roomId, objectId, category));
 
@@ -1842,18 +1858,129 @@ export class Room implements IRoom {
         if (captured) this._bufferedLabels.set(objectId, captured);
         else if (!byInvisibleFurniManager) this._bufferedLabels.delete(objectId);
 
+        this.captureOrClearWiredEffects(objectId, RoomObjectCategoryEnum.Floor, byInvisibleFurniManager, object);
+
         this.removeRoomObject(objectId, RoomObjectCategoryEnum.Floor);
     }
 
     /** `RoomEngine.disposeObjectWallItem`; the flight of a picked up item to the toolbar is the client's (`createPickupTransition`). */
     public removeRoomObjectWall(objectId: number): void {
+        this.captureOrClearWiredEffects(objectId, RoomObjectCategoryEnum.Wall, false, undefined);
+
         this.removeRoomObject(objectId, RoomObjectCategoryEnum.Wall);
 
         this.updateRoomObjectMask(objectId, false);
     }
 
     public removeRoomObjectUser(objectId: number): void {
+        this.captureOrClearWiredEffects(objectId, RoomObjectCategoryEnum.Unit, false, undefined);
+
         this.removeRoomObject(objectId, RoomObjectCategoryEnum.Unit);
+    }
+
+    /** `RoomEngine.updateWiredFurniTransparency`: a negative id is a wall item. */
+    public updateWiredFurniTransparency(furniIds: number[], transparency: number, allowClickThrough: boolean, easingMode: number): void {
+        for (const furniId of furniIds) this.applyOrBufferWiredEffect(Room.getWiredFurniCategory(furniId), Math.abs(furniId), new WiredFurnitureTransparencyData(transparency, allowClickThrough, easingMode), false);
+    }
+
+    /** `RoomEngine.updateWiredFurniHighlight`: a negative id is a wall item. */
+    public updateWiredFurniHighlight(furniIds: number[], highlightType: number, strength: number, color: number, animationMode: number, easingMode: number): void {
+        for (const furniId of furniIds) this.applyOrBufferWiredEffect(Room.getWiredFurniCategory(furniId), Math.abs(furniId), new WiredFurnitureHighlightData(highlightType, strength, color, animationMode, easingMode), false);
+    }
+
+    /** `RoomEngine.initializeWiredFurniVisualizationStates`: the room's states on entry, applied without easing. */
+    public initializeWiredFurniVisualizationStates(transparencies: IWiredVisualizationStateEntry<WiredFurnitureTransparencyData>[], highlights: IWiredVisualizationStateEntry<WiredFurnitureHighlightData>[]): void {
+        for (const entry of transparencies) this.applyOrBufferWiredEffect(Room.getWiredFurniCategory(entry.id), Math.abs(entry.id), entry.data, true);
+        for (const entry of highlights) this.applyOrBufferWiredEffect(Room.getWiredFurniCategory(entry.id), Math.abs(entry.id), entry.data, true);
+    }
+
+    /** `RoomEngine.updateWiredUserTransparency`, by room index (users, pets and bots). */
+    public updateWiredUserTransparency(roomIndices: number[], transparency: number, allowClickThrough: boolean, easingMode: number): void {
+        for (const roomIndex of roomIndices) this.applyOrBufferWiredEffect(RoomObjectCategoryEnum.Unit, roomIndex, new WiredFurnitureTransparencyData(transparency, allowClickThrough, easingMode), false);
+    }
+
+    /** `RoomEngine.updateWiredUserHighlight`, by room index (users, pets and bots). */
+    public updateWiredUserHighlight(roomIndices: number[], highlightType: number, strength: number, color: number, animationMode: number, easingMode: number): void {
+        for (const roomIndex of roomIndices) this.applyOrBufferWiredEffect(RoomObjectCategoryEnum.Unit, roomIndex, new WiredFurnitureHighlightData(highlightType, strength, color, animationMode, easingMode), false);
+    }
+
+    /** `RoomEngine.initializeWiredUserVisualizationStates`. */
+    public initializeWiredUserVisualizationStates(transparencies: IWiredVisualizationStateEntry<WiredFurnitureTransparencyData>[], highlights: IWiredVisualizationStateEntry<WiredFurnitureHighlightData>[]): void {
+        for (const entry of transparencies) this.applyOrBufferWiredEffect(RoomObjectCategoryEnum.Unit, entry.id, entry.data, true);
+        for (const entry of highlights) this.applyOrBufferWiredEffect(RoomObjectCategoryEnum.Unit, entry.id, entry.data, true);
+    }
+
+    /** `getWiredFurniCategory`: WIRED sends wall items with a negative id. */
+    private static getWiredFurniCategory(furniId: number): RoomObjectCategoryEnum {
+        return (furniId < 0) ? RoomObjectCategoryEnum.Wall : RoomObjectCategoryEnum.Floor;
+    }
+
+    /** `applyOrBufferWiredFurniTransparency` / `applyOrBufferWiredFurniHighlight` and their user twins. */
+    private applyOrBufferWiredEffect(category: RoomObjectCategoryEnum, objectId: number, data: WiredFurnitureTransparencyData | WiredFurnitureHighlightData, initialize: boolean): void {
+        const key = `${category}:${objectId}`;
+        const object = this.getRoomObjectManager(category)?.getObject(objectId);
+
+        if (!object?.isReady) {
+            const buffered = this._bufferedWiredEffects.get(key) ?? {};
+
+            if (data instanceof WiredFurnitureTransparencyData) buffered.transparency = data;
+            else buffered.highlight = data;
+
+            this._bufferedWiredEffects.set(key, buffered);
+
+            return;
+        }
+
+        const buffered = this._bufferedWiredEffects.get(key);
+
+        if (buffered) {
+            if (data instanceof WiredFurnitureTransparencyData) buffered.transparency = undefined;
+            else buffered.highlight = undefined;
+
+            if (!buffered.transparency && !buffered.highlight) this._bufferedWiredEffects.delete(key);
+        }
+
+        Room.applyWiredEffect(object, data, initialize);
+    }
+
+    private static applyWiredEffect(object: IRoomObjectController, data: WiredFurnitureTransparencyData | WiredFurnitureHighlightData, initialize: boolean): void {
+        if (data instanceof WiredFurnitureTransparencyData) object.processUpdateMessage(new RoomObjectFurnitureTransparencyUpdateMessage(data.transparency, data.allowClickThrough, data.easingMode, initialize));
+        else object.processUpdateMessage(new RoomObjectFurnitureHighlightUpdateMessage(data.highlightType, data.strength, data.color, data.animationMode, data.easingMode, initialize));
+    }
+
+    /** `restoreWiredFurnitureTransparencyData` / `restoreWiredFurnitureHighlightData`: applied without easing. */
+    private restoreWiredEffects(object: IRoomObjectController, category: RoomObjectCategoryEnum): void {
+        const key = `${category}:${object.id}`;
+        const buffered = this._bufferedWiredEffects.get(key);
+
+        if (!buffered) return;
+
+        this._bufferedWiredEffects.delete(key);
+
+        if (buffered.transparency) Room.applyWiredEffect(object, buffered.transparency, true);
+        if (buffered.highlight) Room.applyWiredEffect(object, buffered.highlight, true);
+    }
+
+    /**
+     * `captureWiredFurnitureTransparencyData` / `captureWiredFurnitureHighlightData`: a furni the invisible furni
+     * manager takes away keeps its state; any other removal forgets it (`BufferedRoomObjectModelDataManager.clearObject`).
+     */
+    private captureOrClearWiredEffects(objectId: number, category: RoomObjectCategoryEnum, capture: boolean, capturedFrom: IRoomObjectController | undefined): void {
+        const key = `${category}:${objectId}`;
+
+        if (!capture) {
+            this._bufferedWiredEffects.delete(key);
+
+            return;
+        }
+
+        if (!capturedFrom?.isReady) return;
+
+        const transparency = capturedFrom.model.getValue<WiredFurnitureTransparencyData | undefined>(RoomObjectVariableEnum.FurnitureWiredTransparencyData);
+        const highlight = capturedFrom.model.getValue<WiredFurnitureHighlightData | undefined>(RoomObjectVariableEnum.FurnitureWiredHighlightData);
+
+        if (transparency || highlight) this._bufferedWiredEffects.set(key, { transparency, highlight });
+        else this._bufferedWiredEffects.delete(key);
     }
 
     public getRoomObjectScreenLocation(objectId: number, category: RoomObjectCategoryEnum): PointData | undefined {

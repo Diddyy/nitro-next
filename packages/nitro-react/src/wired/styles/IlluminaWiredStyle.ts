@@ -53,6 +53,7 @@ export const ILLUMINA_WIRED_STYLE: WiredStyle = {
     yellowTextColor: '#727514',
     softTextColor: '#444444',
     redTextColor: '#ed3033',
+    warningTextColor: '#b45f06',
 
     templates: {
         ruler: { height: 2, lines: [ { color: '#aaaaaa', alpha: 1 }, { color: '#ffffff', alpha: 0xAF / 0xFF } ] },

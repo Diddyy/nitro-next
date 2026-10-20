@@ -190,6 +190,7 @@ export * from './room/object/logic/furniture/FurnitureWelcomeGiftLogic';
 export * from './room/object/logic/furniture/FurnitureWildWestWantedLogic';
 export * from './room/object/logic/furniture/FurnitureWindowLogic';
 export * from './room/object/logic/furniture/FurnitureYoutubeLogic';
+export * from './room/object/logic/furniture/WiredFurnitureEffectState';
 export * from './room/object/logic/MovingObjectLogic';
 export * from './room/object/logic/ObjectLogicBase';
 export * from './room/object/logic/PetLogic';
@@ -263,6 +264,8 @@ export * from './room/object/visualization/furniture/FurnitureGiftWrappedVisuali
 export * from './room/object/visualization/furniture/FurnitureGuildCustomizedVisualization';
 export * from './room/object/visualization/furniture/FurnitureGuildIsometricBadgeVisualization';
 export * from './room/object/visualization/furniture/FurnitureHabboWheelVisualization';
+export * from './room/object/visualization/furniture/FurnitureHighlightComposite';
+export * from './room/object/visualization/furniture/FurnitureHighlightFilters';
 export * from './room/object/visualization/furniture/FurnitureIsometricBBVisualization';
 export * from './room/object/visualization/furniture/FurnitureMannequinVisualization';
 export * from './room/object/visualization/furniture/FurnitureParticleSystem';
