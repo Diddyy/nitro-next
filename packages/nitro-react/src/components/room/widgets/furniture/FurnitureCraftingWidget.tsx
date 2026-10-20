@@ -1,62 +1,81 @@
 import { RoomObjectVariableEnum, RoomWidgetEnum } from '@nitrodevco/nitro-api';
-import { CraftComposer, GetCraftingRecipeComposer } from '@nitrodevco/nitro-packets';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import { addInventoryItemToMixer, cancelCrafting, closeCraftingTable, completeCrafting, CraftingData, removeMixerItem, selectCraftingRecipe, startCrafting } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useTranslation } from '#base/context/system';
+import { useRoom, useRoomWidget } from '#base/context/room';
 import { useOwnUserId } from '#base/context/user';
-import { CraftingData } from '#base/handlers';
 import { FurnitureCraftingView } from '#base/views/room-widgets/furniture/FurnitureCraftingView';
 
+/** `CraftingProgressBarController`: a 70 ms timer, 0.02 a tick. */
+const PROGRESS_TICK_MS = 70;
+const PROGRESS_STEP = 0.02;
+
 /**
- * A crafting table. What it can make is the server's answer to opening it, and choosing a recipe
- * asks what that one takes - so the ingredients on screen always belong to the recipe selected,
- * which is why picking one sends a packet of its own.
+ * A crafting table (`CraftingWidget`): `roomCraftingCommands` keeps what the window shows; this
+ * draws it once the table has answered with something to make or use (`showWidget`) and runs the
+ * progress bar a craft waits on.
  *
  * Only the table's owner may craft on it (`CraftingWidgetHandler.isOwner`, the furni's owner id
  * against the session's); anyone else sees the button disabled, captioned `crafting.btn.notowner`.
  */
 export const FurnitureCraftingWidget = () => {
-    const request = useRoomWidget<CraftingData>(RoomWidgetEnum.CRAFTING);
-    const { closeRoomWidget } = useRoomWidgetActions();
+    const request = useRoomWidget<Partial<CraftingData>>(RoomWidgetEnum.CRAFTING);
     const { send } = useWebSocketContext();
-    const [ selectedRecipeCode, setSelectedRecipeCode ] = useState<string>('');
     const room = useRoom();
     const ownUserId = useOwnUserId();
-    const t = useTranslation();
+    const [ progress, setProgress ] = useState(0);
 
     const data = request?.data;
+    const progressVisible = !!data?.progressVisible;
 
-    if (!request || !data) return null;
+    // `show` starts the timer at 0; at 1 it stops and the craft goes (`onProgressBarComplete`).
+    useEffect(() => {
+        if (!progressVisible) return;
+
+        let value = 0;
+
+        const timer = window.setInterval(() => {
+            value += PROGRESS_STEP;
+            setProgress(value);
+
+            if (value >= 1) {
+                window.clearInterval(timer);
+                completeCrafting(send);
+            }
+        }, PROGRESS_TICK_MS);
+
+        return () => {
+            window.clearInterval(timer);
+            setProgress(0);
+        };
+    }, [ progressVisible, send ]);
+
+    if (!request || !data?.shown) return null;
 
     const isOwner = room?.getRoomObject(request.objectId, request.category)?.model.getValue<number>(RoomObjectVariableEnum.FurnitureOwnerId) === ownUserId;
 
-    /** A recipe is named by the furni it makes, which the client knows how to translate. */
-    const productName = (furnitureClassName: string) => t(`roomItem.name.${furnitureClassName}`, furnitureClassName);
-
-    const selectRecipe = (recipeCode: string) => {
-        setSelectedRecipeCode(recipeCode);
-        send(new GetCraftingRecipeComposer({ recipeCode }));
-    };
-
     return (
         <FurnitureCraftingView
-            products={data.products.map(product => ({
-                recipeCode: product.recipeCode,
-                name: productName(product.furnitureClassName),
-            }))}
-            selectedRecipeCode={selectedRecipeCode}
-            ingredients={data.ingredients.map(ingredient => ({
-                count: ingredient.count,
-                name: productName(ingredient.furnitureClassName),
-            }))}
+            recipes={(data.recipeItems ?? []).map(item => ({ key: item.key, furnitureData: item.furnitureData, available: true }))}
+            inventory={(data.inventoryItems ?? []).map(item => ({ key: item.key, furnitureData: item.furnitureData, count: item.inventoryIds.length, available: item.inventoryIds.length > 0 }))}
+            mixer={(data.mixerItems ?? []).map(item => ({ key: item.key, furnitureData: item.furnitureData, available: item.inventoryId !== 0 }))}
+            infoText={data.infoText ?? ''}
+            infoText1={data.infoText1 ?? ''}
+            infoText2={data.infoText2 ?? ''}
+            icon={data.icon}
+            buttonVisible={!!data.button?.visible}
+            buttonEnabled={!!data.button?.enabled}
+            buttonCaption={data.button?.caption ?? ''}
             isOwner={isOwner}
-            canCraft={data.recipeComplete && !!selectedRecipeCode.length}
-            result={data.result.length ? productName(data.result) : ''}
-            onSelectRecipe={selectRecipe}
-            onCraft={() => send(new CraftComposer({ objectId: request.objectId, recipeCode: selectedRecipeCode }))}
-            onClose={() => closeRoomWidget(RoomWidgetEnum.CRAFTING)}
+            progressVisible={progressVisible}
+            progress={progress}
+            onRecipe={key => selectCraftingRecipe(send, key)}
+            onInventoryItem={key => addInventoryItemToMixer(send, key)}
+            onMixerItem={key => removeMixerItem(send, key)}
+            onCraft={startCrafting}
+            onCancel={cancelCrafting}
+            onClose={closeCraftingTable}
         />
     );
 };

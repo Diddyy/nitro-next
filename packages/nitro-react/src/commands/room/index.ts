@@ -6,6 +6,7 @@ export * from './infostandPlacementCommands';
 export * from './purchasableClothingCommands';
 export * from './roomChatCommands';
 export * from './roomChooserCommands';
+export * from './roomCraftingCommands';
 export * from './roomDebugCommands';
 export * from './roomFurnitureCommands';
 export * from './roomPetCommands';
