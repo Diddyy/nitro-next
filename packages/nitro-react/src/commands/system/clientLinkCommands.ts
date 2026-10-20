@@ -19,7 +19,7 @@ import { showEarnings } from '../earnings/earningsCommands';
 import { openBadgeLeaderboardLink } from '../groups/badgeLeaderboardCommands';
 import { openGroupForumLink } from '../groups/groupForumCommands';
 import { habbiconsEnabled, openHabbiconHub } from '../habbicons/habbiconCommands';
-import { forwardToRoom, goToHomeRoom, searchNavigator, searchRoomTag } from '../navigator/navigatorCommands';
+import { forwardToRoom, goToHomeRoom, reportRoomFromWeb, searchNavigator, searchRoomTag } from '../navigator/navigatorCommands';
 import { openRaidProtectionFromLink } from '../navigator/raidProtectionCommands';
 import { toggleQuests } from '../quests/questCommands';
 import { openRewardTrackLink } from '../reward-track/rewardTrackCommands';
@@ -34,6 +34,18 @@ import { openHabboPage } from './habboPagesCommands';
 
 /** `HabboNewNavigator.getSearchCodeForTabLink`. */
 const TAB_LINK_SEARCH_CODES: Record<string, string> = { me: 'myworld_view' };
+
+/**
+ * `Base64.decode`: the text the bytes spell as UTF-8 (`readUTFBytes`). Decoding stops at the first
+ * character outside the alphabet - padding included - instead of failing.
+ */
+const decodeBase64Text = (value: string): string => {
+    const encoded = /^[A-Za-z0-9+/]*/.exec(value)?.[0] ?? '';
+    const whole = encoded.slice(0, encoded.length - (encoded.length % 4 === 1 ? 1 : 0));
+    const binary = atob(whole.padEnd(Math.ceil(whole.length / 4) * 4, '='));
+
+    return new TextDecoder().decode(Uint8Array.from(binary, char => char.charCodeAt(0)));
+};
 
 const INVENTORY_TABS: WindowParams<'inventory'>['tab'][] = [ 'furni', 'pets', 'bots', 'badges' ];
 
@@ -128,6 +140,12 @@ export const openClientLink = (send: Send, link: string) => {
                 // `HabboNewNavigator.linkReceived` -> `RaidProtectionSettingsController.openFromLink`.
                 case 'raidprotection': {
                     openRaidProtectionFromLink(send, (parts.length === 3) ? parts[2] : undefined);
+
+                    return;
+                }
+                // `LegacyNavigator.reportRoomFromWeb(globalId, Base64.decode(name))`.
+                case 'report': {
+                    if (parts.length > 3) reportRoomFromWeb(send, parts[2], decodeBase64Text(parts[3]));
 
                     return;
                 }

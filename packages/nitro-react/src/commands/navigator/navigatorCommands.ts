@@ -6,7 +6,7 @@
  */
 import { RoomTradeModeEnum } from '@nitrodevco/nitro-api';
 import {
-    AddFavouriteRoomComposer, CreateFlatComposer, CreateFlatComposerType, DeleteFavouriteRoomComposer, EditEventComposer, GetCustomRoomFilterComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NavigatorAddCollapsedCategoryComposer,
+    AddFavouriteRoomComposer, ConvertGlobalRoomIdComposer, CreateFlatComposer, CreateFlatComposerType, DeleteFavouriteRoomComposer, EditEventComposer, GetCustomRoomFilterComposer, GetGuestRoomComposer, GetHabboGroupDetailsComposer, NavigatorAddCollapsedCategoryComposer,
     NavigatorAddSavedSearchComposer, NavigatorDeleteSavedSearchComposer, NavigatorRemoveCollapsedCategoryComposer, NavigatorSetSearchCodeViewModeComposer, NewNavigatorSearchComposer, OpenFlatConnectionComposer, QuitComposer, RoomNetworkOpenConnectionComposer,
     SetNewNavigatorWindowPreferencesComposer, UpdateHomeRoomComposer, UpdateRoomCategoryAndTradeSettingsComposer, UpdateRoomFilterComposer,
 } from '@nitrodevco/nitro-packets';
@@ -65,6 +65,20 @@ export const forwardToRoom = (send: Send, roomId: number) => {
 
     systemStore.getState().hideWindow('navigator');
 };
+
+/**
+ * `HabboNavigator.enterRoomWebRequest`: a room known only by its global id (the web API's
+ * room `uniqueId`) is converted by the server first; its `ConvertedRoomIdMessage` then
+ * forwards there, or opens the room's report when this was a report.
+ */
+export const enterRoomWebRequest = (send: Send, globalId: string, webRoomReport = false, reportedName: string | null = null) => {
+    navigatorStore.getState().setWebRoomReport(webRoomReport, reportedName);
+
+    send(new ConvertGlobalRoomIdComposer({ flatId: globalId }));
+};
+
+/** `LegacyNavigator.reportRoomFromWeb`: the `navigator/report/<globalId>/<base64 name>` link. */
+export const reportRoomFromWeb = (send: Send, globalId: string, reportedName: string) => enterRoomWebRequest(send, globalId, true, reportedName);
 
 /**
  * `HabboNavigator.goToPrivateRoom`: the same forward (`GetGuestRoomMessageComposer(roomId, false,
