@@ -57,6 +57,7 @@ const messenger = () => {
         '@nitrodevco/nitro-packets': {
             EventLogComposer: class {}, FollowFriendComposer: class {}, GetExtendedProfileComposer: class {}, GetHabboGroupDetailsComposer: class {},
             GetMessengerHistoryComposer: class { constructor(data) { this.data = data; } },
+            SendHabbiconComposer: class { constructor(data) { this.data = data; } },
             SendMsgComposer: class { constructor(data) { this.data = data; } },
         },
         '#base/context/communication': {},
@@ -71,6 +72,7 @@ const messenger = () => {
             GetSoundManager: () => ({ playSound: id => sounds.push(id) }),
             HabboSoundTypesEnum: { SOUND_MESSAGE_RECEIVED: RECEIVED, SOUND_MESSAGE_SENT: SENT },
         },
+        '../habbicons/habbiconCommands': { noteHabbiconUsed: () => {} },
     });
     const incoming = (extra = {}) => ({ chatId: FRIEND, message: 'hello', habbiconId: 0, secondsSinceSent: 0, messageId: `m${Math.random()}`, confirmationId: 0, senderId: FRIEND, senderName: 'Friend', senderFigure: 'hd-2', ...extra });
 
