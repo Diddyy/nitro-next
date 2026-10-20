@@ -5,7 +5,7 @@
  */
 
 import { parseImp1 } from './imp1';
-import { NativeFont, NativeFontBundle, NativeGlyph, NativeGlyphLookup, NativeGlyphRecord, NativeProfile, NativeProfileSource, SwfFont } from './types';
+import { NativeFont, NativeFontBundle, NativeGlyph, NativeGlyphBundle, NativeGlyphLookup, NativeGlyphRecord, NativeProfile, NativeProfileSource, SwfFont } from './types';
 
 function decodeNativeGlyph(record: NativeGlyphRecord): NativeGlyph {
     const imp1 = parseImp1(decodeBase64(record.imp1Base64));
@@ -35,6 +35,10 @@ class LazyNativeGlyphs implements NativeGlyphLookup {
     private readonly decoded = new Map<number, NativeGlyph>();
 
     constructor(records: readonly NativeGlyphRecord[]) {
+        this.add(records);
+    }
+
+    public add(records: readonly NativeGlyphRecord[]): void {
         for (const record of records) this.records.set(record.codepoint, record);
     }
 
@@ -110,6 +114,7 @@ function prepareAir32NativeFont(nativeProfile: NativeProfileSource | NativeProfi
 }
 
 const NATIVE_BUNDLE_FORMAT = 'air32-native-font-bundle-v1';
+const NATIVE_GLYPHS_FORMAT = 'air32-native-glyphs-v1';
 
 export function prepareAir32NativeBundle(bundle: NativeFontBundle): NativeFont {
     if (!bundle || bundle.schemaVersion !== 1 || bundle.format !== NATIVE_BUNDLE_FORMAT) throw new TypeError(`native bundle must use ${NATIVE_BUNDLE_FORMAT}`);
@@ -166,4 +171,34 @@ export function prepareAir32NativeBundle(bundle: NativeFontBundle): NativeFont {
             coverage: bundle.coverage == null ? null : { ...bundle.coverage },
         }),
     };
+}
+
+/**
+ * Adds a glyph bundle's outlines to a face prepared from its font bundle: the scripts the boot
+ * bundle leaves out (Cyrillic, Greek, Latin Extended-B and the rest the font has). They must be the
+ * same font, and every glyph one the font's `DefineFont3` metrics have and the face does not draw
+ * yet. Returns how many glyphs it added.
+ */
+export function extendAir32NativeFont(font: NativeFont, bundle: NativeGlyphBundle): number {
+    if (!bundle || bundle.schemaVersion !== 1 || bundle.format !== NATIVE_GLYPHS_FORMAT || !Array.isArray(bundle.glyphs)) throw new TypeError(`glyph bundle must use ${NATIVE_GLYPHS_FORMAT}`);
+
+    if (bundle.fontKey !== font.fontKey) throw new Error(`glyph bundle ${bundle.fontKey} is not for ${font.fontKey}`);
+
+    if (bundle.fontSha256 != null && font.profile.fontSha256 != null && bundle.fontSha256 !== font.profile.fontSha256) throw new Error('glyph bundle font hash does not match the face');
+
+    const glyphs = font.profile.glyphs;
+
+    if (!(glyphs instanceof LazyNativeGlyphs)) throw new TypeError('the face was not prepared from a native bundle');
+
+    for (const record of bundle.glyphs) {
+        if (!Number.isSafeInteger(record.codepoint) || typeof record.imp1Base64 != 'string') throw new TypeError('native glyph records require codepoint and imp1Base64');
+
+        if (!font.swfGlyphs.has(record.codepoint)) throw new Error(`DefineFont3 metrics are missing U+${record.codepoint.toString(16).toUpperCase()}`);
+
+        if (glyphs.has(record.codepoint)) throw new Error(`the face already has U+${record.codepoint.toString(16).toUpperCase()}`);
+    }
+
+    glyphs.add(bundle.glyphs);
+
+    return bundle.glyphs.length;
 }

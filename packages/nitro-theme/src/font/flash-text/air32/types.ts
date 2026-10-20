@@ -260,6 +260,19 @@ export interface NativeFontBundle {
     swfFont: SwfFont;
 }
 
+/**
+ * A captured `air32-native-glyphs-v1` file (`public/assets/fonts-extended/*.air51.json`): more IMP1
+ * glyphs of a face already registered from its `air32-native-font-bundle-v1`, whose `DefineFont3`
+ * metrics they share.
+ */
+export interface NativeGlyphBundle {
+    schemaVersion: number;
+    format: string;
+    fontKey: string;
+    fontSha256?: string | null;
+    glyphs: NativeGlyphRecord[];
+}
+
 export interface NativeFont {
     profile: NativeProfile;
     swfFont: SwfFont;

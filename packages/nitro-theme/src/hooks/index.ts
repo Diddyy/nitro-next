@@ -7,6 +7,7 @@ export * from './useHoldToRepeat';
 export * from './useInteractionState';
 export * from './useLatest';
 export * from './useLayoutEvent';
+export * from './useMissingGlyphRefresh';
 export * from './useOutsideClick';
 export * from './usePixiTexture';
 export * from './useResolvedVariant';
