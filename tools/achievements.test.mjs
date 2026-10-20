@@ -45,7 +45,7 @@ const wrapper = (fields) => {
     return { readInt: () => read('Int'), readString: () => read('String'), readBoolean: () => read('Boolean'), readShort: () => read('Short'), complete: () => assert.equal(index, fields.length) };
 };
 
-await test('initialization requests authoritative badge limits and catalog once per session', () => {
+await test('initialization requests the catalog once per session, and the badge limits are left to the inventory', () => {
     const store = createAchievementsStore();
     class GetAchievementsComposer {}
     class GetBadgePointLimitsComposer {}
@@ -59,10 +59,11 @@ await test('initialization requests authoritative badge limits and catalog once 
 
     requestAchievements(send);
     requestAchievements(send);
-    assert.deepEqual(sent, [ 'GetBadgePointLimitsComposer', 'GetAchievementsComposer' ]);
+    // `HabboInventory.initComponent` sends GetBadgePointLimits at start-up; `ensureAchievementsInitialized` only GetAchievements.
+    assert.deepEqual(sent, [ 'GetAchievementsComposer' ]);
     store.getState().reset();
     requestAchievements(send);
-    assert.equal(sent.length, 4);
+    assert.deepEqual(sent, [ 'GetAchievementsComposer', 'GetAchievementsComposer' ]);
 });
 
 await test('list and update consume complete AS3 records including short state and category tail', () => {
@@ -286,10 +287,8 @@ await test('handler list never opens a window, transition waits 2000ms, room exi
     const notifications = [];
     const sent = [];
     let nextTimer = 0;
-    let requests = 0;
     const { registerAchievementHandlers } = load('nitro-react/src/handlers/achievements/registerAchievementHandlers', {
         '@nitrodevco/nitro-packets': packets,
-        '#base/commands': { requestAchievements: () => { if (store.getState().request()) requests++; } },
         '#base/context/achievements': { achievementsStore: store },
         '#base/context/inventory': { inventoryStore: { getState: () => ({ updateBadge: badge => badges.push(badge), removeBadge: code => removed.push(code) }) } },
         '#base/context/notifications': { notificationStore: { getState: () => ({ addNotification: (...args) => notifications.push(args) }) } },
@@ -317,11 +316,14 @@ await test('handler list never opens a window, transition waits 2000ms, room exi
         return () => listeners.delete(packet);
     } });
     listeners.get(packets.AchievementsScoreEventMessage)({ score: 120 });
+    // The list is never asked for at login: only the window and the first room's camera ask (`ensureAchievementsInitialized`).
     listeners.get(packets.UserObjectMessage)({ userInfo: { userId: 1 } });
-    assert.equal(requests, 1);
+    assert.equal(store.getState().requested, false);
+    assert.equal(sent.length, 0);
     assert.equal(store.getState().score, 120);
     listeners.get(packets.UserObjectMessage)({ userInfo: { userId: 1 } });
-    assert.equal(requests, 1);
+    assert.equal(store.getState().requested, false);
+    assert.equal(store.getState().request(), true);
     listeners.get(packets.AchievementsEventMessage)({ achievements: [ achievement() ], defaultCategory: 'identity' });
     assert.equal(system.visibleWindows.achievements, undefined);
     assert.equal(store.getState().category, '');
@@ -349,9 +351,10 @@ await test('handler list never opens a window, transition waits 2000ms, room exi
     room.setState({ room: undefined });
     assert.equal(system.visibleWindows.achievements, undefined);
     assert.equal(store.getState().unseen.length, 0);
+    assert.equal(store.getState().request(), false);
     listeners.get(packets.UserObjectMessage)({ userInfo: { userId: 2 } });
     assert.equal(store.getState().score, 0);
-    assert.equal(requests, 2);
+    assert.equal(store.getState().request(), true);
     unsubscribe();
     assert.equal(timers.size, 0);
     assert.equal(listeners.size, 0);
