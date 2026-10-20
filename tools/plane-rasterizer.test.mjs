@@ -255,6 +255,8 @@ await test('RoomPlane rebuilds an unchanged door mask when the texture dimension
         },
         '../../../utils': { RoomGeometry: class {} },
         './mask': {},
+        './PlaneDrawingData': {},
+        './rasterizer/basic/PlaneVisualizationLayer': {},
         './rasterizer/PlaneCanvas': {},
         './RoomPlaneBitmapMask': {},
         './RoomPlaneRectangleMask': {},
