@@ -20,7 +20,7 @@ import { registerQuestHandlers } from './quests';
 import { registerRewardTrackHandlers } from './reward-track';
 import {
     registerCameraHandlers,
-    registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomCustomUserNotificationHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
+    registerRoomAreaHideHandlers, registerRoomBadgeDisplayHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomCustomUserNotificationHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
     registerRoomDirectoryHandlers, registerRoomDoorbellHandlers, registerRoomFloorPlanHandlers, registerRoomFriendFurniHandlers, registerRoomFriendRequestHandlers,
     registerRoomFurnitureHandlers, registerRoomFurnitureLabelHandlers, registerRoomGenericErrorHandlers, registerRoomGuildFurniHandlers, registerRoomInfostandHandlers, registerRoomJukeboxHandlers, registerRoomLinkHandlers, registerRoomMappingHandlers,
     registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers, registerRoomPresentHandlers, registerRoomPurchasableClothingHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
@@ -78,6 +78,7 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomVariableFxHandlers(socket),
         registerRoomWiredVisualizationHandlers(socket),
         // Furniture dialogs: a payload for a dialog that is not open is dropped by the store.
+        registerRoomBadgeDisplayHandlers(socket),
         registerRoomCraftingHandlers(socket),
         registerRoomDimmerHandlers(socket),
         registerRoomGenericErrorHandlers(socket),

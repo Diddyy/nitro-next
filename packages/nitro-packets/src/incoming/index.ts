@@ -322,6 +322,7 @@ export * from './Inventory/Avatareffect/AvatarEffectAddedMessage';
 export * from './Inventory/Avatareffect/AvatarEffectExpiredMessage';
 export * from './Inventory/Avatareffect/AvatarEffectSelectedMessage';
 export * from './Inventory/Avatareffect/AvatarEffectsMessage';
+export * from './Inventory/Badges/BadgeInfoMessage';
 export * from './Inventory/Badges/BadgePointLimitsEventMessage';
 export * from './Inventory/Badges/BadgeReceivedEventMessage';
 export * from './Inventory/Badges/BadgesEventMessage';
