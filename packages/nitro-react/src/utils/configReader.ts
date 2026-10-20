@@ -36,5 +36,8 @@ export const configReader = (config: Record<string, unknown>) => {
         return (value === '1') || (value?.toLowerCase() === 'true');
     };
 
-    return { configString, configBoolean, resolve };
+    /** Whether the variable is set at all - Flash's `getProperty` returning non-null (an empty value is set). */
+    const configHas = (key: string): boolean => text(key) !== undefined;
+
+    return { configString, configBoolean, configHas, resolve };
 };

@@ -22,12 +22,13 @@ export const useWiredElementContext = (): WiredElementContext => {
     const achievementsInRoom = useWiredStore(x => x.wiredAchievements);
     const elementMemory = useWiredStore(x => x.elementMemory);
     const triggerable = useWiredStore(x => x.setup?.triggerable);
-    const { configBoolean, configString } = configReader(config);
+    const { configBoolean, configString, configHas } = configReader(config);
 
     return {
         localize: (key, replacements) => t(key, key, replacements),
         configBoolean,
         configString,
+        configHas,
         menuEnabled,
         hasWritePermission,
         userId,

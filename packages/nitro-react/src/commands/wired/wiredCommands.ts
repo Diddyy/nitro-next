@@ -38,12 +38,13 @@ const notifyWired = (text: string) => notificationStore.getState().addNotificati
 export const getWiredElementContext = (triggerable: WiredTriggerable): WiredElementContext => {
     const { getLocalizationValue, config } = systemStore.getState();
     const { guildMemberships, wiredAchievements, elementMemory } = wiredStore.getState();
-    const { configBoolean, configString } = configReader(config);
+    const { configBoolean, configString, configHas } = configReader(config);
 
     return {
         localize: (key, replacements) => getLocalizationValue(key, key, replacements),
         configBoolean,
         configString,
+        configHas,
         menuEnabled: getWiredMenuEnabled(),
         hasWritePermission: getWiredHasWritePermission(),
         userId: userStore.getState().userId,

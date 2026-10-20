@@ -47,6 +47,7 @@ export * from './ResetRewardTrack';
 export * from './ResetTimers';
 export * from './SendSignal';
 export * from './SetFurniAltitude';
+export * from './SetFurniHighlight';
 export * from './SetFurniStateTo';
 export * from './Teleport';
 export * from './TeleportToRoom';
