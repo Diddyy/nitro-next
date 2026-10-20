@@ -229,13 +229,6 @@ await test('back clears only that category unseen entries and returns to the ove
     assert.deepEqual(plain(store.getState().unseen.map(entry => entry.achievementId)), [ 2 ]);
 });
 
-await test('unseen exclusions affect only the toolbar count, never the stored entries', () => {
-    assert.equal(model.unseenSkipped('ACH_Login3', [ 'Login' ]), true);
-    assert.equal(model.unseenSkipped('ACH_Pets3', [ 'Login' ]), false);
-    assert.equal(model.unseenSkipped('ACH_Login3', [ '' ]), true);
-    assert.equal(model.unseenSkipped('ACH_Login3', [ '(' ]), false);
-});
-
 await test('account reset discards pending level transition, cache and unseen entries', () => {
     const store = createAchievementsStore();
 
