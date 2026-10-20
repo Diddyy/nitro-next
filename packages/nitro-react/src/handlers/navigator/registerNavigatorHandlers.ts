@@ -1,7 +1,7 @@
 import { NoobnessLevelEnum, RoomDoorModeEnum } from '@nitrodevco/nitro-api';
-import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorLiftedRoomsMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomAdErrorEventMessage, RoomEntryInfoMessage, RoomEventCancelMessage, RoomEventMessage, RoomFilterSettingsMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, ShowEnforceRoomCategoryDialogMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
+import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, ConvertedRoomIdMessage, DoorbellMessage, FavouriteChangedMessage, FavouritesMessage, FlatAccessDeniedMessage, FlatAccessibleMessage, FlatCreatedMessage, FollowFriendComposer, GenericErrorMessage, GetGuestRoomComposer, GetGuestRoomResultMessage, GetUserEventCatsComposer, GetUserFlatCatsComposer, MuteAllInRoomMessage, NavigatorCollapsedCategoriesMessage, NavigatorLiftedRoomsMessage, NavigatorMetadataMessage, NavigatorSavedSearchesMessage, NavigatorSearchResultBlocksMessage, NavigatorSettingsMessage, NewNavigatorInitComposer, NewNavigatorPreferencesMessage, QuitComposer, RoomAdErrorEventMessage, RoomEntryInfoMessage, RoomEventCancelMessage, RoomEventMessage, RoomFilterSettingsMessage, RoomForwardMessage, RoomInfoUpdatedMessage, RoomRatingMessage, ShowEnforceRoomCategoryDialogMessage, UserEventCatsMessage, UserFlatCatsMessage, UserObjectMessage } from '@nitrodevco/nitro-packets';
 
-import { forwardToRoom, goToHomeRoom, goToRoom } from '#base/commands';
+import { forwardToRoom, goToHomeRoom, goToRoom, reportRoom } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
 import { systemStore } from '#base/context/system';
@@ -165,6 +165,14 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
 
         // forwardToRoom(send, ): ask for the room info first; GetGuestRoomResult(roomForward) decides how to enter
         on(RoomForwardMessage, data => forwardToRoom(send, data.roomId)),
+
+        // `IncomingMessages.onConvertedRoomId`: the room a global id names - reported (`habboHelp.reportRoom`) or forwarded to.
+        on(ConvertedRoomIdMessage, (data) => {
+            const { webRoomReport, webRoomReportedName } = navigator();
+
+            if (webRoomReport) reportRoom(data.convertedId, webRoomReportedName ?? '');
+            else forwardToRoom(send, data.convertedId);
+        }),
 
         // onRoomEnter(): we are inside the room (server-side entry, home room, teleport...) - fetch its info
         on(RoomEntryInfoMessage, (data) => {
