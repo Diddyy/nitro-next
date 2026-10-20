@@ -260,6 +260,31 @@ await test('hiding an item re-arranges the list, and resize_on_item_update shrin
     assert.equal(rects.get(list).height, 36);
 });
 
+await test('bound list items are placed within the container\'s height so far; captions set after the build re-flow them', () => {
+    // `craftingwidget_xml`'s info texts: bound_to_parent, bottom-aligned, word-wrapped and auto-sized, in an
+    // itemlist_vertical with spacing 8; `CraftingInfoController.setState` sets their captions on the built window.
+    const params = { parentGraphics: true, boundToParent: true, align: [ 'left', 'bottom' ], reflectToParent: [ false, true ] };
+    const vars = { auto_size: 'left', word_wrap: true };
+    const text1 = element('text', [ 0, 0, 134, 43 ], { name: 'info_text1', vars, params: { ...params, accommodate: 'resize' }, caption: 'This spell will produce yy yy yyyyyyyy yyyyyy yy yyy xxxxxx xxx xxxxx' });
+    const text2 = element('text', [ 0, 15, 134, 28 ], { name: 'info_text2', vars, params, caption: 'This spell will produce xxxxxx xxx xxxxx' });
+    const list = element('itemlist_vertical', [ 304, 180, 134, 79 ], { vars: { spacing: 8 }, children: [ text1, text2 ] });
+    const captions = new Map([ [ text1, 'This recipe will produce:' ], [ text2, 'Small Coffee Table' ] ]);
+    // One line 18 high, each more 14.
+    const measure = (e, text) => ({ width: 130, height: 4 + (14 * Math.ceil(text.length / 26)) });
+    const captionOf = e => captions.get(e) ?? e.caption ?? '';
+
+    // Built with its caption, text2 goes in while the container is text1's 18 high: `WindowController.setRectangle`
+    // keeps a bound window inside its parent, so it is pulled from 18 + 8 up onto text1.
+    assert.equal(layoutTemplate([ list ], { captionOf, measure }).get(text2).y, 0);
+
+    // Built with the layout's captions (the container ends 86 high) and then set: each resize re-arranges the
+    // list (`WE_CHILD_RESIZED`, `updateScrollAreaRegion`) inside the container the last arrange left.
+    const rects = layoutTemplate([ list ], { captionOf, measure, builtCaptionOf: e => (captions.has(e) ? e.caption : undefined) });
+
+    assert.deepEqual(rects.get(text1), { x: 0, y: 0, width: 134, height: 18 });
+    assert.deepEqual(rects.get(text2), { x: 0, y: 26, width: 134, height: 18 });
+});
+
 await test('a list item centre-scaled is centred across the list when it is added', () => {
     const item = element('container', [ 0, 0, 20, 10 ], { params: { scale: [ 'center', 'fixed' ] } });
     const list = element('itemlist_vertical', [ 0, 0, 60, 60 ], { children: [ item ] });

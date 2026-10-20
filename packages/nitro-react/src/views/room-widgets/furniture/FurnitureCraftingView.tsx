@@ -98,8 +98,8 @@ export const FurnitureCraftingView = ({
                 arrange={arrange}
                 bindings={{
                     header_mixer: { caption: infoText },
-                    info_text1: { caption: infoText1 },
-                    info_text2: { caption: infoText2 },
+                    info_text1: { caption: infoText1, setCaptionAfterBuild: true },
+                    info_text2: { caption: infoText2, setCaptionAfterBuild: true },
                     furniture_icon: icon ? { asset: iconUrl(icon) } : { visible: false },
                     btn_craft: {
                         visible: buttonVisible,
