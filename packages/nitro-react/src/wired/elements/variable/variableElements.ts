@@ -14,6 +14,7 @@ import { DailyTaskVariableView } from '#base/views/wired-setup/elements/variable
 import { EchoVariableView } from '#base/views/wired-setup/elements/variable/EchoVariableView';
 import { FurniVariableView } from '#base/views/wired-setup/elements/variable/FurniVariableView';
 import { GlobalVariableView } from '#base/views/wired-setup/elements/variable/GlobalVariableView';
+import { PointerVariableView } from '#base/views/wired-setup/elements/variable/PointerVariableView';
 import { QuestChainVariableView } from '#base/views/wired-setup/elements/variable/QuestChainVariableView';
 import { QuestVariableView } from '#base/views/wired-setup/elements/variable/QuestVariableView';
 import { ReferenceVariableView } from '#base/views/wired-setup/elements/variable/ReferenceVariableView';
@@ -25,6 +26,7 @@ import { dailyTaskVariable } from './DailyTaskVariable';
 import { echoVariable } from './EchoVariable';
 import { furniVariable } from './FurniVariable';
 import { globalVariable } from './GlobalVariable';
+import { pointerVariable } from './PointerVariable';
 import { questChainVariable } from './QuestChainVariable';
 import { questVariable } from './QuestVariable';
 import { referenceVariable } from './ReferenceVariable';
@@ -40,4 +42,5 @@ export const variableElements: WiredElementEntry[] = [
     defineWiredElement(questChainVariable, QuestChainVariableView),
     defineWiredElement(echoVariable, EchoVariableView),
     defineWiredElement(dailyTaskVariable, DailyTaskVariableView),
+    defineWiredElement(pointerVariable, PointerVariableView),
 ];

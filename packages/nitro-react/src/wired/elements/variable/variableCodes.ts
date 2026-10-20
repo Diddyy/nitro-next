@@ -1,6 +1,6 @@
 /**
  * `variables/VariableCodes` mirrored whole - the `code` the server sends in a
- * `VariableDefinition`, values from the `.as` file. Three members are obfuscated in the 2026 dump;
+ * `VariableDefinition`, values from the `.as` file. Four members are obfuscated in the 2026 dumps;
  * their names here come from the element class that returns them (and its captions), given
  * beside each.
  */
@@ -18,4 +18,6 @@ export const VariableCodes = {
     ECHO_VARIABLE: 7,
     /** `§_-J27§` - `§_-34§`, the daily task variable (`variables.daily_task_name`). */
     DAILY_TASK_VARIABLE: 8,
+    /** `§_-S2o§` - `PointerVariable` (`wf_var_pointer`, WIN63-202610201032). */
+    POINTER_VARIABLE: 9,
 } as const;

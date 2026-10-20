@@ -24,6 +24,7 @@ export * from './UnseenEffect';
 export * from './UsernamePlaceholder';
 export * from './UserSelectorFilter';
 export * from './UserVariableFilter';
+export * from './VariableAddonSharing';
 export * from './VariableCapturer';
 export * from './VariableFilter';
 export * from './variablefx';
