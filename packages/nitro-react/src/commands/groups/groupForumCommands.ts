@@ -399,9 +399,14 @@ export const deleteGroupForumMessage = (send: Send, forum: IExtendedForumData, t
 /** `unDeleteMessage`. */
 export const undeleteGroupForumMessage = (send: Send, forum: IForumData, thread: number, messageId: number) => send(new ModerateMessageComposer({ groupId: forum.groupId, threadId: thread, messageId, state: GROUP_FORUM_STATE_SHOWN }));
 
-/** `GroupForumView._window`: where it is, so the windows it opens go beside it. */
+/** `GroupForumView._window`: where it is, so the windows it opens go beside it. Unchanged, nothing is written. */
 export const setGroupForumWindowRect = (rect: Partial<GroupForumSession['forumWindowRect']>) => {
-    patch({ forumWindowRect: { ...session().forumWindowRect, ...rect } });
+    const current = session().forumWindowRect;
+    const next = { ...current, ...rect };
+
+    if ((next.x === current.x) && (next.y === current.y) && (next.width === current.width)) return;
+
+    patch({ forumWindowRect: next });
 };
 
 /** `ComposeMessageView.dispose`. */

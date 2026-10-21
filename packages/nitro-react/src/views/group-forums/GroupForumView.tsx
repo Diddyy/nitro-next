@@ -173,6 +173,14 @@ export const GroupForumView = () => {
     const threadItem = useTemplate(THREAD_ITEM);
     const messageItem = useTemplate(MESSAGE_ITEM);
     const frame = useTemplateFrame({ id: 'group_forum', centered: true, rememberPosition: false, resizeDirection: 'all', onClose: () => closeGroupForum(send), onPositionChange: position => setGroupForumWindowRect(position) });
+    // The window's width as `arrange` last measured it. `arrange` runs while the template renders,
+    // where writing the store warns; it is written once the commit is done.
+    const windowWidthRef = useRef(0);
+
+    useLayoutEffect(() => {
+        if (windowWidthRef.current) setGroupForumWindowRect({ width: windowWidthRef.current });
+    });
+
     // The message rows' bottoms and the list's scroll range as `arrange` last laid them out.
     const messageRowsRef = useRef<{ bottoms: number[]; maxScroll: number }>({ bottoms: [], maxScroll: 0 });
     const [ messagesScrollV, setMessagesScrollV ] = useState<number | undefined>(undefined);
@@ -441,7 +449,7 @@ export const GroupForumView = () => {
     const arrange = ({ find, root }: TemplateWindows) => {
         const width = root()?.width;
 
-        if (width) setGroupForumWindowRect({ width });
+        if (width) windowWidthRef.current = width;
 
         const list = find('scrollable_message_list');
         const inner = innerList(list);
