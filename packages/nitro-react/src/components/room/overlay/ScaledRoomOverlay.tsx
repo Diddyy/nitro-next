@@ -24,7 +24,7 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { getLayoutSize, useRoomFramePlacement, useWindowPointerDrag } from '#base/hooks';
-import { Box, useLatest } from '#base/theme';
+import { Box, ClientToStage, useLatest } from '#base/theme';
 
 import { getRoomOverlayScale } from './getRoomOverlayScale';
 
@@ -114,8 +114,8 @@ export const ScaledRoomOverlay = ({ place, draggable = false, onDragged, alpha =
 
             if (!drag || !nodeRef.current) return;
 
-            const x = Math.round(drag.x + (moveEvent.clientX - drag.pointerX));
-            const y = Math.round(drag.y + (moveEvent.clientY - drag.pointerY));
+            const x = Math.round(drag.x + ClientToStage(moveEvent.clientX - drag.pointerX));
+            const y = Math.round(drag.y + ClientToStage(moveEvent.clientY - drag.pointerY));
             const { width, height } = getLayoutSize(nodeRef.current);
             const scale = nodeRef.current.scale.x;
 

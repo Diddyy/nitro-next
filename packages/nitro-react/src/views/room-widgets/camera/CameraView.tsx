@@ -31,7 +31,7 @@ import { useRoom } from '#base/context/room';
 import { useConfigValue, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnSecurityLevel } from '#base/context/user';
 import { GetSoundManager, HabboSoundTypesEnum } from '#base/sound';
-import { Region, TemplateBindings, TemplateWindow, TemplateWindows, useWindowActivation } from '#base/theme';
+import { GetDesktopSize, Region, TemplateBindings, TemplateWindow, TemplateWindows, useWindowActivation } from '#base/theme';
 
 import { CAMERA_IMAGE_SIZE, cameraAsset } from './cameraEffects';
 import { CanvasPicture } from './CanvasPicture';
@@ -107,7 +107,8 @@ export const CameraView = () => {
     const getLocalizationValue = useTranslation();
     const { zIndex, onPointerDown } = useWindowActivation('camera');
     // `_window.center()`: the window is its layout's 340 x 536 whether or not `slot_container` shows.
-    const position = { x: Math.max(0, Math.floor((window.innerWidth - WINDOW_WIDTH) / 2)), y: Math.max(0, Math.floor((window.innerHeight - WINDOW_FULL_HEIGHT) / 2)) };
+    const desktop = GetDesktopSize();
+    const position = { x: Math.max(0, Math.floor((desktop.width - WINDOW_WIDTH) / 2)), y: Math.max(0, Math.floor((desktop.height - WINDOW_FULL_HEIGHT) / 2)) };
     const [ , redraw ] = useState(0);
     const [ active, setActive ] = useState(0);
     const [ preview, setPreview ] = useState(false);

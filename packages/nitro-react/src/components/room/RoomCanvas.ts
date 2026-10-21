@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 
 import { getRoomObjectBeingPlaced, useRoom, useRoomMouseActions, useRoomStore } from '#base/context/room';
 import { useRoomCamera } from '#base/hooks';
-import { DOUBLE_CLICK_MS, useLatest } from '#base/theme';
+import { ClientToStage, DOUBLE_CLICK_MS, useLatest } from '#base/theme';
 
 import { touchPlacementDrop } from './touchPlacementDrop';
 
@@ -187,8 +187,9 @@ export const RoomCanvas = () => {
 
         let canvas = room.canvas;
 
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        // The stage's size, which is the window's in stage pixels (`PixiApplicationRoot`).
+        const width = Math.floor(GetRenderer().screen.width);
+        const height = Math.floor(GetRenderer().screen.height);
 
         if (!canvas) {
             canvas = room.getRoomCanvas(width, height, RoomGeometryScaleType.ZoomedIn);
@@ -208,8 +209,8 @@ export const RoomCanvas = () => {
         const resizeCanvas = () => {
             if (!room.canvas) return;
 
-            const width = window.innerWidth;
-            const height = window.innerHeight;
+            const width = Math.floor(renderer.screen.width);
+            const height = Math.floor(renderer.screen.height);
 
             /*
              * `RoomEngine.modifyRoomCanvas` only re-initializes the canvas; the next tick's camera
@@ -295,9 +296,9 @@ export const RoomCanvas = () => {
             if (type === MouseEventType.MOUSE_MOVE) didMouseMove = true;
             else isMouseDown = false;
 
-            handleRoomDragging(event.clientX, event.clientY, type, event.altKey, event.ctrlKey || event.metaKey, event.shiftKey);
+            handleRoomDragging(event.global.x, event.global.y, type, event.altKey, event.ctrlKey || event.metaKey, event.shiftKey);
 
-            mouseDataRef.current.mouseXY = { x: event.clientX, y: event.clientY };
+            mouseDataRef.current.mouseXY = { x: event.global.x, y: event.global.y };
         };
 
         // Over the room, its own `pointermove` already moved it.
@@ -313,7 +314,7 @@ export const RoomCanvas = () => {
 
             isMouseDown = false;
 
-            handleRoomDragging(event.clientX, event.clientY, MouseEventType.MOUSE_UP, false, false, false);
+            handleRoomDragging(ClientToStage(event.clientX), ClientToStage(event.clientY), MouseEventType.MOUSE_UP, false, false, false);
         };
 
         /*
@@ -343,8 +344,8 @@ export const RoomCanvas = () => {
 
         /** `isTouchPlacing`: the press puts the ghost under the finger, a drag moves it, lifting drops it. */
         const handleTouchPlacing = (event: FederatedPointerEvent) => {
-            const x = event.clientX;
-            const y = event.clientY;
+            const x = event.global.x;
+            const y = event.global.y;
 
             switch (event.type) {
                 case 'pointerdown':
@@ -414,8 +415,8 @@ export const RoomCanvas = () => {
             }
 
             dispatchMouseEvent(
-                event.clientX,
-                event.clientY,
+                event.global.x,
+                event.global.y,
                 eventType,
                 event.altKey,
                 event.ctrlKey || event.metaKey,

@@ -20,7 +20,7 @@ import { ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } 
 
 import { Box, BoxLayout } from './Box';
 import { useRevealWhenSettled } from './hooks';
-import { isModalDialogContainer, WindowPlacedContext } from './utils';
+import { ClientPointToStage, isModalDialogContainer, WindowPlacedContext } from './utils';
 
 /** Above every frame (their z-indices count up from 100), below the tooltip layer (100000). */
 const POPUP_Z_INDEX = 90000;
@@ -39,9 +39,9 @@ const isInsidePopup = (node: Container, event: PointerEvent): boolean => {
 
     if (!canvas) return true;
 
-    const rect = canvas.getBoundingClientRect();
+    const point = ClientPointToStage(canvas, event.clientX, event.clientY);
 
-    return node.getBounds().containsPoint(event.clientX - rect.left, event.clientY - rect.top);
+    return node.getBounds().containsPoint(point.x, point.y);
 };
 
 export const FloatingPopup = ({ x, y, onOutsideClick, layout, children }: FloatingPopupProps) => {

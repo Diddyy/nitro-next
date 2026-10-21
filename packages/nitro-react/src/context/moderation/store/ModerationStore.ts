@@ -20,6 +20,8 @@
 import type { IModeratorRoomInfoData, IModeratorUserInfoData, IRoomChatlogData, IRoomVisitsData, IUserClassificationData, ModeratorInitMessageType } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
+import { GetDesktopSize } from '#base/utils';
+
 /** `ChatlogCtrl`'s types: 4 a room's chatlog, 5 a user's (`ModerationMessageHandler.onRoomChatlog` / `onUserChatlog`). */
 export const MOD_CHATLOG_ROOM = 4;
 export const MOD_CHATLOG_USER = 5;
@@ -145,11 +147,12 @@ export const createModerationStore = () => createStore<ModerationStore>(set => (
 
         const { width, height } = WINDOW_SIZES[window.kind];
         const from = caller ? state.rects[caller] : undefined;
-        let x = from ? (below ? from.x : from.x + from.width + CALLER_GAP) : (globalThis.innerWidth - width) / 2;
-        let y = from ? (below ? from.y + from.height + CALLER_GAP : from.y) : (globalThis.innerHeight - height) / 2;
+        const desktop = GetDesktopSize();
+        let x = from ? (below ? from.x : from.x + from.width + CALLER_GAP) : (desktop.width - width) / 2;
+        let y = from ? (below ? from.y + from.height + CALLER_GAP : from.y) : (desktop.height - height) / 2;
 
-        x = Math.floor(Math.max(0, Math.min(x, globalThis.innerWidth - width)));
-        y = Math.floor(Math.max(0, Math.min(y, globalThis.innerHeight - height)));
+        x = Math.floor(Math.max(0, Math.min(x, desktop.width - width)));
+        y = Math.floor(Math.max(0, Math.min(y, desktop.height - height)));
 
         return { windows: [ ...state.windows, window ], rects: { ...state.rects, [key]: { x, y, width, height } } };
     }),

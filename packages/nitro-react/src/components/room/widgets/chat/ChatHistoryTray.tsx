@@ -10,7 +10,7 @@ import { useRoom } from '#base/context/room';
 import { useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { easeOutCubic, useRoomObjectSelect, useTween, useWindowPointerDrag } from '#base/hooks';
-import { LayoutImage, useLatest, useTextureFromUrl } from '#base/theme';
+import { ClientToStage, LayoutImage, useLatest, useTextureFromUrl } from '#base/theme';
 import { CHAT_HISTORY_LEFT_MARGIN, ChatHistoryEntryMeasure, ChatHistoryEntryView } from '#base/views/room-widgets/chat/ChatHistoryEntryView';
 
 /** `ChatHistoryTray._openedWidth`: `350 + 62 + 1`. */
@@ -326,7 +326,7 @@ export const ChatHistoryTray = () => {
 
         pointerDrag.start(event.pointerId, {
             onMove: (move) => {
-                const delta = move.clientY - startClientY;
+                const delta = ClientToStage(move.clientY - startClientY);
 
                 if (Math.abs(delta) > TAP_SLOP) dragged.current = true;
 
@@ -354,7 +354,7 @@ export const ChatHistoryTray = () => {
             onMove: (move) => {
                 const ratio = bufferHeightRef.current / Math.max(1, viewHeightRef.current);
 
-                setTopY(startTop + ((move.clientY - startClientY) * ratio));
+                setTopY(startTop + (ClientToStage(move.clientY - startClientY) * ratio));
             },
             onEnd: () => startSpringback(),
         });

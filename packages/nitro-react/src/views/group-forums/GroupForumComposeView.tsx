@@ -20,7 +20,7 @@ import { closeGroupForumCompose, getGroupForumSinceLastPost, GROUP_FORUM_MESSAGE
 import { useWebSocketContext } from '#base/context/communication';
 import { GROUP_FORUM_POST_COOLDOWN_MS, GroupForumCompose, useGroupActions } from '#base/context/groups';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { GetDesktopSize, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 const TEMPLATE = 'habbo-friend-bar-com/groupforum_compose_message_xml';
@@ -43,7 +43,7 @@ export const GroupForumComposeView = ({ compose }: { compose: GroupForumCompose 
     const { send } = useWebSocketContext();
     const { setForumCompose } = useGroupActions();
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
-    const position = { x: Math.max(0, Math.min(compose.x, window.innerWidth - WINDOW_WIDTH)), y: compose.y };
+    const position = { x: Math.max(0, Math.min(compose.x, GetDesktopSize().width - WINDOW_WIDTH)), y: compose.y };
     const frame = useTemplateFrame({ id: 'group_forum_compose', defaultPosition: position, rememberPosition: false, resizeDirection: 'all', onClose: closeGroupForumCompose });
     const forum: IExtendedForumData = compose.forum;
     const thread = compose.thread;

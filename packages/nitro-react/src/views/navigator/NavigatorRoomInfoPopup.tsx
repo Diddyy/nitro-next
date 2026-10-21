@@ -48,7 +48,7 @@ import { useGroupStore } from '#base/context/groups';
 import { useNavigatorStore } from '#base/context/navigator';
 import { useConfigBoolean, useConfigValue, useHomeRoomId, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useUserStore } from '#base/context/user';
-import { Box, findTemplateChild, FloatingPopup, TemplateBindings, TemplateItem, TemplateWindow, useLatest, useLayoutSize, useTemplate } from '#base/theme';
+import { Box, ClientPointToStage, findTemplateChild, FloatingPopup, TemplateBindings, TemplateItem, TemplateWindow, useLatest, useLayoutSize, useTemplate } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 /**
@@ -95,9 +95,7 @@ const useCloseWhenMouseLeaves = (bubble: RefObject<PixiContainer | null>, serial
 
             if (!canvas) return;
 
-            const rect = canvas.getBoundingClientRect();
-
-            pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+            pointer = ClientPointToStage(canvas, event.clientX, event.clientY);
         };
 
         const interval = window.setInterval(() => {

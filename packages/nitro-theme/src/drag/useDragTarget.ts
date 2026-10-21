@@ -1,6 +1,7 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
+import { ClientToStage } from '../utils/GetPixelRatio';
 import { DragTargetController } from './DragTargetContext';
 
 export interface DragTargetOptions {
@@ -80,7 +81,7 @@ export const useDragTarget = (enabled: boolean, { boundToParentRect = false, dro
         const move = (moveEvent: PointerEvent) => {
             if (moveEvent.pointerId !== pointerId) return;
 
-            const pointer = parent.toLocal({ x: startGlobal.x + (moveEvent.clientX - startClient.x), y: startGlobal.y + (moveEvent.clientY - startClient.y) });
+            const pointer = parent.toLocal({ x: startGlobal.x + ClientToStage(moveEvent.clientX - startClient.x), y: startGlobal.y + ClientToStage(moveEvent.clientY - startClient.y) });
             let next = {
                 x: startOffset.x + Math.trunc(pointer.x - grab.x),
                 y: startOffset.y + Math.trunc(pointer.y - grab.y),

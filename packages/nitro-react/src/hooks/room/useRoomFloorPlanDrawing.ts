@@ -1,7 +1,7 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useCallback, useRef } from 'react';
 
-import { getGlobalRect, useLatest } from '#base/theme';
+import { ClientToStage, getGlobalRect, useLatest } from '#base/theme';
 import {
     applyFloorPlanDraw, cloneFloorPlanModel, expandFloorPlanTo, FloorPlanDrawMode, FloorPlanModel, floorPlanScreenToTile,
     FloorPlanTile, resetFloorPlanRows,
@@ -85,7 +85,7 @@ export const useRoomFloorPlanDrawing = (options: RoomFloorPlanDrawingOptions) =>
         const tileAt = (clientX: number, clientY: number): FloorPlanTile => {
             const rect = getGlobalRect(node);
 
-            return floorPlanScreenToTile(clientX - rect.x, clientY - rect.y, optionsRef.current.zoom, draft.height);
+            return floorPlanScreenToTile(ClientToStage(clientX) - rect.x, ClientToStage(clientY) - rect.y, optionsRef.current.zoom, draft.height);
         };
 
         const draw = (x: number, y: number) => {

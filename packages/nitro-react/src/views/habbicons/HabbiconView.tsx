@@ -37,7 +37,7 @@ import { claimHabbicon, favoriteHabbicon, getHabbiconInfo, openHabbiconPurchaseC
 import { useWebSocketContext } from '#base/context/communication';
 import { buildHabbiconAlbum, findHabbiconEntryByHabbiconId, findHabbiconSetByCollectionId, getHabbiconAlbumProgressRatio, HabbiconAlbumModel, HabbiconEntryModel, HabbiconPopupMode, HabbiconPopupModeName, HabbiconSetModel, HabbiconTabMode, HabbiconTabModeName, hasHabbiconPrice, resolveHabbiconPopupMode, useHabbiconHubActions, useHabbiconsStore } from '#base/context/habbicons';
 import { useConfigData, useTranslation } from '#base/context/system';
-import { Box, getGlobalRect, TemplateRect, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { Box, ClientPointToStage, getGlobalRect, TemplateRect, TemplateWindow, useTemplateFrame } from '#base/theme';
 
 import { arrangeHabbiconTrayGroups, habbiconCollectionTrayBindings } from './habbiconCollectionTrayBindings';
 import { habbiconPopupBindings, placeHabbiconPopup } from './habbiconPopupBindings';
@@ -72,11 +72,7 @@ const findEntryById = (album: HabbiconAlbumModel, id: string): HabbiconEntryMode
 };
 
 /** Screen coordinates of a press, in the canvas's space - as `useOutsideClick` converts them. */
-const canvasPoint = (event: PointerEvent, canvas: HTMLCanvasElement) => {
-    const rect = canvas.getBoundingClientRect();
-
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
-};
+const canvasPoint = (event: PointerEvent, canvas: HTMLCanvasElement) => ClientPointToStage(canvas, event.clientX, event.clientY);
 
 const contains = (rect: { x: number; y: number; width: number; height: number }, point: { x: number; y: number }) => (point.x >= rect.x) && (point.y >= rect.y) && (point.x < (rect.x + rect.width)) && (point.y < (rect.y + rect.height));
 

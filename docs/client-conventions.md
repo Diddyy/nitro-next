@@ -211,6 +211,11 @@ which counts as a new warning at the verification gate.
   that opened it - or past a window, which clips its content anyway - is a `FloatingPopup` (the
   window layer, whole-area hit testing, `onOutsideClick`), placed with `getGlobalRect(anchor)`.
   An absolutely positioned child of a small box draws but answers only where it overlaps the box.
+- **DOM coordinates are not stage coordinates.** The canvas draws in the screen's own pixels at a
+  whole resolution, so at 125% or 150% Windows scaling a stage pixel is smaller than a CSS pixel.
+  Use a Pixi event's `global`; convert a native event's `clientX` / `clientY` (or a delta of them)
+  with `ClientToStage` / `ClientPointToStage`, and take the screen's size from `GetDesktopSize`
+  or `useViewportSize`, never `window.innerWidth` / `innerHeight`.
 - A passive `Box` is still a hit *target*: `EventBoundary.hitTestFn` reports a hit for any
   container carrying a `hitArea`, and the mode it tests is the one inherited from the nearest
   interactive ancestor, not the container's own. So a box that covers a sibling swallows that

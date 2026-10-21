@@ -2,7 +2,7 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useState } from 'react';
 
 import { useWindowPointerDrag } from '#base/hooks';
-import { LayoutImage, TemplateBindings, TemplateWindows } from '#base/theme';
+import { ClientToStage, LayoutImage, TemplateBindings, TemplateWindows } from '#base/theme';
 
 /** `slider_movement_area`'s width less `slider_button`'s: `_referenceWidth` (206 - 12). */
 const REFERENCE_WIDTH = 194;
@@ -103,7 +103,7 @@ export const useFurnitureSlider = ({ container, value, min, max, reportOnEveryEv
         const move = (moveEvent: PointerEvent) => {
             anyMove = true;
 
-            const pointerX = space.applyInverse({ x: startGlobal.x + (moveEvent.clientX - startClient.x), y: startGlobal.y + (moveEvent.clientY - startClient.y) }).x;
+            const pointerX = space.applyInverse({ x: startGlobal.x + ClientToStage(moveEvent.clientX - startClient.x), y: startGlobal.y + ClientToStage(moveEvent.clientY - startClient.y) }).x;
             const next = Math.min(REFERENCE_WIDTH, Math.max(0, startX + Math.trunc(pointerX - grabX)));
 
             if (next === current) return;

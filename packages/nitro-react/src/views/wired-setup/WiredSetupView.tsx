@@ -48,7 +48,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredHasWritePermission, useWiredMenuEnabled, useWiredSetupActions, useWiredStore, wiredClipboardKey, WiredSetupSession } from '#base/context/wired';
 import { useWiredActiveStyle, useWiredElementContext } from '#base/hooks';
-import { Border, Box, Frame, ScrollArea, useLayoutSize } from '#base/theme';
+import { Border, Box, Frame, GetDesktopSize, ScrollArea, useLayoutSize } from '#base/theme';
 import { ActionTypeCodes, getInputSourceState, hasWiredAdvancedSettings, hidesPickFurniInstructions, isDualFurniPickingMode, WIRED_SOURCE_MERGED } from '#base/wired';
 
 import { WiredActionDelaySection } from './kit/WiredActionDelaySection';
@@ -119,7 +119,7 @@ export const WiredSetupView = ({ setup }: WiredSetupViewProps) => {
     const headerSize = useLayoutSize(headerNode);
     const middleSize = useLayoutSize(middleNode);
     const footerSize = useLayoutSize(footerNode);
-    const [ screenHeight ] = useState(() => window.innerHeight);
+    const [ screenHeight ] = useState(() => GetDesktopSize().height);
 
     const frame = style.templates.frame;
     const menuAnchor = MENU_ANCHORS[frame.variant] ?? MENU_ANCHORS[0];

@@ -16,7 +16,7 @@ import { IWiredVariable } from '@nitrodevco/nitro-packets';
 import { ReactNode, useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { Border, Box, GlobalRect, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
+import { Border, Box, GetDesktopSize, GlobalRect, LayoutImage, Region, TextInput, ThemeImage, ThemeText } from '#base/theme';
 import { canSelectVariableNode, findPickerVariableByDisplayName, VARIABLE_PICKER_TAB_SEARCH, VARIABLE_PICKER_TABS, variableNodeListHeight, variableNodeListScrollbarWidth, variablePickerTabNodes, variablePickerTabWidths, WiredVariableFilter, WiredVariableNode } from '#base/wired';
 
 import { WiredVariablePickerNodeList } from './WiredVariablePickerNodeList';
@@ -79,7 +79,7 @@ export const WiredVariablePickerExpandedView = ({ x, y, width, borderVariant, pi
         let top = rowRect.y - y;
 
         // `initSublist`: a sub list that would leave the screen at the bottom moves up, but not above the picker.
-        const overflow = (y + top + variableNodeListHeight(childCount)) - window.innerHeight;
+        const overflow = (y + top + variableNodeListHeight(childCount)) - GetDesktopSize().height;
 
         if (overflow > 0) top = Math.max(0, top - overflow);
 

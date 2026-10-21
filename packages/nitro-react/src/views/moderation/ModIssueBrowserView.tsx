@@ -5,7 +5,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { bundleHighestPriority, bundleMessageCount, bundleOpenTime, bundlesOfTab, highestPriorityIssue, IssueBundleTab, useModerationIssueActions, useModerationIssueStore } from '#base/context/moderation';
 import { useUserStore } from '#base/context/user';
 import { useClock } from '#base/hooks';
-import { findTemplateChild, LayoutImage, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
+import { findTemplateChild, GetDesktopSize, LayoutImage, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 import { issueCategoryName, issueSourceName } from './issueNames';
 
@@ -45,7 +45,7 @@ export const ModIssueBrowserView = () => {
     // `createMainFrame`: centred on the desktop.
     const [ frame ] = useState(() => ({
         id: 'moderation-issue-browser',
-        defaultPosition: { x: Math.floor((globalThis.innerWidth - BROWSER_WIDTH) / 2), y: Math.floor((globalThis.innerHeight - BROWSER_HEIGHT) / 2) },
+        defaultPosition: { x: Math.floor((GetDesktopSize().width - BROWSER_WIDTH) / 2), y: Math.floor((GetDesktopSize().height - BROWSER_HEIGHT) / 2) },
         rememberPosition: false,
         onClose: () => showBrowser(false),
     }));

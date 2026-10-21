@@ -1,23 +1,31 @@
 /**
- * The window's size, for layout that depends on it - what Flash read off `desktop.width` and
- * `desktop.height`. Reading `window.innerWidth` during render is impure; this is the same value
- * behind a subscription, so a component re-renders on resize and nowhere else.
+ * The window's size in stage pixels, for layout that depends on it - what Flash read off
+ * `desktop.width` and `desktop.height` (`GetDesktopSize`). Reading it during render is impure; this
+ * is the same value behind a subscription, so a component re-renders when the stage is resized and
+ * nowhere else. The stage, not the window: it follows the window a moment later, in screen pixels.
  */
+import { GetRenderer } from '@nitrodevco/nitro-renderer';
 import { useSyncExternalStore } from 'react';
+
+import { GetDesktopSize } from '#base/utils';
 
 export interface ViewportSize {
     width: number;
     height: number;
 }
 
-/** One object per size, so a render that reads it sees the same reference until the window resizes. */
-let size: ViewportSize = { width: window.innerWidth, height: window.innerHeight };
+/** One object per size, so a render that reads it sees the same reference until the stage resizes. */
+let size: ViewportSize | undefined;
 const listeners = new Set<() => void>();
 
-const onResize = () => {
-    if ((size.width === window.innerWidth) && (size.height === window.innerHeight)) return;
+const getSize = (): ViewportSize => (size ??= GetDesktopSize());
 
-    size = { width: window.innerWidth, height: window.innerHeight };
+const onResize = () => {
+    const next = GetDesktopSize();
+
+    if (size && (size.width === next.width) && (size.height === next.height)) return;
+
+    size = next;
 
     for (const listener of listeners) listener();
 };
@@ -25,13 +33,20 @@ const onResize = () => {
 const subscribe = (onChange: () => void) => {
     listeners.add(onChange);
 
-    if (listeners.size === 1) window.addEventListener('resize', onResize);
+    // The window's resize too, should this subscribe before the renderer is up.
+    if (listeners.size === 1) {
+        GetRenderer()?.on('resize', onResize);
+        window.addEventListener('resize', onResize);
+    }
 
     return () => {
         listeners.delete(onChange);
 
-        if (!listeners.size) window.removeEventListener('resize', onResize);
+        if (listeners.size) return;
+
+        GetRenderer()?.off('resize', onResize);
+        window.removeEventListener('resize', onResize);
     };
 };
 
-export const useViewportSize = () => useSyncExternalStore(subscribe, () => size);
+export const useViewportSize = () => useSyncExternalStore(subscribe, getSize);

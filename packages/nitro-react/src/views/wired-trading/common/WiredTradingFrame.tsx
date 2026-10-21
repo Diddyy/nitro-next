@@ -12,7 +12,7 @@
  */
 import { ReactNode, useState } from 'react';
 
-import { Box, Frame } from '#base/theme';
+import { Box, Frame, GetDesktopSize } from '#base/theme';
 import { WiredScrollList } from '#base/views/wired-setup/kit/WiredScrollList';
 import { WiredSpacer } from '#base/views/wired-setup/kit/WiredSpacer';
 import { WiredStyleProvider } from '#base/views/wired-setup/kit/WiredStyleContext';
@@ -43,7 +43,11 @@ export interface WiredTradingFrameProps {
 }
 
 export const WiredTradingFrame = ({ id, title, width, scroll, xOffsetFromCenter = 0, rememberLocation = false, openOffset, onClose, parts }: WiredTradingFrameProps) => {
-    const [ centeredAt ] = useState(() => ({ x: Math.max(0, Math.round((window.innerWidth - width) / 2) + xOffsetFromCenter + (openOffset?.x ?? 0)), y: Math.max(0, Math.round((window.innerHeight - 300) / 2) + (openOffset?.y ?? 0)) }));
+    const [ centeredAt ] = useState(() => {
+        const desktop = GetDesktopSize();
+
+        return { x: Math.max(0, Math.round((desktop.width - width) / 2) + xOffsetFromCenter + (openOffset?.x ?? 0)), y: Math.max(0, Math.round((desktop.height - 300) / 2) + (openOffset?.y ?? 0)) };
+    });
     const shown = parts.filter(part => (part !== null) && (part !== false) && (part !== undefined));
     const contentWidth = width - (FRAME_MARGIN_SIDE * 2);
     const style = UBUNTU_WIRED_STYLE;

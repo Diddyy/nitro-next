@@ -19,7 +19,7 @@ import { closeGroupForumSettings, openClientLink, updateGroupForumSettings } fro
 import { useWebSocketContext } from '#base/context/communication';
 import { GroupForumSettings } from '#base/context/groups';
 import { useConfigValue } from '#base/context/system';
-import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { GetDesktopSize, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 
 const TEMPLATE = 'habbo-friend-bar-com/groupforum_forum_settings_xml';
 const WINDOW_WIDTH = 350;
@@ -49,7 +49,7 @@ export const GroupForumSettingsView = ({ settings }: { settings: GroupForumSetti
     const { send } = useWebSocketContext();
     const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
     const forum = settings.forum;
-    const position = { x: Math.max(0, Math.min(settings.x, window.innerWidth - WINDOW_WIDTH)), y: settings.y };
+    const position = { x: Math.max(0, Math.min(settings.x, GetDesktopSize().width - WINDOW_WIDTH)), y: settings.y };
     const frame = useTemplateFrame({ id: 'group_forum_settings', defaultPosition: position, rememberPosition: false, resizeDirection: 'y', onClose: closeGroupForumSettings });
     const [ choices, setChoices ] = useState<{ forum: GroupForumSettings['forum']; value: Choices }>(() => ({ forum, value: chain({ read: forum.readPermissions, postMessage: forum.postMessagePermissions, postThread: forum.postThreadPermissions, moderate: forum.moderatePermissions }) }));
 

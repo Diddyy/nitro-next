@@ -26,6 +26,7 @@ import { FloatingPopup } from './FloatingPopup';
 import { placeExpandedDropmenu } from './utils/dropmenuPlacement';
 import { expandSides } from './utils/expandSides';
 import { getGlobalRect } from './utils/getGlobalRect';
+import { GetDesktopSize } from './utils/GetPixelRatio';
 import { TextStyleKey } from './utils/textStyles';
 
 /** The closed menu's caption keeps clear of the arrow. */
@@ -149,7 +150,7 @@ export const Dropmenu = ({
 
         setOpen({
             anchor: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-            desktop: { width: window.innerWidth, height: window.innerHeight },
+            desktop: GetDesktopSize(),
         });
         onOpenChange?.(true);
     };

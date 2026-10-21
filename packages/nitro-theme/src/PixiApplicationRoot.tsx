@@ -13,7 +13,7 @@ import { ReactNode, useCallback, useRef } from 'react';
 
 import { useThemeConfigValue } from './host';
 import { setAdvancedBlendModes } from './utils/flashBlendMode';
-import { GetCanvasImageRendering, GetPixelRatio } from './utils/GetPixelRatio';
+import { GetCanvasImageRendering, GetDeviceRatio, GetPixelRatio, SetDesktopSize, SetStagePixelScale } from './utils/GetPixelRatio';
 import { guardGpuLoss } from './utils/gpuLossGuard';
 import { guardLayoutViewSizes } from './utils/layoutViewSizeGuard';
 import { gateLayoutWalk } from './utils/layoutWalkGate';
@@ -65,18 +65,118 @@ const applyCanvasColorSpace = (app: PixiApplication, colorSpace: string | undefi
 };
 
 /**
+ * Reports the canvas's box in the screen's own pixels as it changes, where the browser can (not
+ * Safari); false where it cannot.
+ */
+const observeDevicePixelSize = (canvas: HTMLCanvasElement, onChange: (size: { width: number; height: number }) => void): boolean => {
+    if ((typeof ResizeObserver !== 'function') || (typeof ResizeObserverEntry !== 'function') || !('devicePixelContentBoxSize' in ResizeObserverEntry.prototype)) return false;
+
+    const observer = new ResizeObserver((entries) => {
+        const box = entries[entries.length - 1]?.devicePixelContentBoxSize?.[0];
+
+        if (box) onChange({ width: box.inlineSize, height: box.blockSize });
+    });
+
+    try {
+        observer.observe(canvas, { box: 'device-pixel-content-box' });
+    } catch {
+        observer.disconnect();
+
+        return false;
+    }
+
+    return true;
+};
+
+/**
  * Keeps the renderer at `GetPixelRatio` as the device ratio changes - the browser zoomed, the window
  * moved to another screen - as Habbo's JS port checks it every tick; here a media query for the
  * current ratio says when it stops matching, and every resize checks it again.
+ *
+ * The window's canvas (`fitsWindow`) keeps its CSS box over the whole window and its backing store
+ * at that box's size in screen pixels, so nothing is resampled on the way to the screen; the stage
+ * is that size over the resolution. Where the browser does not report the box in screen pixels its
+ * CSS size times the ratio stands in. A canvas the app sizes itself stays in CSS pixels (`autoDensity`).
  */
-const followPixelRatio = (app: PixiApplication) => {
-    const apply = () => {
-        const resolution = GetPixelRatio();
+const followPixelRatio = (app: PixiApplication, fitsWindow: boolean) => {
+    let deviceSize: { width: number; height: number } | undefined;
+    let resizing = false;
 
-        app.canvas.style.imageRendering = GetCanvasImageRendering();
+    /**
+     * `renderer.resize`, with the screen brought up to date when only the resolution changed. Pixi's
+     * `TextureSource.resize` skips its resize event when the pixel size stays the same - a browser
+     * zoom: the same screen pixels, more or fewer stage pixels - so the canvas texture's frame, and
+     * the screen read off it, kept the old size: the stage laid out for one size and the pointer
+     * mapped for another. The texture reads its frame again, and the second resize tells the
+     * listeners the size the first one could not.
+     */
+    const resize = (width: number, height: number, resolution: number) => {
+        const { renderer } = app;
+        const { texture } = renderer.view;
 
-        if (resolution !== app.renderer.resolution) app.renderer.resize(app.renderer.screen.width, app.renderer.screen.height, resolution);
+        resizing = true;
+
+        try {
+            renderer.resize(width, height, resolution);
+
+            if ((renderer.screen.width === texture.source.width) && (renderer.screen.height === texture.source.height)) return;
+
+            texture.update();
+            renderer.resize(width, height, resolution);
+        } finally {
+            resizing = false;
+        }
     };
+
+    /** True when the renderer was resized. */
+    const apply = (): boolean => {
+        // The resize's own event, before it is finished.
+        if (resizing) return false;
+
+        const ratio = GetDeviceRatio();
+        const resolution = GetPixelRatio();
+        const { renderer } = app;
+
+        app.canvas.style.imageRendering = GetCanvasImageRendering(fitsWindow);
+
+        if (!fitsWindow) {
+            SetStagePixelScale(1);
+            SetDesktopSize(undefined);
+
+            if (resolution === renderer.resolution) return false;
+
+            resize(renderer.screen.width, renderer.screen.height, resolution);
+
+            return true;
+        }
+
+        SetStagePixelScale(ratio / resolution);
+
+        const width = Math.max(1, deviceSize?.width ?? Math.round(window.innerWidth * ratio)) / resolution;
+        const height = Math.max(1, deviceSize?.height ?? Math.round(window.innerHeight * ratio)) / resolution;
+
+        // Before the resize, so what its listeners read is the new size.
+        SetDesktopSize({ width: Math.floor(width), height: Math.floor(height) });
+
+        if ((width === renderer.screen.width) && (height === renderer.screen.height) && (resolution === renderer.resolution)) return false;
+
+        resize(width, height, resolution);
+
+        return true;
+    };
+
+    if (fitsWindow) {
+        observeDevicePixelSize(app.canvas, (size) => {
+            deviceSize = size;
+
+            // The observer reports after the frame was drawn: resizing cleared the canvas, so it is
+            // drawn again before the browser shows it empty.
+            if (apply()) app.render();
+        });
+        // Sizes the canvas where the observer cannot, and catches a browser zoom, which changes the
+        // ratio but not the screen pixels the canvas covers (so the observer may not report).
+        window.addEventListener('resize', () => apply());
+    }
 
     const listen = () => {
         if (typeof window.matchMedia !== 'function') return;
@@ -125,6 +225,7 @@ export const PixiApplicationRoot = ({ onReady, onInit, onGpuLost, resizeTo = win
     const readyRef = useRef(false);
     const colorSpace = useThemeConfigValue<string>(COLOR_SPACE_KEY);
     const renderOnDemand = (useThemeConfigValue<boolean>(RENDER_ON_DEMAND_KEY) !== false);
+    const fitsWindow = (resizeTo === window);
 
     const handleInit = useCallback((app: PixiApplication) => {
         if (readyRef.current) return;
@@ -136,7 +237,7 @@ export const PixiApplicationRoot = ({ onReady, onInit, onGpuLost, resizeTo = win
         // without it a finger dragged across the canvas is the browser's pan or zoom, which cancels
         // the pointer a few pixels in and leaves the room (or any drag) stuck.
         app.canvas.style.touchAction = 'none';
-        followPixelRatio(app);
+        followPixelRatio(app, fitsWindow);
 
         SetRenderer(app.renderer);
         setAdvancedBlendModes(app.renderer);
@@ -167,14 +268,15 @@ export const PixiApplicationRoot = ({ onReady, onInit, onGpuLost, resizeTo = win
         if (renderOnDemand) gateRendering(app);
 
         onReady();
-    }, [ onReady, onInit, onGpuLost, colorSpace, canvasStyle, renderOnDemand ]);
+    }, [ onReady, onInit, onGpuLost, colorSpace, canvasStyle, renderOnDemand, fitsWindow ]);
 
     return (
         <Application
             onInit={handleInit}
-            resizeTo={resizeTo ?? undefined}
             resolution={GetPixelRatio()}
-            autoDensity={true}
+            // The window's canvas is sized in screen pixels by `followPixelRatio`, its CSS box left
+            // over the whole window; any other is sized by the app, in CSS pixels.
+            autoDensity={!fitsWindow}
             backgroundAlpha={0}
             roundPixels={false}
             preference="webgpu"

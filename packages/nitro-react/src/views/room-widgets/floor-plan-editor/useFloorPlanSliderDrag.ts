@@ -1,7 +1,7 @@
 import { FederatedPointerEvent } from 'pixi.js';
 
 import { useWindowPointerDrag } from '#base/hooks';
-import { getGlobalRect, useLatest } from '#base/theme';
+import { ClientToStage, getGlobalRect, useLatest } from '#base/theme';
 
 /**
  * The floor plan editor's two drag bars - `BCFloorPlanEditor.colorMapWindowProcedure` on
@@ -21,7 +21,7 @@ export const useFloorPlanSliderDrag = (steps: number, width: number, onChange: (
         if (disabled || (event.button !== 0)) return;
 
         const left = getGlobalRect(event.currentTarget).x;
-        const pick = (clientX: number) => onChangeRef.current(Math.trunc(((clientX - left) / width) * steps));
+        const pick = (clientX: number) => onChangeRef.current(Math.trunc(((ClientToStage(clientX) - left) / width) * steps));
 
         pointerDrag.start(event.pointerId, { onMove: move => pick(move.clientX) });
 

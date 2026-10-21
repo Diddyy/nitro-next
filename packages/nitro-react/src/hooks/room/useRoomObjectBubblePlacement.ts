@@ -19,7 +19,7 @@ import { Container as PixiContainer, PointData, Rectangle } from 'pixi.js';
 import { RefObject, useLayoutEffect, useRef } from 'react';
 
 import { useRoom } from '#base/context/room';
-import { useLatest } from '#base/theme';
+import { GetDesktopSize, useLatest } from '#base/theme';
 import { FixedSizeStack } from '#base/utils';
 
 import { getLayoutSize, useRoomFramePlacement } from './useRoomFramePlacement';
@@ -107,8 +107,9 @@ export const useRoomObjectBubblePlacement = (bubbleRef: RefObject<PixiContainer 
         let y = Math.max((location.y - highest) + offset, lowest);
 
         if (keepOnScreen) {
-            const maxLeft = ((window.innerWidth - nodeWidth) - SPACE_AROUND_EDGES);
-            const maxTop = ((window.innerHeight - nodeHeight) - SPACE_AROUND_EDGES);
+            const desktop = GetDesktopSize();
+            const maxLeft = ((desktop.width - nodeWidth) - SPACE_AROUND_EDGES);
+            const maxTop = ((desktop.height - nodeHeight) - SPACE_AROUND_EDGES);
 
             if (x < SPACE_AROUND_EDGES) x = SPACE_AROUND_EDGES;
             else if (x > maxLeft) x = maxLeft;

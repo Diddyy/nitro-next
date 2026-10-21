@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ScrollControllerOptions } from '../scroll';
 import { clamp } from '../utils/clamp';
+import { ClientToStage } from '../utils/GetPixelRatio';
 import { useLatest } from './useLatest';
 import { useLayoutEvent } from './useLayoutEvent';
 
@@ -174,7 +175,7 @@ export const useScrollController = ({
         const worldScale = world ? (isVertical ? Math.hypot(world.c, world.d) : Math.hypot(world.a, world.b)) : 1;
 
         dragOriginRef.current = {
-            pointer: isVertical ? event.clientY : event.clientX,
+            pointer: ClientToStage(isVertical ? event.clientY : event.clientX),
             scroll: scrollOffsetRef.current,
             availableTrack: Math.max(0, computedSize(trackNode, sizeAxis) - metricsRef.current.thumbSize),
             scrollMax: liveScrollMax(),
@@ -185,7 +186,7 @@ export const useScrollController = ({
             const origin = dragOriginRef.current;
             if (!origin) return;
 
-            const pointer = isVertical ? moveEvent.clientY : moveEvent.clientX;
+            const pointer = ClientToStage(isVertical ? moveEvent.clientY : moveEvent.clientX);
             const delta = origin.availableTrack > 0 ? (((pointer - origin.pointer) / origin.scale) / origin.availableTrack) * origin.scrollMax : 0;
             setScrollOffset(clamp(origin.scroll + delta, 0, origin.scrollMax));
         };

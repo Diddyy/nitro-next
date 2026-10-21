@@ -26,7 +26,7 @@ import { useCameraStore } from '#base/context/camera';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { useWindowPointerDrag } from '#base/hooks';
-import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLatest, useTemplate, useTemplateFrame } from '#base/theme';
+import { ClientToStage, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLatest, useTemplate, useTemplateFrame } from '#base/theme';
 import { buildRenderRoomMessageData, twoDigits } from '#base/utils';
 
 import { CAMERA_IMAGE_SIZE, cameraAsset, CameraEffectDefinition, cloneCanvas, drawEffect, getAvailableEffects, loadEffectImage, zoomCanvas } from './cameraEffects';
@@ -228,7 +228,7 @@ const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
 
         pointerDrag.start(event.pointerId, {
             onMove: (move) => {
-                value = Math.max(0, Math.min(SLIDER_SCALE, startValue + (move.clientX - startX)));
+                value = Math.max(0, Math.min(SLIDER_SCALE, startValue + ClientToStage(move.clientX - startX)));
                 setDragValue(value);
             },
             onEnd: () => {

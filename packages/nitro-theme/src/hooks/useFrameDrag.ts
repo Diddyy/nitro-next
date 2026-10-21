@@ -2,7 +2,7 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { themeHost, useThemeWindowZIndex } from '../host';
-import { clamp, getGlobalRect } from '../utils';
+import { clamp, ClientToStage, GetDesktopSize, getGlobalRect } from '../utils';
 import { getStoredFramePosition, setStoredFramePosition } from '../utils/frameStorage';
 import { useLayoutEvent } from './useLayoutEvent';
 import { useRevealWhenSettled } from './useRevealWhenSettled';
@@ -131,9 +131,10 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
 
         // `WindowController.center`: `parent.width / 2 - width / 2` into the int `x`, so a frame wider or
         // taller than the desktop hangs over both edges (a frame is not `bound_to_parent_rect`).
+        const desktop = GetDesktopSize();
         const next = {
-            dx: Math.trunc((window.innerWidth - rect.width) / 2),
-            dy: Math.trunc((window.innerHeight - rect.height) / 2),
+            dx: Math.trunc((desktop.width - rect.width) / 2),
+            dy: Math.trunc((desktop.height - rect.height) / 2),
         };
 
         const last = latestOffsetRef.current;
@@ -161,8 +162,8 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
 
         dragStateRef.current = {
             pointerId: event.pointerId,
-            startX: event.clientX,
-            startY: event.clientY,
+            startX: ClientToStage(event.clientX),
+            startY: ClientToStage(event.clientY),
             startGlobalX: rect.x,
             startGlobalY: rect.y,
             width: rect.width,
@@ -175,11 +176,12 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
 
             if (!dragState || moveEvent.pointerId !== dragState.pointerId) return;
 
-            const dx = Math.floor(moveEvent.clientX - dragState.startX);
-            const dy = Math.floor(moveEvent.clientY - dragState.startY);
+            const dx = Math.floor(ClientToStage(moveEvent.clientX) - dragState.startX);
+            const dy = Math.floor(ClientToStage(moveEvent.clientY) - dragState.startY);
+            const desktop = GetDesktopSize();
 
-            const newLeft = Math.floor(clamp(dragState.startGlobalX + dx, MIN_VISIBLE - dragState.width, window.innerWidth - MIN_VISIBLE));
-            const newTop = Math.floor(clamp(dragState.startGlobalY + dy, 0, window.innerHeight - MIN_VISIBLE));
+            const newLeft = Math.floor(clamp(dragState.startGlobalX + dx, MIN_VISIBLE - dragState.width, desktop.width - MIN_VISIBLE));
+            const newTop = Math.floor(clamp(dragState.startGlobalY + dy, 0, desktop.height - MIN_VISIBLE));
 
             const next = {
                 dx: dragState.origDx + (newLeft - dragState.startGlobalX),

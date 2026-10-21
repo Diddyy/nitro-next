@@ -1,7 +1,7 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 
-import { clamp, getGlobalRect } from '../utils';
+import { clamp, ClientToStage, GetDesktopSize, getGlobalRect } from '../utils';
 import { clearStoredFrameSize, FrameSize, getStoredFrameSize, setStoredFrameSize } from '../utils/frameStorage';
 
 export type FrameResizeDirection = 'x' | 'y' | 'all' | 'none';
@@ -93,17 +93,19 @@ export const useFrameResize = (
 
         latestSizeRef.current = null;
 
+        const desktop = GetDesktopSize();
+
         resizeStateRef.current = {
             pointerId: event.pointerId,
-            startX: event.clientX,
-            startY: event.clientY,
+            startX: ClientToStage(event.clientX),
+            startY: ClientToStage(event.clientY),
             startWidth,
             startHeight,
             minWidth: Math.max(minSize.width, MIN_SIZE),
             minHeight: Math.max(minSize.height, MIN_SIZE),
             // The caller's own limit (a layout's `width_max`) wins over the viewport edge.
-            maxWidth: Math.min(maxSize.width ?? Infinity, Math.max(startWidth, window.innerWidth - rect.x)),
-            maxHeight: Math.min(maxSize.height ?? Infinity, Math.max(startHeight, window.innerHeight - rect.y)),
+            maxWidth: Math.min(maxSize.width ?? Infinity, Math.max(startWidth, desktop.width - rect.x)),
+            maxHeight: Math.min(maxSize.height ?? Infinity, Math.max(startHeight, desktop.height - rect.y)),
             moved: false,
         };
 
@@ -113,18 +115,18 @@ export const useFrameResize = (
             if (!resizeState || moveEvent.pointerId !== resizeState.pointerId) return;
 
             if (!resizeState.moved) {
-                if (distance(moveEvent.clientX, moveEvent.clientY, resizeState.startX, resizeState.startY) < DRAG_THRESHOLD) return;
+                if (distance(ClientToStage(moveEvent.clientX), ClientToStage(moveEvent.clientY), resizeState.startX, resizeState.startY) < DRAG_THRESHOLD) return;
 
                 resizeState.moved = true;
             }
 
             const width = direction === 'y'
                 ? resizeState.startWidth
-                : clamp(resizeState.startWidth + (moveEvent.clientX - resizeState.startX), resizeState.minWidth, resizeState.maxWidth);
+                : clamp(resizeState.startWidth + (ClientToStage(moveEvent.clientX) - resizeState.startX), resizeState.minWidth, resizeState.maxWidth);
 
             const height = direction === 'x'
                 ? resizeState.startHeight
-                : clamp(resizeState.startHeight + (moveEvent.clientY - resizeState.startY), resizeState.minHeight, resizeState.maxHeight);
+                : clamp(resizeState.startHeight + (ClientToStage(moveEvent.clientY) - resizeState.startY), resizeState.minHeight, resizeState.maxHeight);
 
             const next: FrameSize = { width: Math.round(width), height: Math.round(height) };
 
