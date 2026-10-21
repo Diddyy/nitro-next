@@ -12,7 +12,6 @@ let renderer: Renderer;
 TextureSource.defaultOptions.scaleMode = 'nearest';
 
 const ApplyTextureDefaults = () => {
-    TextureSource.defaultOptions.scaleMode = 'nearest';
     // Additive sprites batch with normal ones (`AdditiveBatcher`; also installed when it loads).
     installAdditiveBatcher();
 };

@@ -67,8 +67,6 @@ export const renderChatBubbleText = (markup: string, fontFace: string, fontSize:
     // Owned by the bubble and destroyed with it - kept out of Pixi's global `Cache`.
     const texture = Texture.from(rendered.canvas, true);
 
-    texture.source.scaleMode = 'nearest';
-
     const lineCount = (rendered.lineHeight > 0) ? Math.max(1, Math.round(rendered.textHeight / rendered.lineHeight)) : 1;
 
     const linked = { ...rendered, links };

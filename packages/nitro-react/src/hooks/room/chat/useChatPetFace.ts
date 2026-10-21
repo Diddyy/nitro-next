@@ -94,7 +94,6 @@ export const useChatPetFace = (figure: string | undefined, posture: string | und
             promise = renderPetFace(new PetFigureData(figure), posture, scale, direction, headOnly).then((texture) => {
                 if (!texture) return undefined;
 
-                texture.source.scaleMode = 'nearest';
                 storeFace(cacheKey, texture);
 
                 return texture;

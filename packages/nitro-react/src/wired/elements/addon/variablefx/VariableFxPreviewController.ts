@@ -182,7 +182,6 @@ export class VariableFxPreviewController {
             texture.source.update();
         } else {
             texture = Texture.from(this._canvas, true);
-            texture.source.scaleMode = 'nearest';
             texture.label = 'variable_fx_preview';
         }
 

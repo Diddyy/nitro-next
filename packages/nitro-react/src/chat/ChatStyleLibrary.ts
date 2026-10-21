@@ -101,11 +101,6 @@ export class ChatStyleLibrary {
             if (style) this._styles.set(style.id, style);
         }
 
-        // Every bubble bitmap is pixel art stretched through a nine-slice - never filter it.
-        for (const style of this._styles.values()) {
-            for (const texture of style.textures) texture.source.scaleMode = 'nearest';
-        }
-
         this._isLoaded = true;
 
         // Every style is built; the catalogue behind them is not read again.

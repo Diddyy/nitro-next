@@ -10,8 +10,6 @@ import { useLatest } from '#base/theme';
 import { destroyOwnedTexture } from '#base/utils';
 
 export interface EngineTextureOptions {
-    /** Draw the texture with nearest-neighbour sampling, as the pet renders want. */
-    nearest?: boolean;
     /** Runs when a render the engine finished later (an asset was downloading) arrives - Flash's `imageReady`. */
     onTextureReady?: () => void;
 }
@@ -52,8 +50,6 @@ export const useOwnedEngineTexture = (key: string | undefined, request: (listene
 
                 return;
             }
-
-            if (optionsRef.current.nearest) next.source.scaleMode = 'nearest';
 
             ownedRef.current.add(next);
             latestRef.current = next;

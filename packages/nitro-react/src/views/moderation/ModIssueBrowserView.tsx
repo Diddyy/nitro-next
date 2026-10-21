@@ -43,12 +43,16 @@ export const ModIssueBrowserView = () => {
     const template = useTemplate(TEMPLATE);
     const now = useClock('monotonic', UPDATE_INTERVAL_MS);
     // `createMainFrame`: centred on the desktop.
-    const [ frame ] = useState(() => ({
-        id: 'moderation-issue-browser',
-        defaultPosition: { x: Math.floor((GetDesktopSize().width - BROWSER_WIDTH) / 2), y: Math.floor((GetDesktopSize().height - BROWSER_HEIGHT) / 2) },
-        rememberPosition: false,
-        onClose: () => showBrowser(false),
-    }));
+    const [ frame ] = useState(() => {
+        const desktop = GetDesktopSize();
+
+        return {
+            id: 'moderation-issue-browser',
+            defaultPosition: { x: Math.floor((desktop.width - BROWSER_WIDTH) / 2), y: Math.floor((desktop.height - BROWSER_HEIGHT) / 2) },
+            rememberPosition: false,
+            onClose: () => showBrowser(false),
+        };
+    });
 
     if (!template) return null;
 

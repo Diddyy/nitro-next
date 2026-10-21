@@ -49,7 +49,6 @@ const getThemeTexture = (key: string | undefined): Texture | undefined => (key ?
 export const textureFromCanvas = (canvas: HTMLCanvasElement, label: string): Texture => {
     const texture = Texture.from(canvas, true);
 
-    texture.source.scaleMode = 'nearest';
     texture.label = label;
 
     return texture;

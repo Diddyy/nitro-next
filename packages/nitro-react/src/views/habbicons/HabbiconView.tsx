@@ -71,9 +71,6 @@ const findEntryById = (album: HabbiconAlbumModel, id: string): HabbiconEntryMode
     return undefined;
 };
 
-/** Screen coordinates of a press, in the canvas's space - as `useOutsideClick` converts them. */
-const canvasPoint = (event: PointerEvent, canvas: HTMLCanvasElement) => ClientPointToStage(canvas, event.clientX, event.clientY);
-
 const contains = (rect: { x: number; y: number; width: number; height: number }, point: { x: number; y: number }) => (point.x >= rect.x) && (point.y >= rect.y) && (point.x < (rect.x + rect.width)) && (point.y < (rect.y + rect.height));
 
 export const HabbiconView = ({ onClose }: { onClose: () => void }) => {
@@ -152,7 +149,7 @@ export const HabbiconView = ({ onClose }: { onClose: () => void }) => {
 
             if (!canvas || (performance.now() <= (popup.shownAt + POPUP_PRESS_GRACE_MS))) return;
 
-            const point = canvasPoint(event, canvas);
+            const point = ClientPointToStage(canvas, event.clientX, event.clientY);
             const popupRect = popupRectRef.current;
 
             if (layerNode && !layerNode.destroyed && popupRect) {

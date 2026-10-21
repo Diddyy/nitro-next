@@ -36,5 +36,5 @@ export const usePetImageTexture = (request: PetImageRequest | undefined, onImage
         undefined,
         undefined,
         posture || undefined,
-    ), { nearest: true, onTextureReady: onImageReady });
+    ), { onTextureReady: onImageReady });
 };

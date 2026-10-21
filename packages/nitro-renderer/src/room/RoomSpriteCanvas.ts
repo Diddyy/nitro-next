@@ -43,6 +43,9 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
     private _background: Sprite | undefined = undefined;
     private _downsampleFilter: RoomDownsampleFilter | undefined = undefined;
     private _compositeZoom: boolean = false;
+    /** `drawnRoomSpriteShift` on each axis for this frame: where every sprite's picture is drawn, in screen pixels from its x / y. */
+    private _drawShiftX: number = 0;
+    private _drawShiftY: number = 0;
 
     private _sortableSprites: SortableSprite[] = [];
     private _spriteCount: number = 0;
@@ -424,6 +427,13 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             update = true;
         }
 
+        // One shift moves the whole picture. Not for the half-size composite or a flipped room:
+        // their pixels are placed differently.
+        const drawShift = !this._compositeZoom && !this._isFlipped;
+
+        this._drawShiftX = drawShift ? drawnRoomSpriteShift(this._screenOffsetX) : 0;
+        this._drawShiftY = drawShift ? drawnRoomSpriteShift(this._screenOffsetY) : 0;
+
         let spriteCount = 0;
 
         this._zDirty = false;
@@ -740,12 +750,6 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             sortableSprite.x = spriteX - screenOffsetX;
             sortableSprite.y = spriteY - screenOffsetY;
 
-            // Not for the half-size composite or a flipped room: their pixels are placed differently.
-            const drawShift = !this._compositeZoom && !this._isFlipped;
-
-            sortableSprite.drawShiftX = drawShift ? drawnRoomSpriteShift(screenOffsetX) : 0;
-            sortableSprite.drawShiftY = drawShift ? drawnRoomSpriteShift(screenOffsetY) : 0;
-
             const newZ = z + sprite.relativeDepth + 3.7e-11 * count;
 
             if (!this._zDirty && newZ !== sortableSprite.z) this._zDirty = true;
@@ -840,7 +844,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         extendedSprite.x = sprite.x;
         extendedSprite.y = sprite.y;
 
-        this.placeDrawShift(extendedSprite, sprite);
+        this.placeDrawShift(extendedSprite);
 
         extendedSprite.offsetX = objectSprite.offsetX;
         extendedSprite.offsetY = objectSprite.offsetY;
@@ -852,9 +856,9 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
      * Draws the picture where Flash shows it (`drawnRoomSpriteShift`) and leaves x / y where
      * `renderObject` put them: mouse hits stay on those, as `RoomSpriteCanvas.checkMouseHits` tests them.
      */
-    private placeDrawShift(extendedSprite: ExtendedSprite, sortableSprite: SortableSprite): void {
-        const pivotX = sortableSprite.drawShiftX ? -sortableSprite.drawShiftX / (extendedSprite.scale.x * this._scale) : 0;
-        const pivotY = sortableSprite.drawShiftY ? -sortableSprite.drawShiftY / (extendedSprite.scale.y * this._scale) : 0;
+    private placeDrawShift(extendedSprite: ExtendedSprite): void {
+        const pivotX = this._drawShiftX ? -this._drawShiftX / (extendedSprite.scale.x * this._scale) : 0;
+        const pivotY = this._drawShiftY ? -this._drawShiftY / (extendedSprite.scale.y * this._scale) : 0;
 
         if (extendedSprite.pivot.x !== pivotX || extendedSprite.pivot.y !== pivotY) extendedSprite.pivot.set(pivotX, pivotY);
     }
@@ -901,7 +905,7 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
 
         if (sprite.flipV) extendedSprite.scale.y = -1;
 
-        this.placeDrawShift(extendedSprite, sortableSprite);
+        this.placeDrawShift(extendedSprite);
 
         this.updateEnterRoomEffect(extendedSprite, sprite);
 

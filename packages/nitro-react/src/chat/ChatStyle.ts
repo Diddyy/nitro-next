@@ -356,7 +356,6 @@ export class ChatStyle implements IChatStyle {
         // Owned here (not by Pixi's global `Cache`), registered with the asset manager.
         const texture = Texture.from(canvas, true);
 
-        texture.source.scaleMode = 'nearest';
         GetAssetManager().setTexture(this.tintedBackgroundKey(key), texture);
         this._tintedBackgrounds.set(key, texture);
 

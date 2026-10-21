@@ -27,7 +27,7 @@ export const useCollectiblePetTexture = (figure: string | undefined, direction: 
         const value = petImageValue(figureData.typeId, figureData.paletteId, figureData.color, false, figureData.customParts);
 
         return GetRoomEngine().getGenericRoomObjectTexture(type, value, new Vector3d(direction), RoomGeometryScaleType.ZoomedIn, listener, 0, undefined, 0, 0, PET_POSTURE);
-    }, { nearest: true });
+    });
 
     return figure ? texture : undefined;
 };

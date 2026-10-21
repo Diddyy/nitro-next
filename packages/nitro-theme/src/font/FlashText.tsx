@@ -63,8 +63,6 @@ export const FlashText = ({ rendered, layout, visible, alpha, x, y, clipWidth: o
         // otherwise hold every label's canvas until that destroy.
         const created = Texture.from(rendered.canvas, true);
 
-        created.source.scaleMode = 'nearest';
-
         const width = Math.max(1, Math.min(created.width, Math.floor(clipWidth ?? created.width)));
         const height = Math.max(1, Math.min(created.height, Math.floor(clipHeight ?? created.height)));
 
