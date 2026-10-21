@@ -91,6 +91,8 @@ export const variableUpdateTrigger: WiredElementDefinition<VariableUpdateTrigger
         const variables = getWiredRoomVariables(triggerable);
         const variableId = triggerable.variableIds[0] ?? '';
         const found = findVariableById(variables, variableId);
+        // The target is not saved: it only picks the variables the picker lists, and a variable of a
+        // target the selector does not offer leaves the selector - and so the picker - on its first option.
         const target = resolveSourceTypeSelection(VARIABLE_UPDATE_SOURCE_TYPES, found ? Number(found.variableTarget) : WIRED_SOURCE_USER);
         const picker = createVariablePickerState(variables, variableId, target);
         const originMask = (triggerable.intParams.length > 4) ? getWiredInt(triggerable, 4) : ALL_ORIGINS;

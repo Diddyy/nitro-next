@@ -42,9 +42,9 @@ export const isValueOrVariableSameHolderEligible = (state: WiredValueOrVariableS
     SAME_HOLDER_TARGETS.includes(primaryTarget) && (state.picker.target === primaryTarget);
 
 /**
- * `ValueOrVariableSection.init(variables, variableId, target, option, value)`. The source type
- * selector shows `target`; pass it through `resolveSourceTypeSelection` first when the box can
- * hold a target the section does not offer.
+ * `ValueOrVariableSection.init(variables, variableId, target, option, value)`. `target` is the
+ * box's saved one, kept even when the section's source type selector does not offer it - the
+ * selector then only shows its first option (`resolveSourceTypeSelection`).
  */
 export const createValueOrVariableState = (variables: readonly IWiredVariable[] | null | undefined, variableId: string, target: number, option: number, value: number, sameHolder: boolean = false): WiredValueOrVariableState =>
     ({ option, value, picker: createVariablePickerState(variables, variableId, target), sameHolder });

@@ -10,7 +10,7 @@ import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVari
 import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
-import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
+import { VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { AddonCodes } from './addonCodes';
 
 /** `createValueOrVariableSection(0, mergedSourceOptions(0), "${wiredfurni.params.jump_strength}", -1000, 1000)`'s range. */
@@ -26,11 +26,11 @@ export interface JumpStrengthAddonForm {
 export const jumpStrengthAddon: WiredElementDefinition<JumpStrengthAddonForm> = {
     holder: 'addon',
     code: AddonCodes.JUMP_STRENGTH,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const option = getWiredInt(triggerable, 0);
         const variableId = (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? WIRED_VARIABLE_ID_NONE : (triggerable.variableIds[0] ?? '');
         const value = (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? getWiredInt(triggerable, 1) : JUMP_STRENGTH_VARIABLE_DEFAULT;
-        const target = resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, 2));
+        const target = getWiredInt(triggerable, 2);
 
         return { strength: createValueOrVariableState(getWiredRoomVariables(triggerable), variableId, target, option, value) };
     },

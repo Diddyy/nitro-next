@@ -19,7 +19,6 @@ import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { ConditionCodes } from './conditionCodes';
-import { resolveConditionMergedTypes } from './conditionShared';
 
 /** The time unit dropdown's ids, `variables.duration.0` to `.7`. */
 export const VARIABLE_AGE_TIME_UNITS = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
@@ -56,17 +55,17 @@ export const variableAgeDisabledCompareValues = (variable: { canReadCreationTime
 export const variableAgeCondition: WiredElementDefinition<VariableAgeConditionForm> = {
     holder: 'condition',
     code: ConditionCodes.VARIABLE_AGE,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const variables = getWiredRoomVariables(triggerable);
         const option = (getWiredInt(triggerable, 6) === VALUE_OR_VARIABLE_OPTION_VARIABLE) ? VALUE_OR_VARIABLE_OPTION_VARIABLE : VALUE_OR_VARIABLE_OPTION_VALUE;
 
-        return resolveConditionMergedTypes(variableAgeCondition, {
+        return {
             picker: createVariablePickerState(variables, triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 0)),
             comparison: getWiredInt(triggerable, 1),
             compareValue: getWiredInt(triggerable, 2),
             duration: createValueOrVariableState(variables, (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? WIRED_VARIABLE_ID_NONE : (triggerable.variableIds[1] ?? ''), getWiredInt(triggerable, 7), option, getWiredInt(triggerable, 4)),
             timeUnit: getWiredInt(triggerable, 5),
-        }, ctx);
+        };
     },
     readIntParams: form => [
         form.picker.target,

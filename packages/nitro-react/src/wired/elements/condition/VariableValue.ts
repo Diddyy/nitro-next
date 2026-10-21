@@ -23,7 +23,6 @@ import { WIRED_SOURCE_MERGED, type WiredElementDefinition } from '../../WiredEle
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { ConditionCodes } from './conditionCodes';
-import { resolveConditionMergedTypes } from './conditionShared';
 
 export interface VariableValueConditionForm {
     /** `target` is `§_-nd§`, merged section 0. */
@@ -39,11 +38,11 @@ export const variableValueConditionFilter: WiredVariableFilter = variable => var
 export const variableValueCondition: WiredElementDefinition<VariableValueConditionForm> = {
     holder: 'condition',
     code: ConditionCodes.VARIABLE_VALUE,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const variables = getWiredRoomVariables(triggerable);
         const option = getWiredInt(triggerable, 2);
 
-        return resolveConditionMergedTypes(variableValueCondition, {
+        return {
             picker: createVariablePickerState(variables, triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 0)),
             operator: getWiredInt(triggerable, 1),
             reference: createValueOrVariableState(
@@ -55,7 +54,7 @@ export const variableValueCondition: WiredElementDefinition<VariableValueConditi
                 // WIN63-202610121624: "same holder", read as optional.
                 (triggerable.intParams.length > 6) && (getWiredInt(triggerable, 6) !== 0),
             ),
-        }, ctx);
+        };
     },
     readIntParams: form => [
         form.picker.target,

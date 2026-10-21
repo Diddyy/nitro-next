@@ -22,7 +22,7 @@ import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVari
 import { createValueOrVariableState, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
-import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES } from '../action/ActionVariableReference';
+import { VARIABLE_REFERENCE_CUSTOM_SOURCES } from '../action/ActionVariableReference';
 import { AddonCodes } from './addonCodes';
 import { readWiredDropdownSelectedId, reinitWiredDropdownSelection } from './addonShared';
 
@@ -83,7 +83,7 @@ export interface ProjectileAddonForm {
 export const projectileAddon: WiredElementDefinition<ProjectileAddonForm> = {
     holder: 'addon',
     code: AddonCodes.PROJECTILE,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const variables = getWiredRoomVariables(triggerable);
         const trajectoryHeight = getWiredInt(triggerable, 18);
 
@@ -91,7 +91,7 @@ export const projectileAddon: WiredElementDefinition<ProjectileAddonForm> = {
             newDirection: getWiredBoolean(triggerable, 0),
             directionalSystem: reinitWiredDropdownSelection(PROJECTILE_DIRECTIONAL_SYSTEMS, getWiredInt(triggerable, 1)),
             customAnimationTime: getWiredBoolean(triggerable, 2),
-            animationTime: createValueOrVariableState(variables, triggerable.variableIds[0] ?? '', resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, 5)), getWiredInt(triggerable, 3), getWiredInt(triggerable, 4)),
+            animationTime: createValueOrVariableState(variables, triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 5), getWiredInt(triggerable, 3), getWiredInt(triggerable, 4)),
             distanceAxes: [ getWiredBoolean(triggerable, 6), getWiredBoolean(triggerable, 7), getWiredBoolean(triggerable, 8) ],
             speedIncrease: getWiredInt(triggerable, 9),
             rotationOffset: Math.min(PROJECTILE_ROTATION_OFFSET_MAX, Math.max(0, getWiredInt(triggerable, 10))),
@@ -99,7 +99,7 @@ export const projectileAddon: WiredElementDefinition<ProjectileAddonForm> = {
             changeShooterDirection: getWiredBoolean(triggerable, 12),
             bunnyHop: getWiredBoolean(triggerable, 13),
             distanceMode: getWiredInt(triggerable, 14),
-            distance: createValueOrVariableState(variables, triggerable.variableIds[1] ?? '', resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, 17)), getWiredInt(triggerable, 15), getWiredInt(triggerable, 16)),
+            distance: createValueOrVariableState(variables, triggerable.variableIds[1] ?? '', getWiredInt(triggerable, 17), getWiredInt(triggerable, 15), getWiredInt(triggerable, 16)),
             trajectory: (trajectoryHeight === 0) ? 0 : 1,
             trajectoryHeight,
         };

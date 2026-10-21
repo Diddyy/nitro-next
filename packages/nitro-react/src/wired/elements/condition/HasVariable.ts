@@ -14,7 +14,6 @@ import { createVariablePickerState, finalizePickerSelection, setPickerTarget, Wi
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ConditionCodes } from './conditionCodes';
-import { resolveConditionMergedTypes } from './conditionShared';
 
 export interface HasVariableConditionForm {
     /** `target` is `§_-nd§`, the merged type. */
@@ -28,9 +27,9 @@ export const hasVariableCondition: WiredElementDefinition<HasVariableConditionFo
     holder: 'condition',
     code: ConditionCodes.HAS_VARIABLE,
     negativeCode: ConditionCodes.NOT_HAS_VARIABLE,
-    createForm: (triggerable, ctx) => resolveConditionMergedTypes(hasVariableCondition, {
+    createForm: triggerable => ({
         picker: createVariablePickerState(getWiredRoomVariables(triggerable), triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 0)),
-    }, ctx),
+    }),
     readIntParams: form => [ form.picker.target ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.picker) ],
     mergedSelections: [ [ 0, 0 ] ],

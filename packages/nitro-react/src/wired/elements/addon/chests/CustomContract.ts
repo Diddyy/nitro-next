@@ -14,7 +14,7 @@ import { finalizePickerSelection, setPickerTarget } from '../../../common/WiredV
 import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../../common/WiredVariableSections';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, type WiredElementContext, type WiredElementDefinition } from '../../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables, type WiredTriggerable } from '../../../WiredTriggerable';
-import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../../action/ActionVariableReference';
+import { VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../../action/ActionVariableReference';
 import { AddonCodes } from '../addonCodes';
 
 /** `TradeRequirementNode.TYPE_FURNI` - the element type whose items are picked as furni. */
@@ -44,7 +44,7 @@ const readPart = (triggerable: WiredTriggerable, ctx: WiredElementContext, offse
     const byVariable = !enabled || (option !== VALUE_OR_VARIABLE_OPTION_VALUE);
     const variableId = typed ? WIRED_VARIABLE_ID_NONE : (triggerable.variableIds[variableIndex] ?? '');
     const value = byVariable ? 1 : getWiredInt(triggerable, offset + 3);
-    const target = resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, offset + 4));
+    const target = getWiredInt(triggerable, offset + 4);
 
     return {
         enabled,

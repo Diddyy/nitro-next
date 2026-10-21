@@ -20,7 +20,7 @@ import { createValueOrVariableState, type WiredValueOrVariableState } from '../.
 import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
-import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES } from './ActionVariableReference';
+import { VARIABLE_REFERENCE_CUSTOM_SOURCES } from './ActionVariableReference';
 
 /** `createValueOrVariableSection(0, ..., 0, 2147483647)`. */
 export const PROGRESS_ACHIEVEMENT_SCORE_MAX = 2147483647;
@@ -43,7 +43,7 @@ export const progressAchievementAction: WiredElementDefinition<ProgressAchieveme
         score: createValueOrVariableState(
             getWiredRoomVariables(triggerable),
             triggerable.variableIds[0] ?? '',
-            resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, 3)),
+            getWiredInt(triggerable, 3),
             getWiredInt(triggerable, 1),
             getWiredInt(triggerable, 2),
         ),

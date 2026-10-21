@@ -22,7 +22,7 @@ import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VARIABLE, type Wir
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
-import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from './ActionVariableReference';
+import { VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from './ActionVariableReference';
 
 /** `TARGET_LOCATION_*`. */
 export const PLACE_FURNI_TARGET_LOCATION_SOURCE = 0;
@@ -85,7 +85,7 @@ export const placeFurniAction: WiredElementDefinition<PlaceFurniActionForm> = {
     widthModifier: 1.2,
     // WIN63-202610121624 `_-cz.allowScrolling`.
     allowScrolling: true,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const variables = getWiredRoomVariables(triggerable);
         const offsets = [ getWiredInt(triggerable, 3), getWiredInt(triggerable, 4), getWiredInt(triggerable, 5) ];
         // Flash passes `WiredVariable.§_-i8§` for a missing id.
@@ -103,7 +103,7 @@ export const placeFurniAction: WiredElementDefinition<PlaceFurniActionForm> = {
             spawnValue: createValueOrVariableState(
                 variables,
                 triggerable.variableIds[1] ?? WIRED_VARIABLE_ID_NONE,
-                resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, 9)),
+                getWiredInt(triggerable, 9),
                 getWiredInt(triggerable, 7),
                 getWiredInt(triggerable, 8),
             ),

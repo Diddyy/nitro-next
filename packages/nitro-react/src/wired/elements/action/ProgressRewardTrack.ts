@@ -13,7 +13,7 @@ import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredV
 import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables, getWiredString } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
-import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from './ActionVariableReference';
+import { VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from './ActionVariableReference';
 
 /** `TextInputParam("", 100, null, -1, "a-zA-Z0-9_")` - the track and task id fields. */
 export const REWARD_TRACK_ID_MAX_LENGTH = 100;
@@ -34,7 +34,7 @@ export const progressRewardTrackAction: WiredElementDefinition<ProgressRewardTra
     code: ActionTypeCodes.PROGRESS_REWARD_TRACK,
     advancedAlwaysVisible: true,
     forceHidePickFurniInstructions: true,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const option = getWiredInt(triggerable, 1);
 
         return {
@@ -44,7 +44,7 @@ export const progressRewardTrackAction: WiredElementDefinition<ProgressRewardTra
             score: createValueOrVariableState(
                 getWiredRoomVariables(triggerable),
                 (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? WIRED_VARIABLE_ID_NONE : (triggerable.variableIds[0] ?? ''),
-                resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, 3)),
+                getWiredInt(triggerable, 3),
                 option,
                 getWiredInt(triggerable, 2),
             ),

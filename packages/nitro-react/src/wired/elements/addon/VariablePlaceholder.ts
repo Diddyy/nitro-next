@@ -21,7 +21,7 @@ import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVa
 import { normalizeWiredVariableName } from '../../common/WiredVariableSections';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
-import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES } from '../action/ActionVariableReference';
+import { VARIABLE_REFERENCE_CUSTOM_SOURCES } from '../action/ActionVariableReference';
 import { AddonCodes } from './addonCodes';
 import { readWiredPlaceholderAddonFields, type WiredPlaceholderAddonFields, writeWiredPlaceholderAddonString } from './addonShared';
 
@@ -68,9 +68,9 @@ const updateMultipleOption = (form: VariablePlaceholderAddonForm): VariablePlace
 export const variablePlaceholderAddon: WiredElementDefinition<VariablePlaceholderAddonForm> = {
     holder: 'addon',
     code: AddonCodes.VARIABLE_PLACEHOLDER,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const variables = getWiredRoomVariables(triggerable);
-        const picker = createVariablePickerState(variables, triggerable.variableIds[0] ?? '', resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, 1)));
+        const picker = createVariablePickerState(variables, triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 1));
         const selected = getPickerSelectedVariable(variables, picker);
         const form: VariablePlaceholderAddonForm = {
             ...readWiredPlaceholderAddonFields(triggerable),

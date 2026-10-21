@@ -18,7 +18,6 @@
  */
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { resolveSourceTypeSelection } from '../../common/sourceTypeColors';
 import { intAsLong } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, setPickerTarget, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, isValueOrVariableOnSameHolder, VALUE_OR_VARIABLE_OPTION_VALUE, WiredValueOrVariableState } from '../../common/WiredVariableSections';
@@ -63,7 +62,7 @@ export const isWithVariableValueSelectionEnabled = (form: WithVariableSelectorFo
 export const createWithVariableSelector = (code: number, variableSource: number): WiredElementDefinition<WithVariableSelectorForm> => ({
     holder: 'selector',
     code,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const variables = getWiredRoomVariables(triggerable);
         const picker = createVariablePickerState(variables, triggerable.variableIds[0] ?? '', variableSource);
         const variable = getPickerSelectedVariable(variables, picker);
@@ -92,7 +91,7 @@ export const createWithVariableSelector = (code: number, variableSource: number)
             variableHasValue: !!variable && variable.hasValue,
             selectByValue,
             comparison: getWiredInt(triggerable, 0),
-            reference: createValueOrVariableState(variables, referenceId, resolveSourceTypeSelection(withVariableReferenceSourceOptions(target, ctx), target), option, value, (triggerable.intParams.length > 5) && (getWiredInt(triggerable, 5) !== 0)),
+            reference: createValueOrVariableState(variables, referenceId, target, option, value, (triggerable.intParams.length > 5) && (getWiredInt(triggerable, 5) !== 0)),
         };
     },
     readIntParams: form => [

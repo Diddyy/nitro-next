@@ -19,7 +19,7 @@ import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVa
 import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
-import { resolveVariableReferenceTarget, VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
+import { VARIABLE_REFERENCE_CUSTOM_SOURCES, WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { readWiredDropdownSelectedId, reinitWiredDropdownSelection } from './addonShared';
 
 /** `createValueOrVariableSection(0, mergedSourceOptions(0), l("setfilter"), 1, 1000)`'s range. */
@@ -62,13 +62,13 @@ export const selectVariableFilterVariable = (form: VariableFilterAddonForm, pick
 export const createVariableFilterAddon = (code: number, variableType: number): WiredElementDefinition<VariableFilterAddonForm> => ({
     holder: 'addon',
     code,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const variables = getWiredRoomVariables(triggerable);
         const picker = createVariablePickerState(variables, triggerable.variableIds[0] ?? '', variableType);
         const option = getWiredInt(triggerable, 2);
         const referenceId = (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? WIRED_VARIABLE_ID_NONE : (triggerable.variableIds[1] ?? '');
         const value = (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? getWiredInt(triggerable, 0) : 1;
-        const target = resolveVariableReferenceTarget(ctx, getWiredInt(triggerable, 3));
+        const target = getWiredInt(triggerable, 3);
         const sortOptions = variableFilterSortOptions(getPickerSelectedVariable(variables, picker));
 
         return {

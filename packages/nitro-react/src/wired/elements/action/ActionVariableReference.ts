@@ -3,16 +3,15 @@
  * (`ProgressAchievement`, `ProgressRewardTrack`, `PlaceFurni`): the custom source types that
  * section offers besides furni and users (`getCustomSourcesForMergedType` returning
  * `[ GLOBAL_SOURCE, CONTEXT_SOURCE ]`), the options its selector shows
- * (`DefaultElement.mergedSourceOptions`), and the target a box opens on.
+ * (`DefaultElement.mergedSourceOptions`).
  *
- * Flash's `onEditInitialized` calls `selector.select(target)`, which clicks the option whose id is
- * the target; a target the selector does not offer leaves the selector on the first option, which
- * `initialize` clicked - and that click is what `target` reads afterwards. `createForm` stores
- * that resolved target.
+ * A box opens on its saved target as it is: Flash's `onEditInitialized` calls
+ * `selector.select(target)`, which clicks only an option equal to it, so a target the selector does
+ * not offer leaves the field - and what the box saves - unchanged. Only the picker shows its first
+ * option (see `docs/wired.md`, "A source type the picker does not offer").
  */
 import { VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { resolveSourceTypeSelection } from '../../common/sourceTypeColors';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_USER, type WiredElementContext } from '../../WiredElement';
 
 export { WIRED_VARIABLE_ID_NONE } from '../../common/WiredVariablePickerModel';
@@ -37,7 +36,3 @@ export const variableReferenceSourceOptions = (ctx: WiredElementContext, target:
 
     return options;
 };
-
-/** The target a variable reference opens on - see the docblock. */
-export const resolveVariableReferenceTarget = (ctx: WiredElementContext, target: number): number =>
-    resolveSourceTypeSelection(variableReferenceSourceOptions(ctx, target), target);

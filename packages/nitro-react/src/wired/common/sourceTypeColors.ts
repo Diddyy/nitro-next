@@ -86,9 +86,11 @@ export const newSourceTypeSplitterColor = (baseColor: number, left: NewSourceTyp
 };
 
 /**
- * `ISourceTypePicker.initialize(ids, selection)` - a selection the picker does not offer makes it
- * click its first option, which reports that option to the listener. A form therefore stores
- * this value when it is created (`createForm`), and a picker handed anything else shows it.
+ * The option a picker shows for `selected`: a selection it does not offer leaves it on its first
+ * option, which `ISourceTypePicker.initialize` clicked when the window was built. That is the
+ * picker's display only - the box keeps and saves the value as it was (`docs/wired.md`, "A source
+ * type the picker does not offer"); `VariableUpdate`, whose target is not saved, also retargets its
+ * variable picker with it.
  */
 export const resolveSourceTypeSelection = (options: readonly number[], selected: number): number => {
     if (options.includes(selected) || (options.length === 0)) return selected;

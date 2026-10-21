@@ -20,7 +20,6 @@ import { type WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt, getWiredRoomVariables } from '../../WiredTriggerable';
 import { WIRED_VARIABLE_ID_NONE } from '../action/ActionVariableReference';
 import { ConditionCodes } from './conditionCodes';
-import { resolveConditionMergedTypes } from './conditionShared';
 
 /** `createValueOrVariableSection(0, ..., l("chest_compare_amount"), 0, 1000000)`. */
 export const CHEST_HAS_AMOUNT_MAX = 1000000;
@@ -35,10 +34,10 @@ export interface ChestHasAmountConditionForm {
 export const chestHasAmountCondition: WiredElementDefinition<ChestHasAmountConditionForm> = {
     holder: 'condition',
     code: ConditionCodes.CHEST_HAS_ITEMS,
-    createForm: (triggerable, ctx) => {
+    createForm: (triggerable) => {
         const option = getWiredInt(triggerable, 1);
 
-        return resolveConditionMergedTypes(chestHasAmountCondition, {
+        return {
             operator: getWiredInt(triggerable, 3),
             amount: createValueOrVariableState(
                 getWiredRoomVariables(triggerable),
@@ -47,7 +46,7 @@ export const chestHasAmountCondition: WiredElementDefinition<ChestHasAmountCondi
                 option,
                 (option === VALUE_OR_VARIABLE_OPTION_VALUE) ? getWiredInt(triggerable, 0) : 1,
             ),
-        }, ctx);
+        };
     },
     readIntParams: form => [ form.amount.value, form.amount.option, form.amount.picker.target, form.operator ],
     readVariableIds: (form, ctx) => [ finalizePickerSelection(ctx.roomVariables, form.amount.picker) ],

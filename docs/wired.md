@@ -44,6 +44,7 @@ picker does not list - `CONTEXT` while `wired.variables.context_visible` is off,
 
 Only a click on another option changes the field. So the form keeps the raw target, and only the
 picker's display falls back to its first option (`WiredSourceTypePicker`, `WiredNewSourceTypePicker`
-- a fresh Flash window's look; a cached one shows the last edit's choice). Resolving the form at
-`createForm` is not Flash's behaviour - see [Refactoring backlog](refactoring.md) item 7 for the
-places the port still does it.
+- a fresh Flash window's look; a cached one shows the last edit's choice). Do not resolve the form
+at `createForm` (`tools/wired-unoffered-source-type.test.mjs`). `VariableUpdate` is the exception
+that is not one: its target is not saved, so resolving it only retargets the variable picker, as
+Flash's selector does.
