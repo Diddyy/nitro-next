@@ -19,14 +19,13 @@ export const snapRoomSpriteCoordinate = (coordinate: number, offset: number, sca
 const toTwips = (value: number): number => Math.floor((value * 20) + 0.02);
 
 /**
- * How many pixels from `offset + local * scale` Flash draws a room sprite: 0, or -1 / +1. The
- * canvas offset and the sprite's position are each kept in twips, and the bitmap
- * (`pixelSnapping = "always"`) lands on the pixel its summed position cuts toward. With an offset
- * off the twip grid the sum falls short of the whole pixel `snapSpriteCoordinate` aimed at, and the
- * sprite is drawn a pixel higher (or further left), where Habbo's thumbnails draw it too.
+ * How many pixels from `offset + local * scale` Flash draws the room's sprites: 0 or -1. The canvas
+ * offset is kept in twips, cut down, and a bitmap (`pixelSnapping = "always"`) lands on the pixel its
+ * position cuts toward: with an offset off the twip grid that falls short of the whole pixel
+ * `snapSpriteCoordinate` aimed at, and the room is drawn a pixel higher (or further left), where
+ * Habbo's thumbnails draw it too. It is the offset's alone, so one shift moves every sprite: worked
+ * out for each sprite's own position, cut toward zero, a sprite starting above or left of the
+ * canvas stayed put while its neighbours moved, and planes that meet (the door tile and the floor)
+ * opened a pixel-wide seam. Habbo's JS port draws the plain snap, with no seam either.
  */
-export const drawnRoomSpriteShift = (local: number, offset: number, scale: number): number => {
-    const drawn = Math.trunc((toTwips(offset) + (scale * toTwips(local))) / 20);
-
-    return drawn - Math.round(offset + (local * scale));
-};
+export const drawnRoomSpriteShift = (offset: number): number => ((toTwips(offset) < (offset * 20)) ? -1 : 0);

@@ -743,8 +743,8 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             // Not for the half-size composite or a flipped room: their pixels are placed differently.
             const drawShift = !this._compositeZoom && !this._isFlipped;
 
-            sortableSprite.drawShiftX = drawShift ? drawnRoomSpriteShift(sortableSprite.x, screenOffsetX, this._scale) : 0;
-            sortableSprite.drawShiftY = drawShift ? drawnRoomSpriteShift(sortableSprite.y, screenOffsetY, this._scale) : 0;
+            sortableSprite.drawShiftX = drawShift ? drawnRoomSpriteShift(screenOffsetX) : 0;
+            sortableSprite.drawShiftY = drawShift ? drawnRoomSpriteShift(screenOffsetY) : 0;
 
             const newZ = z + sprite.relativeDepth + 3.7e-11 * count;
 
