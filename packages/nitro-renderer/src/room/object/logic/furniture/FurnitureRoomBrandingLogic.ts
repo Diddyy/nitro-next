@@ -135,6 +135,11 @@ export class FurnitureRoomBrandingLogic extends FurnitureLogic {
         if (!texture) {
             const status = await asset.downloadAsset(imageUrl);
 
+            // The room may have gone while the image downloaded. Flash's engine only tells live
+            // objects that their image loaded or failed (FurnitureRoomBrandingLogic.as:60-71), so a
+            // disposed one hears nothing.
+            if (!this.object?.model) return;
+
             if (!status) {
                 this.processUpdateMessage(new ObjectAdUpdateMessage(ObjectAdUpdateMessage.IMAGE_LOADING_FAILED));
 
