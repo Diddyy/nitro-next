@@ -20,17 +20,17 @@ import { registerQuestHandlers } from './quests';
 import { registerRewardTrackHandlers } from './reward-track';
 import {
     registerCameraHandlers,
-    registerRoomAreaHideHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomCustomUserNotificationHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
+    registerRoomAreaHideHandlers, registerRoomBadgeDisplayHandlers, registerRoomBotHandlers, registerRoomBuildersClubHandlers, registerRoomChatHandlers, registerRoomConfigurationItemsHandlers, registerRoomCraftingHandlers, registerRoomCustomUserNotificationHandlers, registerRoomDataHandlers, registerRoomDimmerHandlers,
     registerRoomDirectoryHandlers, registerRoomDoorbellHandlers, registerRoomFloorPlanHandlers, registerRoomFriendFurniHandlers, registerRoomFriendRequestHandlers,
     registerRoomFurnitureHandlers, registerRoomFurnitureLabelHandlers, registerRoomGenericErrorHandlers, registerRoomGuildFurniHandlers, registerRoomInfostandHandlers, registerRoomJukeboxHandlers, registerRoomLinkHandlers, registerRoomMappingHandlers,
     registerRoomMysteryBoxHandlers, registerRoomPermissionsHandlers, registerRoomPetHandlers, registerRoomPetPackageHandlers, registerRoomPollHandlers, registerRoomPresentHandlers, registerRoomPurchasableClothingHandlers, registerRoomQuizHandlers, registerRoomRentableSpaceHandlers, registerRoomSettingsHandlers,
     registerRoomSpamWallHandlers,
     registerRoomThumbnailCameraHandlers,
-    registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomYoutubeHandlers,
+    registerRoomUserHandlers, registerRoomVariableFxHandlers, registerRoomWiredVisualizationHandlers, registerRoomYoutubeHandlers,
 } from './room';
 import { bridgeSoundManager, registerSoundManagerHandlers } from './sound';
 import { registerSpecialItemsHandlers } from './special-items';
-import { registerBugReportHandlers, registerFurnitureDataHandlers, registerHotelViewHandlers, registerLatencyHandlers } from './system';
+import { registerBugReportHandlers, registerFurnitureDataHandlers, registerHotelViewHandlers, registerLatencyHandlers, registerTrackingHandlers } from './system';
 import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerChatCommandHandlers, registerFriendBarHandlers, registerMessengerHandlers, registerOnboardingHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
 import { registerProfileHandlers } from './user-profile';
 import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariableLeaderboardHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
@@ -76,7 +76,9 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerRoomBotHandlers(socket),
         registerRoomUserHandlers(socket),
         registerRoomVariableFxHandlers(socket),
+        registerRoomWiredVisualizationHandlers(socket),
         // Furniture dialogs: a payload for a dialog that is not open is dropped by the store.
+        registerRoomBadgeDisplayHandlers(socket),
         registerRoomCraftingHandlers(socket),
         registerRoomDimmerHandlers(socket),
         registerRoomGenericErrorHandlers(socket),
@@ -125,6 +127,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerFurnitureDataHandlers(socket),
         // `HabboTracking`'s latency test: a ping every `latencytest.interval` ms, the round trip `:ping` shows.
         registerLatencyHandlers(socket),
+        // The rest of `HabboTracking`: performance, frame rate and chat lag reports, the room's `ClientPerformance`.
+        registerTrackingHandlers(socket),
         registerBugReportHandlers(socket),
         // The vault's income rewards (`EarningsController`), after the wallet whose duckets its claims weigh.
         registerEarningsHandlers(socket),

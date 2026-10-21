@@ -157,6 +157,20 @@
       "sources": "d22a6e62611276a6"
     },
     {
+      "name": "fonts-extended",
+      "mode": "loose",
+      "assets": {},
+      "absorbed": [
+        "fonts-extended/ubuntu-bold-italic.air51.json",
+        "fonts-extended/ubuntu-bold.air51.json",
+        "fonts-extended/ubuntu-condensed.air51.json",
+        "fonts-extended/ubuntu-italic.air51.json",
+        "fonts-extended/ubuntu-regular.air51.json",
+        "fonts-extended/volter-bold.air51.json",
+        "fonts-extended/volter.air51.json"
+      ]
+    },
+    {
       "name": "sounds",
       "mode": "loose",
       "assets": {},

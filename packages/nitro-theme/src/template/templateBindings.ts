@@ -53,7 +53,10 @@ export interface TemplateBinding {
      * The window is built with its layout caption and `caption` set once it is built, as code that
      * finds the text after `buildFromXML` does (`InventoryMainView.updateCounter`'s `count`): the
      * text's resize then reaches its parent - a `reflect_horizontal_resize_to_parent` border follows
-     * its text from the layout's `999` to the count's width.
+     * its text from the layout's `999` to the count's width. A `bound_to_parent` item of an item list
+     * needs it too: built with its caption, it is placed while the list's container is still the
+     * height of the items before it and kept inside it, over them; set after, the list re-arranges
+     * in the container the build left (`CraftingInfoController.setState`'s `info_text1` / `info_text2`).
      */
     setCaptionAfterBuild?: boolean;
     /** Over the layout's `tool_tip_caption`. */

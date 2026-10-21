@@ -49,7 +49,9 @@ import { RemoveVariableView } from '#base/views/wired-setup/elements/action/Remo
 import { ResetRewardTrackView } from '#base/views/wired-setup/elements/action/ResetRewardTrackView';
 import { SendSignalView } from '#base/views/wired-setup/elements/action/SendSignalView';
 import { SetFurniAltitudeView } from '#base/views/wired-setup/elements/action/SetFurniAltitudeView';
+import { SetFurniHighlightView } from '#base/views/wired-setup/elements/action/SetFurniHighlightView';
 import { SetFurniStateToView } from '#base/views/wired-setup/elements/action/SetFurniStateToView';
+import { SetFurniTransparencyView } from '#base/views/wired-setup/elements/action/SetFurniTransparencyView';
 import { TeleportView } from '#base/views/wired-setup/elements/action/TeleportView';
 import { ToggleFurniStateView } from '#base/views/wired-setup/elements/action/ToggleFurniStateView';
 import { WriteToLogsView } from '#base/views/wired-setup/elements/action/WriteToLogsView';
@@ -103,7 +105,9 @@ import { resetRewardTrackAction } from './ResetRewardTrack';
 import { resetTimersAction } from './ResetTimers';
 import { sendSignalAction } from './SendSignal';
 import { setFurniAltitudeAction } from './SetFurniAltitude';
+import { setFurniHighlightAction } from './SetFurniHighlight';
 import { setFurniStateToAction } from './SetFurniStateTo';
+import { setFurniTransparencyAction } from './SetFurniTransparency';
 import { teleportAction } from './Teleport';
 import { teleportToRoomAction } from './TeleportToRoom';
 import { toggleFurniStateAction } from './ToggleFurniState';
@@ -140,6 +144,7 @@ export const actionElements: WiredElementEntry[] = [
     defineWiredElement(botTalkDirectToAvatarAction, BotTalkDirectToAvatarView),
     defineWiredElement(controlClockAction, ControlClockView),
     defineWiredElement(setFurniAltitudeAction, SetFurniAltitudeView),
+    defineWiredElement(setFurniHighlightAction, SetFurniHighlightView),
     defineWiredElement(sendSignalAction, SendSignalView),
     defineWiredElement(freezeUserAction, FreezeUserView),
     defineWiredElement(unfreezeUserAction),
@@ -167,4 +172,5 @@ export const actionElements: WiredElementEntry[] = [
     defineWiredElement(moveAsGroupAction, MoveAsGroupView),
     defineWiredElement(progressRewardTrackAction, ProgressRewardTrackView),
     defineWiredElement(resetRewardTrackAction, ResetRewardTrackView),
+    defineWiredElement(setFurniTransparencyAction, SetFurniTransparencyView),
 ];

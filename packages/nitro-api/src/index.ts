@@ -276,6 +276,7 @@ export * from './room/object/data/type/MapDataType';
 export * from './room/object/data/type/NumberDataType';
 export * from './room/object/data/type/StringDataType';
 export * from './room/object/data/type/VoteDataType';
+export * from './room/object/data/WiredFurnitureEffectData';
 export * from './room/object/IPetFigureData';
 export * from './room/object/IRoomMapData';
 export * from './room/object/IRoomMapMask';

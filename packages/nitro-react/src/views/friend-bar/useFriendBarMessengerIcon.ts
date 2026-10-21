@@ -9,7 +9,8 @@
  */
 import { useEffect, useState } from 'react';
 
-import { toggleMessenger } from '#base/commands';
+import { isMessengerOpen, toggleMessenger, trackEventLog } from '#base/commands';
+import { useWebSocketContext } from '#base/context/communication';
 import { useMessengerStore } from '#base/context/messenger';
 import { useIsWindowVisible } from '#base/context/system';
 import { TemplateBindings } from '#base/theme';
@@ -19,6 +20,7 @@ const BLINK_MS = 500;
 
 /** The bindings for `icon_messenger` and its three bitmaps. */
 export const useFriendBarMessengerIcon = (): TemplateBindings => {
+    const { send } = useWebSocketContext();
     const conversations = useMessengerStore(x => x.conversations);
     const isOpen = useIsWindowVisible('messenger');
     const [ frame, setFrame ] = useState(0);
@@ -37,8 +39,14 @@ export const useFriendBarMessengerIcon = (): TemplateBindings => {
         };
     }, [ notify ]);
 
+    /** `HabboFriendBarData.toggleMessenger`: the toggle, then its EventLog with the state it left the messenger in. */
+    const onToggle = () => {
+        toggleMessenger();
+        trackEventLog(send, 'Toolbar', 'MESSENGER', isMessengerOpen() ? 'open' : 'close');
+    };
+
     return {
-        icon_messenger: { visible, onPointerTap: toggleMessenger },
+        icon_messenger: { visible, onPointerTap: onToggle },
         'icon_messenger/icon': { visible: !notify },
         'icon_messenger/icon_1': { visible: notify && (frame === 0) },
         'icon_messenger/icon_2': { visible: notify && (frame === 1) },

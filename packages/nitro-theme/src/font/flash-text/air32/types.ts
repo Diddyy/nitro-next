@@ -233,11 +233,18 @@ export interface NativeGlyph extends Omit<NativeGlyphRecord, 'renders'> {
     renders: (NativeGlyphRenderRecord & { rawImage: Uint8Array | null })[];
 }
 
+/** A profile's glyphs by code point; a `Map` is one, and the loader's table decodes on first `get`. */
+export interface NativeGlyphLookup {
+    readonly size: number;
+    has(codepoint: number): boolean;
+    get(codepoint: number): NativeGlyph | undefined;
+}
+
 export interface NativeProfile {
     schemaVersion?: number;
     runtime?: unknown;
     fontSha256?: string | null;
-    glyphs: Map<number, NativeGlyph>;
+    glyphs: NativeGlyphLookup;
     source: NativeProfileSource;
 }
 
@@ -251,6 +258,19 @@ export interface NativeFontBundle {
     coverage?: { codepointCount?: number; imp1GlyphCount?: number; metricGlyphCount?: number } | null;
     nativeProfile: NativeProfileSource;
     swfFont: SwfFont;
+}
+
+/**
+ * A captured `air32-native-glyphs-v1` file (`public/assets/fonts-extended/*.air51.json`): more IMP1
+ * glyphs of a face already registered from its `air32-native-font-bundle-v1`, whose `DefineFont3`
+ * metrics they share.
+ */
+export interface NativeGlyphBundle {
+    schemaVersion: number;
+    format: string;
+    fontKey: string;
+    fontSha256?: string | null;
+    glyphs: NativeGlyphRecord[];
 }
 
 export interface NativeFont {

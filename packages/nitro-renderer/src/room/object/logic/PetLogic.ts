@@ -97,6 +97,8 @@ export class PetLogic extends MovingObjectLogic {
 
         super.processUpdateMessage(message);
 
+        if (this.processWiredEffectMessage(message)) return;
+
         if (this.processVariableFxStatusMessage(message)) return;
 
         if (message instanceof ObjectAvatarUpdateMessage) {

@@ -1,52 +1,31 @@
-import { RoomWidgetEnum } from '@nitrodevco/nitro-api';
-import { CraftableProductsMessage, CraftingRecipeMessage, CraftingRecipesAvailableMessage, CraftingResultMessage, ICraftableProduct, ICraftingIngredient } from '@nitrodevco/nitro-packets';
+import { CraftableProductsMessage, CraftingRecipeMessage, CraftingRecipesAvailableMessage, CraftingResultMessage, FurniListInvalidateEventMessage } from '@nitrodevco/nitro-packets';
 
+import { onCraftableProducts, onCraftingFurniListInvalidate, onCraftingFurniListParsed, onCraftingRecipe, onCraftingRecipesAvailable, onCraftingResult } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { inventoryStore } from '#base/context/inventory';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
-/** Everything the crafting table has been told, gathered as its four messages arrive. */
-export type CraftingData = {
-    products: ICraftableProduct[];
-    usableInventoryFurniClasses: string[];
-    /** What the recipe the user picked takes; only one recipe is ever asked about at a time. */
-    ingredients: ICraftingIngredient[];
-    recipeComplete: boolean;
-    /** The furni class that came out, once something has. */
-    result: string;
-};
-
 /**
- * The crafting table talks in four separate answers: what it can make, what a chosen recipe
- * takes, whether what is in the mixer adds up to one, and what came out. The widget needs them
- * together, so each merges into the open request.
+ * `CraftingWidgetHandler.addMessageEvents`: the table's four answers, plus the inventory's
+ * `FurniListInvalidate` a craft waits for (`registerForFurniListInvalidate`) and its furni list
+ * arriving (`HFLPE_FURNI_LIST_PARSED`), which the products wait for when the table opened before it.
  */
-export const registerRoomCraftingHandlers = ({ subscribe }: WebSocketConnection) => {
-    const { mergeRoomWidgetData } = roomStore.getState();
-
-    const merge = (data: Partial<CraftingData>) => {
-        mergeRoomWidgetData<CraftingData>(RoomWidgetEnum.CRAFTING, data);
-    };
-
-    return subscribeAll(subscribe, [
-        on(CraftableProductsMessage, (data) => {
-            merge({
-                products: data.recipeProductItems,
-                usableInventoryFurniClasses: data.usableInventoryFurniClasses,
-            });
-        }),
-
-        on(CraftingRecipeMessage, (data) => {
-            merge({ ingredients: data.ingredients });
-        }),
-
-        on(CraftingRecipesAvailableMessage, (data) => {
-            merge({ recipeComplete: data.recipeComplete });
-        }),
-
-        on(CraftingResultMessage, (data) => {
-            merge({ result: data.success ? (data.productData?.furnitureClassName ?? '') : '' });
-        }),
+export const registerRoomCraftingHandlers = ({ send, subscribe }: WebSocketConnection) => {
+    const unsubscribePackets = subscribeAll(subscribe, [
+        on(CraftableProductsMessage, data => onCraftableProducts(data.recipeProductItems, data.usableInventoryFurniClasses)),
+        on(CraftingRecipeMessage, data => onCraftingRecipe(data.ingredients)),
+        on(CraftingRecipesAvailableMessage, data => onCraftingRecipesAvailable(data.count, data.recipeComplete)),
+        on(CraftingResultMessage, data => onCraftingResult(data.success, data.productData?.furnitureClassName ?? '')),
+        on(FurniListInvalidateEventMessage, () => onCraftingFurniListInvalidate(send)),
     ]);
+
+    const unsubscribeInventory = inventoryStore.subscribe((state, previous) => {
+        if (state.furniCategoryInitialized && !previous.furniCategoryInitialized) onCraftingFurniListParsed(send);
+    });
+
+    return () => {
+        unsubscribePackets();
+        unsubscribeInventory();
+    };
 };

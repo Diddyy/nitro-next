@@ -1,6 +1,6 @@
 import { AvatarActionStateType } from '@nitrodevco/nitro-api';
 
-import { GetTickerTime } from '#renderer/utils';
+import { flashBlurPixels, GetTickerTime } from '#renderer/utils';
 
 import { IStackedAddition } from '../../stacked/IStackedAddition';
 import { StackedAdditionSprite } from '../../stacked/StackedAdditionSprite';
@@ -26,9 +26,11 @@ const BACKGROUND_SHADOW_PADDING = 5;
 const BACKGROUND_CONTENT_INSET = 7;
 const BACKGROUND_SHADOW_OFFSET_X = 1.5;
 const BACKGROUND_SHADOW_OFFSET_Y = 2;
-/** `BlurFilter(6, 6, 2)`: two box passes of 6 come to about this gaussian radius on a canvas. */
-const BACKGROUND_SHADOW_BLUR_PX = 3;
-const BACKGROUND_SHADOW_ALPHA = 0.55;
+/** `BlurFilter(6, 6, 2)`. */
+const BACKGROUND_SHADOW_BLUR = 6;
+const BACKGROUND_SHADOW_BLUR_QUALITY = 2;
+/** `ColorTransform(1, 1, 1, 0.55)`'s alpha, as Flash holds a colour transform's multiplier: 8.8 fixed point. */
+const BACKGROUND_SHADOW_ALPHA_FIXED = Math.trunc(0.55 * 256);
 /** `scale < 48`: the small room. */
 const SMALL_SCALE_LIMIT = 48;
 /** The avatar heights `update` raises a sitting (half) or lying (whole) avatar's bubble by. */
@@ -84,14 +86,24 @@ const createOutlineBitmap = (source: VariableFxBitmap): VariableFxBitmap => {
     return bitmap;
 };
 
-/** `createBackgroundShadowBitmap`: the outline's black silhouette, offset, at 55% and blurred. */
+/**
+ * `createBackgroundShadowBitmap`: the outline's black silhouette `copyPixels`ed to (6.5, 7) - a pixel
+ * copy, so on whole pixels at (6, 7) -, its alpha at 55% (`colorTransform`) and Flash's
+ * `BlurFilter(6, 6, 2)` over it, cut to the bitmap.
+ */
 const createBackgroundShadowBitmap = (outline: VariableFxBitmap): VariableFxBitmap => {
     const bitmap = createTransparentBitmap(outline.width + (BACKGROUND_SHADOW_PADDING * 2), outline.height + (BACKGROUND_SHADOW_PADDING * 2));
     const context = getBitmapContext(bitmap);
 
-    context.globalAlpha = BACKGROUND_SHADOW_ALPHA;
-    context.filter = `blur(${BACKGROUND_SHADOW_BLUR_PX}px)`;
-    context.drawImage(createSilhouette(outline, '#000000'), BACKGROUND_SHADOW_PADDING + BACKGROUND_SHADOW_OFFSET_X, BACKGROUND_SHADOW_PADDING + BACKGROUND_SHADOW_OFFSET_Y);
+    context.drawImage(createSilhouette(outline, '#000000'), Math.trunc(BACKGROUND_SHADOW_PADDING + BACKGROUND_SHADOW_OFFSET_X), Math.trunc(BACKGROUND_SHADOW_PADDING + BACKGROUND_SHADOW_OFFSET_Y));
+
+    const image = context.getImageData(0, 0, bitmap.width, bitmap.height);
+
+    // black is the same premultiplied or not, so the alpha is all there is to scale and blur
+    for (let i = 3; i < image.data.length; i += 4) image.data[i] = (image.data[i] * BACKGROUND_SHADOW_ALPHA_FIXED) >> 8;
+
+    flashBlurPixels(image.data, bitmap.width, bitmap.height, BACKGROUND_SHADOW_BLUR, BACKGROUND_SHADOW_BLUR, BACKGROUND_SHADOW_BLUR_QUALITY);
+    context.putImageData(image, 0, 0);
 
     return bitmap;
 };

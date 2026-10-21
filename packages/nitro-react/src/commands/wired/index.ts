@@ -7,6 +7,7 @@ export * from './wiredMenuInspectionCommands';
 export * from './wiredMenuOverviewCommands';
 export * from './wiredPreferencesCommands';
 export * from './wiredRoomLogsCommands';
+export * from './wiredSharedAddonsCommands';
 export * from './wiredSynchronizerCommands';
 export * from './wiredVariableLeaderboardCommands';
 export * from './wiredVariableManagementCommands';

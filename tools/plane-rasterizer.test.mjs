@@ -190,7 +190,7 @@ await test('plane target wrappers participate in the shared pool instead of reta
     const calls = [];
     const texture = { source: { style: { minFilter: 'linear', magFilter: 'nearest' } } };
     const { acquirePlaneTarget, releasePlaneTarget } = load('room/object/visualization/room/rasterizer/PlaneCanvas', {
-        'pixi.js': {},
+        'pixi.js': { Container: class {} },
         '#renderer/utils': { TexturePool: {
             createRenderTexture(...args) {
                 calls.push(args);
@@ -221,7 +221,7 @@ await test('final plane sampling minifies linearly but preserves nearest magnifi
     } };
     const texture = { source: { style } };
     const { preparePlaneSampling } = load('room/object/visualization/room/rasterizer/PlaneCanvas', {
-        'pixi.js': {}, '#renderer/utils': {}, './PlaneColorFilter': {},
+        'pixi.js': { Container: class {} }, '#renderer/utils': {}, './PlaneColorFilter': {},
     });
     assert.equal(preparePlaneSampling(texture), texture);
     assert.equal(style.minFilter, 'linear');
@@ -255,6 +255,8 @@ await test('RoomPlane rebuilds an unchanged door mask when the texture dimension
         },
         '../../../utils': { RoomGeometry: class {} },
         './mask': {},
+        './PlaneDrawingData': {},
+        './rasterizer/basic/PlaneVisualizationLayer': {},
         './rasterizer/PlaneCanvas': {},
         './RoomPlaneBitmapMask': {},
         './RoomPlaneRectangleMask': {},

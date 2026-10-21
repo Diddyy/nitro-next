@@ -43,6 +43,13 @@ type State = {
     roomEntryDialog: NavigatorRoomEntryDialog | undefined;
     alert: NavigatorAlert | undefined;
     roomQueue: NavigatorRoomQueue | undefined;
+    /**
+     * `HabboNavigator.webRoomReport` / `webRoomReportedName`: the last `enterRoomWebRequest` was a
+     * report (`navigator/report/<globalId>/<name>`), so the `ConvertedRoomIdMessage` it asked for
+     * opens the room's report rather than forwarding there. Flash never clears it.
+     */
+    webRoomReport: boolean;
+    webRoomReportedName: string | null;
 };
 
 type Actions = {
@@ -51,12 +58,15 @@ type Actions = {
     setRoomEntryDialogMode: (mode: NavigatorRoomEntryDialogMode) => void;
     setAlert: (alert: NavigatorAlert | undefined) => void;
     setRoomQueue: (roomQueue: NavigatorRoomQueue | undefined) => void;
+    setWebRoomReport: (webRoomReport: boolean, webRoomReportedName: string | null) => void;
 };
 
 export const NavigatorRoomEntrySliceInitialState: State = {
     roomEntryDialog: undefined,
     alert: undefined,
     roomQueue: undefined,
+    webRoomReport: false,
+    webRoomReportedName: null,
 };
 
 export type NavigatorRoomEntrySlice = State & Actions;
@@ -67,4 +77,5 @@ export const createNavigatorRoomEntrySlice: StateCreator<NavigatorRoomEntrySlice
     setRoomEntryDialogMode: mode => set(x => (x.roomEntryDialog ? { roomEntryDialog: { ...x.roomEntryDialog, mode } } : {})),
     setAlert: alert => set({ alert }),
     setRoomQueue: roomQueue => set({ roomQueue }),
+    setWebRoomReport: (webRoomReport, webRoomReportedName) => set({ webRoomReport, webRoomReportedName }),
 });

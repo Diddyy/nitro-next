@@ -6,7 +6,7 @@ import { GetCollectibleMintableItemTypesComposer, GetCollectibleMintingEnabledCo
 
 import { COLLECTIBLE_MINT_RESULT_SUCCESS, COLLECTIBLE_PREVIEW_NONE, CollectiblesMintItem, collectiblesStore, wrapMintableItem } from '#base/context/collectibles';
 import { Send } from '#base/context/communication';
-import { inventoryStore, isInventoryFurniGroupWallItem } from '#base/context/inventory';
+import { getNonRentedInventoryIds, inventoryStore } from '#base/context/inventory';
 import { systemStore, translate as t } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { configReader, openWebPage } from '#base/utils';
@@ -22,11 +22,7 @@ const getIdsInInventory = (item: ICollectiblesProductItem): number[] => {
     if (item.itemType === 'i') isWallItem = true;
     else if (item.itemType !== 's') return [];
 
-    const group = inventoryStore.getState().furniGroups.find(furniGroup => (furniGroup.typeId === item.itemTypeId) && (isInventoryFurniGroupWallItem(furniGroup) === isWallItem));
-
-    if (!group) return [];
-
-    return group.items.filter(furni => !furni.isRented).map(furni => furni.id);
+    return getNonRentedInventoryIds(inventoryStore.getState().furniGroups, item.itemTypeId, isWallItem) ?? [];
 };
 
 /**

@@ -214,7 +214,7 @@ await test('the installed room ticker and resize listener use the latest camera 
     const room = { canvas, roomId: 1, dispatchEvent() {} };
     const { RoomCanvas } = load(component, {
         '@nitrodevco/nitro-api': { RoomRenderedEvent: class {} },
-        '@nitrodevco/nitro-renderer': { GetRenderer: () => ({ on: (_, fn) => { resize = fn; }, off() {} }), GetTicker: () => ({ add: (fn) => {
+        '@nitrodevco/nitro-renderer': { GetRenderer: () => ({ canvas: { addEventListener() {}, removeEventListener() {} }, on: (_, fn) => { resize = fn; }, off() {} }), GetTicker: () => ({ add: (fn) => {
             tick = fn;
             registrations++;
         }, remove() {} }) },

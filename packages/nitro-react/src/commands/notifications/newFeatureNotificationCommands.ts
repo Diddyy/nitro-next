@@ -88,3 +88,34 @@ export const requestNewFeatureSecondsUntil = (send: Send, timeStr: string) => se
 
 /** `NewFeatureNotification.initializeAutoOpen`: whether the auto-open condition's product is claimed. */
 export const requestNewFeatureClaimState = (send: Send, claimId: string) => send(new HasClaimedProductComposer({ claimId }));
+
+/**
+ * Not Flash's: the keys a player closed for good (`notifications.new_feature.close.<key>` `forever`),
+ * kept in this browser per user. Flash's cancel link only takes a notification down until the
+ * client starts again.
+ */
+const closedForeverStorageKey = (userId: number) => `nitro.new_feature.closed.${userId}`;
+
+const readClosedForever = (userId: number): string[] => {
+    try {
+        const value = JSON.parse(window.localStorage.getItem(closedForeverStorageKey(userId)) ?? '[]') as unknown;
+
+        return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+        return [];
+    }
+};
+
+export const isNewFeatureClosedForever = (userId: number, key: string) => readClosedForever(userId).includes(key);
+
+export const rememberNewFeatureClosedForever = (userId: number, key: string) => {
+    const closed = readClosedForever(userId);
+
+    if (closed.includes(key)) return;
+
+    try {
+        window.localStorage.setItem(closedForeverStorageKey(userId), JSON.stringify([ ...closed, key ]));
+    } catch {
+        // A browser that keeps nothing closes it until the next start, as Flash does.
+    }
+};

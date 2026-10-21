@@ -60,10 +60,19 @@ browser text.
   theme styles, so a style it gains is one a view can name that day and one it loses is a
   `textStyle` that stops typechecking - never a hand-written font beside it.
 - Fonts are captured bundles in `public/assets/fonts/*.air51.json`, shipped in `fonts.nitro` and
-  registered once at boot by `preloadFlashFonts()`. They cover printable ASCII; typographic quotes,
-  dashes, the acute accent used as an apostrophe and the no-break space are drawn as their ASCII
-  look-alikes (`GLYPH_STAND_INS` in `FlashTextRenderer.ts`, one character for one). A string with any
-  other character - or a raw `fontFamily`/`fontSize` override - falls back to the browser's text
+  registered once at boot by `preloadFlashFonts()`. They cover the Latin script (U+0021-017F:
+  ASCII, Latin-1 and Latin Extended-A, so every hotel's language) and U+2000-22FF (dashes, curly
+  quotes, currency, fractions, arrows, maths) - each glyph decoded the first time it is drawn.
+  The few of those marks a face lacks (no face has the U+2010-2012 hyphens or the primes) are
+  drawn as their ASCII look-alikes (`GLYPH_STAND_INS` in `FlashTextRenderer.ts`, one character for
+  one). The rest of each font (Cyrillic, Greek, Latin Extended-B, Latin Extended Additional, ...)
+  is in `public/assets/fonts-extended/*.air51.json`, shipped in `fonts-extended.nitro`, which no
+  boot path loads: the boot bundle has every glyph's `DefineFont3` metrics, so the first text with
+  a glyph the font has but the face cannot draw yet starts the fetch (`setMissingGlyphLoader`),
+  draws in browser text that once, and draws again when the glyphs land - `ThemeText` and chat
+  bubbles through `useMissingGlyphRefresh`, template measures through the font revision in their
+  cache key. A string with a character no font has (emoji) - or a raw
+  `fontFamily`/`fontSize` override - falls back to the browser's text
   in the same `.ttf` faces, so never assume a text is a Flash bitmap. Those faces are
   `font-faces.nitro`, added to `document.fonts` from the archive's own bytes by
   `registerBrowserFonts` - started by `preloadFlashFonts` at boot but never awaited, because they are only the fallback.

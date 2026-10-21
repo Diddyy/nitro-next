@@ -52,6 +52,7 @@ export const VOLTER_WIRED_STYLE: WiredStyle = {
     yellowTextColor: '#ffffaa',
     softTextColor: '#cfcfcf',
     redTextColor: '#eda1a2',
+    warningTextColor: '#ffb366',
 
     templates: {
         ruler: { height: 1, lines: [ { color: '#232323', alpha: 1 } ] },

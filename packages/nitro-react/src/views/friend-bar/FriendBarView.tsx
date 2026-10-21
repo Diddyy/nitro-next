@@ -33,7 +33,7 @@ import { FriendRequestStateType } from '@nitrodevco/nitro-packets';
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { forwardRef, useCallback, useRef, useState } from 'react';
 
-import { findNewFriends, followFriendFromBar, openProfile, saveFriendBarExpanded, startFriendBarConversation } from '#base/commands';
+import { findNewFriends, followFriendFromBar, openProfile, saveFriendBarExpanded, startFriendBarConversation, trackEventLog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigBoolean, useIsWindowVisible, useToolbarAreaWidth, useTranslation, useWindowActions } from '#base/context/system';
 import { FriendBarNotification, useFriendBarCollapsed, useFriendBarFriends, useFriendRequests, useUserMessengerActions, useUserStore } from '#base/context/user';
@@ -138,10 +138,12 @@ export const FriendBarView = forwardRef<PixiContainer>((_, ref) => {
         saveFriendBarExpanded(send, collapsed);
     };
 
-    /** `HabboFriendBarData.toggleFriendList`. */
+    /** `HabboFriendBarData.toggleFriendList`, then its EventLog with the state it left the list in. */
     const toggleFriendList = () => {
         if (friendListOpen) hideWindow('friendlist');
         else showWindow('friendlist', { tab: (numRequests > 0) ? 'requests' : 'friends' });
+
+        trackEventLog(send, 'Toolbar', 'FRIENDLIST', friendListOpen ? 'close' : 'open');
     };
 
     /** A token's `message_piece` texts (`RoomEventToken`, `AchievementToken`, `QuestToken`, `GameToken`). */

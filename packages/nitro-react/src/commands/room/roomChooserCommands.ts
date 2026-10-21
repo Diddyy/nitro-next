@@ -7,7 +7,7 @@
  * a user row carries the user's type. Rows with an id of 0 or less (a ghost being placed) are not
  * listed. Opening a chooser that is open builds its list again, as a second `:furni` does.
  */
-import { IRoomObject, RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
+import { IRoomObject, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjectVariableEnum } from '@nitrodevco/nitro-api';
 
 import { ChooserItem, getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
@@ -100,11 +100,25 @@ export const removeFurniChooserItem = (objectId: number, category: RoomObjectCat
     if (index >= 0) setFurniChooserItems(furniChooserItems.filter((_, i) => i !== index));
 };
 
-/** `handleUserChooserRequest` -> `onChooserContent`: every user, pet and bot of the room, with its type. */
+/**
+ * `UserChooserWidgetHandler.isChooserDisabled` (WIN63-202610191507 UserChooserWidgetHandler.as:85-88): the room's
+ * configuration items turned the user chooser off, and the user has no rights in the room. Rights holders keep it.
+ */
+export const isUserChooserDisabled = () => {
+    const room = getRoom();
+
+    return !!room && ((room.getRoomValue<number>(RoomObjectVariableEnum.ChooserDisabled) ?? 0) === 1) && (Number(roomStore.getState().controllerLevel) < Number(RoomControllerLevelEnum.Guest));
+};
+
+/**
+ * `handleUserChooserRequest` -> `onChooserContent`: every user, pet and bot of the room, with its type.
+ * Nothing while the chooser is disabled (WIN63-202610191507 UserChooserWidgetHandler.as:143-146), so a list
+ * refresh after a user enters or leaves does not build it either.
+ */
 export const openUserChooser = () => {
     const room = getRoom();
 
-    if (!room) return;
+    if (!room || isUserChooserDisabled()) return;
 
     const { usersByRoomObjectId, setUserChooserItems } = roomStore.getState();
     const items: ChooserItem[] = [];

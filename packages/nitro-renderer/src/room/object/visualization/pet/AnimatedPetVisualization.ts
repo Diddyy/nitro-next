@@ -153,6 +153,9 @@ export class AnimatedPetVisualization extends AnimatedFurnitureVisualization {
             this._alphaChanged = true;
         }
 
+        // Flash ends with super.updateModel, which reads WIRED Set Visibility for pets too.
+        this.updateWiredVisibility(this.object.model);
+
         this._isSleeping = this.object.model.getValue<number>(RoomObjectVariableEnum.FigureSleep) > 0;
 
         const headDirection = this.object.model.getValue<number>(RoomObjectVariableEnum.HeadDirection);

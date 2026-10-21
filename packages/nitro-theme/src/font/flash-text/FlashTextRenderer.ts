@@ -5,8 +5,8 @@
  */
 import { Air32NativeTextRenderer, layoutNativeText, layoutNormalText } from './air32/Air32NativeTextRenderer';
 import { roundTiesEven } from './air32/mathColor';
-import { prepareAir32NativeBundle } from './air32/nativeFont';
-import { NativeFont, NativeFontBundle, NativeRenderOptions, NativeRenderResult, RasterCache, RenderTarget, TextRunLayout } from './air32/types';
+import { extendAir32NativeFont, prepareAir32NativeBundle } from './air32/nativeFont';
+import { NativeFont, NativeFontBundle, NativeGlyphBundle, NativeRenderOptions, NativeRenderResult, RasterCache, RenderTarget, TextRunLayout } from './air32/types';
 import { FlashTextFormat } from './flashTextFormat';
 
 interface NativeFontEntry {
@@ -44,6 +44,52 @@ export const registerNativeFontBundle = (family: string, weight: string, style: 
         rasterCache: { entries: new Map(), bytes: 0 },
     });
     fontRevision++;
+};
+
+/**
+ * Adds a glyph bundle's outlines to a face `registerNativeFontBundle` registered - see
+ * `setMissingGlyphLoader`. A face that was never registered is left alone.
+ */
+export const registerNativeGlyphs = (family: string, weight: string, style: string, bundle: NativeGlyphBundle): void => {
+    const entry = nativeFontsByKey.get(fontKey(family, weight, style));
+
+    if (!entry || !extendAir32NativeFont(entry.font, bundle)) return;
+
+    fontRevision++;
+};
+
+type MissingGlyphLoader = () => Promise<void>;
+
+let missingGlyphLoader: MissingGlyphLoader | undefined;
+let missingGlyphState: 'idle' | 'loading' | 'done' = 'idle';
+const glyphListeners = new Set<() => void>();
+
+/**
+ * Sets what fetches and registers the glyphs the boot bundle leaves out. The boot bundle carries
+ * every glyph of the Latin script and its punctuation; the fonts' other scripts (Cyrillic, Greek,
+ * Latin Extended-B, ...) would almost triple it for texts most sessions never show. Their
+ * `DefineFont3` metrics are in the boot bundle, though, so a text with one of their glyphs is
+ * known the moment it is measured: it falls back to browser text that once, starts this load,
+ * and every text waiting on it draws again when it lands (`onGlyphsAdded`). The loader logs its
+ * own failures; it never rejects.
+ */
+export const setMissingGlyphLoader = (loader: MissingGlyphLoader | undefined): void => {
+    missingGlyphLoader = loader;
+};
+
+/** Starts the missing-glyph load the first time a text needs it; one attempt per session. */
+const requestMissingGlyphs = (): void => {
+    if (missingGlyphState !== 'idle' || !missingGlyphLoader) return;
+
+    missingGlyphState = 'loading';
+
+    const finish = () => {
+        missingGlyphState = 'done';
+
+        for (const listener of [ ...glyphListeners ]) listener();
+    };
+
+    missingGlyphLoader().then(finish, finish);
 };
 
 /**
@@ -88,11 +134,12 @@ const toNativeRenderOptions = (format: FlashTextFormat): NativeRenderOptions => 
 };
 
 /**
- * Typographic punctuation the captured fonts have no glyph data for (they cover printable ASCII),
- * drawn as its ASCII look-alike: a text with any one of them would otherwise fall back to browser
- * text whole - softer than every Flash text around it - for a mark the localizations use in place
- * of an apostrophe (`You don\u00b4t`), a quote or a dash. One character for one, so a caret,
- * a selection or a markup run still indexes the same text.
+ * Typographic punctuation drawn as its ASCII look-alike where a captured font has no glyph data
+ * for it: a text with any one of them would otherwise fall back to browser text whole - softer
+ * than every Flash text around it - for a mark the localizations use in place of an apostrophe
+ * (`You don\u00b4t`), a quote or a dash. The fonts carry most of these now (no face has the hyphens
+ * U+2010-2012, U+201B or the primes, and Volter Bold has no minus sign), and a font that has the
+ * glyph draws it as AIR did. One character for one, so a caret, a selection or a markup run still indexes the same text.
  */
 const GLYPH_STAND_INS: Readonly<Record<string, string>> = {
     '\u00b4': "'", // acute accent
@@ -119,8 +166,21 @@ const GLYPH_STAND_IN_CLASS = `[${Object.keys(GLYPH_STAND_INS).join('')}]`;
 const HAS_GLYPH_STAND_IN = new RegExp(GLYPH_STAND_IN_CLASS);
 const GLYPH_STAND_IN_PATTERN = new RegExp(GLYPH_STAND_IN_CLASS, 'g');
 
-/** The text as the captured glyphs draw it (`GLYPH_STAND_INS`); the same length as `text`. */
-const withCapturedGlyphs = (text: string): string => (HAS_GLYPH_STAND_IN.test(text) ? text.replace(GLYPH_STAND_IN_PATTERN, character => GLYPH_STAND_INS[character] ?? character) : text);
+/** Whether the font draws `code` from its own data: a glyph with no ink (a space) needs only its advance. */
+const fontDrawsGlyph = (entry: NativeFontEntry, code: number): boolean => {
+    const glyph = entry.font.swfGlyphs.get(code);
+
+    return !!glyph && (!glyph.hasInk || entry.font.profile.glyphs.has(code));
+};
+
+/** The text as `format`'s captured glyphs draw it (`GLYPH_STAND_INS`); the same length as `text`. */
+const withCapturedGlyphs = (text: string, format: FlashTextFormat): string => {
+    if (!HAS_GLYPH_STAND_IN.test(text)) return text;
+
+    const entry = resolveNativeFont(format);
+
+    return text.replace(GLYPH_STAND_IN_PATTERN, character => ((entry && fontDrawsGlyph(entry, character.charCodeAt(0))) ? character : (GLYPH_STAND_INS[character] ?? character)));
+};
 
 /**
  * Why `text` cannot be rendered exactly in `format`, or `null` when it can - the checks in the
@@ -149,9 +209,13 @@ const unsupportedReason = (format: FlashTextFormat, text: string): string | null
 
     for (let index = 0; index < text.length; index++) {
         const code = text.charCodeAt(index);
-        const glyph = entry.font.swfGlyphs.get(code);
 
-        if (!glyph || (glyph.hasInk && !entry.font.profile.glyphs.has(code))) return `no glyph for ${JSON.stringify(text[index])} (U+${code.toString(16).toUpperCase().padStart(4, '0')})`;
+        if (!fontDrawsGlyph(entry, code)) {
+            // The font has the glyph, in the bundle not loaded yet - not a character it lacks (emoji).
+            if (entry.font.swfGlyphs.get(code)?.hasInk) requestMissingGlyphs();
+
+            return `no glyph for ${JSON.stringify(text[index])} (U+${code.toString(16).toUpperCase().padStart(4, '0')})`;
+        }
     }
 
     return null;
@@ -174,13 +238,25 @@ export class FlashTextRenderer {
         return fontRevision;
     }
 
+    /** Whether a text asked for glyphs that are still being fetched (`setMissingGlyphLoader`). */
+    public static get glyphsPending(): boolean {
+        return missingGlyphState === 'loading';
+    }
+
+    /** Calls `listener` once the missing-glyph load has finished, landed or not; returns the unsubscribe. */
+    public static onGlyphsAdded(listener: () => void): () => void {
+        glyphListeners.add(listener);
+
+        return () => glyphListeners.delete(listener);
+    }
+
     public static supports(format: FlashTextFormat, text: string = ''): boolean {
-        return !!resolveSupportedFont(format, withCapturedGlyphs(text));
+        return !!resolveSupportedFont(format, withCapturedGlyphs(text, format));
     }
 
     /** Why `text` in `format` falls back to browser text, or `null` when it renders exactly. */
     public static unsupportedReason(format: FlashTextFormat, text: string = ''): string | null {
-        text = withCapturedGlyphs(text);
+        text = withCapturedGlyphs(text, format);
 
         const reason = unsupportedReason(format, text);
 
@@ -193,7 +269,7 @@ export class FlashTextRenderer {
 
     /** The run's width in px, or `null` when it cannot be rendered exactly. */
     public static measure(text: string, format: FlashTextFormat): number | null {
-        text = withCapturedGlyphs(text);
+        text = withCapturedGlyphs(text, format);
 
         const entry = resolveSupportedFont(format, text);
 
@@ -202,7 +278,7 @@ export class FlashTextRenderer {
 
     /** The x of every character's left edge, followed by the run's width. */
     public static measureCharPositions(text: string, format: FlashTextFormat): number[] | null {
-        text = withCapturedGlyphs(text);
+        text = withCapturedGlyphs(text, format);
 
         const entry = resolveSupportedFont(format, text);
 
@@ -241,7 +317,7 @@ export class FlashTextRenderer {
 
     /** One line of text; `retainedPixels` on the result is the premultiplied RGBA bitmap, gutter included. */
     public static render(text: string, format: FlashTextFormat): NativeRenderResult | null {
-        text = withCapturedGlyphs(text);
+        text = withCapturedGlyphs(text, format);
 
         const entry = resolveSupportedFont(format, text);
 
@@ -256,7 +332,7 @@ export class FlashTextRenderer {
 
     /** Renders into a caller-owned premultiplied bitmap, at the target's own offset. */
     public static renderInto(text: string, format: FlashTextFormat, target: RenderTarget): void {
-        text = withCapturedGlyphs(text);
+        text = withCapturedGlyphs(text, format);
 
         const entry = resolveNativeFont(format);
 

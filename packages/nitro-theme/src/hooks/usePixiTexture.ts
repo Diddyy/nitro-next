@@ -422,6 +422,22 @@ export const forgetTextureUrl = (url: string): void => {
 };
 
 /**
+ * `forgetTextureUrl` once the server has replaced the picture, with the browser's own copy fetched
+ * again first: a proxy in front of the server (Cloudflare's browser cache TTL) can make the browser
+ * keep the old answer - a 404 before the room's first thumbnail - for hours, which a plain download
+ * would get back. A failed refetch still forgets, as before.
+ */
+export const reloadTextureUrl = async (url: string): Promise<void> => {
+    try {
+        await fetch(url, { cache: 'reload' });
+    } catch {
+        // Offline or refused: the next download tries again.
+    }
+
+    forgetTextureUrl(url);
+};
+
+/**
  * Resolves an arbitrary asset URL to a Pixi Texture, downloading it through the shared
  * GetAssetManager() if it isn't already cached. Since the UI and the room share one
  * renderer/context (see `PixiApplicationRoot`), a texture used by both is fetched,

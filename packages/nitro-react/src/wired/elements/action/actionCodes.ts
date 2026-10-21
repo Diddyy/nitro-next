@@ -67,4 +67,7 @@ export const ActionTypeCodes = {
     MOVE_AS_GROUP: 57,
     PROGRESS_REWARD_TRACK: 58,
     RESET_REWARD_TRACK: 59,
+    /** `_-z1S`, WIRED Effect: Set Visibility (`wf_act_set_visibility`). */
+    SET_FURNI_TRANSPARENCY: 61,
+    SET_FURNI_HIGHLIGHT: 62,
 } as const;

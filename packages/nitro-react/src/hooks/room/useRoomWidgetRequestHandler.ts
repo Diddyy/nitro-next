@@ -1,7 +1,7 @@
 import { NitroLogger, RoomObjectVariableEnum, RoomObjectWidgetRequestEvent, RoomWidgetEnum } from '@nitrodevco/nitro-api';
-import { GetCraftableProductsComposer, GetGuestRoomComposer, GetGuildFurniContextMenuInfoComposer, GetJukeboxPlayListComposer, GetNowPlayingComposer, GetResolutionAchievementsComposer, GetUserSongDisksComposer, GetYoutubeDisplayStatusComposer, RentableSpaceStatusComposer, UseFurnitureComposer } from '@nitrodevco/nitro-packets';
+import { GetGuestRoomComposer, GetGuildFurniContextMenuInfoComposer, GetJukeboxPlayListComposer, GetNowPlayingComposer, GetResolutionAchievementsComposer, GetUserSongDisksComposer, GetYoutubeDisplayStatusComposer, RentableSpaceStatusComposer, UseFurnitureComposer } from '@nitrodevco/nitro-packets';
 
-import { openClientLink } from '#base/commands';
+import { openClientLink, openCraftingTable } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomStore, useRoomWidgetActions } from '#base/context/room';
 import { useTranslation, useWindowActions } from '#base/context/system';
@@ -52,7 +52,7 @@ export const useRoomWidgetRequestHandler = () => {
                 // Neither of these keeps what it needs on the furni; the server has it.
                 if (widget === RoomWidgetEnum.RENTABLESPACE) send(new RentableSpaceStatusComposer({ objectId: event.objectId }));
 
-                if (widget === RoomWidgetEnum.CRAFTING) send(new GetCraftableProductsComposer({ objectId: event.objectId }));
+                if (widget === RoomWidgetEnum.CRAFTING) openCraftingTable(send);
 
                 return;
             }

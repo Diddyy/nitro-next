@@ -167,6 +167,8 @@ export class AvatarLogic extends MovingObjectLogic {
 
         super.processUpdateMessage(message);
 
+        if (this.processWiredEffectMessage(message)) return;
+
         if (this.processVariableFxStatusMessage(message)) return;
 
         if (message instanceof ObjectAvatarPostureUpdateMessage) {

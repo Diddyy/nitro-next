@@ -2,6 +2,7 @@ import { IRoomObject, RoomControllerLevelEnum, RoomObjectCategoryEnum, RoomObjec
 import { MoveEntityInFlatComposer, MoveObjectComposer, MovePetComposer, MoveWallItemComposer, PickupObjectComposer, RemoveBotFromFlatComposer, RemovePetFromFlatComposer } from '@nitrodevco/nitro-packets';
 import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
+import { trackEventLogOncePerSession } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { roomStore, useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
 import { useOwnIsAnyRoomController, useOwnUserId } from '#base/context/user';
@@ -145,11 +146,14 @@ export const useRoomObjectModify = () => {
                     const location = roomObject.getLocation();
                     const rotation = _angle / 45;
 
+                    // `modifyRoomObject` `OBJECT_MOVE_TO`: the first furni move of the client session.
+                    trackEventLogOncePerSession(send, 'Tutorial', 'interaction', 'furniture.move');
                     send(new MoveObjectComposer({ objectId, x: location.x, y: location.y, rotation }));
                 } else if (category === RoomObjectCategoryEnum.Wall) {
                     const _angle = roomObject.getDirection().x % 360;
                     const location = room.legacyGeometry?.getOldLocationString(roomObject.getLocation(), _angle);
 
+                    if (location) trackEventLogOncePerSession(send, 'Tutorial', 'interaction', 'furniture.move');
                     send(new MoveWallItemComposer({ objectId, wallPosition: location ?? '' }));
                 } else if (category === RoomObjectCategoryEnum.Unit) {
                     const location = roomObject.getLocation();

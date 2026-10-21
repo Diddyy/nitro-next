@@ -27,6 +27,7 @@ import { ProjectileView } from '#base/views/wired-setup/elements/addon/Projectil
 import { RandomEffectView } from '#base/views/wired-setup/elements/addon/RandomEffectView';
 import { SelectorFilterView } from '#base/views/wired-setup/elements/addon/SelectorFilterView';
 import { UsernamePlaceholderView } from '#base/views/wired-setup/elements/addon/UsernamePlaceholderView';
+import { VariableAddonImportView, VariableAddonShareView } from '#base/views/wired-setup/elements/addon/VariableAddonSharingView';
 import { VariableCapturerView } from '#base/views/wired-setup/elements/addon/VariableCapturerView';
 import { VariableFilterView } from '#base/views/wired-setup/elements/addon/VariableFilterView';
 import { VariableFxLevellingProgressView } from '#base/views/wired-setup/elements/addon/variablefx/VariableFxLevellingProgressView';
@@ -61,6 +62,7 @@ import { unseenEffectAddon } from './UnseenEffect';
 import { usernamePlaceholderAddon } from './UsernamePlaceholder';
 import { userSelectorFilterAddon } from './UserSelectorFilter';
 import { userVariableFilterAddon } from './UserVariableFilter';
+import { variableAddonImportAddon, variableAddonShareAddon } from './VariableAddonSharing';
 import { variableCapturerAddon } from './VariableCapturer';
 import { variableFxBossBarAddon } from './variablefx/VariableFxBossBar';
 import { variableFxHealthPointsAddon } from './variablefx/VariableFxHealthPoints';
@@ -99,6 +101,8 @@ export const addonElements: WiredElementEntry[] = [
     defineWiredElement(variableTextConverterAddon, VariableTextConverterView),
     defineWiredElement(variableLevelUpAddon, VariableLevelUpView),
     defineWiredElement(variableTimeUtilAddon, VariableTimeUtilView),
+    defineWiredElement(variableAddonShareAddon, VariableAddonShareView),
+    defineWiredElement(variableAddonImportAddon, VariableAddonImportView),
     defineWiredElement(variableLeaderboardAddon, VariableLeaderboardAddonView),
     defineWiredElement(variableFxHealthPointsAddon, VariableFxView),
     defineWiredElement(variableFxProgressBarAddon, VariableFxView),

@@ -3,6 +3,7 @@ import { GetFurnitureAliasesComposer, InfoRetrieveComposer } from '@nitrodevco/n
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { useEffect } from 'react';
 
+import { trackEventLog } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue } from '#base/context/system';
 import { useWindowVisibility } from '#base/hooks';
@@ -89,7 +90,8 @@ export const MainView = () => {
      */
     useEffect(() => {
         send(new InfoRetrieveComposer({}));
-        // `onAuthenticationOK` asks for the furni aliases right after the user object.
+        // `onAuthenticationOK` logs the login, then asks for the furni aliases right after the user object.
+        trackEventLog(send, 'Login', 'socket', 'client.auth_ok');
         send(new GetFurnitureAliasesComposer({}));
         setReady();
     }, []);

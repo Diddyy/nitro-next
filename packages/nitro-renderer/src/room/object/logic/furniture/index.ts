@@ -70,3 +70,4 @@ export * from './FurnitureWelcomeGiftLogic';
 export * from './FurnitureWildWestWantedLogic';
 export * from './FurnitureWindowLogic';
 export * from './FurnitureYoutubeLogic';
+export * from './WiredFurnitureEffectState';

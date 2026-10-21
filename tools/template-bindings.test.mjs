@@ -4,7 +4,21 @@
  * only the elements whose binding changed.
  */
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { registerHooks } from 'node:module';
 import { test } from 'node:test';
+
+// The bundler resolves the source's extensionless relative imports (`../utils/clickCount`); Node's own
+// TypeScript loading needs the file name, so a relative import from a .ts file tries `<name>.ts`.
+registerHooks({ resolve: (specifier, context, next) => {
+    if (specifier.startsWith('.') && context.parentURL?.endsWith('.ts') && !/\.[cm]?[jt]sx?$/.test(specifier)) {
+        const url = new URL(`${specifier}.ts`, context.parentURL);
+
+        if (existsSync(url)) return next(url.href, context);
+    }
+
+    return next(specifier, context);
+} });
 
 const { findTemplateChild, resolveTemplateNames, bindElements, sameTemplateBinding, TemplateBindingStore, TemplateExpander } = await import('../packages/nitro-theme/src/template/templateBindings.ts');
 

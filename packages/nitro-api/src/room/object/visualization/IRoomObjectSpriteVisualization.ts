@@ -7,6 +7,9 @@ export interface IRoomObjectSpriteVisualization extends IRoomObjectGraphicVisual
     getSprite(index: number): IRoomObjectSprite | undefined;
     getSpriteList(): RoomObjectSpriteData[];
     sprites: IRoomObjectSprite[];
+    /** Flash `IPlaneVisualization.additionalSpriteCount` / `getAdditionalSprite`: sprites drawn after `sprites` (a WIRED highlight composite). */
+    readonly additionalSpriteCount: number;
+    getAdditionalSprite(index: number): IRoomObjectSprite | undefined;
     updateObjectCounter: number;
     updateModelCounter: number;
 }

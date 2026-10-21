@@ -4,6 +4,7 @@ export * from './DailyTaskVariable';
 export * from './EchoVariable';
 export * from './FurniVariable';
 export * from './GlobalVariable';
+export * from './PointerVariable';
 export * from './QuestChainVariable';
 export * from './QuestVariable';
 export * from './ReferenceVariable';

@@ -1,8 +1,9 @@
 import { Color, TextDropShadow } from 'pixi.js';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import { FLASH_TEXT_GUTTER, FlashTextCanvas, FlashTextFace, FlashTextFieldOverrides, FlashTextFormat, FlashTextLayoutOptions, flashTextLineHeight, FlashTextRenderer, FlashTextRun, FlashTextStyleSheet, HABBO_TEXT_STYLES, HabboTextStyleName, layoutFlashTextBlock, parseFlashTextMarkupWithLinks, renderFlashTextCanvas, reportFlashTextFallback, resolveFlashTextFormat } from '../font/flash-text';
 import { flashFaceOverride } from '../utils/textStyles';
+import { readAtGlyphRevision, useMissingGlyphRefresh } from './useMissingGlyphRefresh';
 
 /**
  * A text window's `overflow_replace` truncation (`TextController.refreshTextImage`): the text is
@@ -197,8 +198,10 @@ export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | 
     // one const per property, because there are a dozen of them. The overflow box likewise.
     const fieldKey = field ? JSON.stringify(field) : '';
     const overflowKey = overflowReplace ? JSON.stringify(overflowReplace) : '';
+    // A text with a glyph still loading falls back, then draws again when it lands.
+    const [ glyphRevision, setGlyphRevision ] = useState(() => FlashTextRenderer.revision);
 
-    return useMemo(() => {
+    const rendered = useMemo(() => readAtGlyphRevision(glyphRevision, () => {
         if (!habboKey || !text?.length) return undefined;
 
         // The style first, then the element's own vars over it, exactly as
@@ -243,5 +246,9 @@ export const useFlashTextCanvas = (text: string, habboKey: HabboTextStyleName | 
 
         // A truncated text is plain (`_field.text = ...`), so it keeps no links.
         return (parsed?.links.length && (typeof content !== 'string')) ? { ...rendered, links: parsed.links } : rendered;
-    }, [ text, habboKey, color, fontSize, faceFamily, faceBold, faceItalic, fieldKey, overflowKey, crop, markup, styleSheet, align, wordWrap, wordWrapWidth, breakWords, lineHeight, shadowAlpha, shadowAngle, shadowDistance, shadowColor ]);
+    }), [ text, habboKey, color, fontSize, faceFamily, faceBold, faceItalic, fieldKey, overflowKey, crop, markup, styleSheet, align, wordWrap, wordWrapWidth, breakWords, lineHeight, shadowAlpha, shadowAngle, shadowDistance, shadowColor, glyphRevision ]);
+
+    useMissingGlyphRefresh(!rendered && !!habboKey && !!text?.length, glyphRevision, setGlyphRevision);
+
+    return rendered;
 };

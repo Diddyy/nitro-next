@@ -11,7 +11,7 @@ import { AuthenticationOKMessage, ClientHelloComposer, DisconnectReasonMessage, 
 import { GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
-import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, showConnectionClosed } from '#base/commands';
+import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, showConnectionClosed, trackLoginStep } from '#base/commands';
 import { recordBugReportPacket } from '#base/context/bugreport';
 import { onboardingStore } from '#base/context/onboarding';
 import { useCommunicationIncoming, useCommunicationOutgoing } from '#base/hooks/communication';
@@ -25,6 +25,17 @@ type ProviderProps = {
 };
 
 type ConnectionPhase = 'idle' | 'connecting' | 'authenticating' | 'awaitingHandlers' | 'ready' | 'closed';
+
+/** `HabboCommunicationManager.port`: the port the socket went to, the scheme's own when the URL names none. */
+const socketPort = (url: string) => {
+    try {
+        const parsed = new URL(url);
+
+        return parsed.port || ((parsed.protocol === 'wss:') ? '443' : '80');
+    } catch {
+        return '';
+    }
+};
 
 export const WebSocketContextProvider = ({ children }: ProviderProps) => {
     const phase = useRef<ConnectionPhase>('idle');
@@ -47,6 +58,9 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
 
             hasConnected.current = true;
 
+            // `HabboCommunicationDemo.initGameSocket`.
+            trackLoginStep('client.init.socket.init');
+
             const socket = new WebSocket(socketUrl);
 
             ws.current = socket;
@@ -58,12 +72,19 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
             socket.onopen = () => {
                 setPhase('authenticating');
 
+                // `IncomingMessages.onConnectionEstablished`; the socket has no key exchange, so the
+                // handshake is done once the hello is out (`onCompleteDiffieHandshake`).
+                trackLoginStep('client.init.socket.ok', socketPort(socketUrl));
+                trackLoginStep('client.init.handshake.start');
+
                 send(new ClientHelloComposer({
                     production: production,
                     platform: 'WEB',
                     clientPlatform: ClientPlatformEnum.Unknown,
                     deviceCategory: ClientDeviceCategoryEnum.Unknown,
                 }));
+
+                trackLoginStep('client.init.handshake.ok');
 
                 const params = new URLSearchParams(window.location.search);
                 const sso = params.get('sso');
@@ -381,6 +402,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         // `HabboCommunicationManager.suggestedLoginActions` is set from this packet, before any
         // view's handlers are registered: the new user flow reads it when the hotel view comes up.
         const unsubscribeAuth = subscribe(AuthenticationOKMessage, (data) => {
+            trackLoginStep('client.init.auth.ok');
             onboardingStore.getState().setLoginActions(data.suggestedLoginActions);
             setPhase('awaitingHandlers');
         });

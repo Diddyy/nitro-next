@@ -3,7 +3,7 @@
  * out the way `ThemeText` draws it (`renderFlashTextCanvas` in the element's style), so the rect
  * `layoutTemplate` gives a text is the one its drawing fills.
  */
-import { FLASH_TEXT_GUTTER, FlashTextFieldOverrides, FlashTextStyleSheet, HABBO_TEXT_STYLES, parseFlashTextMarkup, renderFlashTextCanvas, resolveFlashTextFormat } from '../font/flash-text';
+import { FLASH_TEXT_GUTTER, FlashTextFieldOverrides, FlashTextRenderer, FlashTextStyleSheet, HABBO_TEXT_STYLES, parseFlashTextMarkup, renderFlashTextCanvas, resolveFlashTextFormat } from '../font/flash-text';
 import { resolveMarkupFace } from '../hooks/useFlashTextCanvas';
 import { flashFaceOverride, TextStyleKey, themeDefaultTextStyle } from '../utils';
 import type { TemplateElement } from './templateData';
@@ -92,7 +92,8 @@ export const templateTextFormat = (element: TemplateElement): { fontFamily?: str
 /** The wrap width `ThemeText` is given for a field `fieldWidth` wide: inside its gutters. */
 export const templateWrapWidth = (fieldWidth: number) => Math.max(1, fieldWidth - (FLASH_TEXT_GUTTER * 2));
 
-// Sizes by style, size, wrap and text: a caption measured once is not rasterised again on the next layout.
+// Sizes by font revision, style, size, wrap and text: a caption measured once is not rasterised again on
+// the next layout, and one that fell back for a glyph still loading is measured again once it lands.
 const MAX_CACHED = 2000;
 const cache = new Map<string, TemplateTextSize | undefined>();
 
@@ -108,7 +109,7 @@ export const measureTemplateText = (element: TemplateElement, text: string, wrap
     const style = templateTextStyle(element);
     const fontSize = templateFontSize(element);
     const { fontFamily, flash } = templateTextFormat(element);
-    const key = `${markup ? 'markup' : 'plain'}\n${style}\n${fontSize ?? ''}\n${fontFamily ?? ''}\n${JSON.stringify(flash)}\n${wrapWidth ?? ''}\n${styleSheet ? JSON.stringify(styleSheet) : ''}\n${text}`;
+    const key = `${FlashTextRenderer.revision}\n${markup ? 'markup' : 'plain'}\n${style}\n${fontSize ?? ''}\n${fontFamily ?? ''}\n${JSON.stringify(flash)}\n${wrapWidth ?? ''}\n${styleSheet ? JSON.stringify(styleSheet) : ''}\n${text}`;
 
     if (cache.has(key)) return cache.get(key);
 

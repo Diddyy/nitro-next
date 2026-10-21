@@ -32,10 +32,17 @@ await test('on_resize_align_center moves by half the change, truncated as the in
     const shrink = new LayoutWindow(undefined, { x: 0, y: 1, width: 71, height: 17 }, ALIGN_CENTER);
     const grow = new LayoutWindow(undefined, { x: 10, y: 1, width: 10, height: 17 }, ALIGN_CENTER);
 
-    shrink.setRectangle(0, 1, 24, 17); // 0 - (24 - 71) / 2 = 23.5 -> 23
-    grow.setRectangle(10, 1, 15, 17); // 10 - (15 - 10) / 2 = 7.5 -> 7
+    // `WindowController.setRectangle`: the half is an int (truncated towards zero) added to x, and
+    // the pixel it could not split (`_hCenterRem2`) is owed to the next width change.
+    shrink.setRectangle(0, 1, 24, 17); // 0 + int((71 - 24) / 2) = 0 + int(23.5) = 23, 1 owed
+    grow.setRectangle(10, 1, 15, 17); // 10 + int((10 - 15) / 2) = 10 + int(-2.5) = 8, -1 owed
     assert.equal(shrink.x, 23);
-    assert.equal(grow.x, 7);
+    assert.equal(shrink.hCenterRemainder, 1);
+    assert.equal(grow.x, 8);
+    assert.equal(grow.hCenterRemainder, -1);
+    shrink.setRectangle(23, 1, 71, 17); // 23 + int((1 - 47) / 2) = 0: grown back to where it was
+    assert.equal(shrink.x, 0);
+    assert.equal(shrink.hCenterRemainder, 0);
 });
 
 await test('on_resize_align_right and bottom keep that edge; a move skips the alignment', () => {
@@ -253,6 +260,31 @@ await test('hiding an item re-arranges the list, and resize_on_item_update shrin
     assert.equal(rects.get(list).height, 36);
 });
 
+await test('bound list items are placed within the container\'s height so far; captions set after the build re-flow them', () => {
+    // `craftingwidget_xml`'s info texts: bound_to_parent, bottom-aligned, word-wrapped and auto-sized, in an
+    // itemlist_vertical with spacing 8; `CraftingInfoController.setState` sets their captions on the built window.
+    const params = { parentGraphics: true, boundToParent: true, align: [ 'left', 'bottom' ], reflectToParent: [ false, true ] };
+    const vars = { auto_size: 'left', word_wrap: true };
+    const text1 = element('text', [ 0, 0, 134, 43 ], { name: 'info_text1', vars, params: { ...params, accommodate: 'resize' }, caption: 'This spell will produce yy yy yyyyyyyy yyyyyy yy yyy xxxxxx xxx xxxxx' });
+    const text2 = element('text', [ 0, 15, 134, 28 ], { name: 'info_text2', vars, params, caption: 'This spell will produce xxxxxx xxx xxxxx' });
+    const list = element('itemlist_vertical', [ 304, 180, 134, 79 ], { vars: { spacing: 8 }, children: [ text1, text2 ] });
+    const captions = new Map([ [ text1, 'This recipe will produce:' ], [ text2, 'Small Coffee Table' ] ]);
+    // One line 18 high, each more 14.
+    const measure = (e, text) => ({ width: 130, height: 4 + (14 * Math.ceil(text.length / 26)) });
+    const captionOf = e => captions.get(e) ?? e.caption ?? '';
+
+    // Built with its caption, text2 goes in while the container is text1's 18 high: `WindowController.setRectangle`
+    // keeps a bound window inside its parent, so it is pulled from 18 + 8 up onto text1.
+    assert.equal(layoutTemplate([ list ], { captionOf, measure }).get(text2).y, 0);
+
+    // Built with the layout's captions (the container ends 86 high) and then set: each resize re-arranges the
+    // list (`WE_CHILD_RESIZED`, `updateScrollAreaRegion`) inside the container the last arrange left.
+    const rects = layoutTemplate([ list ], { captionOf, measure, builtCaptionOf: e => (captions.has(e) ? e.caption : undefined) });
+
+    assert.deepEqual(rects.get(text1), { x: 0, y: 0, width: 134, height: 18 });
+    assert.deepEqual(rects.get(text2), { x: 0, y: 26, width: 134, height: 18 });
+});
+
 await test('a list item centre-scaled is centred across the list when it is added', () => {
     const item = element('container', [ 0, 0, 20, 10 ], { params: { scale: [ 'center', 'fixed' ] } });
     const list = element('itemlist_vertical', [ 0, 0, 60, 60 ], { children: [ item ] });
@@ -312,13 +344,28 @@ await test('a grid with resize_on_item_update takes its rows\' height', () => {
 });
 
 const { layoutToTemplate } = await import('../packages/nitro-theme/src/template/layoutToTemplate.ts');
-const { readFileSync } = await import('node:fs');
+const { existsSync, readFileSync } = await import('node:fs');
+
+/**
+ * A layout from the git-ignored local reference bundles (`scripts/habbo-js-resources`, docs/development.md),
+ * read when a test first needs it. `skip` is the reason to skip the tests that use it on a machine without
+ * the folder (false where it is there); the rest of the file runs either way.
+ */
+const reference = (path) => {
+    const url = new URL(`../scripts/habbo-js-resources/${path}`, import.meta.url);
+    let template;
+    const read = () => (template ??= layoutToTemplate(readFileSync(url, 'utf8')));
+
+    read.skip = !existsSync(url) && `Local habbo-js-resources layout unavailable (scripts/habbo-js-resources/${path})`;
+
+    return read;
+};
 
 /** The client's own window layout of a scrollable list, style 0: a 23 wide `_ITEMLIST` and a 17 wide `_SCROLLBAR` in 40 x 40. */
-const listSkin = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-window-manager-com/habbo_window_layout_scrollable_itemlist_vertical.xml', import.meta.url), 'utf8'));
-const skinned = { ...input(undefined), skinOf: e => (e.tag === 'scrollable_itemlist_vertical' ? listSkin : undefined) };
+const listSkin = reference('habbo-window-manager-com/habbo_window_layout_scrollable_itemlist_vertical.xml');
+const skinned = { ...input(undefined), skinOf: e => (e.tag === 'scrollable_itemlist_vertical' ? listSkin() : undefined) };
 
-await test('a scrollable list whose items fit hides its scrollbar and gives the list the whole width', () => {
+await test('a scrollable list whose items fit hides its scrollbar and gives the list the whole width', { skip: listSkin.skip }, () => {
     const items = [ 0, 1 ].map(index => element('container', [ 0, 0, 180, 30 ], { name: `row${index}`, params: { scale: [ 'stretch', 'fixed' ] } }));
     const list = element('scrollable_itemlist_vertical', [ 0, 0, 200, 100 ], { children: items });
     const windows = buildTemplateWindows([ list ], skinned);
@@ -329,7 +376,7 @@ await test('a scrollable list whose items fit hides its scrollbar and gives the 
     assert.equal(windows.get(items[1]).y, 30);
 });
 
-await test('a scrollable list whose items overflow shows its scrollbar at its right edge and narrows the list, stretched items with it', () => {
+await test('a scrollable list whose items overflow shows its scrollbar at its right edge and narrows the list, stretched items with it', { skip: listSkin.skip }, () => {
     const items = [ 0, 1, 2, 3, 4 ].map(index => element('container', [ 0, 0, 180, 30 ], { name: `row${index}`, params: { scale: [ 'stretch', 'fixed' ] } }));
     const list = element('scrollable_itemlist_vertical', [ 0, 0, 200, 100 ], { children: items });
     const windows = buildTemplateWindows([ list ], skinned);
@@ -347,7 +394,7 @@ await test('a scrollable list whose items overflow shows its scrollbar at its ri
     assert.deepEqual(layoutTemplate([ list ], skinned).get(items[4]), { x: 0, y: 120, width: 180, height: 30 });
 });
 
-await test('a scrollable list reports its viewport, its scrollbar and its content, and its items in the content', () => {
+await test('a scrollable list reports its viewport, its scrollbar and its content, and its items in the content', { skip: listSkin.skip }, () => {
     const items = [ 0, 1, 2, 3, 4 ].map(index => element('container', [ 0, 0, 180, 30 ], { name: `row${index}` }));
     const list = element('scrollable_itemlist_vertical', [ 10, 20, 200, 100 ], { children: items });
     const rects = layoutTemplate([ list ], skinned);
@@ -360,7 +407,7 @@ await test('a scrollable list reports its viewport, its scrollbar and its conten
     assert.deepEqual(rects.get(items[3]), { x: 0, y: 90, width: 180, height: 30 });
 });
 
-await test('a scrollable list that keeps its scrollbar has it before its items go in, so stretched items keep their width', () => {
+await test('a scrollable list that keeps its scrollbar has it before its items go in, so stretched items keep their width', { skip: listSkin.skip }, () => {
     // The navigator's `block_results` (`createMainWindow`: `autoHideScrollBar = false` before any
     // category is added): the category container is not narrowed when the scrollbar shows.
     const items = [ element('container', [ 2, 0, 196, 30 ], { name: 'category', params: { scale: [ 'stretch', 'fixed' ] } }) ];
@@ -373,7 +420,7 @@ await test('a scrollable list that keeps its scrollbar has it before its items g
     assert.equal(windows.get(items[0]).width, 196);
 });
 
-await test('a scrollable list resized smaller than its items shows its scrollbar, and hides it again resized to fit them', () => {
+await test('a scrollable list resized smaller than its items shows its scrollbar, and hides it again resized to fit them', { skip: listSkin.skip }, () => {
     const items = [ 0, 1, 2 ].map(index => element('container', [ 0, 0, 180, 30 ], { name: `row${index}` }));
     const list = element('scrollable_itemlist_vertical', [ 0, 0, 200, 100 ], { params: { scale: [ 'stretch', 'stretch' ] }, children: items });
     const root = element('container', [ 0, 0, 200, 100 ], { children: [ list ] });
@@ -394,17 +441,17 @@ await test('a scrollable list resized smaller than its items shows its scrollbar
 });
 
 /** The client's tab context layout, style 3: a `_SELECTOR` inset 8 at either end, a `_CONTENT` under it. */
-const tabSkin = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-window-manager-com/habbo_window_layout_tab_context_3.xml', import.meta.url), 'utf8'));
+const tabSkin = reference('habbo-window-manager-com/habbo_window_layout_tab_context_3.xml');
 
-await test('a tab context puts its buttons in its selector, packed from the selector\'s inset whatever the layout placed them at', () => {
+await test('a tab context puts its buttons in its selector, packed from the selector\'s inset whatever the layout placed them at', { skip: tabSkin.skip }, () => {
     const tabs = [ [ 0, 70 ], [ 75, 74 ], [ 144, 82 ] ].map(([ x, width ], index) => element('tab_button', [ x, 0, width, 32 ], { name: `tab${index}` }));
     const context = element('tab_context', [ 0, 2, 500, 30 ], { style: '3', children: tabs });
-    const rects = layoutTemplate([ context ], { ...input(undefined), skinOf: e => (e.tag === 'tab_context' ? tabSkin : undefined) });
+    const rects = layoutTemplate([ context ], { ...input(undefined), skinOf: e => (e.tag === 'tab_context' ? tabSkin() : undefined) });
 
     assert.deepEqual(tabs.map(tab => rects.get(tab).x), [ 8, 78, 152 ]);
 });
 
-await test('hiding items so the rest fit hides the scrollbar again', () => {
+await test('hiding items so the rest fit hides the scrollbar again', { skip: listSkin.skip }, () => {
     const items = [ 0, 1, 2, 3, 4 ].map(index => element('container', [ 0, 0, 180, 30 ], { name: `row${index}` }));
     const list = element('scrollable_itemlist_vertical', [ 0, 0, 200, 100 ], { children: items });
     const windows = buildTemplateWindows([ list ], { ...skinned, visibleOf: e => e === list || e === items[0] || e === items[1] });
@@ -647,8 +694,10 @@ await test('_Str_14067: only the children that show count when a window takes it
     assert.deepEqual([ parent.width, parent.height ], [ 43, 20 ]);
 });
 
-await test('WindowParser: a layout\'s outer DropShadowFilter, with its defaults for what it leaves out', () => {
-    const template = layoutToTemplate(readFileSync(new URL('../scripts/habbo-js-resources/habbo-room-ui-com/nestBreedingSuccess.xml', import.meta.url), 'utf8'));
+const nestBreedingSuccess = reference('habbo-room-ui-com/nestBreedingSuccess.xml');
+
+await test('WindowParser: a layout\'s outer DropShadowFilter, with its defaults for what it leaves out', { skip: nestBreedingSuccess.skip }, () => {
+    const template = nestBreedingSuccess();
 
     assert.deepEqual(template.elements[0].dropShadow, { distance: 0, angle: 0, color: 0, alpha: 0.34901960784313724, blur: 20 });
 });

@@ -157,6 +157,19 @@ export const getInventoryWallItemById = (groups: readonly InventoryFurniGroup[],
 /** `GroupItem.isWallItem`. */
 export const isInventoryFurniGroupWallItem = (group: InventoryFurniGroup): boolean => group.items[0]?.isWallItem ?? false;
 
+/**
+ * `HabboInventory.getNonRentedInventoryIds('furni', typeId, isWallItem)`: the strip ids of the
+ * non-rented items in the first group of the type (`FurniModel.getGroupItemByItemTypeId`,
+ * `GroupItem.getNonRentedFurnitureIds`) - a new array each call; none without such a group.
+ */
+export const getNonRentedInventoryIds = (groups: readonly InventoryFurniGroup[], typeId: number, isWallItem: boolean): number[] | undefined => {
+    const group = groups.find(furniGroup => (furniGroup.typeId === typeId) && (isInventoryFurniGroupWallItem(furniGroup) === isWallItem));
+
+    if (!group) return undefined;
+
+    return group.items.filter(furni => !furni.isRented).map(furni => furni.id);
+};
+
 /** `GroupItem.isGroupable`: an empty group takes anything. */
 export const isInventoryFurniGroupGroupable = (group: InventoryFurniGroup): boolean => group.items[0]?.groupable ?? true;
 

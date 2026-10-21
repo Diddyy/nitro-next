@@ -36,7 +36,7 @@ const names = [ 'render', 'doMagic', 'changeShaking', 'changeRotation' ];
 const members = ast.statements.find(ts.isClassDeclaration).members.filter(m => names.includes(m.name?.getText(ast)));
 assert.equal(members.length, names.length);
 const code = `class Subject { ${members.map(m => m.getText(ast)).join('\n')} }; Subject;`;
-const Canvas = runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, { Vector3d, RoomShakingEffect, RoomRotatingEffect });
+const Canvas = runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, { Vector3d, RoomShakingEffect, RoomRotatingEffect, performance });
 
 const BASE = Object.freeze({ x: -45, y: 30, z: 0 });
 
@@ -63,6 +63,7 @@ const fixture = () => {
         _sortableSprites: [],
         updateZoomSampling() {},
         cleanSprites() {},
+        calculateUpdateInterval() {},
     });
 };
 

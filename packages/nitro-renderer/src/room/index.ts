@@ -50,6 +50,8 @@ export * from './messages/ObjectSelectedMessage';
 export * from './messages/ObjectStateUpdateMessage';
 export * from './messages/ObjectTileCursorUpdateMessage';
 export * from './messages/ObjectVisibilityUpdateMessage';
+export * from './messages/RoomObjectFurnitureHighlightUpdateMessage';
+export * from './messages/RoomObjectFurnitureTransparencyUpdateMessage';
 export * from './messages/RoomObjectUpdateMessage';
 export * from './messages/RoomObjectVariableFxStatusRemoveMessage';
 export * from './messages/RoomObjectVariableFxStatusUpdateMessage';
