@@ -4,6 +4,13 @@ import { installAdditiveBatcher } from './AdditiveBatcher';
 
 let renderer: Renderer;
 
+// Every texture samples its nearest pixel, as Flash's bitmaps drew with `smoothing = false`. Set as
+// the module loads, not with the renderer: a source keeps the mode it was created with, and the
+// avatar libraries (`hh_human_body`, `hh_human_item`, `habbo-avatar-render-lib`) start loading
+// before the client's renderer is up - when they won the race, the avatar shadow, drawn straight
+// from `hh_human_body` in the room, was smoothed at every zoom past 1.
+TextureSource.defaultOptions.scaleMode = 'nearest';
+
 const ApplyTextureDefaults = () => {
     TextureSource.defaultOptions.scaleMode = 'nearest';
     // Additive sprites batch with normal ones (`AdditiveBatcher`; also installed when it loads).
