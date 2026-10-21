@@ -23,7 +23,7 @@
  * it the arrows (`checkSize`), changes when the run ends. A press while it runs is ignored.
  *
  * The icons' counts are the window manager's counter at the region's top right (`getUnseenItemCounter`):
- * the inventory's unseen items, the unseen achievements on progression, unread mini mail on the me
+ * the inventory's unseen items, the daily tasks done and track prizes to claim on progression, unread mini mail on the me
  * menu. The me menu's own picture is the user's face (`useMeMenuIcon`).
  *
  * The inventory icon's bitmap and the me menu region are what `animateToIcon` flies pictures into
@@ -235,6 +235,8 @@ export const ToolbarView = () => {
     // `trackCounts`: each track's, for its item in the progression menu.
     const rewardTracks = useRewardTrackStore(x => x.tracks);
     const rewardTrackCounts = new Map(rewardTracks.map(track => [ track.id, getRewardTrackTrackClaimableCount(track) ]));
+    // The menu's track items, each where it was first added (`onRewardTracks`).
+    const menuTrackIds = useRewardTrackStore(x => x.menuTrackIds);
     const { attachTarget: attachInventoryTarget, lift: inventoryLift } = useToolbarTransitionTarget('HTIE_ICON_INVENTORY');
     const { attachTarget: attachMeMenuTarget, lift: meMenuLift } = useToolbarTransitionTarget('HTIE_ICON_MEMENU');
     const { hideMatchingHint } = useHintActions();
@@ -542,13 +544,13 @@ export const ToolbarView = () => {
                         // `refreshRewardTrackUnseenCounts`: each track's item counts its own prizes (`trackCounts`).
                         { name: 'introduction', visible: true, action: () => openClientLink(send, 'reward_track/open/introduction'), unseenCount: rewardTrackCounts.get('introduction') },
                         // `onRewardTracks`: an `introduction` clone per other track, `rewardtrack_<id>`, opening the track.
-                        ...rewardTracks.filter(track => track.id !== 'introduction').map(track => ({
-                            name: `${REWARD_TRACK_ITEM_PREFIX}${track.id}`,
+                        ...menuTrackIds.map(trackId => ({
+                            name: `${REWARD_TRACK_ITEM_PREFIX}${trackId}`,
                             from: 'introduction',
-                            caption: `\${widget.progmenu.rewardtrack.${track.id}}`,
+                            caption: `\${widget.progmenu.rewardtrack.${trackId}}`,
                             visible: true,
-                            action: () => openClientLink(send, `reward_track/open/${track.id}`),
-                            unseenCount: rewardTrackCounts.get(track.id),
+                            action: () => openClientLink(send, `reward_track/open/${trackId}`),
+                            unseenCount: rewardTrackCounts.get(trackId),
                         })),
                     ]}
                     listName="menu_items"
