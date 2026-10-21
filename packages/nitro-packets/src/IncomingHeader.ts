@@ -502,6 +502,7 @@ export class IncomingHeader {
     public static TurboCommandSuggestionsMessage = 30004;
     public static TurboStarterRoomCameraMessage = 30005;
     public static TurboStarterRoomPictureResultMessage = 30007;
+    public static TurboNoticeMessage = 30008;
     public static TurboCommandTreeMessage = 30002;
     public static TurboPermissionNodesMessage = 30001;
     public static TurboServerCapabilitiesMessage = 30000;

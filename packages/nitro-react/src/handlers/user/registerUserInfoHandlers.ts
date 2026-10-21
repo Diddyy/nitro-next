@@ -2,7 +2,7 @@ import { AvatarGenderType, ChangeUserNameResultMessageCode, ClubLevelEnum } from
 import { AccountPreferencesEventMessage, AccountSafetyLockStatusChangeMessage, AvailabilityStatusMessage, ChangeUserNameResultMessage, DiscordPreferencesMessage, EmailStatusResultEventMessage, FigureUpdateEventMessage, GetDailyTasksComposer, GetDiscordPreferencesComposer, GetSoundSettingsComposer, GetUserNftChatStylesComposer, InClientLinkMessage, MysteryBoxKeysMessage, NoobnessLevelMessage, PerkAllowancesMessage, PetRespectFailedMessage, TurboClientCapabilitiesComposer, TurboPermissionNodesMessage, TurboServerCapabilitiesMessage, UserNameChangedMessage, UserNftChatStylesMessage, UserObjectMessage, UserPurchasableChatStyleChangedMessage, UserPurchasableChatStylesMessage, UserRightsMessage } from '@nitrodevco/nitro-packets';
 import { clampChatFontSizeMode } from '@nitrodevco/nitro-theme/chat';
 
-import { onNameChangeChanged, openClientLink } from '#base/commands';
+import { onNameChangeChanged, openClientLink, TURBO_LIVE_NOTICES_CAPABILITY } from '#base/commands';
 import { setBugReportCaptureEnabled, TURBO_BUG_REPORT_CAPABILITY } from '#base/context/bugreport';
 import { setClientErrorReporting, TURBO_CLIENT_ERRORS_CAPABILITY } from '#base/context/clienterrors';
 import { WebSocketConnection } from '#base/context/communication';
@@ -52,7 +52,7 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             send(new GetSoundSettingsComposer({}));
             // `DiscordSettingsController.initComponent` asks once, in the same burst as the rest.
             send(new GetDiscordPreferencesComposer({}));
-            if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 }, { name: TURBO_CHAT_COMMANDS_CAPABILITY, version: 1 }, { name: TURBO_STARTER_ROOMS_CAPABILITY, version: 1 }, { name: TURBO_BUG_REPORT_CAPABILITY, version: 1 }, { name: TURBO_CLIENT_ERRORS_CAPABILITY, version: 1 } ] }));
+            if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 }, { name: TURBO_CHAT_COMMANDS_CAPABILITY, version: 1 }, { name: TURBO_STARTER_ROOMS_CAPABILITY, version: 1 }, { name: TURBO_BUG_REPORT_CAPABILITY, version: 1 }, { name: TURBO_CLIENT_ERRORS_CAPABILITY, version: 1 }, { name: TURBO_LIVE_NOTICES_CAPABILITY, version: 1 } ] }));
         }),
 
         // A Turbo server that declined `permission.nodes` leaves the gates on the level.

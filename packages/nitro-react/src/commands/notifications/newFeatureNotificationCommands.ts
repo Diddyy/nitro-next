@@ -24,6 +24,8 @@ const MAX_RETRIES = 3;
 
 const CONDITION_REWARD_TRACK_INCOMPLETE = 'reward_track_incomplete';
 
+const ACTIVE_KEY = 'notifications.new_feature.active';
+
 /** `getProperty`: the hotel's value as text, read when it is asked for. */
 const configString = (key: string): string => configReader(systemStore.getState().config).configString(key);
 
@@ -63,9 +65,47 @@ const maybeShowByKey = (key: string, attempt: number) => {
 
 /** `maybeShowNewFeatureNotification`. */
 export const maybeShowNewFeatureNotifications = () => {
-    for (const key of configString('notifications.new_feature.active').split(',')) {
+    for (const key of configString(ACTIVE_KEY).split(',')) {
         if (key.length) maybeShowByKey(key, 0);
     }
+};
+
+/** Not Flash's: Turbo's extension that puts a notice up or takes it down while the client runs (`TurboNoticeMessage`). */
+export const TURBO_LIVE_NOTICES_CAPABILITY = 'notices.live';
+
+/** The variable names each live notice was last given, by key: one it is no longer given is cleared. */
+const liveNoticeVariables = new Map<string, string[]>();
+
+/**
+ * Not Flash's (`notices.live`): a notice the server puts up while the client runs - the countdown
+ * of a restart, say - taken in as the hotel's own: its variables
+ * (`notifications.new_feature.<name>.<key>`), its text (`notifications.new_feature.<key>.desc`) and
+ * its key in `notifications.new_feature.active`, then shown as `maybeShowNewFeatureNotificationByKey`
+ * shows one, conditions and all. Taken down, it leaves the active list and the toolbar.
+ */
+export const applyLiveNewFeatureNotification = (key: string, shown: boolean, variables: Record<string, string>, desc: string) => {
+    if (!key.length || key.includes(',')) return;
+
+    const { setConfigValue, setLocalization } = systemStore.getState();
+    const active = configString(ACTIVE_KEY).split(',').filter(entry => entry.length && (entry !== key));
+
+    if (!shown) {
+        setConfigValue(ACTIVE_KEY, active.join(','));
+        singularNotificationStore.getState().closeNewFeatureNotification(key);
+
+        return;
+    }
+
+    for (const name of liveNoticeVariables.get(key) ?? []) {
+        if (!(name in variables)) setConfigValue(`notifications.new_feature.${name}.${key}`, '');
+    }
+
+    for (const [ name, value ] of Object.entries(variables)) setConfigValue(`notifications.new_feature.${name}.${key}`, value);
+
+    liveNoticeVariables.set(key, Object.keys(variables));
+    setLocalization({ [`notifications.new_feature.${key}.desc`]: desc });
+    setConfigValue(ACTIVE_KEY, [ ...active, key ].join(','));
+    maybeShowByKey(key, 0);
 };
 
 /** `openConfiguredLink`. */
