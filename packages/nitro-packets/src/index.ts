@@ -701,6 +701,7 @@ export * from './incoming/Turbo/ITurboCapability';
 export * from './incoming/Turbo/TurboBugReportRequestMessage';
 export * from './incoming/Turbo/TurboCommandSuggestionsMessage';
 export * from './incoming/Turbo/TurboCommandTreeMessage';
+export * from './incoming/Turbo/TurboNoticeMessage';
 export * from './incoming/Turbo/TurboPermissionNodesMessage';
 export * from './incoming/Turbo/TurboServerCapabilitiesMessage';
 export * from './incoming/Turbo/TurboStarterRoomCameraMessage';
