@@ -8,6 +8,8 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { Children, Component, ErrorInfo, isValidElement, ReactNode } from 'react';
 
+import { reportReactError } from '#base/context/clienterrors';
+
 interface ViewErrorBoundaryProps {
     children?: ReactNode;
 }
@@ -24,6 +26,8 @@ export class ViewErrorBoundary extends Component<ViewErrorBoundaryProps, ViewErr
     }
 
     public override componentDidCatch(error: Error, info: ErrorInfo): void {
+        // Before the log: the client errors plugin's report keeps the component stack.
+        reportReactError(error, info.componentStack);
         NitroLogger.error('Uncaught client error', error, info.componentStack);
 
         window.addEventListener('pointerdown', this.retry, { capture: true, once: true });

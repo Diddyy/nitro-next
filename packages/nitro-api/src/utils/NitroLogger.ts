@@ -5,6 +5,12 @@ export class NitroLogger {
     public static LOG_EVENTS: boolean = false;
     public static LOG_PACKETS: boolean = false;
 
+    /**
+     * Told of every `error`, logged or not: the one place the renderer and the UI report what they
+     * caught. Null unless a reporter listens (nitro-react's client errors reporter).
+     */
+    public static errorListener: ((messages: unknown[]) => void) | null = null;
+
     public static log(...messages: unknown[]): void {
         if (!this.LOG_DEBUG) return;
 
@@ -18,6 +24,8 @@ export class NitroLogger {
     }
 
     public static error(...messages: unknown[]): void {
+        this.errorListener?.(messages);
+
         if (!this.LOG_ERROR) return;
 
         console.error(this.logPrefix(), ...messages);

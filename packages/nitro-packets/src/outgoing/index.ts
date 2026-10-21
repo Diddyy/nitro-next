@@ -473,6 +473,7 @@ export * from './Tracking/LatencyPingRequestComposer';
 export * from './Tracking/PerformanceLogComposer';
 export * from './Turbo/TurboBugReportCaptureComposer';
 export * from './Turbo/TurboClientCapabilitiesComposer';
+export * from './Turbo/TurboClientErrorReportComposer';
 export * from './Turbo/TurboCommandSuggestComposer';
 export * from './Turbo/TurboStarterRoomPictureComposer';
 export * from './Userclassification/PeerUsersClassificationComposer';
