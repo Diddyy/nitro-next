@@ -30,6 +30,7 @@ class AdvancedMap {
 
 class RoomObjectSpriteVisualization {
     static UPDATE_TIME_INCREASER = 1;
+    static NO_FILTERS = [];
 }
 
 const load = () => {
@@ -54,7 +55,10 @@ const load = () => {
         'pixi.js': { ColorMatrixFilter: class {}, Filter: class {}, Texture: { EMPTY: {} } },
         'pixi-filters': { GlowFilter: class {} },
         '#renderer/assets': {},
-        '#renderer/utils': {},
+        '#renderer/utils': { createFlashGlowFilter: () => ({}), GetTickerTime: () => 0 },
+        '../furniture/FurnitureHighlightComposite': { FurnitureHighlightComposite: class { update() {} clear() {} dispose() {} } },
+        '../furniture/FurnitureHighlightFilters': { FurnitureHighlightFilters: { quantizeStrength: () => 0, create: () => [], usesCompositeSilhouette: () => false } },
+        '../RoomObjectSprite': { RoomObjectSprite: class {} },
         '../RoomObjectSpriteVisualization': { RoomObjectSpriteVisualization },
         '../variablefx/IVariableFxVisualizationRoomData': {},
         '../variablefx/VariableFxStatusReconciler': { VariableFxStatusReconciler: class {} },
@@ -93,11 +97,11 @@ await test('update reuses cached scale/effect images and reset disposes each ima
     const disposeCalls = new Map();
     const created = [];
     const visualization = new AvatarVisualization();
-    const sprite = { alpha: 255, color: 0xFFFFFF };
+    const sprite = { alpha: 255, color: 0xFFFFFF, filters: [] };
     const next = { scale: 64, effect: 0, alpha: 1 };
 
     Object.assign(visualization, {
-        object: { model: {} },
+        object: { model: { getValue: () => undefined } },
         _figure: 'hd-180-1',
         _gender: 'M',
         _additions: new Map(),

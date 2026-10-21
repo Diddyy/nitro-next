@@ -18,6 +18,7 @@ const load = () => {
     runInNewContext(outputText, {
         exports,
         require: (name) => {
+            if (name === '#base/theme') return { ClientToStage: value => value };
             if (name === './useWindowPointerDrag') return { useWindowPointerDrag: () => ({ start: (pointerId, handlers) => drags.push({ pointerId, handlers }), stop: () => {} }) };
 
             throw new Error(`Unexpected dependency: ${name}`);

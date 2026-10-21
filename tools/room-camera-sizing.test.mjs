@@ -213,13 +213,13 @@ await test('the installed room ticker and resize listener use the latest camera 
     const room = { canvas, roomId: 1, dispatchEvent() {} };
     const { RoomCanvas } = load(component, {
         '@nitrodevco/nitro-api': { RoomRenderedEvent: class {} },
-        '@nitrodevco/nitro-renderer': { GetRenderer: () => ({ canvas: { addEventListener() {}, removeEventListener() {} }, on: (_, fn) => { resize = fn; }, off() {} }), GetTicker: () => ({ add: (fn) => {
+        '@nitrodevco/nitro-renderer': { GetRenderer: () => ({ canvas: { addEventListener() {}, removeEventListener() {} }, screen: { width: 800, height: 600 }, on: (_, fn) => { resize = fn; }, off() {} }), GetTicker: () => ({ add: (fn) => {
             tick = fn;
             registrations++;
         }, remove() {} }) },
         react: { useRef: value => (refs[refIndex++] ??= { current: value }), useEffect: (fn) => { effect ??= fn; }, useLayoutEffect: fn => fn() },
         // nitro-theme's: a ref the commit (here, at once) writes the latest value into.
-        '#base/theme': { useLatest: (value) => {
+        '#base/theme': { ClientToStage: value => value, useLatest: (value) => {
             const ref = (refs[refIndex++] ??= { current: value });
 
             ref.current = value;
