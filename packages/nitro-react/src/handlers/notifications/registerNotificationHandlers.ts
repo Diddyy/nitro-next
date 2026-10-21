@@ -27,7 +27,7 @@ import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 import { showModerationDisclaimer, showNotification } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 import { LayoutImage } from '#base/theme';
 import { getBadgeName } from '#base/utils';
 
@@ -73,8 +73,6 @@ const productImage = (productType: string, classId: number, extraParam: string):
 export const registerNotificationHandlers = ({ subscribe }: WebSocketConnection) => {
     const { addNotification, setNotificationsDisabled } = notificationStore.getState();
 
-    const localize = (key: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, key, replacements);
-
     /**
      * `getLocalizationRaw`, which answers null for a key the hotel has no text for. The listeners
      * that use it raise no bubble at all then, rather than one reading its own key.
@@ -87,7 +85,7 @@ export const registerNotificationHandlers = ({ subscribe }: WebSocketConnection)
 
     return subscribeAll(subscribe, [
         on(BadgeReceivedEventMessage, (data) => {
-            const text = localize('notification.new.badge', { badge_name: badgeName(data.badgeCode) });
+            const text = t('notification.new.badge', 'notification.new.badge', { badge_name: badgeName(data.badgeCode) });
 
             addNotification(text, 'badge_received', badgeImage(data.badgeCode), 'inventory/open/badges');
         }),
@@ -111,7 +109,7 @@ export const registerNotificationHandlers = ({ subscribe }: WebSocketConnection)
 
             if (!product) return;
 
-            addNotification(localize('notifications.text.club_gift.received'), 'info', productImage(product.productType, product.spriteId, product.extraParam));
+            addNotification(t('notifications.text.club_gift.received', 'notifications.text.club_gift.received'), 'info', productImage(product.productType, product.spriteId, product.extraParam));
         }),
 
         // `onRoomEnter`: every room entry, and a room's own connection, asks for the moderation disclaimer.
@@ -138,7 +136,7 @@ export const registerNotificationHandlers = ({ subscribe }: WebSocketConnection)
         on(HabboBroadcastMessage, (data) => {
             // `onBroadcastMessageEvent`: a `simpleAlert` with Frank beside it, the literal `\r` the server sends made a line break.
             systemStore.getState().showSimpleAlert({
-                caption: localize('notifications.broadcast.title'),
+                caption: t('notifications.broadcast.title', 'notifications.broadcast.title'),
                 message: data.messageText.replace(/\\r/g, '\n'),
                 illustration: FRANK_NEUTRAL,
             });
@@ -155,9 +153,9 @@ export const registerNotificationHandlers = ({ subscribe }: WebSocketConnection)
             const linkUrl = data.parameters['linkUrl'];
 
             systemStore.getState().showSimpleAlert({
-                caption: localize('help.cfh.sent.title'),
+                caption: t('help.cfh.sent.title', 'help.cfh.sent.title'),
                 message: (data.parameters['message'] ?? '').replace(/\\r/g, '\n'),
-                ...((linkUrl !== undefined) && { linkTitle: localize('help.main.faq.link.text'), linkUrl }),
+                ...((linkUrl !== undefined) && { linkTitle: t('help.main.faq.link.text', 'help.main.faq.link.text'), linkUrl }),
                 illustration: FRANK_NEUTRAL,
             });
         }),

@@ -18,7 +18,7 @@ import { StoreApi } from 'zustand';
 import { CatalogStore } from '#base/context/catalog';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -27,7 +27,6 @@ const LTD_RAFFLE_RESULT_WON = 0;
 
 export const registerCatalogLimitedEditionHandlers = (store: StoreApi<CatalogStore>, { subscribe }: WebSocketConnection) => {
     const { setActivePurchase, setLtdRaffleRunning } = store.getState();
-    const t = (key: string, defaultValue?: string) => systemStore.getState().getLocalizationValue(key, defaultValue);
 
     return subscribeAll(subscribe, [
         on(LimitedEditionSoldOutEventMessage, () => {

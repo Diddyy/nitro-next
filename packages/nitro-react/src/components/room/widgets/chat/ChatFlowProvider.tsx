@@ -34,7 +34,7 @@ export const ChatFlowProvider = ({ children }: ChatFlowProviderProps) => {
     const { removeChatBubble } = useRoomChatActions();
     const { selectObject } = useRoomObjectSelect();
     const settings = useMemo<IChatFlowSettings>(() => ({ mode: chatMode, bubbleWidth: chatBubbleWidth, scrollSpeed: chatScrollSpeed }), [ chatMode, chatBubbleWidth, chatScrollSpeed ]);
-    const settingsRef = useRef(settings);
+    const settingsRef = useLatest(settings);
     const stageRef = useRef<ChatFlowStage | null>(null);
     const bubblesRef = useRef<Set<ChatBubbleMotion>>(new Set());
     const lastCanvasOffsetXRef = useRef(0);
@@ -81,8 +81,8 @@ export const ChatFlowProvider = ({ children }: ChatFlowProviderProps) => {
 
     const selectObjectRef = useLatest(selectObject);
 
+    // The stage reads the settings through `settingsRef`; a change re-lays its bubbles out.
     useEffect(() => {
-        settingsRef.current = settings;
         stageRef.current?.updateSettings();
     }, [ settings ]);
 

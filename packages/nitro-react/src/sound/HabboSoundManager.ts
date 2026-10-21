@@ -1,6 +1,7 @@
 import { IOutgoingPacket, NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
+import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { configBoolean, systemStore } from '#base/context/system';
 import { loadAssetBundle } from '#base/utils';
@@ -44,8 +45,6 @@ const SOUND_ASSETS: Record<string, string> = {
     [HabboSoundTypesEnum.GAMES_IG_LOSING]: HabboSoundTypesEnum.GAMES_IG_LOSING,
     [HabboSoundTypesEnum.FURNITURE_SOUND_CUCKOO_CLOCK]: HabboSoundTypesEnum.FURNITURE_SOUND_CUCKOO_CLOCK,
 };
-
-type Send = (...composers: IOutgoingPacket<object>[]) => void;
 
 /**
  * The client's sound - Flash's `HabboSoundManagerFlash10`, played through Web Audio

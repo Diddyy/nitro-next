@@ -25,7 +25,7 @@ import { TurboClientErrorReportComposer } from '@nitrodevco/nitro-packets';
 import { GetRenderer } from '@nitrodevco/nitro-renderer';
 
 import type { Send } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { getRoom } from '#base/context/room';
 import { configString } from '#base/context/system';
 
 /** The build's name, replaced at build time (vite.config.ts `buildId`); undefined outside Vite. */
@@ -90,7 +90,7 @@ const context = () => {
         userAgent: navigator.userAgent,
         platform: navigatorData.userAgentData?.platform || navigator.platform || undefined,
         page: `${window.location.origin}${window.location.pathname}`,
-        roomId: roomStore.getState().room?.roomId ?? undefined,
+        roomId: getRoom()?.roomId ?? undefined,
         viewport: { width: window.innerWidth, height: window.innerHeight, pixelRatio: window.devicePixelRatio },
         renderer: (GetRenderer() as { name?: string } | undefined)?.name,
         uptimeMs: now(),

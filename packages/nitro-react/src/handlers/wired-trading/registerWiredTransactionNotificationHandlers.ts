@@ -13,7 +13,7 @@ import { WiredTradeTransactionNotificationMessage, WiredTransactionFailMessage, 
 
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { translate as t } from '#base/context/system';
 import { nextRewardInternalId, wiredTradingStore } from '#base/context/wired-trading';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -21,9 +21,6 @@ import { on, subscribeAll } from '../packetSubscriptions';
 export const registerWiredTransactionNotificationHandlers = ({ subscribe }: WebSocketConnection) => {
     const { addNotification } = notificationStore.getState();
     const { addReward, openRewardView } = wiredTradingStore.getState();
-
-    /** `getLocalization(key)`, falling back to the key rather than to nothing. */
-    const localize = (key: string, replacements?: Record<string, string>, fallback: string = key) => systemStore.getState().getLocalizationValue(key, fallback, replacements);
 
     return subscribeAll(subscribe, [
         on(WiredTransactionSuccessMessage, (data) => {
@@ -35,7 +32,7 @@ export const registerWiredTransactionNotificationHandlers = ({ subscribe }: WebS
 
             if (hasReward && !contents.openByDefault) key += '.click_to_popup';
 
-            addNotification(localize(key, undefined, localize('wired_transactions.notification.success')), 'info', 'chests_icon_successful', hasReward ? `wiredrewards/open/${internalId}` : undefined);
+            addNotification(t(key, t('wired_transactions.notification.success', 'wired_transactions.notification.success')), 'info', 'chests_icon_successful', hasReward ? `wiredrewards/open/${internalId}` : undefined);
 
             if (!hasReward) return;
 
@@ -45,15 +42,17 @@ export const registerWiredTransactionNotificationHandlers = ({ subscribe }: WebS
         }),
 
         on(WiredTransactionFailMessage, (data) => {
-            const reason = localize(`wired_transactions.notification.fail.${data.transactionFailureTypeId}`);
+            const reasonKey = `wired_transactions.notification.fail.${data.transactionFailureTypeId}`;
+            const reason = t(reasonKey, reasonKey);
 
-            addNotification(localize('wired_transactions.notification.fail', { reason }, ''), 'info', 'chests_icon_rejected');
+            addNotification(t('wired_transactions.notification.fail', '', { reason }), 'info', 'chests_icon_rejected');
         }),
 
         on(WiredTradeTransactionNotificationMessage, (data) => {
-            const error = localize(`wired_transactions.notification.trade_error.${data.tradeTransactionNotificationId}`);
+            const errorKey = `wired_transactions.notification.trade_error.${data.tradeTransactionNotificationId}`;
+            const error = t(errorKey, errorKey);
 
-            addNotification(localize('wired_transactions.notification.trade_error', { error }, ''), 'info', 'chests_icon_trading_error');
+            addNotification(t('wired_transactions.notification.trade_error', '', { error }), 'info', 'chests_icon_trading_error');
         }),
     ]);
 };

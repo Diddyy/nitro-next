@@ -28,7 +28,7 @@ import { EventLogComposer, LagWarningReportComposer, PerformanceLogComposer } fr
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 
 import { Send } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { getRoom, roomStore } from '#base/context/room';
 import { configBoolean, systemStore } from '#base/context/system';
 import { ChatLagTracker, FramerateTracker, LagWarningLogger, PerformanceEnvironment, PerformanceTracker } from '#base/utils';
 
@@ -194,7 +194,7 @@ const startRoomPerformanceTracking = (current: TrackingSession) => {
     };
 
     const onTimer = (roomId: number) => {
-        const room = roomStore.getState().room;
+        const room = getRoom();
         let objects = '';
 
         if (room) {

@@ -32,7 +32,7 @@
 import { InfoHotelClosedMessage, InfoHotelClosingMessage, LoginFailedHotelClosedMessage, MaintenanceStatusMessage, ModeratorCautionMessage, ModeratorMessage, UserBannedMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { configBoolean, systemStore } from '#base/context/system';
+import { configBoolean, systemStore, translate as t } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -42,23 +42,21 @@ const getTimeZeroPadded = (value: number) => `0${value}`.slice(-2);
 export const registerAlertDialogHandlers = ({ subscribe }: WebSocketConnection) => {
     const { showAlert, showSimpleAlert } = systemStore.getState();
 
-    const localize = (key: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, key, replacements);
-
     /** `IncomingMessages.useNotifications`: `getBoolean("notification.items.enabled")`. */
     const notificationItemsEnabled = () => configBoolean('notification.items.enabled');
 
     /** `handleHotelClosedMessage` / `handleLoginFailedHotelClosedMessage`: the `alert`, whose callback only disposes it. */
     const showOpeningHoursAlert = (key: 'opening.hours.closed' | 'opening.hours.disconnected', openHour: number, openMinute: number) => {
-        showAlert(localize('opening.hours.title'), localize(key, { h: getTimeZeroPadded(openHour), m: getTimeZeroPadded(openMinute) }));
+        showAlert(t('opening.hours.title', 'opening.hours.title'), t(key, key, { h: getTimeZeroPadded(openHour), m: getTimeZeroPadded(openMinute) }));
     };
 
     // `showModerationMessage`: `simpleAlert("", "${mod.alert.title}", message, "${mod.alert.link}", url, null, frank)`.
     const showModerationMessage = (message: string, url: string) => {
         showSimpleAlert({
             caption: '',
-            subtitle: localize('mod.alert.title'),
+            subtitle: t('mod.alert.title', 'mod.alert.title'),
             message: message.replace(/\\r/g, '\n'),
-            linkTitle: localize('mod.alert.link'),
+            linkTitle: t('mod.alert.link', 'mod.alert.link'),
             // `SimpleAlertDialog`: `param6 = interpolate(param6)`.
             linkUrl: systemStore.getState().interpolate(url),
             // `illumina_alert_illustrations_frank_neutral_png` - `LayoutImage('habbo-window-manager-com/illumina_alert_illustrations_frank_neutral.png')`.
@@ -84,16 +82,16 @@ export const registerAlertDialogHandlers = ({ subscribe }: WebSocketConnection) 
         on(InfoHotelClosingMessage, (data) => {
             showSimpleAlert({
                 caption: '',
-                subtitle: localize('opening.hours.title'),
-                message: localize('opening.hours.shutdown', { m: String(data.minutesUntilClosing) }),
+                subtitle: t('opening.hours.title', 'opening.hours.title'),
+                message: t('opening.hours.shutdown', 'opening.hours.shutdown', { m: String(data.minutesUntilClosing) }),
             });
         }),
 
         on(MaintenanceStatusMessage, (data) => {
             showSimpleAlert({
                 caption: '',
-                subtitle: localize('opening.hours.title'),
-                message: localize('maintenance.shutdown', { m: String(data.minutesUntilMaintenance), d: String(data.duration) }),
+                subtitle: t('opening.hours.title', 'opening.hours.title'),
+                message: t('maintenance.shutdown', 'maintenance.shutdown', { m: String(data.minutesUntilMaintenance), d: String(data.duration) }),
             });
         }),
 

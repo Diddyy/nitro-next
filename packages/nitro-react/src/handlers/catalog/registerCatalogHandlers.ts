@@ -25,7 +25,7 @@ import { CatalogStore, CatalogWidgetEventEnum, getCatalogWindowName, isActiveCat
 import { catalogPurchaseStore } from '#base/context/catalog-purchase';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { systemStore, translate as t } from '#base/context/system';
 import { getOfferProduct, processCatalogOffer } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -35,7 +35,6 @@ const PURCHASE_NOT_ALLOWED_REQUIRES_CLUB = 1;
 
 export const registerCatalogHandlers = (store: StoreApi<CatalogStore>, { subscribe }: WebSocketConnection) => {
     const { setRootNode, setOffersToNodes, setFrontPageItems, setIsBusy, setActivePurchase, setGiveGiftEnabled, setLtdRaffleRunning, resetCatalog } = store.getState();
-    const t = (key: string, defaultValue?: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, defaultValue, replacements);
     /** `isActiveCatalogType`: whether this window's store answers for `HabboCatalog` - the alerts and the page on show. */
     const isActive = () => isActiveCatalogType(store.getState().catalogType, systemStore.getState().visibleWindows);
 

@@ -20,9 +20,9 @@
  * forwards.
  */
 import { FederatedPointerEvent } from 'pixi.js';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
-import { Box, LayoutImage, Region, ThemeImage } from '#base/theme';
+import { Box, LayoutImage, Region, ThemeImage, useLatest } from '#base/theme';
 import { drawNeighborhoodTile, FLOOR_DRAW_MODE_ADD_TILE, FLOOR_DRAW_MODE_SET_ROOT_TILE, FloorDrawMode, floorScreenToTile, floorTileToScreen, interpolationPoints, isFloorDrawAllowed, isNeighborhoodTileOccupied, NEIGHBORHOOD_RADIUS, NeighborhoodFloorPlan, neighborhoodVisualizingDimension, neighborhoodVisualizingRadius, TilePoint } from '#base/wired';
 
 import { useWiredFillLayout } from './useWiredFillLayout';
@@ -68,11 +68,7 @@ export interface WiredFloorDrawingProps {
 export const WiredFloorDrawing = ({ plan, smallMode, rootX, rootY, mode, onPlanChange, onRootTileChange }: WiredFloorDrawingProps) => {
     const style = useWiredStyle();
     const dragRef = useRef<Drag | null>(null);
-    const planRef = useRef(plan);
-
-    useEffect(() => {
-        planRef.current = plan;
-    }, [ plan ]);
+    const planRef = useLatest(plan);
 
     const radius = neighborhoodVisualizingRadius(smallMode);
     const dimension = neighborhoodVisualizingDimension(smallMode);
