@@ -87,8 +87,14 @@ opens the page and never goes to the message. **Verified.**
 Change: `forumView` as the only copy, the request bookkeeping in `GroupForumSlice`, and the go-to
 read where the thread opens. M. **Done:** the controller's fields are `GroupForumSlice.forumSession`
 (`patchForumSession`), so the store's reset clears them; `GroupForumView` takes the go-to once per
-arriving page and scrolls as `scrollToSpecificElement(index, true)` does. Not checked live yet: Turbo
-was down; check with a thread of more than 20 messages and a `groupforum/<g>/<t>/<index>` link.
+arriving page and scrolls as `scrollToSpecificElement(index, true)` does. Checked live (October
+2026): a `groupforum/<g>/<t>/34` link sends `GetForumStats`, `GetThread` and `GetMessages`, and with
+a 40-message thread fed to the handlers (the development hotel has no forum) the view opens page
+2/2 at message 34 and clears the go-to. `arrange` in `GroupForumView` patched the group store
+with the window's width while `TemplateView` rendered, which React warned about on the forum's first
+open; it now keeps the width in a ref that a layout effect writes, and `setGroupForumWindowRect`
+writes nothing when the rect is unchanged. Not checked live (Turbo was down): open a forum and look
+for the warning.
 
 ### 6. Chat bubble positions in a flipped room
 
@@ -98,8 +104,8 @@ canvas is flipped, as does `VariableLeaderboardLocationProjector`. **Verified.**
 shared projection, checked in a flipped room. S. **Done:** `chat/chatScreenPoint.ts`, Flash's
 `HabboFreeFlowChat.getScreenPointFromRoomLocation` with the flip (`tools/chat-screen-point.test.mjs`).
 The leaderboard projector stays its own: it ports WIN63's `VariableLeaderboardLocationProjector`,
-which measures differently and already flips. Not checked live yet (Turbo was down): `:flip` a room
-and chat.
+which measures differently and already flips. Checked live: after `:flip` a new bubble sits over
+the avatar's flipped screen location.
 
 ### 7. Wired source types resolved at `createForm`, which Flash does not do
 
@@ -125,7 +131,12 @@ Change: keep the raw target in every form, remove those resolutions, and leave t
 pickers' display (`WiredSourceTypePicker`, `WiredNewSourceTypePicker`, which already show the first
 option). Fix the docblocks that state the wrong rule (`sourceTypeColors.ts`, `conditionShared.ts`,
 `ActionVariableReference.ts`, `WiredVariableSections.ts`). Saving such a box then sends what the
-server sent. S-M. Documented only, not changed.
+server sent. S-M. **Done:** `resolveConditionMergedTypes` and `resolveVariableReferenceTarget` are
+gone and every form keeps the saved target (`tools/wired-unoffered-source-type.test.mjs`, which
+fails on the old forms); `resolveSourceTypeSelection` is the pickers' display only. `VariableUpdate`
+keeps its resolution: its target is not saved, only retargets the variable picker, and an
+unoffered one leaves Flash's selector - and so the picker - on the first option. Not checked live
+(Turbo was down).
 
 ### 8. Boolean configuration read five ways
 
@@ -153,8 +164,10 @@ send 28 packets directly, and two import `moderationIssueSends` from `handlers/m
 moderation commands file. The local drift tool's exemption saying moderation is not ported is
 stale. M. **Done:** `commands/moderation/moderationCommands.ts` holds every request and action the views sent (and `moderationIssueSends`, moved from the
 handlers); the views use `useModerationActions` / `useModerationIssueActions` / `useWindowActions`,
-with no `getState()` or `send(new …)` left. The drift exemption is removed. Not checked live (Turbo
-was down; it needs a moderator account).
+with no `getState()` or `send(new …)` left. The drift exemption is removed. Checked live without a
+moderator account: with a client-side `ModeratorInit`, the room tool, chatlogs, user info and room
+visits send their requests, and user info, mod action and the issue browser open; Turbo's answers
+need a moderator account.
 
 ### 10. Packets sent from views
 
@@ -163,7 +176,8 @@ outside moderation the largest are `AvatarEditor`, `NavigatorView` and
 `InfoBubbleOwnAvatarView`. Move them as those views are touched. M, incremental. **Done:** no view
 under `views/` constructs a composer; the sends are commands in their features' files (and a new
 `roomFurnitureCommands.ts`), with the same packets in the same order. Room widget components keep
-their direct sends, as the conventions allow. Not checked live (Turbo was down).
+their direct sends, as the conventions allow. Spot-checked live: navigator search and room entry,
+the own avatar menu's dance, the avatar editor's save.
 
 ### 11. Other store-access deviations
 
@@ -197,7 +211,8 @@ id is, so `onGuildCreated` reads the navigator's. The others stay, as their timi
 Flash too: moderation's `currentFlatId` is reset on leaving, `roomStore` and the room directory's
 id follow the room engine's session. Found on the way: the navigator never ran `onRoomExit` or
 `onRoomEnter`'s reset of the entered room's info; it does now
-(`tools/navigator-current-room.test.mjs`). Not checked live (Turbo was down).
+(`tools/navigator-current-room.test.mjs`). Checked live: leaving keeps the room id and drops the
+owner flag and the entered room's info; entering again fills them.
 
 ## Duplication and size
 
@@ -205,7 +220,9 @@ id follow the room engine's session. Found on the way: the navigator never ran `
   neither uses `collectRoomPhotoData` (`commands/room/cameraCommands.ts`). A `useRoomViewfinder` hook;
   the starter camera's UI moved to a view. S-M. **Done:** `components/room/useRoomViewfinder.ts` (the texture, its
   per-frame redraw and unfit check, and `collect` over `collectRoomPhotoData`); the starter
-  camera's window is `views/room-widgets/starter-room-camera/StarterRoomCameraView.tsx`. Not checked live.
+  camera's window is `views/room-widgets/starter-room-camera/StarterRoomCameraView.tsx`. Checked
+  live: the thumbnail camera captures and Turbo saves it; the starter camera shows the room and
+  closes on zoom out (its capture needs a staff account in a starter room).
 - **Second clocks.** Seven views run their own one-second `setInterval` clock (`QuestsView`,
   `DailyTasksView`, `useAvatarEditorEffects`, `ModIssueHandlerView`, `ModIssueBrowserView`,
   `RoomEffectsView`, `VariableLeaderboardWidget`) beside `hooks/useSecondsClock.ts`. An epoch
@@ -237,7 +254,9 @@ id follow the room engine's session. Found on the way: the navigator never ran `
   `useChatNuxReminder`, `useChatFloodCountdown`, `useChatInputPlacement`; `useProductPreview`,
   `useProductPreviewAvatarPose`, `useProductPreviewZoom`; `useAvatarEditorNfts`,
   `useAvatarEditorSave`) and nine `collectibles*Commands.ts` modules, one per section, every export
-  kept. The collectibles slices' generic `patch*` actions are unchanged. Not checked live.
+  kept. The collectibles slices' generic `patch*` actions are unchanged. Checked live: chat
+  completion, the flood countdown, the product preview's clothing, zoom and pose, the avatar editor's
+  save. Not checked: the NUX reminder, NFT outfits, the collectibles windows.
 - **Wired boilerplate.** 34 definitions are only `{ holder, code, createForm: () => ({}) }`, and the
   variable-picker merged-section block repeats across definitions. A helper for each. S. **Done:**
   `noInputElement(holder, code)` (`WiredElement.ts`) for the 26 that are exactly that; each keeps
@@ -248,7 +267,8 @@ id follow the room engine's session. Found on the way: the navigator never ran `
   `ToolbarView` (`BAR_HEIGHT`, `ITEMS_X`) copy values the loaded layout holds; read them with
   `findTemplateChild` as `RoomChatInputView` does. S. **Done:** both read from their loaded layouts
   (`bottom_bar_left`'s height and `toolbar_items`' x; `AvatarEditorContent`'s height and
-  `sideContainer`'s x); the editor's frame waits for its content's layout. Not checked live.
+  `sideContainer`'s x); the editor's frame waits for its content's layout. Checked live: the
+  toolbar and editor land on the old constants' sizes.
 - **TableView highlights.** Each `TextCell` runs its own 16 ms interval for its highlight; one shared
   ticker. S. **Left:** Flash's `TableView` cells each fade on their own timer too, and only a
   highlighted cell runs one; the cost is re-renders while it fades, not the timers.
@@ -278,7 +298,7 @@ id follow the room engine's session. Found on the way: the navigator never ran `
 - Item 4, window pointer drags (`useWindowPointerDrag`).
 - Item 5, group forum state in the store, and the link's go-to scroll.
 - Item 6, chat bubble positions in a flipped room.
-- Item 7, documented: Flash keeps an unoffered source type; the port's resolutions are listed.
+- Item 7, forms keep a saved source type their picker does not offer, as Flash does.
 - Item 8, boolean configuration read as Flash does (`configBoolean`, `useConfigBoolean`).
 - Item 9, moderation through actions hooks and `moderationCommands`.
 - Item 10, views send packets only through commands.
