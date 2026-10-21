@@ -11,11 +11,9 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 
 import { CatalogLocalizedPage } from '#base/context/catalog';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString, systemStore } from '#base/context/system';
 
 /** `getProperty` / `getBoolean` over the current config - see `configReader`. */
-const hotelConfig = () => configReader(systemStore.getState().config);
 
 /**
  * `openExternalLink`: the "leaving the hotel" alert, and the page in the hotel's main browser
@@ -37,10 +35,10 @@ export const onCatalogPageLink = (page: CatalogLocalizedPage, elementName: strin
 
     switch (page.layoutCode) {
         case 'club_buy':
-            if (elementName === 'club_link') openCatalogExternalLink(hotelConfig().configString('link.format.club'));
+            if (elementName === 'club_link') openCatalogExternalLink(configString('link.format.club'));
             return;
         case 'mad_money':
-            if (elementName === 'ctlg_madmoney_button') openCatalogExternalLink(hotelConfig().configString('link.format.madmoney'));
+            if (elementName === 'ctlg_madmoney_button') openCatalogExternalLink(configString('link.format.madmoney'));
             return;
         case 'monkey':
             if ((elementName === 'ctlg_teaserimg_1_region') || (elementName === 'ctlg_special_img_region')) openCatalogExternalLink(getLocalizationValue('link.format.monkey', 'http://store.apple.com/'));

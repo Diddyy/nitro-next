@@ -3,8 +3,7 @@
  * `notifications/singular/ClubGiftNotification` and `SafetyLockedNotification`.
  */
 import { singularNotificationStore } from '#base/context/singular-notifications';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString } from '#base/context/system';
 
 import { openClubCatalogPage } from '../catalog/catalogClubCommands';
 
@@ -23,7 +22,7 @@ export const openClubGiftList = () => {
  * (`HabboWebTools.openWebPage(url, "habboMain")`). The notification stays up.
  */
 export const openSafetyLockUnlockPage = () => {
-    const url = configReader(systemStore.getState().config).configString('link.format.safetylock_unlock');
+    const url = configString('link.format.safetylock_unlock');
 
     if (url.length) window.open(url, 'habboMain');
 };

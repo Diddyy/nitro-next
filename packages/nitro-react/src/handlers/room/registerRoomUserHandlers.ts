@@ -3,9 +3,8 @@ import { AvatarEffectMessage, BlockUserUpdateMessage, CarryObjectMessage, DanceM
 
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { configReader } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -27,7 +26,7 @@ export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => 
     const { setOwnRoomIndex, setTarget, setIsOwnDancing, updateUsers, updateUserPartial, removeUser } = roomStore.getState();
 
     /** `configuration.getBoolean("avatar.ignored.bubble.enabled")`. */
-    const ignoredBubbleEnabled = () => configReader(systemStore.getState().config).configBoolean('avatar.ignored.bubble.enabled');
+    const ignoredBubbleEnabled = () => configBoolean('avatar.ignored.bubble.enabled');
 
     return subscribeAll(subscribe, [
         /*

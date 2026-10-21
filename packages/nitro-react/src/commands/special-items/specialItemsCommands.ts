@@ -15,11 +15,9 @@ import { ClaimProductComposer, HasClaimedProductComposer } from '@nitrodevco/nit
 
 import { Send } from '#base/context/communication';
 import { SPECIAL_ITEM_TYPE_FURNI, SPECIAL_ITEMS_CLAIM_STATE_BROWSING, SPECIAL_ITEMS_CLAIM_STATE_CLAIMABLE, SPECIAL_ITEMS_CLAIM_STATE_FETCHING, SPECIAL_ITEMS_CLAIM_STATE_NOT_APPLICABLE, SpecialItem, specialItemsStore } from '#base/context/special-items';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString, systemStore } from '#base/context/system';
 
 /** `getProperty` over the current config - see `configReader`. */
-const hotelConfig = () => configReader(systemStore.getState().config);
 
 /** `parseSpecialItems`: the set's valid items, numbered in the order they are kept. */
 const parseSpecialItems = (key: string): SpecialItem[] => {
@@ -27,7 +25,7 @@ const parseSpecialItems = (key: string): SpecialItem[] => {
     const furniByName = new Map(Object.values(floorItems).map(furni => [ furni.fullName, furni ]));
     const items: SpecialItem[] = [];
 
-    for (const entry of hotelConfig().configString(`special_items.${key}.items`).split(';')) {
+    for (const entry of configString(`special_items.${key}.items`).split(';')) {
         // `split(",", 3)`.
         const [ itemKey, itemType, furniName ] = entry.split(',').slice(0, 3);
 
@@ -65,7 +63,7 @@ export const openSpecialItemsDisplay = (send: Send, key: string) => {
 
     if (!items.length) return;
 
-    const freeClaim = hotelConfig().configString(`special_items.${key}.free_claim`);
+    const freeClaim = configString(`special_items.${key}.free_claim`);
     const { setSpecialItems, displaySpecialItems } = specialItemsStore.getState();
 
     setSpecialItems(key, items, freeClaim, freeClaim.length ? SPECIAL_ITEMS_CLAIM_STATE_FETCHING : SPECIAL_ITEMS_CLAIM_STATE_NOT_APPLICABLE);

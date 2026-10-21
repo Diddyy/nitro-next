@@ -20,13 +20,13 @@ import {
 
 import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configString, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import {
     WIRED_CHEST_KEY_CAPACITY_LEVEL, WIRED_CHEST_KEY_EVERYONE_CAN_OPEN, WIRED_CHEST_TYPE_COIN, WIRED_TRADE_STATE_ADDING_ITEMS, WIRED_TRADE_STATE_CONFIRMED, WIRED_TRADE_STATE_CONFIRMING, WIRED_TRADE_STATE_COUNTDOWN,
     WIRED_TRADE_STATE_READY, WIRED_TRANSACTION_PAGE_SIZE, WiredChestFurniData, wiredTradingStore,
 } from '#base/context/wired-trading';
-import { getFurnitureData } from '#base/utils';
+import { configReader, getFurnitureData } from '#base/utils';
 
 /** `SelfDonationTool.ALLOWED_ENVIRONMENT_IDS`. */
 const SELF_DONATION_ENVIRONMENT_IDS = [ 's1', 's2', 'd63', 'dev', 'local' ];
@@ -106,9 +106,9 @@ export const checkWiredChestAccess = (send: Send, canRead: boolean) => {
 
 /** `WiredChestWrapperView.isStarterChest`: the chest's class name has the `wired.chests_starter_infix`. */
 export const isWiredStarterChest = (config: Record<string, unknown>, className: string | undefined): boolean => {
-    const infix = config['wired.chests_starter_infix'];
+    const infix = configReader(config).configString('wired.chests_starter_infix');
 
-    return (typeof infix === 'string') && (infix !== '') && (className !== undefined) && (className.indexOf(infix) !== -1);
+    return (infix !== '') && (className !== undefined) && (className.indexOf(infix) !== -1);
 };
 
 /** `WiredChestWrapperView.onOptionsChanged`. */
@@ -140,9 +140,7 @@ export const upgradeWiredChest = (send: Send, chestId: number, amount: number) =
 
 /** `wired.<coins|furni>_chest.<name>` - `WiredChestController.getInteger(..., 0)`. */
 export const getWiredChestConfigInteger = (config: Record<string, unknown>, chestType: number, name: string): number => {
-    const value = Number(config[`wired.${(chestType === WIRED_CHEST_TYPE_COIN) ? 'coins' : 'furni'}_chest.${name}`]);
-
-    return Number.isFinite(value) ? Math.trunc(value) : 0;
+    return configReader(config).configInteger(`wired.${(chestType === WIRED_CHEST_TYPE_COIN) ? 'coins' : 'furni'}_chest.${name}`, 0);
 };
 
 /**
@@ -233,9 +231,7 @@ export const openWiredRewardView = (internalId: number) => {
 
 /** `SelfDonationTool.isSandboxEnvironment`: `environment.id` is one of the sandbox hotels. */
 export const isWiredSelfDonationAllowed = (): boolean => {
-    const environmentId = systemStore.getState().config['environment.id'];
-
-    return (typeof environmentId === 'string') && SELF_DONATION_ENVIRONMENT_IDS.includes(environmentId);
+    return SELF_DONATION_ENVIRONMENT_IDS.includes(configString('environment.id'));
 };
 
 /** `SelfDonationTool.open` (`selfdonation/open`): nothing outside a sandbox hotel. */

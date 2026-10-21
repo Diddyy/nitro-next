@@ -8,7 +8,7 @@ import { ForumDataMessage, ForumsListMessage, ForumThreadsMessage, PostMessage, 
 
 import { onGroupForumData, onGroupForumMessagePosted, onGroupForumMessages, onGroupForumMessageUpdated, onGroupForumsList, onGroupForumsUnreadCount, onGroupForumThreadPosted, onGroupForumThreads, onGroupForumThreadUpdated, pollGroupForumsUnreadCount } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
-import { systemStore } from '#base/context/system';
+import { configInteger } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -28,7 +28,7 @@ export const registerGroupForumHandlers = ({ send, subscribe }: WebSocketConnect
         on(PostMessage, data => onGroupForumMessagePosted(send, data.groupId, data.threadId, data.message)),
     ]);
 
-    const period = Number(systemStore.getState().config['groupforum.poll.period'] ?? DEFAULT_POLL_PERIOD);
+    const period = configInteger('groupforum.poll.period', DEFAULT_POLL_PERIOD);
     const poll = () => pollGroupForumsUnreadCount(send);
     const timer = setInterval(poll, (Number.isFinite(period) ? period : DEFAULT_POLL_PERIOD) * 1000);
 

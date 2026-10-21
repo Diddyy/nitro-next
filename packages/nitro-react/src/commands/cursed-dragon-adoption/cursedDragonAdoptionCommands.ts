@@ -8,11 +8,10 @@ import { ClaimProductComposer, HasClaimedProductComposer } from '@nitrodevco/nit
 
 import { Send } from '#base/context/communication';
 import { cursedDragonAdoptionStore } from '#base/context/cursed-dragon-adoption';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString, systemStore } from '#base/context/system';
 
 /** `initComponent`: `getProperty("cursed_dragon_adoption.claim_id")`, else `cursed_dragon_adoption`. */
-const claimId = () => configReader(systemStore.getState().config).configString('cursed_dragon_adoption.claim_id') || 'cursed_dragon_adoption';
+const claimId = () => configString('cursed_dragon_adoption.claim_id') || 'cursed_dragon_adoption';
 
 /** `open`: `HasClaimedProduct` unless fetching, claiming or claimed, then `show`. */
 export const openCursedDragonAdoption = (send: Send) => {

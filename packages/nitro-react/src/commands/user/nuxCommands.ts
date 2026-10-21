@@ -21,9 +21,8 @@ import { EventLogComposer, ForwardToSomeRoomComposer } from '@nitrodevco/nitro-p
 import { Send } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
 import { onboardingStore } from '#base/context/onboarding';
-import { systemStore } from '#base/context/system';
+import { configBoolean, configString, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { configReader } from '#base/utils';
 
 import { goToHomeRoom } from '../navigator/navigatorCommands';
 
@@ -37,7 +36,7 @@ let offerTimer: ReturnType<typeof setTimeout> | undefined;
 
 /** `getBoolean("nux.lobbies.enabled") && isRealNoob`. */
 export const isNoobLobbyUser = (): boolean =>
-    configReader(systemStore.getState().config).configBoolean('nux.lobbies.enabled')
+    configBoolean('nux.lobbies.enabled')
     && Number(userStore.getState().noobnessLevel) === Number(NoobnessLevelEnum.RealNoob);
 
 /** `destroyNoobRoomOfferView`: the timer and the window. */
@@ -70,8 +69,7 @@ export const onRoomSessionForNoobLobbyOffer = (send: Send, roomId: number | unde
         return;
     }
 
-    const config = configReader(systemStore.getState().config);
-    const seconds = parseInt(config.configString('nux.noob.lobby.popup.delay'), 10);
+    const seconds = parseInt(configString('nux.noob.lobby.popup.delay'), 10);
 
     if (offerTimer !== undefined) clearTimeout(offerTimer);
 

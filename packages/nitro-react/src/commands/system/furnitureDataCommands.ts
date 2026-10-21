@@ -15,7 +15,7 @@
 import { IFurnitureData, NitroLogger } from '@nitrodevco/nitro-api';
 import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
 
-import { systemStore } from '#base/context/system';
+import { configString, systemStore } from '#base/context/system';
 
 const HASH_SEGMENT = /\/(0|[0-9a-f]{40})$/i;
 
@@ -57,9 +57,9 @@ const processFurnitureData = () => {
  * newer request took over.
  */
 export const loadFurnitureData = async (hash: string = ''): Promise<boolean> => {
-    const url = systemStore.getState().config['furnituredata.url'];
+    const url = configString('furnituredata.url');
 
-    if ((typeof url !== 'string') || !url.length) return false;
+    if (!url.length) return false;
     if (hash === loaded) return true;
     if (hash === loading) return false;
 

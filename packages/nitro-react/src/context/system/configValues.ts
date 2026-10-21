@@ -17,3 +17,6 @@ export const configBoolean = (key: string, fallback: boolean = false): boolean =
 
 /** Outside React: a configuration value as Flash's `getProperty` reads it - text, `''` when unset. */
 export const configString = (key: string): string => configReader(systemStore.getState().config).configString(key);
+
+/** Outside React: a configuration number as Flash's `getInteger(key, fallback)` reads it. */
+export const configInteger = (key: string, fallback: number): number => configReader(systemStore.getState().config).configInteger(key, fallback);

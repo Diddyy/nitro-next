@@ -13,8 +13,7 @@ import {
 
 import { Send } from '#base/context/communication';
 import { MOD_CHATLOG_ROOM, ModerationIssueSends, moderationIssueStore } from '#base/context/moderation';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString } from '#base/context/system';
 
 /** Not taken from an issue (`getIssueId` with no issue): the composers then leave the issue id out. */
 const NO_ISSUE = -1;
@@ -143,7 +142,7 @@ const HOUSEKEEPING_WINDOW = 'housekeeping';
  * page configured nothing opens here.
  */
 export const openHousekeepingPage = (urlKey: string, param: string) => {
-    const url = configReader(systemStore.getState().config).configString(urlKey);
+    const url = configString(urlKey);
 
     if (url.length) window.open(url + param, HOUSEKEEPING_WINDOW);
 };

@@ -13,7 +13,7 @@ import { BuyMarketplaceTokensComposer, GetMarketplaceCanMakeOfferComposer, GetMa
 
 import { Send } from '#base/context/communication';
 import { INVENTORY_FURNI_CATEGORY_POSTER, InventoryFurniGroup, InventoryFurniItem, inventoryStore } from '#base/context/inventory';
-import { systemStore } from '#base/context/system';
+import { configInteger, systemStore } from '#base/context/system';
 import { MARKETPLACE_FURNI_TYPE_FLOOR, MARKETPLACE_FURNI_TYPE_WALL, MARKETPLACE_MAKE_OFFER_RESULT_OK, MARKETPLACE_STATS_CATEGORY_FLOOR, MARKETPLACE_STATS_CATEGORY_UNIQUE, MARKETPLACE_STATS_CATEGORY_WALL, MarketplaceItemStats } from '#base/utils';
 
 /** `MarketplaceModel.DEFAULT_BULK_OFFER_LIMIT`. */
@@ -29,7 +29,7 @@ const CAN_MAKE_OFFER_TRADING_LOCK = 6;
 
 /** `bulkOfferLimit`: `marketplace.bulkOfferLimit`, 500 when unset. */
 const getBulkOfferLimit = () => {
-    const limit = Number(systemStore.getState().config['marketplace.bulkOfferLimit']) || 0;
+    const limit = configInteger('marketplace.bulkOfferLimit', 0);
 
     return (limit > 0) ? limit : DEFAULT_BULK_OFFER_LIMIT;
 };

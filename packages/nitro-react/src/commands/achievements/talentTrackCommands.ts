@@ -7,13 +7,12 @@
 import { GetTalentTrackComposer } from '@nitrodevco/nitro-packets';
 
 import { Send } from '#base/context/communication';
-import { systemStore } from '#base/context/system';
+import { configBoolean } from '#base/context/system';
 import { PerkCodes, userStore } from '#base/context/user';
-import { configReader } from '#base/utils';
 
 /** `SessionDataManager.currentTalentTrack`: citizenship until it is passed (when that track is on), then helper. */
 export const currentTalentTrack = () => {
-    const citizenshipEnabled = configReader(systemStore.getState().config).configBoolean('talent.track.citizenship.enabled');
+    const citizenshipEnabled = configBoolean('talent.track.citizenship.enabled');
     const citizen = userStore.getState().perks.get(PerkCodes.Citizen)?.isAllowed === true;
 
     return (citizenshipEnabled && !citizen) ? 'citizenship' : 'helper';

@@ -5,7 +5,6 @@
  * Also the photo lab's and purchase dialog's flow over `cameraStore`, and the camera's requests
  * (`CameraWidgetHandler`).
  */
-import { GetConfigValue } from '@nitrodevco/nitro-api';
 import type { CameraPublishStatusMessageType, CameraStorageUrlMessageType, InitCameraMessageType } from '@nitrodevco/nitro-packets';
 import { PublishPhotoComposer, PurchasePhotoComposer, RenderRoomComposer, RequestCameraConfigurationComposer } from '@nitrodevco/nitro-packets';
 import { GetRenderer, SpriteDataCollector } from '@nitrodevco/nitro-renderer';
@@ -14,7 +13,7 @@ import { Rectangle } from 'pixi.js';
 import { CameraPhoto, cameraStore, PhotoPurchase, PhotoPurchaseState } from '#base/context/camera';
 import { Send } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configString, systemStore } from '#base/context/system';
 
 /** `getRoomCanvasScale() < 1 || getRoomCanvasIsFlipped()`. */
 export const isRoomUnfit = () => {
@@ -106,7 +105,7 @@ export const onCameraStorageUrl = (data: CameraStorageUrlMessageType) => {
     if (!cameraStore.getState().purchase) return;
 
     if (data.url && data.url.length) {
-        updatePurchase({ imageUrl: (GetConfigValue<string>('stories.image_url_base') ?? '') + data.url });
+        updatePurchase({ imageUrl: configString('stories.image_url_base') + data.url });
 
         return;
     }

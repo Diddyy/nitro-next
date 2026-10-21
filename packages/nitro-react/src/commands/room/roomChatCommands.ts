@@ -51,7 +51,7 @@ import { GetTicker, RoomShakingEffect } from '@nitrodevco/nitro-renderer';
 
 import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
-import { configBoolean, systemStore } from '#base/context/system';
+import { configBoolean, configString, systemStore } from '#base/context/system';
 import { ClientGates, hasClientGate, PerkCodes, userStore } from '#base/context/user';
 
 import { goToRoom } from '../navigator/navigatorCommands';
@@ -104,9 +104,7 @@ const confirmWiredRoomState = (send: Send, rollback: boolean) => {
  * community news under `url.prefix` in the hotel's main window.
  */
 const openNews = () => {
-    const urlPrefix = systemStore.getState().config['url.prefix'];
-
-    window.open(`${(typeof urlPrefix === 'string') ? urlPrefix : ''}/community/category/all/1/`, 'habboMain');
+    window.open(`${configString('url.prefix')}/community/category/all/1/`, 'habboMain');
 };
 
 /** `windowManager.toggleFullScreen`. */

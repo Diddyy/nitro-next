@@ -25,7 +25,7 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
-import { systemStore } from '#base/context/system';
+import { configString, systemStore } from '#base/context/system';
 import { loadTemplateBundle, normalizeLocalizationMap, parseLocalizationData } from '#base/utils';
 
 /** The library the default localizations are embedded in, whose bundle carries every language's (`loadTemplateBundle`). */
@@ -44,9 +44,9 @@ let activeLanguage = '';
 
 /** The language the client starts in: `localization.default.language`, else English. */
 export const getDefaultLocalizationLanguage = (): string => {
-    const value = systemStore.getState().config['localization.default.language'];
+    const value = configString('localization.default.language');
 
-    return ((typeof value === 'string') && value.length) ? value.toLowerCase() : FALLBACK_LANGUAGE;
+    return value.length ? value.toLowerCase() : FALLBACK_LANGUAGE;
 };
 
 /** The language whose default localizations are shown. */

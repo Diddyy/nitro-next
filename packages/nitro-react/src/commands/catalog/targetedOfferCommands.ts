@@ -11,7 +11,7 @@
 import { EventLogComposer, PurchaseTargetedOfferComposer, SetTargetedOfferStateComposer, ShopTargetedOfferViewedComposer } from '@nitrodevco/nitro-packets';
 
 import { Send } from '#base/context/communication';
-import { systemStore } from '#base/context/system';
+import { configString } from '#base/context/system';
 import {
     HabboMallOffer, isTargetedOfferExpired, purchasedTargetedOffer, TARGETED_OFFER_DIALOG_LAYOUT, TARGETED_OFFER_DIALOG_VARIATION_LAYOUT, TARGETED_OFFER_STATE_MAXIMIZED, TARGETED_OFFER_STATE_MINIMIZED,
     TARGETED_OFFER_STATE_PREVIEWED, TARGETED_OFFER_STATE_REJECTED, TARGETED_OFFER_STATE_SELECTED, TargetedOffer, targetedOfferStore,
@@ -57,7 +57,7 @@ export const maximizeTargetedOffer = (send: Send, offer: TargetedOffer) => {
 
     if (isTargetedOfferExpired(offer, performance.now())) return;
 
-    const override = systemStore.getState().config[`targeted.offer.override.layout.${offer.id}`];
+    const override = configString(`targeted.offer.override.layout.${offer.id}`);
 
     setOffer(offer);
     showDialogView((override === TARGETED_OFFER_DIALOG_VARIATION_LAYOUT) ? TARGETED_OFFER_DIALOG_VARIATION_LAYOUT : TARGETED_OFFER_DIALOG_LAYOUT);

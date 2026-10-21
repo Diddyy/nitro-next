@@ -19,8 +19,7 @@ import { AccountSafetyLockStatusChangeMessage, ClaimProductResultMessage, ClubGi
 import { applyLiveNewFeatureNotification } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { singularNotificationStore } from '#base/context/singular-notifications';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configBoolean } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -38,7 +37,7 @@ export const registerSingularNotificationHandlers = ({ subscribe }: WebSocketCon
             if (!data.messages.length) return;
 
             // `useNotifications`: `getBoolean("notification.items.enabled")`.
-            if (configReader(systemStore.getState().config).configBoolean('notification.items.enabled')) showMotdNotification(data.messages);
+            if (configBoolean('notification.items.enabled')) showMotdNotification(data.messages);
         }),
 
         // `HabboEpicPopupView.onEpicPopupMessageEvent`: `showPopup(imageUri)`.

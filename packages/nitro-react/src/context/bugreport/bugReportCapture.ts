@@ -9,8 +9,7 @@ import { GetRenderer, GetRoomStage } from '@nitrodevco/nitro-renderer';
 import { Rectangle } from 'pixi.js';
 
 import { getRoom, roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString } from '#base/context/system';
 
 /** The build's name, replaced at build time (vite.config.ts `buildId`); undefined outside Vite. */
 declare const __NITRO_BUILD__: string | undefined;
@@ -158,7 +157,7 @@ export const takeBugReportCapture = async (screenshot: boolean) => {
     const capture = {
         v: 1,
         build: (typeof __NITRO_BUILD__ === 'string') ? __NITRO_BUILD__ : 'dev',
-        production: configReader(systemStore.getState().config).configString('production.version'),
+        production: configString('production.version'),
         // Never the query: it carries the SSO ticket.
         page: `${window.location.origin}${window.location.pathname}`,
         userAgent: navigator.userAgent,

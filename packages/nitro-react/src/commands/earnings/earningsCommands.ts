@@ -18,7 +18,7 @@ import { IncomeRewardClaimComposer, IncomeRewardStatusComposer } from '@nitrodev
 
 import { Send } from '#base/context/communication';
 import { earningsDucketValueForCategory, earningsStore } from '#base/context/earnings';
-import { systemStore } from '#base/context/system';
+import { configInteger, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
 /** `getInteger("duckets.soft_limit", 2147483647)`'s default. */
@@ -66,11 +66,10 @@ const performEarningsClaim = (send: Send, elementName: string, rewardCategory: n
  * user confirms first (`${earning.exceeding_limit}`); cancelling claims nothing.
  */
 export const claimEarnings = (send: Send, elementName: string, rewardCategory: number) => {
-    const { config, interpolate, showConfirm } = systemStore.getState();
+    const { interpolate, showConfirm } = systemStore.getState();
     const newAmountOfDuckets = earningsDucketValueForCategory(earningsStore.getState().values, rewardCategory);
     const currentDuckets = userStore.getState().activityPoints[ACTIVITY_POINT_TYPE_DUCKETS] ?? 0;
-    const configuredLimit = config['duckets.soft_limit'];
-    const softLimit = (configuredLimit === undefined) ? DUCKETS_SOFT_LIMIT_DEFAULT : Math.trunc(Number(configuredLimit));
+    const softLimit = configInteger('duckets.soft_limit', DUCKETS_SOFT_LIMIT_DEFAULT);
 
     if ((newAmountOfDuckets > 0) && ((newAmountOfDuckets + currentDuckets) > softLimit)) {
         showConfirm(interpolate('${generic.alert.title}'), interpolate('${earning.exceeding_limit}'), () => performEarningsClaim(send, elementName, rewardCategory));

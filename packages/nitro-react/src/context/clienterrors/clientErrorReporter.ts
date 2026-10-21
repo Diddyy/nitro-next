@@ -26,8 +26,7 @@ import { GetRenderer } from '@nitrodevco/nitro-renderer';
 
 import type { Send } from '#base/context/communication';
 import { roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString } from '#base/context/system';
 
 /** The build's name, replaced at build time (vite.config.ts `buildId`); undefined outside Vite. */
 declare const __NITRO_BUILD__: string | undefined;
@@ -87,7 +86,7 @@ const context = () => {
 
     return {
         build: (typeof __NITRO_BUILD__ === 'string') ? __NITRO_BUILD__ : 'dev',
-        production: configReader(systemStore.getState().config).configString('production.version') || undefined,
+        production: configString('production.version') || undefined,
         userAgent: navigator.userAgent,
         platform: navigatorData.userAgentData?.platform || navigator.platform || undefined,
         page: `${window.location.origin}${window.location.pathname}`,

@@ -12,8 +12,7 @@ import { GetSecondsUntilComposer, HasClaimedProductComposer } from '@nitrodevco/
 
 import { Send } from '#base/context/communication';
 import { singularNotificationStore } from '#base/context/singular-notifications';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString, systemStore } from '#base/context/system';
 
 import { hasRewardTrack, isRewardTrackComplete } from '../reward-track/rewardTrackCommands';
 import { openClientLink } from '../system/clientLinkCommands';
@@ -27,7 +26,6 @@ const CONDITION_REWARD_TRACK_INCOMPLETE = 'reward_track_incomplete';
 const ACTIVE_KEY = 'notifications.new_feature.active';
 
 /** `getProperty`: the hotel's value as text, read when it is asked for. */
-const configString = (key: string): string => configReader(systemStore.getState().config).configString(key);
 
 /** `getNewFeatureConditionState`: 1 show, 0 don't, -1 not known yet. */
 const getConditionState = (key: string): number => {

@@ -7,9 +7,9 @@ import { GetCollectibleMintableItemTypesComposer, GetCollectibleMintingEnabledCo
 import { COLLECTIBLE_MINT_RESULT_SUCCESS, COLLECTIBLE_PREVIEW_NONE, CollectiblesMintItem, collectiblesStore, wrapMintableItem } from '#base/context/collectibles';
 import { Send } from '#base/context/communication';
 import { getNonRentedInventoryIds, inventoryStore } from '#base/context/inventory';
-import { systemStore, translate as t } from '#base/context/system';
+import { configString, systemStore, translate as t } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { configReader, openWebPage } from '#base/utils';
+import { openWebPage } from '#base/utils';
 
 import { checkFurniInventoryInitialization } from '../inventory/inventoryCommands';
 import { controllerPreviewImage, getCollectibleProductName, notifyCollectibles } from './collectiblesCommands';
@@ -244,7 +244,7 @@ export const onCollectibleMintableItemResult = (send: Send, mintResult: number) 
 };
 
 /** `onClickCreateWallet`. */
-export const openCreateWalletPage = () => openWebPage(configReader(systemStore.getState().config).configString('nft.wallet.create.url'));
+export const openCreateWalletPage = () => openWebPage(configString('nft.wallet.create.url'));
 
 /** `onClickMoreInfo`. */
-export const openWalletSettingsPage = () => openWebPage(configReader(systemStore.getState().config).configString('web.settings.wallet.relativeUrl'));
+export const openWalletSettingsPage = () => openWebPage(configString('web.settings.wallet.relativeUrl'));

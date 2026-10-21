@@ -8,6 +8,9 @@
  *   (`true` as `"true"`).
  * - `configBoolean`: `"1"` and `"true"` in any case (a JSON `true` or `1` alike); anything else, an
  *   unset key included, is Flash's `false` default - `HabboConfigurationManager.getBoolean`.
+ * - `configInteger`: AS3's `int()` of the value, `fallback` when the key is unset -
+ *   `HabboConfigurationManager.getInteger(key, default)`. Text that is no number is 0, as `int`
+ *   makes it, and no placeholder is filled.
  * - `resolve`: the placeholders of any string filled the same way - a layout's own `asset_uri`,
  *   which Flash expands against the same variables.
  *
@@ -36,8 +39,15 @@ export const configReader = (config: Record<string, unknown>) => {
         return (value === '1') || (value?.toLowerCase() === 'true');
     };
 
+    const configInteger = (key: string, fallback: number): number => {
+        const value = text(key);
+
+        // `int(String)`: `Number` of the text cut to 32 bits, 0 for anything that is no number.
+        return (value === undefined) ? fallback : (Number(value) | 0);
+    };
+
     /** Whether the variable is set at all - Flash's `getProperty` returning non-null (an empty value is set). */
     const configHas = (key: string): boolean => text(key) !== undefined;
 
-    return { configString, configBoolean, configHas, resolve };
+    return { configString, configBoolean, configInteger, configHas, resolve };
 };

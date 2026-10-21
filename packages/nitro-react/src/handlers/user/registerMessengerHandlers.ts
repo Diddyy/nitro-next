@@ -7,9 +7,8 @@ import {
 import { addMessengerConsoleMessage, addMessengerInstantMessageError, addMessengerRoomInvite, friendRequestAcceptFailed, goToRoom, highlightFriendListTab, loadMessengerHistory, notifyFriendOnline, playMessengerMessageReceivedSound, setMessengerOnlineStatus } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { messengerStore } from '#base/context/messenger';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
-import { configReader } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -55,7 +54,7 @@ const showFriendListError = (errorCode: number, clientMessageId: number = 0) => 
 const FRIEND_LIST_UPDATE_INTERVAL_MS = 1000000;
 
 /** `client.minimail.embed.enabled`: `HabboMessenger` listens for mini mail only with it on. */
-const miniMailEnabled = () => configReader(systemStore.getState().config).configBoolean('client.minimail.embed.enabled');
+const miniMailEnabled = () => configBoolean('client.minimail.embed.enabled');
 
 export const registerMessengerHandlers = ({ send, subscribe }: WebSocketConnection) => {
     const { setFriendLimits, setFriendCategories, processFriends, processFriendUpdates, processFriendRequests, replaceFriendRequests, setSearchResults } = userStore.getState();

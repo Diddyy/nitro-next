@@ -54,7 +54,11 @@ const stubs = {
 
         return (bundle === 'habbo-localization-com') ? bundleFiles.get(file) : undefined;
     }, getBundleFile: (bundle, file) => ((bundle === 'habbo-localization-com') ? bundleJson.get(file) : undefined) }) },
-    '#base/context/system': { systemStore: { getState: () => state } },
+    '#base/context/system': { systemStore: { getState: () => state }, configString: (key) => {
+        const value = state.config?.[key];
+
+        return ((value === undefined) || (value === null)) ? '' : String(value);
+    } },
     '#base/utils': { ...localizationData, loadTemplateBundle: (library) => {
         bundleLoads.push(library);
 

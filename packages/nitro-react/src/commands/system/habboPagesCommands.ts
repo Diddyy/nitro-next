@@ -6,8 +6,7 @@
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configString, systemStore } from '#base/context/system';
 
 /** `onDownloadComplete`'s line break: `\n\r`, `\n` or `\r`. */
 const LINE_BREAK = /\n\r|\n|\r/gm;
@@ -33,7 +32,7 @@ let downloads = 0;
  * only logs (`habbopages download error <status>`), the window stays as it was.
  */
 export const openHabboPage = (page: string) => {
-    const url = configReader(systemStore.getState().config).configString('habbopages.url') + page;
+    const url = configString('habbopages.url') + page;
 
     void fetch(url, { cache: 'no-store' })
         .then(async (response) => {

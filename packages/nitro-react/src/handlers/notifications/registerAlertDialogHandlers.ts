@@ -32,8 +32,7 @@
 import { InfoHotelClosedMessage, InfoHotelClosingMessage, LoginFailedHotelClosedMessage, MaintenanceStatusMessage, ModeratorCautionMessage, ModeratorMessage, UserBannedMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configBoolean, systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -46,7 +45,7 @@ export const registerAlertDialogHandlers = ({ subscribe }: WebSocketConnection) 
     const localize = (key: string, replacements?: Record<string, string>) => systemStore.getState().getLocalizationValue(key, key, replacements);
 
     /** `IncomingMessages.useNotifications`: `getBoolean("notification.items.enabled")`. */
-    const notificationItemsEnabled = () => configReader(systemStore.getState().config).configBoolean('notification.items.enabled');
+    const notificationItemsEnabled = () => configBoolean('notification.items.enabled');
 
     /** `handleHotelClosedMessage` / `handleLoginFailedHotelClosedMessage`: the `alert`, whose callback only disposes it. */
     const showOpeningHoursAlert = (key: 'opening.hours.closed' | 'opening.hours.disconnected', openHour: number, openMinute: number) => {

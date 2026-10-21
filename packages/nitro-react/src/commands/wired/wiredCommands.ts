@@ -18,7 +18,7 @@ import { ApplySnapshotComposer, GetGuildMembershipsComposer, ProgressTreasureHun
 import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom, roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configString, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { getWiredElementMemory, getWiredHasWritePermission, getWiredMenuEnabled, WIRED_FURNI_PICKS_1, WIRED_UPDATE_MODE_NORMAL, WIRED_UPDATE_MODE_SAVE_INTO_OTHER, WIRED_UPDATE_MODE_SAVE_WITHOUT_CLOSING, WiredClipboardEntry, wiredClipboardKey, WiredSetupSession, wiredStore } from '#base/context/wired';
 import { configReader, openWebPage } from '#base/utils';
@@ -545,7 +545,7 @@ export const viewWiredLogs = (send: Send) => openClientLink(send, 'wiredmenu/log
 
 /** `openApiDocs` - the header button of a `VariablesWebApiAddon` box: `HabboWebTools.openWebPageAndMinimizeClient(getProperty("wired.api.docs.link"))`. */
 export const openWiredApiDocs = () => {
-    openWebPage(configReader(systemStore.getState().config).configString('wired.api.docs.link'));
+    openWebPage(configString('wired.api.docs.link'));
 };
 
 /**

@@ -21,7 +21,7 @@ import {
     RECYCLER_STATUS_OFF, RECYCLER_STATUS_READY, RECYCLER_STATUS_WAITING_FOR_SERVER, RECYCLER_SYSTEM_STATUS_CLOSED, RECYCLER_SYSTEM_STATUS_TIMEOUT, RecyclerPrizeLevel, RecyclerSlotItem, recyclerStore,
 } from '#base/context/recycler';
 import { getRoom } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configInteger, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { wiredTradingStore } from '#base/context/wired-trading';
 import { getFurnitureDataForProductType } from '#base/utils';
@@ -33,16 +33,14 @@ export const RECYCLER_SLOT_CATEGORY_WALL = 20;
 /** `RecyclerFinishedMessage`'s failure status, the one `setFinished` alerts on (1 is success). */
 const FINISHED_STATUS_FAILURE = 2;
 
-const config = <T>(key: string, fallback: T): T => (systemStore.getState().config[key] as T | undefined) ?? fallback;
-
 /** `numberOfSlots`: `getInteger("recycler.number_of_slots", 5)`. */
-export const getRecyclerNumberOfSlots = () => config<number>('recycler.number_of_slots', 5);
+export const getRecyclerNumberOfSlots = () => configInteger('recycler.number_of_slots', 5);
 
 /** `ducketCost`: `getInteger("recycler.ducket_cost", 0)`. */
-export const getRecyclerDucketCost = () => config<number>('recycler.ducket_cost', 0);
+export const getRecyclerDucketCost = () => configInteger('recycler.ducket_cost', 0);
 
 /** `timeout`: `getInteger("recycler.timeout_seconds", 10)`. */
-export const getRecyclerTimeout = () => config<number>('recycler.timeout_seconds', 10);
+export const getRecyclerTimeout = () => configInteger('recycler.timeout_seconds', 10);
 
 const alert = (message: string) => {
     const { getLocalizationValue, showAlert } = systemStore.getState();

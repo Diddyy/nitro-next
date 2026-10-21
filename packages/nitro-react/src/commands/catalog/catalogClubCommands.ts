@@ -27,9 +27,9 @@ import { StoreApi } from 'zustand';
 
 import { CatalogStore, CLUB_CENTER_DATA_UPDATE_INTERVAL, CLUB_OFFERS_SOURCE_CLUB_CENTER, ClubBuyOfferData } from '#base/context/catalog';
 import { Send } from '#base/context/communication';
-import { systemStore, translate as t } from '#base/context/system';
+import { configBoolean, configString, systemStore, translate as t } from '#base/context/system';
 import { getPurseClubType, userStore } from '#base/context/user';
-import { clubBuyOfferAsPurchasableOffer, configReader } from '#base/utils';
+import { clubBuyOfferAsPurchasableOffer } from '#base/utils';
 
 import { openClientLink } from '../system/clientLinkCommands';
 import { showPurchaseConfirmation } from './catalogCommands';
@@ -40,7 +40,6 @@ import { purchaseWillBeGift } from './catalogPurchaseFlowCommands';
 type CatalogStoreApi = StoreApi<CatalogStore>;
 
 /** `getProperty` / `getBoolean` over the current config - see `configReader`. */
-const hotelConfig = () => configReader(systemStore.getState().config);
 
 /** `CatalogNavigator.getNodeById` / `getNodeByName`: the first node below the root that matches. */
 const findCatalogNode = (node: ICatalogNode | undefined, match: (node: ICatalogNode) => boolean, isRoot: boolean = true): ICatalogNode | undefined => {
@@ -68,7 +67,7 @@ export const showNotEnoughCreditsAlert = () => {
 
 /** `openCreditsHabblet`: the web shop, `web.shop.relativeUrl` (`HabboWebTools.openWebPageAndMinimizeClient`). */
 export const openCreditsHabblet = () => {
-    const url = hotelConfig().configString('web.shop.relativeUrl');
+    const url = configString('web.shop.relativeUrl');
 
     if (url.length) window.open(url, 'habboMain');
 };
@@ -82,14 +81,14 @@ export const openCreditsHabblet = () => {
 export const showNotEnoughActivityPointsAlert = (type: number) => {
     const { showAlert, showConfirm } = systemStore.getState();
     // `getActivityPointName`: `getProperty` names the currency's text key (its `${...}` filled in), which is then localized.
-    const nameKey = hotelConfig().configString(`activitypoint.name.${type}`);
+    const nameKey = configString(`activitypoint.name.${type}`);
     const currencyname = t(nameKey, nameKey);
     const title = t('catalog.alert.notenough.activitypoints.title', '', { currencyname });
     const description = t('catalog.alert.notenough.activitypoints.description', '', { currencyname });
 
     const onClose = () => resetPlacedOfferData();
 
-    if (type === 0) showConfirm(title, description, () => openCatalogExternalLink(hotelConfig().configString('link.format.duckets')), { onClose });
+    if (type === 0) showConfirm(title, description, () => openCatalogExternalLink(configString('link.format.duckets')), { onClose });
     else showAlert(title, description, { onClose });
 };
 
@@ -232,8 +231,8 @@ export const confirmClubGift = (send: Send, store: CatalogStoreApi) => {
  * otherwise the club web page (`openLink(link.format.club)`).
  */
 export const showVipBenefits = (store: CatalogStoreApi) => {
-    if (hotelConfig().configBoolean('catalog.vip.benefits.enabled')) store.getState().setVipBenefitsVisible(true);
-    else openCatalogExternalLink(hotelConfig().configString('link.format.club'));
+    if (configBoolean('catalog.vip.benefits.enabled')) store.getState().setVipBenefitsVisible(true);
+    else openCatalogExternalLink(configString('link.format.club'));
 };
 
 /** `openClubCenter`: the `habboUI/open/hccenter` link, which the club centre answers. */

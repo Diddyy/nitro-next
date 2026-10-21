@@ -19,13 +19,11 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 
 import { OFFER_PROVIDERS, offerCenterStore, OfferProviderName } from '#base/context/offer-center';
-import { configBoolean, systemStore } from '#base/context/system';
+import { configBoolean, configString, systemStore } from '#base/context/system';
 
 /** `SponsorPayProvider`'s `SponsorPay.loadIntegration` argument: `offers.sponsorpay.appid`. */
 const getSponsorPayAppId = (): string => {
-    const value = systemStore.getState().config['offers.sponsorpay.appid'];
-
-    return ((typeof value === 'string') || (typeof value === 'number')) ? String(value) : '';
+    return configString('offers.sponsorpay.appid');
 };
 
 /** `ExternalInterface.available`: a page to call into. */

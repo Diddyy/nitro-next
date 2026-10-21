@@ -7,9 +7,8 @@ import { setBugReportCaptureEnabled, TURBO_BUG_REPORT_CAPABILITY } from '#base/c
 import { setClientErrorReporting, TURBO_CLIENT_ERRORS_CAPABILITY } from '#base/context/clienterrors';
 import { WebSocketConnection } from '#base/context/communication';
 import { TURBO_STARTER_ROOMS_CAPABILITY } from '#base/context/onboarding';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { SOUND_VOLUME_SCALE, TURBO_CHAT_COMMANDS_CAPABILITY, TURBO_PERMISSION_NODES_CAPABILITY, userStore } from '#base/context/user';
-import { configReader } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -52,7 +51,7 @@ export const registerUserInfoHandlers = ({ send, subscribe }: WebSocketConnectio
             send(new GetSoundSettingsComposer({}));
             // `DiscordSettingsController.initComponent` asks once, in the same burst as the rest.
             send(new GetDiscordPreferencesComposer({}));
-            if (!configReader(systemStore.getState().config).configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 }, { name: TURBO_CHAT_COMMANDS_CAPABILITY, version: 1 }, { name: TURBO_STARTER_ROOMS_CAPABILITY, version: 1 }, { name: TURBO_BUG_REPORT_CAPABILITY, version: 1 }, { name: TURBO_CLIENT_ERRORS_CAPABILITY, version: 1 }, { name: TURBO_LIVE_NOTICES_CAPABILITY, version: 1 } ] }));
+            if (!configBoolean('turbo.extensions.disabled')) send(new TurboClientCapabilitiesComposer({ capabilities: [ { name: TURBO_PERMISSION_NODES_CAPABILITY, version: 1 }, { name: TURBO_CHAT_COMMANDS_CAPABILITY, version: 1 }, { name: TURBO_STARTER_ROOMS_CAPABILITY, version: 1 }, { name: TURBO_BUG_REPORT_CAPABILITY, version: 1 }, { name: TURBO_CLIENT_ERRORS_CAPABILITY, version: 1 }, { name: TURBO_LIVE_NOTICES_CAPABILITY, version: 1 } ] }));
         }),
 
         // A Turbo server that declined `permission.nodes` leaves the gates on the level.

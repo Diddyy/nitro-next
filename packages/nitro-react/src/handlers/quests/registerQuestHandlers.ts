@@ -10,13 +10,12 @@
  * `new.identity.hide.ui`); `onSubscriptionUserInfoEvent` asks again when a VIP subscription answer
  * has response type 2.
  */
-import { GetConfigValue } from '@nitrodevco/nitro-api';
 import { CitizenshipVipOfferPromoEnabledMessage, CloseConnectionMessage, QuestCancelledMessage, QuestCompletedMessage, QuestMessage, QuestsMessage, RoomCompetitionInitComposer, RoomEntryInfoMessage, ScrSendUserInfoMessage } from '@nitrodevco/nitro-packets';
 
 import { onCitizenshipVipQuestsPromoEnabled, onQuestCancelledMessage, onQuestCompletedMessage, onQuestMessage, onQuestRoomExit, onQuests } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { questsStore } from '#base/context/quests';
-import { configBoolean, systemStore } from '#base/context/system';
+import { configBoolean, configInteger, systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -30,7 +29,7 @@ export const registerQuestHandlers = ({ subscribe, send }: WebSocketConnection) 
         on(QuestCompletedMessage, data => onQuestCompletedMessage(send, data.quest, data.showDialog)),
         on(CitizenshipVipOfferPromoEnabledMessage, () => onCitizenshipVipQuestsPromoEnabled()),
         on(RoomEntryInfoMessage, () => {
-            const showsUi = (Number(GetConfigValue<number>('new.identity') ?? 0) === 0) || !configBoolean('new.identity.hide.ui');
+            const showsUi = (configInteger('new.identity', 0) <= 0) || !configBoolean('new.identity.hide.ui');
 
             if (showsUi) send(new RoomCompetitionInitComposer({}));
         }),

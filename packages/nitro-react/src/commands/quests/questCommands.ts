@@ -7,8 +7,7 @@ import { AcceptQuestComposer, ActivateQuestComposer, GetQuestsComposer, GetSeaso
 import { Send } from '#base/context/communication';
 import { questsStore } from '#base/context/quests';
 import { getRoom } from '#base/context/room';
-import { systemStore } from '#base/context/system';
-import { configReader } from '#base/utils';
+import { configBoolean, configString, systemStore } from '#base/context/system';
 
 /** `HabboQuestEngine.requestQuests`. */
 export const requestQuests = (send: Send) => send(new GetQuestsComposer({}));
@@ -42,7 +41,7 @@ export const showQuests = (send: Send) => {
 
 /** `HabboQuestEngine.isSeasonalQuest`: a campaign under `seasonalQuestCalendar.campaignPrefix`. */
 export const isSeasonalCalendarQuest = (quest: IQuestMessageData): boolean => {
-    const prefix = configReader(systemStore.getState().config).configString('seasonalQuestCalendar.campaignPrefix');
+    const prefix = configString('seasonalQuestCalendar.campaignPrefix');
 
     return (prefix !== '') && (quest.campaignCode.indexOf(prefix) === 0);
 };
@@ -245,14 +244,14 @@ export const acceptQuestFromDetails = (send: Send, quest: IQuestMessageData) => 
  * `citizenship.vip.quest.promotion.enabled`.
  */
 export const onCitizenshipVipQuestsPromoEnabled = () => {
-    if (!configReader(systemStore.getState().config).configBoolean('citizenship.vip.quest.promotion.enabled')) return;
+    if (!configBoolean('citizenship.vip.quest.promotion.enabled')) return;
 
     questsStore.getState().setVipQuestsPromoAttached(true);
 };
 
 /** `onButtonClicked`: start the campaign `citizenship.vip.tutorial.quest.campaign.name` names, and undock (`destroyWindow`). */
 export const startCitizenshipVipQuests = (send: Send) => {
-    send(new StartCampaignComposer({ campaignName: configReader(systemStore.getState().config).configString('citizenship.vip.tutorial.quest.campaign.name') }));
+    send(new StartCampaignComposer({ campaignName: configString('citizenship.vip.tutorial.quest.campaign.name') }));
 
     questsStore.getState().setVipQuestsPromoAttached(false);
 };

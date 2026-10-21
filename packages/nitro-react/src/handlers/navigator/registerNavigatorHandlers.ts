@@ -4,7 +4,7 @@ import { CantConnectMessage, CantConnectReason, CloseConnectionMessage, Converte
 import { forwardToRoom, goToHomeRoom, goToRoom, reportRoom, trackEventLog } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { navigatorStore } from '#base/context/navigator';
-import { systemStore } from '#base/context/system';
+import { configInteger, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { configReader, GetLaunchParameter, isRoomEventExtendable, ROOM_AD_DURATION_MINUTES_DEFAULT, ROOM_AD_MAXIMUM_TOTAL_MINUTES_DEFAULT } from '#base/utils';
 
@@ -353,8 +353,8 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
                 data.data,
                 Date.now(),
                 configBoolean('roomad.limit_total_time'),
-                Number(config['room_ad.duration.minutes'] ?? ROOM_AD_DURATION_MINUTES_DEFAULT),
-                Number(config['room_ad.maximum_total_time.minutes'] ?? ROOM_AD_MAXIMUM_TOTAL_MINUTES_DEFAULT),
+                configInteger('room_ad.duration.minutes', ROOM_AD_DURATION_MINUTES_DEFAULT),
+                configInteger('room_ad.maximum_total_time.minutes', ROOM_AD_MAXIMUM_TOTAL_MINUTES_DEFAULT),
             );
 
             navigator().setRoomEventData(data.data, extendable);

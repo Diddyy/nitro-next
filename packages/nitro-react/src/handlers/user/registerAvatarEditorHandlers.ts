@@ -6,7 +6,7 @@ import {
 import { avatarEditorStore, AvatarEditorWardrobeOutfit, DEFAULT_WARDROBE_SLOTS, normalizeGender, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { WebSocketConnection } from '#base/context/communication';
 import { roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configInteger } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -31,7 +31,7 @@ export const registerAvatarEditorHandlers = ({ subscribe }: WebSocketConnection)
         }),
 
         on(WardrobeMessage, (data) => {
-            const maxSlots = Number(systemStore.getState().config[WARDROBE_SLOTS_KEY]) || DEFAULT_WARDROBE_SLOTS;
+            const maxSlots = Math.max(0, configInteger(WARDROBE_SLOTS_KEY, DEFAULT_WARDROBE_SLOTS));
             const wardrobe: AvatarEditorWardrobeOutfit[] = Array.from({ length: maxSlots }, () => null);
 
             for (const outfit of data.outfits) {
