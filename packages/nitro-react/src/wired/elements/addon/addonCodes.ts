@@ -45,4 +45,5 @@ export const AddonCodes = {
     GLOBAL_PLACEHOLDER: 2000,
     ACHIEVEMENT_ENABLER: 2001,
     VARIABLES_WEB_API: 2002,
+    LINK_SPEAKER: 2003,
 } as const;

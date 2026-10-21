@@ -23,6 +23,8 @@ export interface ChatBubbleData {
     extraParam: number;
     /** `ChatItem.hideUsername`: the server asked for no `name: ` prefix (a wired bot that hides its name). */
     hideUsername?: boolean;
+    /** `ChatItem.hasCustomLocation`: the chat named its tile, so the bubble stays there rather than following a unit. */
+    hasCustomLocation?: boolean;
     /** Overrides for game chat: a fixed colour, an on-screen x rather than a room location, a figure / name that isn't in the room. */
     forcedColor?: number;
     forcedScreenLocationX?: number;

@@ -3,6 +3,7 @@ export * from './checkboxMask';
 export * from './ChronoFieldRangeFilter';
 export * from './expandableDropdown';
 export * from './interpolationPoints';
+export * from './linkDataframe';
 export * from './messageEditor';
 export * from './NeighborhoodFloor';
 export * from './numberInput';

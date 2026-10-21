@@ -47,6 +47,8 @@ import { ProgressRewardTrackView } from '#base/views/wired-setup/elements/action
 import { RelativeFurniMoveView } from '#base/views/wired-setup/elements/action/RelativeFurniMoveView';
 import { RemoveVariableView } from '#base/views/wired-setup/elements/action/RemoveVariableView';
 import { ResetRewardTrackView } from '#base/views/wired-setup/elements/action/ResetRewardTrackView';
+import { SendLinkDataframeView } from '#base/views/wired-setup/elements/action/SendLinkDataframeView';
+import { SendLinkMessageView } from '#base/views/wired-setup/elements/action/SendLinkMessageView';
 import { SendSignalView } from '#base/views/wired-setup/elements/action/SendSignalView';
 import { SetFurniAltitudeView } from '#base/views/wired-setup/elements/action/SetFurniAltitudeView';
 import { SetFurniHighlightView } from '#base/views/wired-setup/elements/action/SetFurniHighlightView';
@@ -103,6 +105,8 @@ import { removeFurniAction } from './RemoveFurni';
 import { removeVariableAction } from './RemoveVariable';
 import { resetRewardTrackAction } from './ResetRewardTrack';
 import { resetTimersAction } from './ResetTimers';
+import { sendLinkDataframeAction } from './SendLinkDataframe';
+import { sendLinkMessageAction } from './SendLinkMessage';
 import { sendSignalAction } from './SendSignal';
 import { setFurniAltitudeAction } from './SetFurniAltitude';
 import { setFurniHighlightAction } from './SetFurniHighlight';
@@ -145,6 +149,8 @@ export const actionElements: WiredElementEntry[] = [
     defineWiredElement(controlClockAction, ControlClockView),
     defineWiredElement(setFurniAltitudeAction, SetFurniAltitudeView),
     defineWiredElement(setFurniHighlightAction, SetFurniHighlightView),
+    defineWiredElement(sendLinkMessageAction, SendLinkMessageView),
+    defineWiredElement(sendLinkDataframeAction, SendLinkDataframeView),
     defineWiredElement(sendSignalAction, SendSignalView),
     defineWiredElement(freezeUserAction, FreezeUserView),
     defineWiredElement(unfreezeUserAction),

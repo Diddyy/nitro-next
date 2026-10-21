@@ -8,7 +8,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue } from '#base/context/system';
 import { useWindowVisibility } from '#base/hooks';
 
-import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, MysteryBoxToolbarExtensionComponent, NavigatorComponent, NavigatorRoomEventInfoComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTransactionsComponent } from './components';
+import { AvatarEditorComponent, CatalogWrapper, FriendListWrapper, InventoryComponent, MysteryBoxToolbarExtensionComponent, NavigatorComponent, NavigatorRoomEventInfoComponent, RoomWrapper, ToolbarChatSettingsComponent, ToolbarOtherSettingsComponent, ToolbarSoundSettingsComponent, ToolbarWordFilterComponent, WalletComponent, WiredChestComponent, WiredContractComponent, WiredLinkComponent, WiredMenuComponent, WiredRewardNotificationsComponent, WiredSelfDonationComponent, WiredSetupComponent, WiredTransactionsComponent } from './components';
 import { AchievementsComponent } from './components/achievements';
 import { TargetedOfferComponent } from './components/catalog/TargetedOfferComponent';
 import { CollectiblesComponent } from './components/collectibles';
@@ -165,6 +165,7 @@ export const MainView = () => {
                     <WalletComponent />
                     <WiredSetupComponent />
                     <WiredMenuComponent />
+                    <WiredLinkComponent />
                     <WiredChestComponent />
                     <WiredContractComponent />
                     <WiredTransactionsComponent />

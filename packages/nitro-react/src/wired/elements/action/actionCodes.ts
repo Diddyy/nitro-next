@@ -70,4 +70,6 @@ export const ActionTypeCodes = {
     /** `_-z1S`, WIRED Effect: Set Visibility (`wf_act_set_visibility`). */
     SET_FURNI_TRANSPARENCY: 61,
     SET_FURNI_HIGHLIGHT: 62,
+    SEND_LINK_MESSAGE: 63,
+    SEND_LINK_DATAFRAME: 64,
 } as const;
