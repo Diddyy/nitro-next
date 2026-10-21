@@ -117,10 +117,12 @@ export const readValueOrVariableText = (text: string, min: number, max: number, 
 /** `currentValidationError`'s two messages, with Flash's fallbacks. */
 export const VALUE_OR_VARIABLE_ERROR_AMBIGUOUS = { key: 'wiredfurni.params.variables.reference_value.ambiguous', fallback: 'More than one variable has this name.' };
 export const VALUE_OR_VARIABLE_ERROR_INVALID = { key: 'wiredfurni.params.variables.reference_value.invalid', fallback: 'Enter a valid whole number or variable name.' };
+/** `currentValidationError` of a `variableOnlyOrEmpty` section (the link dataframe rows' "Variable text"). */
+export const VALUE_OR_VARIABLE_ERROR_VARIABLE_OR_EMPTY = { key: 'wiredfurni.params.variables.reference_value.variable_or_empty', fallback: 'Select an available variable or leave this field empty.' };
 
 /**
  * `ValueOrVariableSection.currentValidationError` (without `variableOnlyOrEmpty`, which only the
- * link dataframe rows use) - `null` while the text is valid and, for the variable option, the
+ * link dataframe rows use - the section checks that itself) - `null` while the text is valid and, for the variable option, the
  * selected variable is one the section accepts.
  */
 export const valueOrVariableValidationError = (state: WiredValueOrVariableState, valid: boolean, ambiguous: boolean, variables: readonly IWiredVariable[] | null | undefined, filter?: (variable: IWiredVariable) => boolean): typeof VALUE_OR_VARIABLE_ERROR_INVALID | null => {

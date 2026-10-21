@@ -579,6 +579,10 @@ export class IncomingHeader {
     public static WiredFurniTransparencyMessage = 7610;
     public static WiredUserTransparencyMessage = 7611;
     public static WiredLinkOperationResultMessage = 3261;
+    public static WiredLinkOpenMessage = 3648;
+    public static WiredLinkConfigurationMessage = 1714;
+    public static WiredLinkConnectionsMessage = 3320;
+    public static WiredLinkConfigurationInvalidatedMessage = 7630;
     public static WiredFurniActionMessage = 2642;
     public static WiredFurniAddonMessage = 2823;
     public static WiredFurniConditionMessage = 3980;

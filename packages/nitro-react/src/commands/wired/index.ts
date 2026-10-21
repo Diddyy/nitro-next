@@ -2,6 +2,7 @@
 export * from './wiredChatCommands';
 export * from './wiredCommands';
 export * from './wiredEnvironmentCommands';
+export * from './wiredLinkCommands';
 export * from './wiredMenuCommands';
 export * from './wiredMenuInspectionCommands';
 export * from './wiredMenuOverviewCommands';

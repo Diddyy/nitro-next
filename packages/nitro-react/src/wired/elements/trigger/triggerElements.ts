@@ -17,6 +17,8 @@ import { ClockReachTimeView } from '#base/views/wired-setup/elements/trigger/Clo
 import { PerformActionView } from '#base/views/wired-setup/elements/trigger/PerformActionView';
 import { PeriodicLongView } from '#base/views/wired-setup/elements/trigger/PeriodicLongView';
 import { PeriodicShortView } from '#base/views/wired-setup/elements/trigger/PeriodicShortView';
+import { ReceiveLinkDataframeView } from '#base/views/wired-setup/elements/trigger/ReceiveLinkDataframeView';
+import { ReceiveLinkMessageView } from '#base/views/wired-setup/elements/trigger/ReceiveLinkMessageView';
 import { RoomInitializedView } from '#base/views/wired-setup/elements/trigger/RoomInitializedView';
 import { ScoreAchievedView } from '#base/views/wired-setup/elements/trigger/ScoreAchievedView';
 import { StateChangeView } from '#base/views/wired-setup/elements/trigger/StateChangeView';
@@ -42,6 +44,8 @@ import { gameStartsTrigger } from './GameStarts';
 import { performActionTrigger } from './PerformAction';
 import { periodicLongTrigger } from './PeriodicLong';
 import { periodicShortTrigger } from './PeriodicShort';
+import { receiveLinkDataframeTrigger } from './ReceiveLinkDataframe';
+import { receiveLinkMessageTrigger } from './ReceiveLinkMessage';
 import { receiveSignalTrigger } from './ReceiveSignal';
 import { roomInitializedTrigger } from './RoomInitialized';
 import { scoreAchievedTrigger } from './ScoreAchieved';
@@ -85,4 +89,6 @@ export const triggerElements: WiredElementEntry[] = [
     defineWiredElement(transactionCompletedTrigger, TransactionCompletedView),
     defineWiredElement(transactionFailedTrigger, TransactionFailedView),
     defineWiredElement(roomInitializedTrigger, RoomInitializedView),
+    defineWiredElement(receiveLinkMessageTrigger, ReceiveLinkMessageView),
+    defineWiredElement(receiveLinkDataframeTrigger, ReceiveLinkDataframeView),
 ];

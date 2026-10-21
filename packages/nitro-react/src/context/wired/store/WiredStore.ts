@@ -20,6 +20,7 @@ import { createStore } from 'zustand';
 import { createWiredClipboardSlice, WiredClipboardSlice } from './WiredClipboardSlice';
 import { createWiredElementMemorySlice, WiredElementMemorySlice } from './WiredElementMemorySlice';
 import { createWiredEnvironmentSlice, WiredEnvironmentSlice, WiredEnvironmentSliceRoomState } from './WiredEnvironmentSlice';
+import { createWiredLinkSlice, WiredLinkSlice, WiredLinkSliceInitialState } from './WiredLinkSlice';
 import { createWiredMenuInspectionSlice, WiredMenuInspectionSlice, WiredMenuInspectionSliceInitialState } from './WiredMenuInspectionSlice';
 import { createWiredMenuOverviewSlice, WiredMenuOverviewSlice, WiredMenuOverviewSliceInitialState } from './WiredMenuOverviewSlice';
 import { createWiredMenuSlice, WiredMenuSlice, WiredMenuSliceInitialState } from './WiredMenuSlice';
@@ -36,7 +37,8 @@ type Actions = {
 };
 
 export type WiredStore = Actions & WiredSetupSlice & WiredElementMemorySlice & WiredClipboardSlice & WiredVariablesSlice & WiredEnvironmentSlice & WiredPreferencesSlice
-    & WiredMenuSlice & WiredMenuInspectionSlice & WiredMenuOverviewSlice & WiredRoomLogsSlice & WiredVariableManagementSlice & WiredVariableLeaderboardSlice;
+    & WiredMenuSlice & WiredMenuInspectionSlice & WiredMenuOverviewSlice & WiredRoomLogsSlice & WiredVariableManagementSlice & WiredVariableLeaderboardSlice
+    & WiredLinkSlice;
 
 /** A fresh copy of the wired menu's state - its view, its tabs and the windows it opens. */
 const freshWiredMenuState = (): Partial<WiredStore> => structuredClone({
@@ -52,6 +54,7 @@ const freshRoomState = (): Partial<WiredStore> => structuredClone({
     ...WiredSetupSliceRoomState,
     ...WiredVariablesSliceInitialState,
     ...WiredEnvironmentSliceRoomState,
+    ...WiredLinkSliceInitialState,
     ...freshWiredMenuState(),
 });
 
@@ -69,6 +72,7 @@ export const createWiredStore = () => createStore<WiredStore>()((set, get, store
     ...createWiredMenuOverviewSlice(set, get, store),
     ...createWiredRoomLogsSlice(set, get, store),
     ...createWiredVariableManagementSlice(set, get, store),
+    ...createWiredLinkSlice(set, get, store),
     // Kept out of `resetRoom`: `RoomEntryInfo` for the next room resets it (`VariableLeaderboardController.onRoomEntryInfo`).
     ...createWiredVariableLeaderboardSlice(set, get, store),
 }));

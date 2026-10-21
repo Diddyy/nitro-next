@@ -12,6 +12,8 @@ export * from './GameStarts';
 export * from './PerformAction';
 export * from './PeriodicLong';
 export * from './PeriodicShort';
+export * from './ReceiveLinkDataframe';
+export * from './ReceiveLinkMessage';
 export * from './ReceiveSignal';
 export * from './RoomInitialized';
 export * from './ScoreAchieved';

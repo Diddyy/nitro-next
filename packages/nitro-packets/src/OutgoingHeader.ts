@@ -569,6 +569,12 @@ export class OutgoingHeader {
     public static WiredClickUserComposer = 1649;
     public static WiredDeleteAllVariableHoldersComposer = 1797;
     public static WiredGenerateWebApiKeyComposer = 2819;
+    public static WiredLinkGetConfigurationComposer = 1176;
+    public static WiredLinkCreateNetworkComposer = 3220;
+    public static WiredLinkRenameNetworkComposer = 1669;
+    public static WiredLinkDeleteNetworkComposer = 2355;
+    public static WiredLinkGetConnectionsComposer = 2950;
+    public static WiredLinkSaveConfigurationComposer = 9;
     public static WiredGetAllVariableHoldersComposer = 1614;
     public static WiredGetAllVariablesDiffsComposer = 2623;
     public static WiredGetAllVariablesHashComposer = 1013;

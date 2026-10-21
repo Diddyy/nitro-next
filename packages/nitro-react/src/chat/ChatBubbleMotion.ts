@@ -135,11 +135,11 @@ export class ChatBubbleMotion implements IChatFlowBubble {
         return Math.trunc(this.userScreenLocation.x - (offset ? offset.x : 0));
     }
 
-    /** `currentUserScreenPos` - where the speaking room unit is now; once it has left, where it stood when it spoke. */
+    /** `currentUserScreenPos` - where the speaking room unit is now; once it has left, where it stood when it spoke. A chat with its own tile stays there. */
     private get currentUserScreenLocation(): Point {
         const { data, host } = this._options;
 
-        if (data.forcedScreenLocationX !== undefined) return this.userScreenLocation;
+        if ((data.forcedScreenLocationX !== undefined) || data.hasCustomLocation) return this.userScreenLocation;
 
         const location = host.getUnitLocation(data.roomId, data.objectId);
 

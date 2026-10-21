@@ -25,14 +25,15 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
 
     const findUser = (webId: number, userType: RoomObjectUserType) => roomStore.getState().getUserByWebId(webId, userType);
 
-    const addSpokenChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[], hideUsername: boolean) => {
+    const addSpokenChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[], hideUsername: boolean, location: { x: number; y: number } | null) => {
         const room = getRoom();
 
         if (!room) return;
 
-        room.updateRoomObjectUserAction(objectId, RoomObjectVariableEnum.FigureTalk, text.split(' ').length);
+        // A chat at a tile with no speaker (index -1, the WIRED Link Speaker) moves no mouth.
+        if (objectId >= 0) room.updateRoomObjectUserAction(objectId, RoomObjectVariableEnum.FigureTalk, text.split(' ').length);
 
-        insertRoomChat(objectId, text, chatType, styleId, links, 0, hideUsername);
+        insertRoomChat(objectId, text, chatType, styleId, links, 0, hideUsername, location);
     };
 
     return subscribeAll(subscribe, [
@@ -51,15 +52,15 @@ export const registerRoomChatHandlers = ({ subscribe }: WebSocketConnection) => 
         on(CloseConnectionMessage, () => chatHistoryStore.getState().reset()),
 
         on(ChatMessage, (data) => {
-            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Speak, data.styleId, data.links, data.hideUsername);
+            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Speak, data.styleId, data.links, data.hideUsername, data.location);
         }),
 
         on(ShoutMessage, (data) => {
-            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Shout, data.styleId, data.links, data.hideUsername);
+            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Shout, data.styleId, data.links, data.hideUsername, data.location);
         }),
 
         on(WhisperMessage, (data) => {
-            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Whisper, data.styleId, data.links, data.hideUsername);
+            addSpokenChat(data.objectId, data.text, RoomChatTypeEnum.Whisper, data.styleId, data.links, data.hideUsername, data.location);
         }),
 
         on(HandItemReceivedMessage, (data) => {
