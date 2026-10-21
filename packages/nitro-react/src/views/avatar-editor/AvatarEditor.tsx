@@ -48,9 +48,9 @@
 import { AvatarEditorCategory, AvatarFigurePartType, AvatarGenderType, RoomId } from '@nitrodevco/nitro-api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { closeAvatarEditorEffect, hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, openClubCenter, requestAvatarEditorData, saveWardrobeOutfit, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
+import { closeAvatarEditorEffect, hasAvatarEditorInvalidClubItems, hasAvatarEditorInvalidSellableItems, markAvatarEditorInitialised, openClubCenter, requestAvatarEditorData, returnAvatarEditorFromBooth, saveWardrobeOutfit, stripAvatarEditorClubItems, stripAvatarEditorInvalidSellableItems } from '#base/commands';
 import { RoomPreviewer, RoomPreviewerHandle } from '#base/components';
-import { avatarEditorStore, DEFAULT_WARDROBE_SLOTS, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
+import { DEFAULT_WARDROBE_SLOTS, useAvatarEditorActions, useAvatarEditorStore, WARDROBE_SLOTS_KEY } from '#base/context/avatar-editor';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigBoolean, useConfigValue, useWindowParams } from '#base/context/system';
 import { useOwnClubLevel, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
@@ -196,7 +196,7 @@ export const AvatarEditor = () => {
     const avatarEffectType = useAvatarEditorStore(x => x.avatarEffectType);
     const figureSetIds = useAvatarEditorStore(x => x.figureSetIds);
     const activeSetType = activeSubType[activeCategory];
-    const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, setInitialised, lendToBooth, returnFromBooth } = useAvatarEditorActions();
+    const { setActiveCategory, setActiveSubType, setWardrobeVisible, setWardrobeSlot, loadFigure, setPart, removePart, setColors, setGender, lendToBooth } = useAvatarEditorActions();
     const hotLooks = useAvatarEditorStore(x => x.hotLooks);
     const outfitTemplate = useTemplate(`${LIBRARY}/Outfit`);
     const contentTemplate = useTemplate(`${LIBRARY}/AvatarEditorContent`);
@@ -329,14 +329,7 @@ export const AvatarEditor = () => {
 
         ownLoaded.current = !!ownFigure;
 
-        const mainExisted = returnFromBooth();
-        const { nftCurrentTokenId, nftFallbackFigure: fallbackFigure, nftFallbackGender: fallbackGender } = avatarEditorStore.getState();
-
-        if (mainExisted && (nftCurrentTokenId !== null)) {
-            if (fallbackFigure !== '') loadFigure(fallbackFigure, fallbackGender);
-
-            return;
-        }
+        if (!returnAvatarEditorFromBooth()) return;
 
         loadFigure(ownFigure || DEFAULT_FIGURES[ownGender] || '', ownGender, true);
     }, [ ownFigure, ownGender, !!clothingChange ]);
@@ -345,11 +338,7 @@ export const AvatarEditor = () => {
     // close, so once a session; the clothing change editor is disposed on close (`HabboAvatarEditorManager.close`)
     // and opens on torso and legs only, so every opening and without hot looks.
     useEffect(() => {
-        if (!clothingChange) {
-            if (avatarEditorStore.getState().initialised) return;
-
-            setInitialised();
-        }
+        if (!clothingChange && !markAvatarEditorInitialised()) return;
 
         requestAvatarEditorData(send, !!clothingChange);
     }, [ !!clothingChange ]);

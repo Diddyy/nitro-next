@@ -7,9 +7,10 @@ import { useChatHistoryActions } from '#base/context/chat-history';
 import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useConfigBoolean, useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
-import { UiFlagEnum, useRoomToolsCollapsed, userStore, useUserActions } from '#base/context/user';
+import { UiFlagEnum, useRoomToolsCollapsed, useUserActions, useUserStore } from '#base/context/user';
 import { useWiredStore } from '#base/context/wired';
 import { useRoomZoom } from '#base/hooks';
+import { useLatest } from '#base/theme';
 import { RoomShareView } from '#base/views/room-widgets/room-tools/RoomShareView';
 import { ROOM_TOOLS_INFO_MARGIN, roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 import { RoomToolsHistoryView } from '#base/views/room-widgets/room-tools/RoomToolsHistoryView';
@@ -37,6 +38,8 @@ export const RoomToolsWidget = () => {
     const { send } = useWebSocketContext();
     const { toggleOpen: toggleChatHistory } = useChatHistoryActions();
     const currentRoomInfo = useNavigatorStore(x => x.enteredRoom?.info);
+    // Read when a room is entered, not followed: the constructor's look at the account.
+    const accountRef = useLatest({ noobnessLevel: useUserStore(x => x.noobnessLevel), uiFlags: useUserStore(x => x.uiFlags) });
     const roomVisitHistory = useNavigatorStore(x => x.roomVisitHistory);
     const roomVisitIndex = useNavigatorStore(x => x.roomVisitIndex);
     const canRateCurrentRoom = useNavigatorStore(x => x.canRateCurrentRoom);
@@ -66,7 +69,7 @@ export const RoomToolsWidget = () => {
     useLayoutEffect(() => {
         if (!roomId) return;
 
-        const { noobnessLevel, uiFlags } = userStore.getState();
+        const { noobnessLevel, uiFlags } = accountRef.current;
 
         setRoomToolsCollapsed((Number(noobnessLevel) !== Number(NoobnessLevelEnum.NotNoob)) || !(uiFlags & UiFlagEnum.RoomToolsExpanded));
     }, [ roomId, setRoomToolsCollapsed ]);

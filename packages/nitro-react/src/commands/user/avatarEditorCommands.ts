@@ -130,6 +130,37 @@ export const closeAvatarEditorEffect = (): void => {
 };
 
 /**
+ * The main editor taking its look back from the booth (`returnFromBooth`). When the main editor
+ * existed and wore an NFT outfit, its fallback look shows and the caller loads nothing; otherwise
+ * true, and the caller loads the account's own look. Read after the return, which restores the main
+ * editor's NFT state.
+ */
+export const returnAvatarEditorFromBooth = (): boolean => {
+    const { returnFromBooth, loadFigure } = avatarEditorStore.getState();
+    const mainExisted = returnFromBooth();
+    const { nftCurrentTokenId, nftFallbackFigure, nftFallbackGender } = avatarEditorStore.getState();
+
+    if (mainExisted && (nftCurrentTokenId !== null)) {
+        if (nftFallbackFigure !== '') loadFigure(nftFallbackFigure, nftFallbackGender);
+
+        return false;
+    }
+
+    return true;
+};
+
+/** `HabboAvatarEditor.init` is once a session for the main editor: true the first time, which marks it. */
+export const markAvatarEditorInitialised = (): boolean => {
+    const { initialised, setInitialised } = avatarEditorStore.getState();
+
+    if (initialised) return false;
+
+    setInitialised();
+
+    return true;
+};
+
+/**
  * `HabboAvatarEditor.init`, in its order: `sendGetSelectedNftWardrobeOutfitMessage`, the
  * `WardrobeModel`'s `getWardrobe`, then the categories as they are made - `HotLooksModel.requestHotLooks`
  * (`MAXIMUM_HOT_LOOKS`, not for a clothing change editor) and `NftAvatarsModel.requestNftAvatars`.

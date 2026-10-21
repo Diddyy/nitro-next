@@ -18,7 +18,7 @@ import { useEffect } from 'react';
 
 import { loadHabbiconAssets, onRewardTracks, openRewardTrack } from '#base/commands';
 import { useConfigValue } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { useUserInfoActions } from '#base/context/user';
 import { ModalLayer, TooltipLayer, WindowLayer } from '#base/theme';
 import { parsePreviewAllowedOrigins, PREVIEW_ALLOWED_ORIGINS_KEY, PREVIEW_MESSAGE_TYPE } from '#base/utils';
 import { RewardTrackPremiumConfirmationView } from '#base/views/reward-track/RewardTrackPremiumConfirmationView';
@@ -39,8 +39,10 @@ const reply = (target: MessageEventSource | null, origin: string, message: Previ
     (target as Window).postMessage({ type: PREVIEW_MESSAGE_TYPE, ...message }, origin);
 };
 
+type SetFigure = ReturnType<typeof useUserInfoActions>['setFigure'];
+
 /** `rewardtrack`: the tracks as the packet brings them, then the one to open. */
-const showRewardTrack = (message: Record<string, unknown>): string | undefined => {
+const showRewardTrack = (message: Record<string, unknown>, setFigure: SetFigure): string | undefined => {
     const data = toRewardTracksMessage(message.data);
 
     if (!data) return 'data is not a RewardTracks message';
@@ -49,7 +51,7 @@ const showRewardTrack = (message: Record<string, unknown>): string | undefined =
 
     if (!trackId || !data.tracks.some(track => track.id === trackId)) return 'no such track';
 
-    if (typeof message.figure === 'string') userStore.getState().setFigure(message.figure, (String(message.gender).toUpperCase() === 'F') ? AvatarGenderType.Female : AvatarGenderType.Male);
+    if (typeof message.figure === 'string') setFigure(message.figure, (String(message.gender).toUpperCase() === 'F') ? AvatarGenderType.Female : AvatarGenderType.Male);
 
     onRewardTracks(data);
     openRewardTrack(trackId);
@@ -60,6 +62,7 @@ const showRewardTrack = (message: Record<string, unknown>): string | undefined =
 export const PreviewHostView = () => {
     const allowedOrigins = parsePreviewAllowedOrigins(useConfigValue<unknown>(PREVIEW_ALLOWED_ORIGINS_KEY));
     const allowed = allowedOrigins.join(',');
+    const { setFigure } = useUserInfoActions();
 
     // What the session loads as its handlers register (`registerHabbiconHandlers`): the habbicon prizes' previews.
     useEffect(() => {
@@ -77,7 +80,7 @@ export const PreviewHostView = () => {
             if ((typeof message !== 'object') || (message === null) || ((message as Record<string, unknown>).type !== PREVIEW_MESSAGE_TYPE)) return;
 
             const { window: name } = message as Record<string, unknown>;
-            const error = (name === 'rewardtrack') ? showRewardTrack(message as Record<string, unknown>) : `no window ${String(name)}`;
+            const error = (name === 'rewardtrack') ? showRewardTrack(message as Record<string, unknown>, setFigure) : `no window ${String(name)}`;
 
             if (error) reply(event.source, event.origin, { event: 'error', message: error });
             else reply(event.source, event.origin, { event: 'shown', window: String(name), width: window.innerWidth, height: window.innerHeight });
@@ -89,7 +92,7 @@ export const PreviewHostView = () => {
         if (window.parent !== window) for (const origin of origins) reply(window.parent, origin, { event: 'ready', windows: PREVIEW_WINDOWS });
 
         return () => window.removeEventListener('message', onMessage);
-    }, [ allowed ]);
+    }, [ allowed, setFigure ]);
 
     return (
         <WindowLayer>

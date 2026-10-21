@@ -22,7 +22,7 @@ import { useEffect, useRef, useState } from 'react';
 import { claimCursedDragon } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { CURSED_DRAGON_CHOICE_BLUE, CURSED_DRAGON_CHOICE_PURPLE, CURSED_DRAGON_CLAIM_STATE_AVAILABLE, CURSED_DRAGON_CLAIM_STATE_CLAIMED, useCursedDragonAdoptionStore } from '#base/context/cursed-dragon-adoption';
-import { systemStore, useTranslation } from '#base/context/system';
+import { useTranslation, useWindowActions } from '#base/context/system';
 import { TemplateWindow, useTemplateFrame } from '#base/theme';
 
 export interface CursedDragonAdoptionViewProps {
@@ -33,6 +33,7 @@ export const CursedDragonAdoptionView = ({ onClose }: CursedDragonAdoptionViewPr
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const claimState = useCursedDragonAdoptionStore(x => x.claimState);
+    const { showConfirm, closeDialog } = useWindowActions();
     // The open confirmation's dialog id (Flash's confirm window), or -1.
     const [ confirmation, setConfirmation ] = useState(-1);
     // The same id for the callbacks and effects, which outlive the render that set it.
@@ -44,7 +45,7 @@ export const CursedDragonAdoptionView = ({ onClose }: CursedDragonAdoptionViewPr
     const closeConfirmation = () => {
         if (confirmationRef.current === -1) return;
 
-        systemStore.getState().closeDialog(confirmationRef.current);
+        closeDialog(confirmationRef.current);
         confirmationRef.current = -1;
         setConfirmation(-1);
     };
@@ -56,7 +57,7 @@ export const CursedDragonAdoptionView = ({ onClose }: CursedDragonAdoptionViewPr
 
     // `hide` / `dispose`: the window going takes its confirmation with it.
     useEffect(() => () => {
-        if (confirmationRef.current !== -1) systemStore.getState().closeDialog(confirmationRef.current);
+        if (confirmationRef.current !== -1) closeDialog(confirmationRef.current);
     }, []);
 
     // `show`: `center()`ed when built, then `activate`d each time.
@@ -70,7 +71,7 @@ export const CursedDragonAdoptionView = ({ onClose }: CursedDragonAdoptionViewPr
             confirmationRef.current = -1;
             setConfirmation(-1);
         };
-        const id = systemStore.getState().showConfirm(
+        const id = showConfirm(
             t('cursed_dragon_adoption.confirm.title'),
             t('cursed_dragon_adoption.confirm.desc', '', { colour }),
             () => {

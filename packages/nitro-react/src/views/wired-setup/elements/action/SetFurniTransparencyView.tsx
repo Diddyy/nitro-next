@@ -4,7 +4,7 @@
  * (dropdown). Choosing "everyone" the first time alerts that only a Room Initialized trigger
  * keeps the effect after a room reload (`onAudienceChanged`).
  */
-import { systemStore } from '#base/context/system';
+import { useWindowActions } from '#base/context/system';
 import {
     SET_FURNI_TRANSPARENCY_AUDIENCE_EVERYONE,
     SET_FURNI_TRANSPARENCY_AUDIENCE_SELECTED_USERS,
@@ -31,12 +31,14 @@ const VISIBILITY_OPTIONS = [
 const EASING_OPTIONS = SET_FURNI_TRANSPARENCY_EASINGS.map(id => ({ id, label: `\${wiredfurni.params.set_furni_transparency.easing.${id}}` }));
 
 export const SetFurniTransparencyView: WiredElementView<SetFurniTransparencyActionForm> = ({ form, setForm, ctx }) => {
+    const { showAlert } = useWindowActions();
+
     const onAudienceChanged = (audience: number) => {
         const alert = (audience === SET_FURNI_TRANSPARENCY_AUDIENCE_EVERYONE) && !form.everyoneInfoShown;
 
         setForm({ audience, everyoneInfoShown: form.everyoneInfoShown || alert });
 
-        if (alert) systemStore.getState().showAlert(ctx.localize('wiredfurni.params.furni_visualization.audience.everyone_info.title'), ctx.localize('wiredfurni.params.furni_visualization.audience.everyone_info.body'));
+        if (alert) showAlert(ctx.localize('wiredfurni.params.furni_visualization.audience.everyone_info.title'), ctx.localize('wiredfurni.params.furni_visualization.audience.everyone_info.body'));
     };
 
     return (

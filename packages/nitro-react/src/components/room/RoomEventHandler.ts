@@ -3,8 +3,8 @@ import { RoomDimmerPresetsMessageType } from '@nitrodevco/nitro-packets';
 import { RoomObjectUpdateMessage } from '@nitrodevco/nitro-renderer';
 import { useEffect, useRef } from 'react';
 
-import { moderationStore } from '#base/context/moderation';
-import { roomStore, useRoom, useRoomIsPlayingGame, useRoomMouseActions, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
+import { useModerationActions } from '#base/context/moderation';
+import { useRoom, useRoomIsPlayingGame, useRoomMouseActions, useRoomUsersActions, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useConfigValue } from '#base/context/system';
 import { useOwnIsAnyRoomController, useOwnUserId } from '#base/context/user';
 import { useRoomAdHandler, useRoomBadgeAssetHandler, useRoomEventDispatcher, useRoomEventHandler, useRoomFurnitureActionHandler, useRoomObjectInteraction, useRoomObjectSelect, useRoomWidgetRequestHandler } from '#base/hooks';
@@ -35,6 +35,8 @@ export const RoomEventHandler = () => {
     const { handleRoomAdEvent } = useRoomAdHandler();
     const dimmerRequest = useRoomWidget<RoomDimmerPresetsMessageType>(RoomObjectWidgetRequestEvent.DIMMER);
     const { mergeRoomWidgetData } = useRoomWidgetActions();
+    const { getUserDataByIndex } = useRoomUsersActions();
+    const { userSelected } = useModerationActions();
     const ownUserId = useOwnUserId();
     /** `DimmerFurniWidget`'s dimmer in charge: the last one switched on. */
     const activeDimmerIdRef = useRef<number>(-1);
@@ -224,9 +226,9 @@ export const RoomEventHandler = () => {
 
                 // `RoomDesktop`'s REOE_SELECTED (1318 AS3 :1153-1159): a user clicked is the moderation tool's selected user.
                 if (event.category === RoomObjectCategoryEnum.Unit) {
-                    const userData = roomStore.getState().getUserByRoomObjectId(event.objectId);
+                    const userData = getUserDataByIndex(event.objectId);
 
-                    if (userData && (userData.userType === RoomObjectUserType.User)) moderationStore.getState().userSelected(userData.webID, userData.name);
+                    if (userData && (userData.userType === RoomObjectUserType.User)) userSelected(userData.webID, userData.name);
                 }
                 break;
             }

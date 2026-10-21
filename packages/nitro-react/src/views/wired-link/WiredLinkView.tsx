@@ -14,7 +14,7 @@ import type { WiredLinkNetworkType } from '@nitrodevco/nitro-packets';
 import { compareWiredLinkNetworks, createWiredLinkNetwork, getWiredLinkNetwork, hideWiredLink, requestWiredLinkConnections, saveWiredLink, setWiredLinkReceiveLocal } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useTranslation } from '#base/context/system';
-import { useWiredStore, WIRED_LINK_FRAME_ID, wiredStore } from '#base/context/wired';
+import { useWiredLinkActions, useWiredStore, WIRED_LINK_FRAME_ID } from '#base/context/wired';
 import { TemplateWindow } from '#base/theme';
 import { TableCell, TableColumn, TableView } from '#base/views/shared/table/TableView';
 import { uintToHexColor } from '#base/wired';
@@ -31,7 +31,8 @@ export const WiredLinkView = () => {
     const receiveLocal = useWiredStore(x => x.linkReceiveLocal);
     const status = useWiredStore(x => x.linkStatus);
     const nameInput = useWiredStore(x => x.linkNameInput);
-    const setNameInput = (linkNameInput: string) => wiredStore.getState().patchWiredLink({ linkNameInput });
+    const { patchWiredLink } = useWiredLinkActions();
+    const setNameInput = (linkNameInput: string) => patchWiredLink({ linkNameInput });
 
     const rows = [ ...networks ].sort(compareWiredLinkNetworks);
     const selected = getWiredLinkNetwork(selectedNetworkId);
@@ -51,7 +52,7 @@ export const WiredLinkView = () => {
             case 'name': return { text: network.name };
             case 'count': return { text: String(network.connectionCount) };
             case 'status':
-                if (!current && !network.linkedInCurrentRoom) return { type: 'link', text: t('wiredlink.status.connect', 'wiredlink.status.connect'), onLinkClick: () => saveWiredLink(send, network.id, wiredStore.getState().linkReceiveLocal) };
+                if (!current && !network.linkedInCurrentRoom) return { type: 'link', text: t('wiredlink.status.connect', 'wiredlink.status.connect'), onLinkClick: () => saveWiredLink(send, network.id, receiveLocal) };
 
                 return { text: t(current ? 'wiredlink.status.connected' : 'wiredlink.status.linked_in_room'), textColor: current ? STATUS_CONNECTED_COLOR : STATUS_LINKED_COLOR };
             default: return { type: 'link', text: t('wiredlink.manage', 'wiredlink.manage'), onLinkClick: () => requestWiredLinkConnections(send, network.id) };
@@ -60,7 +61,7 @@ export const WiredLinkView = () => {
 
     // `onReceiveLocalChanged`: the box saves when it differs from what the controller has.
     const toggleReceiveLocal = () => setWiredLinkReceiveLocal(send, !receiveLocal);
-    const clear = () => saveWiredLink(send, '0', wiredStore.getState().linkReceiveLocal);
+    const clear = () => saveWiredLink(send, '0', receiveLocal);
 
     return (
         <TemplateWindow

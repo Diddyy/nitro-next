@@ -2,6 +2,7 @@
 export * from './useWiredClipboardActions';
 export * from './useWiredElementMemoryActions';
 export * from './useWiredEnvironmentActions';
+export * from './useWiredLinkActions';
 export * from './useWiredMenuActions';
 export * from './useWiredMenuInspectionActions';
 export * from './useWiredMenuOverviewActions';
