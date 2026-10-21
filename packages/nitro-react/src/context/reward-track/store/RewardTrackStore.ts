@@ -74,8 +74,21 @@ export const refreshRewardTrack = (track: RewardTrack): RewardTrack => {
     return { ...track, prizes, complete: freeClaimed, premiumComplete: !track.hasPremiumConfig || (freeClaimed && premiumClaimed) };
 };
 
+/**
+ * `ProgMenuController.onRewardTracks`: the Progression menu's track items after Introduction. An
+ * item whose track is still sent keeps its place, one whose track is not goes, and each new track's
+ * is added last (`addChildAt(item, numChildren - 1)`, before the spacer), in the order sent.
+ */
+export const getProgMenuTrackIds = (shown: readonly string[], tracks: readonly RewardTrack[]) => {
+    const ids = tracks.map(track => track.id).filter(id => id !== 'introduction');
+
+    return [ ...shown.filter(id => ids.includes(id)), ...ids.filter(id => !shown.includes(id)) ];
+};
+
 type State = {
     tracks: RewardTrack[];
+    /** The Progression menu's track items, in their order (`getProgMenuTrackIds`). */
+    menuTrackIds: string[];
     /** `RewardTrackController.§_-V28§`: the track whose view is on show. */
     shownTrackId: string | undefined;
     /** The track whose `RewardTrackPremiumPurchaseConfirmationView` is open. */
@@ -99,12 +112,13 @@ type Actions = {
 
 export type RewardTrackStore = State & Actions;
 
-const INITIAL: State = { tracks: [], shownTrackId: undefined, premiumConfirmationTrackId: undefined, generation: 0, premiumPurchaseFailures: 0 };
+const INITIAL: State = { tracks: [], menuTrackIds: [], shownTrackId: undefined, premiumConfirmationTrackId: undefined, generation: 0, premiumPurchaseFailures: 0 };
 
 export const createRewardTrackStore = () => createStore<RewardTrackStore>()(set => ({
     ...INITIAL,
     setTracks: (tracks, keepShown) => set(x => ({
         tracks: tracks.map(refreshRewardTrack),
+        menuTrackIds: getProgMenuTrackIds(x.menuTrackIds, tracks),
         generation: keepShown ? x.generation : (x.generation + 1),
         shownTrackId: keepShown ? x.shownTrackId : undefined,
         premiumConfirmationTrackId: keepShown ? x.premiumConfirmationTrackId : undefined,
