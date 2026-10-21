@@ -6,6 +6,7 @@
  * earlier confirmation cannot remain actionable after logout. Web logout redirects belong
  * to the hosting site and are not handled here.
  */
+import { reportRendererError } from '#base/context/clienterrors';
 import { systemStore } from '#base/context/system';
 
 /**
@@ -133,12 +134,18 @@ export const rebootAfterGpuLoss = () => {
     try {
         const last = Number(window.sessionStorage.getItem(GPU_LOSS_REBOOT_KEY) ?? 0);
 
-        if ((Date.now() - last) < GPU_LOSS_REBOOT_INTERVAL_MS) return;
+        if ((Date.now() - last) < GPU_LOSS_REBOOT_INTERVAL_MS) {
+            reportRendererError('GPU device or context lost again within a minute: the client stays as it is');
+
+            return;
+        }
 
         window.sessionStorage.setItem(GPU_LOSS_REBOOT_KEY, String(Date.now()));
     } catch {
         // No session storage: start again without the guard.
     }
 
+    // The report goes with the next session: this one ends now.
+    reportRendererError('GPU device or context lost: the client started again', true);
     rebootClient();
 };

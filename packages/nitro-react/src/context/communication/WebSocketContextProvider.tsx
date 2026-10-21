@@ -13,6 +13,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 
 import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, showConnectionClosed, trackLoginStep } from '#base/commands';
 import { recordBugReportPacket } from '#base/context/bugreport';
+import { recordClientErrorBreadcrumb } from '#base/context/clienterrors';
 import { onboardingStore } from '#base/context/onboarding';
 import { useCommunicationIncoming, useCommunicationOutgoing } from '#base/hooks/communication';
 import { isPreviewHost } from '#base/utils';
@@ -335,6 +336,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
                 const buffer = encoded.getBuffer();
 
                 recordBugReportPacket('out', header, name, buffer.byteLength);
+                recordClientErrorBreadcrumb('sent', name);
 
                 ws.current.send(buffer);
             } catch (e) {

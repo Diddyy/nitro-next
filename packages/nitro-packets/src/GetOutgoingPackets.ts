@@ -511,6 +511,7 @@ import {
     TryPhoneNumberComposer,
     TurboBugReportCaptureComposer,
     TurboClientCapabilitiesComposer,
+    TurboClientErrorReportComposer,
     TurboCommandSuggestComposer,
     TurboStarterRoomPictureComposer,
     UnacceptTradingComposer,
@@ -1164,6 +1165,7 @@ export const GetOutgoingPackets = () => {
         // Turbo extensions (not Habbo's): see TurboClientCapabilitiesComposer.
         [OutgoingHeader.TurboBugReportCaptureComposer]: TurboBugReportCaptureComposer,
         [OutgoingHeader.TurboClientCapabilitiesComposer]: TurboClientCapabilitiesComposer,
+        [OutgoingHeader.TurboClientErrorReportComposer]: TurboClientErrorReportComposer,
         [OutgoingHeader.TurboCommandSuggestComposer]: TurboCommandSuggestComposer,
         [OutgoingHeader.TurboStarterRoomPictureComposer]: TurboStarterRoomPictureComposer,
     } as Record<number, OutgoingPacketConstructor>;
