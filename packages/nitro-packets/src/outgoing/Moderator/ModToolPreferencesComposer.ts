@@ -1,3 +1,4 @@
+// Body filled by hand from the AS3 (`ModToolPreferencesComposer`) - the generator has no preserve step, so re-apply after a regeneration.
 import { IOutgoingPacket } from '@nitrodevco/nitro-api';
 
 // `ModToolPreferencesComposer(x, y, width, height)`: the issue handler window.

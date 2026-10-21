@@ -1,3 +1,4 @@
+// Body filled by hand from the AS3 (`ModToolSanctionComposer`) - the generator has no preserve step, so re-apply after a regeneration.
 import { IOutgoingPacket } from '@nitrodevco/nitro-api';
 
 // `ModToolSanctionComposer(issueId, accountId, topicId)`: an issue's (`requestSanctionData`, account -1) or an

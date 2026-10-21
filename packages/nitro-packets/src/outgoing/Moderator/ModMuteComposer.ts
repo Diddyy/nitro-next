@@ -1,3 +1,4 @@
+// Body filled by hand from the AS3 (`ModMuteMessageComposer`) - the generator has no preserve step, so re-apply after a regeneration.
 import { IOutgoingPacket } from '@nitrodevco/nitro-api';
 
 // `ModMuteMessageComposer(userId, message, topicId, issueId)`.

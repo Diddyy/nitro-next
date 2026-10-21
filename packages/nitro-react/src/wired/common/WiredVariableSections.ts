@@ -41,9 +41,6 @@ export const isValueOrVariableOnSameHolder = (state: WiredValueOrVariableState, 
 export const isValueOrVariableSameHolderEligible = (state: WiredValueOrVariableState, primaryTarget: number): boolean =>
     SAME_HOLDER_TARGETS.includes(primaryTarget) && (state.picker.target === primaryTarget);
 
-/** `ValueOrVariableSection.variableSelectionFilter` - only variables with a value can be referenced. */
-export const valueOrVariableFilter = (variable: IWiredVariable): boolean => variable.hasValue;
-
 /**
  * `ValueOrVariableSection.init(variables, variableId, target, option, value)`. The source type
  * selector shows `target`; pass it through `resolveSourceTypeSelection` first when the box can
