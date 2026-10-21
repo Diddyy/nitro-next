@@ -139,7 +139,7 @@
         "fonts/volter-bold.air51.json",
         "fonts/volter.air51.json"
       ],
-      "sources": "e3215786712c9d90"
+      "sources": "16740fc81fa1fa85"
     },
     {
       "name": "font-faces",
@@ -168,7 +168,8 @@
         "fonts-extended/ubuntu-regular.air51.json",
         "fonts-extended/volter-bold.air51.json",
         "fonts-extended/volter.air51.json"
-      ]
+      ],
+      "sources": "760c88b3c8af64d2"
     },
     {
       "name": "sounds",
@@ -300,7 +301,7 @@
         "onboarding/rnd_button.png",
         "onboarding/room_image_border_new.png"
       ],
-      "sources": "48950ce857291f63"
+      "sources": "80cc0554b5cb1aac"
     }
   ]
 }

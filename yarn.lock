@@ -1656,6 +1656,7 @@ __metadata:
   dependencies:
     "@babel/core": "npm:^8.0.1"
     "@eslint/js": "npm:^10.0.1"
+    "@napi-rs/canvas": "npm:^1.0.11"
     "@nitrodevco/nitro-api": "workspace:*"
     "@nitrodevco/nitro-packets": "workspace:*"
     "@nitrodevco/nitro-renderer": "workspace:*"
@@ -1676,6 +1677,7 @@ __metadata:
     eslint-plugin-react-refresh: "npm:^0.5.3"
     eslint-plugin-simple-import-sort: "npm:^13.0.0"
     eslint-plugin-unused-imports: "npm:^4.4.1"
+    jszip: "npm:^3.10.1"
     pixi-filters: "npm:^6.1.5"
     pixi.js: "npm:^8.18.1"
     react: "npm:^19.2.6"
