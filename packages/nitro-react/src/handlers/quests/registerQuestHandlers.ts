@@ -16,7 +16,7 @@ import { CitizenshipVipOfferPromoEnabledMessage, CloseConnectionMessage, QuestCa
 import { onCitizenshipVipQuestsPromoEnabled, onQuestCancelledMessage, onQuestCompletedMessage, onQuestMessage, onQuestRoomExit, onQuests } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { questsStore } from '#base/context/quests';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -30,7 +30,7 @@ export const registerQuestHandlers = ({ subscribe, send }: WebSocketConnection) 
         on(QuestCompletedMessage, data => onQuestCompletedMessage(send, data.quest, data.showDialog)),
         on(CitizenshipVipOfferPromoEnabledMessage, () => onCitizenshipVipQuestsPromoEnabled()),
         on(RoomEntryInfoMessage, () => {
-            const showsUi = (Number(GetConfigValue<number>('new.identity') ?? 0) === 0) || (GetConfigValue<boolean>('new.identity.hide.ui') !== true);
+            const showsUi = (Number(GetConfigValue<number>('new.identity') ?? 0) === 0) || !configBoolean('new.identity.hide.ui');
 
             if (showsUi) send(new RoomCompetitionInitComposer({}));
         }),

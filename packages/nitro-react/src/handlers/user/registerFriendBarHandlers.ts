@@ -8,10 +8,10 @@
  * with no token (`addNotificationToken` breaks on it) and no move to the front, so it leaves nothing
  * to see; those are not carried. Nor is the `EventLog` tracking it sends.
  */
-import { GetConfigValue } from '@nitrodevco/nitro-api';
 import { FriendNotificationMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
+import { configBoolean } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -21,7 +21,7 @@ export const registerFriendBarHandlers = ({ subscribe }: WebSocketConnection) =>
 
     return subscribeAll(subscribe, [
         on(FriendNotificationMessage, (data) => {
-            if (GetConfigValue<boolean>('friendbar.notifications.enabled') !== true) return;
+            if (!configBoolean('friendbar.notifications.enabled')) return;
 
             addFriendBarNotification(data.playerId, Number(data.typeCode), data.message);
         }),

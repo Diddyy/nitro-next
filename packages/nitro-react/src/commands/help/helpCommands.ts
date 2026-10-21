@@ -15,13 +15,12 @@
  *   `CallForHelpFromIMComposer` with the conversation's ticked messages; a photo report sends
  *   `CallForHelpFromPhotoComposer`.
  */
-import { GetConfigValue } from '@nitrodevco/nitro-api';
 import { AppealCfhComposer, CallForHelpComposer, CallForHelpFromForumMessageComposer, CallForHelpFromForumThreadComposer, CallForHelpFromIMComposer, CallForHelpFromPhotoComposer, ChatReviewSessionCreateComposer, GetCfhMyReportStatusComposer, GetMySanctionStatusComposer, ICallForHelpTopic, IgnoreUserComposer, RemoveFriendComposer } from '@nitrodevco/nitro-packets';
 
 import { Send } from '#base/context/communication';
 import { HelpReportEntry, helpStore } from '#base/context/help';
 import { getRoom } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
 /** `HabboHelp.TOPICS_WITHOUT_IGNORE_AND_UNFRIEND`. */
@@ -230,7 +229,7 @@ export const submitCallForHelp = (send: Send, message: string, topic: ICallForHe
         return;
     }
 
-    if (toGuardians && (topic.name === BULLYING_TOPIC_NAME) && (GetConfigValue<boolean>('guides.enabled') === true) && (GetConfigValue<boolean>('guardians.enabled') === true)) {
+    if (toGuardians && (topic.name === BULLYING_TOPIC_NAME) && configBoolean('guides.enabled') && configBoolean('guardians.enabled')) {
         send(new ChatReviewSessionCreateComposer({ reportedUserId, roomId: reportedRoomId }));
 
         return;

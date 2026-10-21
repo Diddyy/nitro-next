@@ -1,9 +1,8 @@
-import { GetConfigValue } from '@nitrodevco/nitro-api';
 import { AvatarEffectActivatedComposer, AvatarEffectActivatedMessage, AvatarEffectAddedMessage, AvatarEffectExpiredMessage, AvatarEffectSelectedComposer, AvatarEffectSelectedMessage, AvatarEffectsMessage, RoomEntryInfoMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { wearAgain } from '#base/context/user/store/avatarEffectsModel';
 
@@ -66,7 +65,7 @@ export const registerAvatarEffectsHandlers = ({ subscribe, send }: WebSocketConn
         // the player last chose back on - activating it first if it is not running - because the
         // server keeps nothing of what an avatar wore in the room it left.
         on(RoomEntryInfoMessage, () => {
-            if (GetConfigValue<boolean>('effects.reactivate.on.room.entry') !== true) return;
+            if (!configBoolean('effects.reactivate.on.room.entry')) return;
 
             const { avatarEffects, lastWornEffect } = userStore.getState();
             const again = wearAgain(avatarEffects, lastWornEffect);

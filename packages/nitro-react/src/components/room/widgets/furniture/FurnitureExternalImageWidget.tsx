@@ -8,7 +8,7 @@ import { reportPhoto } from '#base/commands/help/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { getInventoryWallItemById, useInventoryStore } from '#base/context/inventory';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
-import { useConfigValue } from '#base/context/system';
+import { useConfigBoolean, useConfigValue } from '#base/context/system';
 import type { PhotoData } from '#base/utils';
 import { parsePhotoData, readPhotoExtraDataId, resolvePhotoUrl } from '#base/utils';
 import { FurnitureExternalImageView } from '#base/views/room-widgets/furniture/FurnitureExternalImageView';
@@ -89,8 +89,7 @@ export const FurnitureExternalImageWidget = () => {
     const furniGroups = useInventoryStore(x => x.furniGroups);
     const imageUrlBase = useConfigValue<string>('stories.image_url_base') ?? '';
     // `ExternalImageWidgetHandler.isSelfieReportingEnabled`.
-    const selfieReportingConfig = useConfigValue<string | boolean>('stories.report.selfie.enabled');
-    const selfieReportingEnabled = (selfieReportingConfig === 'true') || (selfieReportingConfig === true);
+    const selfieReportingEnabled = useConfigBoolean('stories.report.selfie.enabled');
     // `showWithRoomObject`'s object: the one asked for, until the browse buttons show another.
     const [ browsed, setBrowsed ] = useState<{ request: unknown; objectId: number } | undefined>(undefined);
 

@@ -1,8 +1,8 @@
-import { GetConfigValue, IOutgoingPacket, NitroLogger } from '@nitrodevco/nitro-api';
+import { IOutgoingPacket, NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
 import { notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { loadAssetBundle } from '#base/utils';
 
 import { FurniSamplePlaybackManager } from './furni/FurniSamplePlaybackManager';
@@ -94,7 +94,7 @@ export class HabboSoundManager {
             onSampleLoadError: () => this.onSampleLoadError(),
             samplesIdsInUse: () => this.musicController.samplesIdsInUse(),
             samplesUnloaded: sampleIds => this.musicController.samplesUnloaded(sampleIds),
-        }, GetConfigValue<boolean>('trax.player.sample.memory.purge.enabled') === true);
+        }, configBoolean('trax.player.sample.memory.purge.enabled'));
     }
 
     public get genericVolume(): number {
