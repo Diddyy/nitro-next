@@ -24,14 +24,20 @@ export const GENERIC_CHAT_STYLE = 1;
 let lastAddedChatMs = 0;
 let chatFakeMsIncrementor = 0;
 
-/** `onRoomChat` then `insertChat`: nothing without a room, or for a negative room index. */
-export const insertRoomChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[] = [], extraParam: number = 0, hideUsername: boolean = false) => {
+/**
+ * `onRoomChat` then `insertChat`: nothing without a room, or for a negative room index unless the
+ * chat names its tile. Since WIN63-202610201032 a chat may carry a tile (`ChatMessageParser.location`,
+ * the WIRED Link Speaker's bubble: no speaker, index -1): the bubble stands there
+ * (`ChatEventHandler.onRoomChat`), and a chat with no speaker shows no name (`ChatItem`'s
+ * `hideUsername || userId < 0`).
+ */
+export const insertRoomChat = (objectId: number, text: string, chatType: RoomChatTypeEnum, styleId: number, links: IChatLink[] = [], extraParam: number = 0, hideUsername: boolean = false, customLocation: { x: number; y: number } | null = null) => {
     const room = getRoom();
 
-    if (!room || (objectId < 0)) return;
+    if (!room || ((objectId < 0) && !customLocation)) return;
 
-    const roomObject = room.getRoomObject(objectId, RoomObjectCategoryEnum.Unit);
-    const location = roomObject?.getLocation();
+    const roomObject = (objectId < 0) ? null : room.getRoomObject(objectId, RoomObjectCategoryEnum.Unit);
+    const location = customLocation ? new Vector3d(customLocation.x, customLocation.y) : roomObject?.getLocation();
     const now = Math.floor(performance.now());
 
     // Messages that share a millisecond still need a strict order for the collision rules.
@@ -52,7 +58,8 @@ export const insertRoomChat = (objectId: number, text: string, chatType: RoomCha
         userLocation: location ? new Vector3d(location.x, location.y, location.z) : undefined,
         timestamp: now + chatFakeMsIncrementor,
         extraParam,
-        hideUsername,
+        hideUsername: hideUsername || (objectId < 0),
+        hasCustomLocation: !!customLocation,
     };
 
     // `ChatBubbleFactory.getHistoryLineEntry` draws the line from who spoke it then: a user's
