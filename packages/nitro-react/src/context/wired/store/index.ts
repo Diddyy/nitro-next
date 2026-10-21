@@ -2,6 +2,7 @@
 export * from './WiredClipboardSlice';
 export * from './WiredElementMemorySlice';
 export * from './WiredEnvironmentSlice';
+export * from './WiredLinkSlice';
 export * from './WiredMenuInspectionSlice';
 export * from './WiredMenuOverviewSlice';
 export * from './WiredMenuSlice';

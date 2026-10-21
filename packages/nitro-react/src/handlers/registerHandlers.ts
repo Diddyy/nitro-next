@@ -33,7 +33,7 @@ import { registerSpecialItemsHandlers } from './special-items';
 import { registerBugReportHandlers, registerFurnitureDataHandlers, registerHotelViewHandlers, registerLatencyHandlers, registerTrackingHandlers } from './system';
 import { registerAvatarEditorHandlers, registerAvatarEffectsHandlers, registerChatCommandHandlers, registerFriendBarHandlers, registerMessengerHandlers, registerOnboardingHandlers, registerUserInfoHandlers, registerUserSocialHandlers, registerWalletHandlers, registerWordFilterHandlers } from './user';
 import { registerProfileHandlers } from './user-profile';
-import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariableLeaderboardHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
+import { bridgeWiredRoomLifecycle, registerWiredEnvironmentHandlers, registerWiredLinkHandlers, registerWiredMenuHandlers, registerWiredPermissionsHandlers, registerWiredSetupHandlers, registerWiredVariableLeaderboardHandlers, registerWiredVariablesHandlers, registerWiredWebApiKeyHandlers } from './wired';
 import { bridgeWiredTradingLifecycle, registerSelfDonationHandlers, registerWiredChestHandlers, registerWiredContractHandlers, registerWiredTradeHandlers, registerWiredTransactionHandlers, registerWiredTransactionNotificationHandlers } from './wired-trading';
 
 /**
@@ -157,6 +157,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         bridgeWiredRoomLifecycle(),
         // Wired trading: chests (after the furni handlers, whose data they read), contracts, trades, transactions, rewards, self donation.
         registerWiredChestHandlers(socket),
+        // The WIRED Link window (after the furni handlers too: it reads the Link's owner).
+        registerWiredLinkHandlers(socket),
         registerWiredContractHandlers(socket),
         registerWiredTradeHandlers(socket),
         registerWiredTransactionHandlers(socket),

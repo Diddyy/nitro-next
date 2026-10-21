@@ -10,7 +10,7 @@
  * `WiredMenuController.roomSessionEventHandler` on `RSE_STARTED` (`session.playTestMode =
  * _playTestMode`); `setRoom` has just reset the session to its defaults.
  */
-import { closeWiredSetup } from '#base/commands';
+import { closeWiredSetup, invalidateWiredLink } from '#base/commands';
 import { roomStore } from '#base/context/room';
 import { wiredStore } from '#base/context/wired';
 
@@ -23,6 +23,8 @@ export const bridgeWiredRoomLifecycle = () => roomStore.subscribe((state, previo
 
     // The old room's furni went with it, so the highlights `close` takes off find nothing - harmless.
     closeWiredSetup();
+    // `WiredLinkController.onRoomDisposed` / `onRoomStarted`: the Link's window and its dialogs go.
+    invalidateWiredLink();
 
     wiredStore.getState().resetRoom();
 });
