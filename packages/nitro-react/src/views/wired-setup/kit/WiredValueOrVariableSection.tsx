@@ -19,7 +19,9 @@
  * variable in the popup closes it (`onVariableChanged`); a press outside closes it too.
  *
  * Controlled: `state` is the form's `WiredValueOrVariableState`; the typed text is the section's
- * own, rewritten whenever the state changes other than by typing. `title` null is `param6` null
+ * own, rewritten whenever the state changes other than by typing. With `variableOnlyOrEmpty` (the
+ * link dataframe rows' "Variable text") the field takes a variable or nothing: an empty field
+ * selects no variable and is valid, a number is not. `title` null is `param6` null
  * with a width (`param10`): no section, the input alone, for the owner to place (Variable Age's
  * time row). `onSourceTypeSelect` is the selector's `sourceType` setter (`setMergedSourceType`).
  */
@@ -29,10 +31,11 @@ import { useContext, useEffect, useRef, useState, useSyncExternalStore } from 'r
 
 import { useTranslation } from '#base/context/system';
 import { Box, FloatingPopup, getGlobalRect, LayoutImage, Region, ThemeImage, useLatest } from '#base/theme';
-import { determineInitialVariablePickerTab, filterPickerVariables, getPickerSelectedVariable, getTypeNameForSource, getVariablePickerHistory, isValueOrVariableOnSameHolder, isValueOrVariableSameHolderEligible, readValueOrVariableText, registerWiredFormValidationSource, selectPickerVariable, subscribeVariablePickerHistory, VALUE_OR_VARIABLE_OPTION_VARIABLE, valueOrVariableEligibleVariables, valueOrVariableSelectable, valueOrVariableValidationError, VARIABLE_PICKER_TAB_SEARCH, WiredValueOrVariableState } from '#base/wired';
+import { determineInitialVariablePickerTab, filterPickerVariables, getPickerSelectedVariable, getTypeNameForSource, getVariablePickerHistory, isValueOrVariableOnSameHolder, isValueOrVariableSameHolderEligible, readValueOrVariableText, registerWiredFormValidationSource, selectPickerVariable, subscribeVariablePickerHistory, VALUE_OR_VARIABLE_ERROR_VARIABLE_OR_EMPTY, VALUE_OR_VARIABLE_OPTION_VARIABLE, valueOrVariableEligibleVariables, valueOrVariableSelectable, valueOrVariableValidationError, VARIABLE_PICKER_TAB_SEARCH, WiredValueOrVariableState } from '#base/wired';
 
 import { useWiredDisabled } from './useWiredDisabled';
 import { WiredCheckboxGroup } from './WiredCheckboxGroup';
+import { WiredFlow } from './WiredFlow';
 import { WiredInputField } from './WiredInputField';
 import { WiredInputSourceClaimReactContext } from './wiredKitContexts';
 import { WiredPaddedContainer } from './WiredPaddedContainer';
@@ -71,6 +74,8 @@ export interface WiredValueOrVariableSectionProps {
     variableFilter?: (variable: IWiredVariable) => boolean;
     /** `param10` - the input's own width; absent or negative, it fills. */
     inputWidth?: number;
+    /** `variableOnlyOrEmpty` - a variable or an empty field, never a number. */
+    variableOnlyOrEmpty?: boolean;
     disabled?: boolean;
 }
 
@@ -84,7 +89,7 @@ interface OpenPopup {
 const textOf = (state: WiredValueOrVariableState, selected: IWiredVariable | null): string =>
     (state.option === VALUE_OR_VARIABLE_OPTION_VARIABLE) ? (selected?.variableName ?? '') : String(state.value);
 
-export const WiredValueOrVariableSection = ({ title, mergedId, sourceTypeOptions, min, max, state, onChange, onSourceTypeSelect, variables, roomId, sameHolderTarget, variableFilter, inputWidth, disabled: ownDisabled }: WiredValueOrVariableSectionProps) => {
+export const WiredValueOrVariableSection = ({ title, mergedId, sourceTypeOptions, min, max, state, onChange, onSourceTypeSelect, variables, roomId, sameHolderTarget, variableFilter, inputWidth, variableOnlyOrEmpty = false, disabled: ownDisabled }: WiredValueOrVariableSectionProps) => {
     const t = useTranslation();
     const style = useWiredStyle();
     const disabled = useWiredDisabled(ownDisabled);
@@ -104,7 +109,9 @@ export const WiredValueOrVariableSection = ({ title, mergedId, sourceTypeOptions
     const targets = sourceTypeOptions.includes(state.picker.target) ? sourceTypeOptions : [ ...sourceTypeOptions, state.picker.target ];
     const onSameHolder = (sameHolderTarget !== undefined) && isValueOrVariableOnSameHolder(state, sameHolderTarget);
     const sameHolderEligible = (sameHolderTarget !== undefined) && isValueOrVariableSameHolderEligible(state, sameHolderTarget);
-    const error = disabled ? null : valueOrVariableValidationError(state, check.valid, check.ambiguous, variables, variableFilter);
+    // `currentValidationError`: a variable-or-empty field is fine empty or with a variable it accepts.
+    const variableOrEmptyError = () => (((text.length === 0) || (check.valid && (state.option === VALUE_OR_VARIABLE_OPTION_VARIABLE) && !!selected && valueOrVariableSelectable(selected, variableFilter))) ? null : VALUE_OR_VARIABLE_ERROR_VARIABLE_OR_EMPTY);
+    const error = disabled ? null : (variableOnlyOrEmpty ? variableOrEmptyError() : valueOrVariableValidationError(state, check.valid, check.ambiguous, variables, variableFilter));
     const errorText = error ? t(error.key, error.fallback) : null;
 
     const errorRef = useLatest(errorText);
@@ -142,7 +149,8 @@ export const WiredValueOrVariableSection = ({ title, mergedId, sourceTypeOptions
             ...state,
             option: read.option,
             value: read.value ?? state.value,
-            picker: read.variable ? selectPickerVariable(state.picker, read.variable) : state.picker,
+            // `onInputTextChanged`: an emptied variable-or-empty field selects no variable.
+            picker: read.variable ? selectPickerVariable(state.picker, read.variable) : ((variableOnlyOrEmpty && (next.length === 0)) ? selectPickerVariable(state.picker, null) : state.picker),
         };
 
         if ((nextState.option === state.option) && (nextState.value === state.value) && (nextState.picker === state.picker)) return;
@@ -279,15 +287,18 @@ export const WiredValueOrVariableSection = ({ title, mergedId, sourceTypeOptions
             ref={anchorRef}
             layout={{ flexDirection: 'column', alignItems: 'stretch', flexGrow: ((inputWidth ?? -1) < 0) ? 1 : 0, flexShrink: 1, minWidth: 0 }}
         >
-            <WiredInputField
-                value={text}
-                onChange={type}
-                fieldWidth={inputWidth}
-                warning={errorText}
-                disabled={disabled}
-                trailing={icons}
-                trailingWidth={showsTarget ? ICONS_WIDTH : ICON_WIDTH}
-            />
+            {/* The input sits in this column, whatever the section's own container is: a row would give it a zero flex basis along the column. */}
+            <WiredFlow direction="column">
+                <WiredInputField
+                    value={text}
+                    onChange={type}
+                    fieldWidth={inputWidth}
+                    warning={errorText}
+                    disabled={disabled}
+                    trailing={icons}
+                    trailingWidth={showsTarget ? ICONS_WIDTH : ICON_WIDTH}
+                />
+            </WiredFlow>
             {popup && (
                 <FloatingPopup
                     x={popup.x}

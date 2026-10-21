@@ -22,6 +22,7 @@ import { ExecutionLimitView } from '#base/views/wired-setup/elements/addon/Execu
 import { FurniNamePlaceholderView } from '#base/views/wired-setup/elements/addon/FurniNamePlaceholderView';
 import { GlobalPlaceholderAddonView } from '#base/views/wired-setup/elements/addon/GlobalPlaceholderAddonView';
 import { JumpStrengthView } from '#base/views/wired-setup/elements/addon/JumpStrengthView';
+import { LinkSpeakerView } from '#base/views/wired-setup/elements/addon/LinkSpeakerView';
 import { MovePhysicsView } from '#base/views/wired-setup/elements/addon/MovePhysicsView';
 import { ProjectileView } from '#base/views/wired-setup/elements/addon/ProjectileView';
 import { RandomEffectView } from '#base/views/wired-setup/elements/addon/RandomEffectView';
@@ -54,6 +55,7 @@ import { furniVariableFilterAddon } from './FurniVariableFilter';
 import { globalPlaceholderAddon } from './GlobalPlaceholderAddon';
 import { jumpStrengthAddon } from './JumpStrength';
 import { variableLeaderboardAddon } from './leaderboard/VariableLeaderboardAddon';
+import { linkSpeakerAddon } from './LinkSpeaker';
 import { movePhysicsAddon } from './MovePhysics';
 import { noMoveAnimationAddon } from './NoMoveAnimation';
 import { projectileAddon } from './Projectile';
@@ -113,4 +115,5 @@ export const addonElements: WiredElementEntry[] = [
     defineWiredElement(globalPlaceholderAddon, GlobalPlaceholderAddonView),
     defineWiredElement(achievementEnablerAddon, AchievementEnablerView),
     defineWiredElement(variablesWebApiAddon, VariablesWebApiAddonView),
+    defineWiredElement(linkSpeakerAddon, LinkSpeakerView),
 ];

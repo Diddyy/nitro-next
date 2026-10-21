@@ -45,6 +45,8 @@ export * from './RemoveFurni';
 export * from './RemoveVariable';
 export * from './ResetRewardTrack';
 export * from './ResetTimers';
+export * from './SendLinkDataframe';
+export * from './SendLinkMessage';
 export * from './SendSignal';
 export * from './SetFurniAltitude';
 export * from './SetFurniHighlight';
