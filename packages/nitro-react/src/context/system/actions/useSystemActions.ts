@@ -20,6 +20,7 @@ const actions = {
     setHotelViewPromoArticles: state.setHotelViewPromoArticles,
     setHotelViewPromoArticleIndex: state.setHotelViewPromoArticleIndex,
     setToolbarWidths: state.setToolbarWidths,
+    setToolbarMenu: state.setToolbarMenu,
     setHomeRoomId: state.setHomeRoomId,
     startRoomSession: state.startRoomSession,
     endRoomSession: state.endRoomSession,

@@ -30,8 +30,12 @@ export interface ClientModuleApi {
     /** The client's own React, theme and stores, shared rather than bundled a second time. */
     readonly libs: ClientModuleLibraries;
     windows: {
-        /** A window by id: the component is drawn in the client's window layer while it is open. */
-        register: (id: string, component: ComponentType<ClientModuleWindowProps>) => ClientModuleDispose;
+        /**
+         * A window by id: the component is drawn in the client's window layer while it is open. With
+         * `onTop` it stays above every other window (a HUD, a timer), under the client's menus,
+         * hints and modal dialogs.
+         */
+        register: (id: string, component: ComponentType<ClientModuleWindowProps>, options?: { onTop?: boolean }) => ClientModuleDispose;
         open: (id: string, params?: Record<string, unknown>) => void;
         close: (id: string) => void;
         toggle: (id: string, params?: Record<string, unknown>) => void;
@@ -43,6 +47,8 @@ export interface ClientModuleApi {
     meMenu: {
         /** An entry in the me menu, before its spacer: a clone of the profile entry with its own caption. */
         add: (item: { id: string; caption: string; onClick: () => void }) => ClientModuleDispose;
+        /** Opens or closes the me menu, as its toolbar icon and Habbo's `toolbar/memenu` link do. */
+        toggle: () => void;
     };
     links: {
         /** Every in-client link `<prefix>/...` that the client itself has no route for. */
@@ -73,12 +79,19 @@ export interface ClientModuleApi {
     room: {
         /** Draws over every avatar in the room, placed above its head every frame. */
         avatarOverlay: (render: (avatar: ClientModuleAvatar) => ReactNode) => ClientModuleDispose;
+        /** Leaves the room for the hotel view, as the toolbar's hotel view icon does. Nothing outside a room. */
+        leave: () => void;
     };
     notifications: {
         /** A bubble layout: a template of the bundles (`<library>/<asset>_xml`) and its height. */
         registerLayout: (name: string, layout: { template: string; height: number }) => ClientModuleDispose;
-        /** A bubble in the client's stack, drawn with a registered layout. */
-        add: (layout: string, text: string, options?: { image?: string; link?: string }) => void;
+        /**
+         * A bubble in the client's stack, drawn with a registered layout. With `stay` it never times
+         * out and a click does not dismiss it; `timeDisplay` is how long (ms) any other stays up.
+         * An `id` is added only while no bubble of the module's with that id is queued or up.
+         * Returns the function that takes the bubble down (the module's stop takes a `stay` one down).
+         */
+        add: (layout: string, text: string, options?: { image?: string; link?: string; stay?: boolean; timeDisplay?: number; id?: string }) => ClientModuleDispose;
         /**
          * The picture of every alert and notification popup, open or yet to open: `resolve` is shown each
          * with the picture it has (an asset name or a URL, `undefined` for none) and gives another, or

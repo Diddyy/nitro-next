@@ -387,9 +387,15 @@ export const openClientLink = (send: Send, link: string) => {
 
             return;
         }
-        // `BottomBarLeft.linkReceived`: `toolbar/highlight/<catalog|navigator|memenu>` points the hint arrow at that
-        // icon. Its `toolbar/memenu` (toggling the me menu, which the toolbar view holds) is not ported.
+        // `BottomBarLeft.linkReceived`: `toolbar/memenu` toggles the me menu (`memenu.toggleVisibility()`);
+        // `toolbar/highlight/<catalog|navigator|memenu>` points the hint arrow at that icon.
         case 'toolbar': {
+            if (parts[1] === 'memenu') {
+                systemStore.getState().toggleToolbarMenu('me');
+
+                return;
+            }
+
             if ((parts[1] !== 'highlight') || (parts.length <= 2)) break;
 
             const icon = TOOLBAR_HIGHLIGHT_ICONS[parts[2]];

@@ -20,6 +20,8 @@ export interface ClientModuleWindow {
     /** `<module key>/<id>`: unique across modules. */
     key: string;
     component: ComponentType<ClientModuleWindowProps>;
+    /** Drawn above every window that does not ask for it, whichever was raised last. */
+    onTop?: boolean;
 }
 
 export interface ClientModuleToolbarItem {

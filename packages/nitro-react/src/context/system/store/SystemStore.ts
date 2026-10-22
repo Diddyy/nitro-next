@@ -33,6 +33,11 @@ type State = {
      */
     toolbarAreaWidth: number;
     friendBarWidth: number;
+    /**
+     * The toolbar's open sub menu (`ToolbarExtendedMenu`): `me` (`MeMenuNewController`) or
+     * `progression`, `undefined` for none. Here so `toolbar/memenu` can toggle it from outside the bar.
+     */
+    toolbarMenu: ToolbarMenu | undefined;
     /** From `NavigatorSettingsMessage`; 0 until it arrives or when no home room is set. */
     homeRoomId: number;
     /**
@@ -44,6 +49,8 @@ type State = {
      */
     roomSessionRequest: RoomSessionRequest | undefined;
 };
+
+export type ToolbarMenu = 'me' | 'progression';
 
 export interface RoomSessionRequest {
     type: 'start' | 'end';
@@ -71,6 +78,9 @@ type Actions = {
     releaseWindow: (id: string) => void;
     setLandingViewVisible: (landingViewVisible: boolean) => void;
     setToolbarWidths: (toolbarAreaWidth: number, friendBarWidth: number) => void;
+    setToolbarMenu: (toolbarMenu: ToolbarMenu | undefined) => void;
+    /** `AbstractSubMenuController.toggleVisibility`: opens the menu, or closes it when it is the one open. */
+    toggleToolbarMenu: (toolbarMenu: ToolbarMenu) => void;
     setHomeRoomId: (homeRoomId: number) => void;
     startRoomSession: (roomId: number) => void;
     endRoomSession: () => void;
@@ -103,6 +113,7 @@ const initialState: State = {
     landingViewVisible: true,
     toolbarAreaWidth: UNMEASURED_TOOLBAR_WIDTH,
     friendBarWidth: UNMEASURED_TOOLBAR_WIDTH,
+    toolbarMenu: undefined,
     homeRoomId: 0,
     roomSessionRequest: undefined,
 };
@@ -323,6 +334,8 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
     }),
     setLandingViewVisible: (landingViewVisible: boolean) => set({ landingViewVisible }),
     setToolbarWidths: (toolbarAreaWidth: number, friendBarWidth: number) => set(x => (((x.toolbarAreaWidth === toolbarAreaWidth) && (x.friendBarWidth === friendBarWidth)) ? x : { toolbarAreaWidth, friendBarWidth })),
+    setToolbarMenu: toolbarMenu => set(x => ((x.toolbarMenu === toolbarMenu) ? x : { toolbarMenu })),
+    toggleToolbarMenu: toolbarMenu => set(x => ({ toolbarMenu: (x.toolbarMenu === toolbarMenu) ? undefined : toolbarMenu })),
     setHomeRoomId: (homeRoomId: number) => set({ homeRoomId }),
     startRoomSession: (roomId: number) => set(x => ({ roomSessionRequest: { type: 'start', roomId, sequence: (x.roomSessionRequest?.sequence ?? 0) + 1 } })),
     endRoomSession: () => set(x => ({ roomSessionRequest: { type: 'end', roomId: 0, sequence: (x.roomSessionRequest?.sequence ?? 0) + 1 } })),

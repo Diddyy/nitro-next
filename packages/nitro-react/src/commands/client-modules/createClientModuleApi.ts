@@ -8,15 +8,18 @@ import { IMessageDataWrapper, NitroLogger } from '@nitrodevco/nitro-api';
 import { clientModulesStore, isClientModuleHeader } from '#base/context/client-modules';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
+import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { GetSoundManager } from '#base/sound';
 
+import { quitRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
 import { ClientModuleApi, ClientModuleDispose, ClientModulePacketValue } from './ClientModuleApi';
 import { getClientModuleLibraries } from './clientModuleLibraries';
 
 let nextOverlayKey = 1;
 let nextIllustrationKey = 1;
+let nextNotificationId = 1;
 
 export const createClientModuleApi = (connection: WebSocketConnection, moduleKey: string, baseUrl: string): { api: ClientModuleApi; dispose: () => void } => {
     const store = clientModulesStore.getState();
@@ -55,10 +58,10 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
         baseUrl,
         libs: getClientModuleLibraries(),
         windows: {
-            register: (id, component) => {
+            register: (id, component, options = {}) => {
                 const key = windowKey(id);
 
-                store.addWindow({ moduleKey, key, component });
+                store.addWindow({ moduleKey, key, component, onTop: options.onTop === true });
 
                 return track(() => clientModulesStore.getState().removeWindow(key));
             },
@@ -89,6 +92,7 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
                 return track(() => clientModulesStore.getState().removeMeMenuItem(key));
             },
+            toggle: () => systemStore.getState().toggleToolbarMenu('me'),
         },
         links: {
             handle: (prefix, handle) => {
@@ -191,6 +195,13 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
                 return track(() => clientModulesStore.getState().removeAvatarOverlay(key));
             },
+            // `HabboLandingView.onToolbarClick` HTIE_ICON_RECEPTION, as the toolbar's icon does it.
+            leave: () => {
+                if (!getRoom()) return;
+
+                quitRoom(connection.send);
+                systemStore.getState().endRoomSession();
+            },
         },
         notifications: {
             registerLayout: (name, { template, height }) => {
@@ -206,10 +217,22 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
                 if (!registered) {
                     NitroLogger.warn('ClientModules', `${moduleKey}: notification layout ${layout} is not registered.`);
 
-                    return;
+                    return () => undefined;
                 }
 
-                notificationStore.getState().addNotification(text, 'info', options.image ?? '', options.link, { template: { id: registered.template, height: registered.height } });
+                // Namespaced like a window's key, so one module's id never takes down another's bubble.
+                const id = `${moduleKey}/${options.id ?? `#${nextNotificationId++}`}`;
+                const remove = () => notificationStore.getState().removeNotificationById(id);
+
+                notificationStore.getState().addNotification(text, 'info', options.image ?? '', options.link, {
+                    id,
+                    stay: options.stay === true,
+                    timeDisplay: options.timeDisplay,
+                    template: { id: registered.template, height: registered.height },
+                });
+
+                // One that stays would outlive the module; any other times out on its own.
+                return options.stay ? track(remove) : remove;
             },
             setIllustration: (resolve) => {
                 const key = nextIllustrationKey++;

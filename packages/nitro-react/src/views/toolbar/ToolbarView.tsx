@@ -199,7 +199,7 @@ interface ToolbarLayout {
 
 export const ToolbarView = () => {
     const template = useTemplate(BAR_TEMPLATE);
-    const [ openMenu, setOpenMenu ] = useState<'me' | 'progression' | undefined>(undefined);
+    const openMenu = useSystemStore(x => x.toolbarMenu);
     const [ collapsed, setCollapsed ] = useState(false);
     // 0 expanded, 1 collapsed, and in between while `onAnimationTimer` runs.
     const collapseProgress = useTween(collapsed ? 1 : 0, COLLAPSE_ANIMATION_DURATION_MS, easeOutCubic);
@@ -208,7 +208,7 @@ export const ToolbarView = () => {
     const ownGender = useOwnUserGender();
     const ownUserId = useOwnUserId();
     const meMenuIcon = useMeMenuIcon(ownFigure, ownGender);
-    const { endRoomSession, setToolbarWidths } = useSystemActions();
+    const { endRoomSession, setToolbarWidths, setToolbarMenu } = useSystemActions();
     const { toggleWindow } = useWindowActions();
     const { width: viewportWidth } = useViewportSize();
     const [ rightGroup, setRightGroup ] = useState<PixiContainer | null>(null);
@@ -353,7 +353,7 @@ export const ToolbarView = () => {
 
     // `AbstractSubMenuController.onToolbarClick`: the menu's own icon toggles it, any other icon hides it.
     const iconClick = (action?: () => void, menu?: 'me' | 'progression') => () => {
-        setOpenMenu(current => ((menu && (current !== menu)) ? menu : undefined));
+        setToolbarMenu((menu && (openMenu !== menu)) ? menu : undefined);
         action?.();
     };
 
@@ -579,7 +579,7 @@ export const ToolbarView = () => {
                         ...moduleMeMenuItems.map(item => ({ name: item.key, from: ME_MENU_MODULE_FROM, caption: item.caption, visible: true, action: item.onClick })),
                     ]}
                     listName={moduleMeMenuItems.length ? ME_MENU_LIST : undefined}
-                    onClose={() => setOpenMenu(undefined)}
+                    onClose={() => setToolbarMenu(undefined)}
                 />
             )}
             {(openMenu === 'progression') && (
@@ -606,7 +606,7 @@ export const ToolbarView = () => {
                         })),
                     ]}
                     listName="menu_items"
-                    onClose={() => setOpenMenu(undefined)}
+                    onClose={() => setToolbarMenu(undefined)}
                 />
             )}
         </>

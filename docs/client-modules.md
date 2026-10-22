@@ -54,15 +54,15 @@ need no import: the client registers them, and a module names them as JSX intrin
 
 | Part | What |
 | --- | --- |
-| `windows.register(id, Component)`, `open(id, params?)`, `close(id)`, `toggle(id)` | A window drawn in the window layer while open; the component gets `params` and `close` and draws its own `Frame` or `TemplateWindow` |
+| `windows.register(id, Component, { onTop? })`, `open(id, params?)`, `close(id)`, `toggle(id)` | A window drawn in the window layer while open; the component gets `params` and `close` and draws its own `Frame` or `TemplateWindow`. `onTop` keeps it above every other window (a HUD, a timer), under the toolbar's menus, popups and modal dialogs |
 | `toolbar.add({ id, icon, tooltip?, onClick })` | An icon after the bottom bar's divider while it is expanded; the bar and the chat area make room for it |
-| `meMenu.add({ id, caption, onClick })` | A me menu entry: a clone of `profile` with its own caption, before the spacer |
+| `meMenu.add({ id, caption, onClick })`, `meMenu.toggle()` | A me menu entry: a clone of `profile` with its own caption, before the spacer; `toggle` opens or closes the me menu, as Habbo's `toolbar/memenu` link does |
 | `links.handle(prefix, fn)`, `links.open(link)` | In-client links `<prefix>/...` the client has no route of its own for |
 | `packets.registerParser(header, parse, listener)`, `registerComposer(header)`, `send(header, ...values)` | Extension packets at 20000-32767 outside Turbo's 30000-30099, never over a header the client already has; values are ints, strings and booleans |
 | `config.get(key)`, `texts.get(key, fallback?, replacements?)` | The hotel's configuration and texts |
 | `sounds.play(id)` | A sample of the client's sound manager |
-| `room.avatarOverlay(render)` | `render({ roomIndex, userId, name, isOwnUser })` is drawn above each user's head every frame, under the windows |
-| `notifications.registerLayout(name, { template, height })`, `notifications.add(name, text, { image?, link? })` | A bubble in the client's notification stack drawn from a template of the bundles |
+| `room.avatarOverlay(render)`, `room.leave()` | `render({ roomIndex, userId, name, isOwnUser })` is drawn above each user's head every frame, under the windows; `leave` quits the room for the hotel view, as the toolbar's hotel view icon does |
+| `notifications.registerLayout(name, { template, height })`, `notifications.add(name, text, { image?, link?, stay?, timeDisplay?, id? })` | A bubble in the client's notification stack drawn from a template of the bundles. `stay` keeps it up (no time out, a click does not dismiss it), `timeDisplay` is how long (ms) another stays, an `id` is not added twice while up; `add` returns the function that takes it down |
 | `notifications.setIllustration(resolve)` | The picture of every simple alert and notification popup, open or yet to open: `resolve({ kind, caption, message, illustration })` is shown each (`kind` `alert` or `popup`, `illustration` an asset name or URL, `undefined` for none) and answers another, or `undefined` to leave it; hooks run in the order they were set. The dialogs themselves are never rewritten, so taking the hook out puts the client's picture back |
 
 Every `register`/`add`/`handle` returns a function that takes that one thing out; whatever a module
