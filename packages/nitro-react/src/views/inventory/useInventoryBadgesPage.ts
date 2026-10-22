@@ -40,9 +40,7 @@ import { useBadgeImageUrl, useBadgePointLimits, useConfigBoolean, useTranslation
 import { TemplateItem } from '#base/theme';
 import { getBadgeDesc, getBadgeName, shouldShowBadgeOwnerCount } from '#base/utils';
 
-import {
-    findInventoryElement, INVENTORY_GRID_PAGE_SIZE, inventoryGridPageCount, inventoryGridPageItems, InventoryPage, InventoryPageContext, inventoryPagePath, inventoryTemplateId, inventoryThumbLook, NO_INVENTORY_PAGE,
-} from './inventoryPage';
+import { findInventoryElement, inventoryGridPage, inventoryGridPageItems, InventoryPage, InventoryPageContext, inventoryPagePath, inventoryTemplateId, inventoryThumbLook, NO_INVENTORY_PAGE } from './inventoryPage';
 
 /** `BadgeGridView`'s kind filters, in `filter.options`' order. */
 const KIND_FILTERS = [ INVENTORY_BADGE_FILTER_ALL, INVENTORY_BADGE_FILTER_NORMAL, INVENTORY_BADGE_FILTER_ACHIEVEMENTS ];
@@ -120,9 +118,7 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
 
     // `BadgeGridView.update` / `changeToPage`.
     const passedBadges = inactiveBadges.filter(matches);
-    const pageCount = inventoryGridPageCount(passedBadges.length);
-    const shownPage = Math.max(0, Math.min(currentPage, pageCount - 1));
-    const pageBadges = passedBadges.slice(shownPage * INVENTORY_GRID_PAGE_SIZE, (shownPage + 1) * INVENTORY_GRID_PAGE_SIZE);
+    const { pageCount, shownPage, pageItems: pageBadges } = inventoryGridPage(passedBadges, currentPage);
 
     // `Badge.window`: the thumbs the grids show have been made - after `forceSelection` above, as
     // `updateAll` selects before `updateListViews` builds them.

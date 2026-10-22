@@ -31,9 +31,7 @@ import { useTranslation } from '#base/context/system';
 import { LayoutImage, TemplateItem } from '#base/theme';
 import { CollectiblesProductPreview } from '#base/views/shared/CollectiblesProductPreview';
 
-import {
-    findInventoryElement, INVENTORY_GRID_PAGE_SIZE, inventoryGridPageCount, inventoryGridPageItems, InventoryPage, InventoryPageContext, inventoryPagePath, inventoryPageState, inventoryTemplateId, NO_INVENTORY_PAGE,
-} from './inventoryPage';
+import { findInventoryElement, inventoryGridPage, inventoryGridPageItems, InventoryPage, InventoryPageContext, inventoryPagePath, inventoryPageState, inventoryTemplateId, NO_INVENTORY_PAGE } from './inventoryPage';
 import { inventoryNftThumbBindings } from './inventoryThumbs';
 
 /** `CollectiblesView.FILTER_OPTIONS`: the product types `filter.options` lists after "everything", and their texts. */
@@ -76,9 +74,7 @@ export const useInventoryCollectiblesPage = ({ active, templates }: InventoryPag
         return (productTypeId === -1) || (info.productTypeId === productTypeId);
     });
 
-    const pageCount = inventoryGridPageCount(passedGroups.length);
-    const shownPage = Math.max(0, Math.min(currentPage, pageCount - 1));
-    const pageGroups = passedGroups.slice(shownPage * INVENTORY_GRID_PAGE_SIZE, (shownPage + 1) * INVENTORY_GRID_PAGE_SIZE);
+    const { pageCount, shownPage, pageItems: pageGroups } = inventoryGridPage(passedGroups, currentPage);
 
     const selectedGroup = groups.find(group => group.key === selectedKey);
     const firstKey = pageGroups[0]?.key;

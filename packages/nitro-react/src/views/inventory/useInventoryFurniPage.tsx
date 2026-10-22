@@ -64,7 +64,7 @@ import { GetFriendlyTime, getFurnitureData } from '#base/utils';
 import { LimitedItemPreviewOverlayView } from '#base/views/shared/LimitedItemPreviewOverlayView';
 
 import { InventoryFurniPreview } from './InventoryFurniPreview';
-import { findInventoryElement, INVENTORY_GRID_PAGE_SIZE, inventoryGridPageCount, inventoryGridPageItems, InventoryPage, InventoryPageContext, inventoryPagePath, inventoryPageState, inventoryTemplateId, NO_INVENTORY_PAGE } from './inventoryPage';
+import { findInventoryElement, inventoryGridPage, inventoryGridPageItems, InventoryPage, InventoryPageContext, inventoryPagePath, inventoryPageState, inventoryTemplateId, NO_INVENTORY_PAGE } from './inventoryPage';
 import { DEFAULT_RENT_WARNING_SECONDS, inventoryFurniThumbBindings } from './inventoryThumbs';
 
 /** `updateActionView`'s icons, by whether there are any to trade or recycle. */
@@ -203,9 +203,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     });
 
     // `changeToPage`: the page kept within the pages there are.
-    const pageCount = inventoryGridPageCount(passedGroups.length);
-    const shownPage = Math.max(0, Math.min(currentPage, pageCount - 1));
-    const pageGroups = passedGroups.slice(shownPage * INVENTORY_GRID_PAGE_SIZE, (shownPage + 1) * INVENTORY_GRID_PAGE_SIZE);
+    const { pageCount, shownPage, pageItems: pageGroups } = inventoryGridPage(passedGroups, currentPage);
 
     const selectedGroup = groups.find(group => group.id === selectedGroupId);
     const selectedItem = selectedGroup ? peekInventoryFurni(selectedGroup) : undefined;
