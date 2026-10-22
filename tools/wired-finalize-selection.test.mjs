@@ -41,6 +41,8 @@ const loadFile = (url, external) => {
 const external = {
     // `WiredUtil` colours with it; nothing here reaches that.
     '@nitrodevco/nitro-api': { ColorConverter: {} },
+    // `WiredUtil.clampSliderValue` is the theme's clamp.
+    '#base/utils/clamp': loadFile(new URL('../packages/nitro-theme/src/utils/clamp.ts', import.meta.url), {}),
     '@nitrodevco/nitro-packets': {
         ...loadFile(new URL('incoming/Userdefinedroomevents/Data/WiredVariableTarget.ts', packets), {}),
         ...loadFile(new URL('incoming/Userdefinedroomevents/Wiredmenu/Data/VariableExtraSourceTypes.ts', packets), {}),

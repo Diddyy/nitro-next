@@ -16,6 +16,7 @@ export * from './textInputLimit';
 export * from './textRestrict';
 export * from './wiredFormValidation';
 export * from './WiredRewardRow';
+export * from './wiredStorageLength';
 export * from './WiredUserAction';
 export * from './WiredUtil';
 export * from './WiredVariablePickerHistory';

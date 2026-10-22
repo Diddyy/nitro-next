@@ -7,6 +7,7 @@
  * in use), its per-row settings in the int params after the row count, and one variable id per
  * row - always `LINK_DATAFRAME_MAX_ROWS` of them.
  */
+import { fitsWiredParamStorage, utf8Length } from './wiredStorageLength';
 
 /** `MAX_ROWS`. */
 export const LINK_DATAFRAME_MAX_ROWS = 12;
@@ -29,9 +30,6 @@ export const LINK_DATAFRAME_VARIABLE_DESTINATION = 1;
 
 /** The placeholder the received message itself goes into (`placeholderError`'s reserved name). */
 export const LINK_TRIGGER_TEXT_PLACEHOLDER = 'trigger_text';
-
-/** `utf8Length` - `ByteArray.writeUTFBytes(text).length`. */
-export const utf8Length = (text: string): number => new TextEncoder().encode(text).length;
 
 /** `decode`: the stored rows, or `null` when the string does not hold exactly `count` `[key, text]` pairs. */
 export const decodeLinkDataframe = (stringParam: string, count: number): [ string, string ][] | null => {
@@ -104,7 +102,7 @@ export const isLinkDataframeTarget = (target: number): boolean => (target === 0)
 export const linkDataframeStorageError = (stringParam: string, intParams: readonly number[], variableIds: readonly string[]): string | null => {
     if (utf8Length(stringParam) > LINK_DATAFRAME_MAX_TEXT_BYTES) return 'wiredfurni.error.link.configuration_too_large';
 
-    if ((intParams.join('|').length > 400) || (variableIds.join('|').length > 240)) return 'wiredfurni.error.link.configuration_too_large';
+    if (!fitsWiredParamStorage(intParams, variableIds)) return 'wiredfurni.error.link.configuration_too_large';
 
     return null;
 };

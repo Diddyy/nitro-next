@@ -7,7 +7,7 @@
  */
 import { FederatedPointerEvent } from 'pixi.js';
 
-import { Box, Region } from '#base/theme';
+import { Box, Region, toCssHexColor } from '#base/theme';
 
 import { useWiredDisabled, wiredDisabledAlpha } from './useWiredDisabled';
 
@@ -15,8 +15,6 @@ const COLUMNS = 10;
 const SWATCH = 18;
 const GAP = 3;
 const PITCH = SWATCH + GAP;
-
-const hex = (color: number): string => `#${(color & 0xFFFFFF).toString(16).padStart(6, '0')}`;
 
 export interface WiredColorPaletteProps {
     colors: readonly number[];
@@ -81,7 +79,7 @@ export const WiredColorPalette = ({ colors, color, onSelect, visible = true }: W
                             />
                         )}
                         <Region
-                            backgroundColor={hex(swatch)}
+                            backgroundColor={toCssHexColor(swatch)}
                             layout={{ position: 'absolute', left: border, top: border, width: SWATCH - border * 2, height: SWATCH - border * 2 }}
                         />
                     </Box>

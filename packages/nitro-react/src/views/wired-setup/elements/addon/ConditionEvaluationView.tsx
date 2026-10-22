@@ -24,7 +24,7 @@ export const ConditionEvaluationView: WiredElementView<ConditionEvaluationAddonF
             extra: (
                 <WiredNumberInput
                     value={form.values[index]}
-                    onChange={value => setForm(current => ({ ...current, values: current.values.map((old, i) => ((i === index) ? value : old)) }))}
+                    onChange={value => setForm(current => ({ ...current, values: current.values.with(index, value) }))}
                     min={0}
                     max={CONDITION_EVALUATION_MAX_VALUE}
                     width={VALUE_WIDTH}

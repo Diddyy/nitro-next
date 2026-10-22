@@ -1,8 +1,7 @@
 /**
  * `selectors/UsersInTeam` (USERS_IN_TEAM) - selects the users in a game team, or in any team.
  *
- * Int params: `[ team ]` - 0 (any) to 4, the radio `ScoreAchieved` builds as well
- * (`WIRED_TEAM_RADIO_OPTIONS`).
+ * Int params: `[ team ]` - 0 (any) to 4, the radio `ScoreAchieved` builds as well.
  */
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';

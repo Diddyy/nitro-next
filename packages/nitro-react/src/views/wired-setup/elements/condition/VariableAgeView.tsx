@@ -17,7 +17,7 @@ import { WiredRadioGroup } from '../../kit/WiredRadioGroup';
 import { WiredSection } from '../../kit/WiredSection';
 import { WiredSimpleList } from '../../kit/WiredSimpleList';
 import { WiredValueOrVariableSection } from '../../kit/WiredValueOrVariableSection';
-import { ConditionComparisonSection } from './shared/ConditionComparisonSection';
+import { ComparisonSection } from '../shared/ComparisonSection';
 
 const COMPARISONS = [ 0, 2 ];
 const TIME_UNIT_OPTIONS = VARIABLE_AGE_TIME_UNITS.map(id => ({ id, label: `\${wiredfurni.params.variables.duration.${id}}` }));
@@ -48,7 +48,7 @@ export const VariableAgeView: WiredElementView<VariableAgeConditionForm> = ({ fo
                     columns={2}
                 />
             </WiredSection>
-            <ConditionComparisonSection
+            <ComparisonSection
                 ids={COMPARISONS}
                 selected={form.comparison}
                 onSelect={comparison => setForm({ comparison })}

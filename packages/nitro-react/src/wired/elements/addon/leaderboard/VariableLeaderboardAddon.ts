@@ -221,7 +221,7 @@ export const changeLeaderboardColumn = (columns: readonly VariableLeaderboardCon
         if (column.width === leaderboardColumnDefaultWidth(previous.type)) column = { ...column, width: leaderboardColumnDefaultWidth(column.type) };
     }
 
-    return columns.map((existing, i) => ((i === index) ? column : existing));
+    return columns.with(index, column);
 };
 
 /** `onFilterVariableChanged`: a filtering variable without a value cannot be compared. */

@@ -6,7 +6,10 @@
  * Flash keeps the points as a `Map` from xp to level (`generateTree`), in the order they were
  * given - ascending, since `§_-3p§` refuses anything else.
  */
-import { AbstractLevelUpConfig, toInt32 } from './AbstractLevelUpConfig';
+import { clamp } from '#base/utils/clamp';
+
+import { toInt } from '../../../common/WiredUtil';
+import { AbstractLevelUpConfig } from './AbstractLevelUpConfig';
 
 /** `LevelUpProgressInfo` (a private class of the Flash file). */
 interface LevelUpProgressInfo {
@@ -56,9 +59,9 @@ export class InterpolateLevelUpper extends AbstractLevelUpConfig {
         const xpPerLevel = (ceilingXp - lowXp) / levelSpan;
         const relativeXp = xp - lowXp;
 
-        let steps = Math.min(Math.max(toInt32(relativeXp / xpPerLevel), 0), levelSpan - 1);
+        let steps = clamp(toInt(relativeXp / xpPerLevel), 0, levelSpan - 1);
         let currentLevel = lowLevel + steps;
-        let currentLevelXp = lowXp + toInt32(xpPerLevel * steps);
+        let currentLevelXp = lowXp + toInt(xpPerLevel * steps);
         let nextLevel = -1;
         let nextLevelXp = -1;
         let again = true;
@@ -72,12 +75,12 @@ export class InterpolateLevelUpper extends AbstractLevelUpConfig {
                 nextLevelXp = ceilingXp;
             } else {
                 nextLevel = lowLevel + (steps + 1);
-                nextLevelXp = lowXp + toInt32(xpPerLevel * (steps + 1));
+                nextLevelXp = lowXp + toInt(xpPerLevel * (steps + 1));
 
                 if (mayStep && ((relativeXp + lowXp) >= nextLevelXp)) {
                     steps++;
                     currentLevel = lowLevel + steps;
-                    currentLevelXp = lowXp + toInt32(xpPerLevel * steps);
+                    currentLevelXp = lowXp + toInt(xpPerLevel * steps);
                     again = true;
                     mayStep = false;
                 }
@@ -98,10 +101,10 @@ export class InterpolateLevelUpper extends AbstractLevelUpConfig {
             if (pointLevel > level) {
                 const lowerXp = this.getLowerEntryKey(xp);
                 const lowLevel = (lowerXp === null) ? 1 : (this._tree.get(lowerXp) ?? 0);
-                const lowXp = (lowerXp === null) ? 0 : toInt32(lowerXp);
-                const xpPerLevel = toInt32(xp - lowXp) / toInt32(pointLevel - lowLevel);
+                const lowXp = (lowerXp === null) ? 0 : toInt(lowerXp);
+                const xpPerLevel = toInt(xp - lowXp) / toInt(pointLevel - lowLevel);
 
-                return lowXp + toInt32(xpPerLevel * toInt32(level - lowLevel));
+                return lowXp + toInt(xpPerLevel * toInt(level - lowLevel));
             }
 
             lastXp = xp;
@@ -137,7 +140,7 @@ export class InterpolateLevelUpper extends AbstractLevelUpConfig {
     public progressPercentage(xp: number): number {
         const info = this.findProgressInfo(xp);
 
-        return toInt32(((info.currentXp - info.currentLevelXp) / (info.nextLevelXp - info.currentLevelXp)) * 100);
+        return toInt(((info.currentXp - info.currentLevelXp) / (info.nextLevelXp - info.currentLevelXp)) * 100);
     }
 
     public xpRemaining(xp: number): number {

@@ -4,10 +4,10 @@
  */
 import { ActorIsInTeamConditionForm, WiredElementView } from '#base/wired';
 
-import { ConditionTeamSection } from './shared/ConditionTeamSection';
+import { TeamSection } from '../shared/TeamSection';
 
 export const ActorIsInTeamView: WiredElementView<ActorIsInTeamConditionForm> = ({ form, setForm }) => (
-    <ConditionTeamSection
+    <TeamSection
         firstLabel="${wiredfurni.params.team.any}"
         selected={form.team}
         onSelect={team => setForm({ team })}

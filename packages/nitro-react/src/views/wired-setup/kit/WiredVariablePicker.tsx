@@ -31,7 +31,7 @@ import { useRef, useState, useSyncExternalStore } from 'react';
 
 import { useTranslation } from '#base/context/system';
 import { Border, Box, BoxLayout, FloatingPopup, getGlobalRect, Icon, Region, ThemeText, useLayoutSize } from '#base/theme';
-import { determineInitialVariablePickerTab, filterPickerVariables, findPickerVariableByDisplayName, findPickerVariableById, getVariablePickerHistory, selectPickerVariable, subscribeVariablePickerHistory, VARIABLE_PICKER_TAB_SEARCH, WiredVariableFilter, WiredVariablePickerState } from '#base/wired';
+import { determineInitialVariablePickerTab, filterPickerVariables, findPickerVariableByDisplayName, findVariableById, getVariablePickerHistory, selectPickerVariable, subscribeVariablePickerHistory, VARIABLE_PICKER_TAB_SEARCH, WiredVariableFilter, WiredVariablePickerState } from '#base/wired';
 
 import { useWiredDisabled, wiredDisabledAlpha } from './useWiredDisabled';
 import { useWiredFillLayout } from './useWiredFillLayout';
@@ -69,7 +69,7 @@ export const WiredVariablePicker = ({ variables, state, onChange, filter, roomId
     // `setWiredStyle`: illumina draws the picker with its input border, every other style with border 12.
     const borderVariant = (style.name === 'illumina') ? '105' : '12';
     const pickerVariables = filterPickerVariables(variables, state.target, state.initialVariableId);
-    const selected = findPickerVariableById(pickerVariables, state.variableId);
+    const selected = findVariableById(pickerVariables, state.variableId);
 
     const select = (variable: IWiredVariable | null, keepOpen: boolean) => {
         if (!keepOpen) setExpanded(null);

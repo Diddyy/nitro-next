@@ -7,7 +7,7 @@
  * (`TextAreaParam(60, -1, -1, -1, 1000)`, `validate` -> `wiredfurni.params.link.message_too_large`).
  * The picked furni are the Links (`furniSelectionTitle` `wiredfurni.params.link.endpoints`).
  */
-import { utf8Length } from '../../common/linkDataframe';
+import { utf8Length } from '../../common/wiredStorageLength';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';

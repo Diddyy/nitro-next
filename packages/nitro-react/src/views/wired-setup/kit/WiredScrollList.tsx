@@ -16,6 +16,7 @@ import { Container } from 'pixi.js';
 import { ReactNode, useState } from 'react';
 
 import { Box, ColorLayer, ScrollArea, useLayoutSize } from '#base/theme';
+import { clamp } from '#base/utils/clamp';
 
 import { useWiredFillLayout } from './useWiredFillLayout';
 import { WiredFlow } from './WiredFlow';
@@ -43,7 +44,7 @@ export const WiredScrollList = ({ minHeight, maxHeight, centerHorizontally = fal
     const fillLayout = useWiredFillLayout();
     const [ contentNode, setContentNode ] = useState<Container | null>(null);
     const { height: contentHeight } = useLayoutSize(contentNode);
-    const height = Math.min(maxHeight, Math.max(minHeight, Math.ceil(contentHeight)));
+    const height = clamp(Math.ceil(contentHeight), minHeight, maxHeight);
 
     return (
         <Box layout={{ flexDirection: 'column', height, flexShrink: 0, ...fillLayout }}>

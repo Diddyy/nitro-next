@@ -39,7 +39,7 @@ export const SendLinkDataframeView: WiredElementView<SendLinkDataframeForm> = ({
     const labelWidth = [ KEY_LABEL, VALUE_LABEL, MESSAGE_LABEL ].reduce((width, label) => Math.max(width, measureWiredText(caption(label), labelFormat) ?? 0), 0);
 
     const setRow = (index: number, update: (row: LinkDataframeSendRow) => LinkDataframeSendRow) =>
-        setForm(current => ({ ...current, rows: current.rows.map((row, rowIndex) => ((rowIndex === index) ? update(row) : row)) }));
+        setForm(current => ({ ...current, rows: current.rows.with(index, update(current.rows[index])) }));
 
     const label = (text: string) => (
         <WiredText

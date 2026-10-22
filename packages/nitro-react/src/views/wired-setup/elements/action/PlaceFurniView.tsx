@@ -38,8 +38,6 @@ const OFFSETS = [
     { key: 'altitude', min: PLACE_FURNI_ALTITUDE_OFFSET_MIN, max: PLACE_FURNI_ALTITUDE_OFFSET_MAX },
 ];
 
-const replaceAt = <T extends number | boolean>(values: T[], index: number, value: T): T[] => values.map((current, i) => ((i === index) ? value : current));
-
 export const PlaceFurniView: WiredElementView<PlaceFurniActionForm> = ({ form, setForm, triggerable, ctx }) => {
     const style = useWiredStyle();
     const variables = getWiredRoomVariables(triggerable);
@@ -92,13 +90,13 @@ export const PlaceFurniView: WiredElementView<PlaceFurniActionForm> = ({ form, s
                         extra: (
                             <WiredNumberInput
                                 value={form.offsets[index]}
-                                onChange={offset => setForm(current => ({ ...current, offsets: replaceAt(current.offsets, index, offset) }))}
+                                onChange={offset => setForm(current => ({ ...current, offsets: current.offsets.with(index, offset) }))}
                                 min={min}
                                 max={max}
                             />
                         ),
                     }))}
-                    onToggle={(id, selected) => setForm(current => ({ ...current, offsetEnabled: replaceAt(current.offsetEnabled, id, selected) }))}
+                    onToggle={(id, selected) => setForm(current => ({ ...current, offsetEnabled: current.offsetEnabled.with(id, selected) }))}
                 />
             </WiredSection>
             <WiredSection

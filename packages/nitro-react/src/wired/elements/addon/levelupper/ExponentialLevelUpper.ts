@@ -2,7 +2,8 @@
  * `addons/levelupper/ExponentialLevelUpper` - the first level-up needs `firstLevelXp` and each
  * one after it `increaseFactor` percent more, up to `maxLevel`.
  */
-import { AbstractLevelUpConfig, toInt32 } from './AbstractLevelUpConfig';
+import { toInt } from '../../../common/WiredUtil';
+import { AbstractLevelUpConfig } from './AbstractLevelUpConfig';
 
 export class ExponentialLevelUpper extends AbstractLevelUpConfig {
     private readonly _strength: number;
@@ -27,7 +28,7 @@ export class ExponentialLevelUpper extends AbstractLevelUpConfig {
         if (level < 1) return 0;
         if (level > this._maxLevel) return this._maxXp;
 
-        return toInt32(this._firstLevelXp * (((Math.pow(1 + this._strength, level - 1) - 1) + 1e-9) / this._strength));
+        return toInt(this._firstLevelXp * (((Math.pow(1 + this._strength, level - 1) - 1) + 1e-9) / this._strength));
     }
 
     public currentLevel(xp: number): number {
@@ -35,7 +36,7 @@ export class ExponentialLevelUpper extends AbstractLevelUpConfig {
 
         if (xp <= 0) return 1;
 
-        const level = toInt32(Math.log(((xp * this._strength) / this._firstLevelXp) + 1) / Math.log(1 + this._strength)) + 1;
+        const level = toInt(Math.log(((xp * this._strength) / this._firstLevelXp) + 1) / Math.log(1 + this._strength)) + 1;
 
         if (level > this._maxLevel) return this._maxLevel;
         if (level < 1) return 1;
@@ -74,7 +75,7 @@ export class ExponentialLevelUpper extends AbstractLevelUpConfig {
 
         if (levelXp === nextLevelXp) return 100;
 
-        return toInt32(((xp - levelXp) / (nextLevelXp - levelXp)) * 100);
+        return toInt(((xp - levelXp) / (nextLevelXp - levelXp)) * 100);
     }
 
     public xpRemaining(xp: number): number {

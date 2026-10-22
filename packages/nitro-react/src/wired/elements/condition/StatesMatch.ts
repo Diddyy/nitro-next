@@ -6,23 +6,18 @@
  * has to match (`condition.state` / `.direction` / `.position` / `.altitude`). The box has a
  * state snapshot, so it forces furni picking and shows the header's snapshot button.
  */
-import type { WiredElementDefinition } from '../../WiredElement';
-import { getWiredBoolean } from '../../WiredTriggerable';
+import { flagsElement, type WiredElementDefinition, type WiredFlagsForm } from '../../WiredElement';
+import { SET_FURNI_STATE_TO_PARTS } from '../action/SetFurniStateTo';
 import { ConditionCodes } from './conditionCodes';
 
-/** The four checkboxes: `condition.state`, `.direction`, `.position`, `.altitude`. */
-export const STATES_MATCH_PARTS = [ 'state', 'direction', 'position', 'altitude' ];
-
-export interface StatesMatchConditionForm {
-    /** One flag per `STATES_MATCH_PARTS` entry. */
-    parts: boolean[];
-}
+/**
+ * One flag per checkbox: `condition.state`, `.direction`, `.position`, `.altitude` - the parts
+ * `SetFurniStateTo` restores (`SET_FURNI_STATE_TO_PARTS`).
+ */
+export type StatesMatchConditionForm = WiredFlagsForm;
 
 export const statesMatchCondition: WiredElementDefinition<StatesMatchConditionForm> = {
-    holder: 'condition',
-    code: ConditionCodes.STATES_MATCH,
+    ...flagsElement('condition', ConditionCodes.STATES_MATCH, SET_FURNI_STATE_TO_PARTS),
     negativeCode: ConditionCodes.NOT_STATES_MATCH,
     hasStateSnapshot: true,
-    createForm: triggerable => ({ parts: STATES_MATCH_PARTS.map((_, index) => getWiredBoolean(triggerable, index)) }),
-    readIntParams: form => form.parts.map(selected => (selected ? 1 : 0)),
 };

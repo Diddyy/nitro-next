@@ -28,7 +28,7 @@ const VariableAddonSharingSections = ({ usageInfo, form, setForm }: VariableAddo
         <WiredSection title="${wiredfurni.params.variables.addon_sharing.categories}">
             <WiredCheckboxGroup
                 options={VARIABLE_ADDON_SHARING_CATEGORIES.map((label, index) => ({ label, selected: form.categories[index] ?? false }))}
-                onToggle={(id, selected) => setForm({ categories: form.categories.map((old, index) => ((index === id) ? selected : old)) })}
+                onToggle={(id, selected) => setForm({ categories: form.categories.with(id, selected) })}
             />
         </WiredSection>
     </>

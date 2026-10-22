@@ -18,8 +18,9 @@ import { IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-pack
 
 import {
     decodeLinkDataframe, encodeLinkDataframe, isLinkDataframeTarget, LINK_DATAFRAME_CUSTOM_MESSAGE, LINK_DATAFRAME_MAX_MESSAGE_BYTES, LINK_DATAFRAME_MAX_ROWS, LINK_DATAFRAME_NUMBER_LITERAL, LINK_DATAFRAME_NUMBER_VARIABLE,
-    LINK_DATAFRAME_VARIABLE_TEXT, linkDataframeKeyError, linkDataframeStorageError, normalizeLinkDataframeKey, utf8Length,
+    LINK_DATAFRAME_VARIABLE_TEXT, linkDataframeKeyError, linkDataframeStorageError, normalizeLinkDataframeKey,
 } from '../../common/linkDataframe';
+import { utf8Length } from '../../common/wiredStorageLength';
 import { finalizePickerSelection, getPickerSelectedVariable, selectPickerVariable, setPickerTarget, WIRED_VARIABLE_ID_NONE } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, VALUE_OR_VARIABLE_OPTION_VALUE, VALUE_OR_VARIABLE_OPTION_VARIABLE, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
 import { WIRED_SOURCE_MERGED, type WiredElementContext, type WiredElementDefinition } from '../../WiredElement';

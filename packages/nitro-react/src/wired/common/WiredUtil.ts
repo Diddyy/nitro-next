@@ -16,6 +16,8 @@
 import { ColorConverter } from '@nitrodevco/nitro-api';
 import { IWiredVariable, VariableType } from '@nitrodevco/nitro-packets';
 
+import { clamp } from '#base/utils/clamp';
+
 /** `Util.VARIABLE_SYNTAX_MODE_*`. */
 export const VARIABLE_SYNTAX_MODE_PRETTIFY = 0;
 export const VARIABLE_SYNTAX_MODE_NONE = 1;
@@ -33,8 +35,9 @@ export const toInt = (value: number): number => (value | 0);
  * `SliderWindowControllerNew.setValue`'s clamp, which every `SliderSection.value = x` goes through:
  * raised to `min`, then lowered to `max` - so `max` wins should the range be empty. A slider takes
  * any value and holds it clamped, so a box saved with a value outside it reads back as the nearest end.
+ * The theme's `clamp` applies the bounds in that order.
  */
-export const clampSliderValue = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+export const clampSliderValue = (value: number, min: number, max: number): number => clamp(value, min, max);
 
 /**
  * ActionScript's `Number(string)`: an empty or blank string is 0, anything unparsable is `NaN`.
@@ -159,7 +162,7 @@ export const compareIntArrays = (a: readonly number[], b: readonly number[]): bo
     return true;
 };
 
-/** `Util.findVariableById`. */
+/** `Util.findVariableById` - also `NewVariablePicker.findVariableById` / `filteredVariableById` on the picker's list. */
 export const findVariableById = <T extends IWiredVariable>(variables: readonly T[], variableId: string): T | null =>
     variables.find(variable => variable.variableId === variableId) ?? null;
 

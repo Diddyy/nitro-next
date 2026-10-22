@@ -10,9 +10,6 @@ import { getWiredInt } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
 import { giveScoreAction, type GiveScoreActionForm } from './GiveScore';
 
-/** The team radio's ids, `wiredfurni.params.team.1` to `.4`. */
-export const PREDEFINED_TEAMS = [ 1, 2, 3, 4 ];
-
 export interface GiveScoreToPredefinedTeamActionForm extends GiveScoreActionForm {
     team: number;
 }

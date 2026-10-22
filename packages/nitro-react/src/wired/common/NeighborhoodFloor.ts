@@ -36,7 +36,7 @@ export const setNeighborhoodTileOccupied = (plan: NeighborhoodFloorPlan, x: numb
 
     if (plan[x][y] === occupied) return plan;
 
-    return plan.map((column, columnIndex) => (columnIndex === x) ? column.map((value, rowIndex) => (rowIndex === y) ? occupied : value) : column);
+    return plan.with(x, plan[x].with(y, occupied));
 };
 
 /** `NeighborhoodFloor.smallModeAllowed` - nothing is drawn outside the 11 x 11 middle. */

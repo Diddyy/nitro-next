@@ -12,8 +12,6 @@ import { SelectorCodes } from './selectorCodes';
 
 /** `createSliderSection("wiredfurni.params.setaltitude", "altitude", new SliderValueHundredth(), 0, 8000, 1)`. */
 export const FURNI_WITH_ALTITUDE_MAX = 8000;
-/** The comparison radio's ids. */
-export const FURNI_WITH_ALTITUDE_COMPARISON_IDS = [ 0, 1, 2 ];
 
 export interface FurniWithAltitudeSelectorForm {
     altitude: number;

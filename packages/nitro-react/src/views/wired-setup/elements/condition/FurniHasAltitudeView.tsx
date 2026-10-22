@@ -5,11 +5,11 @@
 import { FURNI_HAS_ALTITUDE_MAX, FurniHasAltitudeConditionForm, SLIDER_CONVERTER_HUNDREDTH, WiredElementView } from '#base/wired';
 
 import { WiredSliderSection } from '../../kit/WiredSliderSection';
-import { ConditionComparisonSection } from './shared/ConditionComparisonSection';
+import { ComparisonSection } from '../shared/ComparisonSection';
 
 export const FurniHasAltitudeView: WiredElementView<FurniHasAltitudeConditionForm> = ({ form, setForm }) => (
     <>
-        <ConditionComparisonSection
+        <ComparisonSection
             selected={form.comparison}
             onSelect={comparison => setForm({ comparison })}
         />

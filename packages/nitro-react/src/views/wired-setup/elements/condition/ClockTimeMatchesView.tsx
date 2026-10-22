@@ -6,11 +6,11 @@
 import { CLOCK_TIME_MATCHES_MAX_MINUTES, CLOCK_TIME_MATCHES_MAX_PULSES, ClockTimeMatchesConditionForm, SLIDER_CONVERTER_ECHO, SLIDER_CONVERTER_PULSES, WiredElementView } from '#base/wired';
 
 import { WiredSliderSection } from '../../kit/WiredSliderSection';
-import { ConditionComparisonSection } from './shared/ConditionComparisonSection';
+import { ComparisonSection } from '../shared/ComparisonSection';
 
 export const ClockTimeMatchesView: WiredElementView<ClockTimeMatchesConditionForm> = ({ form, setForm }) => (
     <>
-        <ConditionComparisonSection
+        <ComparisonSection
             selected={form.comparison}
             onSelect={comparison => setForm({ comparison })}
         />

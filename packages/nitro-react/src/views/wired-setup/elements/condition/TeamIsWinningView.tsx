@@ -6,13 +6,13 @@ import { TeamIsWinningConditionForm, WiredElementView } from '#base/wired';
 
 import { WiredRadioGroup } from '../../kit/WiredRadioGroup';
 import { WiredSection } from '../../kit/WiredSection';
-import { ConditionTeamSection } from './shared/ConditionTeamSection';
+import { TeamSection } from '../shared/TeamSection';
 
 const PLACEMENTS = [ 0, 1, 2, 3 ];
 
 export const TeamIsWinningView: WiredElementView<TeamIsWinningConditionForm> = ({ form, setForm }) => (
     <>
-        <ConditionTeamSection
+        <TeamSection
             firstLabel="${wiredfurni.params.team.triggerer}"
             selected={form.team}
             onSelect={team => setForm({ team })}

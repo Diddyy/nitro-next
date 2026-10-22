@@ -5,7 +5,7 @@
 import { LEVEL_MATCHES_MAX, LEVEL_MATCHES_MIN, LevelMatchesConditionForm, SLIDER_CONVERTER_ECHO, WiredElementView } from '#base/wired';
 
 import { WiredSliderSection } from '../../kit/WiredSliderSection';
-import { ConditionComparisonSection } from './shared/ConditionComparisonSection';
+import { ComparisonSection } from '../shared/ComparisonSection';
 
 export const LevelMatchesView: WiredElementView<LevelMatchesConditionForm> = ({ form, setForm }) => (
     <>
@@ -19,7 +19,7 @@ export const LevelMatchesView: WiredElementView<LevelMatchesConditionForm> = ({ 
             value={form.level}
             onChange={level => setForm({ level })}
         />
-        <ConditionComparisonSection
+        <ComparisonSection
             selected={form.comparison}
             onSelect={comparison => setForm({ comparison })}
         />

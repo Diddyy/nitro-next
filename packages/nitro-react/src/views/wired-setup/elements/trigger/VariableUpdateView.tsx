@@ -64,7 +64,7 @@ export const VariableUpdateView: WiredElementView<VariableUpdateTriggerForm> = (
                         disabled: optionDisabled[id],
                         extraUnder: (id === 1) ? changeGroup : undefined,
                     }))}
-                    onToggle={(id, selected) => setForm(current => ({ ...current, options: current.options.map((value, index) => (index === id) ? selected : value) }))}
+                    onToggle={(id, selected) => setForm(current => ({ ...current, options: current.options.with(id, selected) }))}
                 />
             </WiredSection>
             <WiredSection

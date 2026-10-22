@@ -108,7 +108,7 @@ export const GiveRewardView: WiredElementView<GiveRewardActionForm> = ({ form, s
                 rows={form.rows}
                 displayedRewards={form.displayedRewards}
                 probabilityEnabled={!form.unique}
-                onRowChange={(index, row) => setForm(current => ({ ...current, rows: current.rows.map((value, i) => ((i === index) ? row : value)) }))}
+                onRowChange={(index, row) => setForm(current => ({ ...current, rows: current.rows.with(index, row) }))}
             />
         </WiredSection>
     </>

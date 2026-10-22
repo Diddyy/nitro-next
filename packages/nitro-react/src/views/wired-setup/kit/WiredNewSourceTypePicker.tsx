@@ -23,7 +23,7 @@
 import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { Box, ContainerButton, LayoutImage, Region, ThemeImage } from '#base/theme';
+import { Box, ContainerButton, LayoutImage, parseCssHexColor, Region, ThemeImage } from '#base/theme';
 import { getTypeNameForSource, newSourceTypeOptionColor, newSourceTypeSplitterColor, resolveSourceTypeSelection, uintToHexColor } from '#base/wired';
 
 import { useWiredDisabled, wiredDisabledAlpha } from './useWiredDisabled';
@@ -56,7 +56,7 @@ export const WiredNewSourceTypePicker = ({ options, selected, onSelect, disabled
 
     const active = resolveSourceTypeSelection(options, selected);
     const segments = options.map(sourceType => ({ sourceType, active: sourceType === active, hovered: !disabled && (sourceType === hovered) }));
-    const splitterBase = Number.parseInt(template.splitterColor.slice(1), 16);
+    const splitterBase = parseCssHexColor(template.splitterColor);
 
     return (
         <Box

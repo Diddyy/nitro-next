@@ -2,16 +2,17 @@
  * `addons/MovePhysics.buildInputs` - one section (`select_options`) with the four physics
  * checkboxes.
  */
-import { MOVE_PHYSICS_OPTIONS, MovePhysicsAddonForm, WiredElementView } from '#base/wired';
+import { MOVE_PHYSICS_OPTIONS, MovePhysicsAddonForm, setWiredFlag, WiredElementView } from '#base/wired';
 
-import { WiredCheckboxGroup } from '../../kit/WiredCheckboxGroup';
-import { WiredSection } from '../../kit/WiredSection';
+import { FlagsSection } from '../shared/FlagsSection';
+
+const LABELS = MOVE_PHYSICS_OPTIONS.map(key => `\${wiredfurni.params.movephysics.${key}}`);
 
 export const MovePhysicsView: WiredElementView<MovePhysicsAddonForm> = ({ form, setForm }) => (
-    <WiredSection title="${wiredfurni.params.select_options}">
-        <WiredCheckboxGroup
-            options={MOVE_PHYSICS_OPTIONS.map((key, index) => ({ id: index, label: `\${wiredfurni.params.movephysics.${key}}`, selected: form.options[index] }))}
-            onToggle={(id, selected) => setForm(current => ({ ...current, options: current.options.map((old, index) => ((index === id) ? selected : old)) }))}
-        />
-    </WiredSection>
+    <FlagsSection
+        title="${wiredfurni.params.select_options}"
+        labels={LABELS}
+        flags={form.flags}
+        onToggle={(index, selected) => setForm(current => setWiredFlag(current, index, selected))}
+    />
 );

@@ -2,7 +2,8 @@
  * `addons/levelupper/LinearLevelUpper` - every level needs the same `stepSize` xp, up to
  * `maxLevel`.
  */
-import { AbstractLevelUpConfig, toInt32 } from './AbstractLevelUpConfig';
+import { toInt } from '../../../common/WiredUtil';
+import { AbstractLevelUpConfig } from './AbstractLevelUpConfig';
 
 export class LinearLevelUpper extends AbstractLevelUpConfig {
     public constructor(private readonly _stepSize: number, private readonly _maxLevel: number) {
@@ -28,7 +29,7 @@ export class LinearLevelUpper extends AbstractLevelUpConfig {
 
         if (xp < 0) return 1;
 
-        return Math.min(this._maxLevel, 1 + toInt32(xp / this._stepSize));
+        return Math.min(this._maxLevel, 1 + toInt(xp / this._stepSize));
     }
 
     public totalXpRequired(xp: number): number {
@@ -50,7 +51,7 @@ export class LinearLevelUpper extends AbstractLevelUpConfig {
 
         if (this.isMaxed(xp)) return 0;
 
-        return toInt32((this.progress(xp) / this._stepSize) * 100);
+        return toInt((this.progress(xp) / this._stepSize) * 100);
     }
 
     public xpRemaining(xp: number): number {

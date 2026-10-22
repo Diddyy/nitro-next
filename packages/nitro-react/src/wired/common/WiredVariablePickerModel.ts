@@ -17,7 +17,7 @@
  */
 import { IWiredVariable, VariableType } from '@nitrodevco/nitro-packets';
 
-import { splitVariableName } from './WiredUtil';
+import { findVariableById, splitVariableName } from './WiredUtil';
 
 /** `NewVariablePicker.UNSPECIFIED_TYPE` - a picker that offers the variables of every target. */
 export const WIRED_VARIABLE_TARGET_UNSPECIFIED = 2147483647;
@@ -92,10 +92,6 @@ export interface WiredVariablePickerState {
     /** `NewVariablePicker.§_-y1J§` - the selection each target had, restored when the target comes back. */
     rememberedByTarget: Readonly<Record<number, string>>;
 }
-
-/** `NewVariablePicker.findVariableById` / `filteredVariableById`. */
-export const findPickerVariableById = (pickerVariables: readonly IWiredVariable[], variableId: string): IWiredVariable | null =>
-    pickerVariables.find(variable => variable.variableId === variableId) ?? null;
 
 /** `NewVariablePicker.filteredVariableByDisplayName` - typed text to a variable the filter accepts, ignoring case. */
 export const findPickerVariableByDisplayName = (pickerVariables: readonly IWiredVariable[], text: string, filter?: WiredVariableFilter): IWiredVariable | null => {
@@ -201,7 +197,7 @@ export const variablePickerTabNodes = (tabId: number, pickerVariables: readonly 
             return buildVariableNodes(pickerVariables);
         case VARIABLE_PICKER_TAB_RECENT: {
             const recent = history
-                .map(variableId => findPickerVariableById(pickerVariables, variableId))
+                .map(variableId => findVariableById(pickerVariables, variableId))
                 .filter((variable): variable is IWiredVariable => variable !== null);
 
             return buildVariableNodes(recent, true);
@@ -247,7 +243,7 @@ export const variablePickerTabWidths = (pickerWidth: number, count: number = VAR
  * untouched cannot drop its variable.
  */
 export const createVariablePickerState = (variables: readonly IWiredVariable[] | null | undefined, variableId: string, target: number): WiredVariablePickerState => {
-    const selected = findPickerVariableById(filterPickerVariables(variables, target, variableId), variableId);
+    const selected = findVariableById(filterPickerVariables(variables, target, variableId), variableId);
     const selectedId = variables ? (selected?.variableId ?? '') : variableId;
 
     return { initialVariableId: variableId, target, variableId: selectedId, rememberedByTarget: { [target]: selectedId } };
@@ -274,7 +270,7 @@ export const setPickerTarget = (state: WiredVariablePickerState, target: number)
 
 /** `VariablePickerPreset.selected` - the selected variable, if the room still has it. */
 export const getPickerSelectedVariable = (variables: readonly IWiredVariable[] | null | undefined, state: WiredVariablePickerState): IWiredVariable | null =>
-    (state.variableId === '') ? null : findPickerVariableById(filterPickerVariables(variables, state.target, state.initialVariableId), state.variableId);
+    (state.variableId === '') ? null : findVariableById(filterPickerVariables(variables, state.target, state.initialVariableId), state.variableId);
 
 /** `WiredVariable.§_-7h§` - the variable id a box sends for "no variable". */
 export const WIRED_VARIABLE_ID_NONE = 'n';

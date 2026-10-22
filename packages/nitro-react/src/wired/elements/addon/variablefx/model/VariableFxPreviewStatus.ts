@@ -12,6 +12,7 @@ import { VariableFxServerTables, VariableFxStatusData } from '@nitrodevco/nitro-
 
 import { clamp } from '#base/utils/clamp';
 
+import { toInt } from '../../../../common/WiredUtil';
 import { LinearLevelUpper } from '../../levelupper/LinearLevelUpper';
 import { VARIABLE_FX_CATEGORY_LEVELLING_PROGRESS, variableFxCurrentStyle, VariableFxState } from './VariableFxState';
 
@@ -25,9 +26,6 @@ const DEFAULT_DELEGATED_COLOR = '#ffffff';
 /** The health points category and its stacked hearts renderer. */
 const CATEGORY_HEALTH_POINTS = 0;
 const RENDERER_STACKED_HEALTH_POINTS = 12;
-
-/** AS3 `int(x)`. */
-const toInt = (value: number): number => Math.trunc(value) | 0;
 
 export class VariableFxPreviewStatus {
     /** `§_-S1k§` - the previewed value. */

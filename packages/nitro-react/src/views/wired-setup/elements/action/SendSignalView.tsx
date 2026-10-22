@@ -8,20 +8,18 @@
  * asks nothing.
  */
 import { useWindowActions } from '#base/context/system';
-import { SEND_SIGNAL_OPTIONS, SendSignalActionForm, WiredElementView } from '#base/wired';
+import { SEND_SIGNAL_OPTIONS, SendSignalActionForm, setWiredFlag, WiredElementView } from '#base/wired';
 
-import { WiredCheckboxGroup } from '../../kit/WiredCheckboxGroup';
-import { WiredSection } from '../../kit/WiredSection';
+import { FlagsSection } from '../shared/FlagsSection';
 
-const setOption = (form: SendSignalActionForm, id: number, selected: boolean): SendSignalActionForm =>
-    ({ ...form, options: form.options.map((value, index) => ((index === id) ? selected : value)) });
+const LABELS = SEND_SIGNAL_OPTIONS.map(option => `\${wiredfurni.params.signal.${option}}`);
 
 export const SendSignalView: WiredElementView<SendSignalActionForm> = ({ form, setForm, ctx }) => {
     const { showConfirm } = useWindowActions();
 
     const onToggle = (id: number, selected: boolean) => {
         if (!selected) {
-            setForm(current => setOption(current, id, false));
+            setForm(current => setWiredFlag(current, id, false));
 
             return;
         }
@@ -29,16 +27,16 @@ export const SendSignalView: WiredElementView<SendSignalActionForm> = ({ form, s
         showConfirm(
             ctx.localize('wiredfurni.params.signal_warning.title'),
             ctx.localize('wiredfurni.params.signal_warning.desc'),
-            () => setForm(current => setOption(current, id, true)),
+            () => setForm(current => setWiredFlag(current, id, true)),
         );
     };
 
     return (
-        <WiredSection title="${wiredfurni.params.signal.send_options}">
-            <WiredCheckboxGroup
-                options={SEND_SIGNAL_OPTIONS.map((option, index) => ({ label: `\${wiredfurni.params.signal.${option}}`, selected: form.options[index] }))}
-                onToggle={onToggle}
-            />
-        </WiredSection>
+        <FlagsSection
+            title="${wiredfurni.params.signal.send_options}"
+            labels={LABELS}
+            flags={form.flags}
+            onToggle={onToggle}
+        />
     );
 };

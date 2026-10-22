@@ -4,11 +4,9 @@
  * builds one from its form to preview the xp its first levels need; the server runs the same
  * curves on the variable.
  *
- * Flash's `int(...)` is `ToInt32` - the curves truncate and wrap exactly as `toInt32` does.
+ * Flash's `int(...)` is `ToInt32` - the curves truncate and wrap exactly as `toInt`
+ * (`wired/common/WiredUtil`) does: towards zero, to 32 bits, `NaN` and infinities to 0.
  */
-
-/** Flash's `int(value)` on a `Number`: truncated towards zero and wrapped to 32 bits, `NaN` and infinities to 0. */
-export const toInt32 = (value: number): number => value | 0;
 
 export abstract class AbstractLevelUpConfig {
     public abstract get maxLevel(): number;

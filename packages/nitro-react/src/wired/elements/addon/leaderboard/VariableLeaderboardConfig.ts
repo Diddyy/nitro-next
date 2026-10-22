@@ -19,6 +19,8 @@
  */
 import { VARIABLE_LEADERBOARD_PAGE_SIZES } from '@nitrodevco/nitro-packets';
 
+import { fitsWiredParamStorage, utf8Length } from '../../../common/wiredStorageLength';
+
 /** `location` (`variableleaderboard/location`): where a leaderboard stands in the room. */
 export interface VariableLeaderboardLocation {
     tileX: number;
@@ -79,8 +81,6 @@ const INT_PARAM_COUNT_MIN = 14;
 const VARIABLE_ID_COUNT = 12;
 const STRING_FIELD_COUNT = 17;
 const COLUMN_WIDTH_PARAM_OFFSET = 14;
-const MAX_INT_PARAMS_STORAGE_LENGTH = 400;
-const MAX_VARIABLE_IDS_STORAGE_LENGTH = 240;
 const MAX_STRING_PARAM_UTF8_LENGTH = 1000;
 const MAX_SIGNED_LONG = '9223372036854775807';
 const MIN_SIGNED_LONG_MAGNITUDE = '9223372036854775808';
@@ -265,10 +265,8 @@ export const isValidLeaderboardConfig = (config: VariableLeaderboardConfig): boo
 };
 
 /** `validateStorageLengths`. */
-const fitsStorage = (intParams: number[], variableIds: string[], stringParam: string): boolean =>
-    (intParams.join('|').length <= MAX_INT_PARAMS_STORAGE_LENGTH)
-    && (variableIds.join('|').length <= MAX_VARIABLE_IDS_STORAGE_LENGTH)
-    && (new TextEncoder().encode(stringParam).length <= MAX_STRING_PARAM_UTF8_LENGTH);
+const fitsStorage = (intParams: readonly number[], variableIds: readonly string[], stringParam: string): boolean =>
+    fitsWiredParamStorage(intParams, variableIds) && (utf8Length(stringParam) <= MAX_STRING_PARAM_UTF8_LENGTH);
 
 export interface EncodedVariableLeaderboardConfig {
     intParams: number[];
@@ -316,7 +314,7 @@ export const encodeLeaderboardConfig = (config: VariableLeaderboardConfig): Enco
 export const decodeLeaderboardConfig = (intParams: readonly number[], variableIds: readonly string[], stringParam: string): VariableLeaderboardConfig | null => {
     if (intParams.some(value => !Number.isInteger(value))) return null;
     if (variableIds.some(id => (typeof id !== 'string') || (id.length === 0))) return null;
-    if (!fitsStorage([ ...intParams ], [ ...variableIds ], stringParam)) return null;
+    if (!fitsStorage(intParams, variableIds, stringParam)) return null;
 
     if (stringParam.length === 0) return createUnpublishedLeaderboardConfig();
 

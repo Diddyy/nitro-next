@@ -36,7 +36,7 @@ export const ReceiveLinkDataframeView: WiredElementView<ReceiveLinkDataframeForm
     const labelWidth = [ KEY_LABEL, PLACEHOLDER_LABEL, VARIABLE_LABEL ].reduce((width, label) => Math.max(width, measureWiredText(caption(label), labelFormat) ?? 0), 0);
 
     const setRow = (index: number, patch: Partial<LinkDataframeReceiveRow>) =>
-        setForm(current => ({ ...current, rows: current.rows.map((row, rowIndex) => ((rowIndex === index) ? { ...row, ...patch } : row)) }));
+        setForm(current => ({ ...current, rows: current.rows.with(index, { ...current.rows[index], ...patch }) }));
 
     const label = (text: string) => (
         <WiredText

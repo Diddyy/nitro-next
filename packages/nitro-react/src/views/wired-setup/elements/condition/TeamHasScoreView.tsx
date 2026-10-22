@@ -6,17 +6,17 @@
 import { SLIDER_CONVERTER_ECHO, TEAM_HAS_SCORE_MAX, TeamHasScoreConditionForm, WiredElementView } from '#base/wired';
 
 import { WiredSliderSection } from '../../kit/WiredSliderSection';
-import { ConditionComparisonSection } from './shared/ConditionComparisonSection';
-import { ConditionTeamSection } from './shared/ConditionTeamSection';
+import { ComparisonSection } from '../shared/ComparisonSection';
+import { TeamSection } from '../shared/TeamSection';
 
 export const TeamHasScoreView: WiredElementView<TeamHasScoreConditionForm> = ({ form, setForm }) => (
     <>
-        <ConditionTeamSection
+        <TeamSection
             firstLabel="${wiredfurni.params.team.triggerer}"
             selected={form.team}
             onSelect={team => setForm({ team })}
         />
-        <ConditionComparisonSection
+        <ComparisonSection
             selected={form.comparison}
             onSelect={comparison => setForm({ comparison })}
         />

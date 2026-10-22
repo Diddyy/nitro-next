@@ -13,10 +13,11 @@
  * function of the form (`variableLevelUpPreviewXps`), recomputed with it.
  */
 import type { WiredSubVariableParam } from '../../common/SubVariableParam';
+import { getIntFromString } from '../../common/WiredUtil';
 import type { WiredElementDefinition } from '../../WiredElement';
 import { getWiredInt } from '../../WiredTriggerable';
 import { AddonCodes } from './addonCodes';
-import { type AbstractLevelUpConfig, toInt32 } from './levelupper/AbstractLevelUpConfig';
+import type { AbstractLevelUpConfig } from './levelupper/AbstractLevelUpConfig';
 import { ExponentialLevelUpper } from './levelupper/ExponentialLevelUpper';
 import { InterpolateLevelUpper } from './levelupper/InterpolateLevelUpper';
 import { LinearLevelUpper } from './levelupper/LinearLevelUpper';
@@ -65,9 +66,6 @@ export interface VariableLevelUpAddonForm {
     exponentialMaxLevel: number;
 }
 
-/** Flash's `int(text)`: the text as a `Number` (0 when empty, `NaN` - so 0 - when not a number), truncated. */
-const parseInt32 = (text: string): number => toInt32(Number(text));
-
 /**
  * `parseLevelToXpMap` - the manual lines as level -> xp, `null` when a level or its xp is not
  * above the line before (the first level must be above 1 and its xp above 0). Lines without `=`
@@ -83,8 +81,9 @@ export const parseLevelUpManualText = (text: string): Map<number, number> | null
 
         if (parts.length < 2) continue;
 
-        const level = parseInt32(parts[0]);
-        const xp = parseInt32(parts[1]);
+        // Flash's `int(text)`: 0 when empty or not a number, truncated.
+        const level = getIntFromString(parts[0], 0);
+        const xp = getIntFromString(parts[1], 0);
 
         if ((level <= previousLevel) || (xp <= previousXp)) return null;
 

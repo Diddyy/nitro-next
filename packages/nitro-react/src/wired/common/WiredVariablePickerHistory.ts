@@ -18,6 +18,8 @@
  */
 import { IWiredVariable } from '@nitrodevco/nitro-packets';
 
+import { findVariableById } from './WiredUtil';
+
 /** `NewVariablePickerHelper.MAX_HISTORY`. */
 const MAX_HISTORY = 20;
 
@@ -64,7 +66,7 @@ export const rememberPickedVariables = (roomId: number, variableIds: readonly st
     if (!roomVariables) return;
 
     for (const variableId of variableIds) {
-        const variable = roomVariables.find(candidate => candidate.variableId === variableId);
+        const variable = findVariableById(roomVariables, variableId);
 
         if (variable) addToVariablePickerHistory(roomId, variable);
     }

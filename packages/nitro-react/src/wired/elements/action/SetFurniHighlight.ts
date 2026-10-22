@@ -7,6 +7,9 @@
  * colour 0 / white. The "target" section merges the furni slot with the second user slot, the "visibility
  * audience" section is the first user slot (`mergedSelections [[0,1],[-1,0]]`), greyed while everyone sees it.
  */
+import { clamp } from '#base/utils/clamp';
+
+import { getIntFromString } from '../../common/WiredUtil';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_MERGED, WIRED_SOURCE_USER, type WiredElementContext, type WiredElementDefinition } from '../../WiredElement';
 import { getWiredBoolean, getWiredInt } from '../../WiredTriggerable';
 import { ActionTypeCodes } from './actionCodes';
@@ -25,7 +28,7 @@ export const getDarkenLevels = (ctx: WiredElementContext): number[] => {
     const key = 'wired.furni_highlight.darken_levels';
     const property = ctx.configHas(key) ? ctx.configString(key) : '0,10,20,30,40,50,60,70,80,90,100';
 
-    return property.split(',').map(level => Math.trunc(Number(level)) || 0);
+    return property.split(',').map(level => getIntFromString(level, 0));
 };
 
 /** `darkeningAvailable`: a darken level above 0. */
@@ -70,7 +73,7 @@ export const fitStrength = (type: number, strength: number, ctx: WiredElementCon
 
     const step = (type === SET_FURNI_HIGHLIGHT_TYPE_TINT) ? 25 : 100;
 
-    return Math.round(Math.max(0, Math.min(100, strength)) / step) * step;
+    return Math.round(clamp(strength, 0, 100) / step) * step;
 };
 
 /** `ColorPalettePreset.color`: a colour not in the palette becomes its first. */
@@ -116,7 +119,7 @@ export const setFurniHighlightAction: WiredElementDefinition<SetFurniHighlightAc
             type,
             strength: fitStrength(type, (type === SET_FURNI_HIGHLIGHT_TYPE_BRIGHTEN) ? strength * 2 : strength, ctx),
             color: fitPaletteColor(getHighlightPalette(type), color >>> 0),
-            animation: (type === SET_FURNI_HIGHLIGHT_TYPE_BRIGHTEN) ? 1 : Math.max(0, Math.min(getWiredInt(triggerable, 4), 1)),
+            animation: (type === SET_FURNI_HIGHLIGHT_TYPE_BRIGHTEN) ? 1 : clamp(getWiredInt(triggerable, 4), 0, 1),
             easing: getWiredInt(triggerable, 5),
         };
     },

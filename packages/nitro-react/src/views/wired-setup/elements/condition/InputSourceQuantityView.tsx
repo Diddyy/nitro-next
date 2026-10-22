@@ -6,11 +6,11 @@
 import { INPUT_SOURCE_QUANTITY_MAX, InputSourceQuantityConditionForm, SLIDER_CONVERTER_ECHO, WiredElementView } from '#base/wired';
 
 import { WiredSliderSection } from '../../kit/WiredSliderSection';
-import { ConditionComparisonSection } from './shared/ConditionComparisonSection';
+import { ComparisonSection } from '../shared/ComparisonSection';
 
 export const InputSourceQuantityView: WiredElementView<InputSourceQuantityConditionForm> = ({ form, setForm }) => (
     <>
-        <ConditionComparisonSection
+        <ComparisonSection
             selected={form.comparison}
             onSelect={comparison => setForm({ comparison })}
         />

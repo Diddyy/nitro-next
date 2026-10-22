@@ -11,6 +11,7 @@
  */
 import { VariableFxPreviewStyleDefinition, VariableFxPreviewStyles, VariableFxServerTables } from '@nitrodevco/nitro-renderer';
 
+import { getIntFromString } from '../../../../common/WiredUtil';
 import type { VariableFxCategoryDefinition } from './VariableFxCategoryDefinition';
 import { getVariableFxCategoryStyle } from './VariableFxCategoryDefinition';
 import { createVariableFxOption, VariableFxOption } from './VariableFxOption';
@@ -162,7 +163,7 @@ export const getVariableFxSubRendererOptions = (style: VariableFxStyleDefinition
 
     if (style.defaultRenderer.id === LEVEL_WITH_PROGRESS_RENDERER) return LEVEL_WITH_PROGRESS_SUB_RENDERERS.map(getVariableFxRenderer);
 
-    return [ getVariableFxRenderer(Math.trunc(Number(subRenderer)) || 0) ];
+    return [ getVariableFxRenderer(getIntFromString(subRenderer, 0)) ];
 };
 
 /** `optionIn(options, id, fallback)`. */

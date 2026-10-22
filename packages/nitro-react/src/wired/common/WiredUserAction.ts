@@ -6,6 +6,8 @@
  *
  * The names are localization key fragments, so `67` is a name like the others.
  */
+import { getIntFromString } from './WiredUtil';
+
 export interface WiredUserAction {
     name: string;
     code: number;
@@ -15,13 +17,6 @@ export interface WiredUserAction {
     /** `convertExtraStringToCode` - only on an action with `hasExtra`. */
     convertExtraStringToCode?: (extra: string) => number;
 }
-
-/** ActionScript's `int(string)`: anything that is not a number is 0, fractions are cut off. */
-const toInt = (text: string | undefined): number => {
-    const value = Number(text);
-
-    return Number.isNaN(value) ? 0 : (value | 0);
-};
 
 const plain = (name: string, code: number): WiredUserAction => ({ name, code, hasExtra: false });
 
@@ -41,14 +36,15 @@ export const ALL_WIRED_USER_ACTIONS: readonly WiredUserAction[] = [
         code: 10,
         hasExtra: true,
         convertCodeToExtraString: code => code.toString(),
-        convertExtraStringToCode: extra => toInt(extra),
+        convertExtraStringToCode: extra => getIntFromString(extra, 0),
     },
     {
         name: 'dance',
         code: 11,
         hasExtra: true,
         convertCodeToExtraString: code => `dance ${code}`,
-        convertExtraStringToCode: extra => toInt(extra.split(' ')[1]),
+        // `int(undefined)` is 0, as `int('')` is.
+        convertExtraStringToCode: extra => getIntFromString(extra.split(' ')[1] ?? '', 0),
     },
     plain('67', 67),
 ];

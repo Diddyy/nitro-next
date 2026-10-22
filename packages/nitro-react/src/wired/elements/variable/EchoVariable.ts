@@ -12,7 +12,7 @@
  */
 import { IWiredVariable, VariableExtraSourceTypes } from '@nitrodevco/nitro-packets';
 
-import { flatVariableName } from '../../common/WiredUtil';
+import { findVariableById, flatVariableName } from '../../common/WiredUtil';
 import { createVariablePickerState, finalizePickerSelection, getPickerSelectedVariable, WiredVariablePickerState } from '../../common/WiredVariablePickerModel';
 import { WIRED_SOURCE_FURNI, WIRED_SOURCE_USER } from '../../WiredElement';
 import { getWiredRoomVariables } from '../../WiredTriggerable';
@@ -51,7 +51,7 @@ export const echoVariable: WiredVariableElementDefinition<EchoVariableForm> = {
     createForm: (triggerable) => {
         const variables = getWiredRoomVariables(triggerable);
         const variableId = triggerable.variableIds[0] ?? '';
-        const variable = variables.find(entry => entry.variableId === variableId) ?? null;
+        const variable = findVariableById(variables, variableId);
         const picker = createVariablePickerState(variables, variableId, (variable !== null) ? Number(variable.variableTarget) : WIRED_SOURCE_USER);
 
         return {

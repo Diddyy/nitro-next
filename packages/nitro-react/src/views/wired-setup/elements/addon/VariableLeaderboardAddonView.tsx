@@ -246,7 +246,7 @@ export const VariableLeaderboardAddonView: WiredElementView<VariableLeaderboardA
                             />
                             <WiredTextInput
                                 value={row.text}
-                                onChange={text => setForm(current => ({ ...current, displayNames: current.displayNames.map((existing, i) => ((i === index) ? { ...existing, text } : existing)) }))}
+                                onChange={text => setForm(current => ({ ...current, displayNames: current.displayNames.with(index, { ...current.displayNames[index], text }) }))}
                                 maxCharacters={VARIABLE_LEADERBOARD_MAX_OVERRIDE_LENGTH}
                             />
                         </WiredSimpleList>

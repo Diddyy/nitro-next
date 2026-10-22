@@ -17,6 +17,8 @@
  * while the new direction turns them, and each merged source only while its section is on
  * (`isInputSourceDisabled`).
  */
+import { clamp } from '#base/utils/clamp';
+
 import type { WiredSubVariableParam } from '../../common/SubVariableParam';
 import { finalizePickerSelection, setPickerTarget } from '../../common/WiredVariablePickerModel';
 import { createValueOrVariableState, type WiredValueOrVariableState } from '../../common/WiredVariableSections';
@@ -94,7 +96,7 @@ export const projectileAddon: WiredElementDefinition<ProjectileAddonForm> = {
             animationTime: createValueOrVariableState(variables, triggerable.variableIds[0] ?? '', getWiredInt(triggerable, 5), getWiredInt(triggerable, 3), getWiredInt(triggerable, 4)),
             distanceAxes: [ getWiredBoolean(triggerable, 6), getWiredBoolean(triggerable, 7), getWiredBoolean(triggerable, 8) ],
             speedIncrease: getWiredInt(triggerable, 9),
-            rotationOffset: Math.min(PROJECTILE_ROTATION_OFFSET_MAX, Math.max(0, getWiredInt(triggerable, 10))),
+            rotationOffset: clamp(getWiredInt(triggerable, 10), 0, PROJECTILE_ROTATION_OFFSET_MAX),
             internalVariables: getWiredInt(triggerable, 11),
             changeShooterDirection: getWiredBoolean(triggerable, 12),
             bunnyHop: getWiredBoolean(triggerable, 13),

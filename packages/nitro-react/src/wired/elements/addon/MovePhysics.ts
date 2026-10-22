@@ -6,23 +6,17 @@
  * Int params: `[ keep altitude, through furni, through users, blocked by furni ]`, each 0 or 1.
  * The input sources are titled `...title.physics.<id>`.
  */
-import type { WiredElementDefinition } from '../../WiredElement';
-import { getWiredBoolean } from '../../WiredTriggerable';
+import { flagsElement, type WiredElementDefinition, type WiredFlagsForm } from '../../WiredElement';
 import { AddonCodes } from './addonCodes';
 
 /** The checkboxes' ids, `movephysics.<key>` captions in this order. */
 export const MOVE_PHYSICS_OPTIONS = [ 'keep_altitude', 'move_through_furni', 'move_through_users', 'block_by_furni' ];
 
-export interface MovePhysicsAddonForm {
-    /** One flag per `MOVE_PHYSICS_OPTIONS` entry. */
-    options: boolean[];
-}
+/** One flag per `MOVE_PHYSICS_OPTIONS` entry. */
+export type MovePhysicsAddonForm = WiredFlagsForm;
 
 export const movePhysicsAddon: WiredElementDefinition<MovePhysicsAddonForm> = {
-    holder: 'addon',
-    code: AddonCodes.MOVE_PHYSICS,
-    createForm: triggerable => ({ options: MOVE_PHYSICS_OPTIONS.map((_, index) => getWiredBoolean(triggerable, index)) }),
-    readIntParams: form => form.options.map(selected => (selected ? 1 : 0)),
+    ...flagsElement('addon', AddonCodes.MOVE_PHYSICS, MOVE_PHYSICS_OPTIONS),
     furniSelectionTitle: id => `wiredfurni.params.sources.furni.title.physics.${id}`,
     userSelectionTitle: id => `wiredfurni.params.sources.users.title.physics.${id}`,
 };

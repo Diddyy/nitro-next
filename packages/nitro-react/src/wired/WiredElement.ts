@@ -21,7 +21,7 @@
 import type { IWiredVariable } from '@nitrodevco/nitro-packets';
 import type { FC } from 'react';
 
-import type { WiredTriggerable } from './WiredTriggerable';
+import { getWiredBoolean, type WiredTriggerable } from './WiredTriggerable';
 
 /** `§_-L1T§.getKey()` - which of the six element holders a box belongs to. */
 export type WiredHolderKey = 'trigger' | 'action' | 'condition' | 'addon' | 'selector' | 'variable';
@@ -182,6 +182,26 @@ export interface WiredElementEntry {
 
 /** An element with no params and no inputs (`INPUTS_TYPE_NONE`): its holder and code, and an empty form. */
 export const noInputElement = (holder: WiredHolderKey, code: number): WiredElementDefinition<Record<string, never>> => ({ holder, code, createForm: () => ({}) });
+
+/** The form of an element whose int params are its checkboxes (`createCheckboxGroup`) only: one flag per checkbox, in order. */
+export interface WiredFlagsForm {
+    flags: boolean[];
+}
+
+/**
+ * An element whose int params are one flag per checkbox and nothing else: `onEditStart` ticks
+ * each of `checkboxes` whose int param is 1, `readIntParamsFromForm` puts the Booleans in the int
+ * array, which the packet writes as 1 / 0. The element adds whatever else it has.
+ */
+export const flagsElement = (holder: WiredHolderKey, code: number, checkboxes: readonly unknown[]): WiredElementDefinition<WiredFlagsForm> => ({
+    holder,
+    code,
+    createForm: triggerable => ({ flags: checkboxes.map((_, index) => getWiredBoolean(triggerable, index)) }),
+    readIntParams: form => form.flags.map(flag => (flag ? 1 : 0)),
+});
+
+/** A flags form with checkbox `index` ticked or unticked. */
+export const setWiredFlag = <F extends WiredFlagsForm>(form: F, index: number, flag: boolean): F => ({ ...form, flags: form.flags.with(index, flag) });
 
 /** Pairs a definition with its view and erases the form type for the registry. */
 export const defineWiredElement = <F>(definition: WiredElementDefinition<F>, View?: WiredElementView<F>): WiredElementEntry => ({

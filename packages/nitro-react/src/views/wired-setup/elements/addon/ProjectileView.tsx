@@ -178,7 +178,7 @@ export const ProjectileView: WiredElementView<ProjectileAddonForm> = ({ form, se
                                 <WiredSection title="${wiredfurni.params.projectile.distance_options}">
                                     <WiredCheckboxGroup
                                         options={DISTANCE_AXES.map((axis, index) => ({ id: index, label: `\${wiredfurni.params.projectile.distance_${axis}}`, selected: form.distanceAxes[index] }))}
-                                        onToggle={(id, selected) => setForm(current => ({ ...current, distanceAxes: current.distanceAxes.map((old, index) => ((index === id) ? selected : old)) }))}
+                                        onToggle={(id, selected) => setForm(current => ({ ...current, distanceAxes: current.distanceAxes.with(id, selected) }))}
                                     />
                                 </WiredSection>
                                 <WiredSection title="${wiredfurni.params.projectile.increase_speed.title}">
