@@ -2,6 +2,7 @@
 export * from './assetBundles';
 export * from './avatarEditorParts';
 export * from './badgeLocalization';
+export * from './callPageFunction';
 export * from './catalogBundleDiscount';
 export * from './catalogOffers';
 export * from './catalogPets';

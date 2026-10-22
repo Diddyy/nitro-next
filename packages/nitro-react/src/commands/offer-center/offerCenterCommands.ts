@@ -20,6 +20,7 @@ import { NitroLogger } from '@nitrodevco/nitro-api';
 
 import { OFFER_PROVIDERS, offerCenterStore, OfferProviderName } from '#base/context/offer-center';
 import { configBoolean, configString, systemStore } from '#base/context/system';
+import { callPageFunction } from '#base/utils';
 
 /** `SponsorPayProvider`'s `SponsorPay.loadIntegration` argument: `offers.sponsorpay.appid`. */
 const getSponsorPayAppId = (): string => {
@@ -38,25 +39,6 @@ const sponsorPayEnabled = (): boolean => (getSponsorPayAppId() !== '') && extern
 /** `IOfferProvider.enabled`. */
 export const isOfferProviderEnabled = (provider: OfferProviderName): boolean => ((provider === 'supersonic') ? supersonicEnabled() : sponsorPayEnabled());
 
-/**
- * `ExternalInterface.call(name, ...args)`: the page's function at that dotted path, called on its
- * owner. A path that does not resolve to a function throws, as the call would on a page without
- * the provider's script.
- */
-const callExternal = (path: string, ...args: unknown[]): unknown => {
-    let owner: unknown = globalThis;
-    let value: unknown = globalThis;
-
-    for (const part of path.split('.')) {
-        owner = value;
-        value = ((value !== null) && (value !== undefined)) ? Reflect.get(Object(value), part) : undefined;
-    }
-
-    if (typeof value !== 'function') throw new Error(`${path} is not a function`);
-
-    return Reflect.apply(value, owner, args);
-};
-
 /** `OfferCenter.updateVideoStatus`: the first enabled provider with a video, told to the extension. */
 export const updateOfferVideoStatus = () => {
     const state = offerCenterStore.getState();
@@ -70,7 +52,7 @@ const loadSupersonic = () => {
     if (!supersonicEnabled() || offerCenterStore.getState().supersonic.loaded) return;
 
     try {
-        callExternal('supersonicAdsLoadCampaigns');
+        callPageFunction('supersonicAdsLoadCampaigns');
         offerCenterStore.getState().setSupersonic({ loaded: true });
     } catch (error) {
         NitroLogger.log(`External interface not working. Could not call supersonicAdsLoadCampaigns: ${error}`);
@@ -86,7 +68,7 @@ export const onSponsorPayLoaded = () => {
     setSponsorPay({ videoAvailable: false });
 
     try {
-        if (externalInterfaceAvailable()) callExternal('SponsorPay.backgroundLoad');
+        if (externalInterfaceAvailable()) callPageFunction('SponsorPay.backgroundLoad');
         else NitroLogger.log('External interface not available. Could not call SponsorPay.backgroundLoad.');
     } catch (error) {
         NitroLogger.log(`External interface not working. Could not call SponsorPay.backgroundLoad: ${error}`);
@@ -104,7 +86,7 @@ const loadSponsorPay = () => {
     if (!sponsorPayEnabled()) return;
 
     try {
-        callExternal('SponsorPay.loadIntegration', getSponsorPayAppId());
+        callPageFunction('SponsorPay.loadIntegration', getSponsorPayAppId());
         offerCenterStore.getState().setSponsorPay({ loaded: true });
     } catch (error) {
         NitroLogger.log(`External interface not working. Could not call SponsorPay.loadIntegration: ${error}`);
@@ -140,7 +122,7 @@ export const onSponsorPayClose = () => {
     offerCenterStore.getState().setSponsorPay({ showingPopup: false });
 
     try {
-        if (externalInterfaceAvailable()) callExternal('SponsorPay.backgroundLoad');
+        if (externalInterfaceAvailable()) callPageFunction('SponsorPay.backgroundLoad');
         else NitroLogger.log('External interface not available. Could not call SponsorPay.backgroundLoad.');
     } catch (error) {
         NitroLogger.log(`External interface not working. Could not call SponsorPay.backgroundLoad: ${error}`);
@@ -161,7 +143,7 @@ export const showOfferVideo = () => {
         if (!supersonicEnabled() || (supersonic.offerCount <= 0)) return;
 
         try {
-            callExternal('supersonicAdsCamapaignEngage');
+            callPageFunction('supersonicAdsCamapaignEngage');
             setSupersonic({ offerCount: supersonic.offerCount - 1 });
         } catch (error) {
             NitroLogger.log(`External interface not working. Could not call supersonicAdsCamapaignEngage: ${error}`);
@@ -174,7 +156,7 @@ export const showOfferVideo = () => {
         if (!sponsorPay.loaded || !sponsorPayEnabled()) return;
 
         try {
-            callExternal('SponsorPay.showVideo');
+            callPageFunction('SponsorPay.showVideo');
             setSponsorPay({ showingPopup: true, videoShown: sponsorPay.videoShown + 1 });
             updateOfferVideoStatus();
         } catch (error) {

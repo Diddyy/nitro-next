@@ -30,25 +30,12 @@ import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { configBoolean, systemStore } from '#base/context/system';
-import { ChatLagTracker, FramerateTracker, getTimer, LagWarningLogger, PerformanceEnvironment, PerformanceTracker } from '#base/utils';
+import { ChatLagTracker, FramerateTracker, getTimer, LagWarningLogger, PerformanceEnvironment, PerformanceTracker, tryCallPageFunction } from '#base/utils';
 
 declare const __NITRO_BUILD__: string | undefined;
 
-type FlashExternalInterface = Record<string, ((...args: unknown[]) => unknown) | undefined>;
-
 /** `HabboTracking.onRoomAction`: the `ClientPerformance` report this long after a room engine came up. */
 const ROOM_PERFORMANCE_DELAY = 60000;
-
-/** `ExternalInterface.call("FlashExternalInterface.<name>", ...)`: the page's function, when it has one. */
-const callFlashExternalInterface = (name: string, ...args: unknown[]) => {
-    try {
-        const page = (window as unknown as { FlashExternalInterface?: FlashExternalInterface }).FlashExternalInterface;
-
-        page?.[name]?.(...args);
-    } catch {
-        // Flash swallows what the page throws.
-    }
-};
 
 /** `GarbageMonitor` over one weakly held `GarbageTester`: true once the browser has collected it, and a new one is held. */
 const createGarbageMonitor = () => {
@@ -90,14 +77,14 @@ let chatLag = new ChatLagTracker();
 const onceTrackedEvents = new Set<string>();
 
 /** `trackGoogle(category, action, value)`: the page's `track`. */
-export const trackGoogle = (category: string, action: string, value: number = -1) => callFlashExternalInterface('track', category, action, value);
+export const trackGoogle = (category: string, action: string, value: number = -1) => tryCallPageFunction('FlashExternalInterface.track', category, action, value);
 
 /** `trackLoginStep(step, data)`: the page's `logLoginStep`, only with `processlog.enabled`. */
 export const trackLoginStep = (step: string, data?: string) => {
     if (!configBoolean('processlog.enabled')) return;
 
-    if (data !== undefined) callFlashExternalInterface('logLoginStep', step, data);
-    else callFlashExternalInterface('logLoginStep', step);
+    if (data !== undefined) tryCallPageFunction('FlashExternalInterface.logLoginStep', step, data);
+    else tryCallPageFunction('FlashExternalInterface.logLoginStep', step);
 };
 
 /** `trackEventLog(category, type, action, extraString, extraInt)`: an `EventLog`, only while connected. */

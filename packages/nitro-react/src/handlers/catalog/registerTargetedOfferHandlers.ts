@@ -27,6 +27,7 @@ import { GetNextTargetedOfferComposer, TargetedOfferEventMessage, TargetedOfferN
 import { maximizeTargetedOffer, minimizeTargetedOffer, onHabboMallOffer } from '#base/commands';
 import { Send, WebSocketConnection } from '#base/context/communication';
 import { createHabboMallOffer, createTargetedOffer, TARGETED_OFFER_STATE_MINIMIZED } from '#base/context/targeted-offers';
+import { tryCallPageFunction } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
 
@@ -45,9 +46,7 @@ const startMallOfferHelper = (send: Send) => {
     // `onShopOfferFailed`.
     Reflect.set(globalThis, MALL_OFFER_FAILED_CALLBACK, () => {});
 
-    const page = Reflect.get(globalThis, 'TargetedWebOffer') as { checkOffer?: unknown } | undefined;
-
-    if (typeof page?.checkOffer === 'function') (page.checkOffer as () => unknown).call(page);
+    tryCallPageFunction('TargetedWebOffer.checkOffer');
 };
 
 /** `MallOfferExternalInterfaceHelper.dispose`. */
