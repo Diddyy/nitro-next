@@ -14,11 +14,11 @@
  */
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Ticker } from 'pixi.js';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { findTemplateChild, TemplateWindow, useTemplate } from '#base/theme';
 
-import { createHabbiconProgress, getHabbiconProgressWidths, isHabbiconProgressSettled, setHabbiconProgressTarget, snapHabbiconProgress, stepHabbiconProgress } from './habbiconProgressAnimation';
+import { HabbiconProgressBar, habbiconProgressWidths } from './habbiconProgressAnimation';
 import { HABBICON_VIEW_TEMPLATE } from './habbiconTemplate';
 
 export interface HabbiconProgressBarViewProps {
@@ -30,32 +30,43 @@ export interface HabbiconProgressBarViewProps {
 }
 
 export const HabbiconProgressBarView = ({ part, ratio, animate, resetKey }: HabbiconProgressBarViewProps) => {
-    const [ anim, setAnim ] = useState(() => createHabbiconProgress(ratio));
-    const [ shown, setShown ] = useState({ ratio, resetKey });
+    const [ bar ] = useState(() => new HabbiconProgressBar(ratio));
+    // What the bar shows, published after each change: the bar itself is mutable.
+    const [ drawn, setDrawn ] = useState(() => ({ value: bar.value, color: bar.color, updating: bar.isUpdating }));
+    const shown = useRef({ ratio, resetKey });
+    const publish = useCallback(() => setDrawn({ value: bar.value, color: bar.color, updating: bar.isUpdating }), [ bar ]);
 
-    if ((shown.ratio !== ratio) || (shown.resetKey !== resetKey)) {
-        const snap = (shown.resetKey !== resetKey) || !animate;
+    useLayoutEffect(() => {
+        const last = shown.current;
 
-        setShown({ ratio, resetKey });
-        setAnim(previous => (snap ? snapHabbiconProgress(previous, ratio) : setHabbiconProgressTarget(previous, ratio)));
-    }
+        if ((last.ratio === ratio) && (last.resetKey === resetKey)) return;
 
-    const settled = isHabbiconProgressSettled(anim);
+        shown.current = { ratio, resetKey };
+
+        if ((last.resetKey !== resetKey) || !animate) bar.snap(ratio);
+        else bar.setTarget(ratio);
+
+        publish();
+    }, [ ratio, resetKey, animate, bar, publish ]);
+
     // `_maxWidth = _container.width`: the bar's width in the layout.
     const template = useTemplate(HABBICON_VIEW_TEMPLATE);
-    const widths = getHabbiconProgressWidths(anim, (template && findTemplateChild(template.elements, part)?.width) ?? 0);
+    const widths = habbiconProgressWidths(drawn.value, (template && findTemplateChild(template.elements, part)?.width) ?? 0);
 
     useEffect(() => {
-        if (settled) return;
+        if (!drawn.updating) return;
 
-        const update = (ticker: Ticker) => setAnim(previous => stepHabbiconProgress(previous, ticker.deltaMS));
+        const update = (ticker: Ticker) => {
+            bar.update(ticker.deltaMS);
+            publish();
+        };
 
         GetTicker().add(update);
 
         return () => {
             GetTicker().remove(update);
         };
-    }, [ settled ]);
+    }, [ drawn.updating, bar, publish ]);
 
     return (
         <TemplateWindow
@@ -64,7 +75,7 @@ export const HabbiconProgressBarView = ({ part, ratio, animate, resetKey }: Habb
             bindings={{
                 // `render`.
                 progress: { visible: widths.progress > 0 },
-                fill: { color: anim.colorValue },
+                fill: { color: drawn.color },
             }}
             arrange={({ find }) => {
                 find('progress')?.setWidth(widths.progress);
