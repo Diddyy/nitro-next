@@ -16,6 +16,7 @@ import { ClientModuleApi, ClientModuleDispose, ClientModulePacketValue } from '.
 import { getClientModuleLibraries } from './clientModuleLibraries';
 
 let nextOverlayKey = 1;
+let nextIllustrationKey = 1;
 
 export const createClientModuleApi = (connection: WebSocketConnection, moduleKey: string, baseUrl: string): { api: ClientModuleApi; dispose: () => void } => {
     const store = clientModulesStore.getState();
@@ -209,6 +210,13 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
                 }
 
                 notificationStore.getState().addNotification(text, 'info', options.image ?? '', options.link, { template: { id: registered.template, height: registered.height } });
+            },
+            setIllustration: (resolve) => {
+                const key = nextIllustrationKey++;
+
+                store.addAlertIllustration({ moduleKey, key, resolve });
+
+                return track(() => clientModulesStore.getState().removeAlertIllustration(key));
             },
         },
     };

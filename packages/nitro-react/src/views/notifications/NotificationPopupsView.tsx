@@ -1,4 +1,5 @@
 import { isNotificationEventLink, notificationEventLink, openClientLink } from '#base/commands';
+import { useAlertIllustration } from '#base/context/client-modules';
 import { useWebSocketContext } from '#base/context/communication';
 import { NOTIFICATION_ASSETS, NotificationAssetName, NotificationPopupItem, useNotificationActions, useNotificationStore } from '#base/context/notifications';
 import { useInterpolate } from '#base/context/system';
@@ -56,6 +57,8 @@ const NotificationPopupView = ({ popup }: { popup: NotificationPopupItem }) => {
     const hasLink = popup.linkUrl !== undefined;
     const isEventLink = isNotificationEventLink(popup.linkUrl);
     const linkTitle = interpolate(popup.linkTitle ?? popup.linkUrl ?? '');
+    // A client module may give the popup another picture (`notifications.setIllustration`).
+    const illustration = useAlertIllustration({ kind: 'popup', caption: interpolate(popup.title), message: interpolate(popup.message), illustration: illustrationSource(popup.image) });
 
     return (
         <ModalDialog>
@@ -64,7 +67,7 @@ const NotificationPopupView = ({ popup }: { popup: NotificationPopupItem }) => {
                 frame={frame}
                 bindings={{
                     '': { caption: interpolate(popup.title), ...(popup.critical ? { color: CRITICAL_COLOR } : {}) },
-                    illustration: { asset: illustrationSource(popup.image) },
+                    illustration: { asset: illustration ?? '' },
                     message: { caption: interpolate(popup.message) },
                     action: {
                         visible: hasLink && isEventLink,

@@ -1,4 +1,5 @@
 import { openClientLink } from '#base/commands';
+import { useAlertIllustration } from '#base/context/client-modules';
 import { useWebSocketContext } from '#base/context/communication';
 import { SystemMessageDialog, SystemSimpleAlertDialog, useSystemStore, useWindowActions } from '#base/context/system';
 import { ModalDialog, TemplateWindow, useTemplateFrame } from '#base/theme';
@@ -46,6 +47,8 @@ const SystemSimpleAlertView = ({ dialog }: { dialog: SystemSimpleAlertDialog }) 
     const { send } = useWebSocketContext();
     const linkUrl = dialog.linkUrl ?? '';
     const hasLink = !!dialog.linkTitle && (!!linkUrl || !!dialog.onLink);
+    // A client module may give the alert another picture (`notifications.setIllustration`).
+    const illustration = useAlertIllustration({ kind: 'alert', caption: dialog.caption, message: dialog.message, illustration: dialog.illustration });
 
     const close = () => {
         closeDialog(dialog.id);
@@ -76,7 +79,7 @@ const SystemSimpleAlertView = ({ dialog }: { dialog: SystemSimpleAlertDialog }) 
             message={dialog.message}
             linkTitle={hasLink ? dialog.linkTitle : undefined}
             onLink={followLink}
-            illustration={dialog.illustration}
+            illustration={illustration}
             onClose={close}
         />
     );

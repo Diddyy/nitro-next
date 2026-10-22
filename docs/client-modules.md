@@ -63,6 +63,7 @@ need no import: the client registers them, and a module names them as JSX intrin
 | `sounds.play(id)` | A sample of the client's sound manager |
 | `room.avatarOverlay(render)` | `render({ roomIndex, userId, name, isOwnUser })` is drawn above each user's head every frame, under the windows |
 | `notifications.registerLayout(name, { template, height })`, `notifications.add(name, text, { image?, link? })` | A bubble in the client's notification stack drawn from a template of the bundles |
+| `notifications.setIllustration(resolve)` | The picture of every simple alert and notification popup, open or yet to open: `resolve({ kind, caption, message, illustration })` is shown each (`kind` `alert` or `popup`, `illustration` an asset name or URL, `undefined` for none) and answers another, or `undefined` to leave it; hooks run in the order they were set. The dialogs themselves are never rewritten, so taking the hook out puts the client's picture back |
 
 Every `register`/`add`/`handle` returns a function that takes that one thing out; whatever a module
 added is taken out by the client when it stops, so `deactivate` only undoes what the module did
