@@ -47,7 +47,7 @@ import {
     groupMessengerEntries, MESSENGER_ENTRY_INFO, MESSENGER_ENTRY_INVITATION, MESSENGER_ENTRY_NOTIFICATION, MESSENGER_ENTRY_OTHER, MESSENGER_ENTRY_OWN, MESSENGER_ITEM_WIDTH_INSET,
     MESSENGER_NO_CONVERSATION, MESSENGER_NOTIFICATION_ICON_WIDTH, MessengerChatEntry, MessengerConversation, useMessengerActions, useMessengerStore,
 } from '#base/context/messenger';
-import { useConfigBoolean, useConfigValue } from '#base/context/system';
+import { useConfigBoolean, useGroupBadgeImageUrl } from '#base/context/system';
 import { useFriends, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
 import { Box, findTemplateChild, getGlobalRect, Template, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { HabbiconPickerLook, HabbiconPickerView } from '#base/views/habbicons/HabbiconPickerView';
@@ -141,7 +141,7 @@ export const MessengerView = () => {
     const ownFigure = useOwnUserFigure();
     const ownGender = useOwnUserGender();
     const ownName = useUserStore(x => x.name);
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const [ frameSize, setFrameSize ] = useState<{ width: number; height: number } | null>(null);
     const frame = useTemplateFrame({ id: 'messenger', defaultPosition: { x: 120, y: 120 }, resizeDirection: 'all', onResize: setFrameSize, onClose: hideMessenger, closeButtonVariant: '102' });
     const habbiconsEnabled = useConfigBoolean('habbicons.enabled');
@@ -193,7 +193,7 @@ export const MessengerView = () => {
                         </Box>
                     ),
                 },
-                group_badge_image: { visible: !friend, asset: friend ? undefined : groupBadgeUrl.replace('%badgedata%', conversation.figure) },
+                group_badge_image: { visible: !friend, asset: friend ? undefined : groupBadgeUrl(conversation.figure) },
                 chat_indicator: { visible: conversation.unread },
                 avatar_click_region: { tooltip: conversation.name, onPointerTap: () => selectMessengerConversation(send, conversation.chatId) },
             },

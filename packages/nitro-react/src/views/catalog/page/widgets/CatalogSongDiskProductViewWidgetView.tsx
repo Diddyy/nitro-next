@@ -6,7 +6,7 @@ import { playSongDiskPreview, requestOfficialSongId, requestSongInfoWithoutSampl
 import { CatalogWidgetEventEnum, useCatalogStore } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoomStore } from '#base/context/room';
-import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgeImageUrl, useConfigData, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent, useFurnitureImageTexture } from '#base/hooks';
 import { ThemeImage, useTemplateLibrary } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
@@ -65,7 +65,7 @@ export const CatalogSongDiskProductViewWidgetView = ({ page }: CatalogWidgetProp
     const applyQuantityWidgets = useProductQuantityWidgets(page);
     const templates = useTemplateLibrary(CATALOG_LIBRARY);
     const config = useConfigData();
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
     const officialSongIds = useCatalogStore(x => x.officialSongIds);
     const songInfoById = useRoomStore(x => x.songInfoById);
     const { send } = useWebSocketContext();

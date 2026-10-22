@@ -1,4 +1,4 @@
-import { useConfigValue } from '#base/context/system';
+import { useGroupBadgeImageUrl } from '#base/context/system';
 import { BoxLayout, Region, useTextureFromUrl } from '#base/theme';
 
 /**
@@ -17,8 +17,8 @@ export interface GroupBadgeImageProps {
 }
 
 export const GroupBadgeImage = ({ badgeCode, zoom = 1, tooltip, onPress, layout }: GroupBadgeImageProps) => {
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
-    const texture = useTextureFromUrl(badgeCode?.length ? groupBadgeUrl.replace('%badgedata%', badgeCode) : undefined);
+    const groupBadgeUrl = useGroupBadgeImageUrl();
+    const texture = useTextureFromUrl(badgeCode?.length ? groupBadgeUrl(badgeCode) : undefined);
 
     return (
         <Region

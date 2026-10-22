@@ -28,7 +28,7 @@ import {
     GROUP_MANAGEMENT_VIEW_BADGE, GROUP_MANAGEMENT_VIEW_COLORS, GROUP_MANAGEMENT_VIEW_CONFIRM, GROUP_MANAGEMENT_VIEW_IDENTITY, GROUP_MANAGEMENT_VIEW_SETTINGS,
     GroupManagementSession, GUILD_RIGHTS_ADMINS, GUILD_RIGHTS_MEMBERS, limitGroupManagementStep,
 } from '#base/context/groups';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useGroupBadgeImageUrl, useTranslation } from '#base/context/system';
 import { TemplateBindings, TemplateWindow, TemplateWindows, useTemplateFrame, useTemplateLibrary } from '#base/theme';
 
 import { GroupBadgePreview } from './GroupBadgePreview';
@@ -96,7 +96,7 @@ export const GroupManagementView = ({
     onGuildType, onRightsLevel, onBuy, onBuyClub,
 }: GroupManagementViewProps) => {
     const t = useTranslation();
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const templates = useTemplateLibrary(LIBRARY);
     const frame = useTemplateFrame({ id: 'groups_main_window', centered: true, rememberPosition: false, onClose });
     const badgeEditor = useGroupBadgeEditorItem(templates, session.layers, editorData, pickingLayerIndex, { onPickPart, onSelectPart, onPosition, onColor: onLayerColor });
@@ -158,7 +158,7 @@ export const GroupManagementView = ({
 
         // Identity.
         step_1_badge: { visible: exists },
-        group_logo: { asset: (exists && session.badgeCode) ? groupBadgeUrl.replace('%badgedata%', session.badgeCode) : undefined },
+        group_logo: { asset: (exists && session.badgeCode) ? groupBadgeUrl(session.badgeCode) : undefined },
         step_1_members_region: { visible: exists, onPointerTap: onMembers },
         step_1_members_txt: { caption: t('group.membercount', '', { totalMembers: String(session.membershipCount) }) },
         name_txt: { caption: session.name, onChange: onName },

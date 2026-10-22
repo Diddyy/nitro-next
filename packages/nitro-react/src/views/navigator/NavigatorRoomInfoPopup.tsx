@@ -46,7 +46,7 @@ import { reportRoom } from '#base/commands/help/helpCommands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
 import { useNavigatorStore } from '#base/context/navigator';
-import { useConfigBoolean, useConfigValue, useHomeRoomId, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useGroupBadgeImageUrl, useHomeRoomId, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useUserStore } from '#base/context/user';
 import { Box, ClientPointToStage, findTemplateChild, FloatingPopup, TemplateBindings, TemplateItem, TemplateWindow, useLatest, useLayoutSize, useTemplate } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
@@ -133,7 +133,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
     const groupDetails = useGroupStore(x => ((room.groupId > 0) ? x.detailsById[room.groupId] : undefined));
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const rankingEnabled = useConfigBoolean('room.ranking.enabled');
     const roomReportEnabled = useConfigBoolean('room.report.enabled');
     const officialThumbnailsInAmazon = useConfigBoolean('new.navigator.official.room.thumbnails.in.amazon');
@@ -202,7 +202,7 @@ export const NavigatorRoomInfoPopup = ({ room, x, y, serial, onClose }: Navigato
         room_name: { caption: room.name },
         room_desc: { caption: room.description },
         room_thumbnail: { asset: thumbnail },
-        room_group_badge: hasGroup ? { visible: true, asset: groupBadgeUrl.replace('%badgedata%', room.groupBadge) } : { visible: false },
+        room_group_badge: hasGroup ? { visible: true, asset: groupBadgeUrl(room.groupBadge) } : { visible: false },
 
         room_group_owner_container: { visible: hasGroup || room.showOwner },
         room_owner_region: {

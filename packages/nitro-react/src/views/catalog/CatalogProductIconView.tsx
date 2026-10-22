@@ -24,7 +24,7 @@ import { AvatarGenderType, FurnitureTypeEnum, IProduct, RoomGeometryScaleType } 
 
 import { GetChatStyleLibrary } from '#base/chat';
 import { useHabbiconPreview } from '#base/context/habbicons';
-import { useConfigValue } from '#base/context/system';
+import { useBadgeImageUrl, useConfigValue } from '#base/context/system';
 import { useFurnitureImageTexture } from '#base/hooks';
 import { Region, ThemeImage, useAvatarImageTexture } from '#base/theme';
 
@@ -96,7 +96,7 @@ const HabbiconIcon = ({ habbiconId, box }: { habbiconId: number; box: IconBox })
 
 export const CatalogProductIconView = ({ product, width = 36, height = 36, guildStuffData }: CatalogProductIconViewProps) => {
     const catalogAssetUrl = useConfigValue<string>('catalog.asset.url') ?? '';
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
     const box: IconBox = { position: 'absolute', left: 0, width, top: 0, height };
 
     const icon = () => {
@@ -120,7 +120,7 @@ export const CatalogProductIconView = ({ product, width = 36, height = 36, guild
             case FurnitureTypeEnum.HabboClub:
                 return SUBSCRIPTION_PRODUCT_ICON;
             case FurnitureTypeEnum.Badge:
-                return badgeUrl.replace('%badgename%', product.extraParam);
+                return badgeUrl(product.extraParam);
             case FurnitureTypeEnum.Robot:
                 return (
                     <RobotIcon

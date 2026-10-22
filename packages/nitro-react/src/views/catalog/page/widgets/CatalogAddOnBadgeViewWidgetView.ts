@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { CatalogWidgetEventEnum } from '#base/context/catalog';
-import { useConfigValue } from '#base/context/system';
+import { useBadgeImageUrl } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
@@ -15,7 +15,7 @@ import { useCatalogWidgetView } from '../catalogWidgetView';
  */
 export const CatalogAddOnBadgeViewWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ badgeCode, setBadgeCode ] = useState('');
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
 
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.SELECT_PRODUCT, (event) => {
         if (event.offer.badgeCode) setBadgeCode(event.offer.badgeCode);
@@ -24,7 +24,7 @@ export const CatalogAddOnBadgeViewWidgetView = ({ page }: CatalogWidgetProps) =>
     useCatalogWidgetView({
         template: 'addOnBadgeViewWidget',
         bindings: {
-            badge: (badgeCode.length > 0) ? { asset: badgeUrl.replace('%badgename%', badgeCode) } : {},
+            badge: (badgeCode.length > 0) ? { asset: badgeUrl(badgeCode) } : {},
         },
     });
 

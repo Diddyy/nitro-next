@@ -6,7 +6,7 @@
  * containers sized to what was added, stacked by `moveAllChildrenToColumn(content, 0, 4)`, and the
  * frame `getLowestPoint(content) + 45` high.
  */
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 
 import { pickAchievement, pickAchievementCategory } from '#base/commands';
 import type { AchievementCategory } from '#base/context/achievements';
@@ -15,7 +15,7 @@ import {
     selectedAchievement, totalProgress, useAchievementsActions, useAchievementsStore,
 } from '#base/context/achievements';
 import { useWebSocketContext } from '#base/context/communication';
-import { useBadgePointLimits, useConfigData, useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgeImageUrl, useBadgePointLimits, useConfigData, useTranslation } from '#base/context/system';
 import { useWiredStore } from '#base/context/wired';
 import { useViewportSize } from '#base/hooks';
 import { LayoutWindow, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
@@ -83,7 +83,6 @@ const categoryTilePosition = (index: number) => ({
 export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
     const t = useTranslation();
     const config = useConfigData();
-    const badgeAssetUrl = useConfigValue<string>('badge.asset.url') ?? '';
     const badgeLimits = useBadgePointLimits();
     const categories = useAchievementsStore(x => x.categories);
     const categoryCode = useAchievementsStore(x => x.category);
@@ -97,7 +96,7 @@ export const AchievementsView = ({ onClose }: { onClose: () => void }) => {
     const [ hover, setHover ] = useState(NO_HOVER);
     // `prepareWindow`: `_window.center(); _window.y = 20`, once.
     const frame = useTemplateFrame({ id: 'achievements', defaultPosition: { x: Math.round((viewport.width - WINDOW_WIDTH) / 2), y: 20 }, onClose });
-    const badgeUrl = useCallback((code: string) => badgeAssetUrl.replace('%badgename%', code), [ badgeAssetUrl ]);
+    const badgeUrl = useBadgeImageUrl();
 
     // `onAchievements` opens the window once the list is in.
     if (!categories) return null;

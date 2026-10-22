@@ -18,7 +18,7 @@ import { useState } from 'react';
 import { closeGroupForumSettings, openClientLink, updateGroupForumSettings } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { GroupForumSettings } from '#base/context/groups';
-import { useConfigValue } from '#base/context/system';
+import { useGroupBadgeImageUrl } from '#base/context/system';
 import { GetDesktopSize, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 
 const TEMPLATE = 'habbo-friend-bar-com/groupforum_forum_settings_xml';
@@ -47,7 +47,7 @@ const chain = (wanted: Choices): Choices => {
 
 export const GroupForumSettingsView = ({ settings }: { settings: GroupForumSettings }) => {
     const { send } = useWebSocketContext();
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const forum = settings.forum;
     const position = { x: Math.max(0, Math.min(settings.x, GetDesktopSize().width - WINDOW_WIDTH)), y: settings.y };
     const frame = useTemplateFrame({ id: 'group_forum_settings', defaultPosition: position, rememberPosition: false, resizeDirection: 'y', onClose: closeGroupForumSettings });
@@ -72,7 +72,7 @@ export const GroupForumSettingsView = ({ settings }: { settings: GroupForumSetti
 
     const all = Array.from({ length: OPTIONS }, (_, option) => option);
     const bindings: TemplateBindings = {
-        group_icon: { visible: true, asset: groupBadgeUrl.replace('%badgedata%', forum.icon) },
+        group_icon: { visible: true, asset: groupBadgeUrl(forum.icon) },
         top_header_text: { caption: forum.name },
         top_text: { caption: forum.description },
         top_click_area: { onPointerTap: () => openClientLink(send, `group/${forum.groupId}`) },

@@ -8,7 +8,7 @@ import { requestSelectedItemToMover } from '#base/commands';
 import { AvatarImage, RoomPreviewer, RoomPreviewerHandle } from '#base/components';
 import { getCatalogPageImage, getCatalogPageText, useCatalogStoreApi } from '#base/context/catalog';
 import { useHabbiconPreview } from '#base/context/habbicons';
-import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgeImageUrl, useConfigData, useConfigValue, useTranslation } from '#base/context/system';
 import { ROOM_PREVIEWER_OBJECT_ID } from '#base/hooks';
 import { Box, Region, ThemeImage, useLayoutSize, useTemplateLibrary } from '#base/theme';
 import { getOfferProduct } from '#base/utils';
@@ -177,7 +177,7 @@ export const CatalogProductViewWidgetView = ({ page, tags }: CatalogWidgetProps)
     const store = useCatalogStoreApi();
     const templates = useTemplateLibrary(CATALOG_LIBRARY);
     const config = useConfigData();
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
     const t = useTranslation();
     const roomCanvasEnabled = !tags.includes('NO_ROOM_CANVAS');
     const zoom = useProductPreviewZoom();

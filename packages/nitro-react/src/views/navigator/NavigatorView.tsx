@@ -37,7 +37,7 @@ import { useEffect, useState } from 'react';
 import { addNavigatorSavedSearch, collapseNavigatorCategory, deleteNavigatorSavedSearch, expandNavigatorCategory, goBackNavigatorSearch, goToPrivateRoom, goToPromotedRoom, openClientLink, performNavigatorSearch, refreshNavigatorSearch, requestRoomGroupDetails, setNavigatorViewMode } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { NAVIGATOR_FILTER_TYPES, splitNavigatorFilter, useNavigatorActions, useNavigatorOpeningGeometry, useNavigatorStore } from '#base/context/navigator';
-import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigValue, useGroupBadgeImageUrl, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
 import { getGlobalRect, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
@@ -138,7 +138,7 @@ export const NavigatorView = () => {
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const thumbnailsInAmazon = useConfigValue<boolean | string>('new.navigator.official.room.thumbnails.in.amazon');
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const { hide } = useWindowVisibility('navigator');
     const { showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
@@ -264,7 +264,7 @@ export const NavigatorView = () => {
             from: 'navigator_entry_tile',
             bindings: {
                 ...commonEntryBindings(room, true),
-                room_group_badge: room.groupBadge !== '' ? { visible: true, asset: groupBadgeUrl.replace('%badgedata%', room.groupBadge) } : {},
+                room_group_badge: room.groupBadge !== '' ? { visible: true, asset: groupBadgeUrl(room.groupBadge) } : {},
                 room_pic_placeholder: { asset: room.officialRoomPicRef ? officialBase + room.officialRoomPicRef : `${thumbnailUrlBase}${room.roomId}.png` },
             },
         };

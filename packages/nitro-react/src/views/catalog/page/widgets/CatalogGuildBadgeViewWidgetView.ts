@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { CatalogWidgetEventEnum } from '#base/context/catalog';
-import { useConfigValue } from '#base/context/system';
+import { useGroupBadgeImageUrl } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
@@ -15,14 +15,14 @@ import { useCatalogWidgetView } from '../catalogWidgetView';
  */
 export const CatalogGuildBadgeViewWidgetView = ({ page }: CatalogWidgetProps) => {
     const [ badgeCode, setBadgeCode ] = useState('');
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
 
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.GUILD_SELECTED, event => setBadgeCode(event.badgeCode));
 
     useCatalogWidgetView({
         template: 'guildBadgeViewWidget',
         bindings: {
-            badge: { asset: (badgeCode.length > 0) ? groupBadgeUrl.replace('%badgedata%', badgeCode) : '' },
+            badge: { asset: (badgeCode.length > 0) ? groupBadgeUrl(badgeCode) : '' },
         },
     });
 

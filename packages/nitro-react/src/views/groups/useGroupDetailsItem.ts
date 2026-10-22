@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { canDeleteAnyGroup, deleteGroup, goToGroupBaseRoom, joinGroup, leaveGroup, openGroupForum, openGroupFurniCatalog, openGroupManagement, showGroupBases, toggleGroupMembers } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useGroupStore } from '#base/context/groups';
-import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
+import { useConfigBoolean, useGroupBadgeImageUrl, useTranslation } from '#base/context/system';
 import { findTemplateChild, measureTemplateText, TemplateElement, TemplateItem, templateTextMargins, TemplateWindows, useTemplate } from '#base/theme';
 
 /** `GroupDetailsCtrl`'s step down the link column, from `pending_members_region`. */
@@ -50,7 +50,7 @@ export const useGroupDetailsItem = (groupId: number): TemplateItem | undefined =
     const groupDeletionEnabled = useConfigBoolean('group.deletion.enabled');
     const { send } = useWebSocketContext();
     const template = useTemplate('habbo-groups-com/group');
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const t = useTranslation();
     // `onJoin` disables the button and every `onGroupDetails` enables it, so the next answer brings it back.
     const [ joinSentFor, setJoinSentFor ] = useState<IHabboGroupDetails | undefined>(undefined);
@@ -105,7 +105,7 @@ export const useGroupDetailsItem = (groupId: number): TemplateItem | undefined =
             group_room_link: { caption: t('group.linktobase', '', { room_name: details.roomName }) },
             buy_furni_link_region: { onPointerTap: openGroupFurniCatalog },
             show_groups_link_region: { onPointerTap: () => showGroupBases(send) },
-            group_logo: { asset: details.badgeCode ? groupBadgeUrl.replace('%badgedata%', details.badgeCode) : undefined },
+            group_logo: { asset: details.badgeCode ? groupBadgeUrl(details.badgeCode) : undefined },
             join_button: {
                 visible: isGuildJoiningAllowed(details),
                 disabled: joinSentFor === details,

@@ -41,7 +41,7 @@ import { reportGroupForumMessage, reportGroupForumThread } from '#base/commands/
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import { GroupForumView as GroupForumViewState, useGroupStore } from '#base/context/groups';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useGroupBadgeImageUrl, useTranslation } from '#base/context/system';
 import { escapeMarkup, findLayoutChildByName, LayoutWindow, Template, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
@@ -166,7 +166,7 @@ const listRows = (list: LayoutWindow | undefined): LayoutWindow[] => {
 export const GroupForumView = () => {
     const view = useGroupStore(x => x.forumView);
     const unreadForumsCount = useGroupStore(x => x.unreadForumsCount);
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const t = useTranslation();
     const { send } = useWebSocketContext();
     const forumItem = useTemplate(FORUM_ITEM);
@@ -201,7 +201,7 @@ export const GroupForumView = () => {
     if (!view || !forumItem || !threadItem || !messageItem) return null;
 
     const ago = (seconds: number) => GetFriendlyTime(t, seconds, '.ago', 1);
-    const badge = (code: string) => groupBadgeUrl.replace('%badgedata%', code);
+    const badge = (code: string) => groupBadgeUrl(code);
     const forum = (view.kind === 'forums') ? undefined : view.forum;
 
     // `openForumsList` / `openThreadList` / `openMessagesList`: the page and the number of pages.

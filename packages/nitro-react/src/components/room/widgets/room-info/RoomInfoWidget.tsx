@@ -7,7 +7,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useNavigatorActions, useNavigatorStore } from '#base/context/navigator';
 import { useRaidProtectionStore } from '#base/context/raid-protection';
 import { useOwnControllerLevel } from '#base/context/room';
-import { useConfigBoolean, useConfigValue, useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
+import { useConfigBoolean, useConfigValue, useGroupBadgeImageUrl, useHomeRoomId, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
 import { ClientGates, PerkCodes, useClientGate, useOwnPerkAllowed } from '#base/context/user';
 import { forgetTextureUrl } from '#base/theme';
 import { RoomInfoView } from '#base/views/room-widgets/room-info/RoomInfoView';
@@ -49,7 +49,7 @@ export const RoomInfoWidget = () => {
     const raidProtectionEnabled = useConfigBoolean('raid.protection.enabled');
     const showEmbed = useConfigBoolean('embed.showInRoomInfo');
     const roomReportEnabled = useConfigBoolean('room.report.enabled');
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const userHash = useConfigValue<string>('user.hash') ?? '';
     const thumbnailCameraAllowed = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);
     const t = useTranslation();
@@ -88,7 +88,7 @@ export const RoomInfoWidget = () => {
             showEmbed={showEmbed}
             groupId={currentRoomInfo.groupId}
             groupName={currentRoomInfo.groupName}
-            groupBadgeUrl={currentRoomInfo.groupBadge.length ? groupBadgeUrl.replace('%badgedata%', currentRoomInfo.groupBadge) : ''}
+            groupBadgeUrl={currentRoomInfo.groupBadge.length ? groupBadgeUrl(currentRoomInfo.groupBadge) : ''}
             // `GuildInfoCtrl.onGuildInfo`.
             onGroupInfo={() => openGroupInfo(send, currentRoomInfo.groupId)}
             // `getEmbedData`: a guest room's `roomType`, the user's hash and the room id.

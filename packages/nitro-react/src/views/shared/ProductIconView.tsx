@@ -19,7 +19,7 @@
 import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 
 import { useHabbiconPreview } from '#base/context/habbicons';
-import { useConfigData, useInterpolate } from '#base/context/system';
+import { useBadgeImageUrl, useConfigData } from '#base/context/system';
 import { Region, TemplateBindings, TemplateWindow, TemplateWindows, themeIconFrame, ThemeImage } from '#base/theme';
 import { getCurrencyIconStyle } from '#base/utils';
 
@@ -109,7 +109,7 @@ export interface ProductIconViewProps {
 
 export const ProductIconView = ({ productTypeId, itemTypeId, extraParams }: ProductIconViewProps) => {
     const config = useConfigData();
-    const interpolate = useInterpolate();
+    const badgeImageUrl = useBadgeImageUrl();
     const id = parseInt(itemTypeId, 10);
     const iconStyle = (productTypeId === PRODUCT_CURRENCY) ? getCurrencyIconStyle(id, config, true) : 0;
     const bindings: TemplateBindings = {};
@@ -126,7 +126,7 @@ export const ProductIconView = ({ productTypeId, itemTypeId, extraParams }: Prod
             bindings.bitmap = { asset: GetRoomEngine().getFurnitureFloorIconUrl(id) ?? '' };
             break;
         case PRODUCT_BADGE:
-            bindings.badge_image_widget = { visible: true, asset: interpolate('${badge.asset.url}').replace('%badgename%', itemTypeId) };
+            bindings.badge_image_widget = { visible: true, asset: badgeImageUrl(itemTypeId) };
             break;
         case PRODUCT_CURRENCY:
             bindings.icon = { visible: iconStyle > 0, style: String(iconStyle) };

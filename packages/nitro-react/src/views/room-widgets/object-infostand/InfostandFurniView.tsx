@@ -1,7 +1,7 @@
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
 import { useState } from 'react';
 
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useGroupBadgeImageUrl, useTranslation } from '#base/context/system';
 import { useFurnitureImageTexture } from '#base/hooks';
 import { findTemplateChild, LayoutImage, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useTemplate } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
@@ -138,7 +138,7 @@ export interface InfostandFurniViewProps {
  */
 export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWiredInspect, canRecolor, onRecolor, canLabelSettings, onLabelSettings, pickupMode, canSaveBranding, buttonsVisible, onMove, onRotate, onPickup, onUse, onWiredInspect, onPlaceMore, onBuy, onRent, onExtend, onBuyout, onOpenOwner, onOpenGroup, onSaveBranding, onSetCustomVariables, onClose }: InfostandFurniViewProps) => {
     const t = useTranslation();
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const { texture, height } = useFurnitureImageTexture(details.className, details.colorIndex, 2, RoomGeometryScaleType.ZoomedIn);
     const template = useTemplate(VARIANT_TEMPLATES[details.variant]);
     const brandingTemplate = useTemplate(BRANDING_ELEMENT_TEMPLATE);
@@ -250,7 +250,7 @@ export const InfostandFurniView = ({ details, canMove, canRotate, canUse, canWir
         // `showGroupInfo`: the badge and the name show once the group's details are in.
         group_details_spacer: { visible: !!details.group },
         group_details_container: { visible: !!details.group, onPointerTap: onOpenGroup },
-        group_badge_image: { visible: !!details.group?.badge.length, asset: details.group?.badge.length ? groupBadgeUrl.replace('%badgedata%', details.group.badge) : undefined },
+        group_badge_image: { visible: !!details.group?.badge.length, asset: details.group?.badge.length ? groupBadgeUrl(details.group.badge) : undefined },
         group_name: { visible: !!details.group?.name.length, caption: details.group?.name ?? '' },
         // `set expiration`: your own running rental.
         expiration_text: {

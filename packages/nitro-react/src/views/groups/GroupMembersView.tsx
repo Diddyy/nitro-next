@@ -27,7 +27,7 @@ import { IGuildMemberData, IMemberData, isGuildMemberAdmin, isGuildMemberBlocked
 import { useState } from 'react';
 
 import { groupMemberPageCount, limitGroupMemberPage } from '#base/context/groups';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useGroupBadgeImageUrl, useTranslation } from '#base/context/system';
 import { TemplateBindings, TemplateItem, TemplateWindow, useTemplate, useTemplateFrame } from '#base/theme';
 import { AvatarImageWidgetHead } from '#base/views/shared/AvatarImageWidgetHead';
 
@@ -74,7 +74,7 @@ export const GroupMembersView = ({
     members, filterText, searching, ownUserId, blockingEnabled, onClose, onFilterTextChange, onSearchType, onPage, onProfile, onAction, onRemove, onBlock,
 }: GroupMembersViewProps) => {
     const t = useTranslation();
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const entryTemplate = useTemplate('habbo-groups-com/member_entry');
     const frame = useTemplateFrame({ id: 'guild_members_window', centered: true, rememberPosition: false, onClose });
     // `InfoText`: the hint stays until the field is focused, or the answer names a filter.
@@ -194,7 +194,7 @@ export const GroupMembersView = ({
             frame={frame}
             parameters={{ 'group.members.title': { groupName: members.groupName } }}
             bindings={{
-                group_logo: { asset: members.badgeCode ? groupBadgeUrl.replace('%badgedata%', members.badgeCode) : undefined },
+                group_logo: { asset: members.badgeCode ? groupBadgeUrl(members.badgeCode) : undefined },
                 filter_members_input: {
                     caption: filterInfo ? t('group.members.searchinfo') : filterText,
                     onFocus: () => {

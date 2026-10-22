@@ -286,7 +286,7 @@ await test('handler list never opens a window, transition waits 2000ms, room exi
         '#base/context/inventory': { inventoryStore: { getState: () => ({ updateBadge: badge => badges.push(badge), removeBadge: code => removed.push(code) }) } },
         '#base/context/notifications': { notificationStore: { getState: () => ({ addNotification: (...args) => notifications.push(args) }) } },
         '#base/context/room': { roomStore: room },
-        '#base/context/system': { systemStore: { getState: () => system } },
+        '#base/context/system': { systemStore: { getState: () => system }, badgeImageUrl: code => String(system.config['badge.asset.url'] ?? '').replace('%badgename%', code) },
         '#base/utils': { getBadgeName: (_t, code) => code, getBadgeBaseAndLevel: code => ({ base: code.replace(/\d+$/, ''), level: 1 }) },
         '../packetSubscriptions': { on: (packet, handler) => ({ packet, handler }), subscribeAll: (subscribe, subscriptions) => {
             const stops = subscriptions.map(({ packet, handler }) => subscribe(packet, handler));

@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from 'react';
 import { closeGroupForumCompose, getGroupForumSinceLastPost, GROUP_FORUM_MESSAGE_MAX_LENGTH, GROUP_FORUM_SUBJECT_MAX_LENGTH, openClientLink, postGroupForumMessage, postGroupForumThread } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { GROUP_FORUM_POST_COOLDOWN_MS, GroupForumCompose, useGroupActions } from '#base/context/groups';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useGroupBadgeImageUrl, useTranslation } from '#base/context/system';
 import { GetDesktopSize, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
@@ -42,7 +42,7 @@ export const GroupForumComposeView = ({ compose }: { compose: GroupForumCompose 
     const t = useTranslation();
     const { send } = useWebSocketContext();
     const { setForumCompose } = useGroupActions();
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const position = { x: Math.max(0, Math.min(compose.x, GetDesktopSize().width - WINDOW_WIDTH)), y: compose.y };
     const frame = useTemplateFrame({ id: 'group_forum_compose', defaultPosition: position, rememberPosition: false, resizeDirection: 'all', onClose: closeGroupForumCompose });
     const forum: IExtendedForumData = compose.forum;
@@ -149,7 +149,7 @@ export const GroupForumComposeView = ({ compose }: { compose: GroupForumCompose 
     };
 
     const bindings: TemplateBindings = {
-        group_icon: { visible: true, asset: groupBadgeUrl.replace('%badgedata%', forum.icon) },
+        group_icon: { visible: true, asset: groupBadgeUrl(forum.icon) },
         top_header_text: { caption: forum.name },
         top_text: { caption: forum.description },
         top_click_area: { onPointerTap: () => openClientLink(send, `group/${forum.groupId}`) },

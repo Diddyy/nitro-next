@@ -21,7 +21,7 @@ import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 
 import { RoomPreviewer } from '#base/components/room/RoomPreviewer';
 import { CollectiblePreview } from '#base/context/collectibles';
-import { useConfigValue } from '#base/context/system';
+import { useBadgeImageUrl } from '#base/context/system';
 import { useChatStyle, useCollectiblePetTexture, useFurnitureImageTexture } from '#base/hooks';
 import { BoxLayout, LayoutImage, Region, ThemeImage, useAvatarImageTexture, useTextureFromUrl } from '#base/theme';
 
@@ -97,8 +97,8 @@ const ChatStyleSelectorPreview = ({ styleId, rect }: { styleId: number; rect: Co
 
 /** `badge_image_widget`: the badge's image from `badge.asset.url`, zoomed and centred. */
 const BadgePreview = ({ badgeCode, slot }: { badgeCode: string; slot: NonNullable<CollectiblesPreviewSlots['badge']> }) => {
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
-    const texture = useTextureFromUrl(badgeCode.length ? badgeUrl.replace('%badgename%', badgeCode) : undefined);
+    const badgeUrl = useBadgeImageUrl();
+    const texture = useTextureFromUrl(badgeCode.length ? badgeUrl(badgeCode) : undefined);
 
     if (!texture) return null;
 

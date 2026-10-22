@@ -25,7 +25,7 @@ export const ninjaEffectBundled = (offer: IPurchasableOffer) => ((offer.products
  * behaviour of Sulake's own JavaScript client; the AS3 client's cast of that widget to a static
  * bitmap throws there instead. `hideExtraFromProduct` otherwise.
  */
-export const productExtraItem = (templates: Record<string, Template>, offer: IPurchasableOffer, badgeUrl: string): TemplateItem | undefined => {
+export const productExtraItem = (templates: Record<string, Template>, offer: IPurchasableOffer, badgeUrl: (code: string) => string): TemplateItem | undefined => {
     let bindings: TemplateBindings;
     let width = 42;
     let top = false;
@@ -33,7 +33,7 @@ export const productExtraItem = (templates: Record<string, Template>, offer: IPu
     if (offer.badgeCode) {
         bindings = {
             asset_image: { asset: 'habbo-window-manager-com-catalogue_badge_background' },
-            badge_image: { visible: true, asset: badgeUrl.replace('%badgename%', offer.badgeCode) },
+            badge_image: { visible: true, asset: badgeUrl(offer.badgeCode) },
             chat_style: { visible: false },
         };
     } else if (offer.extraChatStyleCode) {

@@ -27,7 +27,7 @@ import { GetRoomEngine } from '@nitrodevco/nitro-renderer';
 import { showModerationDisclaimer, showNotification } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
-import { systemStore, translate as t } from '#base/context/system';
+import { badgeImageUrl, systemStore, translate as t } from '#base/context/system';
 import { LayoutImage } from '#base/theme';
 import { getBadgeName } from '#base/utils';
 
@@ -40,11 +40,7 @@ const FRANK_NEUTRAL = 'habbo-window-manager-com-illumina_alert_illustrations_fra
 const badgeName = (code: string) => getBadgeName(systemStore.getState().getLocalizationValue, code);
 
 /** The badge image `SessionDataManager.requestBadgeImage` fetched, as a URL the bubble can show. */
-const badgeImage = (code: string) => {
-    const url = systemStore.getState().config['badge.asset.url'];
-
-    return (typeof url === 'string') ? url.replace('%badgename%', code) : undefined;
-};
+const badgeImage = (code: string) => badgeImageUrl(code) || undefined;
 
 /** `PetImageUtility.getPetImage`'s figure: type, palette and the colour its hex string names (`parseInt(color, 16)`). */
 const petImage = ({ typeId, paletteId, color }: IPetFigureData) => ({ typeId, paletteId, color: parseInt(color, 16) || 0 });

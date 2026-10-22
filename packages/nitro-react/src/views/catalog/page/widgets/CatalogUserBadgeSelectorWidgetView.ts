@@ -5,7 +5,7 @@ import { requestInventoryBadgesIfEmpty } from '#base/commands';
 import { CatalogWidgetEventEnum } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { useInventoryStore } from '#base/context/inventory';
-import { useBadgePointLimits, useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgeImageUrl, useBadgePointLimits, useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
 import { useTemplateLibrary } from '#base/theme';
 import { getBadgeDesc, getBadgeName } from '#base/utils';
@@ -59,7 +59,7 @@ export const CatalogUserBadgeSelectorWidgetView = ({ page }: CatalogWidgetProps)
     const [ searchText, setSearchText ] = useState('');
     const [ selectedBadge, setSelectedBadge ] = useState<string | undefined>(undefined);
     const excludedBadges = useConfigValue<string>('badge.display.excluded.badgeCodes') ?? '';
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
     const templates = useTemplateLibrary(CATALOG_LIBRARY);
     const badgeCodes = useInventoryStore(x => x.badgeCodes);
     const { send } = useWebSocketContext();
@@ -135,7 +135,7 @@ export const CatalogUserBadgeSelectorWidgetView = ({ page }: CatalogWidgetProps)
                                 '': { onPointerTap: () => selectBadge(code) },
                                 // `setBadgeGridItemSelectionBg`.
                                 bg: { style: (code === currentBadge) ? '0' : '2' },
-                                badgeWidget: { asset: badgeUrl.replace('%badgename%', code) },
+                                badgeWidget: { asset: badgeUrl(code) },
                             },
                         }))
                     : [],

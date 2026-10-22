@@ -12,7 +12,7 @@
 import { IHabboGroupDetails, isGuildJoiningAllowed, isGuildMembershipRequestAllowed } from '@nitrodevco/nitro-packets';
 import { useState } from 'react';
 
-import { useConfigValue } from '#base/context/system';
+import { useGroupBadgeImageUrl } from '#base/context/system';
 import { Box, TemplateWindow, TemplateWindows } from '#base/theme';
 
 export interface GroupRoomInfoViewProps {
@@ -26,7 +26,7 @@ export interface GroupRoomInfoViewProps {
 }
 
 export const GroupRoomInfoView = ({ details, expanded, onToggle, onInfo, onJoin, onManage }: GroupRoomInfoViewProps) => {
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const groupBadgeUrl = useGroupBadgeImageUrl();
 
     // `onJoin` disables the button and every `refresh` enables it, so a new details answer brings it back.
     const [ joinSentFor, setJoinSentFor ] = useState<IHabboGroupDetails | undefined>(undefined);
@@ -52,7 +52,7 @@ export const GroupRoomInfoView = ({ details, expanded, onToggle, onInfo, onJoin,
                     title_region: { onPointerTap: onToggle },
                     info_region: { visible: expanded, onPointerTap: onInfo },
                     group_name_txt: { visible: expanded, caption: details.groupName },
-                    group_logo: { visible: expanded, asset: details.badgeCode ? groupBadgeUrl.replace('%badgedata%', details.badgeCode) : undefined },
+                    group_logo: { visible: expanded, asset: details.badgeCode ? groupBadgeUrl(details.badgeCode) : undefined },
                     join_button: {
                         visible: expanded && isGuildJoiningAllowed(details),
                         disabled: joinSentFor === details,

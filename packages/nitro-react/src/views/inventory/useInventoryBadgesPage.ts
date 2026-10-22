@@ -36,7 +36,7 @@ import {
     getInventoryBadgeRarityIds, getInventoryBadges, INVENTORY_BADGE_FILTER_ACHIEVEMENTS, INVENTORY_BADGE_FILTER_ALL, INVENTORY_BADGE_FILTER_NORMAL, INVENTORY_BADGE_RARITY_ALL, INVENTORY_BADGE_RARITY_COMMON, INVENTORY_BADGES_ACTIVE,
     INVENTORY_BADGES_INACTIVE, INVENTORY_MAX_ACTIVE_BADGES, InventoryBadge, isInventoryBadgeRarityFilterEnabled, passInventoryBadgeFilter, useInventoryBadgesActions, useInventoryStore,
 } from '#base/context/inventory';
-import { useBadgePointLimits, useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgeImageUrl, useBadgePointLimits, useConfigBoolean, useTranslation } from '#base/context/system';
 import { TemplateItem } from '#base/theme';
 import { getBadgeDesc, getBadgeName, shouldShowBadgeOwnerCount } from '#base/utils';
 
@@ -58,7 +58,7 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
     const selectedBadgeCode = useInventoryStore(x => x.selectedBadgeCode);
     const thumbLooks = useInventoryStore(x => x.badgeThumbLooks);
     const { selectBadge, markBadgeThumbWindows } = useInventoryBadgesActions();
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
     // `BadgesModel.isUncommonBadgeRarityEnabled`: without it the uncommon tier is shown as common.
     const uncommonRarityEnabled = useConfigBoolean('badge_rarity.uncommon');
     const [ kindFilter, setKindFilter ] = useState(INVENTORY_BADGE_FILTER_ALL);
@@ -152,7 +152,7 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
             '': { onPointerTap: () => selectBadge(badge.code) },
             // `set isSelected`'s look once it has reached this thumb; the layout's own until then.
             ...(thumbLooks[badge.code] ? inventoryThumbLook(thumbLooks[badge.code].selected, thumbLooks[badge.code].unseen) : {}),
-            badge: { visible: true, asset: badgeUrl.replace('%badgename%', badge.code) },
+            badge: { visible: true, asset: badgeUrl(badge.code) },
         },
     };
 
@@ -205,7 +205,7 @@ export const useInventoryBadgesPage = ({ active, templates }: InventoryPageConte
             },
             [page('active_items')]: { items: activeBadges.map(badgeThumb).filter(item => !!item) },
 
-            [page('badge_image')]: { visible: !!selectedBadge, asset: selectedBadge ? badgeUrl.replace('%badgename%', selectedBadge.code) : '' },
+            [page('badge_image')]: { visible: !!selectedBadge, asset: selectedBadge ? badgeUrl(selectedBadge.code) : '' },
             [page('badgeName')]: { caption: selectedBadge ? getBadgeName(t, selectedBadge.code) : '' },
             [page('badgeDescription')]: { visible: description !== '', caption: description },
             // `setBadgeRarityDetail`: the tag on the rarity's colour, its text twice for the two blends -

@@ -14,7 +14,7 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useState } from 'react';
 
-import { useConfigValue } from '#base/context/system';
+import { useBadgeImageUrl, useGroupBadgeImageUrl } from '#base/context/system';
 import { BoxLayout, getGlobalRect, GlobalRect, Region } from '#base/theme';
 import { BadgeDetailsPopup } from '#base/views/shared/BadgeDetailsPopup';
 import { BadgeGlowImage } from '#base/views/shared/BadgeGlowImage';
@@ -41,15 +41,15 @@ export interface InfostandBadgeViewProps {
 }
 
 export const InfostandBadgeView = ({ code, group = false, ownerCount, rarityId, glowColor = -1, glowSignal, groupName, onPress, layout }: InfostandBadgeViewProps) => {
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const badgeDetails = useBadgeDetails();
     const [ anchor, setAnchor ] = useState<GlobalRect | null>(null);
     const [ hovers, setHovers ] = useState(0);
 
     const url = !code?.length
         ? undefined
-        : (group ? groupBadgeUrl.replace('%badgedata%', code) : badgeUrl.replace('%badgename%', code));
+        : (group ? groupBadgeUrl(code) : badgeUrl(code));
 
     // `showBadgeInfo` returns without a badge in the slot; `showGroupBadgeInfo` without a group.
     const hasDetails = group ? !!groupName : !!code?.length;

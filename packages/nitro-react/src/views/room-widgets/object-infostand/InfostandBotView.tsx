@@ -2,7 +2,7 @@ import { AvatarGenderType, ISimpleRoomObjectData } from '@nitrodevco/nitro-api';
 import { FederatedPointerEvent } from 'pixi.js';
 import { useState } from 'react';
 
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgeImageUrl, useTranslation } from '#base/context/system';
 import { FloatingPopup, getGlobalRect, TemplateBindings, TemplateWindow, TemplateWindows, useAvatarImageTexture } from '#base/theme';
 import { isHandItem } from '#base/utils';
 
@@ -71,14 +71,14 @@ const BADGE_DETAILS_HEIGHT = 25;
 
 export const InfostandBotView = ({ rentable, name, motto, figure, gender, ownerName, carryItem, canMove = false, canPickUp = false, onMove, onRotate, onPickUp, onClose }: InfostandBotViewProps) => {
     const t = useTranslation();
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
     const avatar = useAvatarImageTexture(figure, gender, { cropped: true, direction: 4 });
     const [ badgeDetails, setBadgeDetails ] = useState<{ x: number; y: number } | null>(null);
 
     // `setCarryItem`: the text and its spacer shown only for a real hand item.
     const carriesItem = isHandItem(carryItem);
     const handItemText = carriesItem ? t('infostand.text.handitem', '', { item: t(`handitem${carryItem}`, `handitem${carryItem}`) }) : '';
-    const botBadge = badgeUrl.replace('%badgename%', BOT_BADGE);
+    const botBadge = badgeUrl(BOT_BADGE);
 
     const avatarImage = avatar.texture && (
         <pixiSprite

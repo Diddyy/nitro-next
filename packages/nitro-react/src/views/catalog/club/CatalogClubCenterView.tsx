@@ -39,7 +39,7 @@ import { isClubKickbackEnabled, openClubCatalogPage, openClubHelpPage, removeClu
 import { useCatalogStore, useCatalogStoreApi } from '#base/context/catalog';
 import { useWebSocketContext } from '#base/context/communication';
 import { getOfferCenterShowingVideo, useOfferCenterStore } from '#base/context/offer-center';
-import { useConfigData, useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgeImageUrl, useConfigData, useTranslation } from '#base/context/system';
 import { useOwnClubSubscription, useOwnUserFigure, useOwnUserGender } from '#base/context/user';
 import { getGlobalRect, TemplateWindow, useAvatarImageTexture } from '#base/theme';
 import { CLUB_STATUS_ACTIVE, GetFriendlyTime, replaceFirst, resolveClubStatus } from '#base/utils';
@@ -72,7 +72,7 @@ export const CatalogClubCenterView = () => {
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();
     const config = useConfigData();
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
     const store = useCatalogStoreApi();
     const { send } = useWebSocketContext();
     const t = useTranslation();
@@ -157,7 +157,7 @@ export const CatalogClubCenterView = () => {
                     // `dataReceived`.
                     status_title: { caption: `\${hccenter.status.${status}}` },
                     status_info: { caption: statusInfo },
-                    hc_badge: { asset: (kickback && badgeId) ? badgeUrl.replace('%badgename%', badgeId) : '' },
+                    hc_badge: { asset: (kickback && badgeId) ? badgeUrl(badgeId) : '' },
                     btn_gift: { caption: giftsWaiting ? '${hccenter.btn.gifts.redeem}' : '${hccenter.btn.gifts.view}', onPointerTap: () => openClubCatalogPage('club_gifts') },
                     gift_info: { caption: giftInfo },
                     btn_buy: { caption: isActive ? '${hccenter.btn.extend}' : '${hccenter.btn.buy}', onPointerTap: () => openClubCatalogPage('hc_membership') },

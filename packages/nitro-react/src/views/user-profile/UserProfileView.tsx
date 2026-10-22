@@ -25,7 +25,7 @@ import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
 import { useState } from 'react';
 
 import { AvatarImage } from '#base/components/AvatarImage';
-import { useConfigValue, useTranslation } from '#base/context/system';
+import { useBadgeImageUrl, useGroupBadgeImageUrl, useTranslation } from '#base/context/system';
 import { Box, getGlobalRect, GlobalRect, TemplateBindings, TemplateItem, TemplateWindow, useTemplate, useTemplateFrame } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 import { useGroupDetailsItem } from '#base/views/groups/useGroupDetailsItem';
@@ -79,8 +79,8 @@ export const UserProfileView = ({
     onClose, onAddFriend, onRooms, onChangeLooks, onChangeBadges, onBadgeCount, onSelectGroup, onOpenProfile, onFindFriends, onToggleBlock, onShowGroups, onFavouriteGroup,
 }: UserProfileViewProps) => {
     const t = useTranslation();
-    const badgeUrl = useConfigValue<string>('badge.asset.url') ?? '';
-    const groupBadgeUrl = useConfigValue<string>('badge.asset.group.url') ?? '';
+    const badgeUrl = useBadgeImageUrl();
+    const groupBadgeUrl = useGroupBadgeImageUrl();
     const frame = useTemplateFrame({ id: 'user_profile', centered: true, onClose });
     const groupEntryTemplate = useTemplate('habbo-groups-com/group_entry');
     const noGroupsTemplate = useTemplate('habbo-groups-com/no_groups');
@@ -107,7 +107,7 @@ export const UserProfileView = ({
                 children: (
                     <Box layout={{ position: 'absolute', left: 0, top: 0, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }}>
                         <BadgeGlowImage
-                            url={badge ? badgeUrl.replace('%badgename%', badge.badgeCode) : undefined}
+                            url={badge ? badgeUrl(badge.badgeCode) : undefined}
                             glowColor={glowColorOf(badge?.badgeRarityId)}
                             glowSignal={(shown || hovers) ? `${shown}:${hovers}` : undefined}
                         />
@@ -171,7 +171,7 @@ export const UserProfileView = ({
                     bg_region: { onPointerTap: () => onSelectGroup(group.groupId) },
                     bg_selected_bitmap: { visible: group.groupId === selectedGroupId },
                     bg_unselected_bitmap: { visible: group.groupId !== selectedGroupId },
-                    group_pic_bitmap: { asset: group.badgeCode ? groupBadgeUrl.replace('%badgedata%', group.badgeCode) : undefined },
+                    group_pic_bitmap: { asset: group.badgeCode ? groupBadgeUrl(group.badgeCode) : undefined },
                     // `onClearFavourite` / `onMakeFavourite`: the group chosen; the new profile asks for its details.
                     clear_favourite: {
                         visible: group.favourite && isSelf,

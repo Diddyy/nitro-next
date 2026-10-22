@@ -6,7 +6,7 @@ import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 import { notificationStore } from '#base/context/notifications';
 import { roomStore } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { badgeImageUrl, systemStore } from '#base/context/system';
 import { getBadgeBaseAndLevel, getBadgeName } from '#base/utils';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -63,10 +63,9 @@ export const registerAchievementHandlers = ({ send, subscribe }: WebSocketConnec
             updateBadge({ badgeId: data.badgeId, badgeCode: data.badgeCode, ownerCount: data.ownerCount, badgeRarityId: data.badgeRarityId }, false);
             removeBadge(data.removedBadgeCode);
 
-            const { getLocalizationValue, config } = systemStore.getState();
+            const { getLocalizationValue } = systemStore.getState();
             const text = getLocalizationValue('notification.new.achievement', '', { achievement_name: getBadgeName(getLocalizationValue, data.badgeCode) });
-            const badgeUrl = config['badge.asset.url'];
-            const image = (typeof badgeUrl === 'string' ? badgeUrl : '').replace('%badgename%', data.badgeCode);
+            const image = badgeImageUrl(data.badgeCode);
 
             notificationStore.getState().addNotification(text, 'achievement', image || undefined, `questengine/achievements/${data.category}`);
         }),
