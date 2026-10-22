@@ -21,8 +21,5 @@ export const configString = (key: string): string => configReader(systemStore.ge
 /** Outside React: a user badge's image - `badge.asset.url` with `%badgename%` the badge code, `''` when unset. */
 export const badgeImageUrl = (code: string): string => configString('badge.asset.url').replace('%badgename%', code);
 
-/** Outside React: a group badge's image - `badge.asset.group.url` with `%badgedata%` the badge data string. */
-export const groupBadgeImageUrl = (code: string): string => configString('badge.asset.group.url').replace('%badgedata%', code);
-
 /** Outside React: a configuration number as Flash's `getInteger(key, fallback)` reads it. */
 export const configInteger = (key: string, fallback: number): number => configReader(systemStore.getState().config).configInteger(key, fallback);
