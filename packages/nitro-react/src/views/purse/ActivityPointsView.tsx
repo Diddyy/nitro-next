@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { useConfigData, useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
-import { Box, BoxLayout, TemplateWindow } from '#base/theme';
+import { Box, BoxLayout, TemplateWindow, TemplateWindows, themeIconFrame } from '#base/theme';
 import { configReader, getCurrencyIconStyle } from '#base/utils';
 
 /**
@@ -12,6 +12,7 @@ import { configReader, getCurrencyIconStyle } from '#base/utils';
  * (`HabboToolbar.initSeasonalCurrencyExtension`).
  *
  * `initializeCurrencyLayouts`: `seasonal_icon` the currency's big icon (`getIconStyleFor(type, true)`),
+ * fitted to its own size (`fitToSize`) and kept centred in the 23x23 box by its align params,
  * `seasonal_name` its name (`getActivityPointName`) in its `font` colour, and `seasonal_bg` its
  * `border` colour - the presets of `seasonalcurrency.<id>.color`, `id` being
  * `seasonalcurrency.id.<type>`. `setAmount`: the balance in `amount`, or the zero text underlined.
@@ -89,6 +90,18 @@ export const ActivityPointsView = ({ layout }: ActivityPointsViewProps) => {
                 // This hotel sets no `.font` presets; the official one's equal their `.border`s.
                 const font = configString(`seasonalcurrency.preset.${color}.font`) || border;
                 const amount = activityPoints[type] ?? 0;
+                const iconStyle = String(getCurrencyIconStyle(type, config, true));
+                // `fitToSize`: the icon takes its style's size; its `on_resize_align` center/middle
+                // params keep it centred where the layout's 23x23 box was.
+                const arrange = ({ find }: TemplateWindows) => {
+                    const icon = find('seasonal_icon');
+                    const frame = themeIconFrame(iconStyle);
+
+                    if (!icon || !frame) return;
+
+                    icon.setWidth(frame.width);
+                    icon.setHeight(frame.height);
+                };
 
                 return (
                     <Box
@@ -104,11 +117,12 @@ export const ActivityPointsView = ({ layout }: ActivityPointsViewProps) => {
                                     onPointerTap: () => showWindow('catalog', { pageName: configString('seasonalcurrencyindicator.page') }),
                                 },
                                 ...(bgColor !== undefined ? { '#BGCOLOR': { color: bgColor } } : {}),
-                                seasonal_icon: { style: String(getCurrencyIconStyle(type, config, true)) },
+                                seasonal_icon: { style: iconStyle },
                                 seasonal_name: { caption: t(nameKey, nameKey), ...(font ? { color: hexColor(font) & 0xffffff } : {}) },
                                 seasonal_bg: border ? { color: hexColor(border) } : {},
                                 amount: { caption: (amount !== 0) ? String(amount) : t('purse.snowflakes.zero.amount.text', 'Info'), underline: amount === 0 },
                             }}
+                            arrange={arrange}
                         />
                     </Box>
                 );
