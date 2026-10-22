@@ -192,8 +192,8 @@ export const NotificationsBubble = ({ item, frame, zIndex, onHover, onClick, onS
     const arrange = useMemo(() => {
         if (item.layout === 'friendonline') return arrangeFriendOnline;
 
-        return GROWS_WITH_TEXT.has(item.layout) ? growWithText(text) : undefined;
-    }, [ item.layout, text ]);
+        return (GROWS_WITH_TEXT.has(item.layout) || item.options.template) ? growWithText(text) : undefined;
+    }, [ item.layout, item.options.template, text ]);
 
     // A DOM-mode node is an element: see `useLayoutEvent`.
     useLayoutEvent(node, () => onMeasure(node?.layout?.computedLayout.height ?? 0));
@@ -271,7 +271,7 @@ export const NotificationsBubble = ({ item, frame, zIndex, onHover, onClick, onS
             layout={{ position: 'absolute', top: 0, right: NOTIFICATION_SIDE_MARGIN }}
         >
             <TemplateWindow
-                id={TEMPLATES[item.layout]}
+                id={item.options.template?.id ?? TEMPLATES[item.layout]}
                 bindings={bindings}
                 arrange={arrange}
             />

@@ -19,7 +19,7 @@ import { useCommunicationIncoming, useCommunicationOutgoing } from '#base/hooks/
 import { isPreviewHost } from '#base/utils';
 
 import { useConfigValue } from '../system';
-import { WebSocketContext } from './WebSocketContext';
+import { ExtensionPacket, WebSocketContext } from './WebSocketContext';
 
 type ProviderProps = {
     children: ReactNode;
@@ -41,8 +41,8 @@ const socketPort = (url: string) => {
 export const WebSocketContextProvider = ({ children }: ProviderProps) => {
     const phase = useRef<ConnectionPhase>('idle');
     const [ renderedPhase, setRenderedPhase ] = useState<ConnectionPhase>('idle');
-    const { incomingByHeader, incomingCtors, incomingHeaderByCtor, registerManyIncoming } = useCommunicationIncoming();
-    const { outgoingHeaderByComposerName, registerManyOutgoing } = useCommunicationOutgoing();
+    const { incomingByHeader, incomingCtors, incomingHeaderByCtor, registerIncoming, unregisterIncoming, registerManyIncoming } = useCommunicationIncoming();
+    const { outgoingByHeader, outgoingHeaderByComposerName, registerOutgoing, unregisterOutgoing, registerManyOutgoing } = useCommunicationOutgoing();
     const socketUrl = useConfigValue<string>('socket.url') ?? '';
     const production = useConfigValue<string>('production.version') ?? '';
     const ws = useRef<WebSocket | undefined>(undefined);
@@ -395,7 +395,33 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         sendRaw(...pendingClient);
     };
 
-    const state = { isAuthenticated: (renderedPhase === 'awaitingHandlers' || renderedPhase === 'ready'), isDisconnected: (renderedPhase === 'closed'), connect, send, subscribe, setReady };
+    /** A client module's packet: never over one the client already has, gone again with the module. */
+    const registerExtensionPacket = (packet: ExtensionPacket) => {
+        const { header } = packet;
+
+        if (packet.direction === 'incoming') {
+            if (incomingByHeader.current.has(header) || incomingCtors.current.has(packet.ctor)) return undefined;
+
+            registerIncoming(header, packet.ctor);
+
+            return () => {
+                if (incomingByHeader.current.get(header) !== packet.ctor) return;
+
+                listeners.current.delete(packet.ctor);
+                unregisterIncoming(header);
+            };
+        }
+
+        if (outgoingByHeader.current.has(header) || outgoingHeaderByComposerName.current.has(packet.ctor.name)) return undefined;
+
+        registerOutgoing(header, packet.ctor);
+
+        return () => {
+            if (outgoingByHeader.current.get(header) === packet.ctor) unregisterOutgoing(header);
+        };
+    };
+
+    const state = { isAuthenticated: (renderedPhase === 'awaitingHandlers' || renderedPhase === 'ready'), isDisconnected: (renderedPhase === 'closed'), connect, send, subscribe, setReady, registerExtensionPacket };
 
     useEffect(() => {
         registerManyIncoming(GetIncomingPackets());

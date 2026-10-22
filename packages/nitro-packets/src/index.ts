@@ -699,6 +699,7 @@ export * from './incoming/Talent/TalentTrackMessage';
 export * from './incoming/Tracking/LatencyPingResponseMessage';
 export * from './incoming/Turbo/ITurboCapability';
 export * from './incoming/Turbo/TurboBugReportRequestMessage';
+export * from './incoming/Turbo/TurboClientModulesMessage';
 export * from './incoming/Turbo/TurboCommandSuggestionsMessage';
 export * from './incoming/Turbo/TurboCommandTreeMessage';
 export * from './incoming/Turbo/TurboNoticeMessage';

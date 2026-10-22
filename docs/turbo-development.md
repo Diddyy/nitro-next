@@ -98,7 +98,7 @@ and the client never asks. An extension's packets are taken only once the server
 so a server using the same headers for something else cannot feed them in. Turbo's
 `docs/client-capabilities.md` owns the wire format.
 
-Two extensions so far. `chat.commands.v2` gives the chat input Turbo's command tree and its
+The first two. `chat.commands.v2` gives the chat input Turbo's command tree and its
 suggestions (`TurboCommandTreeMessage` 30002, `TurboCommandSuggestComposer` 30003,
 `TurboCommandSuggestionsMessage` 30004, into `UserChatCommandsSlice`). `permission.nodes`: Turbo sends the user's client-facing permission
 nodes (`TurboPermissionNodesMessage`, 30001) after `UserRights` and on every change, into
@@ -107,6 +107,9 @@ nodes (`TurboPermissionNodesMessage`, 30001) after `UserRights` and on every cha
 node when the store has nodes, and the Flash `hasSecurity` level otherwise. Add a new staff-only
 feature as a gate there, with the Flash level it ports and the Turbo node behind it - never as a
 bare `securityLevel` comparison - and register the node in Turbo with the same client level.
+
+`client.modules` names the JavaScript modules a server's plugins ship (`TurboClientModulesMessage`,
+30009), which the client loads and hands its module API: see [Client modules](client-modules.md).
 
 ## Verify the complete change
 

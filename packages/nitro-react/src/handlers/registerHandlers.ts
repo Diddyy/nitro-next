@@ -2,6 +2,7 @@ import { WebSocketConnection } from '#base/context/communication';
 
 import { registerAchievementHandlers } from './achievements';
 import { bridgeRecyclerRoomSession, registerCatalogRecyclerHandlers, registerCatalogRentHandlers, registerCatalogVoucherHandlers, registerTargetedOfferHandlers } from './catalog';
+import { registerClientModuleHandlers } from './client-modules';
 import { bridgeCollectiblesInventoryAndPurse, registerCollectiblesHandlers } from './collectibles';
 import { registerCursedDragonAdoptionHandlers } from './cursed-dragon-adoption';
 import { registerDailyTasksHandlers } from './daily-tasks';
@@ -103,6 +104,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         registerAlertDialogHandlers(socket),
         registerSingularNotificationHandlers(socket),
         registerUserInfoHandlers(socket),
+        // Turbo's `client.modules`, after the user info handlers that keep the accepted extensions.
+        registerClientModuleHandlers(socket),
         registerChatCommandHandlers(socket),
         registerUserSocialHandlers(socket),
         registerProfileHandlers(socket),

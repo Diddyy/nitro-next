@@ -33,6 +33,13 @@ const SUB_MENU_Z_INDEX = 80000;
 /** `getUnseenItemCounter`: the counter's right and top inset in its region. */
 const COUNTER_INSET = 5;
 
+/** The list by name, or by an `@N/@N` path from the root for an unnamed one (the me menu's). */
+const findList = (elements: readonly TemplateElement[], listName: string): TemplateElement | undefined => {
+    if (!listName.startsWith('@')) return findTemplateChild(elements, listName);
+
+    return listName.split('/').reduce<TemplateElement | undefined>((element, part) => element?.children[Number(part.slice(1))], elements[0]);
+};
+
 export interface ToolbarExtendedMenuItem {
     /** The region's name in the layout. */
     name: string;
@@ -49,7 +56,7 @@ export interface ToolbarExtendedMenuItem {
 interface ToolbarExtendedMenuProps {
     templateId: string;
     items: ToolbarExtendedMenuItem[];
-    /** The list the clones are added to (`menu_items`). */
+    /** The list the clones are added to (`menu_items`, or `@N/@N` for an unnamed one). */
     listName?: string;
     /** The window's height as its code sets it (`setGuideToolVisibility`). */
     height?: number;
@@ -60,7 +67,7 @@ export const ToolbarExtendedMenu = ({ templateId, items, listName, height, onClo
     const [ hovered, setHovered ] = useState<string | undefined>(undefined);
     const template = useTemplate(templateId);
     const clones = items.filter(item => item.from !== undefined);
-    const list = (listName !== undefined) && template ? findTemplateChild(template.elements, listName) : undefined;
+    const list = (listName !== undefined) && template ? findList(template.elements, listName) : undefined;
 
     /** A region's bindings, found in the region itself (`''`): its own, or a clone's. */
     const regionBindings = ({ name, visible, action, unseenCount, from = name, caption }: ToolbarExtendedMenuItem): TemplateBindings => {

@@ -438,6 +438,7 @@ import {
     TradingYouAreNotAllowedEventMessage,
     TraxSongInfoMessage,
     TurboBugReportRequestMessage,
+    TurboClientModulesMessage,
     TurboCommandSuggestionsMessage,
     TurboCommandTreeMessage,
     TurboNoticeMessage,
@@ -1126,5 +1127,6 @@ export const GetIncomingPackets = () => {
         [IncomingHeader.TurboStarterRoomCameraMessage]: TurboStarterRoomCameraMessage,
         [IncomingHeader.TurboNoticeMessage]: TurboNoticeMessage,
         [IncomingHeader.TurboStarterRoomPictureResultMessage]: TurboStarterRoomPictureResultMessage,
+        [IncomingHeader.TurboClientModulesMessage]: TurboClientModulesMessage,
     } as Record<number, IncomingPacketConstructor>;
 };

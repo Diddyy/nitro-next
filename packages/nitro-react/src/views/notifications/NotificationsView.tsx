@@ -96,7 +96,7 @@ export const NotificationsView = () => {
                     if (replaced) fadeOut(replaced);
                 }
 
-                list.push({ item, runtime: createRuntime(item.key, nextAvailablePosition(list, top), LAYOUT_HEIGHTS[item.layout]) });
+                list.push({ item, runtime: createRuntime(item.key, nextAvailablePosition(list, top), item.options.template?.height ?? LAYOUT_HEIGHTS[item.layout]) });
                 list.sort((a, b) => a.runtime.margin - b.runtime.margin);
 
                 bringWindowToFront(STACK_ID);
