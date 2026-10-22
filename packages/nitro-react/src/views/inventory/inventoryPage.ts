@@ -66,6 +66,14 @@ export const INVENTORY_GRID_PAGE_SIZE = 200;
 /** `pageCount`: `int(passed / 200 + 1)` - a full last page is followed by an empty one. */
 export const inventoryGridPageCount = (count: number) => Math.trunc((count / INVENTORY_GRID_PAGE_SIZE) + 1);
 
+/** `update` / `changeToPage`: the page count, the page shown (the current one, within them) and its thumbs. */
+export const inventoryGridPage = <T>(items: readonly T[], currentPage: number) => {
+    const pageCount = inventoryGridPageCount(items.length);
+    const shownPage = Math.max(0, Math.min(currentPage, pageCount - 1));
+
+    return { pageCount, shownPage, pageItems: items.slice(shownPage * INVENTORY_GRID_PAGE_SIZE, (shownPage + 1) * INVENTORY_GRID_PAGE_SIZE) };
+};
+
 /** `updatePaging` / `onPageEventProc`: the current or hovered page number's colour, and the others'. */
 const PAGE_COLOR_CURRENT = 16711680;
 const PAGE_COLOR = 0;
