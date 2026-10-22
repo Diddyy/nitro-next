@@ -11,24 +11,9 @@
  * itself rather than through `useRoomEventDispatcher`, which attaches its listener in an effect.
  */
 import { RoomEngineEvent } from '@nitrodevco/nitro-api';
-import { useCallback, useSyncExternalStore } from 'react';
 
-import { useRoom } from '#base/context/room';
+import { useRoomEventSnapshot } from './useRoomEventSnapshot';
 
 const ROOM_STATE_EVENTS = [ RoomEngineEvent.INITIALIZED, RoomEngineEvent.DISPOSED ];
 
-export const useRoomIsInitialized = () => {
-    const room = useRoom();
-
-    const subscribe = useCallback((onChange: () => void) => {
-        if (!room) return () => undefined;
-
-        for (const name of ROOM_STATE_EVENTS) room.eventDispatcher.addEventListener(name, onChange);
-
-        return () => {
-            for (const name of ROOM_STATE_EVENTS) room.eventDispatcher.removeEventListener(name, onChange);
-        };
-    }, [ room ]);
-
-    return useSyncExternalStore(subscribe, () => room?.isInitialized ?? false);
-};
+export const useRoomIsInitialized = () => useRoomEventSnapshot(ROOM_STATE_EVENTS, room => room?.isInitialized ?? false);

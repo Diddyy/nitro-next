@@ -7,6 +7,7 @@ export * from './useRoomCamera';
 export * from './useRoomCursorUpdate';
 export * from './useRoomEventDispatcher';
 export * from './useRoomEventHandler';
+export * from './useRoomEventSnapshot';
 export * from './useRoomFloorPlanDrawing';
 export * from './useRoomFramePlacement';
 export * from './useRoomFurnitureActionHandler';

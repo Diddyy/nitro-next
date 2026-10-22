@@ -11,26 +11,13 @@
  * compiler recomputes the read with it.
  */
 import { RoomObjectCategoryEnum, RoomRenderedEvent } from '@nitrodevco/nitro-api';
-import { useCallback, useSyncExternalStore } from 'react';
 
-import { useRoom } from '#base/context/room';
+import { useRoomEventSnapshot } from './useRoomEventSnapshot';
 
-export const useRoomObjectModelVersion = (objectId: number, category: RoomObjectCategoryEnum): string => {
-    const room = useRoom();
+const ROOM_RENDERED = [ RoomRenderedEvent.ROOM_RENDERED ];
 
-    const subscribe = useCallback((onChange: () => void) => {
-        if (!room) return () => undefined;
+export const useRoomObjectModelVersion = (objectId: number, category: RoomObjectCategoryEnum): string => useRoomEventSnapshot(ROOM_RENDERED, (room) => {
+    const roomObject = room?.getRoomObject(objectId, category);
 
-        room.eventDispatcher.addEventListener(RoomRenderedEvent.ROOM_RENDERED, onChange);
-
-        return () => room.eventDispatcher.removeEventListener(RoomRenderedEvent.ROOM_RENDERED, onChange);
-    }, [ room ]);
-
-    const getSnapshot = () => {
-        const roomObject = room?.getRoomObject(objectId, category);
-
-        return roomObject ? `${roomObject.instanceId}:${roomObject.model.updateCounter}` : '';
-    };
-
-    return useSyncExternalStore(subscribe, getSnapshot);
-};
+    return roomObject ? `${roomObject.instanceId}:${roomObject.model.updateCounter}` : '';
+});
