@@ -22,7 +22,7 @@ import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
-import { WIRED_MENU_NOTIFIED_ERRORS, WIRED_MENU_TAB_CHESTS, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW, WIRED_MENU_TABS, WIRED_ROOM_LOGS_FRAME_ID, WiredMenuWindowParams, WiredPreferences, wiredStore } from '#base/context/wired';
+import { isViewingWiredMenuTab, WIRED_MENU_NOTIFIED_ERRORS, WIRED_MENU_TAB_CHESTS, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW, WIRED_MENU_TABS, WIRED_ROOM_LOGS_FRAME_ID, WiredMenuWindowParams, WiredPreferences, wiredStore } from '#base/context/wired';
 
 import { clearWiredInspectionHighlights, inspectWiredFurni, inspectWiredUser, pollWiredInspection, startViewingWiredInspection, stopViewingWiredInspection } from './wiredMenuInspectionCommands';
 import { jumpToWiredVariableByName, pollWiredOverview, startViewingWiredOverview, stopViewingWiredOverview } from './wiredMenuOverviewCommands';
@@ -96,13 +96,6 @@ export const routeWiredMenuLink = (send: Send, { tab, inspect, variableName, log
 
 /** `WiredMenuView.show` / `hide` - the window went on or off the desktop. */
 export const setWiredMenuViewing = (menuViewing: boolean) => wiredStore.getState().patchWiredMenu({ menuViewing });
-
-/** Whether `tabId` is being viewed: the window is up and the tab is the active one (`isViewing`). */
-export const isViewingWiredMenuTab = (tabId: string): boolean => {
-    const { menuViewing, menuActiveTab } = wiredStore.getState();
-
-    return menuViewing && (menuActiveTab === tabId);
-};
 
 /**
  * `WiredMenuController.onWiredPermissions` / `REE_DISPOSED`: the view is disposed - the window

@@ -15,7 +15,7 @@ import { VariableExtraSourceTypes, WiredGetVariablesForObjectComposer, WiredSetO
 
 import { Send } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
-import { getWiredHasWritePermission, WIRED_INSPECTION_STATE_AWAITING_VARIABLES, WIRED_INSPECTION_STATE_DISPLAYING, WIRED_INSPECTION_STATE_FETCHING, WIRED_INSPECTION_STATE_NOTHING, WIRED_MENU_ERROR_INSPECTION_FAILED, WIRED_MENU_TAB_INSPECTION, WiredInspectionPreview, WiredStore, wiredStore, WiredVariableValueRow } from '#base/context/wired';
+import { getWiredHasWritePermission, isViewingWiredMenuTab, WIRED_INSPECTION_STATE_AWAITING_VARIABLES, WIRED_INSPECTION_STATE_DISPLAYING, WIRED_INSPECTION_STATE_FETCHING, WIRED_INSPECTION_STATE_NOTHING, WIRED_MENU_ERROR_INSPECTION_FAILED, WIRED_MENU_TAB_INSPECTION, WiredInspectionPreview, WiredStore, wiredStore, WiredVariableValueRow } from '#base/context/wired';
 import { addToVariablePickerHistory, getIntFromString, sortVariables, WIRED_INT_MIN, WIRED_SOURCE_FURNI, WIRED_SOURCE_USER } from '#base/wired';
 
 import { getAllWiredVariables } from './wiredSynchronizerCommands';
@@ -24,13 +24,6 @@ import { getAllWiredVariables } from './wiredSynchronizerCommands';
 const POLL_VARIABLES_MS = 500;
 
 const patch: WiredStore['patchWiredInspection'] = changes => wiredStore.getState().patchWiredInspection(changes);
-
-/** `isViewing` of this tab. */
-const isViewing = (): boolean => {
-    const { menuViewing, menuActiveTab } = wiredStore.getState();
-
-    return menuViewing && (menuActiveTab === WIRED_MENU_TAB_INSPECTION);
-};
 
 /** `getObjectIdForType` - the user's room index, the furni's id (negative for a wall item), or 0 for the globals. */
 const getObjectIdForType = (data: IWiredObjectInspectionData): number => {
@@ -223,7 +216,7 @@ export const selectWiredInspectionType = (send: Send, sourceType: number) => {
  * that is showing; `forced` (a link) pins it, switching the type picker over if it has to.
  */
 const inspect = (send: Send, sourceType: number, id: number, forced: boolean) => {
-    if (!isViewing()) return;
+    if (!isViewingWiredMenuTab(WIRED_MENU_TAB_INSPECTION)) return;
 
     const { inspectionPinned, inspectionState, inspectionType } = wiredStore.getState();
 

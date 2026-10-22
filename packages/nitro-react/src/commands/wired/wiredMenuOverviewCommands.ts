@@ -17,7 +17,7 @@ import { Send } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
-import { getWiredHasWritePermission, WIRED_MENU_TAB_OVERVIEW, WIRED_VARIABLE_MANAGEMENT_PAGE_SIZE, WiredHighlightedUser, WiredStore, wiredStore } from '#base/context/wired';
+import { getWiredHasWritePermission, isViewingWiredMenuTab, WIRED_MENU_TAB_OVERVIEW, WIRED_VARIABLE_MANAGEMENT_PAGE_SIZE, WiredHighlightedUser, WiredStore, wiredStore } from '#base/context/wired';
 import { variableValueWithString } from '#base/wired';
 
 import { getAllWiredVariables } from './wiredSynchronizerCommands';
@@ -29,12 +29,6 @@ const MAX_HIGHLIGHTS = 1000;
 const MAX_HIGHLIGHTS_WITH_VALUE = 400;
 
 const patch: WiredStore['patchWiredOverview'] = changes => wiredStore.getState().patchWiredOverview(changes);
-
-const isViewing = (): boolean => {
-    const { menuViewing, menuActiveTab } = wiredStore.getState();
-
-    return menuViewing && (menuActiveTab === WIRED_MENU_TAB_OVERVIEW);
-};
 
 /** `getSelectedVariable`. */
 export const getSelectedWiredOverviewVariable = (state: Pick<WiredStore, 'overviewVariables' | 'overviewSelectedId'> = wiredStore.getState()): IWiredVariable | undefined =>
@@ -241,7 +235,7 @@ const stopHighlight = () => {
 export const onWiredAllVariableHolders = ({ variable, holders }: IVariableInfoAndHolders) => {
     const { overviewHighlightEnabled, overviewSelectedId, overviewHeldFurni, overviewHeldUsers } = wiredStore.getState();
 
-    if (!overviewHighlightEnabled || !isViewing() || (variable.variableId !== overviewSelectedId)) return;
+    if (!overviewHighlightEnabled || !isViewingWiredMenuTab(WIRED_MENU_TAB_OVERVIEW) || (variable.variableId !== overviewSelectedId)) return;
 
     if ((!variable.hasValue && (holders.length > MAX_HIGHLIGHTS)) || (variable.hasValue && (holders.length > MAX_HIGHLIGHTS_WITH_VALUE))) {
         notificationStore.getState().addNotification('${wiredmenu.variable_overview.highlight.error.too_many}', 'info', 'icon_wired_notification_png');
