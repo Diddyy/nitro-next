@@ -16,7 +16,7 @@ import { WiredAllVariableHoldersMessage, WiredErrorLogsMessage, WiredMenuErrorMe
 
 import { disposeWiredMenu, onWiredAllVariableHolders, onWiredChestsTransactionLogs, onWiredInspectionMenuError, onWiredMenuError, onWiredRoomLogs, onWiredSetUserPermanentVariableResult, onWiredUserPermanentVariables, onWiredVariableOwnersPage, onWiredVariablesForObject, onWiredYouAreController } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { onRoomLeft } from '#base/context/room';
 import { wiredStore } from '#base/context/wired';
 
 import { on, subscribeAll } from '../packetSubscriptions';
@@ -25,9 +25,7 @@ export const registerWiredMenuHandlers = ({ send, subscribe }: WebSocketConnecti
     const { patchWiredMenu } = wiredStore.getState();
 
     // `REE_DISPOSED`: the view goes with the room. The state is reset by the room lifecycle bridge.
-    const unsubscribeRoom = roomStore.subscribe((state, previous) => {
-        if (previous.room && (state.room !== previous.room)) disposeWiredMenu();
-    });
+    const unsubscribeRoom = onRoomLeft(disposeWiredMenu);
 
     const unsubscribePackets = subscribeAll(subscribe, [
         // `onWiredPermissions`: without the read permission the view is disposed.

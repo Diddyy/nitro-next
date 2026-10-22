@@ -10,6 +10,14 @@ import { roomStore } from './store/RoomStore';
 export const getRoom = () => roomStore.getState().room;
 
 /**
+ * Calls `onLeft` each time the room the session was in is left, or swapped for another - not on
+ * first entering one. Answers the unsubscribe.
+ */
+export const onRoomLeft = (onLeft: () => void) => roomStore.subscribe((state, previous) => {
+    if (previous.room && (state.room !== previous.room)) onLeft();
+});
+
+/**
  * The selected object while it follows the pointer - being placed from the inventory or the
  * catalogue, or moved - read at the moment of a pointer event or frame; undefined otherwise.
  */

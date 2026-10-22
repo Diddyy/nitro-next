@@ -11,14 +11,12 @@
  */
 import { checkWiredChestAccess, closeWiredChest } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { onRoomLeft } from '#base/context/room';
 import { getWiredHasReadPermission, wiredStore } from '#base/context/wired';
 import { wiredTradingStore } from '#base/context/wired-trading';
 
 export const bridgeWiredTradingLifecycle = ({ send }: WebSocketConnection) => {
-    const unsubscribeRoom = roomStore.subscribe((state, previous) => {
-        if (!previous.room || (state.room === previous.room)) return;
-
+    const unsubscribeRoom = onRoomLeft(() => {
         closeWiredChest(send);
         wiredTradingStore.getState().resetRoom();
     });

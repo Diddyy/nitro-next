@@ -5,7 +5,7 @@ import { achievementsStore } from '#base/context/achievements';
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 import { notificationStore } from '#base/context/notifications';
-import { roomStore } from '#base/context/room';
+import { onRoomLeft } from '#base/context/room';
 import { badgeImageUrl, systemStore } from '#base/context/system';
 import { getBadgeBaseAndLevel, getBadgeName } from '#base/utils';
 
@@ -72,9 +72,7 @@ export const registerAchievementHandlers = ({ send, subscribe }: WebSocketConnec
     ]);
 
     // `IncomingMessages.onRoomExit` closes the achievement window.
-    const unsubscribeRoom = roomStore.subscribe((state, previous) => {
-        if (!previous.room || state.room === previous.room) return;
-
+    const unsubscribeRoom = onRoomLeft(() => {
         close();
         systemStore.getState().hideWindow('achievements');
     });

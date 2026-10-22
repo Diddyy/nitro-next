@@ -17,7 +17,7 @@ import { RoomThicknessType } from '@nitrodevco/nitro-api';
 import { BuildersClubSubscriptionStatusMessage, FloorHeightMapMessage, RoomEntryTileMessage, RoomOccupiedTilesMessage, RoomVisualizationSettingsMessage } from '@nitrodevco/nitro-packets';
 
 import { WebSocketConnection } from '#base/context/communication';
-import { roomStore } from '#base/context/room';
+import { onRoomLeft, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
@@ -48,9 +48,7 @@ export const registerRoomFloorPlanHandlers = ({ subscribe }: WebSocketConnection
     let bcCountdownTimer: ReturnType<typeof setInterval> | undefined;
 
     // `onRoomDisposed` (`REE_DISPOSED`): the editor closes with the room it edits - also when a save reloads that room.
-    const unsubscribeRoom = roomStore.subscribe((state, previous) => {
-        if (previous.room && (state.room !== previous.room)) systemStore.getState().hideWindow('floor_plan_editor');
-    });
+    const unsubscribeRoom = onRoomLeft(() => systemStore.getState().hideWindow('floor_plan_editor'));
 
     const unsubscribe = subscribeAll(subscribe, [
         on(FloorHeightMapMessage, (data) => {

@@ -6,11 +6,7 @@
  * subscription's unsubscribe and is registered with the connection's handlers (`registerHandlers`).
  */
 import { setRecyclerRoomSessionEnded } from '#base/commands';
-import { roomStore } from '#base/context/room';
+import { onRoomLeft } from '#base/context/room';
 
-export const bridgeRecyclerRoomSession = () => roomStore.subscribe((state, previous) => {
-    // A room left, or swapped for another: the old session ended.
-    if ((state.room === previous.room) || !previous.room) return;
-
-    setRecyclerRoomSessionEnded();
-});
+// A room left, or swapped for another: the old session ended.
+export const bridgeRecyclerRoomSession = () => onRoomLeft(setRecyclerRoomSessionEnded);

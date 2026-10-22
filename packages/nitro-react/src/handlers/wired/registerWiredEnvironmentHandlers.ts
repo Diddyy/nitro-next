@@ -13,7 +13,7 @@ import { WiredClickSettingsMessage, WiredClickUserResponseMessage, WiredEnvironm
 import { applyWiredClickSettings, setWiredClickSettingsIgnored } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
-import { roomStore } from '#base/context/room';
+import { onRoomLeft } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { getWiredHasWritePermission, WIRED_CLICK_FURNI_DEFAULT, WIRED_CLICK_USER_DEFAULT, wiredStore } from '#base/context/wired';
 
@@ -56,9 +56,7 @@ export const registerWiredEnvironmentHandlers = ({ subscribe }: WebSocketConnect
         applyWiredClickSettings(WIRED_CLICK_USER_DEFAULT, WIRED_CLICK_FURNI_DEFAULT);
     };
 
-    const unsubscribeRoom = roomStore.subscribe((state, previous) => {
-        if (previous.room && (state.room !== previous.room)) leaveRoom();
-    });
+    const unsubscribeRoom = onRoomLeft(leaveRoom);
 
     const unsubscribePackets = subscribeAll(subscribe, [
         on(WiredEnvironmentMessage, data => setWiredEnvironment(data.hasClickUserWired, data.enabledAchievements)),
