@@ -19,7 +19,9 @@ reloads one. The set is taken only once the extension is accepted
 
 - The URL is resolved against the page and must be `http(s)`. A module on another origin than the
   client's is refused unless its origin (`https://cdn.example.com`) or host (`cdn.example.com:8443`)
-  is in the configuration value `client.modules.hosts` (a list, or one comma-separated text).
+  is in the configuration value `client.modules.hosts` (a list, or one comma-separated text). The
+  page's query cannot set it: a link that also names another `socket.url` would otherwise let any
+  server run code in the hotel's page.
 - With a SHA-256 the file is fetched, hashed with `crypto.subtle` and run from those very bytes
   through a `blob:` URL, so what runs is what was checked. A mismatch refuses it. Such a module must
   be **one file**: a relative `import` inside it has nothing to resolve against. Files beside it are

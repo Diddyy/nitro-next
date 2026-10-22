@@ -19,6 +19,7 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { ITurboClientModule } from '@nitrodevco/nitro-packets';
 
+import { CLIENT_MODULES_HOSTS_KEY } from '#base/context/client-modules';
 import { WebSocketConnection } from '#base/context/communication';
 import { systemStore } from '#base/context/system';
 
@@ -43,7 +44,7 @@ let queue: Promise<void> = Promise.resolve();
 
 /** `client.modules.hosts`: the origins (`https://cdn.example.com`) or hosts (`cdn.example.com:8443`) a module may come from. */
 const allowedHosts = (): string[] => {
-    const value = systemStore.getState().config['client.modules.hosts'];
+    const value = systemStore.getState().config[CLIENT_MODULES_HOSTS_KEY];
     const list = Array.isArray(value) ? value : (typeof value === 'string') ? value.split(',') : [];
 
     return list.map(entry => String(entry).trim().toLowerCase()).filter(entry => entry.length);
