@@ -2,19 +2,20 @@ import { useEffect, useState } from 'react';
 
 import { requestModeratorUserInfo } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { MOD_CHATLOG_USER, moderationFrame, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
+import { moderationFrame, moderationWindowKey, useModerationActions, useModerationStore } from '#base/context/moderation';
 import { TemplateWindow, useTemplate } from '#base/theme';
 
-import { userInfoBindings } from './userInfoBindings';
+import { userInfoBindings, userInfoButtons } from './userInfoBindings';
 
 /**
  * Flash's `moderation/UserInfoFrameCtrl` with its `UserInfoCtrl`: the `user_info_frame` window
  * ("User Info") holding `user_info`, which shows "Loading..." until `ModeratorUserInfo` for the
  * player arrives (`load` asks it). Its buttons open the player's chatlog and the send-message
  * window, its room visits, and the mod action window (`onModActionButton`), which is off for "No
- * identity". Its housekeeping links (`userInfoBindings`) open the hotel's configured pages.
+ * identity". Its housekeeping links (`userInfoBindings`) open the hotel's configured pages. Opened from a
+ * call for help's evidence chatlog (`ChatlogCtrl.onUserClick`) it holds that issue for its actions.
  */
-export const ModUserInfoView = ({ userId }: { userId: number }) => {
+export const ModUserInfoView = ({ userId, issueId }: { userId: number; issueId?: number }) => {
     const { send } = useWebSocketContext();
     const user = useModerationStore(x => x.userInfos[userId]);
     const { showWindow, closeWindow } = useModerationActions();
@@ -42,10 +43,8 @@ export const ModUserInfoView = ({ userId }: { userId: number }) => {
                         from: userInfoTemplate,
                         bindings: {
                             ...userInfoBindings(user),
-                            chatlog_but: { onPointerTap: () => user && showWindow({ kind: 'chatlog', type: MOD_CHATLOG_USER, id: user.userId }, key, true) },
-                            roomvisits_but: { onPointerTap: () => user && showWindow({ kind: 'roomVisits', userId: user.userId }, key, true) },
-                            message_but: { onPointerTap: () => user && showWindow({ kind: 'sendMessage', userId: user.userId, userName: user.userName }, key, true) },
-                            modaction_but: { disabled: user?.primaryEmailAddress === 'No identity', onPointerTap: () => user && (user.primaryEmailAddress !== 'No identity') && showWindow({ kind: 'modAction', userId: user.userId, userName: user.userName }, key, true) },
+                            // `UserInfoFrameCtrl`: its tools open below it.
+                            ...userInfoButtons(user, showWindow, key, true, issueId),
                         },
                     } ],
                 },

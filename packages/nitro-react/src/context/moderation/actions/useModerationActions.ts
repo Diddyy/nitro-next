@@ -9,6 +9,7 @@ const state = moderationStore.getState();
 const actions = {
     showWindow: state.showWindow,
     moveWindow: state.moveWindow,
+    placeFrame: state.placeFrame,
     closeWindow: state.closeWindow,
     closeClassification: state.closeClassification,
     userSelected: state.userSelected,

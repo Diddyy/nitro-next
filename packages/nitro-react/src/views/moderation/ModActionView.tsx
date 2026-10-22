@@ -15,9 +15,10 @@ import { TemplateWindow } from '#base/theme';
  * (`ModToolSanction(-1, userId, topic)`), whose `CfhSanction` labels and enables "Default
  * sanction". "Custom sanction" refuses without a topic or a sanction, holds alert, ban and kick to
  * the init's permissions ("You have insufficient permissions.") and a message to text, then sends
- * the action's message (`onCustomSanctionButton`, `ModActionCtrl.as:233-300`) and closes.
+ * the action's message (`onCustomSanctionButton`, `ModActionCtrl.as:233-300`) and closes. Both
+ * sanctions carry the call for help the window was opened from (`getIssueId`), if any.
  */
-export const ModActionView = ({ userId, userName }: { userId: number; userName: string }) => {
+export const ModActionView = ({ userId, userName, issueId }: { userId: number; userName: string; issueId?: number }) => {
     const { send } = useWebSocketContext();
     const t = useTranslation();
     const init = useModerationStore(x => x.init);
@@ -43,7 +44,7 @@ export const ModActionView = ({ userId, userName }: { userId: number; userName: 
     const giveDefault = () => {
         if (topic < 0) return alert('Please select a topic.');
 
-        giveDefaultSanction(send, userId, topicIds[topic], text);
+        giveDefaultSanction(send, userId, topicIds[topic], text, issueId);
         close();
     };
 
@@ -52,7 +53,7 @@ export const ModActionView = ({ userId, userName }: { userId: number; userName: 
         if (action < 0) return alert('Please select a sanction.');
         if (!init) return;
 
-        const refused = sendModAction(send, init, MOD_ACTIONS[action], userId, topicIds[topic], text);
+        const refused = sendModAction(send, init, MOD_ACTIONS[action], userId, topicIds[topic], text, issueId);
 
         if (refused) return alert(refused);
 

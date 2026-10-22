@@ -82,16 +82,16 @@ export const requestSanctionData = (send: Send, issueId: number, accountId: numb
 /** `ModActionCtrl.selectTopic`: a user's default sanction for the topic. */
 export const requestUserSanction = (send: Send, userId: number, topicId: number) => requestSanctionData(send, NO_ISSUE, userId, topicId);
 
-/** `ModActionCtrl.onDefaultSanctionButton`. */
-export const giveDefaultSanction = (send: Send, userId: number, topicId: number, message: string) => send(new DefaultSanctionComposer({ userId, topicId, message, issueId: NO_ISSUE }));
+/** `ModActionCtrl.onDefaultSanctionButton`, with the window's issue (`getIssueId`). */
+export const giveDefaultSanction = (send: Send, userId: number, topicId: number, message: string, issueId = NO_ISSUE) => send(new DefaultSanctionComposer({ userId, topicId, message, issueId }));
 
 /**
  * `ModActionCtrl.onCustomSanctionButton` (`:233-300`): the action's message - alert, ban and kick
- * held to the init's permissions, a message to text. Returns the reason it was refused, or
- * undefined once sent.
+ * held to the init's permissions, a message to text - with the window's issue (`getIssueId`, `:339`).
+ * Returns the reason it was refused, or undefined once sent.
  */
-export const sendModAction = (send: Send, init: ModeratorInitMessageType, action: ModActionDefinition, userId: number, topicId: number, message: string): string | undefined => {
-    const base = { userId, message, topicId, issueId: NO_ISSUE };
+export const sendModAction = (send: Send, init: ModeratorInitMessageType, action: ModActionDefinition, userId: number, topicId: number, message: string, issueId = NO_ISSUE): string | undefined => {
+    const base = { userId, message, topicId, issueId };
 
     switch (action.actionType) {
         case 1:
@@ -110,7 +110,7 @@ export const sendModAction = (send: Send, init: ModeratorInitMessageType, action
             send(new ModKickComposer(base));
             break;
         case 5:
-            send(new ModTradingLockComposer({ userId, message, lengthMinutes: action.actionLengthHours * 60, topicId, issueId: NO_ISSUE }));
+            send(new ModTradingLockComposer({ userId, message, lengthMinutes: action.actionLengthHours * 60, topicId, issueId }));
             break;
         case 6:
             if (!message) return 'Please write a message to user.';
@@ -121,8 +121,8 @@ export const sendModAction = (send: Send, init: ModeratorInitMessageType, action
     return undefined;
 };
 
-/** `SendMsgsCtrl.onSendButton`: `ModMessageMessageComposer(userId, text, -999, -1)`. */
-export const sendModMessage = (send: Send, userId: number, message: string) => send(new ModMessageComposer({ userId, message, topicId: NO_TOPIC, issueId: -1 }));
+/** `SendMsgsCtrl.onSendButton`: `ModMessageMessageComposer(userId, text, -999, issueId)`, the window's issue or -1 (`:112`). */
+export const sendModMessage = (send: Send, userId: number, message: string, issueId = NO_ISSUE) => send(new ModMessageComposer({ userId, message, topicId: NO_TOPIC, issueId }));
 
 /** `RoomToolCtrl.onSendCaution` / `onSendMessage`: the action, and the room's lock, rename and kick when any is ticked. */
 export const sendRoomModeration = (send: Send, flatId: number, caution: boolean, message: string, checks: { kick: boolean; lock: boolean; changeName: boolean }) => {
