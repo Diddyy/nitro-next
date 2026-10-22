@@ -2,6 +2,7 @@
 export * from './overlay';
 export * from './roomBackgroundColor';
 export * from './RoomCanvas';
+export * from './roomColorLayer';
 export * from './RoomContainer';
 export * from './RoomEventHandler';
 export * from './RoomPreviewer';

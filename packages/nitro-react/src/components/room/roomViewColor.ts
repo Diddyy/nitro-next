@@ -2,71 +2,29 @@
  * The room view's colorizer - `RoomDesktop`'s `colorizer_wrapper`: a `multiply` rectangle over the
  * room stage, faded to a dimmer's colour, that lives as long as the room does.
  */
-import { ColorTransitioner, GetRenderer, GetRoomStage, GetTicker, GetTickerTime } from '@nitrodevco/nitro-renderer';
-import { Graphics } from 'pixi.js';
+import { ColorTransitioner } from '@nitrodevco/nitro-renderer';
 
-let colorizer: Graphics | undefined = undefined;
-let transitioner: ColorTransitioner | undefined = undefined;
-let roomColor: number = 0xFFFFFF;
+import { createRoomColorLayer } from './roomColorLayer';
 
-const redraw = () => {
-    if (!colorizer) return;
-
-    const { width, height } = GetRenderer().screen;
-
-    colorizer.clear();
-    colorizer.rect(0, 0, width, height).fill(roomColor);
-    // White multiplies to nothing; skip drawing a full-screen blend for it.
-    colorizer.visible = (roomColor !== 0xFFFFFF);
-};
-
-/** `RoomDesktop.updateColor`, every frame: the fade moves on, and the colorizer stays above the room canvas. */
-const update = () => {
-    if (!colorizer || !transitioner) return;
-
-    const stage = GetRoomStage();
-
-    if (stage.children[stage.children.length - 1] !== colorizer) stage.addChild(colorizer);
-
-    if (!transitioner.updateColor(GetTickerTime())) return;
-
-    roomColor = transitioner.color;
-
-    redraw();
-};
+/** White multiplies to nothing, so the layer is hidden at it rather than drawn as a full-screen blend. */
+const colorizer = createRoomColorLayer({
+    label: 'room-view-colorizer',
+    atBack: false,
+    blendMode: 'multiply',
+    neutral: 0xFFFFFF,
+    createTransitioner: () => new ColorTransitioner(),
+});
 
 /**
  * `RoomDesktop.setRoomViewColor`: the room view's colorizer - Flash's `colorizer_wrapper`, a
  * `multiply` sprite laid over the room canvas (`room_view_container`) - fades to a colour and
- * brightness over 1.5 s (`ColorTransitioner`). It tints everything in the room, planes, furni and
- * people alike, where a background-only colour tints the planes alone (`RoomLogic`). Nothing
- * exists until a colour is first set.
+ * brightness. It tints everything in the room, planes, furni and people alike, where a
+ * background-only colour tints the planes alone (`RoomLogic`). Nothing exists until a colour is
+ * first set.
  */
-export const SetRoomViewColor = (color: number, light: number) => {
-    if (!colorizer) {
-        colorizer = new Graphics({ label: 'room-view-colorizer', blendMode: 'multiply', eventMode: 'none' });
-        transitioner = new ColorTransitioner();
-        roomColor = 0xFFFFFF;
-
-        GetRoomStage().addChild(colorizer);
-        GetRenderer().on('resize', redraw);
-        GetTicker().add(update);
-
-        redraw();
-    }
-
-    transitioner?.startTransition(color, light, GetTickerTime());
-};
+export const SetRoomViewColor = (color: number, light: number) => colorizer.fadeTo(color, light);
 
 /** `RoomDesktop.dispose`: the colorizer goes with the room; the next room starts white. */
 export const DisposeRoomViewColor = () => {
-    if (!colorizer) return;
-
-    GetTicker().remove(update);
-    GetRenderer().off('resize', redraw);
-    colorizer.destroy();
-
-    colorizer = undefined;
-    transitioner = undefined;
-    roomColor = 0xFFFFFF;
+    colorizer.dispose();
 };
