@@ -16,7 +16,10 @@
  *   server for the room the user is in, while it is up.
  * - `noobLobbyOffer` (`nux/HabboNuxDialogs`' `NuxNoobRoomOfferView`): "Enter a room to meet other new
  *   users", up while it is shown.
+ * - `giftOffer` (`HabboNuxDialogs`' `NuxGiftSelectionView`): the steps of `NewUserExperienceGiftOffer`
+ *   while "Choose gift option" is up; the view walks through them and sends every pick at the end.
  */
+import type { INewUserExperienceGiftOfferGiftOption } from '@nitrodevco/nitro-packets';
 import { createStore } from 'zustand';
 
 import { chooseOnboardingGender, clickOnboardingPart, createOnboardingEditor, OnboardingEditorState, OnboardingGender, rollOnboardingFigure, selectOnboardingColor } from '#base/utils';
@@ -49,6 +52,7 @@ type State = {
     editor: OnboardingEditorState | undefined;
     starterRoomCamera: StarterRoomCamera | undefined;
     noobLobbyOffer: boolean;
+    giftOffer: INewUserExperienceGiftOfferGiftOption[] | undefined;
 };
 
 type Actions = {
@@ -68,6 +72,8 @@ type Actions = {
     closeStarterRoomCamera: () => void;
     /** `createNoobRoomOfferView` / `destroyNoobRoomOfferView`. */
     setNoobLobbyOffer: (noobLobbyOffer: boolean) => void;
+    /** `createGiftSelectionView` with the offer's steps / `destroyGiftSelectionView` with none. */
+    setGiftOffer: (giftOffer: INewUserExperienceGiftOfferGiftOption[] | undefined) => void;
     /** `onNewUserReceptionFinished`: the flow is done for this session. */
     finish: () => void;
 };
@@ -82,6 +88,7 @@ const INITIAL: State = {
     editor: undefined,
     starterRoomCamera: undefined,
     noobLobbyOffer: false,
+    giftOffer: undefined,
 };
 
 export const createOnboardingStore = () => createStore<OnboardingStore>()(set => ({
@@ -105,6 +112,7 @@ export const createOnboardingStore = () => createStore<OnboardingStore>()(set =>
     setStarterRoomCameraStatus: status => set(x => (x.starterRoomCamera ? { starterRoomCamera: { ...x.starterRoomCamera, status } } : x)),
     closeStarterRoomCamera: () => set({ starterRoomCamera: undefined }),
     setNoobLobbyOffer: noobLobbyOffer => set({ noobLobbyOffer }),
+    setGiftOffer: giftOffer => set({ giftOffer }),
 }));
 
 export const onboardingStore = createOnboardingStore();

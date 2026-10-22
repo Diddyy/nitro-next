@@ -11,10 +11,13 @@
  * - `TurboStarterRoomCameraMessage` / `TurboStarterRoomPictureResultMessage`: not Flash's - Turbo's
  *   starter room camera (`starter.rooms`) opens for the room, and closes once its picture is drawn.
  *
+ * - `NewUserExperienceGiftOffer` (`HabboNuxDialogs.onNewUserExperienceGiftOfferMessage`): puts up the
+ *   gift selection with the offer's steps, over one still up.
+ *
  * `ChangeUserNameResult` needs nothing here: the flow does not wait for it (`claimName` moves on at
  * once), and `SessionDataManager`'s own listener renames the session.
  */
-import { CheckUserNameResultMessage, SelectInitialRoomMessage, TurboStarterRoomCameraMessage, TurboStarterRoomPictureResultMessage, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
+import { CheckUserNameResultMessage, NewUserExperienceGiftOfferMessage, SelectInitialRoomMessage, TurboStarterRoomCameraMessage, TurboStarterRoomPictureResultMessage, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
 
 import { onNameChangeChecked } from '#base/commands';
 import { WebSocketConnection } from '#base/context/communication';
@@ -23,7 +26,7 @@ import { onboardingStore } from '#base/context/onboarding';
 import { on, subscribeAll } from '../packetSubscriptions';
 
 export const registerOnboardingHandlers = ({ send, subscribe }: WebSocketConnection) => {
-    const { setNameCheck, finish, openStarterRoomCamera, setStarterRoomCameraStatus, closeStarterRoomCamera } = onboardingStore.getState();
+    const { setNameCheck, finish, openStarterRoomCamera, setStarterRoomCameraStatus, closeStarterRoomCamera, setGiftOffer } = onboardingStore.getState();
 
     return subscribeAll(subscribe, [
         on(CheckUserNameResultMessage, (data) => {
@@ -37,6 +40,8 @@ export const registerOnboardingHandlers = ({ send, subscribe }: WebSocketConnect
 
             finish();
         }),
+
+        on(NewUserExperienceGiftOfferMessage, data => setGiftOffer(data.giftOptions)),
 
         on(TurboStarterRoomCameraMessage, data => openStarterRoomCamera(data.roomId)),
 

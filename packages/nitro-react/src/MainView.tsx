@@ -47,6 +47,7 @@ import { NotificationsExtensionAnchor } from './views/notifications/Notification
 import { NotificationsView } from './views/notifications/NotificationsView';
 import { SafetyLockedNotificationView } from './views/notifications/SafetyLockedNotificationView';
 import { NoobLobbyOfferView } from './views/onboarding/NoobLobbyOfferView';
+import { NuxGiftSelectionView } from './views/onboarding/NuxGiftSelectionView';
 import { ActivityPointsView } from './views/purse/ActivityPointsView';
 import { PurseTemplateView } from './views/purse/PurseTemplateView';
 import { RewardTrackPremiumConfirmationView } from './views/reward-track/RewardTrackPremiumConfirmationView';
@@ -199,6 +200,8 @@ export const MainView = () => {
                     <RewardTrackPremiumConfirmationView />
                     {/* `HabboNuxDialogs`' new user lobby offer: drawn only while shown. */}
                     <NoobLobbyOfferView />
+                    {/* `HabboNuxDialogs`' new user gift selection: drawn only while offered. */}
+                    <NuxGiftSelectionView />
                     {/* `HabboPagesViewer`: drawn only while shown. */}
                     <HabboPagesView />
                     {/* `PetCommandTool`: drawn only while shown. */}
