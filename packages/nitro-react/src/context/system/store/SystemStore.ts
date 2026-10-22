@@ -107,6 +107,66 @@ const initialState: State = {
     roomSessionRequest: undefined,
 };
 
+/**
+ * One furnidata entry as the client keeps it. A floor item's class name may carry its colour index
+ * (`name*3`) and it has part colours (hex, with or without a leading `#`), a size, custom params,
+ * the room-use flags and a height; a wall item has none of those.
+ */
+const toFurnitureData = (furniture: IFurnitureType, type: FurnitureTypeEnum): IFurnitureData => {
+    const floor = (type === FurnitureTypeEnum.Floor);
+    const classSplit = floor ? furniture.classname.split('*') : [ furniture.classname ];
+    const className = classSplit[0];
+    const hasColorIndex = classSplit.length > 1;
+
+    return {
+        type,
+        id: furniture.id,
+        fullName: furniture.classname,
+        className,
+        category: furniture.category ?? '',
+        localizedName: furniture.name ?? '',
+        description: furniture.description ?? '',
+        revision: furniture.revision,
+        tileSizeX: floor ? furniture.xdim : 0,
+        tileSizeY: floor ? furniture.ydim : 0,
+        tileSizeZ: 0,
+        colors: (floor && furniture.partcolors) ? furniture.partcolors.color.map(color => parseInt(color.startsWith('#') ? color.slice(1) : color, 16)) : [],
+        hasIndexedColor: hasColorIndex,
+        colorIndex: hasColorIndex ? parseInt(classSplit[1]) : 0,
+        adUrl: furniture.adurl ?? '',
+        purchaseOfferId: furniture.offerid,
+        purchaseCouldBeUsedForBuyout: furniture.buyout,
+        rentOfferId: furniture.rentofferid,
+        rentCouldBeUsedForBuyout: furniture.rentbuyout,
+        availableForBuildersClub: furniture.bc,
+        bcOfferId: furniture.bcofferid ?? -1,
+        customParams: floor ? (furniture.customparams ?? '') : '',
+        specialType: furniture.specialtype,
+        canStandOn: floor && furniture.canstandon,
+        canSitOn: floor && furniture.cansiton,
+        canLayOn: floor && furniture.canlayon,
+        canPutStuffOn: floor && furniture.canputstuffon,
+        height: floor ? furniture.height : 0,
+        excludeDynamic: furniture.excludeddynamic,
+        furniLine: furniture.furniline ?? '',
+        environment: furniture.environment ?? '',
+        rare: furniture.rare,
+        tradeable: furniture.tradeable,
+        recyclable: furniture.recyclable,
+        isExternalImage: className.indexOf('external_image') !== -1,
+    };
+};
+
+const toFurnitureTable = (data: IFurnitureType[], type: FurnitureTypeEnum): Record<number, IFurnitureData> => {
+    const table: Record<number, IFurnitureData> = {};
+
+    for (const furniture of data) {
+        if (furniture) table[furniture.id] = toFurnitureData(furniture, type);
+    }
+
+    return table;
+};
+
 export type SystemStore = State & Actions & SystemDialogsSlice & HotelViewSlice & ToolbarTransitionsSlice;
 
 export const createSystemStore = () => createStore<SystemStore>()((set, get, store) => ({
@@ -199,122 +259,9 @@ export const createSystemStore = () => createStore<SystemStore>()((set, get, sto
             return { localizations };
         });
     },
-    parseFloorItems: (data: IFurnitureType[]) => set(() => {
-        const floorItems: Record<number, IFurnitureData> = {};
-
-        for (const furniture of data) {
-            if (!furniture) continue;
-
-            const colors: number[] = [];
-
-            if (furniture.partcolors) {
-                for (const color of furniture.partcolors.color) {
-                    let colorCode = color;
-
-                    if (colorCode.charAt(0) === '#') {
-                        colorCode = colorCode.replace('#', '');
-
-                        colors.push(parseInt(colorCode, 16));
-                    } else {
-                        colors.push(parseInt(colorCode, 16));
-                    }
-                }
-            }
-
-            const classSplit = furniture.classname.split('*');
-            const className = classSplit[0];
-            const colorIndex = classSplit.length > 1 ? parseInt(classSplit[1]) : 0;
-            const hasColorIndex = classSplit.length > 1;
-
-            floorItems[furniture.id] = {
-                type: FurnitureTypeEnum.Floor,
-                id: furniture.id,
-                fullName: furniture.classname,
-                className: className,
-                category: furniture.category ?? '',
-                localizedName: furniture.name ?? '',
-                description: furniture.description ?? '',
-                revision: furniture.revision,
-                tileSizeX: furniture.xdim,
-                tileSizeY: furniture.ydim,
-                tileSizeZ: 0,
-                colors: colors,
-                hasIndexedColor: hasColorIndex,
-                colorIndex: colorIndex,
-                adUrl: furniture.adurl ?? '',
-                purchaseOfferId: furniture.offerid,
-                purchaseCouldBeUsedForBuyout: furniture.buyout,
-                rentOfferId: furniture.rentofferid,
-                rentCouldBeUsedForBuyout: furniture.rentbuyout,
-                availableForBuildersClub: furniture.bc,
-                bcOfferId: furniture.bcofferid ?? -1,
-                customParams: furniture.customparams ?? '',
-                specialType: furniture.specialtype,
-                canStandOn: furniture.canstandon,
-                canSitOn: furniture.cansiton,
-                canLayOn: furniture.canlayon,
-                canPutStuffOn: furniture.canputstuffon,
-                height: furniture.height,
-                excludeDynamic: furniture.excludeddynamic,
-                furniLine: furniture.furniline ?? '',
-                environment: furniture.environment ?? '',
-                rare: furniture.rare,
-                tradeable: furniture.tradeable,
-                recyclable: furniture.recyclable,
-                isExternalImage: !(className.indexOf('external_image') === -1),
-            };
-        }
-
-        return { floorItems };
-    }),
+    parseFloorItems: (data: IFurnitureType[]) => set({ floorItems: toFurnitureTable(data, FurnitureTypeEnum.Floor) }),
     // A reload replaces the table, as `SessionDataManager.refreshFurniData` clears it: a wall item a publish dropped goes.
-    parseWallItems: (data: IFurnitureType[]) => set(() => {
-        const wallItems: Record<number, IFurnitureData> = {};
-
-        for (const furniture of data) {
-            if (!furniture) continue;
-
-            wallItems[furniture.id] = {
-                type: FurnitureTypeEnum.Wall,
-                id: furniture.id,
-                fullName: furniture.classname,
-                className: furniture.classname,
-                category: furniture.category ?? '',
-                localizedName: furniture.name ?? '',
-                description: furniture.description ?? '',
-                revision: furniture.revision,
-                tileSizeX: 0,
-                tileSizeY: 0,
-                tileSizeZ: 0,
-                colors: [],
-                hasIndexedColor: false,
-                colorIndex: 0,
-                adUrl: furniture.adurl ?? '',
-                purchaseOfferId: furniture.offerid,
-                purchaseCouldBeUsedForBuyout: furniture.buyout,
-                rentOfferId: furniture.rentofferid,
-                rentCouldBeUsedForBuyout: furniture.rentbuyout,
-                availableForBuildersClub: furniture.bc,
-                bcOfferId: furniture.bcofferid ?? -1,
-                customParams: '',
-                specialType: furniture.specialtype,
-                canStandOn: false,
-                canSitOn: false,
-                canLayOn: false,
-                canPutStuffOn: false,
-                height: 0,
-                excludeDynamic: furniture.excludeddynamic,
-                furniLine: furniture.furniline ?? '',
-                environment: furniture.environment ?? '',
-                rare: furniture.rare,
-                tradeable: furniture.tradeable,
-                recyclable: furniture.recyclable,
-                isExternalImage: !(furniture.classname.indexOf('external_image') === -1),
-            };
-        }
-
-        return { wallItems };
-    }),
+    parseWallItems: (data: IFurnitureType[]) => set({ wallItems: toFurnitureTable(data, FurnitureTypeEnum.Wall) }),
     parseProductData: (data: IProductData[]) => set({ productData: Object.fromEntries(data.map(x => [ x.code, x ])) }),
     toggleWindow: <T extends WindowName>(name: T, params?: WindowRegistry[T]) => set((x) => {
         const current = x.visibleWindows[name];
