@@ -1,7 +1,8 @@
-import { RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
-import { GetRoomContentLoader, GetRoomEngine, PetFigureData, petImageValue } from '@nitrodevco/nitro-renderer';
+import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
+import { PetFigureData } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 
+import { renderPetFigureTexture } from './renderPetFigureTexture';
 import { useOwnedEngineTexture } from './useRoomEngineTexture';
 
 /** `PetImageWidget`'s defaults: `pet_image:direction` southeast (2, so 90 degrees), `pet_image:scale` 64, posture `std`. */
@@ -18,16 +19,7 @@ const PET_POSTURE = 'std';
  * The textures' life cycle is `useOwnedEngineTexture`'s.
  */
 export const useCollectiblePetTexture = (figure: string | undefined, direction: number = COLLECTIBLE_PET_DIRECTION_DEFAULT): Texture | undefined => {
-    const texture = useOwnedEngineTexture(figure ? `${figure}|${direction}` : undefined, (listener) => {
-        const figureData = new PetFigureData(figure ?? '');
-        const type = GetRoomContentLoader().getPetNameForType(figureData.typeId);
-
-        if (!type) return Promise.resolve(undefined);
-
-        const value = petImageValue(figureData.typeId, figureData.paletteId, figureData.color, false, figureData.customParts);
-
-        return GetRoomEngine().getGenericRoomObjectTexture(type, value, new Vector3d(direction), RoomGeometryScaleType.ZoomedIn, listener, 0, undefined, 0, 0, PET_POSTURE);
-    });
+    const texture = useOwnedEngineTexture(figure ? `${figure}|${direction}` : undefined, listener => renderPetFigureTexture(new PetFigureData(figure ?? ''), { direction, scale: RoomGeometryScaleType.ZoomedIn, posture: PET_POSTURE, listener }));
 
     return figure ? texture : undefined;
 };

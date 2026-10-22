@@ -1,10 +1,12 @@
-import { RoomGeometryScaleType, Vector3d } from '@nitrodevco/nitro-api';
-import { GetAssetManager, GetRoomContentLoader, GetRoomEngine, PetFigureData, petImageValue } from '@nitrodevco/nitro-renderer';
+import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
+import { GetAssetManager, PetFigureData } from '@nitrodevco/nitro-renderer';
 import { Texture } from 'pixi.js';
 import { useLayoutEffect, useSyncExternalStore } from 'react';
 
 import { useRoom } from '#base/context/room';
 import { destroyOwnedTexture, RetainedCache } from '#base/utils';
+
+import { renderPetFigureTexture } from '../images/renderPetFigureTexture';
 
 /** How big and which way round a pet render is wanted. */
 export interface PetFaceOptions {
@@ -46,19 +48,6 @@ const storeFace = (cacheKey: string, texture: Texture) => {
     cache.set(cacheKey, texture);
 };
 
-/**
- * The engine's pet render as the texture it drew into (`getGenericRoomObjectTexture`) - the
- * `getRoomObjectPetImage` route would read that texture back as a base64 `<img>` and upload
- * it a second time. The `type`/`value` pair is what `Room.getRoomObjectPetImageArgs` builds.
- */
-const renderPetFace = (figureData: PetFigureData, posture: string | undefined, scale: RoomGeometryScaleType, direction: number, headOnly: boolean): Promise<Texture | undefined> => {
-    const type = GetRoomContentLoader().getPetNameForType(figureData.typeId);
-
-    if (!type) return Promise.resolve(undefined);
-
-    return GetRoomEngine().getGenericRoomObjectTexture(type, petImageValue(figureData.typeId, figureData.paletteId, figureData.color, headOnly, figureData.customParts), new Vector3d(direction * 45), scale, undefined, 0, undefined, 0, 0, posture ?? '');
-};
-
 /** `ChatBubbleFactory.getPetImage`'s scale and direction: the zoomed-out (32px) scale, facing direction 2. */
 const DEFAULT_SCALE = RoomGeometryScaleType.ZoomedOut;
 const DEFAULT_DIRECTION = 2;
@@ -91,7 +80,7 @@ export const useChatPetFace = (figure: string | undefined, posture: string | und
         let promise = pending.get(cacheKey);
 
         if (!promise) {
-            promise = renderPetFace(new PetFigureData(figure), posture, scale, direction, headOnly).then((texture) => {
+            promise = renderPetFigureTexture(new PetFigureData(figure), { direction: direction * 45, scale, posture: posture ?? '', headOnly }).then((texture) => {
                 if (!texture) return undefined;
 
                 storeFace(cacheKey, texture);
