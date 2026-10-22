@@ -51,6 +51,7 @@ export * from './hooks/useRevealWhenSettled';
 export * from './hooks/useScrollController';
 export * from './hooks/useThemeVariant';
 export * from './hooks/useWindowActivation';
+export * from './hooks/useWindowPointerDrag';
 export * from './host';
 export * from './Icon';
 export * from './IconButton';

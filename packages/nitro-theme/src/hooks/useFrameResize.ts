@@ -1,8 +1,9 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
-import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { RefObject, useCallback, useRef, useState } from 'react';
 
 import { clamp, ClientToStage, GetDesktopSize, getGlobalRect } from '../utils';
 import { clearStoredFrameSize, FrameSize, getStoredFrameSize, setStoredFrameSize } from '../utils/frameStorage';
+import { useWindowPointerDrag } from './useWindowPointerDrag';
 
 export type FrameResizeDirection = 'x' | 'y' | 'all' | 'none';
 
@@ -23,11 +24,6 @@ type TapState = {
     time: number;
     x: number;
     y: number;
-};
-
-type ActiveListeners = {
-    move: (event: PointerEvent) => void;
-    up: (event: PointerEvent) => void;
 };
 
 const MIN_SIZE = 50;
@@ -53,23 +49,14 @@ export const useFrameResize = (
     const resizeStateRef = useRef<ResizeState | null>(null);
     const latestSizeRef = useRef<FrameSize | null>(null);
     const lastTapRef = useRef<TapState | null>(null);
-    const activeListenersRef = useRef<ActiveListeners | null>(null);
+    const { start: startPointerDrag, stop: stopPointerDrag } = useWindowPointerDrag();
 
     const [ size, setSize ] = useState<FrameSize | null>(() => (id && getStoredFrameSize(id)) || null);
 
     const stopResizing = useCallback(() => {
-        const listeners = activeListenersRef.current;
-
-        if (listeners) {
-            window.removeEventListener('pointermove', listeners.move);
-            window.removeEventListener('pointerup', listeners.up);
-            activeListenersRef.current = null;
-        }
-
+        stopPointerDrag();
         resizeStateRef.current = null;
-    }, []);
-
-    useEffect(() => stopResizing, [ stopResizing ]);
+    }, [ stopPointerDrag ]);
 
     const resetSize = () => {
         latestSizeRef.current = null;
@@ -166,10 +153,7 @@ export const useFrameResize = (
             lastTapRef.current = { time: now, x: upEvent.clientX, y: upEvent.clientY };
         };
 
-        activeListenersRef.current = { move: handleMove, up: handleUp };
-
-        window.addEventListener('pointermove', handleMove);
-        window.addEventListener('pointerup', handleUp);
+        startPointerDrag(event.pointerId, { onMove: handleMove, onEnd: handleUp });
     };
 
     return { size, onScalerPointerDown: handlePointerDown };

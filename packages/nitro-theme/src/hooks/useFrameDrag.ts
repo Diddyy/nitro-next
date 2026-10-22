@@ -6,6 +6,7 @@ import { clamp, ClientToStage, GetDesktopSize, getGlobalRect } from '../utils';
 import { getStoredFramePosition, setStoredFramePosition } from '../utils/frameStorage';
 import { useLayoutEvent } from './useLayoutEvent';
 import { useRevealWhenSettled } from './useRevealWhenSettled';
+import { useWindowPointerDrag } from './useWindowPointerDrag';
 
 type DragState = {
     pointerId: number;
@@ -16,11 +17,6 @@ type DragState = {
     width: number;
     origDx: number;
     origDy: number;
-};
-
-type ActiveListeners = {
-    move: (event: PointerEvent) => void;
-    up: (event: PointerEvent) => void;
 };
 
 const MIN_VISIBLE = 40;
@@ -71,7 +67,7 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
     // Where the frame was last put by a drag or by centering, for the callbacks that report it.
     const latestOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
     const dragStateRef = useRef<DragState | null>(null);
-    const activeListenersRef = useRef<ActiveListeners | null>(null);
+    const pointerDrag = useWindowPointerDrag();
 
     const [ offset, setOffset ] = useState(() => {
         const opened = { dx: defaultPosition?.x ?? 0, dy: defaultPosition?.y ?? 0 };
@@ -98,19 +94,11 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
         if (!id) return () => releaseWindow(stackId);
     }, [ id, stackId, bringWindowToFront, releaseWindow ]);
 
+    const { start: startPointerDrag, stop: stopPointerDrag } = pointerDrag;
     const stopDragging = useCallback(() => {
-        const listeners = activeListenersRef.current;
-
-        if (listeners) {
-            window.removeEventListener('pointermove', listeners.move);
-            window.removeEventListener('pointerup', listeners.up);
-            activeListenersRef.current = null;
-        }
-
+        stopPointerDrag();
         dragStateRef.current = null;
-    }, []);
-
-    useEffect(() => stopDragging, [ stopDragging ]);
+    }, [ stopPointerDrag ]);
 
     const attachFrame = useCallback((node: PixiContainer | null) => {
         frameRef.current = node;
@@ -207,10 +195,7 @@ export const useFrameDrag = (id: string | undefined, { defaultPosition, remember
             onPositionChange?.({ x: dropped.dx, y: dropped.dy });
         };
 
-        activeListenersRef.current = { move: handleMove, up: handleUp };
-
-        window.addEventListener('pointermove', handleMove);
-        window.addEventListener('pointerup', handleUp);
+        startPointerDrag(event.pointerId, { onMove: handleMove, onEnd: handleUp });
     };
 
     // A press anywhere in the window raises it, before whatever it lands on handles it - in the

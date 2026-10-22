@@ -15,3 +15,4 @@ export * from './useRevealWhenSettled';
 export * from './useScrollController';
 export * from './useThemeVariant';
 export * from './useWindowActivation';
+export * from './useWindowPointerDrag';

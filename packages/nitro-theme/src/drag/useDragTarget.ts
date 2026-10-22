@@ -1,6 +1,7 @@
 import { Container as PixiContainer, FederatedPointerEvent } from 'pixi.js';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
+import { useWindowPointerDrag } from '../hooks/useWindowPointerDrag';
 import { ClientToStage } from '../utils/GetPixelRatio';
 import { DragTargetController } from './DragTargetContext';
 
@@ -46,10 +47,8 @@ const ZERO: Point = { x: 0, y: 0 };
 export const useDragTarget = (enabled: boolean, { boundToParentRect = false, dropToLayout = false }: DragTargetOptions = {}): DragTarget => {
     const nodeRef = useRef<PixiContainer | null>(null);
     const offsetRef = useRef<Point>(ZERO);
-    const stopRef = useRef<(() => void) | null>(null);
+    const pointerDrag = useWindowPointerDrag();
     const [ offset, setOffset ] = useState<Point>(ZERO);
-
-    useEffect(() => () => stopRef.current?.(), []);
 
     const attach = (node: PixiContainer | null) => {
         nodeRef.current = node;
@@ -70,8 +69,6 @@ export const useDragTarget = (enabled: boolean, { boundToParentRect = false, dro
 
         if (!node || !parent) return;
 
-        stopRef.current?.();
-
         const pointerId = event.pointerId;
         const startClient = { x: event.clientX, y: event.clientY };
         const startGlobal = { x: event.global.x, y: event.global.y };
@@ -79,8 +76,6 @@ export const useDragTarget = (enabled: boolean, { boundToParentRect = false, dro
         const startOffset = offsetRef.current;
 
         const move = (moveEvent: PointerEvent) => {
-            if (moveEvent.pointerId !== pointerId) return;
-
             const pointer = parent.toLocal({ x: startGlobal.x + ClientToStage(moveEvent.clientX - startClient.x), y: startGlobal.y + ClientToStage(moveEvent.clientY - startClient.y) });
             let next = {
                 x: startOffset.x + Math.trunc(pointer.x - grab.x),
@@ -104,20 +99,8 @@ export const useDragTarget = (enabled: boolean, { boundToParentRect = false, dro
             setOffset(next);
         };
 
-        const stop = () => {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-            window.removeEventListener('pointercancel', up);
-
-            stopRef.current = null;
-        };
-
         // `WindowMouseOperator.handler`: a `mouseUp` anywhere ends it.
-        const up = (upEvent: PointerEvent) => {
-            if (upEvent.pointerId !== pointerId) return;
-
-            stop();
-
+        const up = () => {
             if (dropToLayout) {
                 offsetRef.current = ZERO;
 
@@ -125,11 +108,7 @@ export const useDragTarget = (enabled: boolean, { boundToParentRect = false, dro
             }
         };
 
-        stopRef.current = stop;
-
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
-        window.addEventListener('pointercancel', up);
+        pointerDrag.start(pointerId, { onMove: move, onEnd: up });
     };
 
     return { offset, attach, controller: enabled ? { begin } : null };

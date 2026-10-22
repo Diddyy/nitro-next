@@ -6,6 +6,7 @@ import { clamp } from '../utils/clamp';
 import { ClientToStage } from '../utils/GetPixelRatio';
 import { useLatest } from './useLatest';
 import { useLayoutEvent } from './useLayoutEvent';
+import { useWindowPointerDrag } from './useWindowPointerDrag';
 
 export interface ScrollController {
     viewportRef: (node: PixiContainer | null) => void;
@@ -92,7 +93,7 @@ export const useScrollController = ({
     const onReachEndRef = useLatest(onReachEnd);
 
     const dragOriginRef = useRef<{ pointer: number; scroll: number; availableTrack: number; scrollMax: number; scale: number } | null>(null);
-    const activeListenersRef = useRef<{ move: (e: PointerEvent) => void; up: (e: PointerEvent) => void } | null>(null);
+    const { start: startPointerDrag, stop: stopPointerDrag } = useWindowPointerDrag();
 
     const measure = useCallback(() => {
         const clientSize = computedSize(viewportNode, sizeAxis);
@@ -146,16 +147,9 @@ export const useScrollController = ({
     }, [ viewportNode, contentNode, sizeAxis ]);
 
     const stopDragging = useCallback(() => {
-        const listeners = activeListenersRef.current;
-        if (listeners) {
-            window.removeEventListener('pointermove', listeners.move);
-            window.removeEventListener('pointerup', listeners.up);
-            activeListenersRef.current = null;
-        }
+        stopPointerDrag();
         dragOriginRef.current = null;
-    }, []);
-
-    useEffect(() => stopDragging, [ stopDragging ]);
+    }, [ stopPointerDrag ]);
 
     const onWheel = (event: FederatedWheelEvent) => {
         const delta = isVertical ? event.deltaY : event.deltaX;
@@ -191,11 +185,7 @@ export const useScrollController = ({
             setScrollOffset(clamp(origin.scroll + delta, 0, origin.scrollMax));
         };
 
-        const handleUp = () => stopDragging();
-
-        activeListenersRef.current = { move: handleMove, up: handleUp };
-        window.addEventListener('pointermove', handleMove);
-        window.addEventListener('pointerup', handleUp);
+        startPointerDrag(event.pointerId, { onMove: handleMove, onEnd: () => stopDragging() });
     };
 
     const onTrackPointerDown = (event: FederatedPointerEvent) => {
