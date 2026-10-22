@@ -113,6 +113,8 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const filterType = useInventoryStore(x => x.furniFilterType);
     const filterText = useInventoryStore(x => x.furniFilterText);
     const userTradeActive = useInventoryStore(x => x.tradingActive);
+    // `HabboInventory.canUserOfferToTrade`: a wired trade always may; a user trade as `TradingOpen` told the own side.
+    const ownUserCanTrade = useInventoryStore(x => x.tradingOwnUser.canTrade);
     const wiredTradeRunning = useWiredTradingStore(x => x.tradeRunning);
     // `HabboInventory.activeTradingModel`: either trade puts the page into its trading shape.
     const tradeRunning = useInventoryTradingActive();
@@ -274,7 +276,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const canExtendRent = !!selectedItem?.isRented && notRentedInRoom && !!selectedFurniData?.rentCouldBeUsedForBuyout;
     const canBuyRentedItem = !!selectedItem?.isRented && notRentedInRoom && !!selectedFurniData?.purchaseCouldBeUsedForBuyout;
     const canSell = hasSelection && marketplaceEnabled && selectedItem.sellable && !safetyLocked && !tradeRunning && !(selectedFurniData?.isExternalImage ?? false);
-    const canOffer = hasSelection && (getInventoryFurniUnlockedCount(selectedGroup) > 0) && selectedItem.tradeable;
+    const canOffer = hasSelection && (wiredTradeRunning || ownUserCanTrade) && (getInventoryFurniUnlockedCount(selectedGroup) > 0) && selectedItem.tradeable;
     const canUse = hasSelection && inRoom && USE_PRODUCT_CATEGORIES.includes(selectedItem.category);
 
     // `FurniModel.extendRentPeriod` / `buyRentedItem`: the rent window for the selected item's strip id.
