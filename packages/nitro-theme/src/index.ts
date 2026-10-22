@@ -119,6 +119,7 @@ export * from './utils/FillLayout';
 export * from './utils/frameStorage';
 export * from './utils/getGlobalRect';
 export * from './utils/GetPixelRatio';
+export * from './utils/gpuLossGuard';
 export * from './utils/hsvLayerColor';
 export * from './utils/interaction';
 export * from './utils/isAssetName';

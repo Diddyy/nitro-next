@@ -8,6 +8,7 @@
  */
 import { reportRendererError } from '#base/context/clienterrors';
 import { systemStore } from '#base/context/system';
+import type { GpuLoss } from '#base/theme';
 
 /**
  * `DisconnectReasonEvent`'s constants, by value. The AS3 names are obfuscated; these are the
@@ -130,12 +131,12 @@ const GPU_LOSS_REBOOT_INTERVAL_MS = 60000;
  * does, and the page's new renderer takes what the browser offers now (WebGPU, else WebGL). Once a
  * minute at most: a GPU lost again at once would only loop, so the client then stays as it is.
  */
-export const rebootAfterGpuLoss = () => {
+export const rebootAfterGpuLoss = (loss: GpuLoss = {}) => {
     try {
         const last = Number(window.sessionStorage.getItem(GPU_LOSS_REBOOT_KEY) ?? 0);
 
         if ((Date.now() - last) < GPU_LOSS_REBOOT_INTERVAL_MS) {
-            reportRendererError('GPU device or context lost again within a minute: the client stays as it is');
+            reportRendererError('GPU device or context lost again within a minute: the client stays as it is', false, loss);
 
             return;
         }
@@ -146,6 +147,6 @@ export const rebootAfterGpuLoss = () => {
     }
 
     // The report goes with the next session: this one ends now.
-    reportRendererError('GPU device or context lost: the client started again', true);
+    reportRendererError('GPU device or context lost: the client started again', true, loss);
     rebootClient();
 };
