@@ -20,6 +20,7 @@ import { getClientModuleLibraries } from './clientModuleLibraries';
 let nextOverlayKey = 1;
 let nextIllustrationKey = 1;
 let nextNotificationId = 1;
+let nextHotelViewLayerKey = 1;
 
 export const createClientModuleApi = (connection: WebSocketConnection, moduleKey: string, baseUrl: string): { api: ClientModuleApi; dispose: () => void } => {
     const store = clientModulesStore.getState();
@@ -201,6 +202,15 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
                 quitRoom(connection.send);
                 systemStore.getState().endRoomSession();
+            },
+        },
+        hotelView: {
+            addLayer: (component, options = {}) => {
+                const key = nextHotelViewLayerKey++;
+
+                store.addHotelViewLayer({ moduleKey, key, component, replacesBackground: !!options.replacesBackground });
+
+                return track(() => clientModulesStore.getState().removeHotelViewLayer(key));
             },
         },
         notifications: {

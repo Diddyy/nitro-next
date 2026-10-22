@@ -1,7 +1,7 @@
 /**
  * Not Flash's: what the client modules of Turbo's `client.modules` extension have added to the
  * client - their windows and which are open, their toolbar icons and me menu entries, the link
- * prefixes they handle, what they draw over the avatars in the room, their notification
+ * prefixes they handle, what they draw over the avatars in the room and in the reception, their notification
  * layouts and the pictures they give alerts. Each entry carries the key of the module that added it, so a module that stops takes
  * everything it added with it (`removeModule`). The loader is `commands/client-modules`.
  */
@@ -64,6 +64,20 @@ export interface ClientModuleAvatarOverlay {
     render: (avatar: ClientModuleAvatar) => ReactNode;
 }
 
+/** What a reception layer is given: the reception's size, the desktop's. */
+export interface ClientModuleHotelViewLayerProps {
+    width: number;
+    height: number;
+}
+
+export interface ClientModuleHotelViewLayer {
+    moduleKey: string;
+    key: number;
+    component: ComponentType<ClientModuleHotelViewLayerProps>;
+    /** The layer draws the reception's backdrop itself: the reception's own background bitmaps are hidden while it is added. */
+    replacesBackground: boolean;
+}
+
 /** A module's bubble layout: a template of the bundles, and its height in the stack. */
 export interface ClientModuleNotificationLayout {
     moduleKey: string;
@@ -96,6 +110,8 @@ type State = {
     meMenuItems: ClientModuleMeMenuItem[];
     linkHandlers: ClientModuleLinkHandler[];
     avatarOverlays: ClientModuleAvatarOverlay[];
+    /** In the order they were added: each drawn over the ones before it. */
+    hotelViewLayers: ClientModuleHotelViewLayer[];
     /** By layout name. */
     notificationLayouts: Record<string, ClientModuleNotificationLayout>;
     /** In the order they were set: each is shown the picture the ones before it left. */
@@ -115,6 +131,8 @@ type Actions = {
     removeLinkHandler: (handler: ClientModuleLinkHandler) => void;
     addAvatarOverlay: (overlay: ClientModuleAvatarOverlay) => void;
     removeAvatarOverlay: (key: number) => void;
+    addHotelViewLayer: (layer: ClientModuleHotelViewLayer) => void;
+    removeHotelViewLayer: (key: number) => void;
     addNotificationLayout: (name: string, layout: ClientModuleNotificationLayout) => void;
     removeNotificationLayout: (name: string) => void;
     addAlertIllustration: (illustration: ClientModuleAlertIllustration) => void;
@@ -136,6 +154,7 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
     meMenuItems: [],
     linkHandlers: [],
     avatarOverlays: [],
+    hotelViewLayers: [],
     notificationLayouts: {},
     alertIllustrations: [],
     addWindow: window => set(x => ({ windows: { ...x.windows, [window.key]: window } })),
@@ -150,6 +169,8 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
     removeLinkHandler: handler => set(x => ({ linkHandlers: x.linkHandlers.filter(entry => entry !== handler) })),
     addAvatarOverlay: overlay => set(x => ({ avatarOverlays: [ ...x.avatarOverlays, overlay ] })),
     removeAvatarOverlay: key => set(x => ({ avatarOverlays: x.avatarOverlays.filter(entry => entry.key !== key) })),
+    addHotelViewLayer: layer => set(x => ({ hotelViewLayers: [ ...x.hotelViewLayers, layer ] })),
+    removeHotelViewLayer: key => set(x => ({ hotelViewLayers: x.hotelViewLayers.filter(entry => entry.key !== key) })),
     addNotificationLayout: (name, layout) => set(x => ({ notificationLayouts: { ...x.notificationLayouts, [name]: layout } })),
     removeNotificationLayout: name => set(x => ({ notificationLayouts: without(x.notificationLayouts, name) })),
     addAlertIllustration: illustration => set(x => ({ alertIllustrations: [ ...x.alertIllustrations, illustration ] })),
@@ -164,6 +185,7 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
             meMenuItems: x.meMenuItems.filter(entry => entry.moduleKey !== moduleKey),
             linkHandlers: x.linkHandlers.filter(entry => entry.moduleKey !== moduleKey),
             avatarOverlays: x.avatarOverlays.filter(entry => entry.moduleKey !== moduleKey),
+            hotelViewLayers: x.hotelViewLayers.filter(entry => entry.moduleKey !== moduleKey),
             notificationLayouts: filterRecord(x.notificationLayouts, layout => layout.moduleKey !== moduleKey),
             alertIllustrations: x.alertIllustrations.filter(entry => entry.moduleKey !== moduleKey),
         };
