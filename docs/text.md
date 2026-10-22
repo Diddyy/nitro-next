@@ -59,6 +59,14 @@ browser text.
   `scripts/habbo-js-resources/habbo-window-manager-com/text_styles_css.txt`. Regenerate it, never edit it; it is the whole list of
   theme styles, so a style it gains is one a view can name that day and one it loses is a
   `textStyle` that stops typechecking - never a hand-written font beside it.
+- A theme or a hotel can set a style to another's format, or change its fields, at run time
+  (`setTextStyleOverrides`: the window manager bundle's `text-styles.json`, then the config's
+  `text.styles.overrides` - see [theme packs](asset-bundles.md#theme-packs)). It replaces the entries of
+  `HABBO_TEXT_STYLES` and `TEXT_STYLES` in place, so every reader draws and measures the new format;
+  a text already drawn keeps the old one, which is why both apply before the client leaves the
+  loading screen. A style the exact renderer cannot take in its new format falls back to browser
+  text, as any other does: Volter's normal anti-aliasing takes no letter spacing, so a layout's
+  `spacing` var over a style set in Volter draws that text in browser text.
 - Fonts are captured bundles in `public/assets/fonts/*.air51.json`, shipped in `fonts.nitro` and
   registered once at boot by `preloadFlashFonts()`. They cover the Latin script (U+0021-017F:
   ASCII, Latin-1 and Latin Extended-A, so every hotel's language) and U+2000-22FF (dashes, curly

@@ -15,7 +15,10 @@
  * - each sprite's `Texture` goes into `usePixiTexture`'s cache under its theme key, so a lookup
  *   during render is a synchronous `Map` read and no component ever builds a texture;
  * - the decoded sheet and its rects go to `themeSprites.ts`, which cuts the standalone copies a
- *   tiling sprite or a shadow needs out of it on demand, once per key.
+ *   tiling sprite or a shadow needs out of it on demand, once per key;
+ * - `text-styles.json`, when the bundle has one, sets the text styles it changes
+ *   (`setTextStyleOverrides`) - the Habbo client reads its text styles out of that library too
+ *   (`TextSkinRenderer.parse`), so a theme pack's skin can set its texts in another face.
  *
  * There is no fallback behind this: the client ships no theme of its own, and the hotel serves the
  * bundle as it does any library's, from `asset.bundles.templates` (`assetBundleUrl`). If the bundle
@@ -27,6 +30,7 @@ import { SpritesheetData } from 'pixi.js';
 
 import { registerThemeTexture, resetThemeTextures } from '../hooks/usePixiTexture';
 import { themeHost } from '../host';
+import { setTextStyleOverrides } from './textStyles';
 import { registerThemeVariants, themeTextureAliases, ThemeVariantsData } from './themeRegistry';
 import { registerThemeAtlas, resetThemeSprites, themeTextureKeys } from './themeSprites';
 
@@ -38,6 +42,9 @@ const BUNDLE_NAME = 'habbo-window-manager-com';
 
 /** `theme-variants.json`, by the name `getBundleFile` knows a bundle's JSON by. */
 const THEME_VARIANTS_FILE = 'theme-variants';
+
+/** `text-styles.json`: the text styles the theme sets in place of the client's (`TextStyleOverrides`). */
+const TEXT_STYLES_FILE = 'text-styles';
 
 /**
  * Loads the theme from its bundle - the window manager's, or another the host serves a theme under:
@@ -58,6 +65,8 @@ export const preloadThemeAssets = async (bundle: string = BUNDLE_NAME): Promise<
     if (!manifest?.frames || !sheet) return;
 
     if (variants) registerThemeVariants(variants);
+
+    setTextStyleOverrides('theme', assetManager.getBundleFile(bundle, TEXT_STYLES_FILE));
 
     for (const [ key, asset ] of themeTextureKeys(Object.keys(manifest.frames), themeTextureAliases())) {
         const texture = assetManager.getTexture(asset);

@@ -58,6 +58,14 @@ export const registerNativeGlyphs = (family: string, weight: string, style: stri
     fontRevision++;
 };
 
+/**
+ * Bumps the revision when the text styles changed under the texts already measured
+ * (`setTextStyleOverrides`), so a size cached in the old format is not read back in the new.
+ */
+export const markTextStylesChanged = (): void => {
+    fontRevision++;
+};
+
 type MissingGlyphLoader = () => Promise<void>;
 
 let missingGlyphLoader: MissingGlyphLoader | undefined;
@@ -233,7 +241,7 @@ const layoutRun = (entry: NativeFontEntry, text: string, format: FlashTextFormat
 const floorToTwips = (value: number): number => Math.floor(value * 20) / 20;
 
 export class FlashTextRenderer {
-    /** Bumps whenever a font is registered, so a cached render can tell it is stale. */
+    /** Bumps whenever a font is registered or the text styles change, so a cached render can tell it is stale. */
     public static get revision(): number {
         return fontRevision;
     }

@@ -50,6 +50,30 @@ additions by name. Both keep the names the library gives the bitmaps.
 The client ships no copy: with a key (or `asset.bundles.templates`) unset, that bundle is not loaded - and without the window manager's,
 no window has its chrome.
 
+### Theme packs
+
+A hotel that wants another look ships only the libraries it changes. `asset.bundles.templates.overrides`
+names a url per library, `{ "<library>": "<url>" }` (or that object as JSON text, as a launch parameter
+or hotel variable arrives), and every other library still comes from `asset.bundles.templates`
+(`GetTemplateBundleUrl` in `nitro-api`, read by `assetBundleUrl`, the avatar render library's and the
+room object visualization library's loads alike). A pack's bundle is a whole library bundle - a copy of
+the hotel's with its changes - loaded under the library's own name, so nothing that asks for the library
+or one of its bitmaps knows the difference.
+
+- **The chrome** is the window manager's bundle: `theme.png`, `theme_spritesheet.json` and
+  `theme-variants.json`, as above.
+- **The text styles** are the window manager's too, as the Habbo client reads them from that library's
+  style sheet (`TextSkinRenderer.parse` -> `TextStyleManager.setStyles`): a `text-styles.json` in the
+  bundle sets the styles it names, each to another style's name (`"u_regular": "regular"` - Volter in
+  place of Ubuntu) or to the `FlashTextFormat` fields it changes (`{ "fontFamily": "Volter", "fontSize": 9,
+  "antiAliasType": "normal" }`). The hotel's `text.styles.overrides`, in the same form, applies over the
+  theme's without a bundle. See `setTextStyleOverrides` and [Text](text.md).
+- **A window's colour** is its layout's: a frame's `color` (`IWindow.color`) tints every `colorize`
+  piece of its skin, so the navigator's `0xff418db0` is in `habbo-new-navigator`'s layout, not the
+  theme. A pack recolours one window by overriding that window's library, every window without a
+  colour of its own through the frame variants' `tintColor`, and the Volter frames' own colours are
+  styles 0 (blue), 1 (grey) and 2 (yellow).
+
 An **atlas** bundle packs its PNGs into one sheet plus a Pixi `SpritesheetData` manifest
 (`<name>.png` + `<name>_spritesheet.json`), which is one GPU upload the per-asset textures share.
 A **loose** bundle is one PNG entry per asset, its own texture. `<name>.json` is the asset data

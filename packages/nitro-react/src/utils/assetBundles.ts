@@ -13,7 +13,7 @@
  * not here: Nitro Studio publishes each library's in its template bundle (`loadTemplateBundle`),
  * named `<library>-<asset>` - the name `LayoutImage` builds from `<library>/<asset>.png`.
  */
-import { GetConfigValue, NitroLogger } from '@nitrodevco/nitro-api';
+import { GetConfigValue, GetTemplateBundleUrl, NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
 /** Where the bundles this repo builds and ships are, when the hotel's config names no other place. */
@@ -54,10 +54,11 @@ export const lazyBundleForAsset = (name: string): string | undefined => {
 
 /**
  * Where a bundle is fetched from; `undefined` for a library's when the config names no url. A
- * library's bundle is `asset.bundles.templates`'s, with `%libname%` the library.
+ * library's bundle is `asset.bundles.templates`'s, with `%libname%` the library, or the url a theme
+ * pack names for it in `asset.bundles.templates.overrides` (`GetTemplateBundleUrl`).
  */
 export const assetBundleUrl = (name: string): string | undefined => {
-    if (name.startsWith(LIBRARY_PREFIX)) return GetConfigValue<string>('asset.bundles.templates')?.replace('%libname%', name) || undefined;
+    if (name.startsWith(LIBRARY_PREFIX)) return GetTemplateBundleUrl(name);
 
     return (GetConfigValue<string>('asset.bundles.other') ?? DEFAULT_BUNDLE_URL).replace('%name%', name);
 };

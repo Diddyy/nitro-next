@@ -2,11 +2,14 @@
  * The theme's text styles: the Flash style names (`TextStyleKey`), the browser-text face each falls
  * back to (`TEXT_STYLES`, derived from the generated `HABBO_TEXT_STYLES`), the default style of a
  * window's theme (`themeDefaultTextStyle`), and when an override still draws exactly
- * (`resolveFlashStyle`). See docs/text.md.
+ * (`resolveFlashStyle`), and what a theme or hotel sets in place of a style (`setTextStyleOverrides`).
+ * See docs/text.md.
  */
 import { TextDropShadow, TextStyle, TextStyleOptions } from 'pixi.js';
 
 import type { FlashTextFace, FlashTextFieldOverrides, FlashTextFormat, HabboTextStyleName } from '../font/flash-text';
+import { DEFAULT_FLASH_TEXT_FORMAT } from '../font/flash-text/flashTextFormat';
+import { markTextStylesChanged } from '../font/flash-text/FlashTextRenderer';
 import { HABBO_TEXT_STYLES } from '../font/flash-text/habboTextStyles';
 import { toCssHexColor } from './cssHexColor';
 
@@ -108,6 +111,94 @@ export const TEXT_STYLES = Object.fromEntries(
 ) as Readonly<Record<TextStyleKey, ThemeTextStyle>>;
 
 /**
+ * What a theme or a hotel puts in place of one text style: another style's name, whose format it
+ * takes whole (`"u_regular": "regular"` sets the Ubuntu texts in Volter), or the `FlashTextFormat`
+ * fields it changes over its own (`{ "fontFamily": "Volter", "fontSize": 9, "antiAliasType": "normal" }`).
+ */
+export type TextStyleOverride = TextStyleKey | Partial<FlashTextFormat>;
+
+export type TextStyleOverrides = Partial<Record<TextStyleKey, TextStyleOverride>>;
+
+/**
+ * Where an override comes from, in the order they apply: `theme` is the window manager bundle's
+ * `text-styles.json` - the Habbo client takes its text styles from that library's style sheet
+ * (`TextSkinRenderer.parse` hands it to `TextStyleManager.setStyles`), so a theme pack's skin
+ * carries its own - and `hotel` the config's `text.styles.overrides`, over it.
+ */
+export type TextStyleOverrideSource = 'theme' | 'hotel';
+
+const SOURCES: TextStyleOverrideSource[] = [ 'theme', 'hotel' ];
+
+/** The canvas-text styles `getPixiTextStyle` made, by style; dropped when the styles change. */
+const cache = new Map<TextStyleKey, TextStyle>();
+
+const SHIPPED_TEXT_STYLES: Readonly<Record<TextStyleKey, Partial<FlashTextFormat>>> = { ...HABBO_TEXT_STYLES };
+
+const textStyleOverrides: Record<TextStyleOverrideSource, TextStyleOverrides> = { theme: {}, hotel: {} };
+
+/** An override table read as it may arrive - an object, or that object as JSON text (a hotel variable) - keeping only known styles and format fields. */
+const readTextStyleOverrides = (value: unknown): TextStyleOverrides => {
+    if (typeof value === 'string') {
+        try {
+            value = JSON.parse(value);
+        } catch {
+            return {};
+        }
+    }
+
+    if (!value || (typeof value !== 'object') || Array.isArray(value)) return {};
+
+    const overrides: TextStyleOverrides = {};
+
+    for (const [ key, override ] of Object.entries(value as Record<string, unknown>)) {
+        if (!(key in SHIPPED_TEXT_STYLES)) continue;
+
+        if (typeof override === 'string') {
+            if (override in SHIPPED_TEXT_STYLES) overrides[key as TextStyleKey] = override as TextStyleKey;
+        } else if (override && (typeof override === 'object')) {
+            overrides[key as TextStyleKey] = Object.fromEntries(Object.entries(override).filter(([ field ]) => field in DEFAULT_FLASH_TEXT_FORMAT));
+        }
+    }
+
+    return overrides;
+};
+
+/**
+ * Puts a source's text style overrides in place of the last ones it set (an empty or unreadable
+ * table clears them) and rebuilds every style from the client's own: each source over the result
+ * of the ones before it, a name taking that style's format as the sources before it left it. Every
+ * reader of `HABBO_TEXT_STYLES` and `TEXT_STYLES` sees the new formats; texts already drawn keep
+ * the old ones, so a source is set before the views it styles draw - the config's at start-up, the
+ * theme's as its bundle loads (`preloadThemeAssets`), before the client leaves the loading screen.
+ */
+export const setTextStyleOverrides = (source: TextStyleOverrideSource, value: unknown): void => {
+    textStyleOverrides[source] = readTextStyleOverrides(value);
+
+    let formats: Record<TextStyleKey, Partial<FlashTextFormat>> = { ...SHIPPED_TEXT_STYLES };
+
+    for (const layer of SOURCES) {
+        const previous = formats;
+
+        formats = { ...previous };
+
+        for (const [ key, override ] of Object.entries(textStyleOverrides[layer]) as [ TextStyleKey, TextStyleOverride ][]) {
+            formats[key] = (typeof override === 'string') ? previous[override] : { ...previous[key], ...override };
+        }
+    }
+
+    const styles = HABBO_TEXT_STYLES as Record<TextStyleKey, Partial<FlashTextFormat>>;
+    const fallbacks = TEXT_STYLES as Record<TextStyleKey, ThemeTextStyle>;
+
+    for (const key of Object.keys(SHIPPED_TEXT_STYLES) as TextStyleKey[]) {
+        styles[key] = formats[key];
+        fallbacks[key] = habboTextStyle(key);
+    }
+
+    cache.clear();
+    markTextStylesChanged();
+};
+
+/**
  * The browser-text face for a style once the layout's own `font_face`, `bold` and `italic` vars
  * are applied over it - what the canvas-text fallback needs when the exact renderer cannot take
  * the string. A face alias adds its weight and slant rather than clearing them, the way
@@ -172,8 +263,6 @@ export const themeDefaultTextStyle = (style: string | number | undefined): TextS
 
     return DEFAULT_TEXT_STYLE;
 };
-
-const cache = new Map<TextStyleKey, TextStyle>();
 
 /** A style as Pixi's canvas text takes it (the browser fallback), with `overrides` over it; the bare style is made once and kept. */
 export const getPixiTextStyle = (key: TextStyleKey, overrides?: TextStyleOptions): TextStyle => {

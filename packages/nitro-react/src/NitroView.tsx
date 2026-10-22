@@ -16,7 +16,7 @@
  * The preview host (`previewHost`) loads the same, but never connects: once it is all in,
  * `PreviewHostView` replaces the screen instead of the client.
  */
-import { NitroLogger } from '@nitrodevco/nitro-api';
+import { GetConfigValue, NitroLogger } from '@nitrodevco/nitro-api';
 import {
     GetRoomEngine,
     TexturePool,
@@ -26,7 +26,7 @@ import { useEffect, useState } from 'react';
 import { preloadChatStyles } from '#base/chat';
 import { rebootAfterGpuLoss } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, WindowLayer } from '#base/theme';
+import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, setTextStyleOverrides, WindowLayer } from '#base/theme';
 import { isPreviewHost, loadAssetBundle, preloadAssetBundles, unloadAssetBundle } from '#base/utils';
 
 import { MainView } from './MainView';
@@ -93,6 +93,9 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
 
         const setup = async () => {
             try {
+                // The hotel's text style overrides, before the first text is drawn (the theme's own come with its bundle).
+                setTextStyleOverrides('hotel', GetConfigValue('text.styles.overrides'));
+
                 await Promise.all([ loadAssetBundle('loading-screen'), preloadFlashFonts() ]);
 
                 setSplash({ photo: 1 + Math.floor(Math.random() * SPLASH_PHOTOS), seed: Math.random() });
