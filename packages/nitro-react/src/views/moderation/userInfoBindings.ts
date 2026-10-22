@@ -5,6 +5,7 @@
 import { IModeratorUserInfoData } from '@nitrodevco/nitro-packets';
 
 import { openHousekeepingPage } from '#base/commands';
+import { MOD_CHATLOG_USER, ModerationWindow } from '#base/context/moderation';
 
 /** `UserInfoCtrl.formatTime`. */
 const formatModerationTime = (seconds: number) => {
@@ -61,3 +62,16 @@ export const userInfoBindings = (user: IModeratorUserInfoData | undefined): Reco
 
     return bindings;
 };
+
+/**
+ * `UserInfoCtrl.prepare`'s buttons: the player's chatlog and room visits, and the send-message and mod
+ * action windows (`onMessageButton` / `onModActionButton`), which get the call for help the user info
+ * shows for (`_-C2S`: the issue handler's issue, or its evidence chatlog's) and send it with their actions.
+ * Mod action is off for "No identity". Each opens beside `caller`, or under it with `below`.
+ */
+export const userInfoButtons = (user: IModeratorUserInfoData | undefined, showWindow: (window: ModerationWindow, caller?: string, below?: boolean) => void, caller: string, below: boolean, issueId?: number): Record<string, object> => ({
+    chatlog_but: { onPointerTap: () => user && showWindow({ kind: 'chatlog', type: MOD_CHATLOG_USER, id: user.userId }, caller, below) },
+    roomvisits_but: { onPointerTap: () => user && showWindow({ kind: 'roomVisits', userId: user.userId }, caller, below) },
+    message_but: { onPointerTap: () => user && showWindow({ kind: 'sendMessage', userId: user.userId, userName: user.userName, issueId }, caller, below) },
+    modaction_but: { disabled: user?.primaryEmailAddress === 'No identity', onPointerTap: () => user && (user.primaryEmailAddress !== 'No identity') && showWindow({ kind: 'modAction', userId: user.userId, userName: user.userName, issueId }, caller, below) },
+});

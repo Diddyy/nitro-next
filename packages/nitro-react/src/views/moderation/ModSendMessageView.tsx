@@ -10,9 +10,10 @@ import { TemplateWindow } from '#base/theme';
  * Flash's `moderation/SendMsgsCtrl`: the `send_msgs` window ("Msg To: name"). A template from the
  * drop menu fills the input; the layout's own text is a placeholder the first focus clears
  * (`onInputClick`). Send refuses an empty or placeholder message with "You must input a message to
- * the user", else sends `ModMessageMessageComposer(userId, text, -999, -1)` and closes.
+ * the user", else sends `ModMessageMessageComposer(userId, text, -999, issueId)` - the call for help it
+ * was opened from, or -1 - and closes.
  */
-export const ModSendMessageView = ({ userId, userName }: { userId: number; userName: string }) => {
+export const ModSendMessageView = ({ userId, userName, issueId }: { userId: number; userName: string; issueId?: number }) => {
     const { send } = useWebSocketContext();
     const templates = useModerationStore(x => x.init?.messageTemplates ?? []);
     const { showSimpleAlert } = useWindowActions();
@@ -29,7 +30,7 @@ export const ModSendMessageView = ({ userId, userName }: { userId: number; userN
             return;
         }
 
-        sendModMessage(send, userId, text);
+        sendModMessage(send, userId, text, issueId);
         close();
     };
 

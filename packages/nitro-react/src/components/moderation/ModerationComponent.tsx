@@ -36,6 +36,7 @@ export const ModerationComponent = () => {
                         <ModUserInfoView
                             key={key}
                             userId={window.userId}
+                            issueId={window.issueId}
                         />
                     );
                     case 'roomTool': return (
@@ -62,6 +63,7 @@ export const ModerationComponent = () => {
                             key={key}
                             userId={window.userId}
                             userName={window.userName}
+                            issueId={window.issueId}
                         />
                     );
                     case 'modAction': return (
@@ -69,6 +71,7 @@ export const ModerationComponent = () => {
                             key={key}
                             userId={window.userId}
                             userName={window.userName}
+                            issueId={window.issueId}
                         />
                     );
                 }

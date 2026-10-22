@@ -29,12 +29,17 @@ export const MOD_CHATLOG_USER = 5;
 /** `ChatlogCtrl`'s type 3: a call for help's evidence (`ModerationMessageHandler.onCfhChatlog`). */
 export const MOD_CHATLOG_CFH = 3;
 
+/**
+ * A tracked window. A user info, send-message or mod action window opened from a call for help holds its
+ * `issueId` (`IssueMessageData` passed along, `UserInfoCtrl._-C2S`), which the actions it sends carry; it is no
+ * part of the window's key (`WindowTracker` ids are the user's).
+ */
 export type ModerationWindow
-    = | { kind: 'userInfo'; userId: number }
+    = | { kind: 'userInfo'; userId: number; issueId?: number }
         | { kind: 'roomTool'; roomId: number }
         | { kind: 'chatlog'; type: number; id: number }
-        | { kind: 'sendMessage'; userId: number; userName: string }
-        | { kind: 'modAction'; userId: number; userName: string }
+        | { kind: 'sendMessage'; userId: number; userName: string; issueId?: number }
+        | { kind: 'modAction'; userId: number; userName: string; issueId?: number }
         | { kind: 'roomVisits'; userId: number };
 
 /** The start panel's `rects` key, and where its layout puts it (`start_panel.xml`: 120, 64, 170 x 170). */
@@ -100,6 +105,8 @@ export interface ModerationStore {
     showWindow: (window: ModerationWindow, caller?: string, below?: boolean) => void;
     /** A frame dragged: where it is now (`onPositionChange`). */
     moveWindow: (key: string, position: { x: number; y: number }) => void;
+    /** Where a frame no tracked window is lies (the issue handler), so the windows it opens go beside it as beside any caller. */
+    placeFrame: (key: string, rect: ModerationRect) => void;
     closeWindow: (window: ModerationWindow) => void;
     setUserInfo: (info: IModeratorUserInfoData) => void;
     setRoomInfo: (info: IModeratorRoomInfoData) => void;
@@ -161,6 +168,7 @@ export const createModerationStore = () => createStore<ModerationStore>(set => (
 
         return rect ? { rects: { ...state.rects, [key]: { ...rect, ...position } } } : {};
     }),
+    placeFrame: (key, rect) => set(state => ({ rects: { ...state.rects, [key]: rect } })),
     closeWindow: window => set((state) => {
         const key = moderationWindowKey(window);
 

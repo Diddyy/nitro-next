@@ -51,8 +51,9 @@ const headerCaption = (record: IRoomChatlogData) => {
  * `ChatlogCtrl.populateEvidence`: each record the list's first item cloned as a header ("Room: name" with
  * its "Room tool" button, and for a room "View room" when `viewRoom` is given) and its lines the second
  * (`chatline`): time, chatter (a link to their user info; "Bot / pet" for 0) and message, rows in alternating shades. Windows it opens go beside `caller`.
+ * A call for help's evidence passes its `issueId`, which the user info it opens holds (`ChatlogCtrl.onUserClick`).
  */
-export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElement, line: TemplateElement, caller: string, showWindow: (window: ModerationWindow, caller?: string) => void, viewRoom?: (roomId: number) => void) => {
+export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElement, line: TemplateElement, caller: string, showWindow: (window: ModerationWindow, caller?: string) => void, viewRoom?: (roomId: number) => void, issueId?: number) => {
     const items: TemplateItem[] = [];
 
     records.forEach((record, recordIndex) => {
@@ -81,7 +82,7 @@ export const chatlogItems = (records: IRoomChatlogData[], header: TemplateElemen
                     '': { color },
                     time_txt: { caption: entry.timeStamp },
                     chatter_txt: (entry.chatterId > 0)
-                        ? { caption: entry.chatterName, underline: true, backgroundColor: fill, onPointerTap: () => showWindow({ kind: 'userInfo', userId: entry.chatterId }, caller) }
+                        ? { caption: entry.chatterName, underline: true, backgroundColor: fill, onPointerTap: () => showWindow({ kind: 'userInfo', userId: entry.chatterId, issueId }, caller) }
                         : { caption: (entry.chatterId === 0) ? 'Bot / pet' : '-', underline: false, backgroundColor: fill },
                     msg_txt: { caption: entry.msg, backgroundColor: fill },
                 },

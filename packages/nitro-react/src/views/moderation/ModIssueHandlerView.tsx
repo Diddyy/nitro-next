@@ -10,9 +10,12 @@ import { findTemplateChild, TemplateItem, TemplateWindow, useLatest, useTemplate
 
 import { chatlogItems, useChatlogArrange } from './chatlogItems';
 import { issueCategoryName, issueSourceName } from './issueNames';
-import { userInfoBindings } from './userInfoBindings';
+import { userInfoBindings, userInfoButtons } from './userInfoBindings';
 
 const TEMPLATE = 'habbo-moderation-com/issue_handler_xml';
+
+/** `issue_handler.xml`'s frame: 750 wide (`width_min` = `width_max`), 650 tall. */
+const HANDLER_SIZE = { width: 750, height: 650 };
 
 /** `IssueHandler.update`: the window's place is sent only 5 s after it opened, once it changed. */
 const PREFERENCES_DELAY_MS = 5000;
@@ -38,7 +41,9 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
     const preferences = useModerationIssueStore(x => x.preferences);
     const preferencesRef = useLatest(preferences);
     const { removeHandler } = useModerationIssueActions();
-    const { showWindow } = useModerationActions();
+    const { showWindow, moveWindow, placeFrame } = useModerationActions();
+    // The rect the windows its user infos and evidence open go beside (`WindowTracker.show(window, _window)`).
+    const callerKey = `issueHandler:${bundleId}`;
     const { showSimpleAlert } = useWindowActions();
     const template = useTemplate(TEMPLATE);
     const evidenceTemplate = useTemplate('habbo-moderation-com/evidence_frame_xml');
@@ -78,6 +83,8 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
         onPositionChange: (position: { x: number; y: number }) => {
             const current = preferencesRef.current;
 
+            moveWindow(callerKey, position);
+
             if ((performance.now() - openedAt) <= PREFERENCES_DELAY_MS) return;
             if ((position.x === current.x) && (position.y === current.y)) return;
 
@@ -87,6 +94,11 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
         },
         onClose: () => removeHandler(bundleId),
     }));
+
+    // Placed where it opens; drags move it (onPositionChange).
+    useEffect(() => {
+        placeFrame(callerKey, { x: preferencesRef.current.x, y: preferencesRef.current.y, ...HANDLER_SIZE });
+    }, [ placeFrame, callerKey, preferencesRef ]);
 
     // `registerUpdateReceiver(this, 1000)`: the open times move on each second.
     const now = useClock('monotonic', 1000);
@@ -136,7 +148,8 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
                 bindings: { '': { caption: `${item.reporterUserName}: ${item.message}`, background: (index % 2) === 0 } },
             }))
         : [];
-    const userInfo = (user: Parameters<typeof userInfoBindings>[0]) => (userInfoTemplate ? [ { key: 'user_info', from: userInfoTemplate, bindings: userInfoBindings(user) } ] : []);
+    // `IssueHandler.show`: both `UserInfoCtrl`s hold the highest priority issue; their tools open beside the handler.
+    const userInfo = (user: Parameters<typeof userInfoBindings>[0]) => (userInfoTemplate ? [ { key: 'user_info', from: userInfoTemplate, bindings: { ...userInfoBindings(user), ...userInfoButtons(user, showWindow, callerKey, false, issueId || undefined) } } ] : []);
 
     return (
         <TemplateWindow
@@ -149,7 +162,7 @@ export const ModIssueHandlerView = ({ bundleId }: { bundleId: number }) => {
                 caller_user_info: { items: userInfo(caller) },
                 reported_user_info: reportedId ? { items: userInfo(reported) } : { visible: false },
                 reported_user_info_caption: { visible: reportedId > 0 },
-                evidence_list: { items: (chatlog && header && line) ? chatlogItems(chatlog.records, header, line, `issueHandler:${bundleId}`, showWindow, roomId => forwardToModeratedRoom(send, roomId)) : [] },
+                evidence_list: { items: (chatlog && header && line) ? chatlogItems(chatlog.records, header, line, callerKey, showWindow, roomId => forwardToModeratedRoom(send, roomId), issueId || undefined) : [] },
                 handle_next_checkbox: { selected: handleNext, onPointerTap: () => setHandleNext(!handleNext) },
                 close_useless: {
                     onPointerTap: () => {
