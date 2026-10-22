@@ -33,6 +33,7 @@ import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 import { systemStore } from '#base/context/system';
 
+import { createFragmentBuffer, mergeMapFragments } from '../fragmentBuffer';
 import { on, subscribeAll } from '../packetSubscriptions';
 
 type Fragment = Map<number, IFurniListAddOrUpdateFurni>;
@@ -45,33 +46,20 @@ export const registerInventoryFurniHandlers = ({ send, subscribe }: WebSocketCon
     // `FurniModel.§_-Qa§`, the image update timer.
     let imageUpdateTimer: ReturnType<typeof setInterval> | undefined;
     // `IncomingMessages.§_-M1Y§`: the fragments of the list on its way in.
-    let fragments: (Fragment | undefined)[] | undefined;
+    const fragments = createFragmentBuffer<Fragment>(mergeMapFragments);
 
     const offerAddedToCatalog = (added: IFurniListAddOrUpdateFurni[]) => {
         for (const furni of added) itemAddedToInventory(send, furni.itemTypeId, furni.itemId);
     };
 
-    /** `addMessageFragment`: the whole list once every fragment is in. */
-    const addFragment = (fragment: Fragment, totalFragments: number, fragmentNo: number): Fragment | undefined => {
-        if (totalFragments === 1) return fragment;
-
-        fragments ??= new Array<Fragment | undefined>(totalFragments).fill(undefined);
-        fragments[fragmentNo] = fragment;
-
-        if (fragments.some(received => !received)) return undefined;
-
-        return new Map(fragments.flatMap(received => [ ...(received ?? []) ]));
-    };
-
     const unsubscribe = subscribeAll(subscribe, [
         on(FurniListEventMessage, (data) => {
-            const furni = addFragment(data.furniFragment, data.totalFragments, data.fragmentNo);
+            const furni = fragments.add(data.furniFragment, data.totalFragments, data.fragmentNo);
 
             if (!furni) return;
 
             const added = insertFurniture(furni);
 
-            fragments = undefined;
             imageUpdateTimer ??= setInterval(removeExpiredRentedFurni, RENT_EXPIRY_CHECK_INTERVAL_MS);
             // `insertFurniture` re-reads the locks when it added items; reading them again when it did not changes nothing.
             updateInventoryFurniLocks();

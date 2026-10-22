@@ -27,33 +27,21 @@ import { inventoryStore } from '#base/context/inventory';
 import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 
+import { createFragmentBuffer } from '../fragmentBuffer';
 import { on, subscribeAll } from '../packetSubscriptions';
 
 export const registerInventoryBadgesHandlers = ({ subscribe }: WebSocketConnection) => {
     const { initBadges, updateBadge } = inventoryStore.getState();
     const { setBadgePointLimits } = systemStore.getState();
     // `IncomingMessages`' badge fragment buffer: the fragments of the list on its way in.
-    let fragments: (IInventoryBadge[] | undefined)[] | undefined;
-
-    /** `addMessageFragment`: the whole list once every fragment is in. */
-    const addFragment = (fragment: IInventoryBadge[], totalFragments: number, fragmentNo: number): IInventoryBadge[] | undefined => {
-        if (totalFragments === 1) return fragment;
-
-        fragments ??= new Array<IInventoryBadge[] | undefined>(totalFragments).fill(undefined);
-        fragments[fragmentNo] = fragment;
-
-        if (fragments.some(received => !received)) return undefined;
-
-        return fragments.flatMap(received => received ?? []);
-    };
+    const fragments = createFragmentBuffer<IInventoryBadge[]>(received => received.flat());
 
     return subscribeAll(subscribe, [
         on(BadgesEventMessage, (data) => {
-            const badges = addFragment(data.badges, data.totalFragments, data.fragmentNo);
+            const badges = fragments.add(data.badges, data.totalFragments, data.fragmentNo);
 
             if (!badges) return;
 
-            fragments = undefined;
             initBadges(badges);
         }),
 

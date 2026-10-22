@@ -22,6 +22,7 @@ import { systemStore } from '#base/context/system';
 import { userStore } from '#base/context/user';
 import { processCatalogOffer, resolveClubBadgeId, toClubBuyOffers } from '#base/utils';
 
+import { createFragmentBuffer } from '../fragmentBuffer';
 import { on, subscribeAll } from '../packetSubscriptions';
 
 /** `ScrSendUserInfoMessageParser`'s response types `onSubscriptionInfo` acts on. */
@@ -33,7 +34,7 @@ export const registerCatalogClubHandlers = (store: StoreApi<CatalogStore>, { sen
     const { setClubSubscription } = userStore.getState();
 
     // `HabboClubCenter.§_-M14§`: the badge fragments of the answer being assembled (`addMessageFragment`).
-    let badgeFragments: (string[] | undefined)[] | undefined = undefined;
+    const badgeFragments = createFragmentBuffer<string[]>(received => received.flat());
 
     return subscribeAll(subscribe, [
         on(ScrSendUserInfoMessage, (data) => {
@@ -99,23 +100,12 @@ export const registerCatalogClubHandlers = (store: StoreApi<CatalogStore>, { sen
         on(BadgesEventMessage, (data) => {
             const codes = [ ...data.fragment.values() ];
 
-            if (data.totalFragments === 1) {
-                badgeFragments = undefined;
-                setClubBadgeId(resolveClubBadgeId(codes));
+            // A list in one fragment drops any half-collected one.
+            if (data.totalFragments === 1) badgeFragments.reset();
 
-                return;
-            }
+            const allCodes = badgeFragments.add(codes, data.totalFragments, data.fragmentNo);
 
-            if (!badgeFragments) badgeFragments = new Array<string[] | undefined>(data.totalFragments).fill(undefined);
-
-            badgeFragments[data.fragmentNo] = codes;
-
-            if (badgeFragments.some(fragment => !fragment)) return;
-
-            const allCodes = badgeFragments.flatMap(fragment => fragment ?? []);
-
-            badgeFragments = undefined;
-            setClubBadgeId(resolveClubBadgeId(allCodes));
+            if (allCodes) setClubBadgeId(resolveClubBadgeId(allCodes));
         }),
     ]);
 };

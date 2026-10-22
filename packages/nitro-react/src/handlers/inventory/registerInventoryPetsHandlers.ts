@@ -12,33 +12,21 @@ import { GetGuestRoomResultMessage, IPetData, PetAddedToInventoryEventMessage, P
 import { WebSocketConnection } from '#base/context/communication';
 import { inventoryStore } from '#base/context/inventory';
 
+import { createFragmentBuffer, mergeMapFragments } from '../fragmentBuffer';
 import { on, subscribeAll } from '../packetSubscriptions';
 
 type Fragment = Map<number, IPetData>;
 
 export const registerInventoryPetsHandlers = ({ subscribe }: WebSocketConnection) => {
     const { updatePets, addPet, removePet, setPetsAllowed } = inventoryStore.getState();
-    let fragments: (Fragment | undefined)[] | undefined;
-
-    /** `addMessageFragment`: the whole list once every fragment is in. */
-    const addFragment = (fragment: Fragment, totalFragments: number, fragmentNo: number): Fragment | undefined => {
-        if (totalFragments === 1) return fragment;
-
-        fragments ??= new Array<Fragment | undefined>(totalFragments).fill(undefined);
-        fragments[fragmentNo] = fragment;
-
-        if (fragments.some(received => !received)) return undefined;
-
-        return new Map(fragments.flatMap(received => [ ...(received ?? []) ]));
-    };
+    const fragments = createFragmentBuffer<Fragment>(mergeMapFragments);
 
     return subscribeAll(subscribe, [
         on(PetInventoryEventMessage, (data) => {
-            const pets = addFragment(data.fragment, data.totalFragments, data.fragmentNo);
+            const pets = fragments.add(data.fragment, data.totalFragments, data.fragmentNo);
 
             if (!pets) return;
 
-            fragments = undefined;
             updatePets(pets);
         }),
 
