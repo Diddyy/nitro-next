@@ -14,6 +14,7 @@ export * from './flashBlendMode';
 export * from './frameStorage';
 export * from './getGlobalRect';
 export * from './GetPixelRatio';
+export * from './gpuLossGuard';
 export * from './hsvLayerColor';
 export * from './interaction';
 export * from './isAssetName';

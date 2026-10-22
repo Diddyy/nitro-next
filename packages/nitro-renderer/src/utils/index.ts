@@ -9,6 +9,7 @@ export * from './NitroBundle';
 export * from './NumberBank';
 export * from './PaletteMapFilter';
 export * from './PurgeTrigger';
+export * from './RendererMemory';
 export * from './TexturePool';
 export * from './TextureUtils';
 export * from './WiredFurnitureBorderFilter';

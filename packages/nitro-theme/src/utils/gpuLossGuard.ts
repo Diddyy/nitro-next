@@ -20,21 +20,46 @@
  * draws nothing (`render` returns at once, for the stage and for render-to-texture alike) and the
  * ticker keeps running; and each loss calls `onLost`, for the app to start again. A lost
  * WebGL context's calls do nothing rather than throw, so it needs only the latter.
+ *
+ * `onLost` is told what the browser said of the loss and which GPU it was, read when the guard was
+ * installed: a lost context answers no more questions.
  */
 import { Renderer, RendererType, WebGLRenderer, WebGPURenderer } from 'pixi.js';
 
+/** A lost GPU: the GPU's name, the browser's reason (WebGPU: `unknown` or `destroyed`) and message. */
+export type GpuLoss = { gpu?: string; reason?: string; message?: string };
+
+/** The WebGL context's GPU as the driver names it (`WEBGL_debug_renderer_info`), else as the browser does. */
+const glGpuName = (gl: WebGLRenderingContext | WebGL2RenderingContext): string | undefined => {
+    try {
+        const info = gl.getExtension('WEBGL_debug_renderer_info');
+
+        return String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? '') || undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+/** The WebGPU adapter's GPU: its vendor, architecture, device and description, as far as the browser says. */
+const gpuAdapterName = (adapter: GPUAdapter | undefined): string | undefined => {
+    const info = adapter?.info;
+
+    return info ? ([ info.vendor, info.architecture, info.device, info.description ].filter(Boolean).join(' ') || undefined) : undefined;
+};
+
 /** Installs the guard on `renderer`. */
-export const guardGpuLoss = (renderer: Renderer, onLost?: () => void): void => {
-    const report = () => onLost?.();
+export const guardGpuLoss = (renderer: Renderer, onLost?: (loss: GpuLoss) => void): void => {
+    const report = (loss: GpuLoss) => onLost?.(loss);
 
     if (Number(renderer.type) === Number(RendererType.WEBGL)) {
         const glRenderer = renderer as WebGLRenderer;
         const canvas = glRenderer.canvas;
-        const handleContextLost = () => {
+        const gpu = glGpuName(glRenderer.gl);
+        const handleContextLost = (event: Event) => {
             // `GlContextSystem.forceContextLoss`: a loss asked for, which Pixi restores at once.
             if ((glRenderer.context as unknown as { _contextLossForced?: boolean })._contextLossForced) return;
 
-            report();
+            report({ gpu, message: (event as WebGLContextEvent).statusMessage || undefined });
         };
 
         canvas.addEventListener('webglcontextlost', handleContextLost);
@@ -48,16 +73,17 @@ export const guardGpuLoss = (renderer: Renderer, onLost?: () => void): void => {
 
     const gpuRenderer = renderer as WebGPURenderer;
     let lost = false;
+    let gpu = gpuAdapterName(gpuRenderer.gpu.adapter);
 
     const watch = (device: GPUDevice) => {
-        void device.lost.then(() => {
+        void device.lost.then((info) => {
             // The renderer destroyed its own device (`GpuDeviceSystem.destroy` clears `gpu`).
             if (!(gpuRenderer.device as unknown as { gpu?: unknown }).gpu) return;
             // A device lost after Pixi had already moved on to a new one.
             if (gpuRenderer.gpu?.device !== device) return;
 
             lost = true;
-            report();
+            report({ gpu, reason: info.reason, message: info.message || undefined });
         });
     };
 
@@ -65,9 +91,10 @@ export const guardGpuLoss = (renderer: Renderer, onLost?: () => void): void => {
 
     // After Pixi's own systems: they took the new device first.
     gpuRenderer.runners.contextChange.add({
-        contextChange: (gpu: { device: GPUDevice }) => {
+        contextChange: (context: { adapter: GPUAdapter; device: GPUDevice }) => {
             lost = false;
-            watch(gpu.device);
+            gpu = gpuAdapterName(context.adapter);
+            watch(context.device);
         },
     });
 

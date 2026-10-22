@@ -14,7 +14,7 @@ import { ReactNode, useCallback, useRef } from 'react';
 import { useThemeConfigValue } from './host';
 import { setAdvancedBlendModes } from './utils/flashBlendMode';
 import { GetCanvasImageRendering, GetDeviceRatio, GetPixelRatio, SetDesktopSize, SetStagePixelScale } from './utils/GetPixelRatio';
-import { guardGpuLoss } from './utils/gpuLossGuard';
+import { GpuLoss, guardGpuLoss } from './utils/gpuLossGuard';
 import { guardLayoutViewSizes } from './utils/layoutViewSizeGuard';
 import { gateLayoutWalk } from './utils/layoutWalkGate';
 import { gateRendering } from './utils/renderGate';
@@ -204,7 +204,7 @@ interface PixiApplicationRootProps {
      * The GPU device or context was lost: what was drawn into textures is gone, even once Pixi has
      * restored it (`utils/gpuLossGuard.ts`).
      */
-    onGpuLost?: () => void;
+    onGpuLost?: (loss: GpuLoss) => void;
     /**
      * What the canvas is as big as: the window (the client's), or nothing - the app sizes it itself
      * (`app.renderer.resize`), as a canvas moved between boxes on a page is (Nitro Studio's previews).

@@ -9,8 +9,11 @@
  *   with React's component stack;
  * - `logged`: anything the renderer or the UI caught and logged (`NitroLogger.error`), logged to the
  *   console or not;
- * - `renderer`: the GPU device or context lost (`reportRendererError`); when the client starts again
- *   for it, the report waits in the tab's session storage and goes with the next session.
+ * - `renderer`: the GPU device or context lost (`reportRendererError`), with what the renderer held
+ *   then (`gpu`: the GPU's name, the browser's reason, the page's visibility, the textures and their
+ *   estimated bytes, the JS heap); when the client starts again for it, the report waits in the
+ *   tab's session storage, with the lost session's room, uptime and breadcrumbs, and goes with the
+ *   next session.
  *
  * Each report carries the error's message and its stack as the browser wrote it (resolved against
  * the build's source maps on the server's side, never here), the client build and
@@ -22,11 +25,12 @@
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { TurboClientErrorReportComposer } from '@nitrodevco/nitro-packets';
-import { GetRenderer } from '@nitrodevco/nitro-renderer';
+import { GetRenderer, GetRendererTextureMemory } from '@nitrodevco/nitro-renderer';
 
 import type { Send } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
 import { configString } from '#base/context/system';
+import type { GpuLoss } from '#base/theme';
 import { clientBuild, clientPage, clientUptimeMs, clientViewport, describeDiagnosticValue } from '#base/utils';
 
 /** The build's name, replaced at build time (vite.config.ts `buildId`); undefined outside Vite. */
@@ -90,6 +94,28 @@ const context = () => {
 
 type Caught = { kind: ClientErrorKind; name?: string; message: string; stack?: string; source?: string; componentStack?: string };
 
+/** A report kept for the next session, with the state (`context`, breadcrumbs) of the session it is of. */
+type Pending = Caught & { at?: Record<string, unknown> };
+
+/** What the renderer and the page were when the GPU was lost. */
+const gpuState = (loss: GpuLoss) => {
+    const memory = GetRendererTextureMemory();
+    const heap = (performance as Performance & { memory?: { usedJSHeapSize?: number; jsHeapSizeLimit?: number } }).memory;
+
+    return {
+        name: cut(loss.gpu, 256),
+        reason: cut(loss.reason, 32),
+        message: cut(loss.message, 256),
+        visibility: document.visibilityState,
+        focused: document.hasFocus(),
+        textures: memory?.textures,
+        renderTextures: memory?.renderTextures,
+        textureBytes: memory?.bytes,
+        heapBytes: heap?.usedJSHeapSize,
+        heapLimitBytes: heap?.jsHeapSizeLimit,
+    };
+};
+
 /** What `error` is, as a report says it. */
 const caughtOf = (kind: ClientErrorKind, error: unknown, extra: Omit<Caught, 'kind' | 'message'> = {}): Caught => (error instanceof Error)
     ? { kind, name: error.name, message: error.message, stack: error.stack, ...extra }
@@ -129,7 +155,7 @@ const encode = (caught: Caught, at: Record<string, unknown>): Uint8Array | null 
         source: cut(caught.source, 512),
         componentStack: cut(caught.componentStack, MAX_COMPONENT_STACK),
         ...at,
-        breadcrumbs: [ ...breadcrumbs ],
+        breadcrumbs: (at.breadcrumbs as Breadcrumb[] | undefined) ?? [ ...breadcrumbs ],
     };
     const encoder = new TextEncoder();
     let bytes = encoder.encode(JSON.stringify(report));
@@ -144,7 +170,7 @@ const encode = (caught: Caught, at: Record<string, unknown>): Uint8Array | null 
     return (bytes.byteLength > MAX_REPORT_BYTES) ? null : bytes;
 };
 
-const report = (caught: Caught, error?: unknown) => {
+const report = (caught: Caught, error?: unknown, at: Record<string, unknown> = context()) => {
     if (!send || reporting) return;
     if (error && typeof error === 'object') {
         if (reported.has(error)) return;
@@ -158,7 +184,7 @@ const report = (caught: Caught, error?: unknown) => {
     reporting = true;
 
     try {
-        const bytes = encode(caught, context());
+        const bytes = encode(caught, at);
 
         if (bytes) send(new TurboClientErrorReportComposer({ report: bytes }));
     } catch {
@@ -190,9 +216,9 @@ const onLogged = (messages: unknown[]) => {
     report({ kind: 'logged', name: error.name, message: text ? `${text}: ${error.message}` : error.message, stack: error.stack }, error);
 };
 
-const readPending = (): Caught[] => {
+const readPending = (): Pending[] => {
     try {
-        const pending = JSON.parse(window.sessionStorage.getItem(PENDING_KEY) ?? '[]') as Caught[];
+        const pending = JSON.parse(window.sessionStorage.getItem(PENDING_KEY) ?? '[]') as Pending[];
 
         window.sessionStorage.removeItem(PENDING_KEY);
 
@@ -231,7 +257,7 @@ export const setClientErrorReporting = (enabled: boolean, socketSend?: Send) => 
         if (NitroLogger.errorListener === onLogged) NitroLogger.errorListener = null;
     };
 
-    for (const pending of readPending()) report(pending);
+    for (const { at, ...pending } of readPending()) report(pending, undefined, (at && typeof at === 'object') ? at : undefined);
 };
 
 /** One message the client sent, by name: the breadcrumbs. Nothing while the extension is not accepted. */
@@ -251,25 +277,27 @@ export const recordClientErrorBreadcrumb = (category: string, name: string) => {
 export const reportReactError = (error: unknown, componentStack?: string | null) => report(caughtOf('react', error, { componentStack: componentStack ?? undefined }), error);
 
 /**
- * The renderer lost its GPU. When the client is about to start again for it (`reloading`), the report
- * is kept in the tab's session storage and sent by the next session, which the reload would
- * otherwise cut off.
+ * The renderer lost its GPU (`loss`). When the client is about to start again for it (`reloading`),
+ * the report is kept in the tab's session storage, with this session's state, and sent by the next
+ * session, which the reload would otherwise cut off.
  */
-export const reportRendererError = (message: string, reloading = false) => {
+export const reportRendererError = (message: string, reloading = false, loss: GpuLoss = {}) => {
     if (!send) return;
 
     const caught: Caught = { kind: 'renderer', message };
+    const at = { ...context(), gpu: gpuState(loss) };
 
     if (!reloading) {
-        report(caught);
+        report(caught, undefined, at);
 
         return;
     }
 
     try {
-        const pending = JSON.parse(window.sessionStorage.getItem(PENDING_KEY) ?? '[]') as Caught[];
+        const pending = JSON.parse(window.sessionStorage.getItem(PENDING_KEY) ?? '[]') as Pending[];
+        const kept: Pending = { ...caught, at: { ...at, breadcrumbs: [ ...breadcrumbs ] } };
 
-        window.sessionStorage.setItem(PENDING_KEY, JSON.stringify([ ...(Array.isArray(pending) ? pending : []), caught ].slice(-MAX_PENDING)));
+        window.sessionStorage.setItem(PENDING_KEY, JSON.stringify([ ...(Array.isArray(pending) ? pending : []), kept ].slice(-MAX_PENDING)));
     } catch {
         // No session storage: the report is lost with the page.
     }
