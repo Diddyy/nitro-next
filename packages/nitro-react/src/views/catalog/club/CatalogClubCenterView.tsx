@@ -31,7 +31,6 @@
  * is `hc_center_icon_credits`, the embedded file of the published `hc_center_hc_center_icon_credits`,
  * which is the bitmap drawn.
  */
-import { GetRenderer } from '@nitrodevco/nitro-renderer';
 import { FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useState } from 'react';
 
@@ -41,7 +40,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { getOfferCenterShowingVideo, useOfferCenterStore } from '#base/context/offer-center';
 import { useBadgeImageUrl, useConfigData, useTranslation } from '#base/context/system';
 import { useOwnClubSubscription, useOwnUserFigure, useOwnUserGender } from '#base/context/user';
-import { getGlobalRect, TemplateWindow, useAvatarImageTexture } from '#base/theme';
+import { GetDesktopSize, getGlobalRect, TemplateWindow, useAvatarImageTexture } from '#base/theme';
 import { CLUB_STATUS_ACTIVE, GetFriendlyTime, replaceFirst, resolveClubStatus } from '#base/utils';
 
 import { catalogTemplateId } from '../page/catalogTemplates';
@@ -119,7 +118,7 @@ export const CatalogClubCenterView = () => {
 
         const link = getGlobalRect(event.currentTarget);
         const postit = { x: link.x + link.width - BREAKDOWN_LINK_RIGHT, y: link.y - BREAKDOWN_LINK_TOP, width: POSTIT_WIDTH, height: POSTIT_HEIGHT };
-        const pointRight = (GetRenderer().screen.width < (postit.x + postit.width + BREAKDOWN_WIDTH + BREAKDOWN_MARGIN)) && (postit.x > (BREAKDOWN_WIDTH + BREAKDOWN_MARGIN));
+        const pointRight = (GetDesktopSize().width < (postit.x + postit.width + BREAKDOWN_WIDTH + BREAKDOWN_MARGIN)) && (postit.x > (BREAKDOWN_WIDTH + BREAKDOWN_MARGIN));
 
         setBreakdown({
             x: pointRight ? (postit.x - (BREAKDOWN_WIDTH + BREAKDOWN_MARGIN)) : (postit.x + postit.width + BREAKDOWN_MARGIN),

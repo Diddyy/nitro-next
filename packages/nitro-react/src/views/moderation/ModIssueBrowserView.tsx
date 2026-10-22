@@ -5,15 +5,11 @@ import { useWebSocketContext } from '#base/context/communication';
 import { bundleHighestPriority, bundleMessageCount, bundleOpenTime, bundlesOfTab, highestPriorityIssue, IssueBundleTab, useModerationIssueActions, useModerationIssueStore } from '#base/context/moderation';
 import { useUserStore } from '#base/context/user';
 import { useClock } from '#base/hooks';
-import { findTemplateChild, GetDesktopSize, LayoutImage, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
+import { findTemplateChild, LayoutImage, TemplateItem, TemplateWindow, useTemplate } from '#base/theme';
 
 import { issueCategoryName, issueSourceName } from './issueNames';
 
 const TEMPLATE = 'habbo-moderation-com/issue_browser_xml';
-
-/** The `issue_browser` layout's size. */
-const BROWSER_WIDTH = 585;
-const BROWSER_HEIGHT = 273;
 
 const TABS: IssueBundleTab[] = [ 'open_issues', 'my_issues', 'picked_issues' ];
 
@@ -43,16 +39,12 @@ export const ModIssueBrowserView = () => {
     const template = useTemplate(TEMPLATE);
     const now = useClock('monotonic', UPDATE_INTERVAL_MS);
     // `createMainFrame`: centred on the desktop.
-    const [ frame ] = useState(() => {
-        const desktop = GetDesktopSize();
-
-        return {
-            id: 'moderation-issue-browser',
-            defaultPosition: { x: Math.floor((desktop.width - BROWSER_WIDTH) / 2), y: Math.floor((desktop.height - BROWSER_HEIGHT) / 2) },
-            rememberPosition: false,
-            onClose: () => showBrowser(false),
-        };
-    });
+    const [ frame ] = useState(() => ({
+        id: 'moderation-issue-browser',
+        centered: true,
+        rememberPosition: false,
+        onClose: () => showBrowser(false),
+    }));
 
     if (!template) return null;
 

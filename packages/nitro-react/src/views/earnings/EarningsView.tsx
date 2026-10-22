@@ -16,14 +16,13 @@
  * A category's row carries only its amounts and its claim button: Flash's `windowProcedure`
  * answers nothing else in it, so a click on a row opens no other system.
  */
-import { GetRenderer } from '@nitrodevco/nitro-renderer';
 import { useState } from 'react';
 
 import { claimEarnings } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { EARNINGS_ALL_CATEGORIES, EARNINGS_CLAIM_ALL_BUTTON, EARNINGS_REWARD_CATEGORIES, earningsCategoryValues, earningsClaimButtonName, useEarningsStore } from '#base/context/earnings';
 import { useConfigBoolean } from '#base/context/system';
-import { TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { GetDesktopSize, TemplateBindings, TemplateWindow, useTemplateFrame } from '#base/theme';
 
 /** `vault_view`'s frame as built, which `_window.center()` centres before any row is hidden. */
 const FRAME_WIDTH = 422;
@@ -52,7 +51,7 @@ export const EarningsView = ({ onClose }: EarningsViewProps) => {
 
     // `_window.center()`, before any row is hidden: centred at the layout's full size.
     const [ position ] = useState(() => {
-        const { width, height } = GetRenderer().screen;
+        const { width, height } = GetDesktopSize();
 
         return { x: Math.trunc((width - FRAME_WIDTH) / 2), y: Math.trunc((height - FRAME_HEIGHT) / 2) };
     });
