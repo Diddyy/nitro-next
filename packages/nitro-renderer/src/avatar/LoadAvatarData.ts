@@ -1,5 +1,6 @@
 import { GetTemplateBundleUrl, IAvatarRenderData } from '@nitrodevco/nitro-api';
 
+import { DownloadTemplateBundle } from '../assets/DownloadTemplateBundle';
 import { GetAssetManager } from '../assets/GetAssetManager';
 
 /** The client library the tables come from, whose bundle - named after it - carries them, and the avatar additions. */
@@ -28,12 +29,12 @@ const REQUIRED: (keyof IAvatarRenderData)[] = [ 'geometry', 'partSets', 'figureD
 export const LoadAvatarData = async (templatesUrl: string): Promise<IAvatarRenderData> => {
     if (!templatesUrl) throw new Error('asset.bundles.templates is not set: the avatars have nothing to be drawn from');
 
-    // A theme pack's url for the library wins (`asset.bundles.templates.overrides`).
+    // A theme pack's url for the library wins (`asset.bundles.templates.overrides`), the hotel's when it does not load.
     const url = GetTemplateBundleUrl(BUNDLE_NAME, templatesUrl) ?? '';
 
     const assetManager = GetAssetManager();
 
-    if (!await assetManager.downloadAssetBundle(BUNDLE_NAME, url)) throw new Error(`avatar data bundle request failed: ${url}`);
+    if (!await DownloadTemplateBundle(BUNDLE_NAME, templatesUrl)) throw new Error(`avatar data bundle request failed: ${url}`);
 
     const data = Object.fromEntries(Object.entries(FILES).map(([ key, file ]) => [ key, assetManager.getBundleFile(BUNDLE_NAME, file) ])) as unknown as IAvatarRenderData;
 

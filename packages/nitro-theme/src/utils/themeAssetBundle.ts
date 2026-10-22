@@ -20,10 +20,11 @@
  *   (`setTextStyleOverrides`) - the Habbo client reads its text styles out of that library too
  *   (`TextSkinRenderer.parse`), so a theme pack's skin can set its texts in another face.
  *
- * There is no fallback behind this: the client ships no theme of its own, and the hotel serves the
- * bundle as it does any library's, from `asset.bundles.templates` (`assetBundleUrl`). If the bundle
- * fails, the chrome is missing and the error is on the console - which is the intent, an asset
- * silently taking the slow path is how a regression hides.
+ * The client ships no theme of its own: the hotel serves the bundle as it does any library's, from
+ * `asset.bundles.templates` (`assetBundleUrl`), or a theme pack from its own url - and a pack's url
+ * that does not load falls back to the hotel's, with the failure on the console (`DownloadTemplateBundle`).
+ * If the hotel's own fails, the chrome is missing and the error is on the console - which is the intent,
+ * an asset silently taking the slow path is how a regression hides.
  */
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { SpritesheetData } from 'pixi.js';

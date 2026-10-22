@@ -60,6 +60,12 @@ room object visualization library's loads alike). A pack's bundle is a whole lib
 the hotel's with its changes - loaded under the library's own name, so nothing that asks for the library
 or one of its bitmaps knows the difference.
 
+A pack's url that does not load - its files no longer served (a theme plugin uninstalled but its
+variables kept), a 404, something that is no bundle - falls back to the hotel's own library from
+`asset.bundles.templates`, logged once per library and page load (`DownloadTemplateBundle` in
+`nitro-renderer`): the hotel loses the pack's look for that library, never its window chrome, and
+the dead url is not asked for again until the page reloads.
+
 - **The chrome** is the window manager's bundle: `theme.png`, `theme_spritesheet.json` and
   `theme-variants.json`, as above.
 - **The text styles** are the window manager's too, as the Habbo client reads them from that library's
