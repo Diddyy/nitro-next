@@ -124,6 +124,33 @@ export class AssetManager implements IAssetManager {
         }
     }
 
+    /** The GIF's first frame, or nothing when the decoder finds no frame in the bytes. */
+    private static firstGifFrame(data: ArrayBuffer): Texture | undefined {
+        let animatedGif: AnimatedGIF;
+
+        try {
+            animatedGif = AnimatedGIF.fromBuffer(data, { autoPlay: false });
+        } catch {
+            return undefined;
+        }
+
+        const paintable = animatedGif as unknown as { dirty: boolean; updateFrame(): void };
+
+        paintable.dirty = true;
+        paintable.updateFrame();
+
+        const source = animatedGif.texture.source.resource as HTMLCanvasElement;
+        const canvas = document.createElement('canvas');
+
+        canvas.width = animatedGif.texture.width;
+        canvas.height = animatedGif.texture.height;
+        canvas.getContext('2d')?.drawImage(source, 0, 0);
+
+        animatedGif.destroy();
+
+        return Texture.from(canvas);
+    }
+
     public async downloadAsset(url: string): Promise<boolean> {
         const ext = url ? url.slice(url.lastIndexOf('.') + 1) : '';
         const measured = (ext === 'nitro') && LoadMetrics.enabled;
@@ -137,7 +164,8 @@ export class AssetManager implements IAssetManager {
 
             const response = await fetch(url);
 
-            if (!response || response.status !== 200) throw new Error('Invalid response');
+            // The status and the file in the message, so a client error report says which file is missing.
+            if (!response || response.status !== 200) throw new Error(`Invalid response ${response?.status} for ${url}`);
 
             if (measured) LoadMetrics.mark(url, 'headers');
 
@@ -159,22 +187,12 @@ export class AssetManager implements IAssetManager {
                     break;
                 }
                 case 'gif': {
-                    const animatedGif = AnimatedGIF.fromBuffer(responseData, { autoPlay: false });
-                    const paintable = animatedGif as unknown as { dirty: boolean; updateFrame(): void };
+                    // A ".gif" whose bytes the GIF decoder finds no frame in (a PNG under a .gif
+                    // name, as badge packs ship, or an unusual GIF) still draws in a browser, as
+                    // in Flash, whose Loader reads the bytes and not the name.
+                    const texture = AssetManager.firstGifFrame(responseData)
+                        ?? await TextureUtils.textureFromEncodedBytes(responseData, 'image/gif', url);
 
-                    paintable.dirty = true;
-                    paintable.updateFrame();
-
-                    const source = animatedGif.texture.source.resource as HTMLCanvasElement;
-                    const canvas = document.createElement('canvas');
-
-                    canvas.width = animatedGif.texture.width;
-                    canvas.height = animatedGif.texture.height;
-                    canvas.getContext('2d')?.drawImage(source, 0, 0);
-
-                    const texture = Texture.from(canvas);
-
-                    animatedGif.destroy();
                     this.setTexture(url, texture);
                     break;
                 }
