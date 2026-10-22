@@ -15,8 +15,11 @@ export const snapRoomSpriteCoordinate = (coordinate: number, offset: number, sca
     return (snapped - offset) / scale;
 };
 
+/** How far a position may sit off a whole twip and still be on it: the rounding a zoom leaves in the offset. */
+const TWIP_EPSILON = 0.02;
+
 /** Flash keeps a display position in whole twips (1/20 px), cut down. */
-const toTwips = (value: number): number => Math.floor((value * 20) + 0.02);
+const toTwips = (value: number): number => Math.floor((value * 20) + TWIP_EPSILON);
 
 /**
  * How many pixels from `offset + local * scale` Flash draws the room's sprites: 0 or -1. The canvas
@@ -27,5 +30,7 @@ const toTwips = (value: number): number => Math.floor((value * 20) + 0.02);
  * out for each sprite's own position, cut toward zero, a sprite starting above or left of the
  * canvas stayed put while its neighbours moved, and planes that meet (the door tile and the floor)
  * opened a pixel-wide seam. Habbo's JS port draws the plain snap, with no seam either.
+ * An offset a rounding error past a whole twip (a zoom leaves -503.9999999999998 for -504) is on the
+ * grid, as `toTwips` reads it, or the whole room would be drawn a pixel off.
  */
-export const drawnRoomSpriteShift = (offset: number): number => ((toTwips(offset) < (offset * 20)) ? -1 : 0);
+export const drawnRoomSpriteShift = (offset: number): number => ((((offset * 20) - toTwips(offset)) > TWIP_EPSILON) ? -1 : 0);
