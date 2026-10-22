@@ -8,6 +8,7 @@ export * from './navigator';
 export * from './room';
 export * from './system';
 export * from './useClock';
+export * from './useReopenGuard';
 export * from './useSecondsClock';
 export * from './useSliderKnobDrag';
 export * from './useTween';

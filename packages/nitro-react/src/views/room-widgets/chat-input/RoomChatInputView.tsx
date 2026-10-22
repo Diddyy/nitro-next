@@ -9,7 +9,7 @@ import { getUnseenItemCount, UnseenItemCategory, useInventoryStore } from '#base
 import { useRoom, useRoomIsSpectating, useRoomStore } from '#base/context/room';
 import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnHasClub, useOwnIsAmbassador, useUserStore } from '#base/context/user';
-import { useChatInputContentRequest, useChatStyles } from '#base/hooks';
+import { useChatInputContentRequest, useChatStyles, useReopenGuard } from '#base/hooks';
 import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useLatest, useTemplate } from '#base/theme';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
 
@@ -153,9 +153,9 @@ export const RoomChatInputView = () => {
     const idleTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const lastContentRef = useRef('');
     /** The style menu closes on any outside pointerdown - including the one that starts a tap on its own button, which must not reopen it. */
-    const stylesClosedAtRef = useRef(0);
+    const stylesGuard = useReopenGuard();
     const [ habbiconsAnchor, setHabbiconsAnchor ] = useState<GlobalRect | null>(null);
-    const habbiconsClosedAtRef = useRef(0);
+    const habbiconsGuard = useReopenGuard();
     // `helpbutton`: shown while the pointer is over the field's row or the button.
     const [ helpButtonVisible, setHelpButtonVisible ] = useState(false);
     const overHelpButtonRef = useRef(false);
@@ -297,19 +297,19 @@ export const RoomChatInputView = () => {
     const toggleStyles = (button: GlobalRect) => {
         if (!pickableStyles.length) return;
 
-        if ((Date.now() - stylesClosedAtRef.current) < 250) return;
+        if (stylesGuard.justClosed()) return;
 
         setStylesAnchor(stylesAnchor ? null : button);
     };
 
     const closeStyles = () => {
-        stylesClosedAtRef.current = Date.now();
+        stylesGuard.markClosed();
         setStylesAnchor(null);
     };
 
     /** `HabbiconSelector.hide(resetUnseen)`: every hide but a pick marks the habbicons seen. */
     const closeHabbicons = (resetUnseen: boolean) => {
-        habbiconsClosedAtRef.current = Date.now();
+        habbiconsGuard.markClosed();
         setHabbiconsAnchor(null);
 
         if (resetUnseen) resetUnseenHabbicons(send);
@@ -320,7 +320,7 @@ export const RoomChatInputView = () => {
      * A press that just closed the menu from outside does not open it again.
      */
     const toggleHabbicons = (button: GlobalRect) => {
-        if ((Date.now() - habbiconsClosedAtRef.current) < 250) return;
+        if (habbiconsGuard.justClosed()) return;
 
         setStylesAnchor(null);
 

@@ -36,7 +36,7 @@
  * where `selectConversation(-1)` shows it (`§_-8K§ < 0`) - `MainView` hides the window then, so it
  * is not seen either way.
  */
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { followMessengerConversation, getMessengerFriend, hideMessenger, hideMessengerConversation, openHabbiconHub, openMessengerConversationProfile, requestMessengerHistory, selectMessengerConversation, sendMessengerHabbicon, sendMessengerMessage } from '#base/commands';
 import { reportUserFromIM } from '#base/commands/help/helpCommands';
@@ -49,6 +49,7 @@ import {
 } from '#base/context/messenger';
 import { useConfigBoolean, useGroupBadgeImageUrl } from '#base/context/system';
 import { useFriends, useOwnUserFigure, useOwnUserGender, useUserStore } from '#base/context/user';
+import { useReopenGuard } from '#base/hooks';
 import { Box, findTemplateChild, getGlobalRect, Template, TemplateElement, TemplateItem, TemplateWindow, TemplateWindows, useTemplate, useTemplateFrame } from '#base/theme';
 import { HabbiconPickerLook, HabbiconPickerView } from '#base/views/habbicons/HabbiconPickerView';
 
@@ -147,9 +148,9 @@ export const MessengerView = () => {
     const habbiconsEnabled = useConfigBoolean('habbicons.enabled');
     const [ pickerAt, setPickerAt ] = useState<{ x: number; bottom: number } | null>(null);
     // A press on the button that just closed the picker from outside must not open it again.
-    const pickerClosedAtRef = useRef(0);
+    const pickerGuard = useReopenGuard();
     const closePicker = () => {
-        pickerClosedAtRef.current = Date.now();
+        pickerGuard.markClosed();
         setPickerAt(null);
     };
 
@@ -272,7 +273,7 @@ export const MessengerView = () => {
                     // `toggleHabbiconPicker`.
                     habbicon_button: {
                         onPointerTap: (event) => {
-                            if (!habbiconsEnabled || ((Date.now() - pickerClosedAtRef.current) < 250)) return;
+                            if (!habbiconsEnabled || pickerGuard.justClosed()) return;
 
                             if (pickerAt) {
                                 closePicker();
