@@ -107,6 +107,10 @@ type Actions = {
     updateFurniUnseenThumbs: () => void;
 };
 
+/** The furni group the inventory has selected, if any. */
+export const getSelectedFurniGroup = ({ furniGroups, furniSelectedGroupId }: Pick<State, 'furniGroups' | 'furniSelectedGroupId'>): InventoryFurniGroup | undefined =>
+    furniGroups.find(group => group.id === furniSelectedGroupId);
+
 export const InventoryFurniSliceInitialState: State = {
     furniGroups: [],
     furniSelectedGroupId: -1,

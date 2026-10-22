@@ -18,7 +18,7 @@ import {
 
 import { Send } from '#base/context/communication';
 import {
-    canAddToTrading, getInventoryFurniItemsForTrade, INVENTORY_FURNI_CATEGORY_GUILD_FURNI, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADE_MAX_ITEMS, INVENTORY_TRADING_COUNTDOWN_SECONDS, INVENTORY_TRADING_STATE_CANCELLED,
+    canAddToTrading, getInventoryFurniItemsForTrade, getSelectedFurniGroup, INVENTORY_FURNI_CATEGORY_GUILD_FURNI, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADE_MAX_ITEMS, INVENTORY_TRADING_COUNTDOWN_SECONDS, INVENTORY_TRADING_STATE_CANCELLED,
     INVENTORY_TRADING_STATE_COMPLETED, INVENTORY_TRADING_STATE_CONFIRMED, INVENTORY_TRADING_STATE_CONFIRMING,
     INVENTORY_TRADING_STATE_COUNTDOWN, INVENTORY_TRADING_STATE_READY, INVENTORY_TRADING_STATE_RUNNING, InventoryFurniGroup, InventoryFurniItem, inventoryStore, InventoryTradingUserSetup, isWeb3Trading, peekInventoryFurni,
 } from '#base/context/inventory';
@@ -100,6 +100,13 @@ const requestAddItemsToTrading = (send: Send, itemIds: readonly number[], core: 
     else send(new AddItemsToTradeComposer({ itemIds }));
 };
 
+/** `trading.items.too_many_items`: an offer that would take a trade past `INVENTORY_TRADE_MAX_ITEMS`. */
+export const showTooManyTradeItemsAlert = () => {
+    const { getLocalizationValue, showAlert } = systemStore.getState();
+
+    showAlert(getLocalizationValue('trading.items.too_many_items.title'), getLocalizationValue('trading.items.too_many_items.desc'));
+};
+
 /**
  * `FurniModel.requestSelectedFurniToTrading` for the user-to-user trade: up to `count` unlocked
  * tradeable items of the selected group go in, unless that would put more than 1500 of the user's
@@ -109,8 +116,8 @@ const requestAddItemsToTrading = (send: Send, itemIds: readonly number[], core: 
  * offered, 1 after the alert, and undefined where Flash leaves the field as it is.
  */
 export const offerSelectedFurniToUserTrade = (send: Send, count: number): number | undefined => {
-    const { furniGroups, furniSelectedGroupId, tradingOwnUser } = inventoryStore.getState();
-    const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
+    const { tradingOwnUser } = inventoryStore.getState();
+    const group = getSelectedFurniGroup(inventoryStore.getState());
 
     if (!group) return undefined;
 
@@ -122,9 +129,7 @@ export const offerSelectedFurniToUserTrade = (send: Send, count: number): number
     const ownItemCount = tradingOwnUser.groups.reduce((total, held) => total + held.items.length, 0);
 
     if ((ownItemCount + itemIds.length) > INVENTORY_TRADE_MAX_ITEMS) {
-        const { getLocalizationValue, showAlert } = systemStore.getState();
-
-        showAlert(getLocalizationValue('trading.items.too_many_items.title'), getLocalizationValue('trading.items.too_many_items.desc'));
+        showTooManyTradeItemsAlert();
 
         return 1;
     }

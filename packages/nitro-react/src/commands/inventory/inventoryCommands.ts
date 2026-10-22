@@ -12,7 +12,7 @@ import { RoomEngineObjectPlacedEvent, RoomObjectCategoryEnum, RoomObjectPlacemen
 import { RequestFurniInventoryComposer, RequestFurniInventoryWhenNotInRoomComposer, RequestRoomPropertySetComposer } from '@nitrodevco/nitro-packets';
 
 import { Send } from '#base/context/communication';
-import { findNextInventoryFurniToPlace, getInventoryFurniItemsForTrade, getInventoryFurniSelectedItem, getInventoryFurniTotalCount, getInventoryFurniUnlockedCount, getInventoryWallItemById, INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADE_MAX_ITEMS, InventoryFurniItem, inventoryStore, isRoomLayoutCategory } from '#base/context/inventory';
+import { findNextInventoryFurniToPlace, getInventoryFurniItemsForTrade, getInventoryFurniSelectedItem, getInventoryFurniTotalCount, getInventoryFurniUnlockedCount, getInventoryWallItemById, getSelectedFurniGroup, INVENTORY_FURNI_CATEGORY_POST_IT, INVENTORY_FURNI_CATEGORY_POSTER, INVENTORY_TRADE_MAX_ITEMS, InventoryFurniItem, inventoryStore, isRoomLayoutCategory } from '#base/context/inventory';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { wiredTradingStore } from '#base/context/wired-trading';
@@ -20,7 +20,7 @@ import { getFurnitureData } from '#base/utils';
 
 import { cancelRoomObjectInsert, initializeRoomObjectInsert } from '../catalog/catalogPlacementCommands';
 import { requestAddItemsToWiredTrade } from '../wired-trading/wiredTradingCommands';
-import { offerSelectedFurniToUserTrade } from './inventoryTradingCommands';
+import { offerSelectedFurniToUserTrade, showTooManyTradeItemsAlert } from './inventoryTradingCommands';
 
 /** `FurniModel.requestInitialization`: the room-less variant outside a room (`roomEntered` / `roomLeft`). */
 export const requestFurniInventory = (send: Send) => send(getRoom() ? new RequestFurniInventoryComposer({}) : new RequestFurniInventoryWhenNotInRoomComposer({}));
@@ -73,8 +73,7 @@ export const removeAllInventoryFurniLocks = () => inventoryStore.getState().upda
  * as it is (nothing selected, nothing to offer).
  */
 export const offerSelectedFurniToTrade = (send: Send, count: number): number | undefined => {
-    const { furniGroups, furniSelectedGroupId } = inventoryStore.getState();
-    const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
+    const group = getSelectedFurniGroup(inventoryStore.getState());
 
     if (!group) return undefined;
 
@@ -90,9 +89,7 @@ export const offerSelectedFurniToTrade = (send: Send, count: number): number | u
     const itemIds = items.map(item => item.id);
 
     if ((getOwnItemRefsInTrade().length + itemIds.length) > INVENTORY_TRADE_MAX_ITEMS) {
-        const { getLocalizationValue, showAlert } = systemStore.getState();
-
-        showAlert(getLocalizationValue('trading.items.too_many_items.title'), getLocalizationValue('trading.items.too_many_items.desc'));
+        showTooManyTradeItemsAlert();
 
         return 1;
     }
@@ -203,8 +200,7 @@ export const onInventoryObjectPlaced = (event: RoomEngineObjectPlacedEvent) => {
  * comes back and the mover is cleared.
  */
 const attemptPlaceNextFurni = (placedItemId: number) => {
-    const { furniGroups, furniSelectedGroupId } = inventoryStore.getState();
-    const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
+    const group = getSelectedFurniGroup(inventoryStore.getState());
 
     if (!group) return;
 
@@ -231,8 +227,8 @@ const attemptPlaceNextFurni = (placedItemId: number) => {
  * else the last (`selectedItemIndex` set to the count less one, which reads the same).
  */
 export const requestSelectedFurniPlacement = (send: Send, isDoubleClick: boolean = false): boolean => {
-    const { furniGroups, furniSelectedGroupId, furniSelectedItemIndex } = inventoryStore.getState();
-    const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
+    const { furniSelectedItemIndex } = inventoryStore.getState();
+    const group = getSelectedFurniGroup(inventoryStore.getState());
 
     if (!group || (getInventoryFurniUnlockedCount(group) === 0)) return false;
 

@@ -16,7 +16,7 @@
 import { GetRecyclerPrizesComposer, GetRecyclerStatusComposer, IPrizeLevelMessageData, RecycleItemsComposer } from '@nitrodevco/nitro-packets';
 
 import { Send } from '#base/context/communication';
-import { INVENTORY_RECYCLER_STATE_ACTIVE, INVENTORY_RECYCLER_STATE_READY, inventoryStore, isInventoryFurniGroupWallItem, peekInventoryFurni } from '#base/context/inventory';
+import { getSelectedFurniGroup, INVENTORY_RECYCLER_STATE_ACTIVE, INVENTORY_RECYCLER_STATE_READY, inventoryStore, isInventoryFurniGroupWallItem, peekInventoryFurni } from '#base/context/inventory';
 import {
     RECYCLER_STATUS_OFF, RECYCLER_STATUS_READY, RECYCLER_STATUS_WAITING_FOR_SERVER, RECYCLER_SYSTEM_STATUS_CLOSED, RECYCLER_SYSTEM_STATUS_TIMEOUT, RecyclerPrizeLevel, RecyclerSlotItem, recyclerStore,
 } from '#base/context/recycler';
@@ -95,11 +95,11 @@ export const setupInventoryForRecycler = (active: boolean) => {
  * unlocked recyclable item of the selected group is locked and kept. 0 when there is none.
  */
 const lockSelectedFurniToRecycler = (): number => {
-    const { recyclerItemIds, furniGroups, furniSelectedGroupId, setRecyclerItemIds, setFurniItemLocks } = inventoryStore.getState();
+    const { recyclerItemIds, setRecyclerItemIds, setFurniItemLocks } = inventoryStore.getState();
 
     if (!recyclerItemIds) return 0;
 
-    const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
+    const group = getSelectedFurniGroup(inventoryStore.getState());
     const item = group?.items.find(groupItem => !groupItem.locked && groupItem.recyclable);
 
     if (!item) return 0;
@@ -359,8 +359,7 @@ export const requestRecyclerPrizeTable = (send: Send) => {
  * the recycler runs: the selected group's last item goes into the first free slot.
  */
 export const recycleSelectedInventoryFurni = () => {
-    const { furniGroups, furniSelectedGroupId } = inventoryStore.getState();
-    const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
+    const group = getSelectedFurniGroup(inventoryStore.getState());
 
     if (!group) return;
 

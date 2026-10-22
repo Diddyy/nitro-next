@@ -70,7 +70,7 @@ const world = (groups, selectedId, selectedItemIndex = -1) => {
             RequestRoomPropertySetComposer: class { constructor(data) { this.data = data; } },
         },
         '#base/context/communication': {},
-        '#base/context/inventory': { ...group, inventoryStore: { getState: () => state } },
+        '#base/context/inventory': { ...group, inventoryStore: { getState: () => state }, getSelectedFurniGroup: ({ furniGroups, furniSelectedGroupId }) => furniGroups.find(entry => entry.id === furniSelectedGroupId) },
         '#base/context/room': {
             getRoom: () => ({}),
             roomStore: {

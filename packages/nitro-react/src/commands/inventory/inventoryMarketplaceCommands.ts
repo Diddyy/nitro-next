@@ -12,7 +12,7 @@
 import { BuyMarketplaceTokensComposer, GetMarketplaceCanMakeOfferComposer, GetMarketplaceConfigurationComposer, GetMarketplaceItemStatsComposer, MakeOfferComposer } from '@nitrodevco/nitro-packets';
 
 import { Send } from '#base/context/communication';
-import { INVENTORY_FURNI_CATEGORY_POSTER, InventoryFurniGroup, InventoryFurniItem, inventoryStore } from '#base/context/inventory';
+import { getSelectedFurniGroup, INVENTORY_FURNI_CATEGORY_POSTER, InventoryFurniGroup, InventoryFurniItem, inventoryStore } from '#base/context/inventory';
 import { configInteger, systemStore } from '#base/context/system';
 import { MARKETPLACE_FURNI_TYPE_FLOOR, MARKETPLACE_FURNI_TYPE_WALL, MARKETPLACE_MAKE_OFFER_RESULT_OK, MARKETPLACE_STATS_CATEGORY_FLOOR, MARKETPLACE_STATS_CATEGORY_UNIQUE, MARKETPLACE_STATS_CATEGORY_WALL, MarketplaceItemStats } from '#base/utils';
 
@@ -77,8 +77,7 @@ const startOfferMaking = (send: Send, group: InventoryFurniGroup) => {
 
 /** `FurniModel.requestSelectedFurniSelling` - the furni page's `sell` button. */
 export const requestSelectedFurniSelling = (send: Send) => {
-    const { furniGroups, furniSelectedGroupId } = inventoryStore.getState();
-    const group = furniGroups.find(furniGroup => furniGroup.id === furniSelectedGroupId);
+    const group = getSelectedFurniGroup(inventoryStore.getState());
 
     if (!group || !getInventoryFurniOneForSelling(group)) return;
 
