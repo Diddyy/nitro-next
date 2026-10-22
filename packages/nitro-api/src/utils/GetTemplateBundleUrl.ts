@@ -15,8 +15,15 @@ export const GetTemplateBundleUrl = (library: string, templatesUrl: string | und
 
     if (override) return override;
 
-    return templatesUrl?.replace('%libname%', library) || undefined;
+    return GetHotelTemplateBundleUrl(library, templatesUrl);
 };
+
+/**
+ * The hotel's own url for a library's template bundle - `asset.bundles.templates` with `%libname%`
+ * the library, whatever a theme pack names for it - which is what a pack's url that does not load
+ * falls back to (`DownloadTemplateBundle`). `undefined` when the config names none.
+ */
+export const GetHotelTemplateBundleUrl = (library: string, templatesUrl: string | undefined = GetConfigValue<string>('asset.bundles.templates')): string | undefined => templatesUrl?.replace('%libname%', library) || undefined;
 
 /** `asset.bundles.templates.overrides`, read as `GetTemplateBundleUrl` reads it; an unreadable value names none. */
 export const GetTemplateBundleOverrides = (): Record<string, string> => {

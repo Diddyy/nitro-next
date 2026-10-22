@@ -18,19 +18,22 @@
  *   tiling sprite or a shadow needs out of it on demand, once per key;
  * - `text-styles.json`, when the bundle has one, sets the text styles it changes
  *   (`setTextStyleOverrides`) - the Habbo client reads its text styles out of that library too
- *   (`TextSkinRenderer.parse`), so a theme pack's skin can set its texts in another face.
+ *   (`TextSkinRenderer.parse`), so a theme pack's skin can set its texts in another face;
+ * - `text-faces.json`, when the bundle has one, sets the faces a layout's text names itself
+ *   (`font_face`), which no style reaches (`setFontFaceOverrides`).
  *
- * There is no fallback behind this: the client ships no theme of its own, and the hotel serves the
- * bundle as it does any library's, from `asset.bundles.templates` (`assetBundleUrl`). If the bundle
- * fails, the chrome is missing and the error is on the console - which is the intent, an asset
- * silently taking the slow path is how a regression hides.
+ * The client ships no theme of its own: the hotel serves the bundle as it does any library's, from
+ * `asset.bundles.templates` (`assetBundleUrl`), or a theme pack from its own url - and a pack's url
+ * that does not load falls back to the hotel's, with the failure on the console (`DownloadTemplateBundle`).
+ * If the hotel's own fails, the chrome is missing and the error is on the console - which is the intent,
+ * an asset silently taking the slow path is how a regression hides.
  */
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { SpritesheetData } from 'pixi.js';
 
 import { registerThemeTexture, resetThemeTextures } from '../hooks/usePixiTexture';
 import { themeHost } from '../host';
-import { setTextStyleOverrides } from './textStyles';
+import { setFontFaceOverrides, setTextStyleOverrides } from './textStyles';
 import { registerThemeVariants, themeTextureAliases, ThemeVariantsData } from './themeRegistry';
 import { registerThemeAtlas, resetThemeSprites, themeTextureKeys } from './themeSprites';
 
@@ -45,6 +48,9 @@ const THEME_VARIANTS_FILE = 'theme-variants';
 
 /** `text-styles.json`: the text styles the theme sets in place of the client's (`TextStyleOverrides`). */
 const TEXT_STYLES_FILE = 'text-styles';
+
+/** `text-faces.json`: the faces the theme draws in place of those a layout names itself (`FontFaceOverrides`). */
+const TEXT_FACES_FILE = 'text-faces';
 
 /**
  * Loads the theme from its bundle - the window manager's, or another the host serves a theme under:
@@ -67,6 +73,7 @@ export const preloadThemeAssets = async (bundle: string = BUNDLE_NAME): Promise<
     if (variants) registerThemeVariants(variants);
 
     setTextStyleOverrides('theme', assetManager.getBundleFile(bundle, TEXT_STYLES_FILE));
+    setFontFaceOverrides('theme', assetManager.getBundleFile(bundle, TEXT_FACES_FILE));
 
     for (const [ key, asset ] of themeTextureKeys(Object.keys(manifest.frames), themeTextureAliases())) {
         const texture = assetManager.getTexture(asset);

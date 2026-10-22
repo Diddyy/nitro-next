@@ -1,4 +1,5 @@
 export * from './assets/AssetManager';
+export * from './assets/DownloadTemplateBundle';
 export * from './assets/GetAssetManager';
 export * from './assets/GraphicAsset';
 export * from './assets/GraphicAssetCollection';

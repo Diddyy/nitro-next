@@ -2,7 +2,8 @@
  * The theme's text styles: the Flash style names (`TextStyleKey`), the browser-text face each falls
  * back to (`TEXT_STYLES`, derived from the generated `HABBO_TEXT_STYLES`), the default style of a
  * window's theme (`themeDefaultTextStyle`), and when an override still draws exactly
- * (`resolveFlashStyle`), and what a theme or hotel sets in place of a style (`setTextStyleOverrides`).
+ * (`resolveFlashStyle`), and what a theme or hotel sets in place of a style (`setTextStyleOverrides`)
+ * or of a face a layout names itself (`setFontFaceOverrides`).
  * See docs/text.md.
  */
 import { TextDropShadow, TextStyle, TextStyleOptions } from 'pixi.js';
@@ -197,6 +198,58 @@ export const setTextStyleOverrides = (source: TextStyleOverrideSource, value: un
     cache.clear();
     markTextStylesChanged();
 };
+
+/**
+ * What a theme or a hotel draws a face in where a layout names that face itself (a text's `font_face`
+ * var, which no text style override reaches): another face as layouts name it (`"Ubuntu": "Volter"`),
+ * or the `FlashTextFormat` fields it changes (`{ "fontFamily": "Volter", "fontSize": 9, "antiAliasType": "normal" }`).
+ */
+export type FontFaceOverride = string | Partial<FlashTextFormat>;
+
+/** By the face as layouts name it - `Ubuntu`, `Ubuntu bold`, `Volter`, `Volter Bold`. */
+export type FontFaceOverrides = Record<string, Partial<FlashTextFormat>>;
+
+const fontFaceOverrides: Record<TextStyleOverrideSource, FontFaceOverrides> = { theme: {}, hotel: {} };
+
+/** A face override table read as it may arrive - an object, or that object as JSON text - keeping only faces and format fields. */
+const readFontFaceOverrides = (value: unknown): FontFaceOverrides => {
+    if (typeof value === 'string') {
+        try {
+            value = JSON.parse(value);
+        } catch {
+            return {};
+        }
+    }
+
+    if (!value || (typeof value !== 'object') || Array.isArray(value)) return {};
+
+    const overrides: FontFaceOverrides = {};
+
+    for (const [ face, override ] of Object.entries(value as Record<string, unknown>)) {
+        if (typeof override === 'string') {
+            if (override.length) overrides[face] = { fontFamily: override };
+        } else if (override && (typeof override === 'object')) {
+            overrides[face] = Object.fromEntries(Object.entries(override).filter(([ field ]) => field in DEFAULT_FLASH_TEXT_FORMAT));
+        }
+    }
+
+    return overrides;
+};
+
+/**
+ * Puts a source's face overrides in place of the last ones it set (an empty or unreadable table clears
+ * them): `theme` the window manager bundle's `text-faces.json`, `hotel` the config's `text.faces.overrides`,
+ * whose entry for a face wins over the theme's. Read by the template texts (`templateTextFormat`); like
+ * a style override, it is set before the views draw, and a text already drawn keeps its old face.
+ */
+export const setFontFaceOverrides = (source: TextStyleOverrideSource, value: unknown): void => {
+    fontFaceOverrides[source] = readFontFaceOverrides(value);
+
+    markTextStylesChanged();
+};
+
+/** The format a theme or hotel draws a layout's `font_face` in, `undefined` when neither changes it. */
+export const fontFaceOverride = (face: string): Partial<FlashTextFormat> | undefined => fontFaceOverrides.hotel[face] ?? fontFaceOverrides.theme[face];
 
 /**
  * The browser-text face for a style once the layout's own `font_face`, `bold` and `italic` vars

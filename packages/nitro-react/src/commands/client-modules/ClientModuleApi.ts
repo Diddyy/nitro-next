@@ -9,7 +9,7 @@
 import type { IMessageDataWrapper } from '@nitrodevco/nitro-api';
 import type { ComponentType, ReactNode } from 'react';
 
-import type { ClientModuleAvatar, ClientModuleWindowProps } from '#base/context/client-modules';
+import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleWindowProps } from '#base/context/client-modules';
 
 import type { ClientModuleLibraries } from './clientModuleLibraries';
 
@@ -79,5 +79,11 @@ export interface ClientModuleApi {
         registerLayout: (name: string, layout: { template: string; height: number }) => ClientModuleDispose;
         /** A bubble in the client's stack, drawn with a registered layout. */
         add: (layout: string, text: string, options?: { image?: string; link?: string }) => void;
+        /**
+         * The picture of every alert and notification popup, open or yet to open: `resolve` is shown each
+         * with the picture it has (an asset name or a URL, `undefined` for none) and gives another, or
+         * `undefined` to leave it.
+         */
+        setIllustration: (resolve: (alert: ClientModuleAlert) => string | undefined) => ClientModuleDispose;
     };
 }

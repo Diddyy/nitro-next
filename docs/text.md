@@ -64,7 +64,10 @@ browser text.
   `text.styles.overrides` - see [theme packs](asset-bundles.md#theme-packs)). It replaces the entries of
   `HABBO_TEXT_STYLES` and `TEXT_STYLES` in place, so every reader draws and measures the new format;
   a text already drawn keeps the old one, which is why both apply before the client leaves the
-  loading screen. A style the exact renderer cannot take in its new format falls back to browser
+  loading screen. A layout text that names its face itself (`font_face`) keeps that face over any
+  style; a theme or hotel reaches it by the face instead (`setFontFaceOverrides`: the window manager
+  bundle's `text-faces.json`, then the config's `text.faces.overrides`), which `templateTextFormat` and
+  `templateFontSize` apply to every template text naming it. A style the exact renderer cannot take in its new format falls back to browser
   text, as any other does. A layout's `spacing` var stays exact on either anti-aliasing: as in
   Flash, whose `TextFormat.letterSpacing` ignores `antiAliasType`, Volter's normal layout adds it
   after every glyph as the advanced one does (`layoutNormalText`).

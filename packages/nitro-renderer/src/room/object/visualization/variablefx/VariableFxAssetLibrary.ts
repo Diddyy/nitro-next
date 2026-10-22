@@ -1,5 +1,6 @@
 import { GetTemplateBundleUrl, NitroLogger } from '@nitrodevco/nitro-api';
 
+import { DownloadTemplateBundle } from '../../../../assets/DownloadTemplateBundle';
 import { GetAssetManager } from '../../../../assets/GetAssetManager';
 import { IVariableFxAssetProvider, VariableFxIconMetadataEntry, VariableFxRendererMapping } from './IVariableFxAssetProvider';
 import { createTransparentBitmap, getBitmapContext, VariableFxBitmap } from './rendering/VariableFxBitmap';
@@ -87,14 +88,15 @@ export class VariableFxAssetLibrary implements IVariableFxAssetProvider {
 
     private async loadBundle(): Promise<boolean> {
         // The hotel serves the library's bundle beside every other library's (Nitro Studio's, of the
-        // client's bitmaps and its own), or at a theme pack's url for it; with neither set, it is not loaded.
+        // client's bitmaps and its own), or at a theme pack's url for it - the hotel's when that does
+        // not load (`DownloadTemplateBundle`); with neither set, it is not loaded.
         const url = GetTemplateBundleUrl(BUNDLE_NAME);
 
         if (!url) return false;
 
         const assetManager = GetAssetManager();
 
-        if (!await assetManager.downloadAssetBundle(BUNDLE_NAME, url)) throw new Error(`bundle request failed: ${url}`);
+        if (!await DownloadTemplateBundle(BUNDLE_NAME)) throw new Error(`bundle request failed: ${url}`);
 
         const tables = assetManager.getBundleFile<VariableFxBundleTables>(BUNDLE_NAME, TABLES_FILE);
 

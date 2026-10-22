@@ -60,6 +60,12 @@ room object visualization library's loads alike). A pack's bundle is a whole lib
 the hotel's with its changes - loaded under the library's own name, so nothing that asks for the library
 or one of its bitmaps knows the difference.
 
+A pack's url that does not load - its files no longer served (a theme plugin uninstalled but its
+variables kept), a 404, something that is no bundle - falls back to the hotel's own library from
+`asset.bundles.templates`, logged once per library and page load (`DownloadTemplateBundle` in
+`nitro-renderer`): the hotel loses the pack's look for that library, never its window chrome, and
+the dead url is not asked for again until the page reloads.
+
 - **The chrome** is the window manager's bundle: `theme.png`, `theme_spritesheet.json` and
   `theme-variants.json`, as above.
 - **The text styles** are the window manager's too, as the Habbo client reads them from that library's
@@ -68,6 +74,14 @@ or one of its bitmaps knows the difference.
   place of Ubuntu) or to the `FlashTextFormat` fields it changes (`{ "fontFamily": "Volter", "fontSize": 9,
   "antiAliasType": "normal" }`). The hotel's `text.styles.overrides`, in the same form, applies over the
   theme's without a bundle. See `setTextStyleOverrides` and [Text](text.md).
+- **The faces a layout names itself** - a text's `font_face` var, which sets the face over the text's
+  style, so no style override reaches it (the room UI library alone has 68 such Ubuntu texts, the room
+  chat input among them) - are the window manager bundle's too: a `text-faces.json` sets each face it
+  names, as layouts name it (`Ubuntu`, `Ubuntu bold`, `Volter`, `Volter Bold`), to another face
+  (`"Ubuntu bold": "Volter Bold"`) or to the `FlashTextFormat` fields it changes (`{ "fontFamily": "Volter",
+  "fontSize": 9, "antiAliasType": "normal" }`). Its fields win over the text's own vars, `font_size`
+  included; a face alone keeps the text's size. The hotel's `text.faces.overrides`, in the same form,
+  wins over the theme's for each face it names. See `setFontFaceOverrides`.
 - **A window's colour** is its layout's: a frame's `color` (`IWindow.color`) tints every `colorize`
   piece of its skin, so the navigator's `0xff418db0` is in `habbo-new-navigator`'s layout, not the
   theme. A pack recolours one window by overriding that window's library, every window without a

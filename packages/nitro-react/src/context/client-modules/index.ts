@@ -2,4 +2,5 @@
 export * from './actions';
 export * from './clientModulesCapability';
 export * from './store';
+export * from './useAlertIllustration';
 export * from './useClientModulesStore';

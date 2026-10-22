@@ -1,8 +1,8 @@
 /**
  * Not Flash's: what the client modules of Turbo's `client.modules` extension have added to the
  * client - their windows and which are open, their toolbar icons and me menu entries, the link
- * prefixes they handle, what they draw over the avatars in the room and their notification
- * layouts. Each entry carries the key of the module that added it, so a module that stops takes
+ * prefixes they handle, what they draw over the avatars in the room, their notification
+ * layouts and the pictures they give alerts. Each entry carries the key of the module that added it, so a module that stops takes
  * everything it added with it (`removeModule`). The loader is `commands/client-modules`.
  */
 import { ComponentType, ReactNode } from 'react';
@@ -69,6 +69,23 @@ export interface ClientModuleNotificationLayout {
     height: number;
 }
 
+/** An alert as a module's illustration hook is shown it. */
+export interface ClientModuleAlert {
+    /** `alert`: a simple alert (the system store's `simpleAlert`); `popup`: a notification popup. */
+    kind: 'alert' | 'popup';
+    caption: string;
+    message: string;
+    /** Its picture as the client (or a hook before this one) gives it: a bitmap's asset name or a URL; `undefined` for none. */
+    illustration?: string;
+}
+
+export interface ClientModuleAlertIllustration {
+    moduleKey: string;
+    key: number;
+    /** The alert's picture - an asset name or a URL - or `undefined` to leave it as it is. */
+    resolve: (alert: ClientModuleAlert) => string | undefined;
+}
+
 type State = {
     windows: Record<string, ClientModuleWindow>;
     /** The open windows' params, by window key. */
@@ -79,6 +96,8 @@ type State = {
     avatarOverlays: ClientModuleAvatarOverlay[];
     /** By layout name. */
     notificationLayouts: Record<string, ClientModuleNotificationLayout>;
+    /** In the order they were set: each is shown the picture the ones before it left. */
+    alertIllustrations: ClientModuleAlertIllustration[];
 };
 
 type Actions = {
@@ -96,6 +115,8 @@ type Actions = {
     removeAvatarOverlay: (key: number) => void;
     addNotificationLayout: (name: string, layout: ClientModuleNotificationLayout) => void;
     removeNotificationLayout: (name: string) => void;
+    addAlertIllustration: (illustration: ClientModuleAlertIllustration) => void;
+    removeAlertIllustration: (key: number) => void;
     /** Everything the module added, gone. */
     removeModule: (moduleKey: string) => void;
 };
@@ -114,6 +135,7 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
     linkHandlers: [],
     avatarOverlays: [],
     notificationLayouts: {},
+    alertIllustrations: [],
     addWindow: window => set(x => ({ windows: { ...x.windows, [window.key]: window } })),
     removeWindow: key => set(x => ({ windows: without(x.windows, key), openWindows: without(x.openWindows, key) })),
     openWindow: (key, params = {}) => set(x => (x.windows[key] ? { openWindows: { ...x.openWindows, [key]: params } } : x)),
@@ -128,6 +150,8 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
     removeAvatarOverlay: key => set(x => ({ avatarOverlays: x.avatarOverlays.filter(entry => entry.key !== key) })),
     addNotificationLayout: (name, layout) => set(x => ({ notificationLayouts: { ...x.notificationLayouts, [name]: layout } })),
     removeNotificationLayout: name => set(x => ({ notificationLayouts: without(x.notificationLayouts, name) })),
+    addAlertIllustration: illustration => set(x => ({ alertIllustrations: [ ...x.alertIllustrations, illustration ] })),
+    removeAlertIllustration: key => set(x => ({ alertIllustrations: x.alertIllustrations.filter(entry => entry.key !== key) })),
     removeModule: moduleKey => set((x) => {
         const windows = filterRecord(x.windows, window => window.moduleKey !== moduleKey);
 
@@ -139,6 +163,7 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
             linkHandlers: x.linkHandlers.filter(entry => entry.moduleKey !== moduleKey),
             avatarOverlays: x.avatarOverlays.filter(entry => entry.moduleKey !== moduleKey),
             notificationLayouts: filterRecord(x.notificationLayouts, layout => layout.moduleKey !== moduleKey),
+            alertIllustrations: x.alertIllustrations.filter(entry => entry.moduleKey !== moduleKey),
         };
     }),
 }));

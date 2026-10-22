@@ -14,7 +14,7 @@
  * named `<library>-<asset>` - the name `LayoutImage` builds from `<library>/<asset>.png`.
  */
 import { GetConfigValue, GetTemplateBundleUrl, NitroLogger } from '@nitrodevco/nitro-api';
-import { GetAssetManager } from '@nitrodevco/nitro-renderer';
+import { DownloadTemplateBundle, GetAssetManager } from '@nitrodevco/nitro-renderer';
 
 /** Where the bundles this repo builds and ships are, when the hotel's config names no other place. */
 const DEFAULT_BUNDLE_URL = '/assets/bundles/%name%.nitro';
@@ -66,9 +66,12 @@ export const assetBundleUrl = (name: string): string | undefined => {
 /**
  * Fetches a bundle, or joins the fetch already in flight for it. Safe to call on every render
  * path that needs one: the `AssetManager` keeps the promise, so a bundle is only ever read once.
- * `false` without a request for a library's bundle when the config names no url for it.
+ * `false` without a request for a library's bundle when the config names no url for it. A library's
+ * bundle a theme pack's url fails to load comes from the hotel's own url instead (`DownloadTemplateBundle`).
  */
 export const loadAssetBundle = async (name: string): Promise<boolean> => {
+    if (name.startsWith(LIBRARY_PREFIX)) return !!await DownloadTemplateBundle(name);
+
     const url = assetBundleUrl(name);
 
     return !!url && !!await GetAssetManager().downloadAssetBundle(name, url);
