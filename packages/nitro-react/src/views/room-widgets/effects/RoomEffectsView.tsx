@@ -30,10 +30,10 @@ import { useState } from 'react';
 
 import { useTranslation } from '#base/context/system';
 import { UserAvatarEffect } from '#base/context/user';
-import { secondsLeftOf } from '#base/context/user/store/avatarEffectsModel';
+import { EFFECT_SECONDS_PER_DAY, formatEffectTimeLeft, secondsLeftOf } from '#base/context/user/store/avatarEffectsModel';
 import { useClock } from '#base/hooks';
 import { Box, LayoutImage, LayoutWindow, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
-import { twoDigits } from '#base/utils';
+import { avatarEffectIcon } from '#base/views/shared/avatarEffectIcon';
 
 export interface RoomEffectsViewProps {
     effects: UserAvatarEffect[];
@@ -51,8 +51,6 @@ const SELECTED_TEMPLATE = 'habbo-room-ui-com/memenu_effect_selected';
 const UNSELECTED_TEMPLATE = 'habbo-room-ui-com/memenu_effect_unselected';
 const INACTIVE_TEMPLATE = 'habbo-room-ui-com/memenu_effect_inactive';
 
-const effectIcon = (type: number) => LayoutImage(`habbo-inventory-com/fx_icon_${type}.png`);
-
 /** `EffectView.update`: the hilite's art over the worn effect and over one only running. */
 const FX_PAUSE = LayoutImage('habbo-room-ui-com/memenu_fx_pause.png');
 const FX_PLAY = LayoutImage('habbo-room-ui-com/memenu_fx_play.png');
@@ -60,21 +58,6 @@ const FX_PLAY = LayoutImage('habbo-room-ui-com/memenu_fx_play.png');
 /** `EffectsWidget.LIST_HEIGHT_MAX` / `LIST_HEIGHT_MIN`. */
 const LIST_HEIGHT_MAX = 320;
 const LIST_HEIGHT_MIN = 48;
-
-const SECONDS_PER_DAY = 86400;
-const SECONDS_PER_HOUR = 3600;
-const SECONDS_PER_MINUTE = 60;
-
-/** `EffectView.setTimeLeft`: `hh:mm:ss` from an hour up, `mm:ss` under it. */
-const formatTimeLeft = (seconds: number) => {
-    const hours = Math.floor(seconds / SECONDS_PER_HOUR);
-    const minutes = Math.floor(seconds / SECONDS_PER_MINUTE) % 60;
-    const rest = seconds % SECONDS_PER_MINUTE;
-
-    return (hours > 0)
-        ? `${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(rest)}`
-        : `${twoDigits(minutes)}:${twoDigits(rest)}`;
-};
 
 /**
  * `update`: the list as high as what it holds, within its limits. `IScrollableListWindow.scrollableRegion`
@@ -107,15 +90,15 @@ export const RoomEffectsView = ({ effects, onActivate, onToggleWear, onClose, le
     const timeLeftText = (effect: UserAvatarEffect) => {
         const secondsLeft = secondsLeftOf(effect, now);
 
-        if (secondsLeft > SECONDS_PER_DAY) return t('widgets.memenu.effects.active.daysleft', '', { days_left: String(Math.floor(secondsLeft / SECONDS_PER_DAY)) });
+        if (secondsLeft > EFFECT_SECONDS_PER_DAY) return t('widgets.memenu.effects.active.daysleft', '', { days_left: String(Math.floor(secondsLeft / EFFECT_SECONDS_PER_DAY)) });
 
-        return t('widgets.memenu.effects.active.timeleft', '', { time_left: formatTimeLeft(secondsLeft) });
+        return t('widgets.memenu.effects.active.timeleft', '', { time_left: formatEffectTimeLeft(secondsLeft) });
     };
 
     const items: TemplateItem[] = effects.map((effect) => {
         const common = {
             effect_name: { caption: `\${fx_${effect.type}}` },
-            effect_icon: { asset: effectIcon(effect.type) },
+            effect_icon: { asset: avatarEffectIcon(effect.type) },
             effect_amount: { caption: String(effect.amountInInventory) },
             effect_amount_bg1: { visible: effect.amountInInventory >= 2 },
         };

@@ -1,5 +1,7 @@
 import type { IAvatarEffect } from '@nitrodevco/nitro-packets';
 
+import { twoDigits } from '#base/utils/twoDigits';
+
 /**
  * One avatar effect as the effects window shows it: the server's snapshot plus what
  * `EffectsModel` tracked on top of it - whether it has been switched on, whether it is the one
@@ -59,6 +61,21 @@ export const secondsLeftOf = (effect: UserAvatarEffect, now: number = Date.now()
     const elapsedSeconds = Math.max(0, now - effect.activatedAt) / 1000;
 
     return Math.max(0, Math.floor(effect.secondsLeftIfActive - elapsedSeconds));
+};
+
+/** Over this many seconds left, an effect's time shows as days. */
+export const EFFECT_SECONDS_PER_DAY = 86400;
+
+/**
+ * `EffectsParamView.setSecondsLeft` / `EffectView.setTimeLeft`: an effect's time left as `hh:mm:ss`
+ * from an hour up, `mm:ss` under it.
+ */
+export const formatEffectTimeLeft = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor(seconds / 60) % 60;
+    const rest = seconds % 60;
+
+    return (hours > 0) ? `${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(rest)}` : `${twoDigits(minutes)}:${twoDigits(rest)}`;
 };
 
 /**

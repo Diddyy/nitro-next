@@ -28,33 +28,19 @@ import { useAvatarEditorActions, useAvatarEditorStore } from '#base/context/avat
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { useAvatarEffects, useUserActions } from '#base/context/user';
-import { secondsLeftOf, UserAvatarEffect } from '#base/context/user/store/avatarEffectsModel';
+import { EFFECT_SECONDS_PER_DAY, formatEffectTimeLeft, secondsLeftOf, UserAvatarEffect } from '#base/context/user/store/avatarEffectsModel';
 import { useClock } from '#base/hooks';
 import { ColorLayer, LayoutImage, Template, TemplateBindings, TemplateItem, useTemplate } from '#base/theme';
-import { twoDigits } from '#base/utils';
+import { avatarEffectIcon } from '#base/views/shared/avatarEffectIcon';
 
 const GRID_ITEM_TEMPLATE = 'habbo-avatar-editor-com/avatar_editor_effect_griditem_xml';
 const REMOVE_ICON = LayoutImage('habbo-window-manager-com/avatar_editor_generic_remove_selection.png');
-const effectIcon = (type: number) => LayoutImage(`habbo-inventory-com/fx_icon_${type}.png`);
 /** `fillRect(..., 2146080)` over a black bitmap. */
 const PROGRESS_COLOR = '#20bf20';
 const PROGRESS_BACKGROUND = '#000000';
 const HOVER_ALPHA = 0.5;
 /** `selectPart(-1)` with no effect worn, and the remove item's pick: no effect. */
 const NO_EFFECT = -1;
-
-const SECONDS_PER_DAY = 86400;
-const SECONDS_PER_HOUR = 3600;
-const SECONDS_PER_MINUTE = 60;
-
-/** `EffectsParamView.setSecondsLeft`: `hh:mm:ss` from an hour up, `mm:ss` under it. */
-const formatTimeLeft = (seconds: number) => {
-    const hours = Math.floor(seconds / SECONDS_PER_HOUR);
-    const minutes = Math.floor(seconds / SECONDS_PER_MINUTE) % 60;
-    const rest = seconds % SECONDS_PER_MINUTE;
-
-    return (hours > 0) ? `${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(rest)}` : `${twoDigits(minutes)}:${twoDigits(rest)}`;
-};
 
 /** A black bar `width` wide with its first `share` filled - `progress_bar` / `progress_bar_bitmap`. */
 const progressBar = (share: number, width: number, height: number) => (
@@ -111,7 +97,7 @@ export const useAvatarEditorEffects = (shown: boolean) => {
                     onPointerOut: () => setHovered(current => ((current === type) ? null : current)),
                 },
                 '#BG_COLOR': { visible: isSelected || (hovered === type), alpha: isSelected ? 1 : HOVER_ALPHA },
-                bitmap: { asset: effect ? effectIcon(effect.type) : REMOVE_ICON },
+                bitmap: { asset: effect ? avatarEffectIcon(effect.type) : REMOVE_ICON },
                 effect_amount_bg1: { visible: (effect?.amountInInventory ?? 1) > 1 },
                 effect_amount: { caption: String(effect?.amountInInventory ?? 1) },
                 duration_container: { visible: timed },
@@ -127,9 +113,9 @@ export const useAvatarEditorEffects = (shown: boolean) => {
 
         const secondsLeft = secondsLeftOf(effect, now);
 
-        if (secondsLeft > SECONDS_PER_DAY) return t('avatareditor.effects.active.daysleft', '', { days_left: String(Math.floor(secondsLeft / SECONDS_PER_DAY)) });
+        if (secondsLeft > EFFECT_SECONDS_PER_DAY) return t('avatareditor.effects.active.daysleft', '', { days_left: String(Math.floor(secondsLeft / EFFECT_SECONDS_PER_DAY)) });
 
-        return t('avatareditor.effects.active.timeleft', '', { time_left: formatTimeLeft(secondsLeft) });
+        return t('avatareditor.effects.active.timeleft', '', { time_left: formatEffectTimeLeft(secondsLeft) });
     };
 
     const running = !!selected && (selected.isActive || selected.isPermanent);
