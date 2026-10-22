@@ -33,6 +33,8 @@ import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
 import { BadgeLeaderboardView } from './views/badge-leaderboard/BadgeLeaderboardView';
 import { MallOfferMinimizedView } from './views/catalog/targeted-offers/MallOfferMinimizedView';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
+import { ClientModuleAvatarOverlaysView } from './views/client-modules/ClientModuleAvatarOverlaysView';
+import { ClientModuleWindowsView } from './views/client-modules/ClientModuleWindowsView';
 import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
 import { GroupForumDialogs } from './views/group-forums/GroupForumDialogs';
 import { GroupForumView } from './views/group-forums/GroupForumView';
@@ -105,6 +107,8 @@ export const MainView = () => {
             {/* Window context 1's desktop: every window is drawn and ordered in here. */}
             <WindowLayer>
                 <ViewErrorBoundaries>
+                    {/* What client modules draw over the avatars: over the room, under every window. */}
+                    <ClientModuleAvatarOverlaysView />
                     {/*
                       * `extension_grid`: a 192 wide itemlist at `desktop.width - 192 - 3`. The list only stacks its windows,
                       * each keeps its own x - 0 for every docked window (the 195 wide ones overhang on the right), -38 for the
@@ -205,6 +209,8 @@ export const MainView = () => {
                     <PetTrainingView />
                     {/* `NameChangeView`: drawn only while shown. */}
                     <NameChangeView />
+                    {/* The client modules' windows: drawn only while open. */}
+                    <ClientModuleWindowsView />
                     <UserProfileComponent />
                     <CollectiblesComponent />
                     <HabbiconsComponent />

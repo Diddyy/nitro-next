@@ -6,6 +6,7 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
 
+import { clientModulesStore } from '#base/context/client-modules';
 import { Send } from '#base/context/communication';
 import { hintStore } from '#base/context/hints';
 import { systemStore, WindowParams } from '#base/context/system';
@@ -99,8 +100,9 @@ const openWiredMenuLink = (parts: string[]): boolean => {
  * it; here a window is opened by name with its parameters instead, and the window's own hook
  * (`useCatalogPageRequest`, `useNavigatorSearchCodeRequest`, ...) acts on what it was passed.
  *
- * Only the links whose destination exists in this client are routed; the rest are logged rather
- * than dropped silently, the way each Flash component logged its own unknown link type.
+ * Only the links whose destination exists in this client are routed, and then those a client module
+ * handles (`links.handle`); the rest are logged rather than dropped silently, the way each Flash
+ * component logged its own unknown link type.
  */
 export const openClientLink = (send: Send, link: string) => {
     const parts = link.split('/');
@@ -403,6 +405,19 @@ export const openClientLink = (send: Send, link: string) => {
             return;
         }
     }
+
+    // A client module's prefix (`links.handle`): only links the client itself has no route for.
+    const moduleHandlers = clientModulesStore.getState().linkHandlers.filter(handler => handler.prefix === parts[0]);
+
+    for (const handler of moduleHandlers) {
+        try {
+            handler.handle(link);
+        } catch (error) {
+            NitroLogger.error('ClientModules', `${handler.moduleKey}: link ${link} threw`, error);
+        }
+    }
+
+    if (moduleHandlers.length) return;
 
     NitroLogger.log(`Unhandled client link: ${link}`);
 };

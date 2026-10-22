@@ -66,6 +66,12 @@ export interface NotificationOptions {
      * Flash hands `addItem` as its bitmap (`onPetReceived`); here the bubble draws it from these.
      */
     pet?: { typeId: number; paletteId: number; color: number };
+    /**
+     * Not Flash's: a client module's own layout (`notifications.registerLayout`) - the template the
+     * bubble is drawn from instead of its style's, and its height in the stack. It grows with its
+     * text as the default layout does.
+     */
+    template?: { id: string; height: number };
 }
 
 /** `HabboNotificationItem` with its `HabboNotificationItemStyle` folded in. */

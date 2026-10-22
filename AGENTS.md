@@ -41,6 +41,7 @@ Use the relevant references below; a small edit does not require reading every g
 | Bundled images, fonts or asset loading | [Asset bundles](docs/asset-bundles.md) |
 | Asset imports, workspace versions or gamedata | [Nitro Studio](docs/nitro-studio.md) |
 | Parsers, composers or packet registration | [Packets](docs/packets.md) |
+| Client modules a server's plugins ship, and their API | [Client modules](docs/client-modules.md) |
 | Wired definitions, setup views or stores | [Wired](docs/wired.md) |
 | Revision updates or copied reference tables | [Staying in step](docs/staying-in-step.md) |
 | Unported or partly ported features, and picking work | [Feature gaps](docs/feature-gaps.md) |

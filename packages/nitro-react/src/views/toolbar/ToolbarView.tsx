@@ -34,6 +34,11 @@
  * icon names (`NAVIGATOR`, `MEMENU`, `INVENTORY`, `CATALOGUE`), which the server's element pointer
  * and the `toolbar/highlight/<icon>` link point the hint arrow at; a click on an icon takes the arrow
  * off it (`onIconClick`'s `hideMatchingHint`).
+ *
+ * Not Flash's: the icons client modules add (`toolbar.add`) follow the `line`, a region's width and
+ * `ITEM_SPACING` apart, while the bar is expanded; the window and the toolbar area widen by them as
+ * by any shown toggle, and they fade with the collapse run. The me menu shows the modules' entries
+ * after its own (`meMenu.add`), each a clone of `profile` with its own caption.
  */
 import { CatalogTypeEnum, NoobnessLevelEnum, RoomDoorModeEnum, RoomObjectCategoryEnum } from '@nitrodevco/nitro-api';
 import { GetTicker } from '@nitrodevco/nitro-renderer';
@@ -41,6 +46,7 @@ import { Container as PixiContainer, FederatedPointerEvent, Ticker } from 'pixi.
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
 import { goToHomeRoom, openClientLink, openProfile, quitRoom, showOwnRooms, showQuests, startTakingPhoto, toggleCatalog, toggleNavigator, trackEventLog } from '#base/commands';
+import { useClientModulesStore } from '#base/context/client-modules';
 import { useWebSocketContext } from '#base/context/communication';
 import { getUnseenDailyTasksCount, useDailyTasksStore } from '#base/context/daily-tasks';
 import { useGroupStore } from '#base/context/groups';
@@ -54,7 +60,7 @@ import { ToolbarTransitionIcon, useConfigBoolean, useConfigValue, useIsLandingVi
 import { PerkCodes, useOwnPerkAllowed, useOwnUserFigure, useOwnUserGender, useOwnUserId, useUserStore } from '#base/context/user';
 import { useWiredShowToolbarMenuButton } from '#base/context/wired';
 import { easeOutCubic, useHintTarget, useRoomObjectSelect, useTween, useViewportSize } from '#base/hooks';
-import { Box, findTemplateChild, Region, Template, TemplateBindings, TemplateElement, TemplateWindow, TemplateWindows, useLayoutEvent, useTemplate } from '#base/theme';
+import { Box, findTemplateChild, Region, Template, TemplateBindings, TemplateElement, TemplateWindow, TemplateWindows, ThemeImage, useLayoutEvent, useTemplate } from '#base/theme';
 import { configReader } from '#base/utils';
 import { FriendBarView } from '#base/views/friend-bar/FriendBarView';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
@@ -81,6 +87,15 @@ const BOUNCE_HEIGHT = 12;
  * children (hiding mini mail rearranges the box sizer), its layout height.
  */
 const ME_MENU_GUIDE_HEIGHT = 55;
+
+/** A client module's icon: the size of the layout's `CATALOGUE` region. */
+const MODULE_ICON_WIDTH = 45;
+const MODULE_ICON_HEIGHT = 41;
+
+/** The me menu's item list: the unnamed list in the unnamed window under `buttons`. */
+const ME_MENU_LIST = '@0/@0';
+/** The me menu entry a client module's entry is a clone of. */
+const ME_MENU_MODULE_FROM = 'profile';
 
 /** `ProgMenuController.REWARD_TRACK_ITEM_PREFIX`: a reward track's item in the progression menu. */
 const REWARD_TRACK_ITEM_PREFIX = 'rewardtrack_';
@@ -245,6 +260,10 @@ export const ToolbarView = () => {
     const meMenuHintTarget = useHintTarget('MEMENU');
     const inventoryHintTarget = useHintTarget('INVENTORY');
     const catalogueHintTarget = useHintTarget('CATALOGUE');
+    const moduleToolbarItems = useClientModulesStore(x => x.toolbarItems);
+    const moduleMeMenuItems = useClientModulesStore(x => x.meMenuItems);
+    // What the modules' icons add to the bar while it is expanded.
+    const moduleIconsWidth = moduleToolbarItems.length * (MODULE_ICON_WIDTH + ITEM_SPACING);
 
     useLayoutEvent(rightGroup, () => setRightWidth(Math.ceil(rightGroup?.layout?.computedLayout.width ?? rightGroup?.width ?? 0)));
 
@@ -275,12 +294,15 @@ export const ToolbarView = () => {
             next += toggle.width + ITEM_SPACING;
         }
 
+        // The modules' icons count as shown toggles while expanded.
+        const moduleIcons = isCollapsed ? 0 : moduleToolbarItems.length;
+
         return {
             visible,
             x,
             lineX: next,
-            width: (45 * (visible.size + 1)) + 10 + 150,
-            areaWidth: isCollapsed ? COLLAPSED_AREA_WIDTH : (itemsX + next),
+            width: (45 * (visible.size + moduleIcons + 1)) + 10 + 150,
+            areaWidth: isCollapsed ? COLLAPSED_AREA_WIDTH : (itemsX + next + moduleIconsWidth),
         };
     };
 
@@ -456,6 +478,34 @@ export const ToolbarView = () => {
     };
 
     bindings.collapse_left = { ...bindings.collapse_left, onPointerTap: toggleCollapsed };
+
+    // The modules' icons, after the `line` wherever the run has it; gone once collapsed.
+    if (moduleToolbarItems.length && (!collapsed || running)) {
+        const lineX = running ? lerp(source.lineX, target.lineX) : target.lineX;
+
+        bindings.toolbar_items = {
+            children: (
+                <Box
+                    alpha={running ? (collapsed ? (1 - fraction) : fraction) : 1}
+                    layout={{ position: 'absolute', left: lineX + 1 + ITEM_SPACING, top: 1, flexDirection: 'row', gap: ITEM_SPACING }}
+                >
+                    {moduleToolbarItems.map(item => (
+                        <Box
+                            key={item.key}
+                            layout={{ width: MODULE_ICON_WIDTH, height: MODULE_ICON_HEIGHT, justifyContent: 'center', alignItems: 'center' }}
+                        >
+                            <ThemeImage
+                                src={item.icon}
+                                cursor="pointer"
+                                tooltip={item.tooltip}
+                                onPointerTap={iconClick(item.onClick)}
+                            />
+                        </Box>
+                    ))}
+                </Box>
+            ),
+        };
+    }
     bindings.collapse_right = { ...bindings.collapse_right, onPointerTap: toggleCollapsed };
 
     const arrange = ({ find }: TemplateWindows) => {
@@ -526,7 +576,9 @@ export const ToolbarView = () => {
                         { name: 'clothes', visible: true, action: () => openClientLink(send, 'avatareditor/open') },
                         { name: 'forums', visible: true, action: () => openClientLink(send, 'groupforum/list/my'), unseenCount: unreadForumsCount },
                         { name: 'collectibles', visible: classicCollectiblesHubEnabled && collectiblesHubEnabled, action: () => openClientLink(send, 'collectibles/open') },
+                        ...moduleMeMenuItems.map(item => ({ name: item.key, from: ME_MENU_MODULE_FROM, caption: item.caption, visible: true, action: item.onClick })),
                     ]}
+                    listName={moduleMeMenuItems.length ? ME_MENU_LIST : undefined}
                     onClose={() => setOpenMenu(undefined)}
                 />
             )}
