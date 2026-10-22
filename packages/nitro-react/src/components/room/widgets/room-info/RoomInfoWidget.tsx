@@ -1,5 +1,6 @@
 import { RoomControllerLevelEnum } from '@nitrodevco/nitro-api';
-import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, GetExtendedProfileComposer, MuteAllInRoomComposer, RateFlatComposer, RemoveOwnRoomRightsRoomComposer, ToggleStaffPickComposer, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
+import { AddFavouriteRoomComposer, DeleteFavouriteRoomComposer, GetExtendedProfileComposer, IRoomInfo, MuteAllInRoomComposer, RateFlatComposer, RemoveOwnRoomRightsRoomComposer, ToggleStaffPickComposer, UpdateHomeRoomComposer } from '@nitrodevco/nitro-packets';
+import { useState } from 'react';
 
 import { canManageRaidProtection, openClientLink, openGroupInfo, openRoomFilter, searchRoomTag } from '#base/commands';
 import { reportRoom } from '#base/commands/help/helpCommands';
@@ -53,10 +54,24 @@ export const RoomInfoWidget = () => {
     const userHash = useConfigValue<string>('user.hash') ?? '';
     const thumbnailCameraAllowed = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);
     const t = useTranslation();
+    /*
+     * `RoomInfoViewCtrl.refresh` reads `enteredGuestRoom` when the panel opens and when the navigator
+     * events that `reload()` it come in (FavouriteChanged, NavigatorSettings, RoomRating). The
+     * refetch after RoomInfoUpdated updates that data but reloads `HabboNavigator`'s own controller
+     * (`IncomingMessages.onRoomInfo`, navigator/IncomingMessages.as:334-338), not the one the room
+     * tools open (`LegacyNavigator`'s, transitional/LegacyNavigator.as:77): an open panel keeps the
+     * room's old name and shows the new one when opened again (official client, 2/2 renames). So the
+     * info shown is taken when the panel opens and again when one of those reload triggers changes.
+     */
+    const reloadKey = isVisible ? [ enteredRoom?.info.roomId, favouriteRoomIds.join(), homeRoomId, currentRoomRating, canRateCurrentRoom ].join('|') : '';
+    const [ shown, setShown ] = useState<{ reloadKey: string; info: IRoomInfo | null }>({ reloadKey: '', info: null });
+
+    if (shown.reloadKey !== reloadKey) setShown({ reloadKey, info: isVisible ? (enteredRoom?.info ?? null) : null });
 
     if (!isVisible || !enteredRoom) return null;
 
-    const { info: currentRoomInfo, isOwner, isStaffPicked, canMute, allInRoomMuted } = enteredRoom;
+    const { isOwner, isStaffPicked, canMute, allInRoomMuted } = enteredRoom;
+    const currentRoomInfo = (shown.info?.roomId === enteredRoom.info.roomId) ? shown.info : enteredRoom.info;
     const { roomId } = currentRoomInfo;
     const isFavourite = favouriteRoomIds.includes(roomId);
     /* `NavigatorData.canEditRoomSettings` - the room's owner, or staff from `hasSecurity(5)`. */
