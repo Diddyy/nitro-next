@@ -30,9 +30,7 @@ import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { configBoolean, systemStore } from '#base/context/system';
-import { ChatLagTracker, FramerateTracker, getTimer, LagWarningLogger, PerformanceEnvironment, PerformanceTracker, tryCallPageFunction } from '#base/utils';
-
-declare const __NITRO_BUILD__: string | undefined;
+import { ChatLagTracker, clientBuild, FramerateTracker, getTimer, LagWarningLogger, PerformanceEnvironment, PerformanceTracker, tryCallPageFunction } from '#base/utils';
 
 /** `HabboTracking.onRoomAction`: the `ClientPerformance` report this long after a room engine came up. */
 const ROOM_PERFORMANCE_DELAY = 60000;
@@ -56,7 +54,7 @@ const createEnvironment = (): PerformanceEnvironment => {
 
     return {
         userAgent: navigator.userAgent || 'unknown',
-        flashVersion: (typeof __NITRO_BUILD__ === 'string') ? __NITRO_BUILD__ : 'dev',
+        flashVersion: clientBuild(),
         os: userAgentData?.platform || navigator.platform || '',
         browser: '',
         isDebugger: import.meta.env.DEV,

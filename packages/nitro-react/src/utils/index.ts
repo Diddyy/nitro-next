@@ -10,6 +10,7 @@ export * from './catalogProductImages';
 export * from './catalogSeasonalCurrency';
 export * from './chatCommandCompletion';
 export * from './clamp';
+export * from './clientDiagnostics';
 export * from './clockTicker';
 export * from './clubCenter';
 export * from './clubOffers';

@@ -10,11 +10,9 @@ import { Container, Graphics, NineSliceSprite, Sprite, Text, TilingSprite } from
 import { createRoot } from 'react-dom/client';
 
 import { WebSocketContextProvider } from '#base/context/communication';
+import { clientBuild } from '#base/utils';
 
 import { Nitro } from './Nitro';
-
-/** The build's name, replaced at build time (vite.config.ts `buildId`); undefined outside Vite. */
-declare const __NITRO_BUILD__: string | undefined;
 
 // NitroLogger.LOG_ERROR = import.meta.env.DEV;
 // NitroLogger.LOG_WARN = import.meta.env.DEV;
@@ -47,7 +45,7 @@ const pageConfig = window.NitroConfig as Record<string, unknown>;
 if (import.meta.env.VITE_SOCKET_URL && !pageConfig['socket.url']) pageConfig['socket.url'] = import.meta.env.VITE_SOCKET_URL;
 
 // The build this page runs, as its `<meta name="nitro-build">` names it, so a console shows which commit is live.
-console.info(`Nitro build ${(typeof __NITRO_BUILD__ === 'string') ? __NITRO_BUILD__ : 'dev'}`);
+console.info(`Nitro build ${clientBuild()}`);
 
 const element = document.getElementById('root');
 

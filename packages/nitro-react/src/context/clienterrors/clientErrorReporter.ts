@@ -27,9 +27,9 @@ import { GetRenderer } from '@nitrodevco/nitro-renderer';
 import type { Send } from '#base/context/communication';
 import { getRoom } from '#base/context/room';
 import { configString } from '#base/context/system';
+import { clientBuild, clientPage, clientUptimeMs, clientViewport, describeDiagnosticValue } from '#base/utils';
 
 /** The build's name, replaced at build time (vite.config.ts `buildId`); undefined outside Vite. */
-declare const __NITRO_BUILD__: string | undefined;
 
 export const TURBO_CLIENT_ERRORS_CAPABILITY = 'clienterrors';
 
@@ -65,33 +65,24 @@ const perError = new Map<string, number>();
 /** Errors already reported, so one that reaches two hooks (a boundary and the logger) counts once. */
 let reported = new WeakSet<object>();
 
-const now = () => Math.round(performance.now());
+const now = clientUptimeMs;
 
 const cut = (text: string | undefined | null, max: number) => (text && text.length > max) ? text.slice(0, max) : (text || undefined);
 
-const describe = (value: unknown): string => {
-    if (typeof value === 'string') return value;
-    if (value instanceof Error) return `${value.name}: ${value.message}`;
-
-    try {
-        return JSON.stringify(value) ?? String(value);
-    } catch {
-        return String(value);
-    }
-};
+const describe = (value: unknown) => describeDiagnosticValue(value);
 
 /** The client's state worth knowing for any error: build, browser, room. Never the page's query. */
 const context = () => {
     const navigatorData = navigator as Navigator & { userAgentData?: { platform?: string } };
 
     return {
-        build: (typeof __NITRO_BUILD__ === 'string') ? __NITRO_BUILD__ : 'dev',
+        build: clientBuild(),
         production: configString('production.version') || undefined,
         userAgent: navigator.userAgent,
         platform: navigatorData.userAgentData?.platform || navigator.platform || undefined,
-        page: `${window.location.origin}${window.location.pathname}`,
+        page: clientPage(),
         roomId: getRoom()?.roomId ?? undefined,
-        viewport: { width: window.innerWidth, height: window.innerHeight, pixelRatio: window.devicePixelRatio },
+        viewport: clientViewport(),
         renderer: (GetRenderer() as { name?: string } | undefined)?.name,
         uptimeMs: now(),
     };

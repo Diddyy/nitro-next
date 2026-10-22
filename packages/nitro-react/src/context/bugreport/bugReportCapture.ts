@@ -10,9 +10,9 @@ import { Rectangle } from 'pixi.js';
 
 import { getRoom, roomStore } from '#base/context/room';
 import { configString } from '#base/context/system';
+import { clientBuild, clientPage, clientUptimeMs, clientViewport, describeDiagnosticValue } from '#base/utils';
 
 /** The build's name, replaced at build time (vite.config.ts `buildId`); undefined outside Vite. */
-declare const __NITRO_BUILD__: string | undefined;
 
 export const TURBO_BUG_REPORT_CAPABILITY = 'bugreport';
 
@@ -33,18 +33,8 @@ let packetIndex = 0;
 let recording = false;
 let restoreConsole: (() => void) | undefined;
 
-const now = () => Math.round(performance.now());
-
-const describe = (value: unknown): string => {
-    if (value instanceof Error) return `${value.name}: ${value.message}${value.stack ? `\n${value.stack}` : ''}`;
-    if (typeof value === 'string') return value;
-
-    try {
-        return JSON.stringify(value) ?? String(value);
-    } catch {
-        return String(value);
-    }
-};
+const now = clientUptimeMs;
+const describe = (value: unknown) => describeDiagnosticValue(value, true);
 
 const addConsole = (level: ConsoleEntry['level'], values: unknown[]) => {
     const text = values.map(describe).join(' ');
@@ -156,12 +146,11 @@ const takeScreenshot = async (): Promise<Uint8Array> => {
 export const takeBugReportCapture = async (screenshot: boolean) => {
     const capture = {
         v: 1,
-        build: (typeof __NITRO_BUILD__ === 'string') ? __NITRO_BUILD__ : 'dev',
+        build: clientBuild(),
         production: configString('production.version'),
-        // Never the query: it carries the SSO ticket.
-        page: `${window.location.origin}${window.location.pathname}`,
+        page: clientPage(),
         userAgent: navigator.userAgent,
-        viewport: { width: window.innerWidth, height: window.innerHeight, pixelRatio: window.devicePixelRatio },
+        viewport: clientViewport(),
         uptimeMs: now(),
         takenAt: new Date().toISOString(),
         room: roomState(),
