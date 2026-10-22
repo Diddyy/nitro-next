@@ -74,6 +74,14 @@ the dead url is not asked for again until the page reloads.
   place of Ubuntu) or to the `FlashTextFormat` fields it changes (`{ "fontFamily": "Volter", "fontSize": 9,
   "antiAliasType": "normal" }`). The hotel's `text.styles.overrides`, in the same form, applies over the
   theme's without a bundle. See `setTextStyleOverrides` and [Text](text.md).
+- **The faces a layout names itself** - a text's `font_face` var, which sets the face over the text's
+  style, so no style override reaches it (the room UI library alone has 68 such Ubuntu texts, the room
+  chat input among them) - are the window manager bundle's too: a `text-faces.json` sets each face it
+  names, as layouts name it (`Ubuntu`, `Ubuntu bold`, `Volter`, `Volter Bold`), to another face
+  (`"Ubuntu bold": "Volter Bold"`) or to the `FlashTextFormat` fields it changes (`{ "fontFamily": "Volter",
+  "fontSize": 9, "antiAliasType": "normal" }`). Its fields win over the text's own vars, `font_size`
+  included; a face alone keeps the text's size. The hotel's `text.faces.overrides`, in the same form,
+  wins over the theme's for each face it names. See `setFontFaceOverrides`.
 - **A window's colour** is its layout's: a frame's `color` (`IWindow.color`) tints every `colorize`
   piece of its skin, so the navigator's `0xff418db0` is in `habbo-new-navigator`'s layout, not the
   theme. A pack recolours one window by overriding that window's library, every window without a

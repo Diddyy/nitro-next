@@ -3,9 +3,9 @@
  * out the way `ThemeText` draws it (`renderFlashTextCanvas` in the element's style), so the rect
  * `layoutTemplate` gives a text is the one its drawing fills.
  */
-import { FLASH_TEXT_GUTTER, FlashTextFieldOverrides, FlashTextRenderer, FlashTextStyleSheet, HABBO_TEXT_STYLES, parseFlashTextMarkup, renderFlashTextCanvas, resolveFlashTextFormat } from '../font/flash-text';
+import { FLASH_TEXT_GUTTER, FlashTextFieldOverrides, FlashTextFormat, FlashTextRenderer, FlashTextStyleSheet, HABBO_TEXT_STYLES, parseFlashTextMarkup, renderFlashTextCanvas, resolveFlashTextFormat } from '../font/flash-text';
 import { resolveMarkupFace } from '../hooks/useFlashTextCanvas';
-import { flashFaceOverride, TextStyleKey, themeDefaultTextStyle } from '../utils';
+import { flashFaceOverride, fontFaceOverride, TextStyleKey, themeDefaultTextStyle } from '../utils';
 import type { TemplateElement } from './templateData';
 import type { TemplateTextSize } from './templateLayout';
 
@@ -17,9 +17,26 @@ export const knownTemplateTextStyle = (textStyle: unknown): TextStyleKey | undef
 /** The text style an element draws in: its `text_style`, else its window style's default. */
 export const templateTextStyle = (element: TemplateElement): TextStyleKey => knownTemplateTextStyle(element.vars.text_style) ?? themeDefaultTextStyle(element.style);
 
-/** A text's `font_size` variable, over its style's size (`TextController.setTextFormatting`); `undefined` when it sets none. */
+/**
+ * What a theme or hotel draws the face a text's `font_face` var names in (`setFontFaceOverrides`), `undefined`
+ * when the text names none or neither changes it. A label reads only its style and colour.
+ */
+const templateFaceOverride = (element: TemplateElement): Partial<FlashTextFormat> | undefined => {
+    const face = element.vars.font_face;
+
+    return (element.tag !== 'label') && (typeof face === 'string') && face.length ? fontFaceOverride(face) : undefined;
+};
+
+/**
+ * A text's `font_size` variable, over its style's size (`TextController.setTextFormatting`); `undefined` when it
+ * sets none. Not Flash's: the size a face override draws the text's `font_face` at wins over it - a theme that
+ * sets a face in a bitmap font sets the size that font is drawn at.
+ */
 export const templateFontSize = (element: TemplateElement): number | undefined => {
     const size = Number(element.vars.font_size);
+    const overridden = templateFaceOverride(element)?.fontSize;
+
+    if (typeof overridden === 'number' && overridden > 0) return overridden;
 
     return element.vars.font_size !== undefined && Number.isFinite(size) && size > 0 ? size : undefined;
 };
@@ -42,10 +59,16 @@ const FONT_FACES: Readonly<Record<string, string>> = {
  */
 const VAR_COUNTS_WHEN_FALSY = new Set([ 'bold', 'italic', 'underline', 'font_face', 'antialias_type', 'grid_fit_type', 'etching_color', 'etching_position' ]);
 
+/** The `TextField` fields a face override may set over the layout's own vars (`FlashTextFieldOverrides`). */
+const FACE_OVERRIDE_FIELDS: readonly (keyof FlashTextFieldOverrides)[] = [ 'bold', 'italic', 'underline', 'letterSpacing', 'leading', 'antiAliasType', 'gridFitType', 'thickness', 'sharpness', 'kerning', 'etchingColor', 'etchingPosition' ];
+
 /**
  * A text's format vars over its style, as `ThemeText` takes them: `font_face` as `fontFamily`, the
  * rest of `TextController.createPropertySetterTable`'s format vars as `flash` (`bold`, `italic`,
  * `spacing`, `antialias_type`, ...). A label (`TextLabelController`) reads only its style and colour.
+ *
+ * Not Flash's: a face a theme or hotel overrides (`setFontFaceOverrides`) is drawn in the override's
+ * face, its other fields over the layout's own vars.
  */
 export const templateTextFormat = (element: TemplateElement): { fontFamily?: string; flash: FlashTextFieldOverrides } => {
     if (element.tag === 'label') return { flash: {} };
@@ -61,7 +84,8 @@ export const templateTextFormat = (element: TemplateElement): { fontFamily?: str
     const bool = (key: string) => vars[key] === true || vars[key] === 'true';
     const num = (key: string) => Number(vars[key]);
     const str = (key: string) => (typeof vars[key] === 'string' ? vars[key] : undefined);
-    const face = applies('font_face') ? str('font_face') : undefined;
+    const faceOverride = templateFaceOverride(element);
+    const face = applies('font_face') ? (faceOverride?.fontFamily ?? str('font_face')) : undefined;
     // `setGridFitType` records nothing of its own, so a later `text_style` (re-running
     // `setTextFormatting`) puts an advanced style's grid fit back to `pixel`, unless an
     // `antialias_type` came first. Vars apply in document order.
@@ -85,6 +109,10 @@ export const templateTextFormat = (element: TemplateElement): { fontFamily?: str
     if (applies('kerning')) flash.kerning = bool('kerning');
     if (applies('etching_color')) flash.etchingColor = num('etching_color');
     if (applies('etching_position')) flash.etchingPosition = str('etching_position') as FlashTextFieldOverrides['etchingPosition'];
+
+    for (const field of FACE_OVERRIDE_FIELDS) {
+        if (faceOverride?.[field] !== undefined) (flash as Record<string, unknown>)[field] = faceOverride[field];
+    }
 
     return { fontFamily: face ? (FONT_FACES[face] ?? face) : undefined, flash };
 };

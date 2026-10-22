@@ -10,7 +10,7 @@ import { useRoom, useRoomIsSpectating, useRoomStore } from '#base/context/room';
 import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate, useOwnHasClub, useOwnIsAmbassador, useUserStore } from '#base/context/user';
 import { useChatInputContentRequest, useChatStyles, useReopenGuard } from '#base/hooks';
-import { Box, findTemplateChild, GlobalRect, Template, TemplateWindow, TextInput, useLatest, useTemplate } from '#base/theme';
+import { Box, findTemplateChild, GlobalRect, Template, templateFontSize, templateTextFormat, TemplateWindow, TextInput, useLatest, useTemplate } from '#base/theme';
 import { UnseenItemCounterView } from '#base/views/shared/UnseenItemCounterView';
 
 import { ChatCommandSuggestionsView } from './ChatCommandSuggestionsView';
@@ -40,7 +40,8 @@ type Rect = { x: number; y: number; width: number; height: number };
 /**
  * What the bar is placed by, read off its layout: `bubblecont`'s width, `chat_input_container`'s y in
  * it, `input_border` in that row (the command list stands on it, as wide), `chat_input` in the
- * border, and the `styles` and `chat_extra_button` buttons in the row.
+ * border, and the `styles` and `chat_extra_button` buttons in the row - and `chat_input`'s face, size and
+ * format vars (Ubuntu 17, advanced anti-aliasing), as a theme's face override leaves them (`templateTextFormat`).
  *
  * `chat_input` reaches 5 past the left edge of `helpbutton`, which lies over the field's end while
  * it shows; Flash's 2 px text gutter hides less under it than this field would, so the field stops
@@ -56,16 +57,19 @@ const readLayout = (template: Template) => {
     const row = rectOf('chat_input_container');
     const border = rectOf('input_border');
     const input = rectOf('chat_input');
+    const inputElement = findTemplateChild(template.elements, 'chat_input');
     const styles = rectOf('styles');
     const extra = rectOf('chat_extra_button');
     const help = rectOf('helpbutton');
 
-    if (!bubble || !row || !border || !input || !styles || !extra) return undefined;
+    if (!bubble || !row || !border || !input || !inputElement || !styles || !extra) return undefined;
 
     // `helpbutton` is in `bubblecont`; the field is in `input_border`, in the row.
     const inputWidth = help ? Math.min(input.width, help.x - (row.x + border.x + input.x)) : input.width;
 
-    return { width: bubble.width, row, border, input, inputWidth, styles, extra };
+    const { fontFamily, flash } = templateTextFormat(inputElement);
+
+    return { width: bubble.width, row, border, input, inputWidth, styles, extra, font: { fontFamily, fontSize: templateFontSize(inputElement), flash } };
 };
 
 /**
@@ -511,12 +515,12 @@ export const RoomChatInputView = () => {
             placeholder={nuxReminded ? t('widgets.chatinput.mode.remind.noobie') : t('widgets.chatinput.default')}
             placeholderColor="#777777"
             maxLength={MAX_CHARS}
-            fontFamily="Ubuntu"
-            fontSize={17}
-            // `chat_input`'s own `antialias_type` var. Without it the field falls back
+            fontFamily={layout.font.fontFamily}
+            fontSize={layout.font.fontSize}
+            // `chat_input`'s own `antialias_type` var among them. Without it the field falls back
             // to `regular`'s `normal`, which the exact renderer has only for the
             // Volter faces - so Ubuntu 17 dropped to the browser's canvas text.
-            flashFormat={{ antiAliasType: 'advanced' }}
+            flashFormat={layout.font.flash}
             textColor="#000000"
             flashPlacement
             alwaysShowSelection
