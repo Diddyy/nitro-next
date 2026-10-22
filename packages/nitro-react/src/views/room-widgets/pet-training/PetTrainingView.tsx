@@ -22,8 +22,9 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useRoomPetCommands, useRoomPetInfo, useRoomUserByObjectId } from '#base/context/room';
 import { useConfigBoolean, useIsWindowVisible, useTranslation, useWindowActions, useWindowParams } from '#base/context/system';
 import { useChatPetFace } from '#base/hooks';
-import { Box, ColorLayer, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useTemplateFrame } from '#base/theme';
+import { Box, TemplateItem, TemplateWindow, TemplateWindows, ThemeImage, useTemplateFrame } from '#base/theme';
 import { petTypeFromFigure } from '#base/utils';
+import { PET_EXPERIENCE_BAR_COLORS, PetPercentageBar } from '#base/views/shared/PetPercentageBar';
 
 const DEFAULT_POSITION = { x: 100, y: 70 };
 const BUTTONS_DISABLED_MS = 1100;
@@ -33,7 +34,6 @@ const ROW_HEIGHT = 25;
 const IMAGE_WIDTH = 71;
 const IMAGE_HEIGHT = 90;
 const PET_TYPE_HORSE = 15;
-const STATUS_BAR = { width: 162, height: 16, highlight: 4, border: '#dadada', background: '#3a3a3a', content: '#8547be', highlightColor: '#a06ad2' };
 
 /** `getLowerSkillTreshold`: the last threshold not above the level. */
 const lowerThreshold = (level: number, thresholds: number[]) => {
@@ -54,33 +54,6 @@ const upperThreshold = (level: number, thresholds: number[]) => {
     const index = thresholds.indexOf(lower);
 
     return ((index >= 0) && (index < thresholds.length - 1)) ? thresholds[index + 1] : lower;
-};
-
-/** `createPercentageBar`. */
-const percentageBar = (value: number, max: number) => {
-    const ratio = Math.min(Math.max(value, 0), Math.max(max, 1)) / Math.max(max, 1);
-    const inner = STATUS_BAR.width - 2;
-
-    return (
-        <>
-            <ColorLayer
-                color={STATUS_BAR.border}
-                layout={{ position: 'absolute', left: 0, top: 0, width: STATUS_BAR.width, height: STATUS_BAR.height }}
-            />
-            <ColorLayer
-                color={STATUS_BAR.background}
-                layout={{ position: 'absolute', left: 1, top: 1, width: inner, height: STATUS_BAR.height - 2 }}
-            />
-            <ColorLayer
-                color={STATUS_BAR.content}
-                layout={{ position: 'absolute', left: 1, top: 1 + STATUS_BAR.highlight, width: ratio * inner, height: STATUS_BAR.height - 2 - STATUS_BAR.highlight }}
-            />
-            <ColorLayer
-                color={STATUS_BAR.highlightColor}
-                layout={{ position: 'absolute', left: 1, top: 1, width: ratio * inner, height: STATUS_BAR.highlight }}
-            />
-        </>
-    );
 };
 
 export const PetTrainingView = () => {
@@ -180,7 +153,15 @@ const PetTrainingWindow = ({ petId }: { petId: number }) => {
                 status_skill_container: { visible: skillShown },
                 status_skill_value_text: { caption: `${skillValue}/${skillMax}` },
                 status_skill_text: { caption: `\${infostand.pet.text.skill.next.${PET_TYPE_HORSE}}` },
-                status_skill_bitmap: skillShown ? { children: percentageBar(skillValue, skillMax) } : {},
+                status_skill_bitmap: skillShown
+                    ? { children: (
+                            <PetPercentageBar
+                                value={skillValue}
+                                max={skillMax}
+                                colors={PET_EXPERIENCE_BAR_COLORS}
+                            />
+                        ) }
+                    : {},
             }}
         />
     );

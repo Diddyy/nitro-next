@@ -3,8 +3,9 @@ import { PetInfoMessageType } from '@nitrodevco/nitro-packets';
 
 import { useConfigBoolean, useTranslation } from '#base/context/system';
 import { useChatPetFace } from '#base/hooks';
-import { Box, CountdownWidget, LayoutImage, Region, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage } from '#base/theme';
+import { Box, CountdownWidget, LayoutImage, TemplateBindings, TemplateWindow, TemplateWindows, ThemeImage } from '#base/theme';
 import { petTypeFromFigure, twoDigits } from '#base/utils';
+import { PET_BAR_HEIGHT, PET_BAR_WIDTH, PET_ENERGY_BAR_COLORS, PET_EXPERIENCE_BAR_COLORS, PET_HAPPINESS_BAR_COLORS, PET_WELLBEING_BAR_COLORS, PetBarColors, PetPercentageBar } from '#base/views/shared/PetPercentageBar';
 
 import { arrangeInfostandButtons } from './infostandButtons';
 
@@ -69,25 +70,6 @@ export interface InfostandPetViewProps {
     onClose: () => void;
 }
 
-/** `InfoStandPetView.STATUS_BAR_WIDTH` / `STATUS_BAR_HEIGTH` / `STATUS_BAR_HIGHLIGHT_HEIGHT`. */
-const STATUS_BAR_WIDTH = 162;
-const STATUS_BAR_HEIGHT = 16;
-const STATUS_BAR_HIGHLIGHT_HEIGHT = 4;
-/** `STATUS_BAR_BORDER_COLOR` / `STATUS_BAR_BG_COLOR`. */
-const STATUS_BAR_BORDER_COLOR = '#dadada';
-const STATUS_BAR_BG_COLOR = '#3a3a3a';
-
-interface BarColors {
-    content: string;
-    highlight: string;
-}
-
-/** The content and highlight colours `update` hands `updateStateElement` for each bar. */
-const HAPPINESS_COLORS: BarColors = { content: '#009ac0', highlight: '#1fd1f2' };
-const EXPERIENCE_COLORS: BarColors = { content: '#8547be', highlight: '#a06ad2' };
-const ENERGY_COLORS: BarColors = { content: '#5e9d00', highlight: '#8ac51e' };
-const WELLBEING_COLORS: BarColors = { content: '#5e9d00', highlight: '#8ac51e' };
-
 /** `setRarityLevel`: the pet types whose rarity line shows. */
 const RARITY_PET_TYPES = [ 16, 26 ];
 
@@ -124,43 +106,6 @@ const formatSeconds = (value: number) => {
     const seconds = total - (hours * 3600) - (minutes * 60);
 
     return `${hours}:${twoDigits(minutes)}:${twoDigits(seconds)}`;
-};
-
-/**
- * `createPercentageBar`: a 162x16 bitmap - a one-pixel `STATUS_BAR_BORDER_COLOR` frame round the
- * `STATUS_BAR_BG_COLOR` well, the content colour filled from four pixels down and the highlight
- * over the top four, both `value / max` of the inner width.
- */
-const PercentageBar = ({ value, max, colors }: { value: number; max: number; colors: BarColors }) => {
-    const total = Math.max(max, 1);
-    const ratio = Math.min(Math.max(value, 0), total) / total;
-    const innerWidth = STATUS_BAR_WIDTH - 2;
-    // `fillRect` takes the rectangle's width as an integer, dropping the fraction.
-    const filled = Math.trunc(ratio * innerWidth);
-
-    return (
-        <Region
-            backgroundColor={STATUS_BAR_BORDER_COLOR}
-            layout={{ position: 'absolute', left: 0, top: 0, width: STATUS_BAR_WIDTH, height: STATUS_BAR_HEIGHT }}
-        >
-            <Region
-                backgroundColor={STATUS_BAR_BG_COLOR}
-                layout={{ position: 'absolute', left: 1, top: 1, width: innerWidth, height: STATUS_BAR_HEIGHT - 2 }}
-            />
-            {(filled > 0) && (
-                <>
-                    <Region
-                        backgroundColor={colors.content}
-                        layout={{ position: 'absolute', left: 1, top: 1 + STATUS_BAR_HIGHLIGHT_HEIGHT, width: filled, height: STATUS_BAR_HEIGHT - 2 - STATUS_BAR_HIGHLIGHT_HEIGHT }}
-                    />
-                    <Region
-                        backgroundColor={colors.highlight}
-                        layout={{ position: 'absolute', left: 1, top: 1, width: filled, height: STATUS_BAR_HIGHLIGHT_HEIGHT }}
-                    />
-                </>
-            )}
-        </Region>
-    );
 };
 
 export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isOwnPet, canRemovePet, canMoveAndRotate, onRespect, onPickUp, onBuyFood, onTrain, onTreat, onMove, onRotate, onClose }: InfostandPetViewProps) => {
@@ -225,11 +170,11 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isO
     if (info) {
         const rarityText = t('infostand.pet.text.raritylevel', '', { level: t(`infostand.pet.raritylevel.${info.rarityLevel}`) });
         // `updateStateElement`: the value over the bar, and the bar.
-        const state = (key: string, value: number, max: number, colors: BarColors, valueText?: string) => {
+        const state = (key: string, value: number, max: number, colors: PetBarColors, valueText?: string) => {
             bindings[`status_${key}_value_text`] = { caption: valueText ?? `${value}/${max}` };
             bindings[`status_${key}_bitmap`] = {
                 children: (
-                    <PercentageBar
+                    <PetPercentageBar
                         value={value}
                         max={max}
                         colors={colors}
@@ -275,11 +220,11 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isO
         } satisfies TemplateBindings);
 
         if (isMonsterplant) {
-            state('wellbeing', info.remainingWellBeingSeconds, info.maxWellBeingSeconds, WELLBEING_COLORS, formatSeconds(info.remainingWellBeingSeconds));
+            state('wellbeing', info.remainingWellBeingSeconds, info.maxWellBeingSeconds, PET_WELLBEING_BAR_COLORS, formatSeconds(info.remainingWellBeingSeconds));
         } else {
-            state('happiness', info.nutrition, info.maxNutrition, HAPPINESS_COLORS);
-            state('experience', info.experience, info.experienceRequiredToLevel, EXPERIENCE_COLORS);
-            state('energy', info.energy, info.maxEnergy, ENERGY_COLORS);
+            state('happiness', info.nutrition, info.maxNutrition, PET_HAPPINESS_BAR_COLORS);
+            state('experience', info.experience, info.experienceRequiredToLevel, PET_EXPERIENCE_BAR_COLORS);
+            state('energy', info.energy, info.maxEnergy, PET_ENERGY_BAR_COLORS);
         }
     }
 
@@ -294,8 +239,8 @@ export const InfostandPetView = ({ info, figure, posture, name, respectLeft, isO
             for (const key of (isMonsterplant ? MONSTERPLANT_STATES : DEFAULT_STATES)) {
                 const bar = find(`status_${key}_bitmap`);
 
-                bar?.setWidth(STATUS_BAR_WIDTH);
-                bar?.setHeight(STATUS_BAR_HEIGHT);
+                bar?.setWidth(PET_BAR_WIDTH);
+                bar?.setHeight(PET_BAR_HEIGHT);
             }
         }
 
