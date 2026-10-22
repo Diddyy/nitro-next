@@ -1,4 +1,4 @@
-import { IAvatarRenderData } from '@nitrodevco/nitro-api';
+import { GetTemplateBundleUrl, IAvatarRenderData } from '@nitrodevco/nitro-api';
 
 import { GetAssetManager } from '../assets/GetAssetManager';
 
@@ -28,7 +28,8 @@ const REQUIRED: (keyof IAvatarRenderData)[] = [ 'geometry', 'partSets', 'figureD
 export const LoadAvatarData = async (templatesUrl: string): Promise<IAvatarRenderData> => {
     if (!templatesUrl) throw new Error('asset.bundles.templates is not set: the avatars have nothing to be drawn from');
 
-    const url = templatesUrl.replace('%libname%', BUNDLE_NAME);
+    // A theme pack's url for the library wins (`asset.bundles.templates.overrides`).
+    const url = GetTemplateBundleUrl(BUNDLE_NAME, templatesUrl) ?? '';
 
     const assetManager = GetAssetManager();
 

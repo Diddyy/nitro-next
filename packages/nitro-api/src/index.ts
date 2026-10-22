@@ -359,6 +359,7 @@ export * from './utils/Byte';
 export * from './utils/ColorConverter';
 export * from './utils/FurniId';
 export * from './utils/GetConfigValue';
+export * from './utils/GetTemplateBundleUrl';
 export * from './utils/IAdvancedMap';
 export * from './utils/IBinaryReader';
 export * from './utils/IBinaryWriter';

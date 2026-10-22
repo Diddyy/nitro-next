@@ -1,4 +1,4 @@
-import { GetConfigValue, NitroLogger } from '@nitrodevco/nitro-api';
+import { GetTemplateBundleUrl, NitroLogger } from '@nitrodevco/nitro-api';
 
 import { GetAssetManager } from '../../../../assets/GetAssetManager';
 import { IVariableFxAssetProvider, VariableFxIconMetadataEntry, VariableFxRendererMapping } from './IVariableFxAssetProvider';
@@ -87,8 +87,8 @@ export class VariableFxAssetLibrary implements IVariableFxAssetProvider {
 
     private async loadBundle(): Promise<boolean> {
         // The hotel serves the library's bundle beside every other library's (Nitro Studio's, of the
-        // client's bitmaps and its own); with `asset.bundles.templates` unset, it is not loaded.
-        const url = GetConfigValue<string>('asset.bundles.templates')?.replace('%libname%', BUNDLE_NAME);
+        // client's bitmaps and its own), or at a theme pack's url for it; with neither set, it is not loaded.
+        const url = GetTemplateBundleUrl(BUNDLE_NAME);
 
         if (!url) return false;
 

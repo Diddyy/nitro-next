@@ -6,6 +6,7 @@ export * from './Byte';
 export * from './ColorConverter';
 export * from './FurniId';
 export * from './GetConfigValue';
+export * from './GetTemplateBundleUrl';
 export * from './IAdvancedMap';
 export * from './IBinaryReader';
 export * from './IBinaryWriter';
