@@ -8,6 +8,7 @@ import { CommunityGoalVoteComposer, ForwardToARandomPromotedRoomComposer, Forwar
 
 import { Send } from '#base/context/communication';
 import { hotelViewProperty, PROMO_ARTICLE_LINK_CLIENT, PROMO_ARTICLE_LINK_WEB, systemStore } from '#base/context/system';
+import { openHabboMainPage } from '#base/utils';
 
 import { goToPrivateRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from './clientLinkCommands';
@@ -19,7 +20,7 @@ import { openClientLink } from './clientLinkCommands';
 export const followPromoArticleLink = (send: Send, article: PromoArticleData) => {
     switch (article.linkType) {
         case PROMO_ARTICLE_LINK_WEB:
-            window.open(article.linkContent, 'habboMain');
+            openHabboMainPage(article.linkContent);
 
             return;
         case PROMO_ARTICLE_LINK_CLIENT:

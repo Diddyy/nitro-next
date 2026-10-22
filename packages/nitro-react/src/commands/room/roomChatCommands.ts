@@ -53,6 +53,7 @@ import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { configBoolean, configString, systemStore } from '#base/context/system';
 import { ClientGates, hasClientGate, PerkCodes, userStore } from '#base/context/user';
+import { openHabboMainPage } from '#base/utils';
 
 import { goToRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
@@ -104,7 +105,7 @@ const confirmWiredRoomState = (send: Send, rollback: boolean) => {
  * community news under `url.prefix` in the hotel's main window.
  */
 const openNews = () => {
-    window.open(`${configString('url.prefix')}/community/category/all/1/`, 'habboMain');
+    openHabboMainPage(`${configString('url.prefix')}/community/category/all/1/`);
 };
 
 /** `windowManager.toggleFullScreen`. */

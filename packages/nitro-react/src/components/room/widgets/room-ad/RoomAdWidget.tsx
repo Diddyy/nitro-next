@@ -5,6 +5,7 @@ import { useOwnControllerLevel, useRoom } from '#base/context/room';
 import { useTranslation } from '#base/context/system';
 import { ClientGates, useClientGate } from '#base/context/user';
 import { useRoomEventDispatcher } from '#base/hooks';
+import { openHabboMainPage } from '#base/utils';
 import { RoomAdTooltipView } from '#base/views/room-widgets/room-ad/RoomAdTooltipView';
 
 /**
@@ -38,7 +39,7 @@ export const RoomAdWidget = () => {
         // A click is the visitor's way in, a double click the controller's.
         if ((event.type === RoomEngineRoomAdEvent.FURNI_CLICK) === isController) return;
 
-        window.open(url, 'habboMain');
+        openHabboMainPage(url);
     });
 
     useRoomEventDispatcher<RoomEngineRoomAdEvent>([

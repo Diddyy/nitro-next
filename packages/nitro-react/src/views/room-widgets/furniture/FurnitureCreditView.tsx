@@ -1,5 +1,6 @@
 import { useTranslation } from '#base/context/system';
 import { TemplateWindow, useTemplateFrame } from '#base/theme';
+import { openHabboMainPage } from '#base/utils';
 
 /**
  * The redeem prompt for a credit furni - `CreditFurniWidget.showInterface`, which builds the
@@ -33,7 +34,7 @@ export const FurnitureCreditView = ({ value, isNftCredit, onExchange, onClose }:
     const openInfoUrl = () => {
         const url = t('widget.furni.info.url');
 
-        if (url.indexOf('http') === 0) window.open(url, 'habboMain', 'noopener');
+        if (url.indexOf('http') === 0) openHabboMainPage(url);
     };
 
     return (

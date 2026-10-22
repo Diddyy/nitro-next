@@ -4,6 +4,7 @@
  */
 import { singularNotificationStore } from '#base/context/singular-notifications';
 import { configString } from '#base/context/system';
+import { openHabboMainPage } from '#base/utils';
 
 import { openClubCatalogPage } from '../catalog/catalogClubCommands';
 
@@ -24,5 +25,5 @@ export const openClubGiftList = () => {
 export const openSafetyLockUnlockPage = () => {
     const url = configString('link.format.safetylock_unlock');
 
-    if (url.length) window.open(url, 'habboMain');
+    openHabboMainPage(url);
 };

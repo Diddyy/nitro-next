@@ -40,6 +40,7 @@ import { HelpReportEntry, HelpUserItem, useHelpStore } from '#base/context/help'
 import { useConfigBoolean, useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
 import { useOwnUserId } from '#base/context/user';
 import { ModalDialog, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
+import { openHabboMainPage } from '#base/utils';
 import { AvatarImageWidgetHead } from '#base/views/shared/AvatarImageWidgetHead';
 
 import { HelpMessageInput } from './HelpMessageInput';
@@ -372,11 +373,11 @@ export const HelpView = ({ entry, onClose }: HelpViewProps) => {
         },
         button_account: {
             onPointerTap: () => {
-                if (zendeskUrl?.length) window.open(zendeskUrl, 'habboMain');
+                openHabboMainPage(zendeskUrl ?? '');
                 onClose();
             },
         },
-        faq_link: { onPointerTap: () => { if (faqUrl?.length) window.open(faqUrl, 'habboMain'); } },
+        faq_link: { onPointerTap: () => { openHabboMainPage(faqUrl ?? ''); } },
         sanction_info_link: {
             onPointerTap: () => {
                 requestSanctionStatus(send);

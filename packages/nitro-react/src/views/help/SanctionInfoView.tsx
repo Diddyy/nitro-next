@@ -15,6 +15,7 @@ import { ISanctionStatusEntry, ISanctionStatusType } from '@nitrodevco/nitro-pac
 
 import { useConfigValue, useTranslation } from '#base/context/system';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplateFrame } from '#base/theme';
+import { openHabboMainPage } from '#base/utils';
 
 const TEMPLATE = 'habbo-help-com/sanction_info_xml';
 
@@ -93,7 +94,7 @@ export const SanctionInfoView = ({ sanctions, onClose }: SanctionInfoViewProps) 
 
     const bindings: TemplateBindings = {
         main_contents_list: { items },
-        faq_link: { onPointerTap: () => { if (faqUrl?.length) window.open(faqUrl, 'habboMain'); } },
+        faq_link: { onPointerTap: () => { openHabboMainPage(faqUrl ?? ''); } },
         ok_button: { onPointerTap: onClose },
     };
 

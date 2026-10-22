@@ -13,6 +13,7 @@ import { GetSecondsUntilComposer, HasClaimedProductComposer } from '@nitrodevco/
 import { Send } from '#base/context/communication';
 import { singularNotificationStore } from '#base/context/singular-notifications';
 import { configString, systemStore } from '#base/context/system';
+import { openHabboMainPage } from '#base/utils';
 
 import { hasRewardTrack, isRewardTrackComplete } from '../reward-track/rewardTrackCommands';
 import { openClientLink } from '../system/clientLinkCommands';
@@ -118,7 +119,7 @@ export const openNewFeatureLink = (send: Send, key: string) => {
 
     const externalLink = configString(`notifications.new_feature.external_link.${key}`);
 
-    if (externalLink !== '') window.open(externalLink, 'habboMain');
+    openHabboMainPage(externalLink);
 };
 
 /** `NewFeatureNotification`'s constructor: how long until its expiry, or its countdown's end (`GetSecondsUntilMessageComposer`). */

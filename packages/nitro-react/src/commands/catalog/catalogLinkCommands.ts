@@ -12,6 +12,7 @@ import { NitroLogger } from '@nitrodevco/nitro-api';
 
 import { CatalogLocalizedPage } from '#base/context/catalog';
 import { configString, systemStore } from '#base/context/system';
+import { openHabboMainPage } from '#base/utils';
 
 /** `getProperty` / `getBoolean` over the current config - see `configReader`. */
 
@@ -26,7 +27,7 @@ export const openCatalogExternalLink = (url: string) => {
 
     showAlert(getLocalizationValue('catalog.alert.external.link.title'), getLocalizationValue('catalog.alert.external.link.desc'));
 
-    window.open(url, 'habboMain');
+    openHabboMainPage(url);
 };
 
 /** `onClickLink`: what clicking `elementName` on the page does, by the page's layout code. */

@@ -29,7 +29,7 @@ import { CatalogStore, CLUB_CENTER_DATA_UPDATE_INTERVAL, CLUB_OFFERS_SOURCE_CLUB
 import { Send } from '#base/context/communication';
 import { configBoolean, configString, systemStore, translate as t } from '#base/context/system';
 import { getPurseClubType, userStore } from '#base/context/user';
-import { clubBuyOfferAsPurchasableOffer } from '#base/utils';
+import { clubBuyOfferAsPurchasableOffer, openWebPage } from '#base/utils';
 
 import { openClientLink } from '../system/clientLinkCommands';
 import { showPurchaseConfirmation } from './catalogCommands';
@@ -65,12 +65,8 @@ export const showNotEnoughCreditsAlert = () => {
     systemStore.getState().showConfirm(t('catalog.alert.notenough.title'), t('catalog.alert.notenough.credits.description'), () => openCreditsHabblet(), { onClose: () => resetPlacedOfferData() });
 };
 
-/** `openCreditsHabblet`: the web shop, `web.shop.relativeUrl` (`HabboWebTools.openWebPageAndMinimizeClient`). */
-export const openCreditsHabblet = () => {
-    const url = configString('web.shop.relativeUrl');
-
-    if (url.length) window.open(url, 'habboMain');
-};
+/** `openCreditsHabblet`: the web shop, `web.shop.relativeUrl`, in a new tab (`HabboWebTools.openWebPageAndMinimizeClient`). */
+export const openCreditsHabblet = () => openWebPage(configString('web.shop.relativeUrl'));
 
 /**
  * `showNotEnoughActivityPointsAlert`: duckets get a confirm whose OK follows `link.format.duckets`

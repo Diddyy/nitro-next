@@ -3,6 +3,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { NOTIFICATION_ASSETS, NotificationAssetName, NotificationPopupItem, useNotificationActions, useNotificationStore } from '#base/context/notifications';
 import { useInterpolate } from '#base/context/system';
 import { LayoutImage, ModalDialog, TemplateWindow, useTemplateFrame } from '#base/theme';
+import { openHabboMainPage } from '#base/utils';
 
 /**
  * Every open `NotificationPopup` (`com/sulake/habbo/notifications/NotificationPopup`), each a
@@ -80,7 +81,7 @@ const NotificationPopupView = ({ popup }: { popup: NotificationPopupItem }) => {
                         caption: linkTitle,
                         // `HabboWebTools.openWebPage(linkUrl, "habboMain")`; the popup stays.
                         onPointerTap: () => {
-                            if (popup.linkUrl) window.open(popup.linkUrl, 'habboMain', 'noopener');
+                            openHabboMainPage(popup.linkUrl ?? '');
                         },
                     },
                 }}
