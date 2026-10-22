@@ -25,8 +25,8 @@ import { AchievementCategory, useAchievementsStore } from '#base/context/achieve
 import { useCameraStore } from '#base/context/camera';
 import { useWebSocketContext } from '#base/context/communication';
 import { useConfigValue, useTranslation } from '#base/context/system';
-import { useWindowPointerDrag } from '#base/hooks';
-import { ClientToStage, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLatest, useTemplate, useTemplateFrame } from '#base/theme';
+import { useSliderKnobDrag } from '#base/hooks';
+import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLatest, useTemplate, useTemplateFrame } from '#base/theme';
 import { buildRenderRoomMessageData, twoDigits } from '#base/utils';
 
 import { CAMERA_IMAGE_SIZE, cameraAsset, CameraEffectDefinition, cloneCanvas, drawEffect, getAvailableEffects, loadEffectImage, zoomCanvas } from './cameraEffects';
@@ -216,19 +216,17 @@ const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
     };
 
     const setSelectedValueRef = useLatest(setSelectedValue);
-    const pointerDrag = useWindowPointerDrag();
+    const sliderDrag = useSliderKnobDrag();
 
     // `buttonProcedure`: the slider button follows the pointer while it is down, and sets the value when let go.
     const startSliderDrag = (event: FederatedPointerEvent) => {
-        const startX = event.clientX;
-        const startValue = sliderValue;
-        let value = startValue;
+        let value = sliderValue;
 
         setDragValue(value);
 
-        pointerDrag.start(event.pointerId, {
-            onMove: (move) => {
-                value = Math.max(0, Math.min(SLIDER_SCALE, startValue + ClientToStage(move.clientX - startX)));
+        sliderDrag.start(event, sliderValue, SLIDER_SCALE, {
+            onMove: (x) => {
+                value = x;
                 setDragValue(value);
             },
             onEnd: () => {
