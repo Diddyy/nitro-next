@@ -58,6 +58,7 @@ import { useRoom } from '#base/context/room';
 import { useConfigBoolean, useConfigValue, useSystemStore, useTranslation } from '#base/context/system';
 import { useAccountSafetyLocked } from '#base/context/user';
 import { useWiredTradingStore } from '#base/context/wired-trading';
+import { useClock } from '#base/hooks';
 import { TemplateBindings, TemplateItem, TemplateWindow } from '#base/theme';
 import { GetFriendlyTime, getFurnitureData } from '#base/utils';
 import { LimitedItemPreviewOverlayView } from '#base/views/shared/LimitedItemPreviewOverlayView';
@@ -138,8 +139,6 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     const [ hoveredPage, setHoveredPage ] = useState(-1);
     // `GroupItem.§_-F1a§`: the thumb being held, so leaving it is a drag rather than a hover.
     const heldGroup = useRef<number>(-1);
-    // Bumped to read the selected item's rent again (`updateRentedItem`).
-    const [ , setRentReads ] = useState(0);
     const selectedPeek = (() => {
         const group = groups.find(entry => entry.id === selectedGroupId);
 
@@ -160,13 +159,7 @@ export const useInventoryFurniPage = ({ active, templates }: InventoryPageContex
     }, [ active, send ]);
 
     // `onImageUpdateTimerEvent` -> `updateRentedItem`: a started rent's time left is shown counting down.
-    useEffect(() => {
-        if (!rentCounting) return;
-
-        const timer = setInterval(() => setRentReads(reads => reads + 1), RENT_UPDATE_INTERVAL_MS);
-
-        return () => clearInterval(timer);
-    }, [ rentCounting ]);
+    useClock('epoch', RENT_UPDATE_INTERVAL_MS, rentCounting);
 
     if (!active) return NO_INVENTORY_PAGE;
 

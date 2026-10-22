@@ -5,22 +5,20 @@
  * or given a new time, and again on every tick of one timer all of them share, once a minute.
  */
 import { BoxLayout, ThemeText } from '@nitrodevco/nitro-theme';
-import { useSyncExternalStore } from 'react';
 
 import { useTranslation } from '#base/context/system';
-import { clockTicker, GetFriendlyTime } from '#base/utils';
+import { useClock } from '#base/hooks';
+import { GetFriendlyTime } from '#base/utils';
 
 /** `UPDATE_TIMER`'s delay. */
 const UPDATE_MS = 60000;
 /** `§_-yk§.textColor = 5592405`. */
 const TEXT_COLOR = '#555555';
 
-// A widget made, or given a new time, reads the time then (`reset` / `set timeStamp`): React reads
-// the snapshot again once it has subscribed, and draws it with this one.
-const minuteClock = clockTicker(() => Date.now(), UPDATE_MS, true);
-
+// A widget made, or given a new time, reads the time then (`reset` / `set timeStamp`): `useClock`
+// reads it afresh when it subscribes.
 /** `Date.now()`, as the shared minute timer last read it. */
-const useMinuteClock = () => useSyncExternalStore(minuteClock.subscribe, minuteClock.getSnapshot);
+const useMinuteClock = () => useClock('epoch', UPDATE_MS);
 
 export interface UpdatingTimeStampWidgetProps {
     /** `timeStamp`: the time, in ms since the epoch, it counts from. */
