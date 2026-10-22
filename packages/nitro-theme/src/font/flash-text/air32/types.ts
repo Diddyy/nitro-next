@@ -392,7 +392,7 @@ export interface ResolvedRenderOptions {
     thickness: number;
     sharpness: number;
     kerning: boolean;
-    /** `TextFormat.letterSpacing` in px, added after every glyph's advance; advanced text only. */
+    /** `TextFormat.letterSpacing` in px, added after every glyph's advance. */
     letterSpacing: number;
     stageQuality: StageQuality;
     normalPenLayout: NormalPenLayout;

@@ -201,8 +201,7 @@ const unsupportedReason = (format: FlashTextFormat, text: string): string | null
 
     if (!Number.isSafeInteger(format.fontSize) || format.fontSize <= 0 || format.fontSize > MAX_FONT_SIZE) return `font size ${format.fontSize}`;
 
-    // Letter spacing is laid out by the advanced path only (`layoutNativeText`).
-    if (!Number.isFinite(format.letterSpacing) || ((format.letterSpacing !== 0) && (format.antiAliasType !== 'advanced'))) return `letter spacing ${format.letterSpacing} on ${format.antiAliasType} text`;
+    if (!Number.isFinite(format.letterSpacing)) return `letter spacing ${format.letterSpacing}`;
 
     if (!Number.isFinite(format.thickness) || !Number.isFinite(format.sharpness)) return 'thickness or sharpness not finite';
 
@@ -233,7 +232,7 @@ const unsupportedReason = (format: FlashTextFormat, text: string): string | null
 const resolveSupportedFont = (format: FlashTextFormat, text: string): NativeFontEntry | null => (unsupportedReason(format, text) === null) ? resolveNativeFont(format) : null;
 
 const layoutRun = (entry: NativeFontEntry, text: string, format: FlashTextFormat): TextRunLayout => {
-    if (format.antiAliasType === 'normal') return layoutNormalText(entry.font, text, format.fontSize, format.kerning, format.normalPenLayout);
+    if (format.antiAliasType === 'normal') return layoutNormalText(entry.font, text, format.fontSize, format.kerning, format.normalPenLayout, format.letterSpacing);
 
     return layoutNativeText(entry.font, text, format.fontSize, format.kerning, format.letterSpacing);
 };

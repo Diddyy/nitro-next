@@ -164,7 +164,7 @@ export class Air32NativeTextRenderer {
 /** Lays the run out and widens the field by what an italic face leans past its advance width. */
 function layoutRun(font: NativeFont, content: string, resolved: ResolvedRenderOptions): TextRunLayout {
     const isNormal = resolved.antiAliasType === 'normal';
-    const layout = isNormal ? layoutNormalText(font, content, resolved.size, resolved.kerning, resolved.normalPenLayout) : layoutNativeText(font, content, resolved.size, resolved.kerning, resolved.letterSpacing);
+    const layout = isNormal ? layoutNormalText(font, content, resolved.size, resolved.kerning, resolved.normalPenLayout, resolved.letterSpacing) : layoutNativeText(font, content, resolved.size, resolved.kerning, resolved.letterSpacing);
 
     if (resolved.fontStyle !== 'italic') return layout;
 
@@ -385,14 +385,20 @@ function layoutZonedNativeText(font: NativeFont, text: string, size: number, use
 
 const zonedAdvanceCaches = new WeakMap();
 
-export function layoutNormalText(font: NativeFont, text: string, size: number, useKerning: boolean = true, penLayout: NormalPenLayout = 'twips'): TextRunLayout {
+/**
+ * `letterSpacing` (px) is added to the pen after every glyph, as in `layoutNativeText`: Flash's
+ * `TextFormat.letterSpacing` applies whatever the anti-aliasing (`TextController.setSpacing` sets
+ * it on the field without looking at `antiAliasType`). The `twips` pen takes it in whole twips.
+ */
+export function layoutNormalText(font: NativeFont, text: string, size: number, useKerning: boolean = true, penLayout: NormalPenLayout = 'twips', letterSpacing: number = 0): TextRunLayout {
     if (!Number.isSafeInteger(size) || size <= 0) throw new RangeError('the exact native layout currently requires integer size');
 
     if (typeof useKerning != 'boolean') throw new TypeError('useKerning must be boolean');
 
-    if (penLayout === 'units') return layoutNormalTextInUnits(font, text, size, useKerning);
+    if (penLayout === 'units') return layoutNormalTextInUnits(font, text, size, useKerning, letterSpacing);
 
     const { emSquare } = font.swfFont;
+    const spacingTwips = Math.round(letterSpacing * 20);
     let penTwips = 0;
     let rawUnits = 0;
     const placements: GlyphPlacement[] = [];
@@ -425,22 +431,22 @@ export function layoutNormalText(font: NativeFont, text: string, size: number, u
 
         assertSafeRun(scaledTwips);
         assertSafeRun(scaledUnits);
-        penTwips += Math.floor(scaledTwips / emSquare);
+        penTwips += Math.floor(scaledTwips / emSquare) + spacingTwips;
         rawUnits += scaledUnits;
         assertSafeRun(penTwips);
         assertSafeRun(rawUnits);
     }
 
-    const textWidth = penTwips / 20;
+    const textWidth = Math.max(0, penTwips / 20);
 
-    return { placements, rawTextWidth: rawUnits / emSquare, textWidth, fieldWidth: textWidth + 4 };
+    return { placements, rawTextWidth: Math.max(0, (rawUnits / emSquare) + (text.length * letterSpacing)), textWidth, fieldWidth: textWidth + 4 };
 }
 
 /**
  * `layoutNormalText` with the pen kept in font units (`NormalPenLayout` `units`): a glyph sits at
  * the exact sum of the advances before it, and the run's width is that sum floored to twips once.
  */
-function layoutNormalTextInUnits(font: NativeFont, text: string, size: number, useKerning: boolean): TextRunLayout {
+function layoutNormalTextInUnits(font: NativeFont, text: string, size: number, useKerning: boolean, letterSpacing: number): TextRunLayout {
     const { emSquare } = font.swfFont;
     let rawUnits = 0;
     const placements: GlyphPlacement[] = [];
@@ -451,7 +457,7 @@ function layoutNormalTextInUnits(font: NativeFont, text: string, size: number, u
 
         if (!glyph || glyph.advance == null) throw new RangeError(`DefineFont3 has no mapped glyph for U+${code.toString(16).padStart(4, '0')}`);
 
-        const penX = rawUnits / emSquare;
+        const penX = (rawUnits / emSquare) + (index * letterSpacing);
 
         placements.push({
             codepoint: code,
@@ -473,9 +479,10 @@ function layoutNormalTextInUnits(font: NativeFont, text: string, size: number, u
         assertSafeRun(rawUnits);
     }
 
-    const textWidth = floorToTwips(rawUnits / emSquare);
+    const rawTextWidth = Math.max(0, (rawUnits / emSquare) + (text.length * letterSpacing));
+    const textWidth = floorToTwips(rawTextWidth);
 
-    return { placements, rawTextWidth: rawUnits / emSquare, textWidth, fieldWidth: textWidth + 4 };
+    return { placements, rawTextWidth, textWidth, fieldWidth: textWidth + 4 };
 }
 
 function resolveOptions(options: NativeRenderOptions): ResolvedRenderOptions {
@@ -490,10 +497,9 @@ function resolveOptions(options: NativeRenderOptions): ResolvedRenderOptions {
 
     const letterSpacing = options.letterSpacing ?? 0;
 
-    // Port extension: Sulake's build refuses any letter spacing here. The advanced layouts add it to
-    // the pen after each glyph (`layoutNativeText`), so a 0 leaves every existing render unchanged;
-    // the line-only normal path has no such step and still refuses it.
-    if (!Number.isFinite(letterSpacing) || ((letterSpacing !== 0) && (antiAliasType !== 'advanced'))) throw new RangeError('native letterSpacing is only implemented for advanced text');
+    // Port extension: Sulake's build refuses any letter spacing here. Both layouts add it to the pen
+    // after each glyph (`layoutNativeText`, `layoutNormalText`), so a 0 leaves every existing render unchanged.
+    if (!Number.isFinite(letterSpacing)) throw new RangeError('native letterSpacing must be finite');
 
     const size = options.size;
 
