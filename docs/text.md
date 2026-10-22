@@ -65,8 +65,9 @@ browser text.
   `HABBO_TEXT_STYLES` and `TEXT_STYLES` in place, so every reader draws and measures the new format;
   a text already drawn keeps the old one, which is why both apply before the client leaves the
   loading screen. A style the exact renderer cannot take in its new format falls back to browser
-  text, as any other does: Volter's normal anti-aliasing takes no letter spacing, so a layout's
-  `spacing` var over a style set in Volter draws that text in browser text.
+  text, as any other does. A layout's `spacing` var stays exact on either anti-aliasing: as in
+  Flash, whose `TextFormat.letterSpacing` ignores `antiAliasType`, Volter's normal layout adds it
+  after every glyph as the advanced one does (`layoutNormalText`).
 - Fonts are captured bundles in `public/assets/fonts/*.air51.json`, shipped in `fonts.nitro` and
   registered once at boot by `preloadFlashFonts()`. They cover the Latin script (U+0021-017F:
   ASCII, Latin-1 and Latin Extended-A, so every hotel's language) and U+2000-22FF (dashes, curly
