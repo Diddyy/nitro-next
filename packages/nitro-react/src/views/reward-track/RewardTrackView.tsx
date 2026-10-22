@@ -27,7 +27,7 @@
  */
 import { useState } from 'react';
 
-import { claimRewardTrackPrize, getRewardTrackTaskIconAssetName, hideRewardTrack, openClientLink, openRewardTrackPremiumConfirmation } from '#base/commands';
+import { claimRewardTrackPrize, getRewardTrackTaskIconAssetName, hideRewardTrack, openClientLink, openRewardTrackPremiumConfirmation, rewardTrackAsset } from '#base/commands';
 import { AvatarImage } from '#base/components';
 import { useWebSocketContext } from '#base/context/communication';
 import {
@@ -43,9 +43,6 @@ import { buildRewardTrackPrizeLayout } from './rewardTrackPrizeLayout';
 import { RewardTrackBarTarget, useRewardTrackBars } from './rewardTrackProgressBar';
 
 const TEMPLATE = 'habbo-quest-engine-com/reward_track_main_xml';
-
-/** The window manager's bitmaps, as the layout's `asset_uri`s name them. */
-const asset = (name: string) => `habbo-window-manager-com-${name}`;
 
 /** `RewardTrackPrizeTrackView.MIN_PRIZE_SPACING`, and the widths `rebuild` reads (`prize_content`, `prize_template`). */
 const MIN_PRIZE_SPACING = 15;
@@ -208,7 +205,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
         key: String(points),
         from: 'point_indicator_template',
         bindings: {
-            available_icon: { asset: asset((track.points >= points) ? 'reward_track_available_icon' : 'reward_track_not_available_icon') },
+            available_icon: { asset: rewardTrackAsset((track.points >= points) ? 'reward_track_available_icon' : 'reward_track_not_available_icon') },
             points_txt: { caption: String(points), setCaptionAfterBuild: true },
         },
         arrange: ({ root }) => root()?.setX(Math.round(layout.xForPoints(points, pageIndex) - (POINT_INDICATOR_WIDTH / 2))),
@@ -282,7 +279,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
                 task_name: { caption: t(`${name}.name`, `${name}.name`), setCaptionAfterBuild: true },
                 task_description: { caption: t(`${name}.desc`, `${name}.desc`), setCaptionAfterBuild: true },
                 // `RewardTrackTaskRowView`: `controller.getTaskIconAssetName(task)`.
-                task_image: { asset: asset(getRewardTrackTaskIconAssetName(track.id, task)) },
+                task_image: { asset: rewardTrackAsset(getRewardTrackTaskIconAssetName(track.id, task)) },
                 task_progress_txt: { caption: `${task.progressCount} / ${level?.requiredCount ?? 0}`, setCaptionAfterBuild: true },
                 track_reward_txt: { caption: String(level?.pointsReward ?? 0), setCaptionAfterBuild: true },
                 'loading_bar/progress/loading_bar': { color: progress.color },
@@ -380,7 +377,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
         // `RewardTrackTaskDetailsView`: hidden with no task selected (`clear`).
         task_info: { visible: !!selectedTask },
         ...(selectedTask && {
-            task_info_img: { asset: asset(getRewardTrackTaskIconAssetName(track.id, selectedTask)) },
+            task_info_img: { asset: rewardTrackAsset(getRewardTrackTaskIconAssetName(track.id, selectedTask)) },
             task_info_name: { caption: t(`reward_track.${track.id}.task.${selectedTask.id}.name`, `reward_track.${track.id}.task.${selectedTask.id}.name`), setCaptionAfterBuild: true },
             task_info_description: { caption: t(`reward_track.${track.id}.task.${selectedTask.id}.desc`, `reward_track.${track.id}.task.${selectedTask.id}.desc`), setCaptionAfterBuild: true },
             task_hint_text: { caption: t(`${hintKey}.desc`, `${hintKey}.desc`), setCaptionAfterBuild: true },

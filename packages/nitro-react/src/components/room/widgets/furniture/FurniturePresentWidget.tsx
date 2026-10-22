@@ -6,7 +6,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget, useRoomWidgetActions } from '#base/context/room';
 import { useWindowActions } from '#base/context/system';
 import { useOwnUserId } from '#base/context/user';
-import { PRESENT_OPENED_WIDGET, PresentOpenedData } from '#base/utils';
+import { isFurnitureOwnedBy, PRESENT_OPENED_WIDGET, PresentOpenedData } from '#base/utils';
 import { FurniturePresentView } from '#base/views/room-widgets/furniture/FurniturePresentView';
 
 /**
@@ -43,7 +43,7 @@ export const FurniturePresentWidget = () => {
     const purchaserName = roomObject.model.getValue<string>(RoomObjectVariableEnum.FurniturePurchaserName) ?? '';
     const purchaserFigure = roomObject.model.getValue<string>(RoomObjectVariableEnum.FurniturePurchaserFigure) ?? '';
     const trustedSender = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureTrustedSender) === 1;
-    const isController = roomObject.model.getValue<number>(RoomObjectVariableEnum.FurnitureOwnerId) === ownUserId;
+    const isController = isFurnitureOwnedBy(roomObject, ownUserId);
 
     const onOpen = () => {
         if (!isController) return;

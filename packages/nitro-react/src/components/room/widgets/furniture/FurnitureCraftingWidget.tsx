@@ -1,10 +1,11 @@
-import { RoomObjectVariableEnum, RoomWidgetEnum } from '@nitrodevco/nitro-api';
+import { RoomWidgetEnum } from '@nitrodevco/nitro-api';
 import { useEffect, useState } from 'react';
 
 import { addInventoryItemToMixer, cancelCrafting, closeCraftingTable, completeCrafting, CraftingData, removeMixerItem, selectCraftingRecipe, startCrafting } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom, useRoomWidget } from '#base/context/room';
 import { useOwnUserId } from '#base/context/user';
+import { isFurnitureOwnedBy } from '#base/utils';
 import { FurnitureCraftingView } from '#base/views/room-widgets/furniture/FurnitureCraftingView';
 
 /** `CraftingProgressBarController`: a 70 ms timer, 0.02 a tick. */
@@ -53,7 +54,7 @@ export const FurnitureCraftingWidget = () => {
 
     if (!request || !data?.shown) return null;
 
-    const isOwner = room?.getRoomObject(request.objectId, request.category)?.model.getValue<number>(RoomObjectVariableEnum.FurnitureOwnerId) === ownUserId;
+    const isOwner = isFurnitureOwnedBy(room?.getRoomObject(request.objectId, request.category), ownUserId);
 
     return (
         <FurnitureCraftingView

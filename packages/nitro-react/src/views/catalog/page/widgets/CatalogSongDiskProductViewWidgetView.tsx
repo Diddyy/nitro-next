@@ -9,7 +9,7 @@ import { useRoomStore } from '#base/context/room';
 import { useBadgeImageUrl, useConfigData, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent, useFurnitureImageTexture } from '#base/hooks';
 import { ThemeImage, useTemplateLibrary } from '#base/theme';
-import { getOfferProduct } from '#base/utils';
+import { getOfferProduct, twoDigits } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
 import { CATALOG_LIBRARY } from '../catalogTemplates';
@@ -130,7 +130,7 @@ export const CatalogSongDiskProductViewWidgetView = ({ page }: CatalogWidgetProp
 
     const lengthCaption = !offer
         ? '00:00'
-        : ((songLength >= 0) ? t('catalog.song.length', '', { min: String(Math.trunc(songLength / 60)), sec: String(songLength % 60).padStart(2, '0') }) : '');
+        : ((songLength >= 0) ? t('catalog.song.length', '', { min: String(Math.trunc(songLength / 60)), sec: twoDigits(songLength % 60) }) : '');
 
     const added: TemplateItem[] = [];
 

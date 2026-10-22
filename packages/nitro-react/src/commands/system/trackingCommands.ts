@@ -30,7 +30,7 @@ import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { configBoolean, systemStore } from '#base/context/system';
-import { ChatLagTracker, FramerateTracker, LagWarningLogger, PerformanceEnvironment, PerformanceTracker } from '#base/utils';
+import { ChatLagTracker, FramerateTracker, getTimer, LagWarningLogger, PerformanceEnvironment, PerformanceTracker } from '#base/utils';
 
 declare const __NITRO_BUILD__: string | undefined;
 
@@ -38,9 +38,6 @@ type FlashExternalInterface = Record<string, ((...args: unknown[]) => unknown) |
 
 /** `HabboTracking.onRoomAction`: the `ClientPerformance` report this long after a room engine came up. */
 const ROOM_PERFORMANCE_DELAY = 60000;
-
-/** `getTimer()`: whole milliseconds since the client started. */
-const getTimer = () => Math.trunc(performance.now());
 
 /** `ExternalInterface.call("FlashExternalInterface.<name>", ...)`: the page's function, when it has one. */
 const callFlashExternalInterface = (name: string, ...args: unknown[]) => {

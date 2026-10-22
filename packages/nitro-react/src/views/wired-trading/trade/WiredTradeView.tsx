@@ -41,7 +41,7 @@ import { useSystemStore, useTranslation } from '#base/context/system';
 import { useWiredTradeActions, useWiredTradingStore, WIRED_TRADE_STATE_ADDING_ITEMS, WIRED_TRADE_STATE_CONFIRMED, WIRED_TRADE_STATE_CONFIRMING, WIRED_TRADE_STATE_COUNTDOWN, WIRED_TRADE_STATE_READY } from '#base/context/wired-trading';
 import { useSecondsClock } from '#base/hooks';
 import { Box, findTemplateChild, FloatingPopup, LayoutImage, Template, TemplateBindings, TemplateItem, TemplateWindow, useLayoutSize, useTemplateLibrary } from '#base/theme';
-import { getFurnitureData, isWiredTradePaymentOnly } from '#base/utils';
+import { getFurnitureData, isWiredTradePaymentOnly, twoDigits } from '#base/utils';
 import { INVENTORY_LIBRARY, inventoryTemplateId, inventoryThumbLook } from '#base/views/inventory/inventoryPage';
 import { fixTradeItemWindow, getInventoryFurniIconUrl, inventoryFurniThumbBindings } from '#base/views/inventory/inventoryThumbs';
 import { InventoryTradingItemPopup, InventoryTradingItemPopupContent } from '#base/views/inventory/trading/InventoryTradingItemPopup';
@@ -280,7 +280,7 @@ export const WiredTradeView = () => {
         button_accept: { caption: acceptCaption, disabled: acceptDisabled, onPointerTap: onAccept },
         seconds_left_text: {
             visible: showSecondsLeft,
-            caption: showSecondsLeft ? t('inventory.wired_trading.seconds_left', '', { seconds: (seconds < 10) ? `0${seconds}` : String(seconds), minutes: String(minutes) }) : '',
+            caption: showSecondsLeft ? t('inventory.wired_trading.seconds_left', '', { seconds: twoDigits(seconds), minutes: String(minutes) }) : '',
         },
         button_cancel: { onPointerTap: () => closeWiredTrade(send, true) },
     };

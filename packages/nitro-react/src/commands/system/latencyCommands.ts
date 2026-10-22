@@ -14,12 +14,9 @@ import { LatencyPingReportComposer, LatencyPingRequestComposer } from '@nitrodev
 import { Send } from '#base/context/communication';
 import { getRoom, roomStore } from '#base/context/room';
 import { systemStore } from '#base/context/system';
-import { LatencyTracker } from '#base/utils';
+import { getTimer, LatencyTracker } from '#base/utils';
 
 import { GENERIC_CHAT_STYLE, insertRoomChat } from '../room/freeFlowChatCommands';
-
-/** `getTimer()`: whole milliseconds since the client started. */
-const getTimer = () => Math.trunc(performance.now());
 
 let tracker: LatencyTracker | undefined;
 

@@ -4,6 +4,7 @@
  * `getStringFromSeconds` and `convertSecondsToTime`.
  */
 import { GetFriendlyTime } from './FriendlyTime';
+import { twoDigits } from './twoDigits';
 
 type Translate = (key: string, fallback?: string, params?: Record<string, string>) => string;
 
@@ -15,9 +16,9 @@ export const convertSecondsToTime = (seconds: number): string => {
 
     let text = (hours > 0) ? `${hours}:` : '';
 
-    text += (minutes < 10) ? `0${minutes}` : `${minutes}`;
+    text += twoDigits(minutes);
 
-    if (hours === 0) text += (rest < 10) ? `:0${rest}` : `:${rest}`;
+    if (hours === 0) text += `:${twoDigits(rest)}`;
 
     return text;
 };

@@ -33,6 +33,7 @@ import {
 import type { Template, TemplateItem } from '#base/theme';
 
 import { arrangeDailyQuestDifficulty, DAILY_QUEST_COLORABLE, dailyQuestBindings, dailyQuestParameters } from './hotelViewDailyQuest';
+import { hotelViewInt } from './hotelViewInt';
 
 /** The layout each element is built from (`element_<type>`). */
 export const HOTEL_VIEW_QUEST_ELEMENT_LAYOUTS: Readonly<Record<string, string>> = {
@@ -43,8 +44,6 @@ export const HOTEL_VIEW_QUEST_ELEMENT_LAYOUTS: Readonly<Record<string, string>> 
 
 /** The texts `element_concurrentusersinfo` tags `COLORABLE`. */
 const CONCURRENT_USERS_COLORABLE = [ 'users_desc', 'badge_desc' ] as const;
-
-const int = (value: string | undefined) => parseInt(value ?? '', 10) | 0;
 
 export const useHotelViewQuestElements = (elements: readonly HotelViewGenericElement[], settings: HotelViewCommonSettings) => {
     const config = useConfigData();
@@ -108,8 +107,8 @@ export const useHotelViewQuestElements = (elements: readonly HotelViewGenericEle
                     arrange: (windows) => {
                         const root = windows.root();
 
-                        if (args.length > 2) root?.setX(int(args[2]));
-                        if (args.length > 3) root?.setY(int(args[3]));
+                        if (args.length > 2) root?.setX(hotelViewInt(args[2]));
+                        if (args.length > 3) root?.setY(hotelViewInt(args[3]));
                         if (daily) arrangeDailyQuestDifficulty(windows);
                     },
                 };
@@ -136,8 +135,8 @@ export const useHotelViewQuestElements = (elements: readonly HotelViewGenericEle
                     from,
                     bindings: { '': { asset: progress ? concurrentUsersMeterAsset(imageLibrary, progress.userCount, progress.userCountGoal) : (args[0] ?? '') } },
                     arrange: ({ root }) => {
-                        root()?.setX((args.length > 1) ? int(args[1]) : 0);
-                        root()?.setY((args.length > 2) ? int(args[2]) : 0);
+                        root()?.setX((args.length > 1) ? hotelViewInt(args[1]) : 0);
+                        root()?.setY((args.length > 2) ? hotelViewInt(args[2]) : 0);
                     },
                 };
             default:

@@ -69,6 +69,7 @@ import {
 import { useSecondsClock } from '#base/hooks';
 import { Box, CountdownWidget, RunningNumberWidget, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useTemplateLibrary } from '#base/theme';
 
+import { hotelViewInt } from './hotelViewInt';
 import { configureHotelViewLayout, HOTEL_VIEW_LIBRARY, hotelViewLayoutBitmap, hotelViewTemplate, hotelViewTemplateId, positionAfterAndStretch } from './hotelViewTemplate';
 import { HOTEL_VIEW_QUEST_ELEMENT_LAYOUTS, useHotelViewQuestElements } from './useHotelViewQuestElements';
 
@@ -122,8 +123,6 @@ const isFloating = ({ type, args }: HotelViewGenericElement, wide: boolean): boo
             return isFloatingHotelViewQuestElement({ type, args });
     }
 };
-
-const int = (value: string | undefined) => parseInt(value ?? '', 10) | 0;
 
 /**
  * `§_-HO§.onCommunityGoalProgress`: the first progress since `refresh` is
@@ -208,8 +207,8 @@ export const HotelViewGenericWidget = ({ slot, code, settings }: HotelViewGeneri
     const placeFloating = (element: HotelViewGenericElement, xArg: number) => ({ root }: TemplateWindows) => {
         if (!isFloating(element, wide)) return;
 
-        root()?.setX(int(element.args[xArg]));
-        root()?.setY(int(element.args[xArg + 1]));
+        root()?.setX(hotelViewInt(element.args[xArg]));
+        root()?.setY(hotelViewInt(element.args[xArg + 1]));
     };
 
     /** The button elements' `onClick` (the `§_-yz§` subclasses'), by type. */
@@ -220,7 +219,7 @@ export const HotelViewGenericWidget = ({ slot, code, settings }: HotelViewGeneri
             case 'promotedroombutton':
                 return () => goToPromotedRoom(send, args[1]);
             case 'gotoroombutton':
-                return () => goToPrivateRoom(send, int(args[1]));
+                return () => goToPrivateRoom(send, hotelViewInt(args[1]));
             case 'gotohomeroombutton':
                 return () => goToHomeRoom(send);
             case 'gotocompetitionroombutton':
@@ -253,8 +252,8 @@ export const HotelViewGenericWidget = ({ slot, code, settings }: HotelViewGeneri
                     '': { caption: `\${${args[0]}}`, visible: !badgeRequestsFulfilled[hotelViewBadgeRequestCode(element)], onPointerTap: buttonClick(element) },
                 },
                 arrange: ({ root }) => {
-                    root()?.setX(int(args[2]));
-                    root()?.setY(int(args[3]));
+                    root()?.setX(hotelViewInt(args[2]));
+                    root()?.setY(hotelViewInt(args[3]));
                 },
             };
         }
@@ -268,7 +267,7 @@ export const HotelViewGenericWidget = ({ slot, code, settings }: HotelViewGeneri
                     from,
                     bindings: colorable({ '': { caption: `\${${questElements.textKey(element, index) ?? args[0]}}` } }, [ '' ]),
                     arrange: ({ root }) => {
-                        if (args.length > 1) root()?.setWidth(int(args[1]));
+                        if (args.length > 1) root()?.setWidth(hotelViewInt(args[1]));
                     },
                 };
             case 'title':
@@ -284,13 +283,13 @@ export const HotelViewGenericWidget = ({ slot, code, settings }: HotelViewGeneri
                     },
                 };
             case 'spacing':
-                return { key, from, arrange: ({ root }) => root()?.setHeight(int(args[0])) };
+                return { key, from, arrange: ({ root }) => root()?.setHeight(hotelViewInt(args[0])) };
             case 'image':
                 return {
                     key,
                     from,
                     bindings: { '': { asset: `${imageLibrary}${args[0] ?? ''}` } },
-                    arrange: ({ root }) => root()?.setX(int(args[1])),
+                    arrange: ({ root }) => root()?.setX(hotelViewInt(args[1])),
                 };
             case 'rewardbadge':
                 return {
@@ -360,8 +359,8 @@ export const HotelViewGenericWidget = ({ slot, code, settings }: HotelViewGeneri
                         running_number_widget: {
                             children: (
                                 <CommunityGoalScore
-                                    digits={int(args[0])}
-                                    updateFrequency={int(args[1])}
+                                    digits={hotelViewInt(args[0])}
+                                    updateFrequency={hotelViewInt(args[1])}
                                 />
                             ),
                         },

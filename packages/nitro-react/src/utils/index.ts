@@ -27,6 +27,7 @@ export * from './furniturePickupMode';
 export * from './furnitureWidgetData';
 export * from './GetLaunchParameter';
 export * from './GetPixelRatio';
+export * from './getTimer';
 export * from './habbiconAssets';
 export * from './habboTracking';
 export * from './handItems';
