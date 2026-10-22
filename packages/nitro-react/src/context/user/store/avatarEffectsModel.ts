@@ -1,7 +1,5 @@
 import type { IAvatarEffect } from '@nitrodevco/nitro-packets';
 
-import { twoDigits } from '#base/utils/twoDigits';
-
 /**
  * One avatar effect as the effects window shows it: the server's snapshot plus what
  * `EffectsModel` tracked on top of it - whether it has been switched on, whether it is the one
@@ -71,6 +69,8 @@ export const EFFECT_SECONDS_PER_DAY = 86400;
  * from an hour up, `mm:ss` under it.
  */
 export const formatEffectTimeLeft = (seconds: number): string => {
+    // `twoDigits`, kept here: this model loads without the client's imports (tools/avatar-effects.test.mjs).
+    const twoDigits = (value: number) => String(value).padStart(2, '0');
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor(seconds / 60) % 60;
     const rest = seconds % 60;
