@@ -2,9 +2,10 @@ import { IRoomInfo } from '@nitrodevco/nitro-packets';
 import { StateCreator } from 'zustand';
 
 /**
- * The room the user is actually standing in - Flash's `NavigatorData.enteredGuestRoom`. Only a
- * `GetGuestRoomResultMessage` with `enterRoom` set writes it; looking up another room's info
- * does not, which is why it is its own record.
+ * The room the user is actually standing in - Flash's `NavigatorData.enteredGuestRoom`. A
+ * `GetGuestRoomResultMessage` with `enterRoom` set writes it, and a plain one for the same room
+ * (the refetch after `RoomInfoUpdatedMessage`) replaces it; looking up another room's info does
+ * not, which is why it is its own record.
  */
 export interface EnteredRoom {
     info: IRoomInfo;
