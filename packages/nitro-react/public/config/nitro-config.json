@@ -421,6 +421,7 @@
     "seasonalcurrencyindicator.currency": "101",
     "seasonalcurrencyindicator.enabled": true,
     "seasonalcurrencyindicator.page": "aug26sc",
+    "sharedhorseriding.enabled": true,
     "simple.memenu.enabled": true,
     "sms.identity.verification.button.enabled": true,
     "sms.identity.verification.enabled": false,

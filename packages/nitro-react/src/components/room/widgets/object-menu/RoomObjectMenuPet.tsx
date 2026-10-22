@@ -57,6 +57,7 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
     const isRoomOwner = useIsRoomOwner();
     const handItemGivePetEnabled = useConfigBoolean('handitem.give.pet.enabled');
     const compostingEnabled = useConfigBoolean('monsterplants.composting.enabled');
+    const sharedRidingEnabled = useConfigBoolean('sharedhorseriding.enabled');
     const { showConfirm, showWindow } = useWindowActions();
     const { send } = useWebSocketContext();
     const t = useTranslation();
@@ -135,6 +136,7 @@ export const RoomObjectMenuPet = ({ objectData, onClose }: { objectData: ISimple
             isRiding={!!info?.isRiding}
             hasSaddle={!!info?.hasFreeSaddle}
             ridingPermissionOpen={info?.accessRights === RIDING_PERMISSION_OPEN}
+            sharedRidingEnabled={sharedRidingEnabled}
             canBreed={!!info?.canBreed && isMonsterplant}
             hasBreedingPermission={!!info?.hasBreedingPermission}
             canHarvest={!!info?.canHarvest}

@@ -34,6 +34,8 @@ export interface InfoBubblePetViewProps {
     isRiding: boolean;
     hasSaddle: boolean;
     ridingPermissionOpen: boolean;
+    /** `sharedhorseriding.enabled`: others ride a horse too, and its owner says who may. */
+    sharedRidingEnabled: boolean;
     canBreed: boolean;
     hasBreedingPermission: boolean;
     canHarvest: boolean;
@@ -61,10 +63,15 @@ export interface InfoBubblePetViewProps {
  * a horse is mounted and saddled, a monsterplant is harvested and revived - which is what
  * `OwnPetMenuView`'s modes decided. A permission row's checkbox shows the permission.
  *
+ * A horse's rows follow both views' `setup` modes: a saddled horse nobody rides (mode 1) offers
+ * `mount` - to anyone else only with `sharedhorseriding.enabled`, which also gives its owner
+ * `toggle_riding_permission` - and a ridden one (mode 2) `dismount`, on the same terms, with no
+ * `train`.
+ *
  * `train` opens the training window (`openTrainingView` -> `PetCommandTool`, `PetTrainingView`).
  */
 export const InfoBubblePetView = ({
-    name, isOwner, canRespect, respectsLeft, isMountable, isRiding, hasSaddle, ridingPermissionOpen,
+    name, isOwner, canRespect, respectsLeft, isMountable, isRiding, hasSaddle, ridingPermissionOpen, sharedRidingEnabled,
     canBreed, hasBreedingPermission, canHarvest, canRevive, canTreat, treatEnabled, canCompost, canPassHandItem, canStartBreeding, showWiredInspect, canTrain, onAction, onClose,
 }: InfoBubblePetViewProps) => {
     const t = useTranslation();
@@ -74,12 +81,12 @@ export const InfoBubblePetView = ({
     if (minimizedView) return minimizedView;
 
     const entries: { key: PetMenuAction; visible: boolean; caption?: string; enabled?: boolean }[] = [
-        { key: 'mount', visible: isOwner && isMountable && !isRiding },
-        { key: 'toggle_riding_permission', visible: isOwner && isMountable },
-        { key: 'dismount', visible: isRiding },
+        { key: 'mount', visible: hasSaddle && !isRiding && (isOwner || sharedRidingEnabled) },
+        { key: 'toggle_riding_permission', visible: isOwner && hasSaddle && !isRiding && sharedRidingEnabled },
+        { key: 'dismount', visible: isRiding && (isOwner || sharedRidingEnabled) },
         { key: 'respect', visible: canRespect, caption: t('infostand.button.petrespect', '', { count: String(respectsLeft) }) },
         { key: 'treat', visible: canTreat, enabled: treatEnabled },
-        { key: 'train', visible: isOwner && canTrain },
+        { key: 'train', visible: isOwner && canTrain && !isRiding },
         { key: 'pick_up', visible: isOwner && !isRiding },
         { key: 'saddle_off', visible: isOwner && isMountable && hasSaddle && !isRiding },
         { key: 'breed', visible: isOwner && canStartBreeding },
