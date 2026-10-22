@@ -16,6 +16,7 @@
 import { Box, BoxLayout, FlashTextFieldOverrides, LayoutImage, ThemeImage, ThemeText } from '@nitrodevco/nitro-theme';
 
 import { useTranslation } from '#base/context/system';
+import { clamp } from '#base/utils';
 import { twoDigits } from '#base/utils/twoDigits';
 
 const UNIT_NAMES = [ 'weeks', 'days', 'hours', 'minutes', 'seconds' ] as const;
@@ -53,7 +54,7 @@ export interface CountdownWidgetProps {
 
 export const CountdownWidget = ({ seconds, digits = 3, colorableFormat, layout, visible }: CountdownWidgetProps) => {
     const t = useTranslation();
-    const count = Math.max(2, Math.min(4, digits));
+    const count = clamp(digits, 2, 4);
     const time = Math.max(0, Math.floor(seconds));
     const first = getMaxUnitIndex(count, time);
 

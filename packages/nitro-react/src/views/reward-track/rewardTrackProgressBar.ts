@@ -13,6 +13,8 @@ import { AnimatedColor, AnimatedScalar, GetTicker } from '@nitrodevco/nitro-rend
 import { Ticker } from 'pixi.js';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { clamp } from '#base/utils';
+
 const ACCELERATION_PER_MS = 0.00001;
 const MAX_SPEED_PER_MS = 0.003;
 /** `§_-J1f§`: the distance and speed below which the bar has arrived. */
@@ -21,7 +23,7 @@ const FILL_COLOR_TRANSITION_MS = 300;
 export const REWARD_TRACK_INCOMPLETE_COLOR = 15443468;
 export const REWARD_TRACK_COMPLETE_COLOR = 7450404;
 
-const clampRatio = (ratio: number) => Math.max(0, Math.min(1, ratio));
+const clampRatio = (ratio: number) => clamp(ratio, 0, 1);
 
 /** `render`: the fill as wide as the ratio of its container. */
 const fillWidthOf = (width: number, ratio: number) => Math.max(0, Math.min(width, Math.round(width * ratio)));

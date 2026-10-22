@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { CatalogWidgetSpinnerEvent, useCatalogStore } from '#base/context/catalog';
 import { useConfigBoolean, useTranslation } from '#base/context/system';
 import { useCatalogWidgetEvent } from '#base/hooks';
-import { getDiscountItemsCount } from '#base/utils';
+import { clamp, getDiscountItemsCount } from '#base/utils';
 
 import { CatalogWidgetProps } from '../CatalogPageRegistry';
 import { useCatalogWidgetView } from '../catalogWidgetView';
@@ -48,7 +48,7 @@ export const CatalogSpinnerWidgetView = ({ page }: CatalogWidgetProps) => {
 
     /** `refresh`: clamp, announce, show the value unless the field was emptied, and count the bonus items. */
     const refresh = (next: number, text: string = valueText) => {
-        const clamped = Math.min(Math.max(next, minValue), maxValue);
+        const clamped = clamp(next, minValue, maxValue);
 
         page.events.dispatchEvent({ type: CatalogWidgetSpinnerEvent.VALUE_CHANGED, value: clamped });
 

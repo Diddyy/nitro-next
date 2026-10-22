@@ -7,6 +7,7 @@
 import { FederatedPointerEvent } from 'pixi.js';
 
 import { ClientToStage } from '#base/theme';
+import { clamp } from '#base/utils';
 
 import { useWindowPointerDrag } from './useWindowPointerDrag';
 
@@ -25,7 +26,7 @@ export const useSliderKnobDrag = () => {
         const pointerX = event.clientX;
 
         pointerDrag.start(event.pointerId, {
-            onMove: move => handlers.onMove(Math.min(travel, Math.max(0, knobX + ClientToStage(move.clientX - pointerX))), move),
+            onMove: move => handlers.onMove(clamp(knobX + ClientToStage(move.clientX - pointerX), 0, travel), move),
             onEnd: () => handlers.onEnd?.(),
         });
     };

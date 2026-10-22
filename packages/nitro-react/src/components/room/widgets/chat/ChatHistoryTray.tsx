@@ -11,6 +11,7 @@ import { useTranslation, useWindowActions } from '#base/context/system';
 import { useUserStore } from '#base/context/user';
 import { easeOutCubic, useRoomObjectSelect, useTween, useWindowPointerDrag } from '#base/hooks';
 import { ClientToStage, LayoutImage, useLatest, useTextureFromUrl } from '#base/theme';
+import { clamp } from '#base/utils';
 import { CHAT_HISTORY_LEFT_MARGIN, ChatHistoryEntryMeasure, ChatHistoryEntryView } from '#base/views/room-widgets/chat/ChatHistoryEntryView';
 
 /** `ChatHistoryTray._openedWidth`: `350 + 62 + 1`. */
@@ -397,10 +398,10 @@ export const ChatHistoryTray = () => {
     const trackHeight = viewHeight;
     const thumbHeight = (bufferHeight <= 0)
         ? Math.max(5, trackHeight - 4)
-        : Math.min(trackHeight - 4, Math.max(5, Math.trunc((trackHeight - 4) * (trackHeight / bufferHeight))));
+        : clamp(Math.trunc((trackHeight - 4) * (trackHeight / bufferHeight)), 5, trackHeight - 4);
     const thumbY = (bufferHeight <= 0)
         ? 2
-        : Math.min(trackHeight - 2 - thumbHeight, Math.max(2, Math.trunc(((trackHeight - 4) * (Math.max(1, topY + (viewHeight - trackHeight)) / bufferHeight)) - (thumbHeight / 2))));
+        : clamp(Math.trunc(((trackHeight - 4) * (Math.max(1, topY + (viewHeight - trackHeight)) / bufferHeight)) - (thumbHeight / 2)), 2, trackHeight - 2 - thumbHeight);
 
     const trayBar = useTextureFromUrl(LayoutImage('habbo-free-flow-chat-com/tray_bar.png'));
     const handle = useTextureFromUrl(LayoutImage('habbo-free-flow-chat-com/tray_handle_close.png'));

@@ -5,6 +5,7 @@
  * frame; everything here works on plain records, so none of it touches a store or a ref.
  */
 import { NOTIFICATION_VIEWS, NotificationItem } from '#base/context/notifications';
+import { clamp } from '#base/utils';
 
 /** `HabboNotificationViewManager.SPACING`, also the gap under the toolbar's extension view. */
 export const NOTIFICATION_SPACING = 4;
@@ -67,7 +68,7 @@ const animatePosition = (runtime: NotificationRuntime, deltaMs: number) => {
     else runtime.margin += step;
 };
 
-const clampBlend = (blend: number) => Math.min(Math.max(blend, 0), 1);
+const clampBlend = (blend: number) => clamp(blend, 0, 1);
 
 /**
  * `HabboNotificationItemView.update`. Returns true when the display time has run out and the

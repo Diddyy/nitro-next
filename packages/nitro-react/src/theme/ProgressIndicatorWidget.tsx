@@ -7,6 +7,8 @@
  */
 import { Box, BoxLayout, LayoutImage, ThemeImage } from '@nitrodevco/nitro-theme';
 
+import { clamp } from '#base/utils';
+
 /** `ProgressIndicatorStyle`. */
 export type ProgressIndicatorStyle = 'flat' | 'etched';
 /** `ProgressIndicatorMode`. */
@@ -30,7 +32,7 @@ export interface ProgressIndicatorWidgetProps {
 }
 
 export const ProgressIndicatorWidget = ({ size = 1, position = 0, style = 'flat', mode = 'position', layout }: ProgressIndicatorWidgetProps) => {
-    const count = Math.min(Math.max(Math.trunc(size), 1), MAXIMUM_SIZE);
+    const count = clamp(Math.trunc(size), 1, MAXIMUM_SIZE);
 
     return (
         <Box layout={{ flexDirection: 'row', alignItems: 'flex-start', gap: SPACING, ...layout }}>

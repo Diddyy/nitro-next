@@ -19,6 +19,7 @@ const load = () => {
         exports,
         require: (name) => {
             if (name === '#base/theme') return { ClientToStage: value => value };
+            if (name === '#base/utils') return { clamp: (value, min, max) => Math.min(Math.max(value, min), max) };
             if (name === './useWindowPointerDrag') return { useWindowPointerDrag: () => ({ start: (pointerId, handlers) => drags.push({ pointerId, handlers }), stop: () => {} }) };
 
             throw new Error(`Unexpected dependency: ${name}`);

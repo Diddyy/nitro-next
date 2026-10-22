@@ -6,6 +6,7 @@
  */
 import type { HabbiconAnimationStep, HabbiconDefinition, HabbiconRuntimeFrameDefinition } from '@nitrodevco/nitro-renderer';
 
+import { clamp } from './clamp';
 import { configReader } from './configReader';
 
 /** `HabboConfigurationManager.§_-Z1O§`: the root when the hotel names a hash but no `habbicons.url`. */
@@ -233,13 +234,13 @@ export const dimHabbiconPreview = (preview: HTMLCanvasElement): HTMLCanvasElemen
 
     const image = context.getImageData(0, 0, canvas.width, canvas.height);
     const data = image.data;
-    const clamp = (value: number) => Math.max(0, Math.min(255, Math.trunc(value)));
+    const clampChannel = (value: number) => clamp(Math.trunc(value), 0, 255);
 
     for (let i = 0; i < data.length; i += 4) {
-        data[i] = clamp((data[i] * 0.35) + 90);
-        data[i + 1] = clamp((data[i + 1] * 0.35) + 85);
-        data[i + 2] = clamp((data[i + 2] * 0.35) + 80);
-        data[i + 3] = clamp(data[i + 3] * 0.65);
+        data[i] = clampChannel((data[i] * 0.35) + 90);
+        data[i + 1] = clampChannel((data[i + 1] * 0.35) + 85);
+        data[i + 2] = clampChannel((data[i + 2] * 0.35) + 80);
+        data[i + 3] = clampChannel(data[i + 3] * 0.65);
     }
 
     context.putImageData(image, 0, 0);

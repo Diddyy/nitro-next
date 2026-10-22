@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from '#base/context/system';
 import { useSliderKnobDrag } from '#base/hooks';
 import { TemplateWindow } from '#base/theme';
+import { clamp } from '#base/utils';
 
 /** `CustomStackHeightWidget.SLIDER_RANGE`: the slider spans 0 to 10 tiles. */
 const SLIDER_RANGE = 10;
@@ -38,7 +39,7 @@ const parseHeight = (value: string) => {
     return Number.isNaN(height) ? 0 : height;
 };
 
-const clampSliderX = (x: number) => Math.max(0, Math.min(SLIDER_TRAVEL, x));
+const clampSliderX = (x: number) => clamp(x, 0, SLIDER_TRAVEL);
 
 /** `updateHeightSelection`: the button's place along the slider, in hundredths of a tile. */
 const heightAtSliderX = (x: number) => Math.trunc((clampSliderX(x) / SLIDER_TRAVEL) * SLIDER_RANGE * 100) / 100;
