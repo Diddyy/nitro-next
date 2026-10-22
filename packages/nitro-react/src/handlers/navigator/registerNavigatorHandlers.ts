@@ -228,8 +228,21 @@ export const registerNavigatorHandlers = ({ send, subscribe }: WebSocketConnecti
                 return;
             }
 
-            // Plain room info (the room info popup) changes nothing here.
-            if (!data.roomForward) return;
+            // Plain room info (RoomInfoUpdated's refetch) replaces the entered room's info and staff
+            // pick, as `IncomingMessages.onRoomInfo` does, so a new owner or name shows without
+            // re-entering; the owner flag stays the one the entry gave (`currentRoomOwner`). Flash
+            // takes any room here; another room's info (a room link) leaves ours alone.
+            if (!data.roomForward) {
+                const entered = navigator().enteredRoom;
+
+                if (entered && (entered.info.roomId === room.roomId)) navigator().setEnteredRoom({
+                    ...entered,
+                    info: room,
+                    isStaffPicked: data.staffPick,
+                });
+
+                return;
+            }
 
             if (data.openingConnection) {
                 goToRoom(send, room.roomId, '', true);
