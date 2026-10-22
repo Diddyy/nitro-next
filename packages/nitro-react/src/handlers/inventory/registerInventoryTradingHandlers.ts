@@ -12,8 +12,9 @@
  * - `TradingConfirmation` puts the trade into its three-second countdown; `TradingCompleted` and
  *   `TradingClose` end it, the latter with the alert Flash raises when it was not the user who
  *   closed it, or the commit-error alert behind `trading.commiterror.enabled`.
- * - `TradeOpenFailed` is an alert naming the reason, except the two reasons that mean a trade is
- *   already open, which get their own text.
+ * - `TradeOpenFailed` is `TradingView.alertTradeOpenFailed`'s `simpleAlert` ("Ouch!" over "Cannot
+ *   start trade :-(" and the reason's text), except the two reasons that mean a trade is already
+ *   open, which get their own alert.
  *
  * - `TradeNftAssets` is the collectibles half of the two offers, and `TradeNftAssetInventory` the
  *   wallet's NFTs a trade may offer from (`CollectiblesModel`).
@@ -149,7 +150,7 @@ export const registerInventoryTradingHandlers = ({ subscribe }: WebSocketConnect
         on(TradeSilverSetMessage, data => setTradingSilver(data.playerSilver, data.otherPlayerSilver)),
 
         on(TradeOpenFailedEventPaserMessage, (data) => {
-            const { getLocalizationValue, showAlert } = systemStore.getState();
+            const { getLocalizationValue, showAlert, showSimpleAlert } = systemStore.getState();
 
             if (INVENTORY_TRADING_OPEN_FAIL_ALREADY_OPEN.includes(data.reason)) {
                 showAlert(getLocalizationValue('inventory.trading.notification.title'), getLocalizationValue('inventory.trading.info.already_open'));
@@ -157,7 +158,11 @@ export const registerInventoryTradingHandlers = ({ subscribe }: WebSocketConnect
                 return;
             }
 
-            showAlert(getLocalizationValue('inventory.trading.openfail.caption'), getLocalizationValue(`inventory.trading.openfail.${data.reason}`, '', { otherusername: data.otherUserName }));
+            showSimpleAlert({
+                caption: getLocalizationValue('inventory.trading.openfail.title'),
+                subtitle: getLocalizationValue('inventory.trading.openfail.caption'),
+                message: getLocalizationValue(`inventory.trading.openfail.${data.reason}`, '', { otherusername: data.otherUserName }),
+            });
         }),
     ]);
 };
