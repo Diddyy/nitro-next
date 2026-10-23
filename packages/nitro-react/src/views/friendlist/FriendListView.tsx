@@ -1,4 +1,5 @@
 import { FriendRequestStateType, IMessengerFriend, IMessengerSearchResult } from '@nitrodevco/nitro-packets';
+import { FederatedPointerEvent } from 'pixi.js';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -17,9 +18,10 @@ import {
 } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useFriendsActions, useFriendsStore } from '#base/context/friend';
-import { useConfigBoolean, useTranslation, useWindowActions, useWindowParams, WindowParams } from '#base/context/system';
+import { useConfigData, useTranslation, useWindowActions, useWindowParams, WindowParams } from '#base/context/system';
 import { useFriendRequests, useOfflineFriends, useOnlineFriends, useOwnUserId, useUserMessengerActions, useUserStore } from '#base/context/user';
-import { getGlobalRect, getLayoutChildByName, getLayoutListItems, getStoredFramePosition, GlobalRect, TemplateBindings, TemplateFrameOptions, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
+import { FloatingPopup, getGlobalRect, getLayoutChildByName, getLayoutListItems, getStoredFramePosition, GlobalRect, TemplateBindings, TemplateFrameOptions, TemplateItem, TemplateWindow, TemplateWindows, useTemplate } from '#base/theme';
+import { configReader, openHabboMainPage } from '#base/utils';
 import { getLowestPoint, layoutChildrenInArea } from '#base/views/shared/flashWindowUtils';
 
 import { buttonImage, FRIEND_LIST_PAGE_SIZE, FriendCategoryRow, friendListImage, FriendListTip, friendsTabRows, requestsTabRows, searchTabRows } from './friendListEntries';
@@ -29,8 +31,9 @@ import { FriendListRelationshipChooser } from './FriendListRelationshipChooser';
  * The friend list window - `habbo-friend-list-com/main_window_xml` as `FriendListView` and
  * `FriendListTabsView` fill it: a `flt_<id>` per tab in `main_content`, each its 18px `header` and,
  * while it is the open tab, the `tab_content` holding its list and footer; the window's `footer`
- * under them carries the `info_text` `showInfo` fills with the hovered control's tip.
- * `open_edit_ctgs_but` is hidden: `friendship.category.management.enabled` is not set.
+ * under them carries the `info_text` `showInfo` fills with the hovered control's tip, and the
+ * `open_edit_ctgs_but` `prepare` shows only with `friendship.category.management.enabled` on and
+ * `spaweb` not 1: it opens the hotel's `link.format.friendlist.pref` page.
  *
  * With every tab closed the window is as tall as its headers; with one open its height comes from
  * the window - 350 at first, then what the user resizes it to - and the open tab takes what the
@@ -55,6 +58,9 @@ const TABS: readonly { name: FriendListTabName; id: number; caption: string; foo
     { name: 'requests', id: 2, caption: '${friendlist.tab.friendrequests}', footer: 'friend_requests_footer', header: 'hdr_friend_requests', textColor: 0xf6f6f6, background: 0xffffffff },
     { name: 'search', id: 3, caption: '${generic.search}', footer: 'search_footer', header: 'hdr_search', textColor: 0xefefef, background: 0xffb6b6b6 },
 ];
+
+/** `OpenedToWebPopup.show`: how long the "opened in the web" note stays, in ms. */
+const OPENED_TO_WEB_DURATION = 2000;
 
 /** `FriendListTabs._windowWidth`, and the least `onWindow` lets a resize leave it. */
 const WINDOW_WIDTH = 230;
@@ -100,9 +106,12 @@ export const FriendListView = () => {
     const friendRequestsListShown = useUserStore(x => x.friendRequestsListShown);
     const { clearAnsweredFriendRequests, markFriendRequestsListShown, setFriendListTabHighlighted } = useUserMessengerActions();
 
-    const messagesPersisted = useConfigBoolean('friend_list.persistent_message_status.enabled');
-    const relationshipsEnabled = useConfigBoolean('relationship.status.enabled');
-    const selectAllEnabled = useConfigBoolean('friend_list.select_all.enabled');
+    const { configBoolean, configInteger, configString } = configReader(useConfigData());
+    const messagesPersisted = configBoolean('friend_list.persistent_message_status.enabled');
+    const relationshipsEnabled = configBoolean('relationship.status.enabled');
+    const selectAllEnabled = configBoolean('friend_list.select_all.enabled');
+    /** `FriendListView.prepare`: the edit categories button, for a hotel that manages them on its site. */
+    const editCategoriesShown = configBoolean('friendship.category.management.enabled') && (configInteger('spaweb', 0) !== 1);
 
     /** `FriendCategory.open` and `pageIndex`, by category. */
     const [ openCategories, setOpenCategories ] = useState<number[]>([ 0 ]);
@@ -113,6 +122,8 @@ export const FriendListView = () => {
     /** `friend_search.focus()`: the filter input holds the focus from when it opens until it loses it. */
     const [ filterFocused, setFilterFocused ] = useState(false);
     const [ chooserAt, setChooserAt ] = useState<GlobalRect | null>(null);
+    /** Where `OpenedToWebPopup` shows, while it does. */
+    const [ openedToWebAt, setOpenedToWebAt ] = useState<{ x: number; y: number } | null>(null);
     /** The size the user gave the window, which `onWindow` turns into the tab's and the window's. */
     const [ frameSize, setFrameSize ] = useState<{ width: number; height: number } | null>(null);
     /** Where the window is, for the alerts that open over it (`Util.getLocationRelativeTo`). */
@@ -142,6 +153,15 @@ export const FriendListView = () => {
     useEffect(() => {
         if ((activeTab === 'friends') || (activeTab === 'requests')) setFriendListTabHighlighted(activeTab, false);
     }, [ activeTab, setFriendListTabHighlighted ]);
+
+    // `OpenedToWebPopup.show`: a `Timer(2000, 1)` closes it, restarted by every show.
+    useEffect(() => {
+        if (!openedToWebAt) return;
+
+        const timeout = setTimeout(() => setOpenedToWebAt(null), OPENED_TO_WEB_DURATION);
+
+        return () => clearTimeout(timeout);
+    }, [ openedToWebAt ]);
 
     const resizable = !!activeTab;
     const frame = useMemo<TemplateFrameOptions>(() => ({
@@ -362,7 +382,19 @@ export const FriendListView = () => {
         : []);
 
     const bindings: TemplateBindings = {
-        open_edit_ctgs_but: { visible: false },
+        // `onEditCategoriesButtonClick`: its tip on hover, and a click opens the page in the
+        // hotel's main browser window (`openHabboWebPage`) with `OpenedToWebPopup` at the pointer.
+        open_edit_ctgs_but: editCategoriesShown
+            ? {
+                    ...tip('friendlist.tip.preferences'),
+                    onPointerTap: (event: FederatedPointerEvent) => {
+                        openHabboMainPage(configString('link.format.friendlist.pref'));
+                        setOpenedToWebAt({ x: event.global.x, y: event.global.y });
+                    },
+                }
+            : { visible: false },
+        // `refreshButton(_-72D, "open_edit_ctgs", true, ...)`: the button's icon.
+        'open_edit_ctgs_but/open_edit_ctgs': buttonImage('open_edit_ctgs'),
         info_text: { caption: tooltip ? `\${${tooltip}}` : '' },
     };
 
@@ -485,6 +517,18 @@ export const FriendListView = () => {
                     'friendlist.search.otherscaption': { cnt: String(searchOthers.length) },
                 }}
             />
+            {openedToWebAt && (
+                <FloatingPopup
+                    x={openedToWebAt.x}
+                    y={openedToWebAt.y}
+                    onOutsideClick={() => {}}
+                >
+                    <TemplateWindow
+                        id={`${LIBRARY}/opened_to_web_popup_xml`}
+                        bindings={{ opened_to_web: buttonImage('opened_to_web') }}
+                    />
+                </FloatingPopup>
+            )}
             {(chooserFriendId > 0) && chooserAt && (
                 <FriendListRelationshipChooser
                     friendId={chooserFriendId}
