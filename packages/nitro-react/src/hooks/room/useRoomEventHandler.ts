@@ -3,7 +3,7 @@ import { ClickCharacterComposer, ClickFurniComposer, MoveAvatarComposer } from '
 
 import { trackEventLogOncePerSession } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoom, useRoomIsPlayingGame, useRoomIsSpectating, useRoomMouseActions, useRoomPlacedObject, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
+import { roomStore, useRoom, useRoomIsPlayingGame, useRoomIsSpectating, useRoomMouseActions, useRoomPlacedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
 
 import { useRoomCursorUpdate } from './useRoomCursorUpdate';
 import { useRoomEventDispatcher } from './useRoomEventDispatcher';
@@ -21,7 +21,6 @@ import { useRoomObjectSelect } from './useRoomObjectSelect';
  */
 export const useRoomEventHandler = () => {
     const room = useRoom();
-    const selectedObject = useRoomSelectedObject();
     const placedObject = useRoomPlacedObject();
     const isSpectator = useRoomIsSpectating();
     const isDecorating = useRoomStore(x => x.isDecorating);
@@ -39,6 +38,10 @@ export const useRoomEventHandler = () => {
 
     const handleRoomObjectMouseEvent = (event: RoomObjectMouseEvent) => {
         if (!room) return;
+
+        // `getSelectedObjectData` for each event: a move ended by this frame's click must not be dragged on by
+        // the pointer's next move before the next render (the furni was left hidden, at alpha 0, until re-entry).
+        const { selectedObject } = roomStore.getState();
 
         if (event instanceof RoomObjectTileMouseEvent) room.areaSelection.handleTileMouseEvent(event);
 
@@ -224,6 +227,8 @@ export const useRoomEventHandler = () => {
         RoomEngineObjectEvent.ADDED,
     ], (event) => {
         if (!placedObject) return;
+
+        const { selectedObject } = roomStore.getState();
 
         // The placement ghost is added to the room too, and under the very id the placement was
         // started with (`handleObjectPlace`'s `addFurnitureFloorByTypeId`) - it is re-added every

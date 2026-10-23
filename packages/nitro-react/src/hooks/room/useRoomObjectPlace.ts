@@ -3,7 +3,7 @@ import { PlaceBotComposer, PlaceObjectComposer, PlacePetComposer, PlacePostItCom
 import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoom, useRoomObjectPlacementSource, useRoomSelectedObject, useRoomSelectedObjectActions } from '#base/context/room';
+import { roomStore, useRoom, useRoomObjectPlacementSource, useRoomSelectedObjectActions } from '#base/context/room';
 import { setObjectAlphaMultiplier } from '#base/utils';
 
 import { useRoomObjectMove } from './useRoomObjectMove';
@@ -16,7 +16,6 @@ import { useRoomObjectSelect } from './useRoomObjectSelect';
  */
 export const useRoomObjectPlace = () => {
     const room = useRoom();
-    const selectedObject = useRoomSelectedObject();
     const objectPlacementSource = useRoomObjectPlacementSource();
     const { setSelectedObject, setPlacedObject } = useRoomSelectedObjectActions();
     const { resetSelectedObject } = useRoomObjectSelect();
@@ -24,6 +23,8 @@ export const useRoomObjectPlace = () => {
     const { send } = useWebSocketContext();
 
     const placeObject = (isTileEvent: boolean, isWallEvent: boolean) => {
+        const { selectedObject } = roomStore.getState();
+
         if (!room || !selectedObject) return;
 
         let objectId = selectedObject.objectId;
@@ -118,6 +119,8 @@ export const useRoomObjectPlace = () => {
     };
 
     const handleObjectPlace = (event: RoomObjectMouseEvent) => {
+        let { selectedObject } = roomStore.getState();
+
         if (!room || !event || !selectedObject) return;
 
         let roomObject = room.getRoomObject(selectedObject.objectId, selectedObject.category);
@@ -143,21 +146,27 @@ export const useRoomObjectPlace = () => {
                 const allowedDirections = roomObject.model.getValue<number[]>(RoomObjectVariableEnum.FurnitureAllowedDirections);
 
                 if (allowedDirections?.length) {
-                    roomObject.setDirection(new Vector3d(allowedDirections[0]));
+                    // The direction it is placed with, kept for every later move: the one asked for when the
+                    // furni has it, else its first - not 0, which a fridge facing 2 was placed and served from.
+                    const direction = new Vector3d(allowedDirections.includes(selectedObject.dir.x) ? selectedObject.dir.x : allowedDirections[0]);
 
-                    setSelectedObject(new SelectedRoomObjectData(
+                    roomObject.setDirection(direction);
+
+                    selectedObject = new SelectedRoomObjectData(
                         selectedObject.objectId,
                         selectedObject.category,
                         selectedObject.operation,
                         selectedObject.loc,
-                        selectedObject.dir,
+                        direction,
                         selectedObject.typeId,
                         selectedObject.instanceData,
                         selectedObject.stuffData,
                         selectedObject.state,
                         selectedObject.animFrame,
                         selectedObject.posture,
-                    ));
+                    );
+
+                    setSelectedObject(selectedObject);
                 }
             }
 

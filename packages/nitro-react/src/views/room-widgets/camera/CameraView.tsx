@@ -3,7 +3,8 @@
  * `habbo-room-ui-com/camera_interface_xml`, shown by the toolbar's camera icon.
  *
  * - While it is up, every 100 ms (`registerUpdateReceiver(this, 100)`) the room under the `image` rect is
- *   copied into it (`snapShotRoomCanvas` over `getViewPort`: the window's position plus the image's).
+ *   drawn into it (`snapShotRoomCanvas` over `getViewPort`: the window's position plus the image's) - on the
+ *   GPU, as the thumbnail camera's viewfinder is; the shutter alone reads the picture back.
  * - Five slots (`NUMBER_OF_SLOTS`, kept for the session, as the class's statics are) hold the photos: the
  *   shutter (`button_release`, its picture `camera_camera_btn` / `_hi` over / `_down` pressed) plays the
  *   shutter sound, puts the picture in the active slot with a 350 ms white flash, shows `slot_container`
@@ -20,16 +21,16 @@
  *   (`sendInitCameraMessage`: `RequestCameraConfigurationMessageComposer` with the `CAMERA` perk), then the achievements
  *   (`ensureAchievementsInitialized`).
  */
-import { Rectangle } from 'pixi.js';
+import { GetRenderer } from '@nitrodevco/nitro-renderer';
 import { useEffect, useState } from 'react';
 
-import { collectRoomPhotoData, editPhoto, isRoomUnfit, openClientLink, requestAchievements, requestCameraConfiguration, snapshotRoomCanvas } from '#base/commands';
-import { GetRoomBackgroundColor } from '#base/components';
+import { editPhoto, isRoomUnfit, openClientLink, requestAchievements, requestCameraConfiguration } from '#base/commands';
+import { useRoomViewfinder } from '#base/components';
 import { CameraPhoto } from '#base/context/camera';
 import { useWebSocketContext } from '#base/context/communication';
 import { useRoom } from '#base/context/room';
-import { useConfigValue, useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
-import { PerkCodes, useOwnPerkAllowed, useOwnSecurityLevel } from '#base/context/user';
+import { useIsWindowVisible, useTranslation, useWindowActions } from '#base/context/system';
+import { PerkCodes, useOwnPerkAllowed } from '#base/context/user';
 import { GetSoundManager, HabboSoundTypesEnum } from '#base/sound';
 import { GetDesktopSize, Region, TemplateBindings, TemplateWindow, TemplateWindows, useWindowActivation } from '#base/theme';
 
@@ -91,15 +92,8 @@ let fullAlertShown = false;
 /** The flash's start, read when the shutter goes. */
 const now = () => performance.now();
 
-/** The viewfinder's live picture, and its place on the screen once drawn. */
-const liveCanvas = newCanvas('#000000');
-let imageNode: { getGlobalPosition: () => { x: number; y: number } } | null = null;
 /** Whether this session asked for the camera's prices (the reused widget's constructor ran). */
 let configurationRequested = false;
-
-const setImageNode = (node: unknown) => {
-    imageNode = node as typeof imageNode;
-};
 
 export const CameraView = () => {
     const visible = useIsWindowVisible('camera');
@@ -109,20 +103,15 @@ export const CameraView = () => {
     // `_window.center()`: the window is its layout's 340 x 536 whether or not `slot_container` shows.
     const desktop = GetDesktopSize();
     const position = { x: Math.max(0, Math.floor((desktop.width - WINDOW_WIDTH) / 2)), y: Math.max(0, Math.floor((desktop.height - WINDOW_FULL_HEIGHT) / 2)) };
-    const [ , redraw ] = useState(0);
     const [ active, setActive ] = useState(0);
     const [ preview, setPreview ] = useState(false);
     const [ slotsShown, setSlotsShown ] = useState(false);
     const [ shutter, setShutter ] = useState<'normal' | 'hi' | 'down'>('normal');
     const [ flashStart, setFlashStart ] = useState(0);
     const [ flashAlpha, setFlashAlpha ] = useState(0);
-    const refresh = () => redraw(version => version + 1);
     const room = useRoom();
-    const securityLevel = useOwnSecurityLevel();
     const { send } = useWebSocketContext();
     const cameraAllowed = useOwnPerkAllowed(PerkCodes.Camera);
-    const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
-    const groupBadgeUrl = useConfigValue<string>('group.badge.url') ?? '';
 
     // `CameraWidget`'s constructor: `sendInitCameraMessage`. `RWE_CAMERA` is one of `RoomUI._reuseRoomDesktopWidgetTypes`,
     // so the widget is built in the first room and reused after that: one request per session, not one per room.
@@ -139,30 +128,7 @@ export const CameraView = () => {
     }, [ room, send ]);
 
     // `update`, every 100 ms while shown and not in preview mode: the room under the image.
-    useEffect(() => {
-        if (!visible || preview) return;
-
-        const capture = () => {
-            const node = imageNode;
-
-            if (!node) return;
-
-            const { x, y } = node.getGlobalPosition();
-            const pixels = snapshotRoomCanvas(x, y, CAMERA_IMAGE_SIZE);
-
-            // The stage is not there (no room): the viewfinder stays as it was.
-            if (!pixels) return;
-
-            liveCanvas.getContext('2d')?.putImageData(pixels, 0, 0);
-            refresh();
-        };
-
-        capture();
-
-        const timer = setInterval(capture, UPDATE_INTERVAL_MS);
-
-        return () => clearInterval(timer);
-    }, [ visible, preview ]);
+    const { texture, viewfinder, collect } = useRoomViewfinder(CAMERA_IMAGE_SIZE, CAMERA_IMAGE_SIZE, visible && !preview, () => hideWindow('camera'), UPDATE_INTERVAL_MS);
 
     // `updateFlash`: the white fading out over 350 ms.
     useEffect(() => {
@@ -230,19 +196,18 @@ export const CameraView = () => {
         }
 
         GetSoundManager().playSound(HabboSoundTypesEnum.CAMERA_SHUTTER);
-        addToCurrentSlot(copyCanvas(liveCanvas), collectPhotoData());
+        addToCurrentSlot(shoot(), collect()?.render);
         setFlashStart(now());
         setSlotsShown(true);
     };
 
-    /** `collectPhotoData` -> `RoomEngine.getRenderRoomMessage`: the room under the image, as the thumbnail camera collects it. */
-    const collectPhotoData = (): Slot['render'] => {
-        if (!imageNode) return undefined;
+    /** The viewfinder's picture, read back once for the slot. */
+    const shoot = () => {
+        const canvas = newCanvas();
 
-        const { x, y } = imageNode.getGlobalPosition();
-        const viewport = new Rectangle(Math.round(x), Math.round(y), CAMERA_IMAGE_SIZE, CAMERA_IMAGE_SIZE);
+        canvas.getContext('2d')?.drawImage(GetRenderer().extract.canvas({ target: texture }) as HTMLCanvasElement, 0, 0);
 
-        return collectRoomPhotoData(viewport, GetRoomBackgroundColor(), imageLibraryUrl, groupBadgeUrl, securityLevel);
+        return canvas;
     };
 
     /** `button_editor`: the viewfinder hides and the lab opens on the photo shown. */
@@ -272,18 +237,27 @@ export const CameraView = () => {
         setPreview(false);
     };
 
-    const shown = preview ? slots[active].image : liveCanvas;
     const releaseAsset = (shutter === 'down') ? 'camera_camera_btn_down' : (shutter === 'hi') ? 'camera_cam_btn_hi' : 'camera_camera_btn';
 
     const bindings: TemplateBindings = {
+        // A press anywhere on the window brings it to the front.
+        bgBorder: { onPointerDown },
         image: {
-            children: (
-                <CanvasPicture
-                    canvas={shown}
-                    size={CAMERA_IMAGE_SIZE}
-                    onNode={setImageNode}
-                />
-            ),
+            children: preview
+                ? (
+                        <CanvasPicture
+                            canvas={slots[active].image}
+                            size={CAMERA_IMAGE_SIZE}
+                        />
+                    )
+                : (
+                        <pixiSprite
+                            ref={viewfinder}
+                            texture={texture}
+                            eventMode="none"
+                            layout={false}
+                        />
+                    ),
         },
         flash: {
             visible: flashStart > 0,
@@ -353,10 +327,11 @@ export const CameraView = () => {
     const height = slotsShown ? undefined : HEIGHT_WITHOUT_SLOTS;
 
     return (
+        // Its place on the desktop, nothing to hit: the window drags away from this box (`bgBorder` moves inside it),
+        // and a hit box here cut every part dragged out of it off from the pointer - the shutter's clicks went to the room.
         <Region
-            interactive
+            pointerTransparent
             zIndex={zIndex}
-            onPointerDown={onPointerDown}
             layout={{ position: 'absolute', left: position.x, top: position.y, width: WINDOW_WIDTH, height: height ?? WINDOW_FULL_HEIGHT }}
         >
             <TemplateWindow

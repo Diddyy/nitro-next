@@ -7,8 +7,8 @@
  */
 import type { CameraPublishStatusMessageType, CameraStorageUrlMessageType, InitCameraMessageType } from '@nitrodevco/nitro-packets';
 import { PublishPhotoComposer, PurchasePhotoComposer, RenderRoomComposer, RequestCameraConfigurationComposer } from '@nitrodevco/nitro-packets';
-import { GetRenderer, SpriteDataCollector } from '@nitrodevco/nitro-renderer';
-import { Rectangle } from 'pixi.js';
+import { SpriteDataCollector } from '@nitrodevco/nitro-renderer';
+import type { Rectangle } from 'pixi.js';
 
 import { CameraPhoto, cameraStore, PhotoPurchase, PhotoPurchaseState } from '#base/context/camera';
 import { Send } from '#base/context/communication';
@@ -20,24 +20,6 @@ export const isRoomUnfit = () => {
     const canvas = getRoom()?.canvas;
 
     return !!canvas && ((canvas.scale < 1) || canvas.isFlipped);
-};
-
-/**
- * `CameraWidget.snapShotRoomCanvas`: the room stage's pixels in the `size` square at (x, y) on the
- * screen, or undefined while there is no room stage to read.
- */
-export const snapshotRoomCanvas = (x: number, y: number, size: number): ImageData | undefined => {
-    const stage = getRoom()?.canvas?.master;
-
-    if (!stage) return undefined;
-
-    try {
-        const { pixels, width, height } = GetRenderer().extract.pixels({ target: stage, frame: new Rectangle(Math.round(x), Math.round(y), size, size), resolution: 1 });
-
-        return new ImageData(new Uint8ClampedArray(pixels), width, height);
-    } catch {
-        return undefined;
-    }
 };
 
 /**

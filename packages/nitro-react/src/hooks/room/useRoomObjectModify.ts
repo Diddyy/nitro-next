@@ -4,7 +4,7 @@ import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
 import { trackEventLogOncePerSession } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
-import { roomStore, useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomSelectedObject, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
+import { roomStore, useIsRoomOwner, useOwnControllerLevel, useRoom, useRoomPlayTestMode, useRoomSelectedObjectActions, useRoomStore } from '#base/context/room';
 import { useOwnIsAnyRoomController, useOwnUserId } from '#base/context/user';
 import { getValidRoomObjectDirection, isFurnitureOwnedBy, setObjectAlphaMultiplier } from '#base/utils';
 
@@ -22,7 +22,6 @@ export const useRoomObjectModify = () => {
     const room = useRoom();
     const ownUserId = useOwnUserId();
     const isAnyRoomController = useOwnIsAnyRoomController();
-    const selectedObject = useRoomSelectedObject();
     const controllerLevel = useOwnControllerLevel();
     const isRoomOwner = useIsRoomOwner();
     const isFreeFurniMovementsMode = useRoomStore(x => x.isFreeFurniMovementsMode);
@@ -71,6 +70,9 @@ export const useRoomObjectModify = () => {
 
         let shouldReset = true;
 
+        // The operation in progress now, not at the last render: a click and the next move can come in one frame.
+        const { selectedObject } = roomStore.getState();
+
         let selectedObjectData = selectedObject;
 
         switch (operation) {
@@ -112,6 +114,11 @@ export const useRoomObjectModify = () => {
             case RoomObjectOperationType.OBJECT_MOVE:
                 shouldReset = false;
                 setObjectAlphaMultiplier(roomObject, 0.5);
+
+                // `setSelectedObjectData` resets the operation in progress first: an object still
+                // being moved (released over a window, where no click reaches the room) goes back
+                // where it was at full alpha instead of staying hidden until the room is entered again.
+                resetSelectedObject(selectedObject);
 
                 selectedObjectData = new SelectedRoomObjectData(
                     roomObject.id,

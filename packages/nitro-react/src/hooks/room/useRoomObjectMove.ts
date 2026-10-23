@@ -82,7 +82,10 @@ export const useRoomObjectMove = () => {
         let added = true;
 
         if (selectedObject.category === RoomObjectCategoryEnum.Floor || selectedObject.category === RoomObjectCategoryEnum.Unit) {
+            // Off the floor the (hidden) object goes back to where the move started, so a release
+            // there puts nothing at the last tile the pointer crossed.
             if (!(event instanceof RoomObjectTileMouseEvent && handleFurnitureMove(roomObject, selectedObject, Math.trunc(event.tileX + 0.5), Math.trunc(event.tileY + 0.5)))) {
+                handleFurnitureMove(roomObject, selectedObject, selectedObject.loc.x, selectedObject.loc.y);
                 added = false;
             }
         } else if (selectedObject.category === RoomObjectCategoryEnum.Wall) {
