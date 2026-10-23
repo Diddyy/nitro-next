@@ -3,7 +3,7 @@
  * client's texts and bitmaps. What the window's code does with its named elements comes in as
  * `bindings`.
  */
-import { findTemplateChild, Template, TemplateBindings, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
+import { colorTemplateByTags, findTemplateChild, Template, TemplateBindings, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
 import { useCallback, useMemo } from 'react';
 
 import { openClientLink } from '#base/commands';
@@ -33,6 +33,11 @@ export interface TemplateWindowProps {
      * (`Localization.registerParameter`), by key: a caption's `${key}` is read filled with them.
      */
     parameters?: Readonly<Record<string, Record<string, string>>>;
+    /**
+     * The colour the window's code gives every window carrying a tag, by tag, as it builds the window
+     * (`RewardTrackTheme.applyTo`): see `colorTemplateByTags`. Keep the object the same between renders.
+     */
+    tagColors?: Readonly<Record<string, number>>;
 }
 
 /** The template cut down to its window `part`, as its own template. */
@@ -43,9 +48,13 @@ const templatePart = (template: Template, part: string): Template | undefined =>
 };
 
 /** Draws nothing until the template is loaded, as a Flash window opens once its library is in. */
-export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, height, parameters }: TemplateWindowProps) => {
+export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, height, parameters, tagColors }: TemplateWindowProps) => {
     const loaded = useTemplate(id);
-    const template = useMemo(() => (loaded && part !== undefined ? templatePart(loaded, part) : loaded), [ loaded, part ]);
+    const template = useMemo(() => {
+        const built = (loaded && tagColors) ? colorTemplateByTags(loaded, tagColors) : loaded;
+
+        return (built && part !== undefined) ? templatePart(built, part) : built;
+    }, [ loaded, part, tagColors ]);
     const t = useTranslation();
     const { send } = useWebSocketContext();
     // `buildFromXML` points a frame's help button at `openHelpPage`, the habbo pages viewer - the
