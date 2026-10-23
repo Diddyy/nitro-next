@@ -6,7 +6,9 @@
  * - `setBackgroundGraphics`: each background bitmap shown or hidden, and its art, as the background
  *   schedule's timing code picked them (`hotelViewBackgrounds`); before the first code, the layout's
  *   own (`background_hotel_top`'s, the others empty).
- * - `moving_objects_container` holds the moving background objects (`HotelViewMovingObjects`).
+ * - `moving_objects_container` holds the moving background objects (`HotelViewMovingObjects`), and
+ *   after them what client modules draw in the reception (`ClientModuleHotelViewLayersView`, not Flash's).
+ *   While a module's layer replaces the backdrop, the background bitmaps are hidden (not Flash's either).
  * - `DynamicLayoutManager` builds `dynamic_widget_grid` in `placeholder_dynamic_widget_slots`'
  *   place (`addChildAt` at its index, then `removeChild`): the widget slots (`HotelViewWidgetGrid`).
  * - `WidgetContainer.refresh` puts each fixed widget's window where its `widget_placeholder_<type>`
@@ -24,10 +26,12 @@
 import { useMemo } from 'react';
 
 import { AvatarImage } from '#base/components/AvatarImage';
+import { useClientModulesStore } from '#base/context/client-modules';
 import { BOTTOM_SLOT_LANDING_VIEW_WIDGETS, HOTEL_VIEW_BOTTOM_SLOT, hotelViewCommonSettings, hotelViewSlotWidget, useConfigData, useSystemStore } from '#base/context/system';
 import { useOwnUserFigure, useOwnUserGender } from '#base/context/user';
 import { useViewportSize } from '#base/hooks';
 import { findTemplateChild, Template, TemplateBinding, TemplateElement, TemplateItem, TemplateWindow, useTemplateLibrary } from '#base/theme';
+import { ClientModuleHotelViewLayersView } from '#base/views/client-modules/ClientModuleHotelViewLayersView';
 
 import { HotelViewMovingObjects } from './HotelViewMovingObjects';
 import { HotelViewSlotWidget } from './HotelViewSlotWidget';
@@ -59,6 +63,7 @@ export const HotelView = () => {
     const config = useConfigData();
     const templates = useTemplateLibrary(HOTEL_VIEW_LIBRARY);
     const backgrounds = useSystemStore(x => x.hotelViewBackgrounds);
+    const backgroundReplaced = useClientModulesStore(x => x.hotelViewLayers.some(layer => layer.replacesBackground));
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();
     const bottomWidget = hotelViewSlotWidget(config, HOTEL_VIEW_BOTTOM_SLOT);
@@ -73,6 +78,8 @@ export const HotelView = () => {
 
     const background = (name: string): TemplateBinding | undefined => {
         const state = backgrounds[name];
+
+        if (state && backgroundReplaced) return { visible: false };
 
         return state && { visible: state.visible, ...(state.uri ? { asset: state.uri } : {}) };
     };
@@ -130,10 +137,16 @@ export const HotelView = () => {
                     bindings: {
                         '': {
                             children: (
-                                <HotelViewMovingObjects
-                                    width={width}
-                                    height={height}
-                                />
+                                <>
+                                    <HotelViewMovingObjects
+                                        width={width}
+                                        height={height}
+                                    />
+                                    <ClientModuleHotelViewLayersView
+                                        width={width}
+                                        height={height}
+                                    />
+                                </>
                             ),
                         },
                     },

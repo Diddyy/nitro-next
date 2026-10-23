@@ -9,7 +9,7 @@
 import type { IMessageDataWrapper } from '@nitrodevco/nitro-api';
 import type { ComponentType, ReactNode } from 'react';
 
-import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleWindowProps } from '#base/context/client-modules';
+import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleHotelViewLayerProps, ClientModuleWindowProps } from '#base/context/client-modules';
 
 import type { ClientModuleLibraries } from './clientModuleLibraries';
 
@@ -81,6 +81,15 @@ export interface ClientModuleApi {
         avatarOverlay: (render: (avatar: ClientModuleAvatar) => ReactNode) => ClientModuleDispose;
         /** Leaves the room for the hotel view, as the toolbar's hotel view icon does. Nothing outside a room. */
         leave: () => void;
+    };
+    hotelView: {
+        /**
+         * A layer of the reception, drawn with its moving objects: over its background art and under
+         * its widgets, its hotel top and left backdrop, while the reception is shown. Layers added
+         * later are drawn over earlier ones. With `replacesBackground` the layer is the backdrop: the
+         * reception's own background bitmaps (its sky, horizon, hotel and hill) are hidden while it is added.
+         */
+        addLayer: (component: ComponentType<ClientModuleHotelViewLayerProps>, options?: { replacesBackground?: boolean }) => ClientModuleDispose;
     };
     notifications: {
         /** A bubble layout: a template of the bundles (`<library>/<asset>_xml`) and its height. */
