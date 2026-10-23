@@ -15,8 +15,12 @@
  * only then starts following. An element at the desktop's very corner (0, 0) is taken as not placed
  * yet: the arrow is not moved that frame.
  *
- * Flash creates the arrow in the element's own window context; here it is drawn over every window,
- * under the tooltips, and is never a mouse target.
+ * Flash creates the arrow in the element's own window context (`_loc3_.window.context.create(..)`,
+ * HintManager.as:88), on top of that context's desktop. So one is mounted per desktop: the window
+ * layer's (context 1) draws it over every window, under the tooltips, for an element in that layer -
+ * the toolbar, the purse, the chat input; the room's (context 0) draws it over the room and under
+ * every window for an element there - the own name bubble of a room entry, which `ContextInfoView`
+ * adds to `getDesktop(0)` (ContextInfoView.as:217). It is never a mouse target.
  */
 import { GetTicker } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Sprite, Ticker } from 'pixi.js';
@@ -24,7 +28,7 @@ import { useEffect, useRef } from 'react';
 
 import { HINT_STYLE_VERTICAL, useHintStore } from '#base/context/hints';
 import { useViewportSize } from '#base/hooks';
-import { Box, getGlobalRect, GlobalRect, LayoutImage, useLatest, useTextureFromUrl } from '#base/theme';
+import { Box, getGlobalRect, getWindowLayer, GlobalRect, LayoutImage, useLatest, useTextureFromUrl } from '#base/theme';
 
 /** Over the frames (from 100), the floating popups (90000) and the modal layer (95000); under the tooltips (100000). */
 const HINT_Z_INDEX = 99000;
@@ -42,6 +46,17 @@ const START_SCALE = 0.4;
 
 /** The bob: `5 * |sin(getTimer() * 0.003)|`. */
 const bob = () => 5 * Math.abs(Math.sin(performance.now() * 0.003));
+
+/** The window context whose desktop holds the element: the window layer's (1), or the room's (0) under it. */
+const contextOf = (node: PixiContainer): number => {
+    const layer = getWindowLayer();
+
+    for (let current: PixiContainer | null = node; current; current = current.parent) {
+        if (current === layer) return 1;
+    }
+
+    return 0;
+};
 
 /** `IWindow.visible` up the tree: a box that is not drawn, or one under a hidden one, does not show. */
 const isShown = (node: PixiContainer): boolean => {
@@ -62,7 +77,12 @@ interface HintGeometry {
     visible: boolean;
 }
 
-export const HintArrowView = () => {
+export interface HintArrowViewProps {
+    /** The window context whose desktop this arrow is drawn on: it shows only for an element there. */
+    context: number;
+}
+
+export const HintArrowView = ({ context }: HintArrowViewProps) => {
     const activeHint = useHintStore(x => x.activeHint);
     const node = useHintStore(x => (x.activeHint ? x.nodes[x.activeHint.key] : undefined));
     const vertical = (activeHint?.style === HINT_STYLE_VERTICAL);
@@ -147,7 +167,7 @@ export const HintArrowView = () => {
                 hint.y = Math.trunc(y + ((rect.height - hint.height) / 2));
             }
 
-            hint.visible = isShown(element);
+            hint.visible = isShown(element) && (contextOf(element) === context);
         };
 
         // The bitmap mirrored by its zoom inside the window's rectangle.
@@ -182,7 +202,7 @@ export const HintArrowView = () => {
             };
             hint.x = flight.fromX;
             hint.y = flight.fromY;
-            hint.visible = true;
+            hint.visible = contextOf(element) === context;
         }
 
         const tick = (ticker?: Ticker) => {
@@ -215,13 +235,13 @@ export const HintArrowView = () => {
         return () => {
             GetTicker().remove(tick);
         };
-    }, [ activeHint, texture, vertical ]);
+    }, [ activeHint, texture, vertical, context ]);
 
     if (!activeHint || !texture) return null;
 
     return (
         <Box
-            zIndex={HINT_Z_INDEX}
+            zIndex={(context === 1) ? HINT_Z_INDEX : undefined}
             eventMode="none"
             layout={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0 }}
         >

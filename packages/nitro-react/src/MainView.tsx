@@ -105,6 +105,8 @@ export const MainView = () => {
             <ViewErrorBoundaries>
                 <RoomWrapper />
                 <HotelViewComponent />
+                {/* `HintManager`'s arrow at an element of the room's desktop (context 0): over the room, under every window. */}
+                <HintArrowView context={0} />
             </ViewErrorBoundaries>
             {/* Window context 1's desktop: every window is drawn and ordered in here. */}
             <WindowLayer>
@@ -240,8 +242,8 @@ export const MainView = () => {
                     <ModalLayer />
                     {/* Desktop 2: the pictures `animateToIcon` flies into the toolbar, over every window. */}
                     <ToolbarTransitionsView />
-                    {/* `HintManager`'s arrow at the element a hint key names, over every window. */}
-                    <HintArrowView />
+                    {/* `HintManager`'s arrow at an element of this desktop (context 1), over every window. */}
+                    <HintArrowView context={1} />
                     <TooltipLayer />
                 </ViewErrorBoundaries>
             </WindowLayer>
