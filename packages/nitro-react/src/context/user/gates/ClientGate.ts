@@ -68,6 +68,8 @@ export const ClientGates = {
     ChatStaffCommands: { node: null, level: SecurityLevelEnum.Employee },
     /** `ChatInputWidgetHandler` `:reload` / `:rollback` - any room's wired state (security 5). No server node. */
     RoomStateAnyRoom: { node: null, level: SecurityLevelEnum.Moderator },
+    /** `HabboGameManager.gameCenterEnabled` - `game.center.enabled.forStaff` opens the game centre to staff (security 4). No server node. */
+    GameCenterForStaff: { node: null, level: SecurityLevelEnum.Employee },
     /** `ModerationManager.isModerator` - the user classification window's classifications and its user info / visit links (security 5). No server node. */
     ModerationUserLinks: { node: null, level: SecurityLevelEnum.Moderator },
 } as const satisfies Record<string, ClientGate>;
