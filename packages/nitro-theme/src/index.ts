@@ -96,6 +96,7 @@ export * from './template/measureTemplateText';
 export * from './template/templateBindings';
 export * from './template/templateData';
 export * from './template/templateLayout';
+export * from './template/templatePatch';
 export * from './template/TemplateView';
 export * from './template/templateWindowRect';
 export * from './TextInput';

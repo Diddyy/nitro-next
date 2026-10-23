@@ -7,6 +7,7 @@
  * Turbo's `docs/client-modules.md` is the module author's side of it.
  */
 import type { IMessageDataWrapper } from '@nitrodevco/nitro-api';
+import type { TemplateBinding, TemplatePatchOp, TemplatePatchReport } from '@nitrodevco/nitro-theme';
 import type { ComponentType, ReactNode } from 'react';
 
 import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleHotelViewLayerProps, ClientModuleWindowProps } from '#base/context/client-modules';
@@ -107,5 +108,20 @@ export interface ClientModuleApi {
          * `undefined` to leave it.
          */
         setIllustration: (resolve: (alert: ClientModuleAlert) => string | undefined) => ClientModuleDispose;
+    };
+    templates: {
+        /**
+         * Changes a core window's template (`<library>/<asset>`) as data: `set` layout properties, `remove`
+         * an element or `insert` one, each naming its element as the window's code does (`'name'`,
+         * `'panel/name'`, `''` for the window). Patches from every module and plugin apply together in
+         * order (`order`, then key); an element this module adds is named `<key>:<name>` and only this
+         * module reaches it by its short name. Conflicts and elements a release no longer has are logged
+         * and kept in `report`.
+         */
+        patch: (template: string, ops: readonly TemplatePatchOp[], options?: { order?: number }) => ClientModuleDispose;
+        /** What the window's code would bind, for an element this module added: a caption, a click, a picture. */
+        bind: (template: string, element: string, binding: TemplateBinding) => ClientModuleDispose;
+        /** The last application's conflicts and unmatched elements for a template, once it has been drawn. */
+        report: (template: string) => TemplatePatchReport | undefined;
     };
 }

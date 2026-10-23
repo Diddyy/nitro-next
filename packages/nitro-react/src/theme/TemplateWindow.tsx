@@ -10,6 +10,7 @@ import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useSystemStore, useTranslation } from '#base/context/system';
 
+import { useTemplateExtensionBindings } from './templatePatches';
 import { useTemplate } from './useTemplate';
 
 export interface TemplateWindowProps {
@@ -50,6 +51,8 @@ const templatePart = (template: Template, part: string): Template | undefined =>
 /** Draws nothing until the template is loaded, as a Flash window opens once its library is in. */
 export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, height, parameters, tagColors }: TemplateWindowProps) => {
     const loaded = useTemplate(id);
+    // The bindings extensions give the elements they added (`api.templates.bind`), under the window's own.
+    const allBindings = useTemplateExtensionBindings(id, bindings);
     const template = useMemo(() => {
         const built = (loaded && tagColors) ? colorTemplateByTags(loaded, tagColors) : loaded;
 
@@ -82,7 +85,7 @@ export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, heig
     return (
         <TemplateView
             template={template}
-            bindings={bindings}
+            bindings={allBindings}
             arrange={arrange}
             frame={windowFrame}
             width={width}

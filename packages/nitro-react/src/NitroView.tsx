@@ -27,6 +27,7 @@ import { preloadChatStyles } from '#base/chat';
 import { rebootAfterGpuLoss } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, setFontFaceOverrides, setTextStyleOverrides, WindowLayer } from '#base/theme';
+import { loadTemplatePatchFiles } from '#base/theme/templatePatches';
 import { isPreviewHost, loadAssetBundle, preloadAssetBundles, unloadAssetBundle } from '#base/utils';
 
 import { MainView } from './MainView';
@@ -96,6 +97,8 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
                 // The hotel's text style and face overrides, before the first text is drawn (the theme's own come with its bundle).
                 setTextStyleOverrides('hotel', GetConfigValue('text.styles.overrides'));
                 setFontFaceOverrides('hotel', GetConfigValue('text.faces.overrides'));
+                // The plugins' declarative window patches; a window drawn before one arrives is redrawn with it.
+                void loadTemplatePatchFiles(GetConfigValue('templates.patches'));
 
                 await Promise.all([ loadAssetBundle('loading-screen'), preloadFlashFonts() ]);
 
