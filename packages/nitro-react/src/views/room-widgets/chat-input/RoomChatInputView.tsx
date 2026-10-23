@@ -47,7 +47,7 @@ type Rect = { x: number; y: number; width: number; height: number };
  * it shows; Flash's 2 px text gutter hides less under it than this field would, so the field stops
  * where the button starts (`inputWidth`).
  */
-const readLayout = (template: Template) => {
+const readLayout = (template: Template, targetWidth?: number) => {
     const rectOf = (name: string): Rect | undefined => {
         const element = findTemplateChild(template.elements, name);
 
@@ -64,12 +64,31 @@ const readLayout = (template: Template) => {
 
     if (!bubble || !row || !border || !input || !inputElement || !styles || !extra) return undefined;
 
+    const width = Math.max(1, targetWidth ?? bubble.width);
+    const widthDelta = width - bubble.width;
+    const resizedRow = { ...row, width: Math.max(0, row.width + widthDelta) };
+    const resizedBorder = { ...border, width: Math.max(0, border.width + widthDelta) };
+    const resizedInput = { ...input, width: Math.max(0, input.width + widthDelta) };
+    const resizedHelp = help && { ...help, x: Math.max(0, help.x + widthDelta) };
+    const resizedExtra = { ...extra, x: Math.max(0, extra.x + widthDelta) };
+
     // `helpbutton` is in `bubblecont`; the field is in `input_border`, in the row.
-    const inputWidth = help ? Math.min(input.width, help.x - (row.x + border.x + input.x)) : input.width;
+    const inputWidth = resizedHelp ? Math.max(0, Math.min(resizedInput.width, resizedHelp.x - (resizedRow.x + resizedBorder.x + resizedInput.x))) : resizedInput.width;
 
     const { fontFamily, flash } = templateTextFormat(inputElement);
 
-    return { width: bubble.width, row, border, input, inputWidth, styles, extra, font: { fontFamily, fontSize: templateFontSize(inputElement), flash } };
+    return {
+        width,
+        height: bubble.height,
+        row: resizedRow,
+        border: resizedBorder,
+        input: resizedInput,
+        inputWidth,
+        styles,
+        extra: resizedExtra,
+        help: resizedHelp,
+        font: { fontFamily, fontSize: templateFontSize(inputElement), flash },
+    };
 };
 
 /**
@@ -139,7 +158,9 @@ export const RoomChatInputView = () => {
     const setIconAsset = hasSetIcon ? `habbicon_collection_icon_outlined_${setIconCollectionId}` : undefined;
     const disabledStyles = useConfigValue<string>('disabled.custom.chat.styles') ?? '';
     const template = useTemplate(CHAT_INPUT_TEMPLATE);
-    const layout = useMemo(() => (template ? readLayout(template) : undefined), [ template ]);
+    const baseLayout = useMemo(() => (template ? readLayout(template) : undefined), [ template ]);
+    const placement = useChatInputPlacement(baseLayout?.width ?? 0, baseLayout?.height ?? 0);
+    const layout = useMemo(() => (template ? readLayout(template, placement.width) : undefined), [ template, placement.width ]);
 
     const [ value, setValue ] = useState('');
     const [ cursor, setCursor ] = useState(0);
@@ -166,7 +187,7 @@ export const RoomChatInputView = () => {
     const helpButtonHideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const roomId = room?.roomId ?? -1;
     const { nuxReminded, nuxReminderTicks, nuxHintTarget, onTyped, endNuxReminder } = useChatNuxReminder(roomId);
-    const { left, top } = useChatInputPlacement(layout?.width ?? 0);
+    const { left, top } = placement;
 
     const valueRef = useLatest(value);
 
@@ -538,7 +559,14 @@ export const RoomChatInputView = () => {
                 part="bubblecont"
                 // `block_text` lies 10 into `input_border`, under the `styles` button that covers the
                 // border's first 46: the countdown's start was hidden. It goes where `chat_input` is.
-                arrange={({ find }) => {
+                arrange={({ root, find }) => {
+                    root()?.setWidth(layout.width);
+                    find('chat_input_container')?.setWidth(layout.row.width);
+                    find('input_border')?.setWidth(layout.border.width);
+                    find('chat_input')?.setWidth(layout.input.width);
+                    if (layout.help) find('helpbutton')?.setX(layout.help.x);
+                    find('chat_extra_button')?.setX(layout.extra.x);
+
                     const blockText = find('block_text');
 
                     blockText?.setRectangle(layout.input.x, blockText.y, layout.input.width, blockText.height);

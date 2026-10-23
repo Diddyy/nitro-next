@@ -71,6 +71,19 @@ Every `register`/`add`/`handle` returns a function that takes that one thing out
 added is taken out by the client when it stops, so `deactivate` only undoes what the module did
 outside the API. Everything a module draws sits in an error boundary of its own.
 
+## Replacing the toolbar
+
+A theme replacing the stock toolbar can set `chat.input.width` to a positive number of stage
+pixels to center the chat bar at that width, clamped to the viewport with 12 pixels on each side.
+`chat.input.bottom` is an optional nonnegative gap below the chat bar, also in stage pixels.
+Without these values, chat keeps its AS3 toolbar-aware placement. The chat template still owns
+the arrangement of its style selector, text field and optional extra button.
+
+The existing `seasonalcurrencyindicator.enabled`, `eventinfo.enabled` and
+`notifications.new_feature.active` settings control the seasonal currency strip, room event card
+and configured promotions. `notifications.moderation.disclaimer.enabled` defaults to `true`;
+a hotel supplying its own entry notice can set it to `false` to omit the stock disclaimer.
+
 ## Example
 
 `docs/examples/client-modules/hello/` is a module with no build step: a toolbar icon and a me
