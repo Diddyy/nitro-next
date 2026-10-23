@@ -1615,6 +1615,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@nitrodevco/client-module-sdk@workspace:packages/client-module-sdk":
+  version: 0.0.0-use.local
+  resolution: "@nitrodevco/client-module-sdk@workspace:packages/client-module-sdk"
+  dependencies:
+    "@types/react": "npm:^19.2.17"
+    "@types/react-dom": "npm:^19.2.3"
+    esbuild: "npm:^0.28.2"
+    react: "npm:^19.2.6"
+    react-dom: "npm:^19.2.6"
+    tsx: "npm:^4.23.15"
+    typescript: "npm:^5.9.3"
+  peerDependencies:
+    "@types/react": ^19.0.0
+    esbuild: ">=0.25.0"
+  peerDependenciesMeta:
+    esbuild:
+      optional: true
+  languageName: unknown
+  linkType: soft
+
 "@nitrodevco/nitro-api@workspace:*, @nitrodevco/nitro-api@workspace:packages/nitro-api":
   version: 0.0.0-use.local
   resolution: "@nitrodevco/nitro-api@workspace:packages/nitro-api"
