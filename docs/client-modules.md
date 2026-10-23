@@ -45,10 +45,73 @@ module is imported, so a bundled module can bind them at its top level):
 | `zustand.useStore` | To read a store in a component |
 | `stores.user` / `room` / `system` | The app-wide stores (read; write through the API) |
 
-A module built with a bundler maps `react`, `react/jsx-runtime` and the theme to small shims that
+A module built with a bundler (the SDK's preset below) maps `react`, `react/jsx-runtime` and the theme to small shims that
 re-export from `globalThis.NitroClientModuleHost`, and marks nothing else external. Pixi's elements
 need no import: the client registers them, and a module names them as JSX intrinsics
 (`pixiGraphics`, `pixiContainer`).
+
+## Writing a module with the SDK (`packages/client-module-sdk`)
+
+`@nitrodevco/client-module-sdk` is what a module is written against: the API's types, a few helpers
+and the bundler preset. A module is TypeScript and JSX with ordinary imports; the build gives one file
+that uses the client's own React and theme.
+
+```tsx
+import { assetUrl, defineModule, useApi, type ClientModuleWindowProps } from '@nitrodevco/client-module-sdk';
+import { Button, Frame, ThemeText } from '@nitrodevco/client-module-sdk/theme';
+import { useState } from 'react';
+
+const Counter = ({ close }: ClientModuleWindowProps) => {
+    const api = useApi();
+    const [ clicks, setClicks ] = useState(0);
+
+    return (
+        <Frame id={`${api.key}-counter`} variant="3" caption={api.texts.get('counter.title', 'Counter')} centered onClose={close} layout={{ width: 200, height: 100 }}>
+            <ThemeText text={String(clicks)} textStyle="u_regular" />
+            <Button variant="101" onPointerTap={() => setClicks(clicks + 1)}>+1</Button>
+        </Frame>
+    );
+};
+
+export default defineModule({
+    activate(api) {
+        api.windows.register('counter', Counter);
+        api.toolbar.add({ id: 'counter', icon: assetUrl('icon.png'), onClick: () => api.windows.toggle('counter') });
+    },
+});
+```
+
+| Import | What |
+| --- | --- |
+| `defineModule({ activate, deactivate? })` | The module's default export, typed |
+| `useApi()` | The API the module was activated with, from any component or helper |
+| `assetUrl(path)` | A file beside the module in its plugin's `wwwroot/` (`new URL(path, api.baseUrl)`) |
+| `type ClientModuleApi`, `ClientModuleWindowProps`, ... | The API's types (`src/api.d.ts`) |
+| `@nitrodevco/client-module-sdk/theme` | `Box`, `Button`, `Frame`, `ThemeText`, `TemplateWindow`: the client's own, read from `NitroClientModuleHost` as the module loads; their props typed with what a module passes (`src/theme-types.d.ts`) |
+| `@nitrodevco/client-module-sdk/build` | `clientModuleBuildOptions({ entry, outfile, minify? })` for esbuild, and `clientModuleHostPlugin()` |
+
+The build preset bundles everything into the one file except `react`, `react/jsx-runtime` and
+`zustand`, which resolve to the client's (`NitroClientModuleHost`) when the module runs, so there is
+no second React.
+
+```js
+import * as esbuild from 'esbuild';
+import { clientModuleBuildOptions } from '@nitrodevco/client-module-sdk/build';
+
+await esbuild.build(clientModuleBuildOptions({ entry: 'client/src/index.tsx', outfile: 'dist/counter/wwwroot/counter.js' }));
+```
+
+Turbo's `dotnet new turbo-plugin` template (turbo-cloud `templates/turbo-plugin`) sets all of this
+up with the server half and one `npm run dev`. The SDK is not on npm yet: a plugin names this
+folder (`"file:<nitro-next>/packages/client-module-sdk"`).
+
+**Keeping it true.** The SDK's types are written for module authors, without the client's
+internals, so a module builds outside this repository. `commands/client-modules/clientModuleSdk.check.ts`
+compares them with `ClientModuleApi.ts` part by part in both directions, and checks that each
+template patch field, binding and theme prop the SDK types is one the client takes: a member added
+to or changed in the API fails `npx tsc -p packages/nitro-react/tsconfig.typecheck.json` until the SDK has it too.
+`yarn workspace @nitrodevco/client-module-sdk test` bundles a module with the preset and runs it on
+a stand-in host.
 
 ## The API (version 1, `commands/client-modules/ClientModuleApi.ts`)
 
