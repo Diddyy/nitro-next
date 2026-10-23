@@ -1,13 +1,14 @@
 /**
- * A room camera's viewfinder - what `RoomThumbnailCameraWidget` and the starter room camera share:
- * a texture the viewfinder sprite shows, redrawn every frame from the room stage under the sprite's
- * own place on screen (`snapshotRoomCanvasToBitmap`), while `live`. The camera works at normal zoom
+ * A room camera's viewfinder - what `RoomThumbnailCameraWidget`, the starter room camera and the camera
+ * share: a texture the viewfinder sprite shows, redrawn from the room stage under the sprite's own place
+ * on screen (`snapshotRoomCanvasToBitmap`), while `live` - every frame, or every `updateMs` (the camera's
+ * `registerUpdateReceiver(this, 100)`). Drawn on the GPU: nothing is read back to the CPU until a shot. The camera works at normal zoom
  * and up, upright, checked every frame (`onRoomZoomed`): `onUnfit` takes it down otherwise.
  * `collect` is the shutter's half that reads the room - the render data of the room under the
  * viewfinder (`collectPhotoData` -> `RoomEngine.getRenderRoomMessage`, `SpriteDataCollector`).
  */
 import { GetRoomStage, GetTicker, TextureUtils } from '@nitrodevco/nitro-renderer';
-import { Matrix, Rectangle, RenderTexture, Sprite } from 'pixi.js';
+import { Matrix, Rectangle, RenderTexture, Sprite, Ticker } from 'pixi.js';
 import { useEffect, useRef, useState } from 'react';
 
 import { collectRoomPhotoData, isRoomUnfit } from '#base/commands';
@@ -17,7 +18,7 @@ import { useLatest } from '#base/theme';
 
 import { GetRoomBackgroundColor } from './roomBackgroundColor';
 
-export const useRoomViewfinder = (width: number, height: number, live: boolean, onUnfit: () => void) => {
+export const useRoomViewfinder = (width: number, height: number, live: boolean, onUnfit: () => void, updateMs = 0) => {
     const securityLevel = useOwnSecurityLevel();
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
     const groupBadgeUrl = useConfigValue<string>('group.badge.url') ?? '';
@@ -31,7 +32,10 @@ export const useRoomViewfinder = (width: number, height: number, live: boolean, 
     useEffect(() => {
         if (!live) return;
 
-        const update = () => {
+        // The first frame draws at once.
+        let sinceMs = updateMs;
+
+        const update = (ticker: Ticker) => {
             if (isRoomUnfit()) {
                 onUnfitRef.current();
 
@@ -41,6 +45,14 @@ export const useRoomViewfinder = (width: number, height: number, live: boolean, 
             const sprite = viewfinder.current;
 
             if (!sprite) return;
+
+            if (updateMs > 0) {
+                sinceMs += ticker.deltaMS;
+
+                if (sinceMs < updateMs) return;
+
+                sinceMs = 0;
+            }
 
             const position = sprite.getGlobalPosition();
 
@@ -52,7 +64,7 @@ export const useRoomViewfinder = (width: number, height: number, live: boolean, 
         return () => {
             GetTicker().remove(update);
         };
-    }, [ live, texture, onUnfitRef ]);
+    }, [ live, texture, onUnfitRef, updateMs ]);
 
     /** The room under the viewfinder: its place on the stage and its render data, or nothing without a room. */
     const collect = () => {
