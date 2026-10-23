@@ -342,9 +342,12 @@ export const HotelViewGenericWidget = ({ slot, code, settings }: HotelViewGeneri
                 return {
                     key,
                     from,
+                    // `LinkElementHandler` sets its procedure on the region, which draws in its parent's graphics
+                    // (`parentGraphics`): such a window is hit only where the shared buffer is drawn
+                    // (`WindowController.testLocalPointHitAgainstAlpha`, threshold 10), so only its text takes
+                    // the press, not the 252 wide row. The text's own box stands for that here.
                     bindings: colorable({
-                        '': { onPointerTap: () => openCatalogExternalLink(args[1] ?? '') },
-                        link_txt: { caption: `\${${args[0]}}` },
+                        link_txt: { caption: `\${${args[0]}}`, onPointerTap: () => openCatalogExternalLink(args[1] ?? '') },
                     }, [ 'link_txt' ]),
                 };
             case 'customtimer':

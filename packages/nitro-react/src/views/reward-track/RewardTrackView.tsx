@@ -1,6 +1,7 @@
 /**
  * A reward track's window - `RewardTrackView` over `habbo-quest-engine-com/reward_track_main_xml`
- * (1103x722, built in window context 1 and centred when it is made), with its parts:
+ * (1103x722, built in window context 1 and centred when it is made), coloured by the track's theme
+ * (`RewardTrackTheme.applyTo`: its `RECOLORABLE_*` windows), with its parts:
  *
  * - `RewardTrackHeaderView`: the own avatar, the track's name, description and info
  *   (`reward_track.<id>.name` / `.desc` / `.info`), its points and the prizes claimed.
@@ -14,8 +15,9 @@
  *   for a locked one.
  * - `RewardTrackTaskListView`: the tasks completed, the All / In progress / Completed filter, a row
  *   per task (a clone of `task_template`: name, description, its action's picture, the progress bar
- *   and count of its active level and that level's points) that selects it, and the tip - or, with
- *   premium configured and not bought, the upgrade box whose button opens the confirmation.
+ *   and count of its active level and that level's points) that selects it - the first one listed
+ *   is selected while none or a filtered-out one is - and the tip - or, with premium configured and
+ *   not bought, the upgrade box whose button opens the confirmation.
  * - `RewardTrackTaskDetailsView`: the selected task's picture, name and description, a row per
  *   level (a clone of `level_template`) with its bar, count, check and points, the active level's
  *   border in the theme's active colour, and the hint with its button when the hotel gives it a link.
@@ -82,6 +84,13 @@ const THEMES: Record<string, { dark: number; medium: number; light: number; acti
     cyan: { dark: 2072243, medium: 13103093, light: 14481403, active: 11921905 },
 };
 
+/** `RewardTrackTheme.applyTo`: the colour of each `RECOLORABLE_*` tag, light before medium before dark, by theme. */
+const THEME_TAG_COLORS: Record<string, Readonly<Record<string, number>>> = Object.fromEntries(Object.entries(THEMES).map(([ key, theme ]) => [ key, {
+    RECOLORABLE_LIGHT: theme.light,
+    RECOLORABLE_MEDIUM: theme.medium,
+    RECOLORABLE_DARK: theme.dark,
+} ]));
+
 /** The task row's and level row's border colour in the layout (`_defaultBorderColor`). */
 const TASK_BORDER_COLOR = undefined;
 
@@ -134,7 +143,8 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();
     const frame = useTemplateFrame({ id: 'reward_track', centered: true, resizeDirection: 'none', onClose: hideRewardTrack });
-    const theme = THEMES[track.theme] ?? THEMES.blue;
+    const themeKey = Object.hasOwn(THEMES, track.theme) ? track.theme : 'blue';
+    const theme = THEMES[themeKey];
     const layout = buildRewardTrackPrizeLayout(track.prizes, PRIZE_CONTENT_WIDTH, PRIZE_WIDTH, MIN_PRIZE_SPACING);
     // `refresh(false, true)`: the page the track's points are on, kept as the track changes.
     const [ page, setPage ] = useState(() => layout.pageForPoints(track.points));
@@ -218,7 +228,9 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
 
     // `RewardTrackTaskListView`.
     const tasks = track.tasks.filter(task => matchesFilter(task, filter));
-    const selectedTask = tasks.find(task => task.id === selectedTaskId);
+    // `applyFilter`: with no task selected, or one the filter hides, the first task it lists is selected
+    // (`selectTask`) - none only while it lists none (`clearSelectedTask`, `RewardTrackTaskDetailsView.clear`).
+    const selectedTask = tasks.find(task => task.id === selectedTaskId) ?? tasks[0];
 
     // `RewardTrackPrizeTrackView.refreshByX` (the main bar, on this page), the task rows' and the selected task's levels.
     const mainBar: RewardTrackBarTarget = { key: 'main', width: MAIN_BAR_WIDTH, colored: false, ratio: layout.xForPoints(track.points, pageIndex) / MAIN_BAR_WIDTH, levelIndex: -1 };
@@ -256,6 +268,12 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
 
         if (y !== levelsScroll.y) setLevelsScroll({ y, ratio: y / maxScroll });
     };
+
+    // `applyFilter`'s selection, kept as it is made (set while rendering, the way React adjusts state to its inputs).
+    if (selectedTask?.id !== selectedTaskId) {
+        if (selectedTask) selectTask(selectedTask);
+        else setSelectedTaskId(undefined);
+    }
 
     /** `RewardTrackTaskRowView`. */
     const taskItem = (task: RewardTrackTask): TemplateItem => {
@@ -398,6 +416,7 @@ const RewardTrackWindow = ({ track }: { track: RewardTrack }) => {
             frame={frame}
             bindings={bindings}
             arrange={arrange}
+            tagColors={THEME_TAG_COLORS[themeKey]}
         />
     );
 };

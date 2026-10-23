@@ -130,3 +130,21 @@ export interface TemplateLibrary {
     version?: string;
     templates: Record<string, Template>;
 }
+
+/**
+ * The template as its code leaves it when it colours each window by its tags right after building
+ * it (`RewardTrackTheme.applyTo`: `IWindow.color` down the whole tree, before the code takes its item
+ * templates out, so their clones carry the colour too). A window takes the colour of the first of the
+ * map's tags it carries, in the map's order; the others keep the layout's.
+ */
+export const colorTemplateByTags = (template: Template, colors: Readonly<Record<string, number>>): Template => {
+    const tags = Object.keys(colors);
+    const recolor = (element: TemplateElement): TemplateElement => {
+        const own = element.tags;
+        const tag = own && tags.find(each => own.includes(each));
+
+        return { ...element, ...(tag !== undefined && { color: colors[tag] }), children: element.children.map(recolor) };
+    };
+
+    return { ...template, elements: template.elements.map(recolor) };
+};

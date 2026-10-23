@@ -13,10 +13,10 @@
  * (`accommodate` resize) takes the button's width, and the `scale_to_fit_items` item list - with the
  * border round it (`reflectToParent`) - ends where the button does.
  *
- * The button is Flash's `openCreditsHabblet`, which opens the hotel's web shop
- * (`web.shop.relativeUrl`) beside the client; the port has no hotel web page to open it under - see
- * `purchaseCredits` in `commands/catalog/targetedOfferCommands.ts` - so it is drawn and does nothing.
+ * The button (`onOpenCreditsPageButton`) is `HabboCatalog.openCreditsHabblet`: the hotel's web shop,
+ * `web.shop.relativeUrl`. Its `trackGoogle` has no receiver here.
  */
+import { openCreditsHabblet } from '#base/commands';
 import { hotelViewColorableBindings, HotelViewCommonSettings, hotelViewProperty, useConfigData, useSystemStore, useTranslation } from '#base/context/system';
 import { Box, TemplateBindings, TemplateWindow, TemplateWindows } from '#base/theme';
 
@@ -60,6 +60,7 @@ export const HotelViewBonusRareWidget = ({ settings }: HotelViewBonusRareWidgetP
         progress_bar_cont: { visible: !!product },
         status: { caption: t('landing.view.bonus.rare.status', '', { amount: String(bonusRare.coinsStillRequiredToBuy), total: String(total) }) },
         bar_a_c: { visible: fill > 0 },
+        buy_button: { onPointerTap: openCreditsHabblet },
     });
 
     /** `setProgress`: the fill as wide as the share spent, its end just after it. */
