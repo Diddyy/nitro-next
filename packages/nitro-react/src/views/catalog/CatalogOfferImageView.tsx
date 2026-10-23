@@ -1,4 +1,5 @@
 import { AvatarGenderType, FurnitureTypeEnum, IObjectData, IPurchasableOffer, RoomGeometryScaleType } from '@nitrodevco/nitro-api';
+import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
 
 import { GetChatStyleLibrary } from '#base/chat';
 import { habbiconPreviewAssetName } from '#base/commands';
@@ -47,8 +48,13 @@ export const CatalogOfferImageView = ({ offer, previewImage }: CatalogOfferImage
     const productType = product?.productType;
     const isFurni = !shippedImage && !previewImage && ((productType === FurnitureTypeEnum.Floor) || (productType === FurnitureTypeEnum.Wall));
 
+    // `getWallItemImage(productClassId, .., extraParam)`: a poster is drawn as its own `poster<id>`.
+    const furniType = (product?.furnitureData && isFurni)
+        ? ((productType === FurnitureTypeEnum.Wall) ? GetRoomContentLoader().getFurnitureWallNameForTypeId(product.furnitureData.id, product.extraParam || undefined) : product.furnitureData.className)
+        : undefined;
+
     const { texture, width, height } = useFurnitureImageTexture(
-        product?.furnitureData && isFurni ? product.furnitureData.className : undefined,
+        furniType,
         product?.furnitureData && isFurni ? product.furnitureData.colorIndex : undefined,
         2,
         RoomGeometryScaleType.ZoomedIn,
