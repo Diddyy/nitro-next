@@ -171,7 +171,9 @@ export const InfostandFurni = ({ objectData, onClose }: InfostandFurniProps) => 
     const details: InfostandFurniDetails = {
         variant,
         name: furniData.name,
-        className: furniData.furnitureData?.className ?? roomObject.type,
+        // Flash draws the room object itself (`getRoomObjectImage`): a poster is its own `poster<id>`,
+        // the furnidata's one `poster` item has no asset.
+        className: roomObject.type.startsWith('poster') ? roomObject.type : (furniData.furnitureData?.className ?? roomObject.type),
         colorIndex: furniData.furnitureData?.colorIndex ?? 0,
         isNft: (furniData.furnitureData?.className ?? '').startsWith('nft_'),
         ownerKind,

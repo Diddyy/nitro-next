@@ -20,6 +20,7 @@
  */
 import type { IChestItemType, IChestStorage } from '@nitrodevco/nitro-api';
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
+import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
 import { useState } from 'react';
 
 import { withdrawWiredChestItems } from '#base/commands';
@@ -62,7 +63,9 @@ export const ChestItemIcon = ({ itemType }: { itemType: IChestItemType }) => {
 /** `preview_image`, the product image widget: the furni at 64 facing 90 degrees, unscaled in its middle. */
 const ChestItemPreview = ({ itemType }: { itemType: IChestItemType }) => {
     const furniData = useWiredChestItemFurniData(itemType);
-    const { texture } = useFurnitureImageTexture(furniData?.className, furniData?.colorIndex ?? 0, 2, RoomGeometryScaleType.ZoomedIn, 0);
+    // `ProductImageWidget` with `ChestItemTypeRenderableWrapper.extraData` (the legacy poster id): a poster is drawn as its own `poster<id>`.
+    const className = (furniData && itemType.isWallItem) ? GetRoomContentLoader().getFurnitureWallNameForTypeId(itemType.typeId, itemType.legacyPosterId || undefined) : furniData?.className;
+    const { texture } = useFurnitureImageTexture(className, furniData?.colorIndex ?? 0, 2, RoomGeometryScaleType.ZoomedIn, 0);
 
     if (!texture) return null;
 

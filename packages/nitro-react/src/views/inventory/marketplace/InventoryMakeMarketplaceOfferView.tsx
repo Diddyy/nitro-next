@@ -1,4 +1,5 @@
 import { RoomGeometryScaleType } from '@nitrodevco/nitro-api';
+import { GetRoomContentLoader } from '@nitrodevco/nitro-renderer';
 import { useState } from 'react';
 
 import { makeMarketplaceOffer, releaseMarketplaceOfferItems } from '#base/commands';
@@ -28,7 +29,9 @@ const toInt = (text: string) => {
  */
 const OfferItemImage = ({ item }: { item: InventoryFurniItem }) => {
     const furniData = useFurnitureData(item.typeId, item.isWallItem);
-    const { texture, width, height } = useFurnitureImageTexture(furniData?.className, furniData?.colorIndex ?? 0, 2, RoomGeometryScaleType.ZoomedIn, item.isWallItem ? 0 : item.extra);
+    // `getWallItemImage(type, .., stuffData.getLegacyString())`: a poster is drawn as its own `poster<id>`.
+    const className = (furniData && item.isWallItem) ? GetRoomContentLoader().getFurnitureWallNameForTypeId(item.typeId, item.stuffData.getLegacyString() || undefined) : furniData?.className;
+    const { texture, width, height } = useFurnitureImageTexture(className, furniData?.colorIndex ?? 0, 2, RoomGeometryScaleType.ZoomedIn, item.isWallItem ? 0 : item.extra);
 
     if (!texture) return null;
 

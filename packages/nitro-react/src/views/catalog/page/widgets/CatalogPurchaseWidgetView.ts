@@ -102,6 +102,10 @@ export const CatalogPurchaseWidgetView = ({ page, tags }: CatalogWidgetProps) =>
     const purchaseCallback = useRef<(() => void) | undefined>(undefined);
 
     const update = (change: Partial<PurchaseWidgetFields>) => {
+        // `init()`: on a builder page the widget hides and listens to nothing (PurchaseCatalogWidget.as:85-89), so a drop
+        // into the room (`INIT_PURCHASE`) finds no offer to buy: the builders club lends it by placing it instead.
+        if (page.isBuilderPage) return;
+
         const next = { ...(current.current ?? fields), ...change };
 
         current.current = next;
@@ -118,6 +122,8 @@ export const CatalogPurchaseWidgetView = ({ page, tags }: CatalogWidgetProps) =>
     const allowed = (enabled: boolean) => enabled && !accountSafetyLocked;
 
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.SELECT_PRODUCT, (event) => {
+        if (page.isBuilderPage) return;
+
         const offer = event.offer;
         const state = { ...read(), quantity: 1, offer };
         const purchasable = canPurchase(state);
@@ -146,6 +152,8 @@ export const CatalogPurchaseWidgetView = ({ page, tags }: CatalogWidgetProps) =>
     });
 
     useCatalogWidgetEvent(page, CatalogWidgetEventEnum.PURCHASE_OVERRIDE, (event) => {
+        if (page.isBuilderPage) return;
+
         purchaseCallback.current = event.callback;
     });
 
