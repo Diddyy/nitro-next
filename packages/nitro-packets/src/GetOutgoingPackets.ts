@@ -514,6 +514,7 @@ import {
     TurboClientErrorReportComposer,
     TurboCommandSuggestComposer,
     TurboStarterRoomPictureComposer,
+    TurboWebSessionRequestComposer,
     UnacceptTradingComposer,
     UnbanUserFromRoomComposer,
     UnblockGroupMemberComposer,
@@ -1180,5 +1181,6 @@ export const GetOutgoingPackets = () => {
         [OutgoingHeader.TurboClientErrorReportComposer]: TurboClientErrorReportComposer,
         [OutgoingHeader.TurboCommandSuggestComposer]: TurboCommandSuggestComposer,
         [OutgoingHeader.TurboStarterRoomPictureComposer]: TurboStarterRoomPictureComposer,
+        [OutgoingHeader.TurboWebSessionRequestComposer]: TurboWebSessionRequestComposer,
     } as Record<number, OutgoingPacketConstructor>;
 };

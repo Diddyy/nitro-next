@@ -698,6 +698,7 @@ export * from './Turbo/TurboPluginMessagesMessage';
 export * from './Turbo/TurboServerCapabilitiesMessage';
 export * from './Turbo/TurboStarterRoomCameraMessage';
 export * from './Turbo/TurboStarterRoomPictureResultMessage';
+export * from './Turbo/TurboWebSessionMessage';
 export * from './Userclassification/UserClassificationMessage';
 export * from './Userdefinedroomevents/Data/AllVariablesInRoomParser';
 export * from './Userdefinedroomevents/Data/FurnitureLabelDataParser';

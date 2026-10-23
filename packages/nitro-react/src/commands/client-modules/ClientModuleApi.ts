@@ -16,6 +16,21 @@ import type { ClientModuleLibraries } from './clientModuleLibraries';
 
 export type ClientModuleDispose = () => void;
 
+/** A query for `api.http.get`: each value sent as text. */
+export type ClientModuleHttpQuery = Record<string, string | number | boolean>;
+
+/**
+ * A plugin web route's answer. Never thrown for an HTTP error: `ok` is false, `status` the HTTP status
+ * (0 when the call could not be made: no plugin routes on this hotel, a path outside the plugin's own)
+ * and `error` the route's message. `data` is the JSON body.
+ */
+export interface ClientModuleHttpResponse<T = unknown> {
+    ok: boolean;
+    status: number;
+    data: T | undefined;
+    error: string | undefined;
+}
+
 /** What a composer writes: an int, a string or a boolean (a byte), in wire order. */
 export type ClientModulePacketValue = number | string | boolean;
 
@@ -83,6 +98,18 @@ export interface ClientModuleApi {
          * once; a name the server did not list warns and sends nothing.
          */
         send: (name: string, data: Record<string, unknown>) => void;
+    };
+    /**
+     * The module's own plugin's web routes (`IPluginWebRoute`) on the hotel's public web host:
+     * `path` is under `/api/plugins/<key>/`, such as `'top'` or `'scores/42'`. The client signs the
+     * call in as the player; the module never sees a token. Rejects only when the network fails.
+     */
+    http: {
+        get: <T = unknown>(path: string, query?: ClientModuleHttpQuery) => Promise<ClientModuleHttpResponse<T>>;
+        post: <T = unknown>(path: string, body?: unknown) => Promise<ClientModuleHttpResponse<T>>;
+        put: <T = unknown>(path: string, body?: unknown) => Promise<ClientModuleHttpResponse<T>>;
+        patch: <T = unknown>(path: string, body?: unknown) => Promise<ClientModuleHttpResponse<T>>;
+        delete: <T = unknown>(path: string) => Promise<ClientModuleHttpResponse<T>>;
     };
     config: {
         /** A configuration value as the hotel set it, `undefined` when unset. */
