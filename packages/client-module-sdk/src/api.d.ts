@@ -15,6 +15,44 @@ export type ClientModuleDispose = () => void;
 /** What a composer writes: an int, a string or a boolean (a byte), in wire order. */
 export type ClientModulePacketValue = number | string | boolean;
 
+/**
+ * One field type of a plugin message's schema, as the server sends it (`client.messages`): a scalar,
+ * `['array', item]` or `['object', fields]`. `int`, `long` and `double` read as numbers.
+ */
+export type ClientModuleMessageType =
+    | 'int'
+    | 'long'
+    | 'bool'
+    | 'string'
+    | 'double'
+    | readonly [ 'array', ClientModuleMessageType ]
+    | readonly [ 'object', ClientModuleMessageSchema ];
+
+/** A plugin message's schema: its fields in wire order, `[camelCaseName, type]`. */
+export type ClientModuleMessageSchema = readonly (readonly [ string, ClientModuleMessageType ])[];
+
+/** The value a schema type reads as. */
+export type ClientModuleMessageValue<T> = T extends 'int' | 'long' | 'double'
+    ? number
+    : T extends 'bool'
+        ? boolean
+        : T extends 'string'
+            ? string
+            : T extends readonly [ 'array', infer Item ]
+                ? ClientModuleMessageValue<Item>[]
+                : T extends readonly [ 'object', infer Fields ]
+                    ? ClientModuleMessageOf<Fields>
+                    : unknown;
+
+/**
+ * A message's data as an object, from its schema written `as const` (the JSON the server sends, or
+ * `PluginMessageSchema.For(typeof(T)).Json` on the server):
+ * `type Skill = ClientModuleMessageOf<typeof SKILL_SCHEMA>`.
+ */
+export type ClientModuleMessageOf<Fields> = Fields extends readonly (readonly [ string, unknown ])[]
+    ? { [Field in Fields[number] as Field[0]]: ClientModuleMessageValue<Field[1]> }
+    : never;
+
 /** Raw bytes of a packet, read in order. */
 export interface ClientModuleBinaryReader {
     readBytes(length: number): ClientModuleBinaryReader;
@@ -134,6 +172,25 @@ export interface ClientModuleApi {
         registerComposer: (header: number) => ClientModuleDispose | undefined;
         /** Sends on a header the module claimed: each value an int, a string or a boolean. */
         send: (header: number, ...values: ClientModulePacketValue[]) => void;
+    };
+    /**
+     * The plugin's named messages (Turbo's `client.messages`, turbo-cloud `docs/plugin-messages.md`):
+     * read and written by name, from the field schema the server sends, so a module never sees a
+     * header. Type a message's data with `ClientModuleMessageOf<typeof schema>`.
+     */
+    messages: {
+        /**
+         * Every `name` message the server sends, as an object of its fields (camelCase, as the
+         * schema names them). A name the server's list does not have warns once; the handler is kept,
+         * since a plugin loading on the server may send its module before its messages' list.
+         */
+        on: (name: string, handler: (data: Record<string, unknown>) => void) => ClientModuleDispose;
+        /**
+         * Sends `name` with `data`'s fields, written in the schema's order. A field the schema does
+         * not have is ignored and a missing one sent as its default (0, '', false, []), each logged
+         * once; a name the server did not list warns and sends nothing.
+         */
+        send: (name: string, data: Record<string, unknown>) => void;
     };
     config: {
         /** A configuration value as the hotel set it, `undefined` when unset. */

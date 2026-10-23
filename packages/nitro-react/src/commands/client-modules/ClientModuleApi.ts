@@ -68,9 +68,9 @@ export interface ClientModuleApi {
     /**
      * The plugin's named messages (Turbo's `client.messages`, `docs/plugin-messages.md`): read and
      * written by name, from the field schema the server sends, so a module never sees a header.
-     * Undefined on a client that predates them; feature-detect with `api.messages?.`.
+     * A plain-JavaScript module that may meet an older client feature-detects with `api.messages?.`.
      */
-    messages?: {
+    messages: {
         /**
          * Every `name` message the server sends, as an object of its fields (camelCase, as the
          * schema names them). A name the server's list does not have warns once; the handler is kept,

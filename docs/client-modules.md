@@ -87,6 +87,7 @@ export default defineModule({
 | `useApi()` | The API the module was activated with, from any component or helper |
 | `assetUrl(path)` | A file beside the module in its plugin's `wwwroot/` (`new URL(path, api.baseUrl)`) |
 | `type ClientModuleApi`, `ClientModuleWindowProps`, ... | The API's types (`src/api.d.ts`) |
+| `type ClientModuleMessageOf<typeof schema>` | A plugin message's data, typed from its schema written `as const` (`ClientModuleMessageSchema`, the JSON `client.messages` sends) |
 | `@nitrodevco/client-module-sdk/theme` | `Box`, `Button`, `Frame`, `ThemeText`, `TemplateWindow`: the client's own, read from `NitroClientModuleHost` as the module loads; their props typed with what a module passes (`src/theme-types.d.ts`) |
 | `@nitrodevco/client-module-sdk/build` | `clientModuleBuildOptions({ entry, outfile, minify? })` for esbuild, and `clientModuleHostPlugin()` |
 
