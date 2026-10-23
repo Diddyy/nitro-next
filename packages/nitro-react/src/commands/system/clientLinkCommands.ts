@@ -3,13 +3,15 @@
  * mapped onto the window or command each one opens - what every Flash component did for the links
  * under its own `linkPattern` in `ILinkEventTracker.linkReceived`.
  */
-import { NitroLogger } from '@nitrodevco/nitro-api';
-import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGroupDetailsComposer } from '@nitrodevco/nitro-packets';
+import { NitroLogger, RoomZoomEvent } from '@nitrodevco/nitro-api';
+import { ForwardToSomeRoomComposer, GetExtendedProfileByNameComposer, GetHabboGroupDetailsComposer, RateFlatComposer } from '@nitrodevco/nitro-packets';
 
 import { clientModulesStore } from '#base/context/client-modules';
 import { Send } from '#base/context/communication';
 import { hintStore } from '#base/context/hints';
-import { systemStore, WindowParams } from '#base/context/system';
+import { navigatorStore } from '#base/context/navigator';
+import { getRoom } from '#base/context/room';
+import { configBoolean, systemStore, WindowParams } from '#base/context/system';
 import { PerkCodes, userStore } from '#base/context/user';
 import { getWiredHasReadPermission, getWiredMenuEnabled, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW } from '#base/context/wired';
 
@@ -26,10 +28,12 @@ import { toggleQuests } from '../quests/questCommands';
 import { openRewardTrackLink } from '../reward-track/rewardTrackCommands';
 import { startTakingPhoto } from '../room/cameraCommands';
 import { openRoomThumbnailCameraLink } from '../room/roomThumbnailCameraCommands';
+import { previewSoundVolumes, saveSoundVolumes } from '../sound/soundSettingsCommands';
 import { openSpecialItemsDisplay } from '../special-items/specialItemsCommands';
 import { findNewFriends } from '../user/friendBarCommands';
 import { openMessengerConversation } from '../user/messengerCommands';
 import { hideNoobLobbyOffer, showNoobLobbyOffer } from '../user/nuxCommands';
+import { setRoomCameraFollowDisabled, setRoomInvitesIgnored } from '../user/userSettingsCommands';
 import { openWiredRewardView, openWiredSelfDonation } from '../wired-trading/wiredTradingCommands';
 import { openHabboPage } from './habboPagesCommands';
 
@@ -49,6 +53,29 @@ const decodeBase64Text = (value: string): string => {
 };
 
 const INVENTORY_TABS: WindowParams<'inventory'>['tab'][] = [ 'furni', 'pets', 'bots', 'badges' ];
+
+/** `RoomToolsWidget`'s one-click zoom, carried through `useRoomZoom`'s room engine event flow. */
+const toggleRoomZoomLink = () => {
+    if (!configBoolean('zoom.enabled')) return;
+
+    const room = getRoom();
+    const { currentRoomId } = navigatorStore.getState();
+
+    if (!room || (room.roomId !== currentRoomId)) return;
+
+    room.eventDispatcher.dispatchEvent(new RoomZoomEvent(room.roomId, (room.canvas?.scale === 1) ? 0 : 1));
+};
+
+/** `RoomToolsWidget.likeRoom`: rate only the room that is currently active, then retire its permission. */
+const likeCurrentRoomLink = (send: Send) => {
+    const room = getRoom();
+    const { currentRoomId, canRateCurrentRoom, setRoomRating } = navigatorStore.getState();
+
+    if (!room || (room.roomId !== currentRoomId) || !canRateCurrentRoom) return;
+
+    send(new RateFlatComposer({ points: 1 }));
+    setRoomRating(0, false);
+};
 
 /** `BottomBarLeft.linkReceived`'s `highlight` targets: the hint key (`getIconName`) of each. */
 const TOOLBAR_HIGHLIGHT_ICONS: Record<string, string> = { catalog: 'CATALOGUE', navigator: 'NAVIGATOR', memenu: 'MEMENU' };
@@ -109,6 +136,47 @@ export const openClientLink = (send: Send, link: string) => {
     const { showWindow, hideWindow } = systemStore.getState();
 
     switch (parts[0]) {
+        // A custom settings view uses the same commands as the toolbar's own settings.
+        case 'settings': {
+            if ((parts[1] === 'sound') && (parts[2] === 'save') && (parts.length === 3)) {
+                saveSoundVolumes(send);
+                return;
+            }
+
+            if ((parts[1] === 'sound') && (parts[2] === 'preview') && (parts.length === 6)) {
+                const values = parts.slice(3).map(Number);
+
+                if (parts.slice(3).every(value => value.length > 0) && values.every(value => Number.isFinite(value) && value >= 0 && value <= 1)) {
+                    previewSoundVolumes(values[0], values[1], values[2]);
+                }
+
+                return;
+            }
+
+            if ((parts.length === 3) && ((parts[2] === '0') || (parts[2] === '1'))) {
+                if (parts[1] === 'ignore-room-invites') {
+                    setRoomInvitesIgnored(send, parts[2] === '1');
+                    return;
+                }
+
+                if (parts[1] === 'disable-camera-follow') {
+                    setRoomCameraFollowDisabled(send, parts[2] === '1');
+                    return;
+                }
+            }
+
+            break;
+        }
+        // Generic room toolbar actions. Neither route targets a different room from the active one.
+        case 'room': {
+            if ((parts.length !== 2) || !parts[1]) break;
+
+            if (parts[1] === 'zoom') toggleRoomZoomLink();
+            else if (parts[1] === 'like') likeCurrentRoomLink(send);
+            else break;
+
+            return;
+        }
         // `HabboNewNavigator.linkReceived`.
         case 'navigator': {
             switch (parts[1]) {
