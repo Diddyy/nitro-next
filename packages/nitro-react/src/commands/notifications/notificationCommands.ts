@@ -17,7 +17,7 @@
 import { RoomEnterEffect } from '@nitrodevco/nitro-renderer';
 
 import { NOTIFICATION_ASSETS, notificationStore } from '#base/context/notifications';
-import { systemStore } from '#base/context/system';
+import { configBoolean, systemStore } from '#base/context/system';
 import { configReader } from '#base/utils';
 
 /** The parameter map of a notification, `Map` in Flash. */
@@ -131,6 +131,9 @@ const MODERATION_DISCLAIMER_DELAY_MS = 5000;
  * running time and 5 s more, with one wait at a time, and asks again then.
  */
 export const showModerationDisclaimer = () => {
+    // A hotel may supply its own room-entry notice; absent this setting, keep the AS3 behavior.
+    if (!configBoolean('notifications.moderation.disclaimer.enabled', true)) return;
+
     const { moderationDisclaimerShown, moderationDisclaimerPending, patchModerationDisclaimer, addNotification } = notificationStore.getState();
 
     if (RoomEnterEffect.isRunning()) {
