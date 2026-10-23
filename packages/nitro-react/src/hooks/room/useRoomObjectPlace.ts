@@ -3,7 +3,7 @@ import { PlaceBotComposer, PlaceObjectComposer, PlacePetComposer, PlacePostItCom
 import { SelectedRoomObjectData } from '@nitrodevco/nitro-renderer';
 
 import { useWebSocketContext } from '#base/context/communication';
-import { useRoom, useRoomObjectPlacementSource, useRoomSelectedObject, useRoomSelectedObjectActions } from '#base/context/room';
+import { roomStore, useRoom, useRoomObjectPlacementSource, useRoomSelectedObjectActions } from '#base/context/room';
 import { setObjectAlphaMultiplier } from '#base/utils';
 
 import { useRoomObjectMove } from './useRoomObjectMove';
@@ -16,7 +16,6 @@ import { useRoomObjectSelect } from './useRoomObjectSelect';
  */
 export const useRoomObjectPlace = () => {
     const room = useRoom();
-    const selectedObject = useRoomSelectedObject();
     const objectPlacementSource = useRoomObjectPlacementSource();
     const { setSelectedObject, setPlacedObject } = useRoomSelectedObjectActions();
     const { resetSelectedObject } = useRoomObjectSelect();
@@ -24,6 +23,8 @@ export const useRoomObjectPlace = () => {
     const { send } = useWebSocketContext();
 
     const placeObject = (isTileEvent: boolean, isWallEvent: boolean) => {
+        const { selectedObject } = roomStore.getState();
+
         if (!room || !selectedObject) return;
 
         let objectId = selectedObject.objectId;
@@ -118,6 +119,8 @@ export const useRoomObjectPlace = () => {
     };
 
     const handleObjectPlace = (event: RoomObjectMouseEvent) => {
+        const { selectedObject } = roomStore.getState();
+
         if (!room || !event || !selectedObject) return;
 
         let roomObject = room.getRoomObject(selectedObject.objectId, selectedObject.category);

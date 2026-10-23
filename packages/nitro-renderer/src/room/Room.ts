@@ -56,7 +56,7 @@ import {
 import { Container, ImageLike, PointData, Rectangle, Sprite, Texture } from 'pixi.js';
 
 import { PetFigureData } from '../session';
-import { GetTickerTime } from '../utils';
+import { GetTickerTime, TextureUtils } from '../utils';
 import { GetRoomObjectLogicFactory, GetRoomObjectVisualizationFactory } from './factories';
 import { GetRoomContentLoader } from './GetRoomContentLoader';
 import { GetRoomEngine } from './GetRoomEngine';
@@ -2121,9 +2121,12 @@ export class Room implements IRoom {
 
         if (!sprite) return;
 
+        const texture = (sprite instanceof Sprite) ? sprite.texture : undefined;
+
         sprite.parent?.removeChild(sprite);
-        // The icon's render texture belongs to this sprite alone.
-        sprite.destroy({ texture: true, textureSource: true });
+        sprite.destroy();
+        // The icon's render texture belongs to this sprite alone; one drawn this frame is still in the room's batch.
+        if (texture) TextureUtils.destroyTexture(texture);
     }
 
     public getGeometry(): IRoomGeometry | undefined {
