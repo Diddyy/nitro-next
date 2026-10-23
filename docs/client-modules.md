@@ -67,6 +67,11 @@ need no import: the client registers them, and a module names them as JSX intrin
 | `notifications.setIllustration(resolve)` | The picture of every simple alert and notification popup, open or yet to open: `resolve({ kind, caption, message, illustration })` is shown each (`kind` `alert` or `popup`, `illustration` an asset name or URL, `undefined` for none) and answers another, or `undefined` to leave it; hooks run in the order they were set. The dialogs themselves are never rewritten, so taking the hook out puts the client's picture back |
 | `templates.patch(id, ops, { order? })`, `templates.bind(id, element, binding)`, `templates.report(id)` | Changes a core window's template as data and binds what the elements it added do; patches from every plugin apply together, in order, with conflicts and misses reported (`docs/template-patches.md`) |
 
+Links a module's own toolbar or settings view can open (`links.open`), the actions the stock widgets use: `room/zoom` (one-click
+zoom of the current room, while `zoom.enabled`), `room/like` (rate the current room, when it may be rated),
+`settings/sound/save`, `settings/sound/preview/<ui>/<furni>/<trax>` (each 0..1), `settings/ignore-room-invites/<0|1>`,
+`settings/disable-camera-follow/<0|1>`.
+
 Every `register`/`add`/`handle` returns a function that takes that one thing out; whatever a module
 added is taken out by the client when it stops, so `deactivate` only undoes what the module did
 outside the API. Everything a module draws sits in an error boundary of its own.
