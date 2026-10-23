@@ -3,3 +3,5 @@ export * from './ClientModuleApi';
 export * from './clientModuleLibraries';
 export * from './clientModuleLoader';
 export * from './createClientModuleApi';
+export * from './pluginMessageCodec';
+export * from './pluginMessages';
