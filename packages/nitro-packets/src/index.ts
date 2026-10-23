@@ -225,6 +225,8 @@ export * from './incoming/FriendList/NewConsoleMessageMessage';
 export * from './incoming/FriendList/NewFriendRequestMessage';
 export * from './incoming/FriendList/RoomInviteErrorMessage';
 export * from './incoming/FriendList/RoomInviteMessage';
+export * from './incoming/Game/Directory/Data/GameLobbyDataParser';
+export * from './incoming/Game/Directory/Data/IGameLobbyData';
 export * from './incoming/Game/Directory/Game2AccountGameStatusMessage';
 export * from './incoming/Game/Directory/Game2GameCancelledMessage';
 export * from './incoming/Game/Directory/Game2GameCreatedMessage';

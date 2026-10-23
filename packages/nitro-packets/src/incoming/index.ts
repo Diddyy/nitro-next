@@ -219,6 +219,8 @@ export * from './FriendList/NewConsoleMessageMessage';
 export * from './FriendList/NewFriendRequestMessage';
 export * from './FriendList/RoomInviteErrorMessage';
 export * from './FriendList/RoomInviteMessage';
+export * from './Game/Directory/Data/GameLobbyDataParser';
+export * from './Game/Directory/Data/IGameLobbyData';
 export * from './Game/Directory/Game2AccountGameStatusMessage';
 export * from './Game/Directory/Game2GameCancelledMessage';
 export * from './Game/Directory/Game2GameCreatedMessage';

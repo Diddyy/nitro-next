@@ -7,6 +7,7 @@ import { bridgeCollectiblesInventoryAndPurse, registerCollectiblesHandlers } fro
 import { registerCursedDragonAdoptionHandlers } from './cursed-dragon-adoption';
 import { registerDailyTasksHandlers } from './daily-tasks';
 import { registerEarningsHandlers } from './earnings';
+import { registerGameCenterHandlers } from './game-center';
 import { registerGameTokensHandlers } from './game-tokens';
 import { registerBadgeLeaderboardHandlers, registerGroupForumHandlers, registerGroupHandlers } from './groups';
 import { registerHabbiconHandlers } from './habbicons';
@@ -141,6 +142,8 @@ export const registerHandlers = (socket: WebSocketConnection) => {
         // The cursed dragon adoption's claim (`CursedDragonAdoptionController`).
         registerCursedDragonAdoptionHandlers(socket),
         registerGameTokensHandlers(socket),
+        // `HabboGameManager`: the games window, its directory and lobby messages and the account game status.
+        registerGameCenterHandlers(socket),
         registerOfferCenterHandlers(socket),
         bridgeOfferCenter(),
         // The targeted offers (`OfferController`): asked for once the user object is in.

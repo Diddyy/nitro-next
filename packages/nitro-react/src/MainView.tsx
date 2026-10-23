@@ -36,6 +36,7 @@ import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/Targ
 import { ClientModuleAvatarOverlaysView } from './views/client-modules/ClientModuleAvatarOverlaysView';
 import { ClientModuleWindowsView } from './views/client-modules/ClientModuleWindowsView';
 import { DailyTasksView } from './views/daily-tasks/DailyTasksView';
+import { GamesMainView } from './views/game-center/GamesMainView';
 import { GroupForumDialogs } from './views/group-forums/GroupForumDialogs';
 import { GroupForumView } from './views/group-forums/GroupForumView';
 import { HabboPagesView } from './views/habbo-pages/HabboPagesView';
@@ -199,6 +200,8 @@ export const MainView = () => {
                     <DailyTasksView />
                     {/* `BadgeLeaderboardController`: drawn only while shown. */}
                     <BadgeLeaderboardView />
+                    {/* `GamesMainViewController`'s games window: drawn only while open. */}
+                    <GamesMainView />
                     {/* `RewardTrackController`'s track window and its premium confirmation: drawn only while shown. */}
                     <RewardTrackView />
                     <RewardTrackPremiumConfirmationView />

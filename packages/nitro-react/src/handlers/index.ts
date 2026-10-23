@@ -7,6 +7,7 @@ export * from './cursed-dragon-adoption';
 export * from './daily-tasks';
 export * from './earnings';
 export * from './fragmentBuffer';
+export * from './game-center';
 export * from './game-tokens';
 export * from './groups';
 export * from './habbicons';

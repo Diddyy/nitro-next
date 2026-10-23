@@ -8,8 +8,7 @@
  * `GameTokensOffer` and, on buy, calls `purchaseGameTokensOffer(localizationId)`. The catalogue's
  * dialog lives in its window-scoped store, so the offer is left in `gameTokensStore` and the
  * catalogue opens it (`bridgeGameTokensPurchaseConfirmation` ->
- * `showGameTokensPurchaseConfirmation`). The games UI is not ported, so nothing calls
- * `buySnowWarTokensOffer` yet.
+ * `showGameTokensPurchaseConfirmation`). The games window calls it (`gameCenterCommands`).
  */
 import { GetSnowWarGameTokensOfferComposer, PurchaseSnowWarGameTokensOfferComposer } from '@nitrodevco/nitro-packets';
 
