@@ -28,6 +28,9 @@
             "#api/*": [
                 "../nitro-api/src/*"
             ],
+            "@nitrodevco/client-module-sdk/types": [
+                "../client-module-sdk/src/types.d.ts"
+            ],
         },
     },
     "references": [
