@@ -512,6 +512,7 @@ export class OutgoingHeader {
     public static TurboClientErrorReportComposer = 21100;
     public static TurboCommandSuggestComposer = 30003;
     public static TurboStarterRoomPictureComposer = 30006;
+    public static TurboWebSessionRequestComposer = 30011;
     public static UnacceptTradingComposer = 1324;
     public static UnbanUserFromRoomComposer = 3989;
     public static UnblockGroupMemberComposer = 2564;

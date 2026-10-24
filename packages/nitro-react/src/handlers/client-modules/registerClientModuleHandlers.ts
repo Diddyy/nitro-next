@@ -1,6 +1,6 @@
 import { TurboClientModulesMessage, TurboPluginMessagesMessage, TurboServerCapabilitiesMessage } from '@nitrodevco/nitro-packets';
 
-import { stopClientModules, stopPluginMessages, syncClientModules, syncPluginMessages } from '#base/commands';
+import { clearClientModuleWebSession, stopClientModules, stopPluginMessages, syncClientModules, syncPluginMessages } from '#base/commands';
 import { TURBO_CLIENT_MESSAGES_CAPABILITY, TURBO_CLIENT_MODULES_CAPABILITY } from '#base/context/client-modules';
 import { WebSocketConnection } from '#base/context/communication';
 import { userStore } from '#base/context/user';
@@ -32,6 +32,7 @@ export const registerClientModuleHandlers = (connection: WebSocketConnection) =>
 
     return () => {
         unsubscribe();
+        clearClientModuleWebSession();
         void stopClientModules();
         stopPluginMessages();
     };

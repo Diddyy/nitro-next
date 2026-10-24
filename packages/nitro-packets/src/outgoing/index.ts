@@ -476,6 +476,7 @@ export * from './Turbo/TurboClientCapabilitiesComposer';
 export * from './Turbo/TurboClientErrorReportComposer';
 export * from './Turbo/TurboCommandSuggestComposer';
 export * from './Turbo/TurboStarterRoomPictureComposer';
+export * from './Turbo/TurboWebSessionRequestComposer';
 export * from './Userclassification/PeerUsersClassificationComposer';
 export * from './Userclassification/RoomUsersClassificationComposer';
 export * from './Userdefinedroomevents/ApplySnapshotComposer';

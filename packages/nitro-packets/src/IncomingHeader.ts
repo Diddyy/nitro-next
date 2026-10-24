@@ -501,6 +501,7 @@ export class IncomingHeader {
     public static TurboBugReportRequestMessage = 21000;
     public static TurboClientModulesMessage = 30009;
     public static TurboPluginMessagesMessage = 30010;
+    public static TurboWebSessionMessage = 30012;
     public static TurboCommandSuggestionsMessage = 30004;
     public static TurboStarterRoomCameraMessage = 30005;
     public static TurboStarterRoomPictureResultMessage = 30007;

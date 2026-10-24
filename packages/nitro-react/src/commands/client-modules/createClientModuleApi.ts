@@ -16,6 +16,7 @@ import { addTemplateBinding, addTemplatePatch, templatePatchReports } from '#bas
 import { quitRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
 import { ClientModuleApi, ClientModuleDispose, ClientModulePacketValue } from './ClientModuleApi';
+import { clientModuleFetch } from './clientModuleHttp';
 import { getClientModuleLibraries } from './clientModuleLibraries';
 import { onPluginMessage, sendPluginMessage } from './pluginMessages';
 
@@ -177,6 +178,13 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
         messages: {
             on: (name, handler) => track(onPluginMessage(moduleKey, name, handler)),
             send: (name, data) => sendPluginMessage(moduleKey, name, data),
+        },
+        http: {
+            get: (path, query) => clientModuleFetch(connection, moduleKey, 'GET', path, { query }),
+            post: (path, body) => clientModuleFetch(connection, moduleKey, 'POST', path, { body }),
+            put: (path, body) => clientModuleFetch(connection, moduleKey, 'PUT', path, { body }),
+            patch: (path, body) => clientModuleFetch(connection, moduleKey, 'PATCH', path, { body }),
+            delete: path => clientModuleFetch(connection, moduleKey, 'DELETE', path),
         },
         config: {
             get: key => systemStore.getState().config[key],
