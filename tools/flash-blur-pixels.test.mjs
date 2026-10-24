@@ -34,7 +34,7 @@ const bitmap = (width, height, ...opaque) => {
 const alphaRow = (data, width, y) => Array.from({ length: width }, (unused, x) => data[((y * width) + x) * 4 + 3]);
 const alphaColumn = (data, width, height, x) => Array.from({ length: height }, (unused, y) => data[((y * width) + x) * 4 + 3]);
 
-test('one pass of 6 spreads a pixel over the 3 before it and the 2 after, 255 / 6 each', () => {
+await test('one pass of 6 spreads a pixel over the 3 before it and the 2 after, 255 / 6 each', () => {
     const data = bitmap(12, 1, [ 5, 0 ]);
 
     flashBlurPixels(data, 12, 1, 6, 0, 1);
@@ -43,7 +43,7 @@ test('one pass of 6 spreads a pixel over the 3 before it and the 2 after, 255 / 
     assert.deepEqual(alphaRow(data, 12, 0), [ 0, 0, 0, 43, 43, 43, 43, 43, 43, 0, 0, 0 ]);
 });
 
-test('quality 2 is a second pass over the first, rounded to 8 bits in between', () => {
+await test('quality 2 is a second pass over the first, rounded to 8 bits in between', () => {
     const data = bitmap(12, 1, [ 5, 0 ]);
 
     flashBlurPixels(data, 12, 1, 6, 0, 2);
@@ -52,7 +52,7 @@ test('quality 2 is a second pass over the first, rounded to 8 bits in between', 
     assert.deepEqual(alphaRow(data, 12, 0), [ 0, 7, 14, 22, 29, 36, 43, 36, 29, 22, 14, 7 ]);
 });
 
-test('vertically the same kernel, along the column', () => {
+await test('vertically the same kernel, along the column', () => {
     const data = bitmap(1, 12, [ 0, 5 ]);
 
     flashBlurPixels(data, 1, 12, 0, 6, 2);
@@ -60,7 +60,7 @@ test('vertically the same kernel, along the column', () => {
     assert.deepEqual(alphaColumn(data, 1, 12, 0), [ 0, 7, 14, 22, 29, 36, 43, 36, 29, 22, 14, 7 ]);
 });
 
-test('past the edge counts as transparent: an edge pixel loses what falls outside', () => {
+await test('past the edge counts as transparent: an edge pixel loses what falls outside', () => {
     const data = bitmap(8, 1, [ 0, 0 ]);
 
     flashBlurPixels(data, 8, 1, 6, 0, 1);
@@ -69,7 +69,7 @@ test('past the edge counts as transparent: an edge pixel loses what falls outsid
     assert.deepEqual(alphaRow(data, 8, 0), [ 43, 43, 43, 43, 0, 0, 0, 0 ]);
 });
 
-test('BlurFilter(6, 6, 2), the habbicon shadow: x then y each pass, the peak a pixel down and right of the source', () => {
+await test('BlurFilter(6, 6, 2), the habbicon shadow: x then y each pass, the peak a pixel down and right of the source', () => {
     const data = bitmap(13, 13, [ 5, 5 ]);
 
     flashBlurPixels(data, 13, 13, 6, 6, 2);
@@ -85,7 +85,7 @@ test('BlurFilter(6, 6, 2), the habbicon shadow: x then y each pass, the peak a p
     assert.equal(data[((3 * 13) + 3) * 4 + 3], 2);
 });
 
-test('every channel is blurred alike (premultiplied colour with its alpha)', () => {
+await test('every channel is blurred alike (premultiplied colour with its alpha)', () => {
     const data = new Uint8ClampedArray(12 * 4);
 
     data.set([ 120, 60, 30, 255 ], 5 * 4);
@@ -94,7 +94,7 @@ test('every channel is blurred alike (premultiplied colour with its alpha)', () 
     assert.deepEqual(Array.from(data.subarray(3 * 4, 4 * 4)), [ 20, 10, 5, 43 ]);
 });
 
-test('a blur of 1 or less is no blur; fractions round as Flash rounds the box', () => {
+await test('a blur of 1 or less is no blur; fractions round as Flash rounds the box', () => {
     const still = bitmap(6, 1, [ 2, 0 ]);
 
     flashBlurPixels(still, 6, 1, 1, 1, 3);

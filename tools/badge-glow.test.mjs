@@ -25,7 +25,7 @@ const glow = load();
 
 const close = (actual, expected, label) => assert.ok(Math.abs(actual - expected) < 1e-9, `${label}: ${actual} != ${expected}`);
 
-test('the default glow is 31 ticks of 16 ms; 0 or less plays 1000 ms; at least one tick', () => {
+await test('the default glow is 31 ticks of 16 ms; 0 or less plays 1000 ms; at least one tick', () => {
     assert.equal(glow.BADGE_GLOW_DURATION, 500);
     assert.equal(glow.BADGE_GLOW_TICK, 16);
     assert.equal(glow.BADGE_GLOW_IMAGE_TIMEOUT, 5000);
@@ -36,7 +36,7 @@ test('the default glow is 31 ticks of 16 ms; 0 or less plays 1000 ms; at least o
     assert.equal(glow.badgeGlowTicks(10), 1);
 });
 
-test('the strength: about half at the first tick, full at 40%, gone at the last tick', () => {
+await test('the strength: about half at the first tick, full at 40%, gone at the last tick', () => {
     const ticks = 31;
     const at = count => glow.badgeGlowStrength(count, ticks);
 
@@ -54,7 +54,7 @@ test('the strength: about half at the first tick, full at 40%, gone at the last 
     for (let count = 13; count < 31; count++) assert.ok(at(count + 1) < at(count), `down at ${count}`);
 });
 
-test('the outer and inner glows at full strength and at half', () => {
+await test('the outer and inner glows at full strength and at half', () => {
     const rare = 0x85F97F;
 
     const outer = [ ...glow.badgeOuterGlowArgs(rare, 1) ];
@@ -80,7 +80,7 @@ test('the outer and inner glows at full strength and at half', () => {
     assert.equal(innerFlag, true);
 });
 
-test('the tint: 48% of the strength towards the colour, 5% of that crossed, up to 80 added', () => {
+await test('the tint: 48% of the strength towards the colour, 5% of that crossed, up to 80 added', () => {
     // the epic tier, 0x66BAFF
     const matrix = [ ...glow.badgeTintMatrix(0x66BAFF, 1) ];
     const r = 0x66 / 255;
