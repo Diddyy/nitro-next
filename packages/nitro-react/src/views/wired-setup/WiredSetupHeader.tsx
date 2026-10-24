@@ -28,6 +28,8 @@ import { WiredTextualButton } from './kit/WiredTextualButton';
 const ILLUMINA_NAME_COLOR = '#494949';
 /** `IlluminaHeaderPreset` `_name1Preset`'s `fontSize`. */
 const ILLUMINA_TYPE_FONT_SIZE = 11;
+/** `IlluminaHeaderPreset.createTopHeaderElement`'s list `spacing`. */
+const ILLUMINA_NAME_SPACING = -2;
 
 export interface WiredSetupHeaderSourceTypeSelector {
     options: number[];
@@ -76,9 +78,11 @@ export const WiredSetupHeader = ({ style, name, holder, buttonText, buttonVisibl
     } else {
         const [ typeName, elementName ] = getNameParts(name);
 
+        // `spacing = -2`: each line overlaps the one above by 2px. A flex gap is never negative
+        // (Yoga clamps it to 0), so the overlap is each later line's own margin.
         nameElement = (
             <WiredSimpleList
-                spacing={-2}
+                spacing={0}
                 layout={{ marginLeft: 3 }}
             >
                 <WiredSpacing
@@ -89,12 +93,14 @@ export const WiredSetupHeader = ({ style, name, holder, buttonText, buttonVisibl
                     text={typeName}
                     bold
                     fontSize={ILLUMINA_TYPE_FONT_SIZE}
+                    layout={{ marginTop: ILLUMINA_NAME_SPACING }}
                 />
                 <WiredText
                     text={elementName}
                     bold
                     fontSize={style.headerNameFontSize}
                     color={ILLUMINA_NAME_COLOR}
+                    layout={{ marginTop: ILLUMINA_NAME_SPACING }}
                 />
             </WiredSimpleList>
         );
