@@ -233,7 +233,8 @@ export const registerRoomUserHandlers = ({ subscribe }: WebSocketConnection) => 
 
                 if (update.didMove) target = new Vector3d(update.targetX, update.targetY, update.targetZ);
 
-                room.updateRoomObjectUser(update.objectId, location, target, update.canStandUp, height, direction, update.headRotation);
+                // `RoomMessageHandler.onUserUpdate`: a "wf" update (a wired slide still running) leaves the slide alone.
+                room.updateRoomObjectUser(update.objectId, location, target, update.canStandUp, height, direction, update.headRotation, NaN, update.skipPositionUpdate);
                 room.updateRoomObjectUserFlatControl(update.objectId, '');
 
                 let isPosture = true;
