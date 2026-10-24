@@ -34,8 +34,10 @@ jobs:
           node-version: 22
           cache: yarn
 
+      # yarn.lock also locks packages/nitro-studio, a workspace kept out of git (.gitignore), so
+      # a checkout without it drops those entries; every other package keeps its locked version.
       - name: Install
-        run: yarn install --immutable
+        run: yarn install --no-immutable
 
       - name: Typecheck the client
         run: yarn tsc -p packages/nitro-react/tsconfig.typecheck.json
@@ -61,7 +63,7 @@ jobs:
           cache: yarn
 
       - name: Install
-        run: yarn install --immutable
+        run: yarn install --no-immutable
 
       # PRs reuse the results of files unchanged since the last branch push; pushes lint every
       # file (a type change can break a file it did not touch) and save the cache.
@@ -102,7 +104,7 @@ jobs:
           cache: yarn
 
       - name: Install
-        run: yarn install --immutable
+        run: yarn install --no-immutable
 
       - name: Package tests
         run: yarn workspaces foreach --all --parallel run test
