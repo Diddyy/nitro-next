@@ -355,7 +355,7 @@ export const registerRoomFurnitureHandlers = ({ subscribe, send }: WebSocketConn
 
                 if (!object || !legacyGeometry) continue;
 
-                const direction = wallMove.isDirectionRight ? LegacyWallGeometry.L : LegacyWallGeometry.R;
+                const direction = wallMove.isDirectionRight ? LegacyWallGeometry.R : LegacyWallGeometry.L;
                 const source = legacyGeometry.getLocation(wallMove.sourceX, wallMove.sourceY, wallMove.sourceOffsetX, wallMove.sourceOffsetY, direction);
                 const target = legacyGeometry.getLocation(wallMove.targetX, wallMove.targetY, wallMove.targetOffsetX, wallMove.targetOffsetY, direction);
 
