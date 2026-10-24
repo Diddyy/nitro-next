@@ -9,6 +9,10 @@ import { Region, useTextureFromUrl } from '#base/theme';
  * colour, with its mask copied over the result untinted. A `ColorTransform` whose three multipliers
  * are the colour's own channels is exactly a Pixi tint, so the composite is two sprites rather than
  * a bitmap the client rebuilds on every change.
+ *
+ * It is drawn into bitmaps that take no press - `badge_layer`'s `part_preview` and
+ * `badge_part_item`'s `part` (`params` 16 and 2192) lack `input_event_processor` (1) - so a press on it
+ * reaches the `part_button` or the part item under it (`BadgeLayerCtrl.onPartPreviewButtonClick`).
  */
 export interface GroupBadgePartImageProps {
     /** The part this layer draws, or nothing for an empty layer. */
@@ -30,15 +34,20 @@ export const GroupBadgePartImage = ({ part, options, color }: GroupBadgePartImag
     const { x, y } = badgePartOffset(options, texture.width, texture.height);
 
     return (
-        <Region layout={{ position: 'absolute', left: 0, top: 0, width: BADGE_IMAGE_WIDTH, height: BADGE_IMAGE_HEIGHT, overflow: 'hidden' }}>
+        <Region
+            pointerTransparent
+            layout={{ position: 'absolute', left: 0, top: 0, width: BADGE_IMAGE_WIDTH, height: BADGE_IMAGE_HEIGHT, overflow: 'hidden' }}
+        >
             <pixiSprite
                 texture={texture}
                 tint={color ?? 0xffffff}
+                eventMode="none"
                 layout={{ position: 'absolute', left: x, top: y, width: texture.width, height: texture.height }}
             />
             {maskTexture && (
                 <pixiSprite
                     texture={maskTexture}
+                    eventMode="none"
                     layout={{ position: 'absolute', left: x, top: y, width: maskTexture.width, height: maskTexture.height }}
                 />
             )}
