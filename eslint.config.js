@@ -60,6 +60,9 @@ const config = [
             '**/scripts/build-asset-bundles.ts',
             '**/scripts/extract-skin-assets.ts',
             '**/scripts/sync-generated-packets.ts',
+            // Client module examples: plain JavaScript a hotel serves as written, outside every
+            // tsconfig, so the type-aware rules cannot run on them.
+            'docs/examples/**',
         ],
     },
     js.configs.recommended,
