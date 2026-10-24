@@ -65,6 +65,25 @@ export interface ClientModuleApi {
         /** Sends on a header the module claimed: each value an int, a string or a boolean. */
         send: (header: number, ...values: ClientModulePacketValue[]) => void;
     };
+    /**
+     * The plugin's named messages (Turbo's `client.messages`, `docs/plugin-messages.md`): read and
+     * written by name, from the field schema the server sends, so a module never sees a header.
+     * A plain-JavaScript module that may meet an older client feature-detects with `api.messages?.`.
+     */
+    messages: {
+        /**
+         * Every `name` message the server sends, as an object of its fields (camelCase, as the
+         * schema names them). A name the server's list does not have warns once; the handler is kept,
+         * since a plugin loading on the server may send its module before its messages' list.
+         */
+        on: (name: string, handler: (data: Record<string, unknown>) => void) => ClientModuleDispose;
+        /**
+         * Sends `name` with `data`'s fields, written in the schema's order. A field the schema does
+         * not have is ignored and a missing one sent as its default (0, '', false, []), each logged
+         * once; a name the server did not list warns and sends nothing.
+         */
+        send: (name: string, data: Record<string, unknown>) => void;
+    };
     config: {
         /** A configuration value as the hotel set it, `undefined` when unset. */
         get: (key: string) => unknown;

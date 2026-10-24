@@ -87,6 +87,7 @@ export default defineModule({
 | `useApi()` | The API the module was activated with, from any component or helper |
 | `assetUrl(path)` | A file beside the module in its plugin's `wwwroot/` (`new URL(path, api.baseUrl)`) |
 | `type ClientModuleApi`, `ClientModuleWindowProps`, ... | The API's types (`src/api.d.ts`) |
+| `type ClientModuleMessageOf<typeof schema>` | A plugin message's data, typed from its schema written `as const` (`ClientModuleMessageSchema`, the JSON `client.messages` sends) |
 | `@nitrodevco/client-module-sdk/theme` | `Box`, `Button`, `Frame`, `ThemeText`, `TemplateWindow`: the client's own, read from `NitroClientModuleHost` as the module loads; their props typed with what a module passes (`src/theme-types.d.ts`) |
 | `@nitrodevco/client-module-sdk/build` | `clientModuleBuildOptions({ entry, outfile, minify? })` for esbuild, and `clientModuleHostPlugin()` |
 
@@ -122,6 +123,7 @@ a stand-in host.
 | `meMenu.add({ id, caption, onClick })`, `meMenu.toggle()` | A me menu entry: a clone of `profile` with its own caption, before the spacer; `toggle` opens or closes the me menu, as Habbo's `toolbar/memenu` link does |
 | `links.handle(prefix, fn)`, `links.open(link)` | In-client links `<prefix>/...` the client has no route of its own for |
 | `packets.registerParser(header, parse, listener)`, `registerComposer(header)`, `send(header, ...values)` | Extension packets at 20000-32767 outside Turbo's 30000-30099, never over a header the client already has; values are ints, strings and booleans |
+| `messages.on(name, handler)`, `messages.send(name, data)` | The plugin's named messages (Turbo's `client.messages`, `docs/plugin-messages.md` there): read into an object of the fields the server's schema names, and written from one, so a module never sees a header. `on` for a name the server has not listed warns once (the handler is kept: a plugin loading sends its module before its list); `send` for one warns and sends nothing. A field the schema lacks is ignored and a missing one sent as its default (0, '', false, []), each logged once per name. Optional (`api.messages?.`): clients before it have none |
 | `config.get(key)`, `texts.get(key, fallback?, replacements?)` | The hotel's configuration and texts |
 | `sounds.play(id)` | A sample of the client's sound manager |
 | `room.avatarOverlay(render)`, `room.leave()` | `render({ roomIndex, userId, name, isOwnUser })` is drawn above each user's head every frame, under the windows; `leave` quits the room for the hotel view, as the toolbar's hotel view icon does |
@@ -152,8 +154,27 @@ The existing `seasonalcurrencyindicator.enabled`, `eventinfo.enabled` and
 and configured promotions. `notifications.moderation.disclaimer.enabled` defaults to `true`;
 a hotel supplying its own entry notice can set it to `false` to omit the stock disclaimer.
 
+## Plugin messages (`client.messages`)
+
+The client asks for `client.messages` with the other Turbo extensions. The server answers with
+`TurboPluginMessagesMessage` (header 30010): per message its `name`, the `header` the server gave it
+(the same both ways) and its `schema`, after the capability answer and again whenever the set
+changes. `commands/client-modules/pluginMessages.ts` registers each header's parser and composer as
+extension packets, so a header a module took with `packets.registerParser` stays its own (the
+message is skipped, with a warning).
+
+The schema is compact JSON: an array of `[name, type]` fields (camelCase), where a type is `'int'`,
+`'long'`, `'bool'`, `'string'`, `'double'`, `['array', type]` or `['object', fields]`.
+`pluginMessageCodec.ts` reads and writes from it in Habbo's wire encoding: ints, a long as its high
+and low int, a byte for a bool, a string after its length, a double as its 8 IEEE bytes, an array as
+an int count and its items, a record as its fields. For typed modules a generator can map the
+schema to TypeScript: `int`, `long` and `double` are `number`, `bool` is `boolean`, `string` is
+`string`, an array `T[]` and an object an interface of its fields. Tests:
+`packages/nitro-react/test/pluginMessageCodec.test.ts` (`yarn workspace @nitrodevco/nitro-react test`).
+
 ## Example
 
 `docs/examples/client-modules/hello/` is a module with no build step: a toolbar icon and a me
-menu entry that open a window, the `hello/open` link, and a bar over the user's own avatar. Turbo's
+menu entry that open a window, the `hello/open` link, a bar over the user's own avatar, and a
+button that sends the plugin's `hello.wave` message and shows its `hello.waved` answer. Turbo's
 example plugin serves the same files.

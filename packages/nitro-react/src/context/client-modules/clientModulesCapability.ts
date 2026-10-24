@@ -1,6 +1,9 @@
 /** Turbo's `client.modules` extension: the server names the client modules its plugins ship. */
 export const TURBO_CLIENT_MODULES_CAPABILITY = 'client.modules';
 
+/** Turbo's `client.messages` extension: the server names its plugins' messages, each with its header and schema. */
+export const TURBO_CLIENT_MESSAGES_CAPABILITY = 'client.messages';
+
 /**
  * The origins or hosts a client module may come from besides the client's own. Never taken from
  * the page's query: a link that also names another `socket.url` would let that server run code here.

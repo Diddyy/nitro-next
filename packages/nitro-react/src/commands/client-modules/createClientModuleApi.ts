@@ -17,6 +17,7 @@ import { quitRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
 import { ClientModuleApi, ClientModuleDispose, ClientModulePacketValue } from './ClientModuleApi';
 import { getClientModuleLibraries } from './clientModuleLibraries';
+import { onPluginMessage, sendPluginMessage } from './pluginMessages';
 
 let nextOverlayKey = 1;
 let nextIllustrationKey = 1;
@@ -172,6 +173,10 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
                 connection.send(new Composer(values));
             },
+        },
+        messages: {
+            on: (name, handler) => track(onPluginMessage(moduleKey, name, handler)),
+            send: (name, data) => sendPluginMessage(moduleKey, name, data),
         },
         config: {
             get: key => systemStore.getState().config[key],

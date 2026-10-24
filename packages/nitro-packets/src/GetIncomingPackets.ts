@@ -447,6 +447,7 @@ import {
     TurboCommandTreeMessage,
     TurboNoticeMessage,
     TurboPermissionNodesMessage,
+    TurboPluginMessagesMessage,
     TurboServerCapabilitiesMessage,
     TurboStarterRoomCameraMessage,
     TurboStarterRoomPictureResultMessage,
@@ -1136,5 +1137,6 @@ export const GetIncomingPackets = () => {
         [IncomingHeader.TurboNoticeMessage]: TurboNoticeMessage,
         [IncomingHeader.TurboStarterRoomPictureResultMessage]: TurboStarterRoomPictureResultMessage,
         [IncomingHeader.TurboClientModulesMessage]: TurboClientModulesMessage,
+        [IncomingHeader.TurboPluginMessagesMessage]: TurboPluginMessagesMessage,
     } as Record<number, IncomingPacketConstructor>;
 };
