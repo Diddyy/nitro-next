@@ -7,11 +7,11 @@
  * the alert.
  */
 import { BinaryReader, BinaryWriter, Byte, ClientDeviceCategoryEnum, ClientPlatformEnum, EvaWireDataWrapper, IMessageDataWrapper, IncomingPacketConstructor, IOutgoingPacket, NitroLogger, Short } from '@nitrodevco/nitro-api';
-import { AuthenticationOKMessage, ClientHelloComposer, DisconnectReasonMessage, GetIncomingPackets, GetOutgoingPackets, PingMessage, PongComposer, SSOTicketComposer } from '@nitrodevco/nitro-packets';
+import { AuthenticationOKMessage, ClientHelloComposer, DisconnectReasonMessage, ErrorReportMessage, GetIncomingPackets, GetOutgoingPackets, PingMessage, PongComposer, SSOTicketComposer } from '@nitrodevco/nitro-packets';
 import { GetTickerTime } from '@nitrodevco/nitro-renderer';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
-import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, showConnectionClosed, trackLoginStep } from '#base/commands';
+import { DISCONNECT_REASON_SOCKET_CLOSED, getDisconnectReasonName, isConnectionClosingServerError, showConnectionClosed, showServerError, trackLoginStep } from '#base/commands';
 import { recordBugReportPacket } from '#base/context/bugreport';
 import { recordClientErrorBreadcrumb } from '#base/context/clienterrors';
 import { onboardingStore } from '#base/context/onboarding';
@@ -436,6 +436,13 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         });
         const unsubscribeDisconnect = subscribe(DisconnectReasonMessage, data => closeConnection(data.reason ?? -1, getDisconnectReasonName(data.reason ?? -1)));
 
+        // `IncomingMessages.onErrorReport` -> `HabboCommunicationDemo.handleErrorMessage`: 1001-1019 close the
+        // connection (`connection.close()`, which ends as a close no reason preceded), any other code is an alert.
+        const unsubscribeErrorReport = subscribe(ErrorReportMessage, (data) => {
+            if (isConnectionClosingServerError(data.errorCode)) closeConnection(DISCONNECT_REASON_SOCKET_CLOSED);
+            else showServerError(data.errorCode);
+        });
+
         // IncomingMessages.onPing in the SWF replies with an empty PongMessageComposer.
         // sendRaw bypasses the pending queue so the reply is never deferred — the
         // server closes the connection (1000 "Bye") if it goes unanswered.
@@ -444,6 +451,7 @@ export const WebSocketContextProvider = ({ children }: ProviderProps) => {
         return () => {
             unsubscribeAuth();
             unsubscribeDisconnect();
+            unsubscribeErrorReport();
             unsubscribePing();
         };
     }, []);

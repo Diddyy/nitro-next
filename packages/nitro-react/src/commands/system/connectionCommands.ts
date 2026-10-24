@@ -111,6 +111,27 @@ export const showConnectionClosed = (reason: number, reasonName = '') => {
     showAlert(title, message, { modal: true });
 };
 
+/** `HabboCommunicationDemo.handleErrorMessage`: the error codes it answers by closing the connection. */
+export const isConnectionClosingServerError = (errorCode: number) => (errorCode >= 1001) && (errorCode <= 1019);
+
+/**
+ * `HabboCommunicationDemo.handleErrorMessage` (`ErrorReport`) for a code that leaves the connection
+ * open: 4013 is `${connection.room.maintenance.title}` / `.desc`, any other code "Server error" /
+ * "Sorry, received server error: %errorCode%" (`connection.server.error.title` / `.desc`). The
+ * message id is read but never shown.
+ */
+export const showServerError = (errorCode: number) => {
+    const { getLocalizationValue, showAlert } = systemStore.getState();
+
+    if (errorCode === 4013) {
+        showAlert(getLocalizationValue('connection.room.maintenance.title'), getLocalizationValue('connection.room.maintenance.desc'));
+
+        return;
+    }
+
+    showAlert(getLocalizationValue('connection.server.error.title'), getLocalizationValue('connection.server.error.desc', '', { errorCode: String(errorCode) }));
+};
+
 /**
  * `HabboToolbar.reboot` (the purse's `logout_button`): `CoreComponentContext.reboot` stops the core
  * and the AIR client's `onCoreReboot` exits with code 1 for its launcher to start it again. The
