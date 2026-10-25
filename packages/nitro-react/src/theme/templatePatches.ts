@@ -39,7 +39,8 @@ const changed = () => {
     listeners.forEach(listener => listener());
 };
 
-const subscribe = (listener: () => void) => {
+/** Calls `listener` when the patches or extension bindings change (`useSyncExternalStore`'s subscribe). */
+export const subscribeTemplatePatches = (listener: () => void) => {
     listeners.add(listener);
 
     return () => {
@@ -50,7 +51,7 @@ const subscribe = (listener: () => void) => {
 const getVersion = () => version;
 
 /** Re-renders a component when the patches or extension bindings change. */
-export const useTemplatePatchVersion = () => useSyncExternalStore(subscribe, getVersion);
+export const useTemplatePatchVersion = () => useSyncExternalStore(subscribeTemplatePatches, getVersion);
 
 const getBindings = () => bindings;
 
@@ -59,7 +60,7 @@ const getBindings = () => bindings;
  * the list is read as a snapshot, so a memoised caller (the React Compiler memoises by what a
  * computation reads) recomputes when a module binds or unbinds.
  */
-export const useTemplateExtensionBindings = (id: string, own: TemplateBindings | undefined) => mergeExtensionBindings(id, own, useSyncExternalStore(subscribe, getBindings));
+export const useTemplateExtensionBindings = (id: string, own: TemplateBindings | undefined) => mergeExtensionBindings(id, own, useSyncExternalStore(subscribeTemplatePatches, getBindings));
 
 /** Adds a patch; the returned function takes it out again. */
 export const addTemplatePatch = (patch: TemplatePatch) => {

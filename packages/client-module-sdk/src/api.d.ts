@@ -175,7 +175,10 @@ export interface ClientModuleApi {
         toggle: () => void;
     };
     links: {
-        /** Every in-client link `<prefix>/...` that the client itself has no route for. */
+        /**
+         * Every in-client link `<prefix>/...` that the client itself has no route for. A second handler
+         * of a prefix adds to the first: each handler, of this module or another, gets every such link.
+         */
         handle: (prefix: string, handler: (link: string) => void) => ClientModuleDispose;
         /** Opens an in-client link, the client's or a module's. */
         open: (link: string) => void;
