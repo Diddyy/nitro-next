@@ -17,6 +17,7 @@ import { createContext } from 'react';
 
 import { resolveTemplateNames } from './template/templateBindings';
 import type { TemplateElement } from './template/templateData';
+import type { TemplateContext } from './template/templatePatch';
 
 /** One drawn element, and the element it is drawn in (none for a window's root). */
 export interface TemplateInspectNode {
@@ -28,6 +29,8 @@ export interface TemplateInspectNode {
 export interface TemplateInspectWindow {
     id: string;
     part?: string;
+    /** What the window tells patches about what it shows (`TemplateWindow`'s `context`): the ops of a patch that reads it are listed as made for it. */
+    context?: TemplateContext;
 }
 
 export const TemplateInspectContext = createContext<TemplateInspectNode | undefined>(undefined);

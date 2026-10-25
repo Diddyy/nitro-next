@@ -109,6 +109,7 @@ export * from './Tooltip';
 export * from './tooltip/TooltipLayer';
 export * from './tooltip/tooltipStore';
 export * from './tooltip/useTooltipHandlers';
+export * from './utils/assetOverlays';
 export * from './utils/boxBlur';
 export * from './utils/buttonGroupFactory';
 export * from './utils/buttonVariants';

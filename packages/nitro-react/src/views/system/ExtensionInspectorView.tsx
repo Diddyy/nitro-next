@@ -1,4 +1,4 @@
-import { ClientPointToStage, inspectAt, inspectChain, inspectKey, resolveTemplateNames, setTemplateInspecting, TemplateElement, TemplateInspectHit } from '@nitrodevco/nitro-theme';
+import { ClientPointToStage, EMPTY_TEMPLATE_CONTEXT, inspectAt, inspectChain, inspectKey, resolveTemplateNames, setTemplateInspecting, TemplateElement, TemplateInspectHit, TemplatePatch, TemplatePatchOp } from '@nitrodevco/nitro-theme';
 import { useApplication } from '@pixi/react';
 import { useEffect, useState } from 'react';
 
@@ -108,6 +108,20 @@ const editable = (element: TemplateElement) => ({
     ...(element.hidden ? { hidden: true } : {}),
 });
 
+/** A patch's ops as the window shows them: a function of the window's context is called with it (a throw lists none). */
+const opsShown = (patch: TemplatePatch, hit: TemplateInspectHit): readonly TemplatePatchOp[] => {
+    if (typeof patch.ops !== 'function') return patch.ops;
+
+    try {
+        return patch.ops(hit.window.context ?? EMPTY_TEMPLATE_CONTEXT);
+    } catch {
+        return [];
+    }
+};
+
+/** One op, as a line of the inspector. */
+const describeOp = (op: TemplatePatchOp) => ('set' in op ? `set ${JSON.stringify(op.set)}` : 'remove' in op ? 'remove' : 'move' in op ? `move ${op.move} '${op.to}'` : `insert ${op.insert} ${op.add.name}`);
+
 /** The template id the patches name: one window of a template drawn alone is still that template's. */
 const describe = (hit: TemplateInspectHit) => {
     const { id, part } = hit.window;
@@ -120,13 +134,13 @@ const describe = (hit: TemplateInspectHit) => {
     // The ops that name this element or one it is drawn in: by the key as given, or by an owner's own name for what it added.
     const named = (target: TemplateElement) => templatePatchList()
         .filter(patch => patch.template === id)
-        .flatMap(patch => patch.ops
+        .flatMap(patch => opsShown(patch, hit)
             .filter((op) => {
                 const keys = [ op.element, op.element.split('/').map(name => `${patch.owner}:${name}`).join('/') ];
 
                 return keys.some(candidate => resolveTemplateNames([ chain[0] ], [ candidate ]).targets.get(candidate) === target);
             })
-            .map(op => `${patch.owner} on '${op.element}': ${'set' in op ? `set ${JSON.stringify(op.set)}` : 'remove' in op ? 'remove' : `insert ${op.insert} ${op.add.name}`}`));
+            .map(op => `${patch.owner} on '${op.element}': ${describeOp(op)}`));
     const patches = [ ...chain ].reverse().flatMap(named);
     const path = chain.slice(1).map(each => each.name ?? `<${each.tag}>`).join(' > ');
     const patch = JSON.stringify({ patches: [ { template: id, ops: [ { element: key ?? '', set: editable(element) } ] } ] }, null, 2);

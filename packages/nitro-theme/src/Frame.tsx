@@ -6,14 +6,20 @@ import { VariantCascadeProvider } from './cascade';
 import { ContentArea } from './ContentArea';
 import { Header } from './Header';
 import { ChildBounds, useChildBounds, useFrameDrag, useFrameResize, useThemeVariant } from './hooks';
+import { useThemeConfigValue } from './host';
 import { BackgroundLayer, ShadowLayer } from './layer';
 import { Scaler, ScalerDirection } from './Scaler';
-import { DropShadowConfig, expandSides, getWindowLayer, subscribeWindowLayer, ThemeProps, ThemeVariant, WindowPlacedContext } from './utils';
+import { DropShadowConfig, expandSides, FRAME_OVERRIDES_KEY, frameOverrideOf, getWindowLayer, subscribeWindowLayer, ThemeProps, ThemeVariant, WindowPlacedContext } from './utils';
 
 export type FrameVariant = ThemeVariant;
 
 export interface FrameProps extends Omit<ThemeProps<FrameVariant>, 'dropShadow'> {
     id?: string;
+    /**
+     * The window's name in its layout (a template's root frame): with `id`, what a hotel's
+     * `frame.overrides` entry names the frame by (`frameOverrideOf`).
+     */
+    name?: string;
     caption?: string;
     resizeDirection?: ScalerDirection;
     contentLayout?: BoxLayout;
@@ -150,7 +156,7 @@ const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefi
  * clipped to it.
  */
 export const Frame = ({
-    variant, defaultVariant, tooltip, tooltipDelay, layout, tintColor, textStyle, textColor, dropShadow, id, caption, resizeDirection = 'all', contentLayout, margins,
+    variant: codeVariant, defaultVariant, tooltip, tooltipDelay, layout, tintColor: codeTintColor, textStyle, textColor, dropShadow, id, name, caption, resizeDirection = 'all', contentLayout, margins,
     defaultPosition, rememberPosition = true, rememberSize = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
@@ -165,6 +171,10 @@ export const Frame = ({
      * one. A frame already on a desktop - every window of the client's own, and a frame nested
      * inside one - stays exactly where it is rendered.
      */
+    // A theme's style for this window (`frame.overrides`), over what its code passes.
+    const override = frameOverrideOf(useThemeConfigValue<unknown>(FRAME_OVERRIDES_KEY), id, name);
+    const variant = override?.variant ?? codeVariant;
+    const tintColor = override?.color ?? codeTintColor;
     const placed = useContext(WindowPlacedContext);
     const windowLayer = useSyncExternalStore(subscribeWindowLayer, getWindowLayer);
     const hostRef = useRef<PixiContainer>(null);

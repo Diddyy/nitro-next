@@ -1771,6 +1771,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
         const frame = (
             <Frame
                 id={window?.id ?? `${context.idPrefix}${id}`}
+                name={element.name}
                 // `IFrameWindow.style`, as its code sets it (`BadgeLeaderboardView.setFrameStyle`).
                 variant={binding?.style ?? element.style}
                 caption={captionOf(element, context, binding)}
