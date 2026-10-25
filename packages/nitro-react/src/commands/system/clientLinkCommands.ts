@@ -23,7 +23,7 @@ import { showEarnings } from '../earnings/earningsCommands';
 import { openBadgeLeaderboardLink } from '../groups/badgeLeaderboardCommands';
 import { openGroupForumLink } from '../groups/groupForumCommands';
 import { habbiconsEnabled, openHabbiconHub } from '../habbicons/habbiconCommands';
-import { forwardToRoom, goToHomeRoom, reportRoomFromWeb, searchNavigator, searchRoomTag } from '../navigator/navigatorCommands';
+import { askForwardToRoom, forwardToRoom, goToHomeRoom, reportRoomFromWeb, searchNavigator, searchRoomTag } from '../navigator/navigatorCommands';
 import { openRaidProtectionFromLink } from '../navigator/raidProtectionCommands';
 import { toggleQuests } from '../quests/questCommands';
 import { openRewardTrackLink } from '../reward-track/rewardTrackCommands';
@@ -217,6 +217,12 @@ export const openClientLink = (send: Send, link: string) => {
                 // `LegacyNavigator.reportRoomFromWeb(globalId, Base64.decode(name))`.
                 case 'report': {
                     if (parts.length > 3) reportRoomFromWeb(send, parts[2], decodeBase64Text(parts[3]));
+
+                    return;
+                }
+                // `int(<roomId>)`: anything but a number asks about room 0.
+                case 'ask_forward': {
+                    if (parts.length > 2) askForwardToRoom(send, parseInt(parts[2], 10) || 0);
 
                     return;
                 }
