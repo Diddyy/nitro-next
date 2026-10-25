@@ -92,9 +92,11 @@ Imports go through the aliases: `#base/context/<feature>` (never `#base/context`
   by subdirectory. Add one when the same expression appears in three places.
 - Constants that describe packet values (`BOT_SKILL_SETUP_CHAT = 2`) live next to the slice that
   stores them and are exported.
-- Every slice's actions are exposed by an action hook. If a component needs an action the
-  hooks do not offer, add it to the slice's hook (or add `useRoom<Slice>Actions.ts`) rather than
-  reaching for `xStore.getState()` - that call belongs in handlers and commands only.
+- A slice whose actions a component calls exposes them through an action hook. A slice only
+  commands and handlers write has none: they read its actions with `xStore.getState()`, and a
+  hook nothing imports is dead code. If a component needs an action the hooks do not offer, add
+  it to the slice's hook (or add `useRoom<Slice>Actions.ts`) rather than reaching for
+  `xStore.getState()` - that call belongs in handlers and commands only.
   `scripts/drift/store_access.py` reports an action selected from a store and a `getState()` in a
   view or component.
 
