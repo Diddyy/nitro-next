@@ -133,6 +133,7 @@ a stand-in host.
 | `sounds.play(id)` | A sample of the client's sound manager |
 | `room.avatarOverlay(render)`, `room.leave()` | `render({ roomIndex, userId, name, isOwnUser })` is drawn above each user's head every frame, under the windows; `leave` quits the room for the hotel view, as the toolbar's hotel view icon does |
 | `hotelView.addLayer(component, { replacesBackground })` | `component({ width, height })` is drawn in the reception at its size while it is shown, with its moving objects: over the background art, under the widgets, the hotel top and the left backdrop. Later layers are drawn over earlier ones. With `replacesBackground` the layer is the backdrop: the reception's own background bitmaps are hidden while it is added |
+| `hotelView.addWidget(slot, component)` | `component({ slot, width })` is drawn in a reception widget slot (`landing.view.dynamic.slot.<n>`: 1 across the top, 2 and 4 the left column, 3 and 5 the right, 6 the bottom slot) in place of the hotel's configured widget while it is added, laid out as the slot's widget: the slot takes the size the component draws at, and its row and the gaps follow (`HotelViewWidgetGrid`). `width` is the slot's pane (`landing.view.dynamic.leftPaneWidth` for 1, 2, 4 and 6, `rightPaneWidth` for 3 and 5). The last widget added for a slot is drawn; a slot out of 1-6 is refused with a warning. A plugin that decides its widgets on the server sends them in a named message and the module adds one per slot |
 | `notifications.registerLayout(name, { template, height })`, `notifications.add(name, text, { image?, link?, stay?, timeDisplay?, id? })` | A bubble in the client's notification stack drawn from a template of the bundles. `stay` keeps it up (no time out, a click does not dismiss it), `timeDisplay` is how long (ms) another stays, an `id` is not added twice while up; `add` returns the function that takes it down |
 | `notifications.setIllustration(resolve)` | The picture of every simple alert and notification popup, open or yet to open: `resolve({ kind, caption, message, illustration })` is shown each (`kind` `alert` or `popup`, `illustration` an asset name or URL, `undefined` for none) and answers another, or `undefined` to leave it; hooks run in the order they were set. The dialogs themselves are never rewritten, so taking the hook out puts the client's picture back |
 | `templates.patch(id, ops, { order? })`, `templates.bind(id, element, binding)`, `templates.report(id)` | Changes a core window's template as data and binds what the elements it added do; patches from every plugin apply together, in order, with conflicts and misses reported (`docs/template-patches.md`) |
@@ -169,12 +170,16 @@ extension packets, so a header a module took with `packets.registerParser` stays
 message is skipped, with a warning).
 
 The schema is compact JSON: an array of `[name, type]` fields (camelCase), where a type is `'int'`,
-`'long'`, `'bool'`, `'string'`, `'double'`, `['array', type]` or `['object', fields]`.
+`'long'`, `'bool'`, `'string'`, `'double'`, `['array', type]`, `['map', type]` (a server
+`Dictionary<string, T>`) or `['object', fields]`.
 `pluginMessageCodec.ts` reads and writes from it in Habbo's wire encoding: ints, a long as its high
 and low int, a byte for a bool, a string after its length, a double as its 8 IEEE bytes, an array as
-an int count and its items, a record as its fields. For typed modules a generator can map the
+an int count and its items, a map as an int count and each key (a string) and value, a record as its
+fields. A map reads as a plain object (each key an own property); a module writes one as an object or
+a `Map`. For typed modules a generator can map the
 schema to TypeScript: `int`, `long` and `double` are `number`, `bool` is `boolean`, `string` is
-`string`, an array `T[]` and an object an interface of its fields. Tests:
+`string`, an array `T[]`, a map `Record<string, T>` and an object an interface of its fields
+(`ClientModuleMessageOf` in the SDK does this). Tests:
 `packages/nitro-react/test/pluginMessageCodec.test.ts` (`yarn workspace @nitrodevco/nitro-react test`).
 
 ## Example

@@ -32,7 +32,8 @@ export type ClientModulePacketValue = number | string | boolean;
 
 /**
  * One field type of a plugin message's schema, as the server sends it (`client.messages`): a scalar,
- * `['array', item]` or `['object', fields]`. `int`, `long` and `double` read as numbers.
+ * `['array', item]`, `['map', value]` (a string-keyed dictionary, read as an object) or
+ * `['object', fields]`. `int`, `long` and `double` read as numbers.
  */
 export type ClientModuleMessageType =
     | 'int'
@@ -41,6 +42,7 @@ export type ClientModuleMessageType =
     | 'string'
     | 'double'
     | readonly [ 'array', ClientModuleMessageType ]
+    | readonly [ 'map', ClientModuleMessageType ]
     | readonly [ 'object', ClientModuleMessageSchema ];
 
 /** A plugin message's schema: its fields in wire order, `[camelCaseName, type]`. */
@@ -55,9 +57,11 @@ export type ClientModuleMessageValue<T> = T extends 'int' | 'long' | 'double'
             ? string
             : T extends readonly [ 'array', infer Item ]
                 ? ClientModuleMessageValue<Item>[]
-                : T extends readonly [ 'object', infer Fields ]
-                    ? ClientModuleMessageOf<Fields>
-                    : unknown;
+                : T extends readonly [ 'map', infer Value ]
+                    ? Record<string, ClientModuleMessageValue<Value>>
+                    : T extends readonly [ 'object', infer Fields ]
+                        ? ClientModuleMessageOf<Fields>
+                        : unknown;
 
 /**
  * A message's data as an object, from its schema written `as const` (the JSON the server sends, or
@@ -117,6 +121,12 @@ export interface ClientModuleAvatar {
 export interface ClientModuleHotelViewLayerProps {
     width: number;
     height: number;
+}
+
+/** What a reception widget is given: its slot, and the width of the pane it is in. */
+export interface ClientModuleHotelViewWidgetProps {
+    slot: number;
+    width: number;
 }
 
 /** An alert as a module's illustration hook is shown it. */
@@ -247,6 +257,13 @@ export interface ClientModuleApi {
          * later are drawn over earlier ones. With `replacesBackground` the layer is the backdrop.
          */
         addLayer: (component: ComponentType<ClientModuleHotelViewLayerProps>, options?: { replacesBackground?: boolean }) => ClientModuleDispose;
+        /**
+         * A widget in a reception widget slot (`landing.view.dynamic.slot.<n>`: 1 across the top, 2
+         * and 4 the left column, 3 and 5 the right, 6 the bottom slot), in place of the hotel's
+         * configured widget while it is added; the slot takes the size it draws at. The last widget
+         * added for a slot is shown.
+         */
+        addWidget: (slot: number, component: ComponentType<ClientModuleHotelViewWidgetProps>) => ClientModuleDispose;
     };
     notifications: {
         /** A bubble layout: a template of the bundles (`<library>/<asset>_xml`) and its height. */

@@ -10,7 +10,7 @@ import type { IMessageDataWrapper } from '@nitrodevco/nitro-api';
 import type { TemplateBinding, TemplateContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows } from '@nitrodevco/nitro-theme';
 import type { ComponentType, ReactNode } from 'react';
 
-import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleHotelViewLayerProps, ClientModuleWindowProps } from '#base/context/client-modules';
+import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleHotelViewLayerProps, ClientModuleHotelViewWidgetProps, ClientModuleWindowProps } from '#base/context/client-modules';
 
 import type { ClientModuleLibraries } from './clientModuleLibraries';
 
@@ -137,6 +137,13 @@ export interface ClientModuleApi {
          * reception's own background bitmaps (its sky, horizon, hotel and hill) are hidden while it is added.
          */
         addLayer: (component: ComponentType<ClientModuleHotelViewLayerProps>, options?: { replacesBackground?: boolean }) => ClientModuleDispose;
+        /**
+         * A widget in one of the reception's widget slots (`landing.view.dynamic.slot.<n>`: 1 across
+         * the top, 2 and 4 the left column, 3 and 5 the right, 6 the bottom slot), drawn there in
+         * place of the hotel's configured widget while it is added and laid out as one: the slot
+         * takes the size the component draws at. The last widget added for a slot is the one shown.
+         */
+        addWidget: (slot: number, component: ComponentType<ClientModuleHotelViewWidgetProps>) => ClientModuleDispose;
     };
     notifications: {
         /** A bubble layout: a template of the bundles (`<library>/<asset>_xml`) and its height. */

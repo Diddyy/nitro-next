@@ -78,6 +78,20 @@ export interface ClientModuleHotelViewLayer {
     replacesBackground: boolean;
 }
 
+/** What a reception widget is given: its slot, and the width of the pane it is in. */
+export interface ClientModuleHotelViewWidgetProps {
+    slot: number;
+    width: number;
+}
+
+export interface ClientModuleHotelViewWidget {
+    moduleKey: string;
+    key: number;
+    /** A `landing.view.dynamic.slot.<n>` slot: 1-5 the widget grid's, 6 the bottom slot. */
+    slot: number;
+    component: ComponentType<ClientModuleHotelViewWidgetProps>;
+}
+
 /** A module's bubble layout: a template of the bundles, and its height in the stack. */
 export interface ClientModuleNotificationLayout {
     moduleKey: string;
@@ -112,6 +126,8 @@ type State = {
     avatarOverlays: ClientModuleAvatarOverlay[];
     /** In the order they were added: each drawn over the ones before it. */
     hotelViewLayers: ClientModuleHotelViewLayer[];
+    /** In the order they were added: the last for a slot is the one drawn there. */
+    hotelViewWidgets: ClientModuleHotelViewWidget[];
     /** By layout name. */
     notificationLayouts: Record<string, ClientModuleNotificationLayout>;
     /** In the order they were set: each is shown the picture the ones before it left. */
@@ -133,6 +149,8 @@ type Actions = {
     removeAvatarOverlay: (key: number) => void;
     addHotelViewLayer: (layer: ClientModuleHotelViewLayer) => void;
     removeHotelViewLayer: (key: number) => void;
+    addHotelViewWidget: (widget: ClientModuleHotelViewWidget) => void;
+    removeHotelViewWidget: (key: number) => void;
     addNotificationLayout: (name: string, layout: ClientModuleNotificationLayout) => void;
     removeNotificationLayout: (name: string) => void;
     addAlertIllustration: (illustration: ClientModuleAlertIllustration) => void;
@@ -155,6 +173,7 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
     linkHandlers: [],
     avatarOverlays: [],
     hotelViewLayers: [],
+    hotelViewWidgets: [],
     notificationLayouts: {},
     alertIllustrations: [],
     addWindow: window => set(x => ({ windows: { ...x.windows, [window.key]: window } })),
@@ -171,6 +190,8 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
     removeAvatarOverlay: key => set(x => ({ avatarOverlays: x.avatarOverlays.filter(entry => entry.key !== key) })),
     addHotelViewLayer: layer => set(x => ({ hotelViewLayers: [ ...x.hotelViewLayers, layer ] })),
     removeHotelViewLayer: key => set(x => ({ hotelViewLayers: x.hotelViewLayers.filter(entry => entry.key !== key) })),
+    addHotelViewWidget: widget => set(x => ({ hotelViewWidgets: [ ...x.hotelViewWidgets, widget ] })),
+    removeHotelViewWidget: key => set(x => ({ hotelViewWidgets: x.hotelViewWidgets.filter(entry => entry.key !== key) })),
     addNotificationLayout: (name, layout) => set(x => ({ notificationLayouts: { ...x.notificationLayouts, [name]: layout } })),
     removeNotificationLayout: name => set(x => ({ notificationLayouts: without(x.notificationLayouts, name) })),
     addAlertIllustration: illustration => set(x => ({ alertIllustrations: [ ...x.alertIllustrations, illustration ] })),
@@ -186,6 +207,7 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
             linkHandlers: x.linkHandlers.filter(entry => entry.moduleKey !== moduleKey),
             avatarOverlays: x.avatarOverlays.filter(entry => entry.moduleKey !== moduleKey),
             hotelViewLayers: x.hotelViewLayers.filter(entry => entry.moduleKey !== moduleKey),
+            hotelViewWidgets: x.hotelViewWidgets.filter(entry => entry.moduleKey !== moduleKey),
             notificationLayouts: filterRecord(x.notificationLayouts, layout => layout.moduleKey !== moduleKey),
             alertIllustrations: x.alertIllustrations.filter(entry => entry.moduleKey !== moduleKey),
         };
