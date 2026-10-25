@@ -17,6 +17,7 @@ import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, me
 import { useSyncExternalStore } from 'react';
 
 import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
+import { parseObject, resolveStyles } from '#base/theme/templateStyles';
 
 /** A binding, or what it is for a window's context. */
 export type TemplateExtensionBinding = TemplateBinding | ((context: TemplateContext) => TemplateBinding);
@@ -316,9 +317,13 @@ const filePatches = new Map<string, { url: string; dispose: () => void }>();
 /**
  * Loads the declarative patch files a hotel names in `templates.patches` (`{ "<plugin key>": "<url>" }`,
  * or that object as JSON text): each file's patches are added under its key, the owner. A file that
- * does not load or is not a patch file is logged and adds nothing; the others still apply.
+ * does not load or is not a patch file is logged and adds nothing; the others still apply. Theme
+ * style values (`templates.styles`, `{ "<plugin key>:<name>": value }`) fill the `${style:name}`
+ * the files name.
  */
-export const loadTemplatePatchFiles = async (value: unknown) => {
+export const loadTemplatePatchFiles = async (value: unknown, styleValues?: unknown) => {
+    const styles = parseObject(styleValues);
+
     let entries: Record<string, unknown> = {};
 
     try {
@@ -344,9 +349,12 @@ export const loadTemplatePatchFiles = async (value: unknown) => {
 
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            const file = await response.json() as TemplatePatchFile;
+            const missing = new Set<string>();
+            const file = resolveStyles(await response.json(), styles, owner, missing) as TemplatePatchFile;
 
             if (!Array.isArray(file.patches)) throw new Error('no "patches" list');
+
+            if (missing.size > 0) NitroLogger.warn('TemplatePatches', `${owner}'s patch file names styles the hotel has no value of: ${[ ...missing ].join(', ')}.`);
 
             const disposers = file.patches.map(patch => addTemplatePatch({ owner, template: patch.template, ops: patch.ops ?? [], order: patch.order }));
 

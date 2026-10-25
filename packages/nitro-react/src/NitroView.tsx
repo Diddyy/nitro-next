@@ -98,7 +98,7 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
                 setTextStyleOverrides('hotel', GetConfigValue('text.styles.overrides'));
                 setFontFaceOverrides('hotel', GetConfigValue('text.faces.overrides'));
                 // The plugins' declarative window patches; a window drawn before one arrives is redrawn with it.
-                void loadTemplatePatchFiles(GetConfigValue('templates.patches'));
+                void loadTemplatePatchFiles(GetConfigValue('templates.patches'), GetConfigValue('templates.styles'));
 
                 await Promise.all([ loadAssetBundle('loading-screen'), preloadFlashFonts() ]);
 
