@@ -301,9 +301,6 @@ export const templatePatchReport = (id: string): TemplatePatchReport | undefined
     };
 };
 
-/** What each patched template's last application reported: for an inspector, and for tests. */
-export const templatePatchReports = (): ReadonlyMap<string, TemplatePatchReport> => new Map([ ...new Set([ ...reports.keys(), ...bindingConflicts.keys(), ...codeErrors.keys() ]) ].map(id => [ id, templatePatchReport(id)! ]));
-
 /** The patches added now: for the inspector, which lists those naming the element it shows. */
 export const templatePatchList = (): readonly TemplatePatch[] => patches;
 
