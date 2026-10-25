@@ -9,7 +9,7 @@ import { clientModulesStore, isClientModuleHeader } from '#base/context/client-m
 import { WebSocketConnection } from '#base/context/communication';
 import { notificationStore } from '#base/context/notifications';
 import { getRoom } from '#base/context/room';
-import { systemStore } from '#base/context/system';
+import { HOTEL_VIEW_BOTTOM_SLOT, systemStore } from '#base/context/system';
 import { GetSoundManager } from '#base/sound';
 import { addTemplateArrange, addTemplateBinding, addTemplatePatch, templatePatchReport } from '#base/theme/templatePatches';
 
@@ -24,6 +24,7 @@ let nextOverlayKey = 1;
 let nextIllustrationKey = 1;
 let nextNotificationId = 1;
 let nextHotelViewLayerKey = 1;
+let nextHotelViewWidgetKey = 1;
 
 export const createClientModuleApi = (connection: WebSocketConnection, moduleKey: string, baseUrl: string): { api: ClientModuleApi; dispose: () => void } => {
     const store = clientModulesStore.getState();
@@ -225,6 +226,19 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
                 store.addHotelViewLayer({ moduleKey, key, component, replacesBackground: !!options.replacesBackground });
 
                 return track(() => clientModulesStore.getState().removeHotelViewLayer(key));
+            },
+            addWidget: (slot, component) => {
+                if (!Number.isInteger(slot) || (slot < 1) || (slot > HOTEL_VIEW_BOTTOM_SLOT)) {
+                    NitroLogger.warn('ClientModules', `${moduleKey}: hotel view slot ${slot} is not one of 1-${HOTEL_VIEW_BOTTOM_SLOT}.`);
+
+                    return () => undefined;
+                }
+
+                const key = nextHotelViewWidgetKey++;
+
+                store.addHotelViewWidget({ moduleKey, key, slot, component });
+
+                return track(() => clientModulesStore.getState().removeHotelViewWidget(key));
             },
         },
         notifications: {

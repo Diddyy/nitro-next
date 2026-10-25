@@ -123,6 +123,12 @@ export interface ClientModuleHotelViewLayerProps {
     height: number;
 }
 
+/** What a reception widget is given: its slot, and the width of the pane it is in. */
+export interface ClientModuleHotelViewWidgetProps {
+    slot: number;
+    width: number;
+}
+
 /** An alert as a module's illustration hook is shown it. */
 export interface ClientModuleAlert {
     /** `alert`: a simple alert; `popup`: a notification popup. */
@@ -251,6 +257,13 @@ export interface ClientModuleApi {
          * later are drawn over earlier ones. With `replacesBackground` the layer is the backdrop.
          */
         addLayer: (component: ComponentType<ClientModuleHotelViewLayerProps>, options?: { replacesBackground?: boolean }) => ClientModuleDispose;
+        /**
+         * A widget in a reception widget slot (`landing.view.dynamic.slot.<n>`: 1 across the top, 2
+         * and 4 the left column, 3 and 5 the right, 6 the bottom slot), in place of the hotel's
+         * configured widget while it is added; the slot takes the size it draws at. The last widget
+         * added for a slot is shown.
+         */
+        addWidget: (slot: number, component: ComponentType<ClientModuleHotelViewWidgetProps>) => ClientModuleDispose;
     };
     notifications: {
         /** A bubble layout: a template of the bundles (`<library>/<asset>_xml`) and its height. */
