@@ -33,7 +33,7 @@ import { useOwnUserFigure, useOwnUserGender } from '#base/context/user';
 import { useViewportSize } from '#base/hooks';
 import { findTemplateChild, Template, TemplateBinding, TemplateElement, TemplateItem, TemplateWindow, useTemplateLibrary } from '#base/theme';
 import { ClientModuleHotelViewLayersView } from '#base/views/client-modules/ClientModuleHotelViewLayersView';
-import { ClientModuleHotelViewWidgetView, useClientModuleHotelViewWidget } from '#base/views/client-modules/ClientModuleHotelViewWidgetView';
+import { ClientModuleHotelViewWidgetView } from '#base/views/client-modules/ClientModuleHotelViewWidgetView';
 
 import { HotelViewMovingObjects } from './HotelViewMovingObjects';
 import { HotelViewSlotWidget } from './HotelViewSlotWidget';
@@ -69,7 +69,7 @@ export const HotelView = () => {
     const figure = useOwnUserFigure();
     const gender = useOwnUserGender();
     const bottomWidget = hotelViewSlotWidget(config, HOTEL_VIEW_BOTTOM_SLOT);
-    const bottomModuleWidget = useClientModuleHotelViewWidget(HOTEL_VIEW_BOTTOM_SLOT);
+    const bottomModuleWidget = useClientModulesStore(x => x.hotelViewWidgets.findLast(widget => widget.slot === HOTEL_VIEW_BOTTOM_SLOT));
     const landing = hotelViewTemplate(templates, 'landing_view_default_dynamic_layout');
     const avatarImage = hotelViewTemplate(templates, 'avatar_image');
     const grid = useHotelViewWidgetGrid(templates);
@@ -102,12 +102,18 @@ export const HotelView = () => {
     const bottomSlot = (placeholder: TemplateElement): TemplateItem => {
         if (!bottomHolder || (!bottomModuleWidget && !BOTTOM_SLOT_LANDING_VIEW_WIDGETS.has(bottomWidget))) return { key: BOTTOM_SLOT_PLACEHOLDER, from: placeholder, bindings: { '': { visible: false } } };
 
-        const widget = bottomModuleWidget ? (
-            <ClientModuleHotelViewWidgetView
-                widget={bottomModuleWidget}
-                width={hotelViewPaneWidths(config).left}
-            />
-        ) : (
+        if (bottomModuleWidget) {
+            const moduleWidget = (
+                <ClientModuleHotelViewWidgetView
+                    widget={bottomModuleWidget}
+                    width={hotelViewPaneWidths(config).left}
+                />
+            );
+
+            return { key: BOTTOM_SLOT_PLACEHOLDER, from: bottomHolder, bindings: { '': { children: moduleWidget } } };
+        }
+
+        const widget = (
             <HotelViewSlotWidget
                 type={bottomWidget}
                 slot={HOTEL_VIEW_BOTTOM_SLOT}

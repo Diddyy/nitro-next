@@ -3,11 +3,8 @@
  * where the hotel's configured widget for that slot would be, at the width of the slot's pane. The
  * last widget added for a slot is the one drawn; one that throws is caught on its own.
  */
-import { ClientModuleHotelViewWidget, useClientModulesStore } from '#base/context/client-modules';
+import { ClientModuleHotelViewWidget } from '#base/context/client-modules';
 import { ViewErrorBoundary } from '#base/views/system/ViewErrorBoundary';
-
-/** The module widget drawn in `slot`, if any. */
-export const useClientModuleHotelViewWidget = (slot: number): ClientModuleHotelViewWidget | undefined => useClientModulesStore(x => x.hotelViewWidgets.findLast(widget => widget.slot === slot));
 
 export interface ClientModuleHotelViewWidgetViewProps {
     widget: ClientModuleHotelViewWidget;

@@ -35,4 +35,5 @@ const typedMap: Same<ClientModuleMessageOf<typeof WITH_DICTIONARY>, { counts: Re
 
 void test('a map in a schema types a string-keyed object', () => {
     assert.equal(typedMap, true);
+    assert.equal(WITH_DICTIONARY.length, 2);
 });
