@@ -25,6 +25,12 @@ export interface ClientModuleTemplateElementChanges {
     vars?: Record<string, ClientModuleTemplateValue>;
     /** Merged into the element's layout flags by key, as `vars` are. */
     params?: ClientModuleTemplateParams;
+    /**
+     * Its size limits - the layout's `width_min`, `width_max`, `height_min`, `height_max` in that
+     * order, `null` for none - replaced whole: a window its layout pins to one width takes another
+     * only with its limits.
+     */
+    limits?: [ number | null, number | null, number | null, number | null ];
 }
 
 /**
@@ -93,6 +99,16 @@ export type ClientModuleTemplatePatchOp
  * user's `userId`, `figure`, `isOwnUser`, ...; nitro-next `docs/template-patches.md` lists each window's keys).
  */
 export type ClientModuleTemplateContext = Readonly<Record<string, string | number | boolean | null | undefined>>;
+
+/** Which clone of its list an item binding (`bind(..., { items: true })`) is drawing. */
+export interface ClientModuleTemplateItem {
+    /** The item's key, as the window's code gives it (a room's id). */
+    key: string;
+    /** Its place in its list, from 0. */
+    index: number;
+    /** The name of the window that holds it, `''` for an unnamed one. */
+    list: string;
+}
 
 /** One laid-out element of a window, as a post-layout hook moves and sizes it (Flash's `IWindow` rect). */
 export interface ClientModuleTemplateWindow {

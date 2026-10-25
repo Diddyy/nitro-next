@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { resolveTemplateNames, TemplateWindows } from '../src/template/templateBindings';
+import { resolveTemplateNames, TemplateBindings, TemplateExpander, TemplateItem, TemplateWindows } from '../src/template/templateBindings';
 import type { Template, TemplateElement } from '../src/template/templateData';
-import { layoutTemplate } from '../src/template/templateLayout';
-import { applyTemplatePatches, chainTemplateArranges, mergeTemplateBindings, templateContextKey, TemplatePatch, templatePatchesUseContext, WINDOW_CODE_OWNER } from '../src/template/templatePatch';
+import { buildTemplateWindows, layoutTemplate } from '../src/template/templateLayout';
+import { applyTemplatePatches, chainTemplateArranges, mergeTemplateBindings, mergeTemplateItemBindings, templateContextKey, TemplatePatch, templatePatchesUseContext, templateWrapperOf, WINDOW_CODE_OWNER } from '../src/template/templatePatch';
 
 const element = (tag: string, name: string, children: TemplateElement[] = [], extra: Partial<TemplateElement> = {}): TemplateElement => ({ tag, name, x: 0, y: 0, width: 10, height: 10, vars: {}, children, ...extra });
 
@@ -352,4 +352,73 @@ test('the window itself is not wrapped, and a wrap like an element the template 
     assert.deepEqual(report.unmatched.map(miss => miss.element), [ '', 'nope' ]);
     assert.equal(template.elements[0].name, 'friend_list');
     assert.equal(template.elements[0].children.at(-1)!.name, 'search');
+});
+
+test('a wrapped part knows its pane through the pane\'s content area; an unwrapped one has none', () => {
+    const { template } = applyTemplatePatches(friendList(), ID, [ {
+        owner: 'theme',
+        template: ID,
+        ops: [ { element: 'friends', wrap: { tag: 'frame', name: 'pane', style: '0', margins: [ 5, 28, 5, 5 ] } } ],
+    } ]);
+    const windows = buildTemplateWindows(template.elements, { captionOf: () => '', measure: () => ({ width: 10, height: 10 }) });
+    const named = (name: string) => [ ...windows ].find(([ element ]) => element.name === name)![1];
+
+    assert.equal(templateWrapperOf(named('friends')), named('theme:pane'));
+    assert.equal(templateWrapperOf(named('search')), undefined);
+    // An element a patch inserts is no pane: what it holds is where the code put it.
+    assert.equal(templateWrapperOf(named('title')), undefined);
+});
+
+// The navigator's layout pins its width (`width_min` = `width_max` = 578): a theme's narrower navigator
+// (hiveui2's 309) needs its limits, which `set` takes whole.
+test('limits in a set replace the layout\'s, so a window its layout pins to one width takes another', () => {
+    const pinned = (): Template => ({ name: 'nav', width: 578, height: 400, elements: [ element('frame', 'nav', [], { width: 578, height: 400, limits: [ 578, 578, 200, null ] }) ] });
+    const width = (template: Template) => layoutTemplate(template.elements, { captionOf: () => '', measure: () => ({ width: 10, height: 10 }) }).get(template.elements[0])!.width;
+    const patched = (ops: TemplatePatch['ops']) => applyTemplatePatches(pinned(), 'nav', [ { owner: 'theme', template: 'nav', ops } ]).template;
+
+    assert.equal(width(patched([ { element: '', set: { width: 309 } } ])), 578);
+    assert.equal(width(patched([ { element: '', set: { width: 309, limits: [ 309, 309, 230, null ] } } ])), 309);
+});
+
+/** A list of rooms as the navigator's code fills it: one clone of `row` per room, the code colouring each. */
+const roomList = (): TemplateElement[] => [ element('container', 'results', [
+    element('itemlist_vertical', 'rooms', [ element('container', 'row', [ element('text', 'room_name') ]) ]),
+    element('itemlist_vertical', 'blocks', [ element('container', 'block', [ element('text', 'block_name') ]) ]),
+]) ];
+
+const rooms = (count: number): TemplateItem[] => Array.from({ length: count }, (_, index) => ({ key: String(100 + index), from: 'row', bindings: { row: { color: 0xffd6eeff }, room_name: { caption: `Room ${index}` } } }));
+
+test('an item binding draws each clone of a list with its index: rows alternate a theme\'s colours over the code\'s', () => {
+    const entries = [ { owner: 'theme', element: 'row', override: true, items: true, binding: (index: number) => ({ color: (index % 2) ? 0xffffffff : 0xffdee4f2 }) } ];
+    const seen: string[] = [];
+    const conflicts: string[] = [];
+    const elements = roomList();
+    const { byElement, missing } = new TemplateExpander().expand(elements, { rooms: { items: rooms(3) }, blocks: { items: [ { key: 'b', from: 'block' } ] } }, (item, at, prototype) => {
+        seen.push(`${at.list}#${at.key}@${at.index}`);
+
+        const merged = mergeTemplateItemBindings('nav', prototype, item.bindings, entries, entry => entry.binding(at.index));
+
+        conflicts.push(...merged.conflicts.map(conflict => conflict.owners.join('>')));
+
+        return merged.bindings;
+    });
+    const colours = [ ...byElement ].filter(([ node ]) => node.name === 'row').map(([ , binding ]) => binding.color);
+    const captions = [ ...byElement ].filter(([ node ]) => node.name === 'room_name').map(([ , binding ]) => binding.caption);
+
+    assert.deepEqual(seen, [ 'rooms#100@0', 'rooms#101@1', 'rooms#102@2', 'blocks#b@0' ]);
+    assert.deepEqual(colours, [ 0xffdee4f2, 0xffffffff, 0xffdee4f2 ]);
+    // What the binding leaves is the code's.
+    assert.deepEqual(captions, [ 'Room 0', 'Room 1', 'Room 2' ]);
+    // The block's clone has no `row`: not bound there, and no miss.
+    assert.deepEqual(missing, []);
+    assert.deepEqual(conflicts, [ `${WINDOW_CODE_OWNER}>theme`, `${WINDOW_CODE_OWNER}>theme`, `${WINDOW_CODE_OWNER}>theme` ]);
+});
+
+test('without item bindings a clone is drawn with its item\'s own bindings, as before', () => {
+    const own: TemplateBindings = { rooms: { items: rooms(2) } };
+    const withHook = new TemplateExpander().expand(roomList(), own, item => item.bindings);
+    const without = new TemplateExpander().expand(roomList(), own);
+    const colours = (expansion: typeof without) => [ ...expansion.byElement ].map(([ node, binding ]) => `${node.name}:${binding.color ?? binding.caption ?? ''}`);
+
+    assert.deepEqual(colours(withHook), colours(without));
 });

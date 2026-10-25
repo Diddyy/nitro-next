@@ -7,7 +7,7 @@
  */
 import type { ComponentType, ReactNode } from 'react';
 
-import type { ClientModuleTemplateBinding, ClientModuleTemplateContext, ClientModuleTemplatePatchOp, ClientModuleTemplatePatchReport, ClientModuleTemplateWindows } from './template-types';
+import type { ClientModuleTemplateBinding, ClientModuleTemplateContext, ClientModuleTemplateItem, ClientModuleTemplatePatchOp, ClientModuleTemplatePatchReport, ClientModuleTemplateWindows } from './template-types';
 import type { ClientModuleTheme } from './theme-types';
 
 export type ClientModuleDispose = () => void;
@@ -320,10 +320,11 @@ export interface ClientModuleApi {
     readonly version: 1;
     /**
      * The minor version: 1 for API 1.1 (`state`, `events`, `contextMenu`, `chatCommands`), 2 for 1.2
-     * (`channels`, `links.handle`'s `path`). A plain-JavaScript module that may meet an older client
-     * reads `api.minor ?? 0`.
+     * (`channels`, `links.handle`'s `path`), 3 for 1.3 (`windows.register`'s `aboveOnTop`,
+     * `templates.bind`'s `items`). A plain-JavaScript module that may meet an older client reads
+     * `api.minor ?? 0`.
      */
-    readonly minor: 2;
+    readonly minor: 3;
     /** The module's key: its plugin's. */
     readonly key: string;
     /**
@@ -371,9 +372,10 @@ export interface ClientModuleApi {
         /**
          * A window by id: the component is drawn in the client's window layer while it is open. With
          * `onTop` it stays above every other window (a HUD, a timer), under the client's menus,
-         * hints and modal dialogs.
+         * hints and modal dialogs; with `aboveOnTop` it is drawn over the `onTop` windows too (a
+         * settings window over a HUD purse), still under the menus, hints and modal dialogs.
          */
-        register: (id: string, component: ComponentType<ClientModuleWindowProps>, options?: { onTop?: boolean }) => ClientModuleDispose;
+        register: (id: string, component: ComponentType<ClientModuleWindowProps>, options?: { onTop?: boolean; aboveOnTop?: boolean }) => ClientModuleDispose;
         open: (id: string, params?: Record<string, unknown>) => void;
         close: (id: string) => void;
         toggle: (id: string, params?: Record<string, unknown>) => void;
@@ -515,9 +517,12 @@ export interface ClientModuleApi {
          * What the window's code would bind, for an element this module added: a caption, a click, a
          * picture - or a function of the window's context giving it. With `override`, an element the
          * window's code binds itself (named as the code names it): this module's value is used for the
-         * fields it sets, each field the code sets too reported as a conflict.
+         * fields it sets, each field the code sets too reported as a conflict. With `items`, the element
+         * is bound in each clone of a list that has it (a row the code adds per room) instead of in the
+         * window, and a function is also given which clone it draws (`item`: its `key`, its `index`
+         * in the list, the list's name) - every other row a colour of the theme's.
          */
-        bind: (template: string, element: string, binding: ClientModuleTemplateBinding | ((context: ClientModuleTemplateContext) => ClientModuleTemplateBinding), options?: { override?: boolean }) => ClientModuleDispose;
+        bind: (template: string, element: string, binding: ClientModuleTemplateBinding | ((context: ClientModuleTemplateContext, item?: ClientModuleTemplateItem) => ClientModuleTemplateBinding), options?: { override?: boolean; items?: boolean }) => ClientModuleDispose;
         /**
          * Runs after the window's own layout code each time a window of the template is laid out: what a
          * patch cannot say as data. One that throws is skipped and reported.

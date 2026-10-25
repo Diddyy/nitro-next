@@ -522,6 +522,7 @@ export const NavigatorView = () => {
                 height={openingHeight}
                 bindings={bindings}
                 arrange={arrange}
+                context={{ tab: topLevelContext?.searchCode ?? '', searchCode: searchCodeOriginal }}
             />
             {roomInfoBubble && (
                 <NavigatorRoomInfoPopup

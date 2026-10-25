@@ -68,7 +68,7 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
     const api: ClientModuleApi = {
         version: 1,
-        minor: 2,
+        minor: 3,
         key: moduleKey,
         baseUrl,
         libs: getClientModuleLibraries(),
@@ -123,7 +123,7 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
             register: (id, component, options = {}) => {
                 const key = windowKey(id);
 
-                store.addWindow({ moduleKey, key, component, onTop: options.onTop === true });
+                store.addWindow({ moduleKey, key, component, onTop: options.onTop === true, aboveOnTop: options.aboveOnTop === true });
 
                 return track(() => clientModulesStore.getState().removeWindow(key));
             },

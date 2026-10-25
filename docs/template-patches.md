@@ -38,6 +38,7 @@ and the library's `templates.json` have the same names.
 { element: 'settings_button', insert: 'after', add: { like: 'help_button', name: 'skills', y: 63, caption: 'Skills' } }
 { element: 'title', move: 'first', to: 'header' }
 { element: 'search', set: { width: 180, params: { scale: [ 'fixed', 'fixed' ] } } }
+{ element: '', set: { width: 309, limits: [ 309, 309, 230, null ] } }
 { element: 'navigationContainer', wrap: { tag: 'frame', name: 'nav', style: '0', caption: 'Shop', margins: [ 6, 28, 6, 6 ] } }
 ```
 
@@ -48,6 +49,9 @@ and the library's `templates.json` have the same names.
   `boundToParent`, ... - a widened element stops stretching with `scale: [ 'fixed', 'fixed' ]`.
   Behaviour is not a layout property: what a click does stays the window's code's. Resizing the
   window itself (`''`) resizes its layout by as much, so it is drawn and hit at its new size.
+  **`limits`** are the layout's size limits, `[ width_min, width_max, height_min, height_max ]`
+  (`null` for none), replaced whole: a window its layout pins to one width (the navigator's
+  `578` / `578`) keeps that width whatever `width` says until its limits let it go.
 - **`move`** `before` / `after` the element `to` names, or `first` / `last` inside it: the element
   and its children go there and **keep their names**, so the window's code still finds them
   (`findChildByName`) and binds them - a title lifted out of a list into a header still shows the
@@ -118,8 +122,9 @@ api.templates.patch('habbo-catalog-com/catalog_ubuntu_with_tabs', [
 ]);
 ```
 
-A wrapped part keeps its own position in its pane; a window's code that places it from its old parent's
-size (the catalogue right-aligns its page in its parent) now places it in the pane's.
+A wrapped part keeps its own position in its pane. A window's code that places a part from its parent's
+size asks whether a patch wrapped it (`templateWrapperOf`): the catalogue right-aligns its page in the
+window as Habbo does, and starts it at its pane's origin when a theme wrapped it in one.
 
 ## Where patches come from
 
@@ -163,8 +168,17 @@ patches still apply. Keep a context's values to what the window shows - they are
 | `habbo-room-ui-com/rentable_bot_view` | `type: 'rentable_bot'`, `name`, `figure`, `gender`, `ownerName` |
 | `habbo-room-ui-com/pet_view` | `type: 'pet'`, `name`, `figure`, `isOwnPet` |
 | `habbo-groups-com/new_extended_profile` (profile) | `userId`, `name`, `figure`, `isOwnUser` |
+| `habbo-new-navigator/navigator_frame_2_xml` (navigator) | `tab` (the selected tab's search code: `hotel_view`, `myworld_view`, `roomads_view`, `official_view`), `searchCode` (the results' search code: the tab's, a category's `category__<name>` once its "more" is pressed, a saved search's; `''` before the first results) |
 
 Any other window passes none (`{}`); a window is given one by passing `context` to its `TemplateWindow`.
+A theme that shows the search row on two tabs only, and a Create button on My World only:
+
+```ts
+api.templates.patch('habbo-new-navigator/navigator_frame_2_xml', ctx => [
+    { element: 'search_tools', set: { hidden: ctx.tab !== 'hotel_view' && ctx.tab !== 'roomads_view' } },
+    { element: 'create_room', set: { hidden: ctx.tab !== 'myworld_view' } },
+]);
+```
 
 ## Binding the window's own elements
 
@@ -174,6 +188,25 @@ code's, and for each field it sets the module's value is used - a theme can reco
 what the code sets each render. Each field the code (or another module) sets too is reported as a
 conflict, its owners `(window)` and the module, in `report()` and on the console when it changes.
 Without `override` the v1 rule stands: a module binds only what it added.
+
+### Rows of a list
+
+The rows a window's code adds to a list (a clone per room, `TemplateItem`) carry bindings of their
+own, so a binding of the window does not reach them. With **`{ items: true }`** the element is bound
+in each clone that has it instead - with `override` over the code's binding of the row - and a
+binding function is also given which clone it draws: `item.key` (the code's key, a room's id),
+`item.index` (its place in its list, from 0) and `item.list` (the name of the list holding it).
+Rows alternate a theme's own colours without a constant of the code's:
+
+```ts
+api.templates.bind('habbo-new-navigator/navigator_frame_2_xml', 'navigator_entry_row_container',
+    (ctx, item) => ({ color: (item!.index % 2) ? 0xffffffff : 0xffdee4f2 }), { override: true, items: true });
+```
+
+A clone whose prototype lacks the element (another list's rows) is not bound and is no miss. Every
+row clashing alike, a field the code sets too is one conflict, logged and reported once. The function
+is called each time a row is drawn - its index changes with its list - so keep it to arithmetic on
+`item` and the context. While no item binding is added a window's rows are drawn as before.
 
 ```ts
 api.templates.bind('habbo-room-ui-com/user_view', 'name_text', ctx => ({ color: ctx.isOwnUser ? 0x8fd14f : 0xffffff }), { override: true });
