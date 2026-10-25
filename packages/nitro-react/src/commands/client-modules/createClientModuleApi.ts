@@ -4,6 +4,7 @@
  * the module stops.
  */
 import { IMessageDataWrapper, NitroLogger } from '@nitrodevco/nitro-api';
+import { ownedElementName } from '@nitrodevco/nitro-theme';
 
 import { clientModulesStore, isClientModuleHeader } from '#base/context/client-modules';
 import { WebSocketConnection } from '#base/context/communication';
@@ -16,8 +17,11 @@ import { addTemplateArrange, addTemplateBinding, addTemplatePatch, templatePatch
 import { quitRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
 import { ClientModuleApi, ClientModuleDispose, ClientModulePacketValue } from './ClientModuleApi';
+import { onClientModuleEvent } from './clientModuleEvents';
 import { clientModuleFetch } from './clientModuleHttp';
 import { getClientModuleLibraries } from './clientModuleLibraries';
+import { clientModuleMenuRow, isClientModuleContextMenu } from './clientModuleMenus';
+import { clientModuleHasPermission, getClientModuleState, subscribeClientModuleState, useClientModuleState } from './clientModuleState';
 import { onPluginMessage, sendPluginMessage } from './pluginMessages';
 
 let nextOverlayKey = 1;
@@ -59,9 +63,57 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
     const api: ClientModuleApi = {
         version: 1,
+        minor: 1,
         key: moduleKey,
         baseUrl,
         libs: getClientModuleLibraries(),
+        state: {
+            get: getClientModuleState,
+            subscribe: listener => track(subscribeClientModuleState(listener)),
+            use: useClientModuleState,
+            hasPermission: clientModuleHasPermission,
+        },
+        events: {
+            on: (event, handler) => track(onClientModuleEvent(moduleKey, event, handler)),
+        },
+        contextMenu: {
+            add: (button) => {
+                if (!isClientModuleContextMenu(button.menu)) {
+                    NitroLogger.warn('ClientModules', `${moduleKey}: there is no ${String(button.menu)} menu (user, ownUser or furni).`);
+
+                    return () => undefined;
+                }
+
+                const key = windowKey(button.id);
+                const { templates, ops } = clientModuleMenuRow(button.menu, button.id, !!button.icon);
+                const patches = templates.map(template => addTemplatePatch({ owner: moduleKey, template, ops }));
+
+                store.addContextMenuItem({
+                    moduleKey,
+                    key,
+                    row: ownedElementName(moduleKey, button.id),
+                    menu: button.menu,
+                    label: button.label,
+                    icon: button.icon,
+                    when: button.when,
+                    onClick: button.onClick,
+                });
+
+                return track(() => {
+                    clientModulesStore.getState().removeContextMenuItem(key);
+                    patches.forEach(remove => remove());
+                });
+            },
+        },
+        chatCommands: {
+            register: (command) => {
+                const entry = { moduleKey, command: { ...command, name: command.name.replace(/^:/, '') } };
+
+                store.addChatCommand(entry);
+
+                return track(() => clientModulesStore.getState().removeChatCommand(entry));
+            },
+        },
         windows: {
             register: (id, component, options = {}) => {
                 const key = windowKey(id);

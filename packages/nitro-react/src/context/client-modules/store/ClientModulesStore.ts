@@ -2,11 +2,13 @@
  * Not Flash's: what the client modules of Turbo's `client.modules` extension have added to the
  * client - their windows and which are open, their toolbar icons and me menu entries, the link
  * prefixes they handle, what they draw over the avatars in the room and in the reception, their notification
- * layouts and the pictures they give alerts. Each entry carries the key of the module that added it, so a module that stops takes
+ * layouts and the pictures they give alerts, their context menu buttons and chat commands. Each entry carries the key of the module that added it, so a module that stops takes
  * everything it added with it (`removeModule`). The loader is `commands/client-modules`.
  */
 import { ComponentType, ReactNode } from 'react';
 import { createStore } from 'zustand/vanilla';
+
+import type { ClientModuleChatCommand, ClientModuleRoomAvatar, ClientModuleRoomFurni } from '../clientModuleModel';
 
 /** What a module's window component is given. */
 export interface ClientModuleWindowProps {
@@ -116,6 +118,39 @@ export interface ClientModuleAlertIllustration {
     resolve: (alert: ClientModuleAlert) => string | undefined;
 }
 
+/**
+ * The room menus a module adds buttons to: another user's avatar menu (`AvatarMenuView`), the own
+ * avatar's (`OwnAvatarMenuView`) and the furni infostand's button row (`InfoStandFurniView`).
+ */
+export interface ClientModuleContextMenuTargets {
+    user: ClientModuleRoomAvatar;
+    ownUser: ClientModuleRoomAvatar;
+    furni: ClientModuleRoomFurni;
+}
+
+export type ClientModuleContextMenu = keyof ClientModuleContextMenuTargets;
+
+/** A module's button in a room menu, as the menus draw it: a row the module's template patch added. */
+export interface ClientModuleContextMenuItem {
+    moduleKey: string;
+    /** `<module key>/<id>`. */
+    key: string;
+    /** The row's element name in the menu's template: the module's `<key>:<id>`. */
+    row: string;
+    menu: ClientModuleContextMenu;
+    label: string;
+    /** An image URL, drawn at the row's right in the avatar menus. */
+    icon?: string;
+    when?: (target: never) => boolean;
+    onClick: (target: never) => void;
+}
+
+/** A module's chat command, as the chat input runs and offers it. */
+export interface ClientModuleChatCommandEntry {
+    moduleKey: string;
+    command: ClientModuleChatCommand;
+}
+
 type State = {
     windows: Record<string, ClientModuleWindow>;
     /** The open windows' params, by window key. */
@@ -132,6 +167,10 @@ type State = {
     notificationLayouts: Record<string, ClientModuleNotificationLayout>;
     /** In the order they were set: each is shown the picture the ones before it left. */
     alertIllustrations: ClientModuleAlertIllustration[];
+    /** In the order they were added: each menu lists its own after the client's rows. */
+    contextMenuItems: ClientModuleContextMenuItem[];
+    /** In the order they were registered: the first a line matches runs it. */
+    chatCommands: ClientModuleChatCommandEntry[];
 };
 
 type Actions = {
@@ -155,6 +194,10 @@ type Actions = {
     removeNotificationLayout: (name: string) => void;
     addAlertIllustration: (illustration: ClientModuleAlertIllustration) => void;
     removeAlertIllustration: (key: number) => void;
+    addContextMenuItem: (item: ClientModuleContextMenuItem) => void;
+    removeContextMenuItem: (key: string) => void;
+    addChatCommand: (entry: ClientModuleChatCommandEntry) => void;
+    removeChatCommand: (entry: ClientModuleChatCommandEntry) => void;
     /** Everything the module added, gone. */
     removeModule: (moduleKey: string) => void;
 };
@@ -176,6 +219,8 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
     hotelViewWidgets: [],
     notificationLayouts: {},
     alertIllustrations: [],
+    contextMenuItems: [],
+    chatCommands: [],
     addWindow: window => set(x => ({ windows: { ...x.windows, [window.key]: window } })),
     removeWindow: key => set(x => ({ windows: without(x.windows, key), openWindows: without(x.openWindows, key) })),
     openWindow: (key, params = {}) => set(x => (x.windows[key] ? { openWindows: { ...x.openWindows, [key]: params } } : x)),
@@ -196,6 +241,10 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
     removeNotificationLayout: name => set(x => ({ notificationLayouts: without(x.notificationLayouts, name) })),
     addAlertIllustration: illustration => set(x => ({ alertIllustrations: [ ...x.alertIllustrations, illustration ] })),
     removeAlertIllustration: key => set(x => ({ alertIllustrations: x.alertIllustrations.filter(entry => entry.key !== key) })),
+    addContextMenuItem: item => set(x => ({ contextMenuItems: [ ...x.contextMenuItems.filter(entry => entry.key !== item.key), item ] })),
+    removeContextMenuItem: key => set(x => ({ contextMenuItems: x.contextMenuItems.filter(entry => entry.key !== key) })),
+    addChatCommand: entry => set(x => ({ chatCommands: [ ...x.chatCommands, entry ] })),
+    removeChatCommand: entry => set(x => ({ chatCommands: x.chatCommands.filter(command => command !== entry) })),
     removeModule: moduleKey => set((x) => {
         const windows = filterRecord(x.windows, window => window.moduleKey !== moduleKey);
 
@@ -210,6 +259,8 @@ export const createClientModulesStore = () => createStore<ClientModulesStore>()(
             hotelViewWidgets: x.hotelViewWidgets.filter(entry => entry.moduleKey !== moduleKey),
             notificationLayouts: filterRecord(x.notificationLayouts, layout => layout.moduleKey !== moduleKey),
             alertIllustrations: x.alertIllustrations.filter(entry => entry.moduleKey !== moduleKey),
+            contextMenuItems: x.contextMenuItems.filter(entry => entry.moduleKey !== moduleKey),
+            chatCommands: x.chatCommands.filter(entry => entry.moduleKey !== moduleKey),
         };
     }),
 }));
