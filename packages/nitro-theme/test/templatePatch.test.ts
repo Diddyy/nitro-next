@@ -23,7 +23,7 @@ const friendList = (): Template => ({
 
 const ID = 'habbo-friend-list-com/friend_list_xml';
 
-test('a theme recolours a window without touching the source template', () => {
+void test('a theme recolours a window without touching the source template', () => {
     const source = friendList();
     const { template, report } = applyTemplatePatches(source, ID, [ { owner: 'classic', template: ID, ops: [ { element: '', set: { color: 0xffffcc00 } } ] } ]);
 
@@ -32,14 +32,14 @@ test('a theme recolours a window without touching the source template', () => {
     assert.deepEqual(report, { applied: 1, ops: { classic: 1 }, conflicts: [], unmatched: [], errors: [] });
 });
 
-test('patches for other templates leave the template as it is (same object)', () => {
+void test('patches for other templates leave the template as it is (same object)', () => {
     const source = friendList();
     const { template } = applyTemplatePatches(source, ID, [ { owner: 'a', template: 'habbo-catalog-com/catalog_xml', ops: [ { element: '', remove: true } ] } ]);
 
     assert.equal(template, source);
 });
 
-test('two add-ons add to one window side by side, each element named after its owner', () => {
+void test('two add-ons add to one window side by side, each element named after its owner', () => {
     const notes: TemplatePatch = { owner: 'notes', template: ID, ops: [ { element: 'search', insert: 'before', add: { tag: 'button', name: 'notes', caption: 'Notes', width: 40, height: 20 } } ] };
     const status: TemplatePatch = { owner: 'status', template: ID, ops: [ { element: 'friend_list', insert: 'last', add: { tag: 'icon', name: 'online' } } ] };
     const { template, report } = applyTemplatePatches(friendList(), ID, [ status, notes ]);
@@ -49,7 +49,7 @@ test('two add-ons add to one window side by side, each element named after its o
     assert.equal(report.conflicts.length, 0);
 });
 
-test('an owner reaches the elements it added by their short name', () => {
+void test('an owner reaches the elements it added by their short name', () => {
     const { template } = applyTemplatePatches(friendList(), ID, [ {
         owner: 'notes',
         template: ID,
@@ -66,7 +66,7 @@ test('an owner reaches the elements it added by their short name', () => {
     assert.equal(panel.children[0].caption, 'Hi');
 });
 
-test('two owners setting one property is reported, and the later in order wins', () => {
+void test('two owners setting one property is reported, and the later in order wins', () => {
     const patches: TemplatePatch[] = [
         { owner: 'zeta', template: ID, ops: [ { element: 'title', set: { caption: 'Z' } } ] },
         { owner: 'alpha', template: ID, ops: [ { element: 'title', set: { caption: 'A', hidden: false } } ] },
@@ -79,7 +79,7 @@ test('two owners setting one property is reported, and the later in order wins',
     assert.deepEqual(report.conflicts, [ { template: ID, element: 'title', property: 'caption', owners: [ 'alpha', 'zeta' ] } ]);
 });
 
-test('order puts a base theme under the add-ons that build on it', () => {
+void test('order puts a base theme under the add-ons that build on it', () => {
     const { template, report } = applyTemplatePatches(friendList(), ID, [
         { owner: 'addon', template: ID, ops: [ { element: '', set: { color: 1 } } ] },
         { owner: 'theme', template: ID, order: -10, ops: [ { element: '', set: { color: 2 } } ] },
@@ -89,7 +89,7 @@ test('order puts a base theme under the add-ons that build on it', () => {
     assert.deepEqual(report.conflicts[0].owners, [ 'theme', 'addon' ]);
 });
 
-test('vars merge by key and conflict per key', () => {
+void test('vars merge by key and conflict per key', () => {
     const { template, report } = applyTemplatePatches(friendList(), ID, [
         { owner: 'a', template: ID, ops: [ { element: 'search', set: { vars: { asset_uri: 'a.png', text_color: 1 } } } ] },
         { owner: 'b', template: ID, ops: [ { element: 'search', set: { vars: { asset_uri: 'b.png' } } } ] },
@@ -99,7 +99,7 @@ test('vars merge by key and conflict per key', () => {
     assert.deepEqual(report.conflicts.map(conflict => conflict.property), [ 'vars.asset_uri' ]);
 });
 
-test('an element the template no longer has is reported, the rest still applies', () => {
+void test('an element the template no longer has is reported, the rest still applies', () => {
     const { template, report } = applyTemplatePatches(friendList(), ID, [ { owner: 'old', template: ID, ops: [ { element: 'renamed_in_2027', set: { hidden: true } }, { element: 'search', remove: true } ] } ]);
 
     assert.deepEqual(report.unmatched, [ { template: ID, owner: 'old', element: 'renamed_in_2027' } ]);
@@ -107,7 +107,7 @@ test('an element the template no longer has is reported, the rest still applies'
     assert.deepEqual(template.elements[0].children.map(child => child.name), [ 'header', 'friends' ]);
 });
 
-test('an owner cannot reach another owner\'s added element by its short name', () => {
+void test('an owner cannot reach another owner\'s added element by its short name', () => {
     const { report } = applyTemplatePatches(friendList(), ID, [
         { owner: 'a', template: ID, ops: [ { element: 'friend_list', insert: 'last', add: { tag: 'text', name: 'label' } } ] },
         { owner: 'b', template: ID, ops: [ { element: 'label', set: { caption: 'stolen' } } ] },
@@ -116,7 +116,7 @@ test('an owner cannot reach another owner\'s added element by its short name', (
     assert.deepEqual(report.unmatched, [ { template: ID, owner: 'b', element: 'label' } ]);
 });
 
-test('an element added like another starts as its copy: input flags, look and children, with the given fields over them', () => {
+void test('an element added like another starts as its copy: input flags, look and children, with the given fields over them', () => {
     const source = friendList();
     const search = source.elements[0].children[2];
 
@@ -141,21 +141,21 @@ test('an element added like another starts as its copy: input flags, look and ch
     assert.equal(template.elements[0].children[2].children[0].name, 'search_label');
 });
 
-test('an added element like one the template lacks is reported and not added', () => {
+void test('an added element like one the template lacks is reported and not added', () => {
     const { template, report } = applyTemplatePatches(friendList(), ID, [ { owner: 'notes', template: ID, ops: [ { element: 'search', insert: 'after', add: { like: 'gone', name: 'notes' } } ] } ]);
 
     assert.deepEqual(report.unmatched, [ { template: ID, owner: 'notes', element: 'gone' } ]);
     assert.equal(template.elements[0].children.length, 3);
 });
 
-test('resizing the window resizes its layout by as much, so it is drawn and hit at its new size', () => {
+void test('resizing the window resizes its layout by as much, so it is drawn and hit at its new size', () => {
     const { template } = applyTemplatePatches(friendList(), ID, [ { owner: 'a', template: ID, ops: [ { element: '', set: { height: 330 } } ] } ]);
 
     assert.equal(template.elements[0].height, 330);
     assert.equal(template.height, 620);
 });
 
-test('a move takes an element and its children to another parent, keeping its name for the window code', () => {
+void test('a move takes an element and its children to another parent, keeping its name for the window code', () => {
     const { template, report } = applyTemplatePatches(friendList(), ID, [ { owner: 'skin', template: ID, ops: [ { element: 'title', move: 'before', to: 'friends' } ] } ]);
     const root = template.elements[0];
 
@@ -166,13 +166,13 @@ test('a move takes an element and its children to another parent, keeping its na
     assert.equal(resolveTemplateNames(template.elements, [ 'title' ]).targets.get('title'), root.children[1]);
 });
 
-test('a move first or last puts the element inside the one named', () => {
+void test('a move first or last puts the element inside the one named', () => {
     const { template } = applyTemplatePatches(friendList(), ID, [ { owner: 'skin', template: ID, ops: [ { element: 'search', move: 'first', to: 'header' } ] } ]);
 
     assert.deepEqual(template.elements[0].children[0].children.map(child => child.name), [ 'search', 'title' ]);
 });
 
-test('a move into the element itself, or to an element the template lacks, is reported and moves nothing', () => {
+void test('a move into the element itself, or to an element the template lacks, is reported and moves nothing', () => {
     const { template, report } = applyTemplatePatches(friendList(), ID, [ { owner: 'skin', template: ID, ops: [
         { element: 'header', move: 'last', to: 'title' },
         { element: 'search', move: 'after', to: 'gone' },
@@ -182,7 +182,7 @@ test('a move into the element itself, or to an element the template lacks, is re
     assert.deepEqual(template.elements[0].children.map(child => child.name), [ 'header', 'friends', 'search' ]);
 });
 
-test('params merge by key like vars, and conflict per key', () => {
+void test('params merge by key like vars, and conflict per key', () => {
     const source = friendList();
 
     source.elements[0].children[2].params = { events: [ 'input' ], scale: [ 'stretch', 'move' ], align: [ 'left', 'top' ] };
@@ -197,7 +197,7 @@ test('params merge by key like vars, and conflict per key', () => {
     assert.deepEqual(source.elements[0].children[2].params?.scale, [ 'stretch', 'move' ]);
 });
 
-test('ops given as a function of the window context are made for that context', () => {
+void test('ops given as a function of the window context are made for that context', () => {
     const patch: TemplatePatch = { owner: 'skin', template: ID, ops: context => (context.isOwnUser ? [ { element: '', set: { color: 0xff00ff00 } } ] : []) };
 
     assert.equal(templatePatchesUseContext([ patch ], ID), true);
@@ -207,7 +207,7 @@ test('ops given as a function of the window context are made for that context', 
     assert.equal(applyTemplatePatches(friendList(), ID, [ patch ]).template.elements[0].color, 0xff336699);
 });
 
-test('ops that throw are reported as an error and skipped; the other patches still apply', () => {
+void test('ops that throw are reported as an error and skipped; the other patches still apply', () => {
     const { template, report } = applyTemplatePatches(friendList(), ID, [
         { owner: 'broken', template: ID, ops: () => { throw new Error('no figure'); } },
         { owner: 'fine', template: ID, ops: [ { element: 'search', set: { caption: 'Find' } } ] },
@@ -219,7 +219,7 @@ test('ops that throw are reported as an error and skipped; the other patches sti
     assert.equal(template.elements[0].children[2].caption, 'Find');
 });
 
-test('two contexts with the same values have one key, whatever order they were built in', () => {
+void test('two contexts with the same values have one key, whatever order they were built in', () => {
     assert.equal(templateContextKey({ userId: 1, isOwnUser: true }), templateContextKey({ isOwnUser: true, userId: 1 }));
     assert.notEqual(templateContextKey({ userId: 1 }), templateContextKey({ userId: 2 }));
 });
@@ -258,7 +258,7 @@ const laidOut = (template: Template) => {
     return { window: rects.get(root)?.height, border: rects.get(border)?.height, list: rects.get(list)?.height, items: list.children.map(item => rects.get(item)?.y) };
 };
 
-test('a list told to follow its items grows the window it reflects to, and a border told to stretch follows: no heights in the patch', () => {
+void test('a list told to follow its items grows the window it reflects to, and a border told to stretch follows: no heights in the patch', () => {
     // Added alone, the button is placed after settings by the list, and the purse keeps its size.
     assert.deepEqual(laidOut(applyTemplatePatches(purse(), PURSE, [ { owner: 'skills', template: PURSE, ops: [ ADD_BUTTON ] } ]).template), { window: 77, border: 76, list: 62, items: [ 0, 21, 42, 63 ] });
 
@@ -275,7 +275,7 @@ test('a list told to follow its items grows the window it reflects to, and a bor
     assert.deepEqual(laidOut(template), { window: 97, border: 96, list: 82, items: [ 0, 21, 42, 63 ] });
 });
 
-test('an override binding wins for the fields it sets over the window code, each one reported; a plain binding only reaches added elements', () => {
+void test('an override binding wins for the fields it sets over the window code, each one reported; a plain binding only reaches added elements', () => {
     const own = { name_text: { caption: 'Alice', color: 0xffffff }, motto: { caption: 'hi' } };
     const entries = [
         { owner: 'skin', element: 'name_text', override: true, binding: { color: 0xffd54f, alpha: 0.5 } },
@@ -293,7 +293,7 @@ test('an override binding wins for the fields it sets over the window code, each
     assert.equal(mergeTemplateBindings('t', own, [], () => undefined).bindings, own);
 });
 
-test('post-layout hooks run after the window code in the order added; one that throws is reported and the others still run', () => {
+void test('post-layout hooks run after the window code in the order added; one that throws is reported and the others still run', () => {
     const ran: string[] = [];
     const errors: string[] = [];
     const windows: TemplateWindows = { find: () => undefined, root: () => undefined };
@@ -315,7 +315,7 @@ test('post-layout hooks run after the window code in the order added; one that t
     assert.equal(chainTemplateArranges(own, [], {}, () => undefined), own);
 });
 
-test('a wrap puts a part of the window in a framed pane of its own, in its place: the window code still finds it by name', () => {
+void test('a wrap puts a part of the window in a framed pane of its own, in its place: the window code still finds it by name', () => {
     const source = friendList();
 
     source.elements[0].children[1] = { ...source.elements[0].children[1], x: 6, y: 30, width: 120, height: 200 };
@@ -339,7 +339,7 @@ test('a wrap puts a part of the window in a framed pane of its own, in its place
     assert.equal(resolveTemplateNames(template.elements, [ 'friends' ]).targets.get('friends'), pane.children[0]);
 });
 
-test('the window itself is not wrapped, and a wrap like an element the template lacks is reported', () => {
+void test('the window itself is not wrapped, and a wrap like an element the template lacks is reported', () => {
     const { template, report } = applyTemplatePatches(friendList(), ID, [ {
         owner: 'theme',
         template: ID,
@@ -354,7 +354,7 @@ test('the window itself is not wrapped, and a wrap like an element the template 
     assert.equal(template.elements[0].children.at(-1)!.name, 'search');
 });
 
-test('a wrapped part knows its pane through the pane\'s content area; an unwrapped one has none', () => {
+void test('a wrapped part knows its pane through the pane\'s content area; an unwrapped one has none', () => {
     const { template } = applyTemplatePatches(friendList(), ID, [ {
         owner: 'theme',
         template: ID,
@@ -371,7 +371,7 @@ test('a wrapped part knows its pane through the pane\'s content area; an unwrapp
 
 // The navigator's layout pins its width (`width_min` = `width_max` = 578): a theme's narrower navigator
 // (hiveui2's 309) needs its limits, which `set` takes whole.
-test('limits in a set replace the layout\'s, so a window its layout pins to one width takes another', () => {
+void test('limits in a set replace the layout\'s, so a window its layout pins to one width takes another', () => {
     const pinned = (): Template => ({ name: 'nav', width: 578, height: 400, elements: [ element('frame', 'nav', [], { width: 578, height: 400, limits: [ 578, 578, 200, null ] }) ] });
     const width = (template: Template) => layoutTemplate(template.elements, { captionOf: () => '', measure: () => ({ width: 10, height: 10 }) }).get(template.elements[0])!.width;
     const patched = (ops: TemplatePatch['ops']) => applyTemplatePatches(pinned(), 'nav', [ { owner: 'theme', template: 'nav', ops } ]).template;
@@ -388,7 +388,7 @@ const roomList = (): TemplateElement[] => [ element('container', 'results', [
 
 const rooms = (count: number): TemplateItem[] => Array.from({ length: count }, (_, index) => ({ key: String(100 + index), from: 'row', bindings: { row: { color: 0xffd6eeff }, room_name: { caption: `Room ${index}` } } }));
 
-test('an item binding draws each clone of a list with its index: rows alternate a theme\'s colours over the code\'s', () => {
+void test('an item binding draws each clone of a list with its index: rows alternate a theme\'s colours over the code\'s', () => {
     const entries = [ { owner: 'theme', element: 'row', override: true, items: true, binding: (index: number) => ({ color: (index % 2) ? 0xffffffff : 0xffdee4f2 }) } ];
     const seen: string[] = [];
     const conflicts: string[] = [];
@@ -414,7 +414,7 @@ test('an item binding draws each clone of a list with its index: rows alternate 
     assert.deepEqual(conflicts, [ `${WINDOW_CODE_OWNER}>theme`, `${WINDOW_CODE_OWNER}>theme`, `${WINDOW_CODE_OWNER}>theme` ]);
 });
 
-test('without item bindings a clone is drawn with its item\'s own bindings, as before', () => {
+void test('without item bindings a clone is drawn with its item\'s own bindings, as before', () => {
     const own: TemplateBindings = { rooms: { items: rooms(2) } };
     const withHook = new TemplateExpander().expand(roomList(), own, item => item.bindings);
     const without = new TemplateExpander().expand(roomList(), own);
