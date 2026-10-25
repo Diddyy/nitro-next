@@ -6,10 +6,16 @@
  *
  * Where the patches come from: client modules (`api.templates.patch`) and plugins' declarative
  * `template-patches.json` files the hotel names in `templates.patches` (`loadTemplatePatchFiles`).
+ *
+ * What a template's patches did is said where an author looks: a patch naming an element the
+ * template lacks, or two owners setting one property, is a console warning, and every owner's
+ * applied, unmatched and clashing ops go to the server's extension inspector (`reportClientExtension`).
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { applyTemplatePatches, ownedElementName, Template, TemplateBinding, TemplateBindings, TemplatePatch, TemplatePatchOp, TemplatePatchReport } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
+
+import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
 
 interface ExtensionBinding {
     owner: string;
@@ -85,6 +91,36 @@ export const addTemplateBinding = (owner: string, template: string, name: string
 
 const sameReport = (a: TemplatePatchReport | undefined, b: TemplatePatchReport) => !!a && JSON.stringify(a) === JSON.stringify(b);
 
+/** Says what `id`'s patches did: warnings for what missed or clashed, and each owner's figures to the server. */
+const announceReport = (id: string, report: TemplatePatchReport) => {
+    for (const conflict of report.conflicts) {
+        const message = `${id}: ${conflict.owners.join(', ')} all set ${conflict.property} of '${conflict.element}'; ${conflict.owners.at(-1)}'s is used.`;
+
+        console.warn(`[TemplatePatches] ${message}`);
+
+        for (const owner of new Set(conflict.owners)) reportClientExtension({ owner, kind: 'patch.conflict', subject: id, reason: `${conflict.element}.${conflict.property}`, message });
+    }
+
+    for (const miss of report.unmatched) {
+        const message = `${id}: ${miss.owner}'s patch names '${miss.element}', which this template does not have.`;
+
+        console.warn(`[TemplatePatches] ${message} Alt-click the element in the inspector for its key.`);
+        reportClientExtension({ owner: miss.owner, kind: 'patch.unmatched', subject: id, reason: miss.element, message });
+    }
+
+    const ops = new Map<string, number>();
+
+    for (const patch of patches) {
+        if (patch.template === id) ops.set(patch.owner, (ops.get(patch.owner) ?? 0) + patch.ops.length);
+    }
+
+    for (const [ owner, count ] of ops) {
+        const applied = count - report.unmatched.filter(miss => miss.owner === owner).length;
+
+        reportClientExtension({ owner, kind: 'patch.applied', subject: id, reason: String(applied), message: `${applied} of ${count} op(s) applied.` });
+    }
+};
+
 /** The template `id` as the patches make it: the source itself while none applies to it. */
 export const patchedTemplate = (id: string, source: Template | undefined): Template | undefined => {
     if (!source || !patches.length) return source;
@@ -97,9 +133,7 @@ export const patchedTemplate = (id: string, source: Template | undefined): Templ
 
     if (!sameReport(reports.get(id), report)) {
         reports.set(id, report);
-
-        for (const conflict of report.conflicts) NitroLogger.warn('TemplatePatches', `${id}: ${conflict.owners.join(', ')} all set ${conflict.property} of '${conflict.element}'; ${conflict.owners.at(-1)}'s is used.`);
-        for (const miss of report.unmatched) NitroLogger.warn('TemplatePatches', `${id}: ${miss.owner}'s patch names '${miss.element}', which this template does not have.`);
+        announceReport(id, report);
     }
 
     patched.set(source, { version, template });
@@ -122,6 +156,9 @@ const mergeExtensionBindings = (id: string, own: TemplateBindings | undefined, a
 
 /** What each patched template's last application reported: for an inspector, and for tests. */
 export const templatePatchReports = (): ReadonlyMap<string, TemplatePatchReport> => reports;
+
+/** The patches added now: for the inspector, which lists those naming the element it shows. */
+export const templatePatchList = (): readonly TemplatePatch[] => patches;
 
 interface TemplatePatchFile {
     patches?: { template: string; ops: TemplatePatchOp[]; order?: number }[];

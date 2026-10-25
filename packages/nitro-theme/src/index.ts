@@ -56,6 +56,7 @@ export * from './hooks/useWindowPointerDrag';
 export * from './host';
 export * from './Icon';
 export * from './IconButton';
+export * from './inspect';
 export * from './layer/BackgroundLayer';
 export * from './layer/ColorLayer';
 export * from './layer/CompositeLayer';

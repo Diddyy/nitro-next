@@ -19,7 +19,7 @@
  */
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Container as PixiContainer, Graphics as PixiGraphics, RenderLayer } from 'pixi.js';
-import { createContext, memo, ReactNode, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { createContext, memo, ReactNode, use, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { Border } from '../Border';
 import { Box, BoxLayout } from '../Box';
@@ -40,6 +40,7 @@ import { Header } from '../Header';
 import { loadTexture, useTextureFromUrl } from '../hooks/usePixiTexture';
 import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
+import { isTemplateInspecting, TemplateInspectContext } from '../inspect';
 import { RadioButton } from '../RadioButton';
 import { Region, RegionProps } from '../Region';
 import { Scaler } from '../Scaler';
@@ -2027,13 +2028,18 @@ const ScrolledList = ({ element, context, rect, scroll, flow, alpha, binding, fa
  */
 const ElementEscape = (props: ElementViewProps) => {
     const clipEscape = useContext(ClipEscapeContext);
+    // Not Flash's: while the extension inspector is on (`inspect`), the element as it finds it - every
+    // box drawn for it notes it. Off, nothing is read or provided.
+    const content = isTemplateInspecting()
+        ? <TemplateInspectContext.Provider value={{ element: props.element, parent: use(TemplateInspectContext) }}><ElementContent {...props} /></TemplateInspectContext.Provider>
+        : <ElementContent {...props} />;
 
-    if (!clipEscape || props.flow || templateUsesParentGraphics(props.element)) return <ElementContent {...props} />;
+    if (!clipEscape || props.flow || templateUsesParentGraphics(props.element)) return content;
 
     return (
         <DrawnIn layer={clipEscape}>
             <ClipEscapeContext.Provider value={undefined}>
-                <ElementContent {...props} />
+                {content}
             </ClipEscapeContext.Provider>
         </DrawnIn>
     );

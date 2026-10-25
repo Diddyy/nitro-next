@@ -22,7 +22,11 @@ Windows are drawn from Habbo's own layouts (`templates.json` in each library's b
 | `'#bg'` | the first with that tag |
 | `'@8'` | the window's 9th child (for unnamed elements); `'help_button/@0'` its first child |
 
-To find names: Nitro Studio's template preview, or the library's `templates.json`.
+To find names, **alt-click the element** in the client (development builds, or staff holding
+Turbo's `client.inspector`): the extension inspector shows the template id, the element's key, its
+type, rect and the elements it is in, the patches on it and on what holds it, and puts a patch for
+it on the clipboard (also logged as `[Inspector]`). Nitro Studio's template preview and the
+library's `templates.json` have the same names.
 
 ## Operations
 
@@ -68,7 +72,9 @@ Patches apply by `order` (lower first; a base theme takes a negative one), then 
 added - never by load timing. When two owners set the same property of the same element the later
 one's value is used and the conflict is logged (`TemplatePatches`) and kept in the report. An op
 whose element the template does not have (a renamed element in a new client release) is skipped,
-logged and reported; the others still apply. A hotel takes a plugin's file away with an empty url in
+a console warning and reported; the others still apply. Each owner's applied, unmatched and
+clashing ops also go to a Turbo server's extension inspector (`TurboClientExtensionReportComposer`,
+part of `client.modules`), whose log names the miss and whose admin panel lists it on the plugin. A hotel takes a plugin's file away with an empty url in
 its own `templates.patches`.
 
 ## Where it lives
