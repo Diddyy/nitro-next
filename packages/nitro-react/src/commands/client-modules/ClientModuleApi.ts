@@ -51,10 +51,11 @@ export interface ClientModuleContextMenuButton<M extends ClientModuleContextMenu
 export interface ClientModuleApi {
     readonly version: 1;
     /**
-     * The minor version: 1 for API 1.1 (`state`, `events`, `contextMenu`, `chatCommands`). A
-     * plain-JavaScript module that may meet an older client reads `api.minor ?? 0`.
+     * The minor version: 1 for API 1.1 (`state`, `events`, `contextMenu`, `chatCommands`), 2 for 1.2
+     * (`channels`, `links.handle`'s `path`). A plain-JavaScript module that may meet an older client
+     * reads `api.minor ?? 0`.
      */
-    readonly minor: 1;
+    readonly minor: 2;
     /** The module's key: its plugin's. */
     readonly key: string;
     /**
@@ -124,8 +125,14 @@ export interface ClientModuleApi {
         toggle: () => void;
     };
     links: {
-        /** Every in-client link `<prefix>/...` that the client itself has no route for. */
-        handle: (prefix: string, handler: (link: string) => void) => ClientModuleDispose;
+        /**
+         * Every in-client link `<prefix>/...` that the client itself has no route for - or, with `path`
+         * (`'news/*'`: the parts after the prefix, `*` any one), those whose parts begin with it. A link
+         * goes to the handlers of the most specific path that matches, else to every handler of the whole
+         * prefix. Two modules on one prefix and path both get its links: a conflict, warned and listed
+         * by the extension inspector.
+         */
+        handle: (prefix: string, handler: (link: string) => void, options?: { path?: string }) => ClientModuleDispose;
         /** Opens an in-client link, the client's or a module's. */
         open: (link: string) => void;
     };
@@ -155,6 +162,18 @@ export interface ClientModuleApi {
          * once; a name the server did not list warns and sends nothing.
          */
         send: (name: string, data: Record<string, unknown>) => void;
+    };
+    /**
+     * Data shared with the other modules by key (`'news.promo'`), not through links. `publish` hands
+     * the value to the key's subscribers and keeps it as the key's value; `subscribe` is handed each
+     * value from then on, and at once the one kept, with the key of the module that published it. A
+     * stopped module's values are cleared (its subscribers handed `undefined`). Publish plain data, a
+     * new object for each change. Optional (`api.channels?.`): clients before it have none.
+     */
+    channels: {
+        publish: <T = unknown>(key: string, value: T) => void;
+        subscribe: <T = unknown>(key: string, handler: (value: T | undefined, from: string | undefined) => void) => ClientModuleDispose;
+        get: <T = unknown>(key: string) => T | undefined;
     };
     /**
      * The module's own plugin's web routes (`IPluginWebRoute`) on the hotel's public web host:
