@@ -33,6 +33,7 @@ import { useCallback, useState } from 'react';
 import { hotelViewColorableBindings, hotelViewCommonSettings, hotelViewPaneWidths, hotelViewProperty, hotelViewSlotWidget, PORTED_LANDING_VIEW_WIDGETS, useConfigData } from '#base/context/system';
 import { useViewportSize } from '#base/hooks';
 import { findTemplateChild, Template, TemplateItem, TemplateWindows } from '#base/theme';
+import { configReader } from '#base/utils';
 
 import { HotelViewMeasuredSlot, HotelViewSlotSize } from './HotelViewMeasuredSlot';
 import { HotelViewSlotWidget } from './HotelViewSlotWidget';
@@ -78,7 +79,8 @@ export const useHotelViewWidgetGrid = (templates: Readonly<Record<string, Templa
     const settings = hotelViewCommonSettings(config);
     const panes = hotelViewPaneWidths(config);
     const configString = (key: string) => hotelViewProperty(config, key);
-    const configBoolean = (key: string) => configString(key) === 'true';
+    // `getBoolean`: "1" or "true", with no placeholders filled.
+    const { configBoolean } = configReader(config);
     const widgetType = (slot: number) => hotelViewSlotWidget(config, slot);
     const occupied = (slot: number) => PORTED_LANDING_VIEW_WIDGETS.has(widgetType(slot));
     const ignoreBottomRight = configBoolean('landing.view.dynamic.slot.5.ignore');

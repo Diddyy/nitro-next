@@ -213,6 +213,3 @@ export const stopClientModules = () => {
 
     return queue;
 };
-
-/** The running modules' keys and versions, for diagnostics. */
-export const getRunningClientModules = () => [ ...running.values() ].map(({ module }) => ({ key: module.key, version: module.version }));

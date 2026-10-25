@@ -83,15 +83,6 @@ export const addTemplateBinding = (owner: string, template: string, name: string
     };
 };
 
-/** Takes out every patch and binding `owner` added. */
-export const removeTemplatePatches = (owner: string) => {
-    if (!patches.some(patch => patch.owner === owner) && !bindings.some(entry => entry.owner === owner)) return;
-
-    patches = patches.filter(patch => patch.owner !== owner);
-    bindings = bindings.filter(entry => entry.owner !== owner);
-    changed();
-};
-
 const sameReport = (a: TemplatePatchReport | undefined, b: TemplatePatchReport) => !!a && JSON.stringify(a) === JSON.stringify(b);
 
 /** The template `id` as the patches make it: the source itself while none applies to it. */
@@ -116,9 +107,6 @@ export const patchedTemplate = (id: string, source: Template | undefined): Templ
     return template;
 };
 
-/** The bindings extensions give the elements they added to `id`'s windows, under the window's own. */
-export const templateExtensionBindings = (id: string, own: TemplateBindings | undefined): TemplateBindings | undefined => mergeExtensionBindings(id, own, bindings);
-
 const mergeExtensionBindings = (id: string, own: TemplateBindings | undefined, all: readonly ExtensionBinding[]): TemplateBindings | undefined => {
     const mine = all.filter(entry => entry.template === id);
 
@@ -134,9 +122,6 @@ const mergeExtensionBindings = (id: string, own: TemplateBindings | undefined, a
 
 /** What each patched template's last application reported: for an inspector, and for tests. */
 export const templatePatchReports = (): ReadonlyMap<string, TemplatePatchReport> => reports;
-
-/** The patches currently added, in no particular order. */
-export const templatePatchList = (): readonly TemplatePatch[] => patches;
 
 interface TemplatePatchFile {
     patches?: { template: string; ops: TemplatePatchOp[]; order?: number }[];

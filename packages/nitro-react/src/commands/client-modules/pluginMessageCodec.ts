@@ -181,6 +181,3 @@ export const encodePluginMessage = (value: Record<string, unknown>, fields: Plug
 
     return out;
 };
-
-/** A message of the schema with every field at its default: what a module reads for a field it was not sent. */
-export const defaultPluginMessage = (fields: PluginMessageField[]) => defaultsOf(fields);

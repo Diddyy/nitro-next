@@ -14,7 +14,7 @@ Three sources, each worth re-running after a revision bump or a feature port:
 
 - **Packet coverage.** `node tools/packet-coverage.mjs` lists, by feature area, the incoming
   messages nothing in the client listens to and the outgoing composers nothing sends. At the time
-  of writing that is 96 of 585 incoming and 101 of 578 outgoing. A packet counts as used when its
+  of writing that is 78 of 600 incoming and 91 of 588 outgoing. A packet counts as used when its
   class name appears in the client's source, so a registered listener that does nothing still counts.
 - **The port's own notes.** Views, stores and handlers state what they leave out; search the
   client for `not ported` and `Not ported:`.
@@ -33,11 +33,11 @@ answer yet.
 |---|---|---|
 | Help, call for help and guides | Pending calls, guide sessions, chat review, the safety quiz. Reporting a user, a room, an instant message or a photo is ported (`views/help`, `helpCommands`, the navigator's room info bubble). | `Help`, `Callforhelp` |
 | Talent track and the daily quest | Talent track levels, and the talent track window the hotel view's `habbotalentspromo` button asks for (`GetTalentTrack`). The hotel view's daily quest widget and element are ported. The quest list, details, tracker and completed dialog are ported (`views/quests`), community goals are the hotel view's; the achievement browser, score and standard award packets are implemented - see [achievement client](achievements.md). | `Quest`, `Talent` |
-| Game centre | SnowWar (it needs the game engine), game directory, leaderboards, weekly rewards. Nothing calls `buySnowWarTokensOffer` (`commands/game-tokens/gameTokensCommands.ts`); the catalogue's game token offers are bought through `purchaseGameTokensOffer`. The staff chat command `:csmm` (`GameManager.generateChecksumMismatch`) waits on the game manager. | `Game` |
+| Game centre | The SnowWar game itself (it needs the game engine), leaderboards, weekly rewards. The games window is ported (`views/game-center`, `commands/game-center`): the toolbar icon, quick play, the instructions, games left, the token buttons (`buySnowWarTokensOffer`) and the lobby up to the game's start, which closes the window. The staff chat command `:csmm` (`GameManager.generateChecksumMismatch`) waits on the game manager. | `Game` |
 | Campaign calendar | The advent calendar and its doors, the seasonal daily offer that shares it, and the seasonal quest calendar (`seasonalcalendar.MainWindow`, fed by `SeasonalQuestsMessage`). | `Campaign`, `Catalog`, `Quest` |
 | Phone number verification | `HabboPhoneNumber`'s collect window and its minimised view, behind `sms.identity.verification.enabled`. | `Gifts` |
 | Interstitial ads | `AdManager`'s interstitials, behind `interstitials.2016.enabled`. | `Advertisement` |
-| New user experience | The gift offer and the tutorial script. The new user flow - look, name and starter room (`OnBoardingHcFlow`) - is ported (`views/onboarding`); the room types, their pictures (`new.user.flow.room.image.url`) and the dice's looks (`new.user.flow.figures.male` / `.female`) are configuration - see Turbo's `docs/onboarding.md`. | `Nux` |
+| New user experience | The tutorial script (`NewUserExperienceNotComplete`). The gift selection (`views/onboarding/NuxGiftSelectionView`) is ported, and so is the new user flow - look, name and starter room (`OnBoardingHcFlow`, `views/onboarding`); the room types, their pictures (`new.user.flow.room.image.url`) and the dice's looks (`new.user.flow.figures.male` / `.female`) are configuration - see Turbo's `docs/onboarding.md`. | `Nux` |
 | Room competitions | The room competition window (`RoomCompetitionController`) and voting. The hotel view's competition elements ask whether the user has entered, submit a room and forward to competition rooms, and its prizes and hall of fame widgets are drawn. | `Competition`, `Navigator` |
 | Name change | The avatar editor's `avatar_name_change` (`AvatarEditorNameChangeView`, behind `premium.name.change.enabled`). Its layouts (`avatar_editor_name_change`, `avatar_editor_name_change_item`) are only in the AS3's embedded assets: Habbo's JavaScript client dropped them, so the `habbo-avatar-editor-com` template bundle built from its library has neither. In Flash the window only checks a name - `select_name_button` has no handler. The own avatar menu's name change window (`NameChangeView`) is ported (`commands/user/nameChangeCommands.ts`). | `Avatar` |
 

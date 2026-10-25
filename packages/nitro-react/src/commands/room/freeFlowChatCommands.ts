@@ -11,6 +11,7 @@ import { createChatBubbleId, GetChatStyleLibrary } from '#base/chat';
 import { ChatHistoryIgnoreTarget, chatHistoryStore } from '#base/context/chat-history';
 import { getRoom, roomStore } from '#base/context/room';
 import { userStore } from '#base/context/user';
+import { getTimer } from '#base/utils';
 
 /** `ChatBubbleFactory.isSystemNotificationChat`: the chat types 3-10 and 12. */
 const SYSTEM_NOTIFICATION_CHAT_TYPES: ReadonlySet<RoomChatTypeEnum> = new Set([
@@ -38,7 +39,7 @@ export const insertRoomChat = (objectId: number, text: string, chatType: RoomCha
 
     const roomObject = (objectId < 0) ? null : room.getRoomObject(objectId, RoomObjectCategoryEnum.Unit);
     const location = customLocation ? new Vector3d(customLocation.x, customLocation.y) : roomObject?.getLocation();
-    const now = Math.floor(performance.now());
+    const now = getTimer();
 
     // Messages that share a millisecond still need a strict order for the collision rules.
     if (now === lastAddedChatMs) chatFakeMsIncrementor++;
