@@ -217,7 +217,8 @@ frame and centres the rest on `box`, `text` is a text key or the text itself (in
 `client.starting.revolving` lines), `textWidth` the width it wraps at, `bar` takes `fillBottom` for a
 two-tone fill, and `percentColor` the percentage's colour. `order` lists the parts top to bottom (`logo`,
 `text`, `bar`, `percent`; one left out follows in Habbo's order), each the gap of its kind below the one
-before (10, the percentage 5). A value of the wrong type is ignored. The shape is the SDK's
+before (10, the percentage 5). A value of the wrong type is ignored. A theme plugin names its pictures by
+their path in its `wwwroot/` (`"loading/logo.png"`); Turbo gives clients their address. The shape is the SDK's
 `ClientModuleLoadingScreen`, for a theme that writes its variables from a script.
 
 ## Replacing the toolbar
