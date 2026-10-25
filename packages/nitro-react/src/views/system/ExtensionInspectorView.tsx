@@ -1,4 +1,4 @@
-import { ClientPointToStage, EMPTY_TEMPLATE_CONTEXT, inspectAt, inspectChain, inspectKey, resolveTemplateNames, setTemplateInspecting, TemplateElement, TemplateInspectHit, TemplatePatch, TemplatePatchOp } from '@nitrodevco/nitro-theme';
+import { ClientPointToStage, EMPTY_TEMPLATE_CONTEXT, inspectAt, inspectChain, inspectKey, resolveTemplateNames, setTemplateInspecting, TemplateElement, TemplateInspectHit, TemplatePatch, templatePatchMatches, TemplatePatchOp } from '@nitrodevco/nitro-theme';
 import { useApplication } from '@pixi/react';
 import { useEffect, useState } from 'react';
 
@@ -139,7 +139,7 @@ const describe = (hit: TemplateInspectHit) => {
 
     // The ops that name this element or one it is drawn in: by the key as given, or by an owner's own name for what it added.
     const named = (target: TemplateElement) => templatePatchList()
-        .filter(patch => patch.template === id)
+        .filter(patch => templatePatchMatches(patch.template, id))
         .flatMap(patch => opsShown(patch, hit)
             .filter((op) => {
                 const keys = [ op.element, op.element.split('/').map(name => `${patch.owner}:${name}`).join('/') ];

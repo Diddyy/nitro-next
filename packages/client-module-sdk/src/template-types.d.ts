@@ -56,8 +56,18 @@ export interface ClientModuleTemplateParams {
  * an op's `element` is: `'help_button'`, `'help_button/@0'`) and the fields given replace the copy's;
  * without `like` it is built from the fields alone, `tag` then needed.
  */
-export interface ClientModuleTemplateElementInput {
-    name: string;
+export type ClientModuleTemplateElementInput = ClientModuleTemplateElementFields & (
+    | { name: string; bindAs?: string }
+    /**
+     * A name the window's code fills that the template lacks (the catalogue's `ctlg_txt1`, a page
+     * text its layout has no field for): the element takes it, so the code's binding (the page's
+     * text) reaches it. One the template already has is a conflict in `report`, and the element is
+     * named `<key>:<name>` (`name`, or `bindAs` without one).
+     */
+    | { name?: string; bindAs: string }
+);
+
+export interface ClientModuleTemplateElementFields {
     tag?: string;
     like?: string;
     x?: number;

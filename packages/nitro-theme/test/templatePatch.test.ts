@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { resolveTemplateNames, TemplateBindings, TemplateExpander, TemplateItem, TemplateWindows } from '../src/template/templateBindings';
 import type { Template, TemplateElement } from '../src/template/templateData';
 import { buildTemplateWindows, layoutTemplate } from '../src/template/templateLayout';
-import { applyTemplatePatches, chainTemplateArranges, mergeTemplateBindings, mergeTemplateItemBindings, templateContextKey, TemplatePatch, templatePatchesUseContext, templateWrapperOf, WINDOW_CODE_OWNER } from '../src/template/templatePatch';
+import { applyTemplatePatches, chainTemplateArranges, mergeTemplateBindings, mergeTemplateItemBindings, TEMPLATE_OWNER, templateContextKey, TemplatePatch, templatePatchesUseContext, templatePatchMatches, templateWrapperOf, WINDOW_CODE_OWNER } from '../src/template/templatePatch';
 
 const element = (tag: string, name: string, children: TemplateElement[] = [], extra: Partial<TemplateElement> = {}): TemplateElement => ({ tag, name, x: 0, y: 0, width: 10, height: 10, vars: {}, children, ...extra });
 
@@ -421,4 +421,66 @@ void test('without item bindings a clone is drawn with its item\'s own bindings,
     const colours = (expansion: typeof without) => [ ...expansion.byElement ].map(([ node, binding ]) => `${node.name}:${binding.color ?? binding.caption ?? ''}`);
 
     assert.deepEqual(colours(withHook), colours(without));
+});
+
+// The case: a theme's front page holds the page's text 0, which the catalogue's code puts in `ctlg_txt1`; the
+// layout it restyles (`layout_frontpage_featured`) has no `ctlg_txt1` and an added element was `<owner>:<name>`, so the theme
+// copied the text into a text of its own and a panel edit of the page's text did not reach it.
+void test('an added element bound as a name the code fills that the template lacks takes that name; one the template has is a conflict', () => {
+    const PAGE = 'habbo-catalog-com/layout_frontpage_featured';
+    const page = (): Template => ({ name: 'frontpage', width: 360, height: 400, elements: [ element('container', 'page', [ element('text', 'ctlg_txt2', [], { caption: 'Welcome' }) ]) ] });
+    const { template, report } = applyTemplatePatches(page(), PAGE, [
+        { owner: 'theme', template: PAGE, ops: [
+            { element: 'ctlg_txt2', insert: 'after', add: { like: 'ctlg_txt2', bindAs: 'ctlg_txt1', y: 200 } },
+            { element: 'ctlg_txt1', set: { width: 320 } },
+            { element: 'page', insert: 'last', add: { tag: 'text', name: 'other', bindAs: 'ctlg_txt2' } },
+        ] },
+        { owner: 'addon', template: PAGE, order: 1, ops: [ { element: 'page', insert: 'last', add: { tag: 'text', name: 'mine', bindAs: 'ctlg_txt1' } } ] },
+    ]);
+    const names = template.elements[0].children.map(child => child.name);
+
+    assert.deepEqual(names, [ 'ctlg_txt2', 'ctlg_txt1', 'theme:other', 'addon:mine' ]);
+    // The code's binding of the page text (`findChildByName('ctlg_txt1')`) reaches the theme's element, sized by the theme.
+    assert.equal(resolveTemplateNames(template.elements, [ 'ctlg_txt1' ]).targets.get('ctlg_txt1'), template.elements[0].children[1]);
+    assert.equal(template.elements[0].children[1].width, 320);
+    assert.deepEqual(report.conflicts, [
+        { template: PAGE, element: 'ctlg_txt2', property: 'bindAs', owners: [ TEMPLATE_OWNER, 'theme' ] },
+        { template: PAGE, element: 'ctlg_txt1', property: 'bindAs', owners: [ 'theme', 'addon' ] },
+    ]);
+    assert.equal(report.applied, 4);
+});
+
+void test('a bindAs name an op that placed nothing took is free again', () => {
+    const { template, report } = applyTemplatePatches(friendList(), ID, [ { owner: 'theme', template: ID, ops: [
+        { element: 'missing', insert: 'after', add: { tag: 'text', bindAs: 'status' } },
+        { element: 'friend_list', insert: 'last', add: { tag: 'text', bindAs: 'status' } },
+    ] } ]);
+
+    assert.equal(template.elements[0].children.at(-1)!.name, 'status');
+    assert.deepEqual(report.conflicts, []);
+    assert.deepEqual(report.unmatched.map(miss => miss.element), [ 'missing' ]);
+});
+
+// The case: every catalogue page layout is 360 wide; a theme whose notebook holds 342 had to patch each layout alone.
+void test('a patch for a template pattern applies to each template it matches, and only those', () => {
+    const PAGES = 'habbo-catalog-com/layout_*';
+    const patch: TemplatePatch = { owner: 'theme', template: PAGES, ops: [ { element: '', set: { width: 342 } } ] };
+    const page = (): Template => ({ name: 'page', width: 360, height: 400, elements: [ element('container', 'page', [], { width: 360, height: 400 }) ] });
+
+    for (const id of [ 'habbo-catalog-com/layout_default_3x3', 'habbo-catalog-com/layout_frontpage_featured' ]) {
+        const { template } = applyTemplatePatches(page(), id, [ patch ]);
+
+        assert.equal(template.width, 342, id);
+        assert.equal(template.elements[0].width, 342, id);
+    }
+
+    for (const id of [ 'habbo-catalog-com/old_layout_default_3x3', 'habbo-catalog-com/catalog_ubuntu', 'habbo-catalog-comXlayout_x' ]) {
+        const source = page();
+
+        assert.equal(applyTemplatePatches(source, id, [ patch ]).template, source, id);
+    }
+
+    assert.equal(templatePatchMatches('habbo-catalog-com/layout_*_3x3', 'habbo-catalog-com/layout_default_3x3'), true);
+    assert.equal(templatePatchMatches('habbo-catalog-com/layout.x', 'habbo-catalog-com/layoutXx'), false);
+    assert.equal(templatePatchesUseContext([ { owner: 'theme', template: PAGES, ops: () => [] } ], 'habbo-catalog-com/layout_pets'), true);
 });
