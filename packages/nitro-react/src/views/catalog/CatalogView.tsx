@@ -29,7 +29,7 @@ import { refreshBuilderStatus, updateBuilderStatus } from '#base/commands';
 import { CATALOG_HEADER_DESCRIPTION, CATALOG_HEADER_IMAGE, CatalogPage, getCatalogPageImage, getCatalogPageText, getCatalogWindowName, isNonTabbedCatalog, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogNavigation, useWindowVisibility } from '#base/hooks';
-import { Box, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, templateWrapperOf, useLayoutSize, useTemplateLibrary, useTemplateWindowRect } from '#base/theme';
+import { Box, findTemplateChild, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, templateWrapperOf, useLayoutSize, useTemplateLibrary, useTemplateWindowRect } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 import { useCatalogSearch } from './navigation/useCatalogSearch';
@@ -42,9 +42,6 @@ const BUILDERS_CLUB_EXTRA_HEIGHT = 15;
 /** `CatalogViewer.showCatalogPage`: the gap right of `layoutContainer`, and the room the left pane needs. */
 const LAYOUT_CONTAINER_RIGHT_GAP = 8;
 const LEFT_PANE_MIN_X = 130;
-
-/** `CatalogNodeRenderable`: a row's height, which an open branch's child list is sized by. */
-const NODE_ROW_HEIGHT = 21;
 
 /** `refreshCatalogWindowChrome`: the frame's and the header's colours, per mode. */
 const BUILDER_FRAME_COLOR = 16758076;
@@ -140,9 +137,13 @@ export const CatalogView = () => {
     /** `CatalogNavigator.getItemTemplate`: a top item at depth 1 (to 2 with the deep hierarchy), a sub item below. */
     const isTopItem = (node: ICatalogNode) => (isDeepHierarchy ? (node.depth <= 2) : (node.depth === 1));
 
-    /** An open branch's child list: as tall as its rows and their own open lists (`updateChildListHeight`). */
+    /** A row's height: its template's (21 in Habbo's layouts), so a theme's taller rows (a patch's `height`) are not cut. */
+    const topRowHeight = findTemplateChild(windowTemplate.elements, `${mode}_topitem_template`)?.height ?? 0;
+    const subRowHeight = findTemplateChild(windowTemplate.elements, `${mode}_subitem_template`)?.height ?? 0;
+
+    /** An open branch's child list: as tall as its rows and their own open lists (`updateChildListHeight` adds up each item's height). */
     const childListHeight = (node: ICatalogNode): number => node.children.reduce((height, child) => (child.visible
-        ? height + NODE_ROW_HEIGHT + ((openNodes.includes(child) && child.children.length) ? childListHeight(child) : 0)
+        ? height + (isTopItem(child) ? topRowHeight : subRowHeight) + ((openNodes.includes(child) && child.children.length) ? childListHeight(child) : 0)
         : height), 0);
 
     /** `CatalogNodeRenderable.createWindow` and its looks: a row of the navigation list, and an open branch's list after it. */
