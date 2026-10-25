@@ -24,8 +24,8 @@ import { closePhotoLab, openPhotoPurchase, returnToViewfinder, sendPhotoRenderDa
 import { AchievementCategory, useAchievementsStore } from '#base/context/achievements';
 import { useCameraStore } from '#base/context/camera';
 import { useWebSocketContext } from '#base/context/communication';
-import { systemStore, useConfigValue, useTranslation } from '#base/context/system';
-import { userStore } from '#base/context/user';
+import { useConfigValue, useTranslation, useWindowActions } from '#base/context/system';
+import { useAccountSafetyLocked } from '#base/context/user';
 import { useSliderKnobDrag } from '#base/hooks';
 import { TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLatest, useTemplate, useTemplateFrame } from '#base/theme';
 import { buildRenderRoomMessageData, twoDigits } from '#base/utils';
@@ -95,6 +95,8 @@ const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
     const typeButton = useTemplate(TYPE_BUTTON);
     // Re-read as the achievements arrive (`ensureAchievementsInitialized`).
     const categories = useAchievementsStore(x => x.categories);
+    const accountSafetyLocked = useAccountSafetyLocked();
+    const { showAlert } = useWindowActions();
     const level = getCameraAchievementLevel(categories);
     const effects = useMemo(() => getAvailableEffects(availableEffects), [ availableEffects ]);
     const [ images, setImages ] = useState<Map<string, HTMLImageElement | undefined>>(new Map());
@@ -242,9 +244,7 @@ const CameraPhotoLab = ({ visible }: { visible: boolean }) => {
      * A safety-locked account gets the lock's alert instead, and the lab stays open (`camera.effects.enabled`).
      */
     const openPurchase = async () => {
-        if (userStore.getState().accountSafetyLocked) {
-            const { showAlert } = systemStore.getState();
-
+        if (accountSafetyLocked) {
             showAlert(getLocalizationValue('generic.alert.title'), getLocalizationValue('notifications.text.safety_locked'));
 
             return;
