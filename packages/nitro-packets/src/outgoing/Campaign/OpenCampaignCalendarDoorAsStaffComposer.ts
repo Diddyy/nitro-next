@@ -1,4 +1,4 @@
-// From the AS3 `OpenCampaignCalendarDoorAsStaffComposer`: the campaign's name, then the door's day index.
+// Body filled by hand from the AS3 (`OpenCampaignCalendarDoorAsStaffComposer`): the campaign's name, then the door's day index - the generator has no preserve step, so re-apply after a regeneration.
 import { IOutgoingPacket } from '@nitrodevco/nitro-api';
 
 export type OpenCampaignCalendarDoorAsStaffComposerType = {
