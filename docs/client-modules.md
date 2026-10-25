@@ -47,7 +47,7 @@ module is imported, so a bundled module can bind them at its top level):
 | `react`, `reactJsxRuntime` | The client's React (`createElement`, hooks) and its JSX runtime |
 | `theme` | `#base/theme`: `Frame`, `TemplateWindow`, `Box`, `ThemeText`, `Button`, ... |
 | `zustand.useStore` | To read a store in a component |
-| `stores.user` / `room` / `system` | The app-wide stores (read; write through the API) |
+| `stores.user` / `room` / `system` | The app-wide stores. **Deprecated since 1.1**: their shape is the client's own and changes between releases; read `api.state` and `api.events` instead |
 
 A module built with a bundler (the SDK's preset below) maps `react`, `react/jsx-runtime` and the theme to small shims that
 re-export from `globalThis.NitroClientModuleHost`, and marks nothing else external. Pixi's elements
@@ -118,10 +118,18 @@ to or changed in the API fails `npx tsc -p packages/nitro-react/tsconfig.typeche
 `yarn workspace @nitrodevco/client-module-sdk test` bundles a module with the preset and runs it on
 a stand-in host.
 
-## The API (version 1, `commands/client-modules/ClientModuleApi.ts`)
+## The API (version 1.1, `commands/client-modules/ClientModuleApi.ts`)
+
+`api.version` is 1 and `api.minor` 1: version 1.1 added `state`, `events`, `contextMenu` and
+`chatCommands` without changing a member of 1. A plain-JavaScript module that may meet an older
+client reads `api.minor ?? 0` (or `api.state?.`); one typed with the SDK is built against 1.1.
 
 | Part | What |
 | --- | --- |
+| `state.get()`, `state.subscribe(listener)`, `state.use(selector)`, `state.hasPermission(node, level?)` | The own user (`id`, `name`, `figure`, `gender`, `motto`, `securityLevel`, `isAmbassador`), their `club` (`level` 0/1/2, `days`, `periods`), `currencies` (`credits`, `points` by activity point type) and the `room` they are in (`id`, `name`, `ownRoomIndex`, `isOwner`, `controllerLevel`; `undefined` outside a room), read-only (`commands/client-modules/clientModuleState.ts`). A part keeps its identity until a field in it changes, so `use(x => x.user)` in a component draws again only then; select a part or a value, never a new object. `hasPermission` is the client gates' rule: the node when the server sent permission nodes (Turbo's `permission.nodes`), else `securityLevel >= level` when a level is named, else no |
+| `events.on(name, handler)` | `room.entered` / `room.left` (`{ roomId }`, as the room session starts and ends), `room.avatar.added` / `removed` / `clicked` (`{ roomIndex, userId, kind, name, figure, isOwnUser }`, `kind` `user`, `pet`, `bot` or `rentable_bot`), `room.furni.added` / `removed` / `clicked` (`{ id, kind: 'floor' \| 'wall', type }`, `type` the furni class name) and `room.chat` (`{ roomIndex, speaker, text, kind: 'talk' \| 'shout' \| 'whisper', styleId }`) from the moment the handler is added (`clientModuleEvents.ts`): from the room store, the room's own object events (`RoomEngineObjectEvent` `ADDED` / `REMOVED` / `SELECTED`) and the bubbles the room shows. Nothing listens until a module does |
+| `contextMenu.add({ id, menu, label, icon?, when?, onClick })` | A button in a room menu, after the client's rows: `user` (another user's avatar menu), `ownUser` (the own avatar's) or `furni` (the furni infostand's button row). The button is a row of the menu's own template, added as the module's template patch - a copy of one of its plain rows, named `<key>:<id>` (the inspector and `templates.report` list it), hidden in the layout and shown by the menu while `when(target)` passes (asked each time the menu is drawn). `icon` (an image URL) is drawn at the row's right in the avatar menus, where Habbo's ducket row has its icon; the infostand's buttons have none. `onClick(target)` gets the avatar or furni, as the events name them. The avatar menus list them on their main page only |
+| `chatCommands.register({ name, aliases?, description, parameters?, run })` | A `:name` command run in the client. The chat input offers it with the client's own and the server's (`parameters`: `{ name, optional?, type? }`, `type` `word`, `number`, `user` - the room's users offered - or `rest`). A line it matches (its first word, any case, an alias too) is not said: `run({ args, text })` runs, and returning `false` lets the line go on to the server as typed. The client's own commands (`:furni`, `:chooser`, the wired ones) run first, so a module cannot take them; a module's runs before the line reaches a server command of the same name |
 | `windows.register(id, Component, { onTop? })`, `open(id, params?)`, `close(id)`, `toggle(id)` | A window drawn in the window layer while open; the component gets `params` and `close` and draws its own `Frame` or `TemplateWindow`. `onTop` keeps it above every other window (a HUD, a timer), under the toolbar's menus, popups and modal dialogs |
 | `toolbar.add({ id, icon, tooltip?, onClick })` | An icon after the bottom bar's divider while it is expanded; the bar and the chat area make room for it |
 | `meMenu.add({ id, caption, onClick })`, `meMenu.toggle()` | A me menu entry: a clone of `profile` with its own caption, before the spacer; `toggle` opens or closes the me menu, as Habbo's `toolbar/memenu` link does |
@@ -183,6 +191,9 @@ schema to TypeScript: `int`, `long` and `double` are `number`, `bool` is `boolea
 `packages/nitro-react/test/pluginMessageCodec.test.ts` (`yarn workspace @nitrodevco/nitro-react test`).
 
 ## Example
+
+Turbo's plugin template (`templates/turbo-plugin`, `client/src/index.tsx`) uses all four parts of 1.1:
+the own user's name from `state`, a room event, an avatar menu button and a chat command.
 
 `docs/examples/client-modules/hello/` is a module with no build step: a toolbar icon and a me
 menu entry that open a window, the `hello/open` link, a bar over the user's own avatar, and a

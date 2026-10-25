@@ -13,7 +13,12 @@ import { getRoom, roomStore } from '#base/context/room';
 import { userStore } from '#base/context/user';
 import { getTimer } from '#base/utils';
 
+import { clientModuleAvatarOf, emitClientModuleEvent, hasClientModuleEventHandlers } from '../client-modules/clientModuleEvents';
+
 /** `ChatBubbleFactory.isSystemNotificationChat`: the chat types 3-10 and 12. */
+/** The said lines a client module's `room.chat` handler is shown, by chat type. */
+const MODULE_CHAT_KINDS: Partial<Record<RoomChatTypeEnum, 'talk' | 'shout' | 'whisper'>> = { [RoomChatTypeEnum.Speak]: 'talk', [RoomChatTypeEnum.Shout]: 'shout', [RoomChatTypeEnum.Whisper]: 'whisper' };
+
 const SYSTEM_NOTIFICATION_CHAT_TYPES: ReadonlySet<RoomChatTypeEnum> = new Set([
     RoomChatTypeEnum.Respect, RoomChatTypeEnum.PetRespect, RoomChatTypeEnum.HandItem, RoomChatTypeEnum.PetTreat, RoomChatTypeEnum.PetRevive,
     RoomChatTypeEnum.PetRebreed, RoomChatTypeEnum.PetSpeed, RoomChatTypeEnum.MuteRemaining, RoomChatTypeEnum.SpecialSystem,
@@ -76,4 +81,8 @@ export const insertRoomChat = (objectId: number, text: string, chatType: RoomCha
 
     chatHistoryStore.getState().insertChat((speaker?.userType === RoomObjectUserType.User) ? { ...bubble, forcedUserName: speaker.name, forcedFigure: speaker.figure } : bubble, ignore);
     roomStore.getState().addChatBubble(bubble);
+
+    const kind = MODULE_CHAT_KINDS[chatType];
+
+    if (kind && hasClientModuleEventHandlers('room.chat')) emitClientModuleEvent('room.chat', { roomIndex: objectId, speaker: clientModuleAvatarOf(objectId), text, kind, styleId });
 };
