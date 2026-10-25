@@ -1,10 +1,10 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 import { Template, TemplateLibrary } from '@nitrodevco/nitro-theme';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { loadTemplateBundle } from '#base/utils';
 
-import { patchedTemplate, useTemplatePatchVersion } from './templatePatches';
+import { patchedTemplate, subscribeTemplatePatches, useTemplatePatchVersion } from './templatePatches';
 
 /** The library every other one's templates draw shared bitmaps from, as `getAssetByName` falls back to it. */
 const WINDOW_MANAGER = 'habbo-window-manager-com';
@@ -23,23 +23,25 @@ const readTemplate = (id: string) => patchedTemplate(id, GetAssetManager().getBu
  * both are in, or for good when the config names no `asset.bundles.templates`.
  */
 export const useTemplate = (id: string) => {
-    const patchVersion = useTemplatePatchVersion();
-    const [ template, setTemplate ] = useState(() => readTemplate(id));
+    const [ , setLoads ] = useState(0);
 
     useEffect(() => {
         let cancelled = false;
         const library = libraryOf(id);
 
         void Promise.all([ loadTemplateBundle(library), library === WINDOW_MANAGER ? true : loadTemplateBundle(WINDOW_MANAGER) ]).then(() => {
-            if (!cancelled) setTemplate(readTemplate(id));
+            if (!cancelled) setLoads(count => count + 1);
         });
 
         return () => {
             cancelled = true;
         };
-    }, [ id, patchVersion ]);
+    }, [ id ]);
 
-    return template;
+    // Read in render from the patches' store, as the bindings extensions give its elements are
+    // (`useTemplateExtensionBindings`): a module's patch and its binding for the element the patch
+    // adds reach the window in the same render, never the binding a render before its element.
+    return useSyncExternalStore(subscribeTemplatePatches, () => readTemplate(id));
 };
 
 /** Every template of a library with the extensions' patches applied, by id; the library's own object while none applies. */
