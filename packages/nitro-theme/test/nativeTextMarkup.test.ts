@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { NATIVE_UNDERLINE, nativeMarkup } from '../src/utils/nativeTextMarkup';
+import { NATIVE_LINK, NATIVE_UNDERLINE, nativeMarkup } from '../src/utils/nativeTextMarkup';
 
 // The case that went plain (a news module's body in `fontFamily: 'Ubuntu'`): the fallback joined the runs and dropped their formatting.
 test('bold, italic, underline and colour runs keep their style on the canvas fallback', () => {
@@ -24,4 +24,18 @@ test('typed text that looks like a run tag is broken so it shows as typed', () =
     const { text } = nativeMarkup('<b>x</b> &lt;r0&gt;');
 
     assert.equal(text, '<r0>x</r0> <​r0>');
+});
+
+// fwui's gap: a module's news body in Ubuntu (the browser's face) drew its links but took no click on them.
+test('a link\'s runs carry its index, split where the link starts and ends, so the fallback can take a click on them', () => {
+    const { text, tagStyles, links } = nativeMarkup('Read <b>the <a href="event:habbopages/faq">guide</a> now</b> or <a href="https://example.com">here</a>.');
+
+    assert.equal(text, 'Read <r0>the </r0><r1>guide</r1><r2> now</r2> or <r3>here</r3>.');
+    assert.deepEqual(tagStyles, {
+        r0: { fontWeight: 'bold' },
+        r1: { fontWeight: 'bold', [NATIVE_LINK]: 0 },
+        r2: { fontWeight: 'bold' },
+        r3: { [NATIVE_LINK]: 1 },
+    });
+    assert.deepEqual(links, [ 'event:habbopages/faq', 'https://example.com' ]);
 });

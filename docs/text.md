@@ -90,7 +90,8 @@ browser text.
   `registerBrowserFonts` - started by `preloadFlashFonts` at boot but never awaited, because they are only the fallback.
   Markup (`ThemeText markup`, Flash `htmlText`) keeps each run's bold, italic, underline, colour and size
   there too (`utils/nativeTextMarkup.ts`: each run a Pixi `tagStyles` tag, an underline drawn under its
-  glyphs); its links are clickable on the exact path only.
+  glyphs) and takes a click on a link's runs (each run of an `<a href>` marked with its link, hit by
+  the box Pixi's tagged renderer draws it in), as the exact path does.
 - A rendered text is a bitmap with Flash's 2px `TextField` gutter on every side; caret and
   selection geometry (`flashTextCaretRect`) is in that same space.
 - The `il_*` styles are etched: a translucent white line under every glyph, made for dark text

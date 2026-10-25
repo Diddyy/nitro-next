@@ -196,7 +196,7 @@ export interface ClientModuleThemeTextProps {
     textOptions?: ClientModuleTextOptions;
     /** `text` is Flash `htmlText`: `<b>`, `<i>`, `<u>`, `<font color>`, `<br>`, `<a href>`, in any face. */
     markup?: boolean;
-    /** With `markup`: a click on a link's glyphs (Habbo's own faces). */
+    /** With `markup`: a click on a link's glyphs, in Habbo's own faces and in a face the browser draws alike. */
     onLink?: (link: string) => void;
     layout?: ClientModuleLayout;
 }
