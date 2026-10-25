@@ -22,6 +22,10 @@ reloads one. The set is taken only once the extension is accepted
   is in the configuration value `client.modules.hosts` (a list, or one comma-separated text). The
   page's query cannot set it: a link that also names another `socket.url` would otherwise let any
   server run code in the hotel's page.
+- A module that is refused or throws in `activate` is a console warning that names what to change
+  (for the host check: the origin to add to `client.modules.hosts`), and is reported to a Turbo
+  server (`commands/client-modules/clientExtensionReports.ts`), which logs it naming the setting and
+  lists it on the plugin's page in the admin panel.
 - With a SHA-256 the file is fetched, hashed with `crypto.subtle` and run from those very bytes
   through a `blob:` URL, so what runs is what was checked. A mismatch refuses it. Such a module must
   be **one file**: a relative `import` inside it has nothing to resolve against. Files beside it are
