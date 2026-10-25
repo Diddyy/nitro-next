@@ -22,8 +22,9 @@ Windows are drawn from Habbo's own layouts (`templates.json` in each library's b
 | `'#bg'` | the first with that tag |
 | `'@8'` | the window's 9th child (for unnamed elements); `'help_button/@0'` its first child |
 
-To find names, **alt-click the element** in the client (development builds, or staff holding
-Turbo's `client.inspector`): the extension inspector shows the template id, the element's key, its
+To find names, **alt-click the element** in the client (staff holding Turbo's `client.inspector`,
+or a development build after `NitroInspector()` in the browser console - off by default, remembered
+in localStorage until `NitroInspector(false)`): the extension inspector shows the template id, the element's key, its
 type, rect and the elements it is in, the patches on it and on what holds it, and puts a patch for
 it on the clipboard (also logged as `[Inspector]`). Nitro Studio's template preview and the
 library's `templates.json` have the same names.

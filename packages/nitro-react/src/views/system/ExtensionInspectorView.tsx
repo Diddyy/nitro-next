@@ -9,13 +9,14 @@ import { MotdNotificationView } from '../notifications/MotdNotificationView';
 
 /**
  * Not Flash's: the extension inspector (Turbo's `docs/extensions.md`, roadmap step 5), for staff
- * holding `client.inspector` and in development builds. Alt-click any window element: it shows the
+ * holding `client.inspector`, and in development builds once turned on (`useDevInspector`). Alt-click any window element: it shows the
  * window's template id, the element's key - what a patch's `element` or a binding names it by - its
  * type and rect, the plugins' patches on it, and puts a patch for it on the clipboard (logged too),
  * so a theme author never reads `templates.json`. Drawn in the message-of-the-day window.
  */
 export const ExtensionInspectorView = () => {
-    const allowed = useClientGate(ClientGates.ExtensionInspector) || import.meta.env.DEV;
+    const devInspector = useDevInspector();
+    const allowed = useClientGate(ClientGates.ExtensionInspector) || devInspector;
     const { app } = useApplication();
     const [ lines, setLines ] = useState<string[] | null>(null);
 
@@ -62,6 +63,38 @@ export const ExtensionInspectorView = () => {
             onClose={() => setLines(null)}
         />
     );
+};
+
+declare global {
+    var NitroInspector: ((on?: boolean) => void) | undefined;
+}
+
+const DEV_INSPECTOR_KEY = 'nitro.inspector';
+
+/**
+ * Development builds: off until `NitroInspector()` in the console (`NitroInspector(false)` turns it
+ * off), remembered in this browser's localStorage. Off by default, so an alt-click (alt-drag, a test's
+ * alt-click) presses what it always did and the windows note nothing.
+ */
+const useDevInspector = () => {
+    const [ on, setOn ] = useState(() => import.meta.env.DEV && (window.localStorage.getItem(DEV_INSPECTOR_KEY) === '1'));
+
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+
+        globalThis.NitroInspector = (value = true) => {
+            if (value) window.localStorage.setItem(DEV_INSPECTOR_KEY, '1');
+            else window.localStorage.removeItem(DEV_INSPECTOR_KEY);
+
+            setOn(value);
+        };
+
+        return () => {
+            globalThis.NitroInspector = undefined;
+        };
+    }, []);
+
+    return on;
 };
 
 /** What a patch may set, as the element has it now: the starting point of the copied patch. */
