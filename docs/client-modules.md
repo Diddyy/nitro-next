@@ -169,12 +169,16 @@ extension packets, so a header a module took with `packets.registerParser` stays
 message is skipped, with a warning).
 
 The schema is compact JSON: an array of `[name, type]` fields (camelCase), where a type is `'int'`,
-`'long'`, `'bool'`, `'string'`, `'double'`, `['array', type]` or `['object', fields]`.
+`'long'`, `'bool'`, `'string'`, `'double'`, `['array', type]`, `['map', type]` (a server
+`Dictionary<string, T>`) or `['object', fields]`.
 `pluginMessageCodec.ts` reads and writes from it in Habbo's wire encoding: ints, a long as its high
 and low int, a byte for a bool, a string after its length, a double as its 8 IEEE bytes, an array as
-an int count and its items, a record as its fields. For typed modules a generator can map the
+an int count and its items, a map as an int count and each key (a string) and value, a record as its
+fields. A map reads as a plain object (each key an own property); a module writes one as an object or
+a `Map`. For typed modules a generator can map the
 schema to TypeScript: `int`, `long` and `double` are `number`, `bool` is `boolean`, `string` is
-`string`, an array `T[]` and an object an interface of its fields. Tests:
+`string`, an array `T[]`, a map `Record<string, T>` and an object an interface of its fields
+(`ClientModuleMessageOf` in the SDK does this). Tests:
 `packages/nitro-react/test/pluginMessageCodec.test.ts` (`yarn workspace @nitrodevco/nitro-react test`).
 
 ## Example
