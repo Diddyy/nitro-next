@@ -10,13 +10,15 @@
  *
  * What a template's patches did is said where an author looks: a patch naming an element the
  * template lacks, or two owners setting one property, is a console warning, and every owner's
- * applied, unmatched and clashing ops go to the server's extension inspector (`reportClientExtension`).
+ * applied, unmatched and clashing ops go to the server's extension inspector (`reportClientExtension`), as
+ * does a `font_face` the page cannot draw (`templateFontFaces.ts`).
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, Template, TemplateBinding, TemplateBindings, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItemBindings, TemplateItemContext, TemplatePatch, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
 
 import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
+import { checkTemplatePatchFontFaces } from '#base/theme/templateFontFaces';
 import { parseObject, resolveStyles } from '#base/theme/templateStyles';
 
 /**
@@ -137,6 +139,7 @@ const combineArranges = (id: string, own: ((windows: TemplateWindows) => void) |
 export const addTemplatePatch = (patch: TemplatePatch) => {
     patches = [ ...patches, patch ];
     changed();
+    checkTemplatePatchFontFaces(patch);
 
     return () => {
         if (!patches.includes(patch)) return;
