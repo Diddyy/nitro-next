@@ -12,6 +12,18 @@ import { parseCssHexColor, toCssHexColor } from './cssHexColor';
 /** The variable's key. */
 export const FRAME_OVERRIDES_KEY = 'frame.overrides';
 
+/**
+ * Not Flash's: the frame style that draws no frame. A frameless window has no skin, shadow, header or
+ * scaler and does not crop what it holds; it is still a window - raised on a press, dragged by any
+ * press its content does not take (and by a `useDragTrigger` element in it), kept where it was left.
+ * A theme makes a core window frameless with `frame.overrides` (`{ "variant": "none" }`) or a
+ * template patch (`set: { style: 'none' }` on the window).
+ */
+export const FRAMELESS_VARIANT = 'none';
+
+/** Whether a frame style is `FRAMELESS_VARIANT`. */
+export const isFramelessVariant = (variant: unknown) => variant === FRAMELESS_VARIANT;
+
 export interface FrameOverride {
     variant?: string;
     /** `#rrggbb`. */

@@ -38,6 +38,7 @@ import { Frame, FrameProps } from '../Frame';
 import { Gradient, GradientDirection } from '../Gradient';
 import { Header } from '../Header';
 import { loadTexture, useTextureFromUrl } from '../hooks/usePixiTexture';
+import { useThemeConfigValue } from '../host';
 import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
 import { isTemplateInspecting, TemplateInspectContext } from '../inspect';
@@ -52,7 +53,7 @@ import { TabContext } from '../TabContext';
 import { TextInput } from '../TextInput';
 import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
-import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, FrameSize, ThemeVariant, themeVariantOf, toCssHexColor, WindowPlacedContext } from '../utils';
+import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, FRAME_OVERRIDES_KEY, frameOverrideOf, FrameSize, isFramelessVariant, ThemeVariant, themeVariantOf, toCssHexColor, WindowPlacedContext } from '../utils';
 import { localizeCaption } from './localizeCaption';
 import { isMarkupTemplateText, knownTemplateTextStyle, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
@@ -1468,6 +1469,10 @@ interface FrameContentClipProps {
     width: number;
     height: number;
     margins: readonly [ number, number, number, number ];
+    /** The frame's style and what `frame.overrides` finds it by: a frameless one crops nothing. */
+    variant?: string;
+    frameId: string;
+    frameName?: string;
     children: ReactNode;
 }
 
@@ -1477,8 +1482,9 @@ interface FrameContentClipProps {
  * columns - and, above the content area, out to the frame's one-pixel outline, where that layout's
  * white strip and tabs run up to the title bar and across to the edge.
  */
-const FrameContentClip = ({ width, height, margins, children }: FrameContentClipProps) => {
+const FrameContentClip = ({ width, height, margins, variant, frameId, frameName, children }: FrameContentClipProps) => {
     const [ mask, setMask ] = useState<PixiGraphics | null>(null);
+    const frameless = isFramelessVariant(frameOverrideOf(useThemeConfigValue<unknown>(FRAME_OVERRIDES_KEY), frameId, frameName)?.variant ?? variant);
     const [ left, top, right, bottom ] = margins;
     const contentWidth = Math.max(0, width - left - right);
     const contentHeight = Math.max(0, height - top - bottom);
@@ -1486,11 +1492,12 @@ const FrameContentClip = ({ width, height, margins, children }: FrameContentClip
 
     return (
         <pixiContainer
-            mask={mask ?? undefined}
+            mask={frameless ? undefined : (mask ?? undefined)}
             layout={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
         >
             <pixiGraphics
                 ref={setMask}
+                visible={!frameless}
                 eventMode="none"
                 draw={(g) => {
                     g.clear();
@@ -1768,9 +1775,10 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
             : { min: size, max: size });
         const horizontal = axisLayout(resizeDirection === 'x' || resizeDirection === 'all', rect.width, minWidth, maxWidth);
         const vertical = axisLayout(resizeDirection === 'y' || resizeDirection === 'all', rect.height, minHeight, maxHeight);
+        const frameId = window?.id ?? `${context.idPrefix}${id}`;
         const frame = (
             <Frame
-                id={window?.id ?? `${context.idPrefix}${id}`}
+                id={frameId}
                 name={element.name}
                 // `IFrameWindow.style`, as its code sets it (`BadgeLeaderboardView.setFrameStyle`).
                 variant={binding?.style ?? element.style}
@@ -1790,7 +1798,8 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 rememberPosition={!!window && (window.rememberPosition ?? true)}
                 rememberSize={window?.rememberSize ?? true}
                 draggable={!!window && (window.draggable ?? true)}
-                onClose={window?.onClose}
+                // A pane a patch added (`wrap`, named `<owner>:<name>`) closes the window it is part of.
+                onClose={window ? window.onClose : (element.name?.includes(':') ? context.frame?.onClose : undefined)}
                 closeButtonVisible={window?.closeButtonVisible}
                 // `IFrameWindow`'s `header_button_close` restyled by its code (`MainView`: `style = 102`).
                 closeButtonVariant={window?.closeButtonVariant}
@@ -1806,6 +1815,9 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                     width={rect.width}
                     height={rect.height}
                     margins={element.margins ?? [ 0, 0, 0, 0 ]}
+                    variant={binding?.style ?? element.style}
+                    frameId={frameId}
+                    frameName={element.name}
                 >
                     {children}
                 </FrameContentClip>

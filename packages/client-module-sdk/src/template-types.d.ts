@@ -66,6 +66,8 @@ export interface ClientModuleTemplateElementInput {
     background?: boolean;
     blend?: number;
     vars?: Record<string, ClientModuleTemplateValue>;
+    /** A `frame`'s content area from its edges (left, top, right, bottom): where what it holds is placed. */
+    margins?: readonly [ number, number, number, number ];
     children?: ClientModuleTemplateElementInput[];
 }
 
@@ -74,13 +76,17 @@ export type ClientModuleTemplateInsertPosition = 'before' | 'after' | 'first' | 
 /**
  * One change: `element` named as the window's code names it (`'name'`, `'panel/name'`, `'@N'`, `''` for
  * the window). `move` takes the element `before` / `after` the one `to` names, or `first` / `last`
- * inside it, keeping its name - so the window's code still finds and binds it.
+ * inside it, keeping its name - so the window's code still finds and binds it. `wrap` puts a new
+ * element in the element's place, at its rect unless given, and the element inside it at (0, 0):
+ * wrapped in a `frame`, a part of a window becomes a separately framed pane of it (the window itself,
+ * `''`, is not wrapped; `set: { style: 'none' }` on it leaves only its panes framed).
  */
 export type ClientModuleTemplatePatchOp
     = | { element: string; set: ClientModuleTemplateElementChanges }
         | { element: string; remove: true }
         | { element: string; insert: ClientModuleTemplateInsertPosition; add: ClientModuleTemplateElementInput }
-        | { element: string; move: ClientModuleTemplateInsertPosition; to: string };
+        | { element: string; move: ClientModuleTemplateInsertPosition; to: string }
+        | { element: string; wrap: ClientModuleTemplateElementInput };
 
 /**
  * What a window tells extensions about what it shows, read-only, flat values (the infostand: the

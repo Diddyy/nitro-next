@@ -2,6 +2,8 @@ import { ClientPointToStage, EMPTY_TEMPLATE_CONTEXT, inspectAt, inspectChain, in
 import { useApplication } from '@pixi/react';
 import { useEffect, useState } from 'react';
 
+import { clientModuleLinkConflicts } from '#base/commands';
+import { clientModulesStore } from '#base/context/client-modules';
 import { ClientGates, useClientGate } from '#base/context/user';
 import { templatePatchList } from '#base/theme/templatePatches';
 
@@ -120,7 +122,11 @@ const opsShown = (patch: TemplatePatch, hit: TemplateInspectHit): readonly Templ
 };
 
 /** One op, as a line of the inspector. */
-const describeOp = (op: TemplatePatchOp) => ('set' in op ? `set ${JSON.stringify(op.set)}` : 'remove' in op ? 'remove' : 'move' in op ? `move ${op.move} '${op.to}'` : `insert ${op.insert} ${op.add.name}`);
+const describeOp = (op: TemplatePatchOp) => ('set' in op ? `set ${JSON.stringify(op.set)}` : 'remove' in op ? 'remove' : 'move' in op ? `move ${op.move} '${op.to}'` : 'wrap' in op ? `wrap in ${op.wrap.tag ?? op.wrap.like ?? ''} ${op.wrap.name}` : `insert ${op.insert} ${op.add.name}`);
+
+/** Link prefixes and paths more than one module handles: each of them gets all their links. */
+const linkConflictLines = () => clientModuleLinkConflicts(clientModulesStore.getState().linkHandlers)
+    .map(conflict => `Link ${conflict.prefix}/${conflict.path || '...'} is handled by ${conflict.modules.join(', ')}: each gets its links.`);
 
 /** The template id the patches name: one window of a template drawn alone is still that template's. */
 const describe = (hit: TemplateInspectHit) => {
@@ -151,6 +157,7 @@ const describe = (hit: TemplateInspectHit) => {
         ...(path ? [ `In: ${path}` ] : []),
         ...(owner ? [ `Added by ${owner}'s patch.` ] : []),
         ...(patches.length ? patches.map(line => `Patched by ${line}`) : [ 'No plugin patches it or what it is in.' ]),
+        ...linkConflictLines(),
         `Copied to the clipboard:\n${patch}`,
     ];
 

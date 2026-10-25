@@ -45,7 +45,7 @@ module is imported, so a bundled module can bind them at its top level):
 | `libs.` | What |
 | --- | --- |
 | `react`, `reactJsxRuntime` | The client's React (`createElement`, hooks) and its JSX runtime |
-| `theme` | `#base/theme`: `Frame`, `TemplateWindow`, `Box`, `ThemeText`, `Button`, ... |
+| `theme` | `#base/theme`: `Frame`, `TemplateWindow`, `Box`, `Region`, `ThemeText`, `RichText`, `Button`, ... |
 | `zustand.useStore` | To read a store in a component |
 | `stores.user` / `room` / `system` | The app-wide stores. **Deprecated since 1.1**: their shape is the client's own and changes between releases; read `api.state` and `api.events` instead |
 
@@ -90,9 +90,10 @@ export default defineModule({
 | `defineModule({ activate, deactivate? })` | The module's default export, typed |
 | `useApi()` | The API the module was activated with, from any component or helper |
 | `assetUrl(path)` | A file beside the module in its plugin's `wwwroot/` (`new URL(path, api.baseUrl)`) |
+| `defineChannel<T>(key)`, `useChannel(channel)` | `api.channels` for one key, typed with what is published on it (`publish`, `subscribe`, `get`), and its value in a component, drawn again when it changes |
 | `type ClientModuleApi`, `ClientModuleWindowProps`, ... | The API's types (`src/api.d.ts`) |
 | `type ClientModuleMessageOf<typeof schema>` | A plugin message's data, typed from its schema written `as const` (`ClientModuleMessageSchema`, the JSON `client.messages` sends) |
-| `@nitrodevco/client-module-sdk/theme` | `Box`, `Button`, `Frame`, `ThemeText`, `TemplateWindow`: the client's own, read from `NitroClientModuleHost` as the module loads; their props typed with what a module passes (`src/theme-types.d.ts`) |
+| `@nitrodevco/client-module-sdk/theme` | `Box`, `Button`, `Frame`, `Region`, `RichText`, `ThemeText`, `TemplateWindow`: the client's own, read from `NitroClientModuleHost` as the module loads; their props typed with what a module passes (`src/theme-types.d.ts`) |
 | `@nitrodevco/client-module-sdk/build` | `clientModuleBuildOptions({ entry, outfile, minify? })` for esbuild, and `clientModuleHostPlugin()` |
 
 The build preset bundles everything into the one file except `react`, `react/jsx-runtime` and
@@ -118,11 +119,12 @@ to or changed in the API fails `npx tsc -p packages/nitro-react/tsconfig.typeche
 `yarn workspace @nitrodevco/client-module-sdk test` bundles a module with the preset and runs it on
 a stand-in host.
 
-## The API (version 1.1, `commands/client-modules/ClientModuleApi.ts`)
+## The API (version 1.2, `commands/client-modules/ClientModuleApi.ts`)
 
-`api.version` is 1 and `api.minor` 1: version 1.1 added `state`, `events`, `contextMenu` and
-`chatCommands` without changing a member of 1. A plain-JavaScript module that may meet an older
-client reads `api.minor ?? 0` (or `api.state?.`); one typed with the SDK is built against 1.1.
+`api.version` is 1 and `api.minor` 2: version 1.1 added `state`, `events`, `contextMenu` and
+`chatCommands`, 1.2 `channels` and `links.handle`'s `path`, without changing a member of 1. A
+plain-JavaScript module that may meet an older client reads `api.minor ?? 0` (or `api.state?.`,
+`api.channels?.`); one typed with the SDK is built against 1.2.
 
 | Part | What |
 | --- | --- |
@@ -133,7 +135,8 @@ client reads `api.minor ?? 0` (or `api.state?.`); one typed with the SDK is buil
 | `windows.register(id, Component, { onTop? })`, `open(id, params?)`, `close(id)`, `toggle(id)` | A window drawn in the window layer while open; the component gets `params` and `close` and draws its own `Frame` or `TemplateWindow`. `onTop` keeps it above every other window (a HUD, a timer), under the toolbar's menus, popups and modal dialogs |
 | `toolbar.add({ id, icon, tooltip?, onClick })` | An icon after the bottom bar's divider while it is expanded; the bar and the chat area make room for it |
 | `meMenu.add({ id, caption, onClick })`, `meMenu.toggle()` | A me menu entry: a clone of `profile` with its own caption, before the spacer; `toggle` opens or closes the me menu, as Habbo's `toolbar/memenu` link does |
-| `links.handle(prefix, fn)`, `links.open(link)` | In-client links `<prefix>/...` the client has no route of its own for |
+| `links.handle(prefix, fn, { path? })`, `links.open(link)` | In-client links `<prefix>/...` the client has no route of its own for. With `path` (`'news/*'`: the parts after the prefix, `*` any one part) only links whose parts begin with it. A link goes to the handlers of the most specific path that matches (the most parts, a named part before `*`), and only when none does to every handler of the whole prefix (`clientModuleLinkRoutes.ts`). Two modules on one prefix and path both get its links: a conflict, warned as it is made and listed by the extension inspector (alt-click) - give each module a path of its own |
+| `channels.publish(key, value)`, `channels.subscribe(key, handler)`, `channels.get(key)` | Data modules share by key instead of encoding it in a link (`clientModuleChannels.ts`). `publish` hands the value to the key's subscribers and keeps it as the key's value; `subscribe` gets each value from then on and, at once, the one kept - so a module loaded after the publisher still gets it - as `handler(value, from)`, `from` the publishing module's key. When a module stops its subscriptions go and each value it left is cleared: its subscribers get `undefined`. Values are passed as they are (publish plain data, a new object for a change); a handler that throws is logged and the others still run. Typed in the SDK with `defineChannel<T>(key)` |
 | `packets.registerParser(header, parse, listener)`, `registerComposer(header)`, `send(header, ...values)` | Extension packets at 20000-32767 outside Turbo's 30000-30099, never over a header the client already has; values are ints, strings and booleans |
 | `messages.on(name, handler)`, `messages.send(name, data)` | The plugin's named messages (Turbo's `client.messages`, `docs/plugin-messages.md` there): read into an object of the fields the server's schema names, and written from one, so a module never sees a header. `on` for a name the server has not listed warns once (the handler is kept: a plugin loading sends its module before its list); `send` for one warns and sends nothing. A field the schema lacks is ignored and a missing one sent as its default (0, '', false, []), each logged once per name. Optional (`api.messages?.`): clients before it have none |
 | `http.get(path, query?)`, `http.post(path, body?)`, `put`, `patch`, `delete` | The module's own plugin's web routes, `/api/plugins/<key>/<path>` on the hotel's public web host (Turbo's `docs/plugin-web-routes.md`), signed in as the player: the client asks the server for a token over `web.session` (30011 / 30012), sends it as `Authorization: Bearer`, keeps it until it nearly runs out and asks again once on a 401; the module never sees it. Resolves `{ ok, status, data, error }` (never throws for an HTTP error; `status` 0 when the hotel serves no routes or the path would leave the plugin's own) |
@@ -154,6 +157,48 @@ zoom of the current room, while `zoom.enabled`), `room/like` (rate the current r
 Every `register`/`add`/`handle` returns a function that takes that one thing out; whatever a module
 added is taken out by the client when it stops, so `deactivate` only undoes what the module did
 outside the API. Everything a module draws sits in an error boundary of its own.
+
+## Drawing a module's windows
+
+`libs.theme` (the SDK's `/theme`) has what a themed window needs beyond the client's own skins:
+
+- **A frameless window**: `Frame variant="none"` draws no skin, shadow, header or scaler and crops
+  nothing; it is still a window - raised on a press, kept where it was dragged - and is dragged by any
+  press its content does not take (a press on a button is the button's), or by a `Region dragTrigger`
+  in it. A theme makes one of the client's windows frameless with `frame.overrides` (`"variant": "none"`)
+  or a template patch (`docs/template-patches.md`).
+- **Panes**: `Frame panes={...}` draws other frames beside the window, placed against its top left and
+  not cropped by it: a navigation pane that moves, raises and closes with it, behind the window's art
+  (`panesInFront` for over). A pane's header drags the window, as any nested frame's header drags the
+  window it is in (Flash's `WindowController.update`: a `mouse_dragging_trigger` drags its nearest
+  `mouse_dragging_target`).
+- **Rich text**: `ThemeText markup` takes Flash `htmlText` (`<b>`, `<i>`, `<u>`, `<font color>`, `<br>`,
+  `<a href>`) in any face: a face the captured Flash fonts lack is drawn by the browser with each run
+  styled (`docs/text.md`). `RichText html={...} width={...}` draws HTML a module was given - a news
+  article's body - as paragraphs, `h1`-`h6`, lists, line breaks, pictures, bold, italic, underline,
+  colours and links; everything else is dropped (scripts, styles and frames with their text), links
+  only `http(s)` or in-client `event:` ones, pictures only from the page's origin or `imageHosts`.
+  Nothing of the HTML is ever shown as tags or run (`nitro-theme` `utils/richText.ts`).
+
+## The loading screen
+
+The loading screen is up before any module loads, so a theme styles it with the configuration value
+**`loading.screen`** (an object, or the object as JSON text; Turbo merges each plugin's entries into the
+variables, as `templates.patches`). Read at boot (`views/loading-screen/loadingScreenStyle.ts`); each key
+it leaves out is Habbo's own:
+
+```json
+{ "loading.screen": {
+    "background": "#202020", "backgroundImage": "/c_images/reception/view.png", "backgroundSaturation": 0.1,
+    "photo": false, "box": { "width": 300, "height": 197, "color": "#656159", "radius": 8 },
+    "logo": "/c_images/loading/logo.png", "text": "loading.message", "textColor": "#ffffff", "textSize": 16,
+    "bar": { "width": 260, "outline": "#ffffff", "well": "#000000", "fill": "#ffffff" }, "percent": false } }
+```
+
+`backgroundImage` covers the screen (its saturation as CSS `saturate()`), `photo: false` leaves out
+Habbo's photo frame and centres the rest on `box`, `text` is a text key or the text itself (in place of
+the revolving `client.starting.revolving` lines), `bar` takes `fillBottom` for a two-tone fill, and
+`percentColor` the percentage's colour. A value of the wrong type is ignored.
 
 ## Replacing the toolbar
 

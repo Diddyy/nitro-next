@@ -22,6 +22,8 @@ export * from './interaction';
 export * from './isAssetName';
 export * from './layoutInsetStretch';
 export * from './modalLayer';
+export * from './nativeTextMarkup';
+export * from './richText';
 export * from './ScrollViewport';
 export * from './spriteFrame';
 export * from './tabContentVariants';

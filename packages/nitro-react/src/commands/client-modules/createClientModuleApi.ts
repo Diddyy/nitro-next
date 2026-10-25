@@ -17,9 +17,11 @@ import { addTemplateArrange, addTemplateBinding, addTemplatePatch, templatePatch
 import { quitRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
 import { ClientModuleApi, ClientModuleDispose, ClientModulePacketValue } from './ClientModuleApi';
+import { createClientModuleChannels } from './clientModuleChannels';
 import { onClientModuleEvent } from './clientModuleEvents';
 import { clientModuleFetch } from './clientModuleHttp';
 import { getClientModuleLibraries } from './clientModuleLibraries';
+import { normalizeLinkPath } from './clientModuleLinkRoutes';
 import { clientModuleMenuRow, isClientModuleContextMenu } from './clientModuleMenus';
 import { clientModuleHasPermission, getClientModuleState, subscribeClientModuleState, useClientModuleState } from './clientModuleState';
 import { onPluginMessage, sendPluginMessage } from './pluginMessages';
@@ -29,6 +31,9 @@ let nextIllustrationKey = 1;
 let nextNotificationId = 1;
 let nextHotelViewLayerKey = 1;
 let nextHotelViewWidgetKey = 1;
+
+/** Every module's channels (`api.channels`): one set for the page, so modules meet on them. */
+export const clientModuleChannels = createClientModuleChannels((owner, key, error) => NitroLogger.error('ClientModules', `${owner}: a handler of channel ${key} threw`, error));
 
 export const createClientModuleApi = (connection: WebSocketConnection, moduleKey: string, baseUrl: string): { api: ClientModuleApi; dispose: () => void } => {
     const store = clientModulesStore.getState();
@@ -63,7 +68,7 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
     const api: ClientModuleApi = {
         version: 1,
-        minor: 1,
+        minor: 2,
         key: moduleKey,
         baseUrl,
         libs: getClientModuleLibraries(),
@@ -152,8 +157,13 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
             toggle: () => systemStore.getState().toggleToolbarMenu('me'),
         },
         links: {
-            handle: (prefix, handle) => {
-                const handler = { moduleKey, prefix, handle };
+            handle: (prefix, handle, options = {}) => {
+                const path = normalizeLinkPath(options.path) || undefined;
+                const handler = { moduleKey, prefix, path, handle };
+                const shared = clientModulesStore.getState().linkHandlers.filter(other => (other.moduleKey !== moduleKey) && (other.prefix === prefix) && (normalizeLinkPath(other.path) === (path ?? '')));
+
+                // Both get every such link; the inspector lists it too (`clientModuleLinkConflicts`).
+                if (shared.length) NitroLogger.warn('ClientModules', `${moduleKey}: link ${prefix}${path ? `/${path}` : ''} is handled by ${[ ...new Set(shared.map(other => other.moduleKey)) ].join(', ')} too; each gets its links. Give each module a path of its own (links.handle(prefix, fn, { path })).`);
 
                 store.addLinkHandler(handler);
 
@@ -231,6 +241,11 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
         messages: {
             on: (name, handler) => track(onPluginMessage(moduleKey, name, handler)),
             send: (name, data) => sendPluginMessage(moduleKey, name, data),
+        },
+        channels: {
+            publish: (key, value) => clientModuleChannels.publish(moduleKey, key, value),
+            subscribe: (key, handler) => track(clientModuleChannels.subscribe(moduleKey, key, handler)),
+            get: key => clientModuleChannels.get(key) as never,
         },
         http: {
             get: (path, query) => clientModuleFetch(connection, moduleKey, 'GET', path, { query }),
@@ -349,6 +364,7 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
             }
         }
 
+        clientModuleChannels.removeOwner(moduleKey);
         clientModulesStore.getState().removeModule(moduleKey);
     };
 
