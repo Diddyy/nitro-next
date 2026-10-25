@@ -38,6 +38,7 @@ and the library's `templates.json` have the same names.
 { element: 'settings_button', insert: 'after', add: { like: 'help_button', name: 'skills', y: 63, caption: 'Skills' } }
 { element: 'title', move: 'first', to: 'header' }
 { element: 'search', set: { width: 180, params: { scale: [ 'fixed', 'fixed' ] } } }
+{ element: 'navigationContainer', wrap: { tag: 'frame', name: 'nav', style: '0', caption: 'Shop', margins: [ 6, 28, 6, 6 ] } }
 ```
 
 - **`set`**: the layout's own properties - `x`, `y`, `width`, `height`, `style`, `dynamicStyle`,
@@ -54,6 +55,9 @@ and the library's `templates.json` have the same names.
   element itself or one of its children, or to an element the template lacks, is reported and moves
   nothing; the window itself (`''`) does not move.
 - **`remove`**: takes the element and its children out.
+- **`wrap`**: puts a new element (built as `insert`'s `add` is) in the element's place, at the element's
+  rect unless `add` gives its own, and the element inside it at (0, 0) - its children with it and its
+  name kept, so the window's code still finds and binds it. The window itself (`''`) is not wrapped.
 - **`insert`** `before` / `after` an element, or `first` / `last` inside it. **`like`** starts the new
   element as a copy of one the template has - its type, look, input flags (`params`) and children -
   with the given fields over it: a button "like the help button" is a real button without knowing
@@ -93,6 +97,29 @@ api.templates.patch('habbo-toolbar-com/purse_xml', [
 The list places the button itself (no `y`), and the purse is as tall as its four buttons whatever
 else is patched in. What the flags cannot say - a frame a margin taller than its list - is a
 post-layout hook's (`api.templates.arrange`, below).
+
+## A window of separately framed panes
+
+A theme can split a core window into panes without a copy of it: the window's frame becomes
+frameless (`set: { style: 'none' }` on `''`, or `frame.overrides` `"variant": "none"`: no skin, header or
+scaler, and nothing cropped), and each part is wrapped in a `frame` of its own and placed where the
+theme wants it, inside or past the window's old rectangle. The window's code still finds every part
+by its name; the panes move, raise and close as one window: a press anywhere in it raises it, a pane's
+header drags it (a nested frame's header drags the window it is in, as Flash's drag trigger drags its
+nearest drag target), and a pane a patch added closes the window with its close button. The catalogue
+as a page and a separate navigation frame:
+
+```ts
+api.templates.patch('habbo-catalog-com/catalog_ubuntu_with_tabs', [
+    { element: '', set: { style: 'none' } },
+    { element: 'layoutContainer', wrap: { tag: 'frame', name: 'page', style: '3', margins: [ 6, 6, 6, 6 ] } },
+    { element: 'navigationContainer', wrap: { tag: 'frame', name: 'nav', style: '0', caption: 'Shop', margins: [ 6, 28, 6, 6 ] } },
+    { element: 'nav', set: { x: 600 } },
+]);
+```
+
+A wrapped part keeps its own position in its pane; a window's code that places it from its old parent's
+size (the catalogue right-aligns its page in its parent) now places it in the pane's.
 
 ## Where patches come from
 

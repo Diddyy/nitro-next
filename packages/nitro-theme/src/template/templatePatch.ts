@@ -59,7 +59,14 @@ export type TemplatePatchOp
          * `first` / `last` inside it. It keeps its name, so the window's code still reaches it with
          * `findChildByName` and its bindings still apply; its `x` / `y` are now its new parent's.
          */
-        | { element: string; move: TemplateInsertPosition; to: string };
+        | { element: string; move: TemplateInsertPosition; to: string }
+        /**
+         * Puts a new element (`add`, as `insert` builds it) in the element's place and the element - its
+         * children with it, its name kept - inside it at (0, 0). The new one takes the element's rect
+         * unless `add` gives its own: wrapping a part of a window in a `frame` makes it a separately
+         * framed pane of the window (`docs/template-patches.md`). The window itself (`''`) is not wrapped.
+         */
+        | { element: string; wrap: TemplateElementInput };
 
 /**
  * What a window tells patches about what it shows, read-only: the infostand's user id, type and
@@ -311,6 +318,39 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
                 const container = findContainer(result.elements, target);
 
                 container?.splice(container.indexOf(target), 1);
+            } else if ('wrap' in op) {
+                const from = findContainer(result.elements, target);
+                const wrapper = toElement(patch.owner, op.wrap, like => resolveTemplateNames(result.elements, [ elementKey(patch.owner, like, owned) ]).targets.get(elementKey(patch.owner, like, owned)));
+
+                if ('missing' in wrapper) {
+                    report.unmatched.push({ template: templateId, owner: patch.owner, element: wrapper.missing });
+
+                    continue;
+                }
+
+                if (!from || (from === result.elements && result.elements.length === 1)) {
+                    report.unmatched.push({ template: templateId, owner: patch.owner, element: op.element });
+
+                    continue;
+                }
+
+                for (const axis of [ 'x', 'y', 'width', 'height' ] as const) {
+                    if (op.wrap[axis] === undefined) wrapper[axis] = target[axis];
+                }
+
+                from.splice(from.indexOf(target), 1, wrapper);
+                wrapper.children.push(target);
+                target.x = 0;
+                target.y = 0;
+
+                const own = (added: TemplateElement) => {
+                    if (added === target) return;
+
+                    owned.add(added.name ?? '');
+                    added.children.forEach(own);
+                };
+
+                own(wrapper);
             } else if ('move' in op) {
                 const toKey = elementKey(patch.owner, op.to, owned);
                 const destination = resolveTemplateNames(result.elements, [ toKey ]).targets.get(toKey);

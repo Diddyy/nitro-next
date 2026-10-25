@@ -120,7 +120,7 @@ const opsShown = (patch: TemplatePatch, hit: TemplateInspectHit): readonly Templ
 };
 
 /** One op, as a line of the inspector. */
-const describeOp = (op: TemplatePatchOp) => ('set' in op ? `set ${JSON.stringify(op.set)}` : 'remove' in op ? 'remove' : 'move' in op ? `move ${op.move} '${op.to}'` : `insert ${op.insert} ${op.add.name}`);
+const describeOp = (op: TemplatePatchOp) => ('set' in op ? `set ${JSON.stringify(op.set)}` : 'remove' in op ? 'remove' : 'move' in op ? `move ${op.move} '${op.to}'` : 'wrap' in op ? `wrap in ${op.wrap.tag ?? op.wrap.like ?? ''} ${op.wrap.name}` : `insert ${op.insert} ${op.add.name}`);
 
 /** The template id the patches name: one window of a template drawn alone is still that template's. */
 const describe = (hit: TemplateInspectHit) => {
