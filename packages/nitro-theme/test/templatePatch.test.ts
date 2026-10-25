@@ -314,3 +314,42 @@ test('post-layout hooks run after the window code in the order added; one that t
     assert.deepEqual(errors, [ 'broken: no list' ]);
     assert.equal(chainTemplateArranges(own, [], {}, () => undefined), own);
 });
+
+test('a wrap puts a part of the window in a framed pane of its own, in its place: the window code still finds it by name', () => {
+    const source = friendList();
+
+    source.elements[0].children[1] = { ...source.elements[0].children[1], x: 6, y: 30, width: 120, height: 200 };
+
+    const { template, report } = applyTemplatePatches(source, ID, [ {
+        owner: 'theme',
+        template: ID,
+        ops: [
+            { element: '', set: { style: 'none' } },
+            { element: 'friends', wrap: { tag: 'frame', name: 'pane', style: '0', caption: 'Friends', margins: [ 5, 28, 5, 5 ] } },
+            { element: 'pane', set: { x: 210 } },
+        ],
+    } ]);
+    const root = template.elements[0];
+    const pane = root.children[1];
+
+    assert.deepEqual(report.unmatched, []);
+    assert.equal(root.style, 'none');
+    assert.deepEqual([ pane.name, pane.tag, pane.x, pane.y, pane.width, pane.height ], [ 'theme:pane', 'frame', 210, 30, 120, 200 ]);
+    assert.deepEqual(pane.children.map(child => [ child.name, child.x, child.y ]), [ [ 'friends', 0, 0 ] ]);
+    assert.equal(resolveTemplateNames(template.elements, [ 'friends' ]).targets.get('friends'), pane.children[0]);
+});
+
+test('the window itself is not wrapped, and a wrap like an element the template lacks is reported', () => {
+    const { template, report } = applyTemplatePatches(friendList(), ID, [ {
+        owner: 'theme',
+        template: ID,
+        ops: [
+            { element: '', wrap: { tag: 'container', name: 'outer' } },
+            { element: 'search', wrap: { like: 'nope', name: 'box' } },
+        ],
+    } ]);
+
+    assert.deepEqual(report.unmatched.map(miss => miss.element), [ '', 'nope' ]);
+    assert.equal(template.elements[0].name, 'friend_list');
+    assert.equal(template.elements[0].children.at(-1)!.name, 'search');
+});

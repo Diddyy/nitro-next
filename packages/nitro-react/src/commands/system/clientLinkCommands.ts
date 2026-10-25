@@ -17,6 +17,7 @@ import { getWiredHasReadPermission, getWiredMenuEnabled, WIRED_MENU_TAB_INSPECTI
 
 import { openAchievements } from '../achievements/achievementCommands';
 import { openCampaignCalendarLink } from '../campaign/campaignCalendarCommands';
+import { routeClientModuleLink } from '../client-modules/clientModuleLinkRoutes';
 import { openCursedDragonAdoption } from '../cursed-dragon-adoption/cursedDragonAdoptionCommands';
 import { openDailyTasksLink } from '../daily-tasks/dailyTasksCommands';
 import { showEarnings } from '../earnings/earningsCommands';
@@ -494,7 +495,7 @@ export const openClientLink = (send: Send, link: string) => {
     }
 
     // A client module's prefix (`links.handle`): only links the client itself has no route for.
-    const moduleHandlers = clientModulesStore.getState().linkHandlers.filter(handler => handler.prefix === parts[0]);
+    const moduleHandlers = routeClientModuleLink(clientModulesStore.getState().linkHandlers, link);
 
     for (const handler of moduleHandlers) {
         try {

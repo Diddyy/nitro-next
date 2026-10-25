@@ -46,6 +46,8 @@ export interface ClientModuleLinkHandler {
     moduleKey: string;
     /** The link's first part (`<prefix>/...`), as Flash's `linkPattern`. */
     prefix: string;
+    /** The parts after the prefix it takes (`news/*`), or `undefined` for every link of the prefix (`clientModuleLinkRoutes`). */
+    path?: string;
     handle: (link: string) => void;
 }
 
