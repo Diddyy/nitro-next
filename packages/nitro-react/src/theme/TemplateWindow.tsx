@@ -3,8 +3,8 @@
  * client's texts and bitmaps. What the window's code does with its named elements comes in as
  * `bindings`.
  */
-import { colorTemplateByTags, findTemplateChild, Template, TemplateBindings, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
-import { useCallback, useMemo } from 'react';
+import { colorTemplateByTags, findTemplateChild, isTemplateInspecting, subscribeTemplateInspecting, Template, TemplateBindings, TemplateInspectContext, TemplateInspectWindowContext, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
@@ -79,11 +79,16 @@ export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, heig
 
         return (typeof value === 'string' || typeof value === 'number') ? String(value) : '';
     }), [ config ]);
+    // While the extension inspector is on: the template it names for this window's elements (a window
+    // drawn in another's element starts its own element chain). Turning it on redraws the view once.
+    const inspecting = useSyncExternalStore(subscribeTemplateInspecting, isTemplateInspecting);
+    const inspectWindow = useMemo(() => ({ id, part }), [ id, part ]);
 
     if (!template) return null;
 
-    return (
+    const view = (
         <TemplateView
+            key={inspecting ? 'inspected' : 'plain'}
             template={template}
             bindings={allBindings}
             arrange={arrange}
@@ -93,5 +98,15 @@ export const TemplateWindow = ({ id, part, bindings, arrange, frame, width, heig
             resolveText={resolveText}
             imageUrl={imageUrl}
         />
+    );
+
+    if (!inspecting) return view;
+
+    return (
+        <TemplateInspectWindowContext.Provider value={inspectWindow}>
+            <TemplateInspectContext.Provider value={undefined}>
+                {view}
+            </TemplateInspectContext.Provider>
+        </TemplateInspectWindowContext.Provider>
     );
 };

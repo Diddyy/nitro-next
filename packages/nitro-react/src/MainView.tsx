@@ -60,6 +60,7 @@ import { CameraView } from './views/room-widgets/camera/CameraView';
 import { PhotoPurchaseConfirmationView } from './views/room-widgets/camera/PhotoPurchaseConfirmationView';
 import { RoomChatInputView } from './views/room-widgets/chat-input/RoomChatInputView';
 import { PetTrainingView } from './views/room-widgets/pet-training/PetTrainingView';
+import { ExtensionInspectorView } from './views/system/ExtensionInspectorView';
 import { SystemDialogsView } from './views/system/SystemDialogsView';
 import { TemplatePreviewView } from './views/system/TemplatePreviewView';
 import { ViewErrorBoundaries } from './views/system/ViewErrorBoundary';
@@ -162,6 +163,7 @@ export const MainView = () => {
                     </Box>
                     <AvatarEditorComponent />
                     <TemplatePreviewView />
+                    <ExtensionInspectorView />
                     <CatalogWrapper catalogType={CatalogTypeEnum.Normal} />
                     <CatalogWrapper catalogType={CatalogTypeEnum.BuildersClub} />
                     <InventoryComponent />
