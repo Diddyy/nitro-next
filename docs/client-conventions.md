@@ -215,7 +215,10 @@ which counts as a new warning at the verification gate.
   whole resolution, so at 125% or 150% Windows scaling a stage pixel is smaller than a CSS pixel.
   Use a Pixi event's `global`; convert a native event's `clientX` / `clientY` (or a delta of them)
   with `ClientToStage` / `ClientPointToStage`, and take the screen's size from `GetDesktopSize`
-  or `useViewportSize`, never `window.innerWidth` / `innerHeight`.
+  or `useViewportSize`, never `window.innerWidth` / `innerHeight`. In a render body use
+  `useViewportSize`: the React Compiler caches a `GetDesktopSize()` call there, so the component
+  keeps the size it first rendered at (the tooltip clamped to the screen it first showed on).
+  `GetDesktopSize` is for handlers, effects and a `useState` initialiser that wants the size at open.
 - A passive `Box` is still a hit *target*: `EventBoundary.hitTestFn` reports a hit for any
   container carrying a `hitArea`, and the mode it tests is the one inherited from the nearest
   interactive ancestor, not the container's own. So a box that covers a sibling swallows that

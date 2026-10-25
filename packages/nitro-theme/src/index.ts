@@ -50,6 +50,7 @@ export * from './hooks/useResolvedVariant';
 export * from './hooks/useRevealWhenSettled';
 export * from './hooks/useScrollController';
 export * from './hooks/useThemeVariant';
+export * from './hooks/useViewportSize';
 export * from './hooks/useWindowActivation';
 export * from './hooks/useWindowPointerDrag';
 export * from './host';
