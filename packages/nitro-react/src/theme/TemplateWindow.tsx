@@ -10,7 +10,7 @@ import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useSystemStore, useTranslation } from '#base/context/system';
 
-import { useTemplateExtensionArrange, useTemplateExtensionBindings } from './templatePatches';
+import { useTemplateExtensionArrange, useTemplateExtensionBindings, useTemplateExtensionItemBindings } from './templatePatches';
 import { useTemplate } from './useTemplate';
 
 export interface TemplateWindowProps {
@@ -60,6 +60,8 @@ export const TemplateWindow = ({ id, part, bindings, arrange, context, frame, wi
     // The bindings extensions give the elements they added (`api.templates.bind`), under the window's
     // own - or over them, for an override.
     const allBindings = useTemplateExtensionBindings(id, bindings, context);
+    // Their item bindings, over the code's in each clone of a list (`bind(..., { items: true })`); none while none is added.
+    const itemBindings = useTemplateExtensionItemBindings(id, context);
     // What extensions do after the window's own code has laid it out (`api.templates.arrange`).
     const allArrange = useTemplateExtensionArrange(id, arrange, context);
     const template = useMemo(() => {
@@ -100,6 +102,7 @@ export const TemplateWindow = ({ id, part, bindings, arrange, context, frame, wi
             key={inspecting ? 'inspected' : 'plain'}
             template={template}
             bindings={allBindings}
+            itemBindings={itemBindings}
             arrange={allArrange}
             frame={windowFrame}
             width={width}

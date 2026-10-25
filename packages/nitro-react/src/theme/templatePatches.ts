@@ -13,14 +13,17 @@
  * applied, unmatched and clashing ops go to the server's extension inspector (`reportClientExtension`).
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, mergeTemplateBindings, ownedElementName, Template, TemplateBinding, TemplateBindings, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplatePatch, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
+import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, Template, TemplateBinding, TemplateBindings, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItemBindings, TemplateItemContext, TemplatePatch, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
 
 import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
 import { parseObject, resolveStyles } from '#base/theme/templateStyles';
 
-/** A binding, or what it is for a window's context. */
-export type TemplateExtensionBinding = TemplateBinding | ((context: TemplateContext) => TemplateBinding);
+/**
+ * A binding, or what it is for a window's context - and, for an item binding (`items`), for the clone
+ * of its list it is drawing (`item`: its key, its index in the list, the list's name).
+ */
+export type TemplateExtensionBinding = TemplateBinding | ((context: TemplateContext, item?: TemplateItemContext) => TemplateBinding);
 
 interface ExtensionBinding {
     owner: string;
@@ -30,6 +33,8 @@ interface ExtensionBinding {
     binding: TemplateExtensionBinding;
     /** Over the window's own binding of the element, for the fields it sets (`bind(..., { override: true })`). */
     override: boolean;
+    /** In each clone of a list the element is in (a row the code adds per room), not the window (`bind(..., { items: true })`). */
+    items: boolean;
 }
 
 interface ExtensionArrange {
@@ -52,6 +57,11 @@ const patched = new WeakMap<Template, { patches: readonly TemplatePatch[]; byCon
 const reports = new Map<string, TemplatePatchReport>();
 /** The last conflicts of override bindings per template id, by the signature they were logged at. */
 const bindingConflicts = new Map<string, { signature: string; conflicts: TemplatePatchConflict[] }>();
+/**
+ * The override conflicts of item bindings per template id, by what clashed: every clone of a list
+ * clashes alike (each row's colour), so one is kept, and logged, per element, field and owners.
+ */
+const itemBindingConflicts = new Map<string, Map<string, TemplatePatchConflict>>();
 /** The errors extension code threw per template id (bindings of a context, arranges), each logged once. */
 const codeErrors = new Map<string, TemplatePatchError[]>();
 
@@ -64,6 +74,14 @@ const changed = () => {
 
         if (kept.length) codeErrors.set(id, kept);
         else codeErrors.delete(id);
+    }
+
+    for (const [ id, conflicts ] of itemBindingConflicts) {
+        for (const [ signature, conflict ] of conflicts) {
+            if (!conflict.owners.every(owner => owner === WINDOW_CODE_OWNER || owners.has(owner))) conflicts.delete(signature);
+        }
+
+        if (!conflicts.size) itemBindingConflicts.delete(id);
     }
 
     listeners.forEach(listener => listener());
@@ -131,11 +149,13 @@ export const addTemplatePatch = (patch: TemplatePatch) => {
 /**
  * Gives an element a binding in every window drawn from `template`: one `owner` added (`name`, its
  * short name), or with `override` one the window's code binds (`name` as the code names it), over
- * the code's binding for the fields it sets.
+ * the code's binding for the fields it sets. With `items` the element is bound in each clone of a
+ * list that has it (a row the code adds per room) rather than in the window, a function binding
+ * given which clone it is drawing.
  */
-export const addTemplateBinding = (owner: string, template: string, name: string, binding: TemplateExtensionBinding, options: { override?: boolean } = {}) => {
+export const addTemplateBinding = (owner: string, template: string, name: string, binding: TemplateExtensionBinding, options: { override?: boolean; items?: boolean } = {}) => {
     const override = options.override === true;
-    const entry: ExtensionBinding = { owner, template, element: override ? name : ownedElementName(owner, name), binding, override };
+    const entry: ExtensionBinding = { owner, template, element: override ? name : ownedElementName(owner, name), binding, override, items: options.items === true };
 
     bindings = [ ...bindings, entry ];
     changed();
@@ -273,12 +293,66 @@ const noteBindingConflicts = (id: string, conflicts: TemplatePatchConflict[]) =>
 };
 
 const mergeExtensionBindings = (id: string, own: TemplateBindings | undefined, all: readonly ExtensionBinding[], context: TemplateContext): TemplateBindings | undefined => {
-    const { bindings: merged, conflicts } = mergeTemplateBindings(id, own, all.filter(entry => entry.template === id), entry => bindingFor(id, entry, context));
+    const { bindings: merged, conflicts } = mergeTemplateBindings(id, own, all.filter(entry => entry.template === id && !entry.items), entry => bindingFor(id, entry, context));
 
     noteBindingConflicts(id, conflicts);
 
     return merged;
 };
+
+const noteItemBindingConflicts = (id: string, conflicts: TemplatePatchConflict[]) => {
+    for (const conflict of conflicts) {
+        const signature = `${conflict.element}.${conflict.property}:${conflict.owners.join(',')}`;
+        const known = itemBindingConflicts.get(id) ?? new Map<string, TemplatePatchConflict>();
+
+        if (known.has(signature)) continue;
+
+        known.set(signature, conflict);
+        itemBindingConflicts.set(id, known);
+
+        const message = `${id}: ${conflict.owners.join(', ')} all bind ${conflict.property} of '${conflict.element}' in each item; ${conflict.owners.at(-1)}'s is used.`;
+
+        console.warn(`[TemplatePatches] ${message}`);
+
+        for (const owner of new Set(conflict.owners)) {
+            if (owner !== WINDOW_CODE_OWNER) reportClientExtension({ owner, kind: 'patch.conflict', subject: id, reason: `${conflict.element}.${conflict.property}`, message });
+        }
+    }
+};
+
+/** An item binding as it is for one clone: called each time the clone is drawn (an item's index changes with its list). */
+const itemBindingFor = (id: string, entry: ExtensionBinding, context: TemplateContext, at: TemplateItemContext): TemplateBinding | undefined => {
+    if (typeof entry.binding !== 'function') return entry.binding;
+
+    try {
+        return entry.binding(context, at);
+    } catch (error) {
+        reportCodeError(id, entry.owner, error);
+
+        return undefined;
+    }
+};
+
+const itemBindingsOf = (id: string, all: readonly ExtensionBinding[], context: TemplateContext): TemplateItemBindings | undefined => {
+    const entries = all.filter(entry => entry.template === id && entry.items);
+
+    if (!entries.length) return undefined;
+
+    return (item, at, prototype) => {
+        const { bindings: merged, conflicts } = mergeTemplateItemBindings(id, prototype, item.bindings, entries, entry => itemBindingFor(id, entry, context, at));
+
+        if (conflicts.length) noteItemBindingConflicts(id, conflicts);
+
+        return merged;
+    };
+};
+
+/**
+ * What each clone of a list in `id`'s windows is drawn with: the code's item bindings and, over them,
+ * the extensions' item bindings (`bind(..., { items: true })`) for the window's `context`;
+ * `undefined` - the clones drawn with their own - while none is added for the template.
+ */
+export const useTemplateExtensionItemBindings = (id: string, context: TemplateContext = EMPTY_TEMPLATE_CONTEXT) => itemBindingsOf(id, useSyncExternalStore(subscribe, getBindings), context);
 
 /**
  * What a template's last application reported - its patches' conflicts, misses and errors, with
@@ -287,7 +361,7 @@ const mergeExtensionBindings = (id: string, own: TemplateBindings | undefined, a
  */
 export const templatePatchReport = (id: string): TemplatePatchReport | undefined => {
     const report = reports.get(id);
-    const overrides = bindingConflicts.get(id)?.conflicts ?? [];
+    const overrides = [ ...(bindingConflicts.get(id)?.conflicts ?? []), ...(itemBindingConflicts.get(id)?.values() ?? []) ];
     const errors = codeErrors.get(id) ?? [];
 
     if (!report && !overrides.length && !errors.length) return undefined;

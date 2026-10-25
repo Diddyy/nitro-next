@@ -15,6 +15,7 @@
  */
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateWindows } from './templateBindings';
 import type { Template, TemplateElement, TemplateParams, TemplateValue } from './templateData';
+import type { LayoutWindow } from './templateLayout';
 
 /** What a patch may change on an element: its layout's own attributes, never its code's behaviour. */
 export interface TemplateElementChanges {
@@ -38,6 +39,12 @@ export interface TemplateElementChanges {
      * `accommodate`, ... (`TemplateParams`).
      */
     params?: Partial<TemplateParams>;
+    /**
+     * Its size limits, the layout's `width_min`, `width_max`, `height_min`, `height_max` in that order
+     * (`null` for none), replaced whole: a window the layout pins to one width (`[ 578, 578, ... ]`)
+     * takes another only with its limits.
+     */
+    limits?: TemplateElement['limits'];
 }
 
 /**
@@ -339,6 +346,7 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
                 }
 
                 from.splice(from.indexOf(target), 1, wrapper);
+                wrapper.wraps = true;
                 wrapper.children.push(target);
                 target.x = 0;
                 target.y = 0;
@@ -467,6 +475,42 @@ export const mergeTemplateBindings = <T extends TemplateBindingEntry>(templateId
     }
 
     return { bindings: merged, conflicts };
+};
+
+/** Per prototype, whether it has the element each key names: a list's every clone shares its prototype. */
+const prototypeKeys = new WeakMap<TemplateElement, Map<string, boolean>>();
+
+const prototypeHas = (prototype: TemplateElement, key: string) => {
+    let byKey = prototypeKeys.get(prototype);
+
+    if (!byKey) prototypeKeys.set(prototype, (byKey = new Map()));
+
+    let has = byKey.get(key);
+
+    if (has === undefined) byKey.set(key, (has = resolveTemplateNames([ prototype ], [ key ]).targets.has(key)));
+
+    return has;
+};
+
+/**
+ * The bindings one clone of a list (a `TemplateItem`) is drawn with: the code's for it (`own`) and the
+ * extensions' item bindings merged over them as `mergeTemplateBindings` merges a window's - only the
+ * `entries` naming an element the clone's `prototype` has, so a binding for another list's rows is
+ * neither drawn nor a miss here.
+ */
+export const mergeTemplateItemBindings = <T extends TemplateBindingEntry>(templateId: string, prototype: TemplateElement, own: TemplateBindings | undefined, entries: readonly T[], resolve: (entry: T) => TemplateBinding | undefined) => mergeTemplateBindings(templateId, own, entries.filter(entry => prototypeHas(prototype, entry.element)), resolve);
+
+/**
+ * The pane an extension's `wrap` put `window` in - its nearest ancestor of the template, past a frame's
+ * content area - or `undefined` while it is where its layout has it. A window's code that places a part
+ * from its parent's size (the catalogue right-aligns its page) asks this before placing it in a pane.
+ */
+export const templateWrapperOf = (window: LayoutWindow): LayoutWindow | undefined => {
+    let parent = window.parent;
+
+    while (parent && !parent.element) parent = parent.parent;
+
+    return parent?.element?.wraps ? parent : undefined;
 };
 
 /** What an extension runs after a window's own `arrange`: the window's model, and its context. */

@@ -24,6 +24,8 @@ export interface ClientModuleWindow {
     component: ComponentType<ClientModuleWindowProps>;
     /** Drawn above every window that does not ask for it, whichever was raised last. */
     onTop?: boolean;
+    /** Drawn over the `onTop` windows too (a settings window over a HUD), whichever was raised last. */
+    aboveOnTop?: boolean;
 }
 
 export interface ClientModuleToolbarItem {

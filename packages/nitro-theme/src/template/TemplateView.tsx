@@ -56,7 +56,7 @@ import { ThemeText } from '../ThemeText';
 import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, FRAME_OVERRIDES_KEY, frameOverrideOf, FrameSize, isFramelessVariant, ThemeVariant, themeVariantOf, toCssHexColor, WindowPlacedContext } from '../utils';
 import { localizeCaption } from './localizeCaption';
 import { isMarkupTemplateText, knownTemplateTextStyle, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
-import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateWindows } from './templateBindings';
+import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateItemBindings, TemplateWindows } from './templateBindings';
 import { Template, TemplateElement, templateSkinKey, TemplateValue } from './templateData';
 import { layoutTemplate, LayoutWindow, linkTemplateScrollbars, TEMPLATE_LISTS, TEMPLATE_SCROLLBAR_TAGS, TemplateArrange, TemplateButtonLabel, TemplateRect, TemplateScroll, templateTextMargins, templateUsesParentGraphics } from './templateLayout';
 import { TemplateFieldScroll, TemplateScrollbar, TemplateScrollField, TemplateScrollTarget } from './TemplateScroll';
@@ -73,6 +73,11 @@ export interface TemplateViewProps {
     imageUrl?: (asset: string) => string;
     /** What the window's code does with its named elements. */
     bindings?: TemplateBindings;
+    /**
+     * Not Flash's: what each clone of a list is drawn with in place of its item's own `bindings` -
+     * extensions' item bindings over the code's (`TemplateWindow` passes it while any is added).
+     */
+    itemBindings?: TemplateItemBindings;
     /** Draws the `visible="false"` elements too, faded. */
     showHidden?: boolean;
     /** Gives each frame an id of its own, for the window layer. */
@@ -2121,7 +2126,7 @@ ElementView.displayName = 'TemplateElementView';
  * binding draws differently redraw (`TemplateBindingStore`). `resolveText` and `imageUrl` should be
  * stable: a new one redraws every element, which is what a change of language needs.
  */
-export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHidden = false, idPrefix = 'template-', width, height, arrange, frame }: TemplateViewProps) => {
+export const TemplateView = ({ template, resolveText, imageUrl, bindings, itemBindings, showHidden = false, idPrefix = 'template-', width, height, arrange, frame }: TemplateViewProps) => {
     const [ store ] = useState(() => new TemplateBindingStore());
     // The size the user dragged the window to; the template is laid out at it.
     const [ frameSize, setFrameSize ] = useState<FrameSize | null>(null);
@@ -2130,7 +2135,7 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, showHi
     const sources = useMemo(() => (template.elements.length === 1 ? [ { ...template.elements[0], x: 0, y: 0 } ] : template.elements), [ template ]);
     // The clones the code adds, made into elements of their own; the rest are the template's.
     const [ expander ] = useState(() => new TemplateExpander());
-    const { elements, byElement, missing: missingKeys, arranges, skins } = expander.expand(sources, bindings);
+    const { elements, byElement, missing: missingKeys, arranges, skins } = expander.expand(sources, bindings, itemBindings);
     const [ scroll ] = useState(() => new TemplateScrollStore());
     const scrollLinks = scrollLinksOf(elements);
     const bitmapSizeOf = useFittedBitmapSizes(elements, byElement, imageUrl);

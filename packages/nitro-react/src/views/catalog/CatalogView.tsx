@@ -29,7 +29,7 @@ import { refreshBuilderStatus, updateBuilderStatus } from '#base/commands';
 import { CATALOG_HEADER_DESCRIPTION, CATALOG_HEADER_IMAGE, CatalogPage, getCatalogPageImage, getCatalogPageText, getCatalogWindowName, isNonTabbedCatalog, useCatalogRootNode, useCatalogStore, useCatalogStoreApi, useCatalogType } from '#base/context/catalog';
 import { useConfigBoolean, useConfigValue, useTranslation } from '#base/context/system';
 import { useCatalogNavigation, useWindowVisibility } from '#base/hooks';
-import { Box, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useLayoutSize, useTemplateLibrary, useTemplateWindowRect } from '#base/theme';
+import { Box, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, templateWrapperOf, useLayoutSize, useTemplateLibrary, useTemplateWindowRect } from '#base/theme';
 import { GetFriendlyTime } from '#base/utils';
 
 import { useCatalogSearch } from './navigation/useCatalogSearch';
@@ -258,14 +258,18 @@ export const CatalogView = () => {
         layoutContainer: { children: <CatalogLayoutContainer /> },
     };
 
-    /** `CatalogViewer.showCatalogPage`: the container as wide as the page, right-aligned; the left pane only with room for it. */
+    /**
+     * `CatalogViewer.showCatalogPage`: the container as wide as the page, right-aligned; the left pane
+     * only with room for it. Not Flash's: in a pane a theme wrapped it in (`templateWrapperOf`) the
+     * theme placed the pane, so the page starts at the pane's origin.
+     */
     const arrange = ({ find }: TemplateWindows) => {
         const container = find('layoutContainer');
 
         if (!container?.parent || pageWidth === undefined) return;
 
         container.setWidth(pageWidth);
-        container.setX(container.parent.width - pageWidth - LAYOUT_CONTAINER_RIGHT_GAP);
+        container.setX(templateWrapperOf(container) ? 0 : container.parent.width - pageWidth - LAYOUT_CONTAINER_RIGHT_GAP);
     };
 
     return (
