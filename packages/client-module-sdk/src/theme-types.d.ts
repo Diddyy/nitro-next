@@ -239,3 +239,49 @@ export interface ClientModuleTheme {
     ThemeText: ComponentType<ClientModuleThemeTextProps>;
     TemplateWindow: ComponentType<ClientModuleTemplateWindowProps>;
 }
+
+/** A picture of the loading screen's background: `backgroundImage` and each of `layers`, placed as a CSS background is. */
+export interface ClientModuleLoadingScreenLayer {
+    image: string;
+    /** `cover` (the default), `contain`, `auto` (its own size) or a scale. */
+    size?: 'cover' | 'contain' | 'auto' | number;
+    /** CSS `background-position` keywords: `"left bottom"`, `"top"`; centred on an axis left out. */
+    position?: string;
+    /** Pixels from that place. */
+    offset?: readonly [ number, number ];
+    /** Tiled from where it sits, across one axis or both. */
+    repeat?: 'no-repeat' | 'repeat-x' | 'repeat-y' | 'repeat';
+}
+
+/**
+ * The hotel variable `loading.screen` (nitro-next `docs/client-modules.md`): the loading screen is up
+ * before any module loads, so a theme styles it with this. Every key may be left out (Habbo's own).
+ */
+export interface ClientModuleLoadingScreen {
+    /** `#rrggbb`. */
+    background?: string;
+    backgroundImage?: string;
+    backgroundSize?: ClientModuleLoadingScreenLayer['size'];
+    backgroundPosition?: string;
+    backgroundOffset?: readonly [ number, number ];
+    backgroundRepeat?: ClientModuleLoadingScreenLayer['repeat'];
+    /** More pictures over `backgroundImage`, bottom to top. */
+    layers?: readonly ClientModuleLoadingScreenLayer[];
+    /** 0-1, every picture's (CSS `saturate()`). */
+    backgroundSaturation?: number;
+    /** `false` leaves out Habbo's photo frame. */
+    photo?: boolean;
+    box?: { width: number; height: number; color?: string; alpha?: number; radius?: number };
+    logo?: string;
+    /** A text key, or the text itself. */
+    text?: string;
+    textColor?: string;
+    textSize?: number;
+    /** The width the line wraps at. */
+    textWidth?: number;
+    bar?: { width?: number; outline?: string; well?: string; fill?: string; fillBottom?: string };
+    percent?: boolean;
+    percentColor?: string;
+    /** The parts top to bottom; one left out follows in Habbo's order (logo, text, bar, percent). */
+    order?: readonly ('logo' | 'text' | 'bar' | 'percent')[];
+}
