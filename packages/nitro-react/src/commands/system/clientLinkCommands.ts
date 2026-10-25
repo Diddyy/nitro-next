@@ -16,6 +16,7 @@ import { PerkCodes, userStore } from '#base/context/user';
 import { getWiredHasReadPermission, getWiredMenuEnabled, WIRED_MENU_TAB_INSPECTION, WIRED_MENU_TAB_MONITOR, WIRED_MENU_TAB_OVERVIEW } from '#base/context/wired';
 
 import { openAchievements } from '../achievements/achievementCommands';
+import { openCampaignCalendarLink } from '../campaign/campaignCalendarCommands';
 import { openCursedDragonAdoption } from '../cursed-dragon-adoption/cursedDragonAdoptionCommands';
 import { openDailyTasksLink } from '../daily-tasks/dailyTasksCommands';
 import { showEarnings } from '../earnings/earningsCommands';
@@ -374,6 +375,12 @@ export const openClientLink = (send: Send, link: string) => {
         // `DailyTasksController.linkReceived`: dailytasks/open, with `dailytasks.enabled` on.
         case 'dailytasks': {
             openDailyTasksLink(parts);
+
+            return;
+        }
+        // `HabboCampaigns.linkReceived`: openView/calendar.
+        case 'openView': {
+            openCampaignCalendarLink(parts);
 
             return;
         }

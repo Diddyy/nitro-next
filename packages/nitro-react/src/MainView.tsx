@@ -31,6 +31,7 @@ import { registerHandlers } from './handlers';
 import { useRegisterHandlers } from './hooks';
 import { Box, ModalLayer, TooltipLayer, WindowLayer } from './theme';
 import { BadgeLeaderboardView } from './views/badge-leaderboard/BadgeLeaderboardView';
+import { CampaignCalendarView } from './views/campaign/CampaignCalendarView';
 import { MallOfferMinimizedView } from './views/catalog/targeted-offers/MallOfferMinimizedView';
 import { TargetedOfferMinimizedView } from './views/catalog/targeted-offers/TargetedOfferMinimizedView';
 import { ClientModuleAvatarOverlaysView } from './views/client-modules/ClientModuleAvatarOverlaysView';
@@ -213,6 +214,8 @@ export const MainView = () => {
                     <NoobLobbyOfferView />
                     {/* `HabboNuxDialogs`' new user gift selection: drawn only while offered. */}
                     <NuxGiftSelectionView />
+                    {/* `HabboCampaigns`' calendar: drawn only while shown. */}
+                    <CampaignCalendarView />
                     {/* `HabboPagesViewer`: drawn only while shown. */}
                     <HabboPagesView />
                     {/* `PetCommandTool`: drawn only while shown. */}
