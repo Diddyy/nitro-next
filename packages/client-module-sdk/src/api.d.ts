@@ -7,7 +7,7 @@
  */
 import type { ComponentType, ReactNode } from 'react';
 
-import type { ClientModuleTemplateBinding, ClientModuleTemplatePatchOp, ClientModuleTemplatePatchReport } from './template-types';
+import type { ClientModuleTemplateBinding, ClientModuleTemplateContext, ClientModuleTemplatePatchOp, ClientModuleTemplatePatchReport, ClientModuleTemplateWindows } from './template-types';
 import type { ClientModuleTheme } from './theme-types';
 
 export type ClientModuleDispose = () => void;
@@ -266,15 +266,27 @@ export interface ClientModuleApi {
     };
     templates: {
         /**
-         * Changes a core window's template (`<library>/<asset>`) as data: `set` layout properties, `remove`
-         * an element or `insert` one. Patches from every module and plugin apply together in order
-         * (`order`, then key); an element this module adds is named `<key>:<name>` and only this module
-         * reaches it by its short name. Conflicts and elements a release no longer has are kept in `report`.
+         * Changes a core window's template (`<library>/<asset>`) as data: `set` layout properties (and
+         * `params`, merged by key), `remove` an element, `insert` one or `move` one keeping its name.
+         * `ops` may be a function of the window's context, called once per context. Patches from every
+         * module and plugin apply together in order (`order`, then key); an element this module adds is
+         * named `<key>:<name>` and only this module reaches it by its short name. Conflicts, elements a
+         * release no longer has and ops that throw are kept in `report`.
          */
-        patch: (template: string, ops: readonly ClientModuleTemplatePatchOp[], options?: { order?: number }) => ClientModuleDispose;
-        /** What the window's code would bind, for an element this module added: a caption, a click, a picture. */
-        bind: (template: string, element: string, binding: ClientModuleTemplateBinding) => ClientModuleDispose;
-        /** The last application's conflicts and unmatched elements for a template, once it has been drawn. */
+        patch: (template: string, ops: readonly ClientModuleTemplatePatchOp[] | ((context: ClientModuleTemplateContext) => readonly ClientModuleTemplatePatchOp[]), options?: { order?: number }) => ClientModuleDispose;
+        /**
+         * What the window's code would bind, for an element this module added: a caption, a click, a
+         * picture - or a function of the window's context giving it. With `override`, an element the
+         * window's code binds itself (named as the code names it): this module's value is used for the
+         * fields it sets, each field the code sets too reported as a conflict.
+         */
+        bind: (template: string, element: string, binding: ClientModuleTemplateBinding | ((context: ClientModuleTemplateContext) => ClientModuleTemplateBinding), options?: { override?: boolean }) => ClientModuleDispose;
+        /**
+         * Runs after the window's own layout code each time a window of the template is laid out: what a
+         * patch cannot say as data. One that throws is skipped and reported.
+         */
+        arrange: (template: string, arrange: (windows: ClientModuleTemplateWindows, context: ClientModuleTemplateContext) => void) => ClientModuleDispose;
+        /** The last application's conflicts, unmatched elements and errors for a template, once it has been drawn. */
         report: (template: string) => ClientModuleTemplatePatchReport | undefined;
     };
 }

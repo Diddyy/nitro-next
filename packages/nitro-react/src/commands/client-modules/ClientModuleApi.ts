@@ -7,7 +7,7 @@
  * Turbo's `docs/client-modules.md` is the module author's side of it.
  */
 import type { IMessageDataWrapper } from '@nitrodevco/nitro-api';
-import type { TemplateBinding, TemplatePatchOp, TemplatePatchReport } from '@nitrodevco/nitro-theme';
+import type { TemplateBinding, TemplateContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows } from '@nitrodevco/nitro-theme';
 import type { ComponentType, ReactNode } from 'react';
 
 import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleHotelViewLayerProps, ClientModuleWindowProps } from '#base/context/client-modules';
@@ -157,17 +157,30 @@ export interface ClientModuleApi {
     };
     templates: {
         /**
-         * Changes a core window's template (`<library>/<asset>`) as data: `set` layout properties, `remove`
-         * an element or `insert` one, each naming its element as the window's code does (`'name'`,
-         * `'panel/name'`, `''` for the window). Patches from every module and plugin apply together in
-         * order (`order`, then key); an element this module adds is named `<key>:<name>` and only this
-         * module reaches it by its short name. Conflicts and elements a release no longer has are logged
-         * and kept in `report`.
+         * Changes a core window's template (`<library>/<asset>`) as data: `set` layout properties (and
+         * `params`, merged by key), `remove` an element, `insert` one or `move` one keeping its name, each
+         * naming its element as the window's code does (`'name'`, `'panel/name'`, `''` for the window).
+         * `ops` may be a function of the window's context (`TemplateContext`, the keys each window passes
+         * are in `docs/template-patches.md`), called once per context. Patches from every module and
+         * plugin apply together in order (`order`, then key); an element this module adds is named
+         * `<key>:<name>` and only this module reaches it by its short name. Conflicts, elements a release
+         * no longer has and ops that throw are logged and kept in `report`.
          */
-        patch: (template: string, ops: readonly TemplatePatchOp[], options?: { order?: number }) => ClientModuleDispose;
-        /** What the window's code would bind, for an element this module added: a caption, a click, a picture. */
-        bind: (template: string, element: string, binding: TemplateBinding) => ClientModuleDispose;
-        /** The last application's conflicts and unmatched elements for a template, once it has been drawn. */
+        patch: (template: string, ops: readonly TemplatePatchOp[] | ((context: TemplateContext) => readonly TemplatePatchOp[]), options?: { order?: number }) => ClientModuleDispose;
+        /**
+         * What the window's code would bind, for an element this module added: a caption, a click, a
+         * picture - or a function of the window's context giving it. With `override`, an element the
+         * window's code binds itself (named as the code names it): this module's value is used for the
+         * fields it sets, and each field the code sets too is reported as a conflict.
+         */
+        bind: (template: string, element: string, binding: TemplateBinding | ((context: TemplateContext) => TemplateBinding), options?: { override?: boolean }) => ClientModuleDispose;
+        /**
+         * Runs after the window's own `arrange` each time a window of the template is laid out, with its
+         * window model (`find(name)`, `root()`: `setRectangle`, `setHeight`, `textHeight`...) and its
+         * context - a frame as tall as its list. One that throws is skipped and reported.
+         */
+        arrange: (template: string, arrange: (windows: TemplateWindows, context: TemplateContext) => void) => ClientModuleDispose;
+        /** The last application's conflicts, unmatched elements and errors for a template, once it has been drawn. */
         report: (template: string) => TemplatePatchReport | undefined;
     };
 }

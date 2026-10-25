@@ -11,7 +11,7 @@ import { notificationStore } from '#base/context/notifications';
 import { getRoom } from '#base/context/room';
 import { systemStore } from '#base/context/system';
 import { GetSoundManager } from '#base/sound';
-import { addTemplateBinding, addTemplatePatch, templatePatchReports } from '#base/theme/templatePatches';
+import { addTemplateArrange, addTemplateBinding, addTemplatePatch, templatePatchReport } from '#base/theme/templatePatches';
 
 import { quitRoom } from '../navigator/navigatorCommands';
 import { openClientLink } from '../system/clientLinkCommands';
@@ -268,8 +268,9 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
         },
         templates: {
             patch: (template, ops, options = {}) => track(addTemplatePatch({ owner: moduleKey, template, ops, order: options.order })),
-            bind: (template, element, binding) => track(addTemplateBinding(moduleKey, template, element, binding)),
-            report: template => templatePatchReports().get(template),
+            bind: (template, element, binding, options) => track(addTemplateBinding(moduleKey, template, element, binding, options)),
+            arrange: (template, arrange) => track(addTemplateArrange(moduleKey, template, arrange)),
+            report: template => templatePatchReport(template),
         },
     };
 
