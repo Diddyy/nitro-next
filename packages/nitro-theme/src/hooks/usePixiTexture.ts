@@ -511,14 +511,28 @@ export interface PixiTextureOptions {
     standalone?: boolean;
 }
 
+/** Development builds: what is told each theme key a component draws (`watchThemeDraws`). */
+let drawWatcher: ((themeKey: string) => void) | undefined;
+
+/**
+ * Development builds only: `watcher` is told every theme key a component draws, on each of its
+ * renders (the overlay check, nitro-react `utils/assetOverlayCheck.ts`); `undefined` stops it. A
+ * production build never calls it - the call in `usePixiTexture` is compiled out.
+ */
+export const watchThemeDraws = (watcher: ((themeKey: string) => void) | undefined): void => {
+    drawWatcher = watcher;
+};
+
 /**
  * Resolves a theme asset key (`'border-9-default-src'`) to its Pixi Texture - the one the
  * theme's sheet was cut into at boot, read synchronously with no state. `undefined` until the
  * theme has loaded, and for a key the sheet does not carry.
  */
-export const usePixiTexture = (themeKey: string | undefined, options?: PixiTextureOptions): Texture | undefined => (options?.standalone
-    ? getStandaloneThemeTexture(themeKey)
-    : getThemeTexture(themeKey));
+export const usePixiTexture = (themeKey: string | undefined, options?: PixiTextureOptions): Texture | undefined => {
+    if (import.meta.env.DEV && themeKey) drawWatcher?.(themeKey);
+
+    return options?.standalone ? getStandaloneThemeTexture(themeKey) : getThemeTexture(themeKey);
+};
 
 /** A theme key with an effect applied, as a texture - cut out of the sheet once per key + effect. */
 export const usePixiEffectTexture = (themeKey: string | readonly string[] | undefined, effect: ThemeSliceEffect): Texture | undefined => getThemeEffectTexture(themeKey, effect);

@@ -18,7 +18,9 @@
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager, TextureUtils } from '@nitrodevco/nitro-renderer';
-import { ASSET_OVERLAYS_KEY, overlayTextureName, parseAssetOverlays } from '@nitrodevco/nitro-theme';
+import { ASSET_OVERLAYS_KEY, overlayTextureName, parseAssetOverlays, THEME_SKIN_LIBRARY } from '@nitrodevco/nitro-theme';
+
+import { checkThemeOverlays } from './assetOverlayCheck';
 
 /** Each bundle's overlays, applied once: a bundle is fetched once too. */
 const applied = new Map<string, Promise<void>>();
@@ -64,6 +66,8 @@ export const applyAssetOverlays = (bundle: string, overlays: unknown): Promise<v
         if (!parsed) NitroLogger.warn('AssetOverlays', `${ASSET_OVERLAYS_KEY} is not JSON: no bitmap is replaced.`);
 
         const assets = parsed?.get(bundle);
+
+        if (import.meta.env.DEV && assets && (bundle === THEME_SKIN_LIBRARY)) checkThemeOverlays(assets.keys());
 
         if (assets) {
             pending.add(bundle);

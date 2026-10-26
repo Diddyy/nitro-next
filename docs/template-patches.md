@@ -25,8 +25,9 @@ Windows are drawn from Habbo's own layouts (`templates.json` in each library's b
 To find names, **alt-click the element** in the client (staff holding Turbo's `client.inspector`,
 or a development build after `NitroInspector()` in the browser console - off by default, remembered
 in localStorage until `NitroInspector(false)`): the extension inspector shows the template id, the element's key, its
-type, rect and the elements it is in, the patches on it and on what holds it, and puts a patch for
-it on the clipboard (also logged as `[Inspector]`). A patch whose ops are a function of the window's
+type, style, rect and the elements it is in, the skins it draws (their sprites and sizes, see
+[the skin map](#the-skin-map)), the patches on it and on what holds it, and puts a patch for
+it on the clipboard (also logged as `[Inspector]`) - Alt+Shift-click its skin's overlay entry. A patch whose ops are a function of the window's
 context (below) is listed with the ops it gives the window clicked. Nitro Studio's template preview
 and the library's `templates.json` have the same names.
 
@@ -389,6 +390,71 @@ slice rects are of the sheet's sprite (one of another size is used and logged). 
 load is logged and the library's own stays. A plugin names a file of its `wwwroot/` by its path
 (`"frame.png"`); Turbo gives clients its address.
 
+**An overlay re-skins every window drawing that skin**, not only the one you looked at. A sprite is
+the art of a skin - a component's style: `border` style `9`, `frame` style `3` - and some sprites
+are the art of several (`theme-habbo-frame-frame-default` is frames 0, 1 and 2). Replace the purse's
+border-9 art and the "Start your Habbo Journey" box, which is border 9 too, changes with it; the
+skin map below lists every window a skin is drawn in. To change one window alone, give it another
+skin (a patch's `style`, or `frame.overrides`' `variant` for a frame) or its own colour instead.
+
+### The skin map
+
+`skins.json`, served with the client (`<client>/skins.json`), lists every skin of the theme: the
+sprites it draws with their size and nine-slice, its default tint, and the template windows - and
+their elements' keys - that draw it, with every sprite and the skins it is in:
+
+```json
+{ "skins": { "border:9": {
+    "component": "border", "style": "9", "tintColor": "#686661",
+    "sprites": [ { "part": "layer", "sprite": "theme-habbo-border-9-border-9-default",
+        "overlay": "habbo-window-manager-com/theme-habbo-border-9-border-9-default",
+        "width": 15, "height": 16, "slice": { "left": 7, "top": 7, "right": 7, "bottom": 8 } } ],
+    "windows": { "habbo-toolbar-com/purse_xml": [ "@0" ], "...": [] } } },
+  "sprites": { "theme-habbo-frame-frame-default": { "width": 27, "height": 46, "skins": [ "frame:0", "frame:1", "frame:2" ] } } }
+```
+
+A skin is the element's own `style`, else the one the components around it hand down (a frame's
+header and close button take the frame's), else `0`; a window's code may set another as it draws.
+The client's build writes the file from the template bundles its `nitro-config.json` names
+(`tools/skin-map.mjs`, run by `vite.config.ts`; the development server makes it on the first
+request). A hotel that publishes other bundles runs the tool against them:
+`node tools/skin-map.mjs --from <bundles url with %libname% | folder> --out <client>/skins.json`.
+Windows Nitro draws with React components rather than a template use the same skins but are not
+listed.
+
+The extension inspector reads the same: Alt-click an element and its card shows the element's
+`style`, each skin it draws (its own, then those drawn inside it: a frame's header, close button,
+scaler) with every sprite's name, size and nine-slice, and how many windows draw that skin.
+**Alt+Shift-click** puts the `asset.overlays` entry of its skin's sprites on the clipboard instead of
+the patch, each named after a file for your theme to ship:
+
+```json
+{ "asset.overlays": { "habbo-window-manager-com/theme-habbo-border-9-border-9-default": "habbo-border-9-border-9-default.png" } }
+```
+
+In a development build the console says, once the windows have settled (5 s after the last new
+sprite was drawn), what each theme sheet overlay re-skins: the skins and the windows drawing them,
+or - for one no window drawn since the page loaded draws - a warning naming the skins it is the
+art of and the sprites of that kind the open windows do draw (the catalogue's
+`theme-habbo-frame-3-frame-3-default 64x64` when you overlaid frame 0's). An overlay naming a sprite
+no skin draws is warned about too. A production build compiles the check out.
+
+### Recipe: restyle a frame or a border
+
+1. Open the window and Alt-click its frame or border (in a development build run `NitroInspector()`
+   in the console first; staff need `client.inspector`). The card names the skin, `frame 3` for the
+   catalogue, `border 9` for the purse, and its sprites: `theme-habbo-frame-3-frame-3-default 64x64,
+   nine-slice 10,33,10,10 (layer)` and its `-plain` twin (the untinted pieces).
+2. Read "drawn by N windows": that is everything your art will change.
+3. Alt+Shift-click: the overlay entry is on the clipboard. Draw each sprite at the size the card
+   gives, keeping the nine-slice corners where they were (the slice rects are the sheet's), and save
+   it under the name in the entry.
+4. Put the files in your plugin's `wwwroot/` and the entry in its `gamedata/external_variables.json`
+   (or a `theme.json` image property with that `overlay`, so staff can swap it: turbo-cloud
+   `docs/plugin-data.md`). A frame's art is tinted by the window's colour (`colorize` pieces), so
+   paint it light, or set the colour with `frame.overrides`.
+5. Reload the client: the console notes every window the overlay re-skins.
+
 ## Order, conflicts, misses
 
 Patches apply by `order` (lower first; a base theme takes a negative one), then plugin key, then as
@@ -414,7 +480,10 @@ its own `templates.patches`.
   `theme/TemplateWindow.tsx` passes the window's `context` and draws extension bindings under (or,
   overriding, over) the window's own.
 - `@nitrodevco/nitro-theme` `utils/frameOverrides.ts` (`frame.overrides`, read by `Frame`) and
-  `utils/assetOverlays.ts` (reading `asset.overlays`); nitro-react `utils/assetOverlays.ts` (applied
+  `utils/assetOverlays.ts` (reading `asset.overlays`), `template/templateSkins.ts` (the skin map:
+  `templateElementSkins`, `themeSkinSprites`, `buildSkinMap`; tested in `packages/nitro-theme/test`),
+  `tools/skin-map.mjs` (writes `skins.json`); nitro-react `utils/skinMap.ts` (fetches it) and
+  `utils/assetOverlayCheck.ts` (the development build's overlay check); nitro-react `utils/assetOverlays.ts` (applied
   by `loadAssetBundle`; a template of a library waits for its overlays), the theme
   sheet's overlaid sprites sliced from their own bitmap (`themeAssetBundle.ts`).
 
