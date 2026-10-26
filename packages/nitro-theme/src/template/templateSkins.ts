@@ -353,3 +353,32 @@ export const buildSkinMap = (theme: ThemeVariantsData, frames: SkinSheetFrames, 
 
     return { version: 1, skins: sorted(skins), sprites: sorted(sprites) };
 };
+
+/** A sprite's alpha channel, one byte per pixel, row by row (`getTextureAlpha`). */
+export interface SkinSpriteAlpha {
+    width: number;
+    height: number;
+    data: ArrayLike<number>;
+}
+
+/**
+ * How much of a skin's tinted art (its `layer` sprite) its `plain` twin covers with opaque pixels, 0
+ * to 1: the untinted pieces are drawn over the tinted layer, so the window's colour shows only where
+ * the plain sprite is transparent. 0 when the layer paints nothing.
+ */
+export const plainCoverOfTint = (layer: SkinSpriteAlpha, plain: SkinSpriteAlpha): number => {
+    let painted = 0;
+    let covered = 0;
+
+    for (let y = 0; y < layer.height; y++) {
+        for (let x = 0; x < layer.width; x++) {
+            if (!layer.data[(y * layer.width) + x]) continue;
+
+            painted++;
+
+            if ((x < plain.width) && (y < plain.height) && (plain.data[(y * plain.width) + x] === 255)) covered++;
+        }
+    }
+
+    return painted ? (covered / painted) : 0;
+};

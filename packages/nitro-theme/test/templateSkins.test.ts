@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import type { TemplateElement } from '../src/template/templateData';
-import { buildSkinMap, templateElementSkins, themeSkinSprites, themeSpriteSkins } from '../src/template/templateSkins';
+import { buildSkinMap, plainCoverOfTint, templateElementSkins, themeSkinSprites, themeSpriteSkins } from '../src/template/templateSkins';
 import type { ThemeVariantsData } from '../src/utils/themeRegistry';
 
 // Entries of the window manager bundle's `theme-variants.json` and `theme_spritesheet.json`, as published.
@@ -84,4 +84,16 @@ void test('the map lists the windows and elements drawing each skin, a composite
     assert.deepEqual(map.sprites['theme-habbo-frame-frame-default'], { width: 27, height: 46, skins: [ 'frame:0', 'frame:1' ] });
     assert.deepEqual(themeSpriteSkins(theme).get('theme-habbo-frame-frame-default'), [ 'frame:0', 'frame:1' ]);
     assert.equal(map.skins['contentArea:3'], undefined);
+});
+
+// Stranger test S3 (3.2 #3): an opaque copy of the frame as its -plain twin hid the window's colour
+// (the plain pieces are drawn over the tinted layer), and nothing said so.
+void test('a plain twin opaque over the tinted art covers it; one transparent there covers none of it', () => {
+    const alpha = (rows: string[]) => ({ width: rows[0].length, height: rows.length, data: rows.join('').split('').map(c => (c === '#' ? 255 : c === '+' ? 128 : 0)) });
+    const layer = alpha([ '####', '####', '....', '....' ]);
+
+    assert.equal(plainCoverOfTint(layer, alpha([ '####', '####', '####', '####' ])), 1);
+    assert.equal(plainCoverOfTint(layer, alpha([ '....', '....', '####', '####' ])), 0);
+    assert.equal(plainCoverOfTint(layer, alpha([ '++++', '##..', '####', '####' ])), 0.25);
+    assert.equal(plainCoverOfTint(alpha([ '....' ]), alpha([ '####' ])), 0);
 });

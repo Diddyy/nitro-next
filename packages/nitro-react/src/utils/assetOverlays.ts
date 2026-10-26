@@ -13,8 +13,8 @@
  * cutting a slice of an overlaid sprite from the overlay rather than the sheet.
  *
  * An overlay keeps the size of the bitmap it replaces: a frame's nine-slice rects are of the sheet's
- * sprite. One of another size is still used and logged; one that does not load is logged and the
- * library's own stays.
+ * sprite. One of another size is still used and logged; one that does not load is said on the console
+ * (with its address, whatever `log.error` is) and the library's own stays.
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager, TextureUtils } from '@nitrodevco/nitro-renderer';
@@ -49,7 +49,11 @@ const applyOne = async (library: string, asset: string, url: string) => {
 
         assetManager.setTexture(name, texture);
     } catch (error) {
-        NitroLogger.error('AssetOverlays', `${library}/${asset}: ${url} did not load (${error instanceof Error ? error.message : String(error)}); the library's own is used.`);
+        const message = `${library}/${asset}: ${url} did not load (${error instanceof Error ? error.message : String(error)}); the library's own is used.`;
+
+        NitroLogger.error('AssetOverlays', message);
+        // Said whatever `log.error` is: the browser's own line is a bare 404 that names no overlay.
+        console.warn('[AssetOverlays]', message);
     }
 };
 

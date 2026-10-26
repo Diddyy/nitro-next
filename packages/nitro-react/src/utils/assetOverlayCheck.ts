@@ -8,14 +8,16 @@
  *   the windows that draw them (`skins.json`) and the sprites the windows drawn so far draw of that
  *   kind instead - the frame the author looked at;
  * - one that is drawn is noted with every window it re-skins: an overlay replaces the sprite for every
- *   skin cut from it, so every window drawing that skin, not only the one the author looked at.
+ *   skin cut from it, so every window drawing that skin, not only the one the author looked at;
+ * - a skin's `-plain` twin opaque over much of its tinted art is warned about (`warnPlainOverTint`).
  *
  * Said on the console whatever `log.warn` is, as the text fallback report is: it is for the author at
  * the development server. An overlay of another size than its sprite is warned about as it loads
  * (`utils/assetOverlays.ts`). A production build compiles all of this out: nothing watches what is
  * drawn (`watchThemeDraws`).
  */
-import { skinSpriteOf, THEME_SKIN_LIBRARY, themeSheetFrames, themeSpriteSkins, themeTextureAliases, themeVariantsData, watchThemeDraws } from '@nitrodevco/nitro-theme';
+import { GetAssetManager } from '@nitrodevco/nitro-renderer';
+import { getTextureAlpha, plainCoverOfTint, skinSpriteOf, THEME_SKIN_LIBRARY, themeSheetFrames, themeSkinSprites, themeSpriteSkins, themeTextureAliases, themeVariantsData, watchThemeDraws } from '@nitrodevco/nitro-theme';
 
 import { loadSkinMap, skinWindowsLine } from './skinMap';
 
@@ -26,6 +28,41 @@ const LOG = '[AssetOverlays]';
 
 /** A skin id as a line names it: `frame 3`. */
 const skinName = (id: string) => id.replace(':', ' ');
+
+/** How much of a skin's tinted art an overlaid `-plain` twin may cover before it is warned about. */
+const PLAIN_COVER_WARNED = 0.25;
+
+/**
+ * Warns when `sprite`, overlaid, is the `plain` twin of a skin (`skins`) and opaque over much of the
+ * skin's tinted `layer`: the plain pieces are drawn over the tint, so the window's colour does not show
+ * there - S3's opaque copy of the frame, reported applied while the colour stayed hidden.
+ */
+const warnPlainOverTint = (theme: ReturnType<typeof themeVariantsData>, sprite: string, skins: readonly string[]) => {
+    const assets = GetAssetManager();
+    // The skins it is the plain twin of, by their tinted sprite: skins cut from the same pair are said once.
+    const byLayer = new Map<string, string[]>();
+
+    for (const id of skins) {
+        const at = id.indexOf(':');
+        const sprites = themeSkinSprites(theme, id.slice(0, at), id.slice(at + 1));
+        const layer = sprites.find(each => each.part === 'layer')?.sprite;
+
+        if (layer && sprites.some(each => (each.part === 'plain') && (each.sprite === sprite))) byLayer.set(layer, [ ...(byLayer.get(layer) ?? []), id ]);
+    }
+
+    for (const [ layer, ids ] of byLayer) {
+        const layerTexture = assets.getTexture(layer);
+        const plainTexture = assets.getTexture(sprite);
+        const layerAlpha = layerTexture && getTextureAlpha(layerTexture);
+        const plainAlpha = plainTexture && getTextureAlpha(plainTexture);
+
+        if (!layerAlpha || !plainAlpha) continue;
+
+        const cover = plainCoverOfTint(layerAlpha, plainAlpha);
+
+        if (cover > PLAIN_COVER_WARNED) console.warn(LOG, `${THEME_SKIN_LIBRARY}/${sprite} is opaque over ${Math.round(cover * 100)}% of ${layer}, the tinted art of ${ids.map(skinName).join(', ')}: the -plain twin is drawn over the tint, so the window's colour does not show there. Leave it transparent wherever the colour should show.`);
+    }
+};
 
 /**
  * Starts the check for the theme sheet sprites `assets` (the window manager library's `asset.overlays`
@@ -42,6 +79,8 @@ export const checkThemeOverlays = (assets: Iterable<string>): void => {
     const drawnKeys = new Set<string>();
     const drawn = new Set<string>();
     const warned = new Set<string>();
+    // The overlays checked for a -plain twin drawn over the tint.
+    const plainChecked = new Set<string>();
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const check = async () => {
@@ -59,6 +98,11 @@ export const checkThemeOverlays = (assets: Iterable<string>): void => {
         for (const sprite of overlays) {
             const key = `${THEME_SKIN_LIBRARY}/${sprite}`;
             const skins = bySprite.get(sprite) ?? [];
+
+            if (!plainChecked.has(sprite)) {
+                plainChecked.add(sprite);
+                warnPlainOverTint(theme, sprite, skins);
+            }
 
             if (!skins.length) {
                 console.warn(LOG, `${key}: no skin of the theme draws that sprite, so the overlay shows nowhere.`);
