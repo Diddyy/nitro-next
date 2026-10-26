@@ -53,6 +53,9 @@ and the library's `templates.json` have the same names.
   **`limits`** are the layout's size limits, `[ width_min, width_max, height_min, height_max ]`
   (`null` for none), replaced whole: a window its layout pins to one width (the navigator's
   `578` / `578`) keeps that width whatever `width` says until its limits let it go.
+  What the window's code sets on an element is what it draws: a `set` of a field its code binds there
+  (the catalogue's title `caption`) changes nothing and is reported **ineffective** (below) - give the
+  element a binding with `override: true` instead.
 - **`move`** `before` / `after` the element `to` names, or `first` / `last` inside it: the element
   and its children go there and **keep their names**, so the window's code still finds them
   (`findChildByName`) and binds them - a title lifted out of a list into a header still shows the
@@ -136,6 +139,30 @@ api.templates.patch('habbo-toolbar-com/purse_xml', [
 The list places the button itself (no `y`), and the purse is as tall as its four buttons whatever
 else is patched in. What the flags cannot say - a frame a margin taller than its list - is a
 post-layout hook's (`api.templates.arrange`, below).
+
+## The window's own frame: one address
+
+A patch on a window's root (`''`) restyles its frame, whatever the window's code sets:
+
+```json
+{ "template": "habbo-catalog-com/catalog_ubuntu_with_tabs", "ops": [
+    { "element": "", "set": { "color": 4288688176, "style": "3", "position": { "x": 84, "y": 153 } } } ] }
+```
+
+- **`color`** (`0xAARRGGBB`) tints the frame, **`style`** is its skin (`none` for frameless, below) and
+  **`position`** (`{ "x", "y" }` from the desktop's top left, whole pixels) is where the window first
+  opens - where the player has moved it since still wins. They go over what the window's code sets:
+  the catalogue colours its own frame (`refreshCatalogWindowChrome`), and a root `color` is drawn
+  anyway. `position` means nothing on any other element, or on a window whose root is no frame (the
+  purse's root is a `container`): it is reported ineffective.
+- **A window Nitro draws without a template** (the wired setup window, `wired-setup`) is named by its
+  frame's id as the patch's `template`, with the same root ops:
+  `{ "template": "wired-setup", "ops": [ { "element": "", "set": { "style": "102", "color": 4282019493 } } ] }`.
+  The skin map lists these windows, their ids and skins (`nitro` windows, [the skin map](#the-skin-map)).
+  A template window's frame id (`catalog`, `navigator`) works the same way.
+- **Precedence**, lowest first: what the window's code passes, the hotel's `frame.overrides` (below),
+  a patch naming the frame's id, a patch on the template's root. Patches among themselves apply by
+  `order` as every patch does.
 
 ## A window of separately framed panes
 
@@ -328,8 +355,9 @@ api.templates.arrange('habbo-room-ui-com/user_view', ({ find, root }) => {
 
 ## Windows drawn without a template
 
-Windows Nitro draws with a `Frame` of its own (the wired setup window) have no elements to patch.
-Their frame takes a style from the hotel variable **`frame.overrides`**:
+Windows Nitro draws with a `Frame` of its own (the wired setup window) have no elements to patch;
+a patch naming the frame's id restyles their frame ([above](#the-windows-own-frame-one-address)). The
+hotel variable **`frame.overrides`** does the same, below every patch:
 
 ```json
 { "frame.overrides": { "wired-setup": { "variant": "0", "color": "#3a6ea5" } } }
@@ -412,7 +440,10 @@ skin (a patch's `style`, or `frame.overrides`' `variant` for a frame) or its own
 
 `skins.json`, served with the client (`<client>/skins.json`), lists every skin of the theme: the
 sprites it draws with their size and nine-slice, its default tint, and the template windows - and
-their elements' keys - that draw it, with every sprite and the skins it is in:
+their elements' keys - that draw it, with every sprite and the skins it is in. Windows Nitro draws
+without a template are listed by their frame id with the key `''` (`"wired-setup": [ "" ]` under
+`frame:0`, `frame:3` and `frame:102`, the frame styles of the wired styles), the address a patch
+names them by; an id the code builds as it goes is a pattern (`wired-reward-*`):
 
 ```json
 { "skins": { "border:9": {
@@ -472,8 +503,11 @@ Patches apply by `order` (lower first; a base theme takes a negative one), then 
 added - never by load timing. When two owners set the same property of the same element the later
 one's value is used and the conflict is logged (`TemplatePatches`) and kept in the report. An op
 whose element the template does not have (a renamed element in a new client release) is skipped,
-a console warning and reported; the others still apply. Each owner's applied, unmatched and
-clashing ops, and its code that threw (ops of a context, a binding, a post-layout hook: `module.failed`),
+a console warning and reported; the others still apply. An op that matched but changes nothing the
+window draws - a field its code binds on that element, a `position` on what is not the window's own
+frame - is a console warning and reported **ineffective** (`patch.ineffective`, reason
+`<element>.<field>`) once the window is drawn, and not counted as applied. Each owner's applied, unmatched,
+ineffective and clashing ops, and its code that threw (ops of a context, a binding, a post-layout hook: `module.failed`),
 also go to a Turbo server's extension inspector (`TurboClientExtensionReportComposer`,
 part of `client.modules`), whose log names the miss and whose admin panel lists it on the plugin. A hotel takes a plugin's file away with an empty url in
 its own `templates.patches`.
@@ -507,7 +541,7 @@ version number only listed as a dependency.
 - Variables (and so patch files) are read as the client starts: a plugin's file added or changed
   reaches a player at their next load. Modules' patches come and go live.
 - Patches change templates. Windows Nitro draws with React components rather than a template have no
-  elements to patch; their frame takes `frame.overrides`, nothing else.
+  elements to patch; their frame takes a root patch naming its id, and `frame.overrides`, nothing else.
 - `asset.overlays`, `frame.overrides` and `room.previewer` are read as the client starts, like patch
   files: a change reaches a player at their next load.
 - A template's extension `arrange` runs for windows drawn on their own, not yet for one drawn as

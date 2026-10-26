@@ -101,6 +101,7 @@ export * from './template/templateData';
 export * from './template/templateElementKey';
 export * from './template/templateLayout';
 export * from './template/templatePatch';
+export * from './template/templatePatchEffect';
 export * from './template/templateSkins';
 export * from './template/TemplateView';
 export * from './template/templateWindowRect';

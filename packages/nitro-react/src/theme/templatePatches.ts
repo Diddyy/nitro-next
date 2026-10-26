@@ -14,7 +14,7 @@
  * does a `font_face` the page cannot draw (`templateFontFaces.ts`).
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, Template, TemplateBinding, TemplateBindings, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
+import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, FrameOverride, ineffectiveTemplateSets, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, rootFrameOverride, setFramePatchLooks, Template, TemplateBinding, TemplateBindings, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchIneffective, TemplatePatchOp, TemplatePatchReport, TemplatePatchSet, templatePatchSets, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
 
 import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
@@ -75,6 +75,18 @@ const bindingConflicts = new Map<string, { signature: string; conflicts: Templat
 const itemBindingConflicts = new Map<string, Map<string, TemplatePatchConflict>>();
 /** The errors extension code threw per template id (bindings of a context, arranges), each logged once. */
 const codeErrors = new Map<string, TemplatePatchError[]>();
+/** The `set` ops that matched but change nothing their window draws, per template id, by the signature they were logged at. */
+const ineffectiveSets = new Map<string, { signature: string; ineffective: TemplatePatchIneffective[] }>();
+/** The `set` ops last drawn per template id, for `appliedCounts`. */
+const templateSetsSeen = new Map<string, readonly TemplatePatchSet[]>();
+/** The `patch.applied` figures waiting for the window to be drawn (`APPLIED_REPORT_DELAY`), by template id. */
+const appliedTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/**
+ * How long `patch.applied` waits after a template is patched: its window is drawn by then, so an op
+ * its code's bindings make ineffective is counted as such, not as applied.
+ */
+const APPLIED_REPORT_DELAY = 1000;
 
 const changed = () => {
     // An owner's errors go with the last of what it added.
@@ -95,6 +107,17 @@ const changed = () => {
         if (!conflicts.size) itemBindingConflicts.delete(id);
     }
 
+    for (const [ id, entry ] of ineffectiveSets) {
+        const kept = entry.ineffective.filter(miss => owners.has(miss.owner));
+
+        if (kept.length) ineffectiveSets.set(id, { ...entry, ineffective: kept });
+        else ineffectiveSets.delete(id);
+    }
+
+    // Patches naming a frame of Nitro's own by its id (no `/`: not a template), for `Frame` to read.
+    const list = patches;
+
+    setFramePatchLooks(list.length ? frameId => frameLookOf(list, frameId) : undefined);
     listeners.forEach(listener => listener());
 };
 
@@ -221,10 +244,90 @@ const announceReport = (id: string, report: TemplatePatchReport) => {
         reportClientExtension({ owner: error.owner, kind: 'module.failed', subject: id, reason: 'patch', message });
     }
 
-    for (const [ owner, count ] of Object.entries(report.ops)) {
-        const applied = count - report.unmatched.filter(miss => miss.owner === owner).length;
+    clearTimeout(appliedTimers.get(id));
+    appliedTimers.set(id, setTimeout(() => {
+        appliedTimers.delete(id);
 
-        reportClientExtension({ owner, kind: 'patch.applied', subject: id, reason: String(applied), message: `${applied} of ${count} op(s) applied.` });
+        for (const { owner, count, applied } of appliedCounts(id, report)) reportClientExtension({ owner, kind: 'patch.applied', subject: id, reason: String(applied), message: `${applied} of ${count} op(s) applied.` });
+    }, APPLIED_REPORT_DELAY));
+};
+
+/** Whether every field `set` sets is one its window's bindings make ineffective. */
+const whollyIneffective = (set: TemplatePatchSet, ineffective: readonly TemplatePatchIneffective[]) => Object.entries(set.set)
+    .every(([ property, value ]) => (value === undefined) || ineffective.some(miss => miss.owner === set.owner && miss.element === set.element && miss.property === property));
+
+/** Each owner's ops that matched and change what the window draws: neither unmatched nor wholly ineffective. */
+const appliedCounts = (id: string, report: TemplatePatchReport) => {
+    const ineffective = ineffectiveSets.get(id)?.ineffective ?? [];
+    const sets = templateSetsSeen.get(id) ?? [];
+
+    return Object.entries(report.ops).map(([ owner, count ]) => {
+        const unmatched = report.unmatched.filter(miss => miss.owner === owner).length;
+        const dead = ineffective.length ? sets.filter(set => set.owner === owner && whollyIneffective(set, ineffective)).length : 0;
+
+        return { owner, count, applied: Math.max(0, count - unmatched - dead) };
+    });
+};
+
+/** The set ops of a patch list for a template or frame id, made once per list, id and (for patches that read it) context. */
+const setsCache = new WeakMap<readonly TemplatePatch[], Map<string, readonly TemplatePatchSet[]>>();
+
+const setsOf = (list: readonly TemplatePatch[], id: string, context: TemplateContext = EMPTY_TEMPLATE_CONTEXT): readonly TemplatePatchSet[] => {
+    let byKey = setsCache.get(list);
+
+    if (!byKey) setsCache.set(list, (byKey = new Map()));
+
+    const key = templatePatchesUseContext(list, id) ? `${id}\n${templateContextKey(context)}` : id;
+    let sets = byKey.get(key);
+
+    if (!sets) byKey.set(key, (sets = templatePatchSets(list, id, context)));
+
+    return sets;
+};
+
+/** What patches naming a frame of Nitro's own by its id give it; a template id (`<library>/<asset>`) is no frame's. */
+const frameLookOf = (list: readonly TemplatePatch[], frameId: string): FrameOverride | undefined => (frameId.includes('/') ? undefined : rootFrameOverride(setsOf(list, frameId)));
+
+/**
+ * The look template patches give the root frame of `id`'s window (`rootFrameOverride`: the `style`,
+ * `color` and `position` of its root `set` ops), over its code's and `frame.overrides`; `undefined` for none.
+ */
+export const templateRootLook = (id: string, context: TemplateContext = EMPTY_TEMPLATE_CONTEXT, list: readonly TemplatePatch[] = patches): FrameOverride | undefined => (list.length ? rootFrameOverride(setsOf(list, id, context)) : undefined);
+
+/**
+ * Notes, as `id`'s window is drawn, which patch `set` ops its bindings make ineffective
+ * (`ineffectiveTemplateSets`), and says so - console and the server's extension inspector, kind
+ * `patch.ineffective` - the first time each is seen.
+ */
+export const noteIneffectiveSets = (id: string, template: Template, context: TemplateContext, windowBindings: TemplateBindings | undefined, list: readonly TemplatePatch[] = patches) => {
+    if (!list.length) return;
+
+    const sets = setsOf(list, id, context);
+
+    templateSetsSeen.set(id, sets);
+
+    const ineffective = sets.length ? ineffectiveTemplateSets(id, template, sets, windowBindings) : [];
+
+    if (!ineffective.length && !ineffectiveSets.has(id)) return;
+
+    const keyOf = (miss: TemplatePatchIneffective) => `${miss.owner}:${miss.element}.${miss.property}`;
+    const signature = ineffective.map(keyOf).join('|');
+    const last = ineffectiveSets.get(id);
+
+    if (last?.signature === signature) return;
+
+    const before = new Set(last?.ineffective.map(keyOf));
+
+    ineffectiveSets.set(id, { signature, ineffective });
+
+    for (const miss of ineffective) {
+        if (before.has(keyOf(miss))) continue;
+
+        const position = miss.property === 'position';
+        const message = `${id}: ${miss.owner}'s patch sets ${miss.property} of '${miss.element}', which changes nothing: ${position ? 'only a window\'s own frame (\'\') opens at a position' : `the window's code sets ${miss.property} of that element, and that is what it draws`}.`;
+
+        console.warn(`[TemplatePatches] ${message}${position ? '' : ' Bind it with override: true instead.'}`);
+        reportClientExtension({ owner: miss.owner, kind: 'patch.ineffective', subject: id, reason: `${miss.element}.${miss.property}`, message });
     }
 };
 
@@ -396,15 +499,17 @@ export const templatePatchReport = (id: string): TemplatePatchReport | undefined
     const report = reports.get(id);
     const overrides = [ ...(bindingConflicts.get(id)?.conflicts ?? []), ...(itemBindingConflicts.get(id)?.values() ?? []) ];
     const errors = codeErrors.get(id) ?? [];
+    const ineffective = ineffectiveSets.get(id)?.ineffective ?? [];
 
-    if (!report && !overrides.length && !errors.length) return undefined;
+    if (!report && !overrides.length && !errors.length && !ineffective.length) return undefined;
 
     return {
-        applied: report?.applied ?? 0,
+        applied: report ? appliedCounts(id, report).reduce((sum, owner) => sum + owner.applied, 0) : 0,
         ops: report?.ops ?? {},
         conflicts: [ ...(report?.conflicts ?? []), ...overrides ],
         unmatched: report?.unmatched ?? [],
         errors: [ ...(report?.errors ?? []), ...errors ],
+        ineffective,
     };
 };
 
