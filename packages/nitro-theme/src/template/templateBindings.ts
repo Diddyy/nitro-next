@@ -12,6 +12,7 @@ import type { PivotPoint } from '../utils/flashBitmap';
 import type { SpriteFrame } from '../utils/spriteFrame';
 import type { Template, TemplateElement } from './templateData';
 import type { LayoutWindow, TemplateRect } from './templateLayout';
+import type { TemplateContext } from './templatePatch';
 
 /** A header's button as its window's code reaches it: shown or hidden, and its click. */
 export interface TemplateHeaderButton {
@@ -294,6 +295,12 @@ export interface TemplateItem {
      * (`GenericWidget.configureContentColumn`).
      */
     append?: boolean;
+    /**
+     * Not Flash's: what this clone shows, read-only, for extensions - flat values laid over the
+     * window's context for the functions of the item bindings drawing it (`bind(..., { items: true })`)
+     * and of the bindings of the template it is drawn from (a catalogue tab's page, an offer's prices).
+     */
+    context?: TemplateContext;
 }
 
 /** Not Flash's: which clone of its list an extension's item binding is drawing (`api.templates.bind`'s `items`). */

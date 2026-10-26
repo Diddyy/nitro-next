@@ -119,13 +119,14 @@ to or changed in the API fails `npx tsc -p packages/nitro-react/tsconfig.typeche
 `yarn workspace @nitrodevco/client-module-sdk test` bundles a module with the preset and runs it on
 a stand-in host.
 
-## The API (version 1.3, `commands/client-modules/ClientModuleApi.ts`)
+## The API (version 1.4, `commands/client-modules/ClientModuleApi.ts`)
 
-`api.version` is 1 and `api.minor` 3: version 1.1 added `state`, `events`, `contextMenu` and
+`api.version` is 1 and `api.minor` 4: version 1.1 added `state`, `events`, `contextMenu` and
 `chatCommands`, 1.2 `channels` and `links.handle`'s `path`, 1.3 `windows.register`'s `aboveOnTop`
-and `templates.bind`'s `items`, without changing a member of 1. A plain-JavaScript module that may
-meet an older client reads `api.minor ?? 0` (or `api.state?.`, `api.channels?.`); one typed with the
-SDK is built against 1.3.
+and `templates.bind`'s `items`, 1.4 `templates.bind` reaching a window drawn as another's item (a
+catalogue widget's view, a grid item) and items' own context (a catalogue tab's page, an offer's
+prices), without changing a member of 1. A plain-JavaScript module that may meet an older client
+reads `api.minor ?? 0` (or `api.state?.`, `api.channels?.`); one typed with the SDK is built against 1.4.
 
 | Part | What |
 | --- | --- |
@@ -148,7 +149,7 @@ SDK is built against 1.3.
 | `hotelView.addWidget(slot, component)` | `component({ slot, width })` is drawn in a reception widget slot (`landing.view.dynamic.slot.<n>`: 1 across the top, 2 and 4 the left column, 3 and 5 the right, 6 the bottom slot) in place of the hotel's configured widget while it is added, laid out as the slot's widget: the slot takes the size the component draws at, and its row and the gaps follow (`HotelViewWidgetGrid`). `width` is the slot's pane (`landing.view.dynamic.leftPaneWidth` for 1, 2, 4 and 6, `rightPaneWidth` for 3 and 5). The last widget added for a slot is drawn; a slot out of 1-6 is refused with a warning. A plugin that decides its widgets on the server sends them in a named message and the module adds one per slot |
 | `notifications.registerLayout(name, { template, height })`, `notifications.add(name, text, { image?, link?, stay?, timeDisplay?, id? })` | A bubble in the client's notification stack drawn from a template of the bundles. `stay` keeps it up (no time out, a click does not dismiss it), `timeDisplay` is how long (ms) another stays, an `id` is not added twice while up; `add` returns the function that takes it down |
 | `notifications.setIllustration(resolve)` | The picture of every simple alert and notification popup, open or yet to open: `resolve({ kind, caption, message, illustration })` is shown each (`kind` `alert` or `popup`, `illustration` an asset name or URL, `undefined` for none) and answers another, or `undefined` to leave it; hooks run in the order they were set. The dialogs themselves are never rewritten, so taking the hook out puts the client's picture back |
-| `templates.patch(id, ops, { order? })`, `templates.bind(id, element, binding, { override?, items? })`, `templates.report(id)` | Changes a core window's template as data and binds what the elements it added do (`override`: over what the window's code binds; `items`: in each row a list's code adds, a function given the row's `key` and `index`); patches from every plugin apply together, in order, with conflicts and misses reported (`docs/template-patches.md`) |
+| `templates.patch(id, ops, { order? })`, `templates.bind(id, element, binding, { override?, items? })`, `templates.report(id)` | Changes a core window's template as data and binds what the elements it added do (`override`: over what the window's code binds; `items`: in each row a list's code adds, a function given the row's `key` and `index`; a template's bindings also reach its windows drawn inside another window as an item, a catalogue widget's view); patches from every plugin apply together, in order, with conflicts and misses reported (`docs/template-patches.md`) |
 
 Links a module's own toolbar or settings view can open (`links.open`), the actions the stock widgets use: `room/zoom` (one-click
 zoom of the current room, while `zoom.enabled`), `room/like` (rate the current room, when it may be rated),
