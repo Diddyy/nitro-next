@@ -252,9 +252,10 @@ api.templates.arrange('habbo-room-ui-com/furni_view', ({ find, root }) => {
 `bind` reaches the elements a module added. With **`{ override: true }`** it reaches one the
 window's code binds itself, named as the code names it: the module's binding is laid over the
 code's, and for each field it sets the module's value is used - a theme can recolour, hide or retitle
-what the code sets each render. Each field the code (or another module) sets too is reported as a
-conflict, its owners `(window)` and the module, in `report()` and on the console when it changes.
-Without `override` the v1 rule stands: a module binds only what it added.
+what the code sets each render. Laying it over the code's is what `override` asks for, so that alone
+is no conflict. A field two modules' overrides set is: the last one's value is used and it is reported,
+its owners in order (`(window)` first when the code sets it too, then the modules), in `report()` and
+on the console when it changes. Without `override` the v1 rule stands: a module binds only what it added.
 
 ### Rows of a list
 
@@ -271,7 +272,7 @@ api.templates.bind('habbo-new-navigator/navigator_frame_2_xml', 'navigator_entry
 ```
 
 A clone whose prototype lacks the element (another list's rows) is not bound and is no miss. Every
-row clashing alike, a field the code sets too is one conflict, logged and reported once. The function
+row clashing alike, a field two modules set is one conflict, logged and reported once. The function
 is called each time a row is drawn - its index changes with its list - so keep it to arithmetic on
 `item` and the context. While no item binding is added a window's rows are drawn as before.
 
@@ -338,7 +339,11 @@ An entry is found by the frame's id (the window's id on the desktop: `wired-setu
 window's name in its layout for a template's root frame; `variant` is the frame style, `color` its
 tint (`#rrggbb`, `0xRRGGBB` / `0xAARRGGBB` or a number). `position` (`{ "x": 84, "y": 153 }`, from the
 desktop's top left) is where a window first opens - any window with a frame, the catalogue's
-(`catalog`) too: where the player has moved it since still wins. What the window's code passes stays
+(`catalog`) too: where the player has moved it since still wins. The navigator (`navigator`) opens where
+the server's preferences put it, as in Flash (`NavigatorView.setInitialWindowDimensions`); the theme's
+position goes over them until the player drags the window in that browser, and from then on the
+place they saved wins. Opened at the theme's position, it is sent to the server only once the player
+moves or resizes it, so a place saved on another device is kept. What the window's code passes stays
 the default for what an entry leaves out. Turbo merges each plugin's entries in (turbo-cloud
 `docs/extensions.md`).
 
@@ -369,6 +374,12 @@ The room every object showcase draws in (the catalogue's product view, the inven
 Flash's floor `110` and wall `99999` (`RoomPreviewer.createRoomForPreviews`). The hotel variable
 **`room.previewer`** names other plane types of the room's visualization, read when a previewer room
 is first made: `{ "room.previewer": { "floorType": "101", "wallType": "101", "landscapeType": "1.1" } }`.
+The catalogue keeps one showcase room while it lives (`HabboCatalog.initializeRoomPreviewer`) and, as
+Flash does, a floor, wallpaper or view previewed paints it for the previews after it: an item is
+added to the room as it is (`ProductViewCatalogWidget.onPreviewProduct` sets the planes for a room
+pattern only), so a page shown after Spaces draws its items in the pattern last previewed (on the
+hotel view floor `101` and the wallpaper's; in a room, the room's own). Only `room.previewer`'s look
+is the room's before any pattern was previewed.
 
 ## Replacing one bitmap of a library
 

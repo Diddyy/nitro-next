@@ -54,10 +54,11 @@ export interface ClientModuleApi {
      * The minor version: 1 for API 1.1 (`state`, `events`, `contextMenu`, `chatCommands`), 2 for 1.2
      * (`channels`, `links.handle`'s `path`), 3 for 1.3 (`windows.register`'s `aboveOnTop`,
      * `templates.bind`'s `items`), 4 for 1.4 (`templates.bind` reaching windows drawn as another
-     * window's items, item contexts). A plain-JavaScript module that may meet an older client reads
-     * `api.minor ?? 0`.
+     * window's items, item contexts), 5 for 1.5 (an `override` binding laid over the window's code is
+     * no conflict; a theme's first place for the navigator). A plain-JavaScript module that may meet an
+     * older client reads `api.minor ?? 0`.
      */
-    readonly minor: 4;
+    readonly minor: 5;
     /** The module's key: its plugin's. */
     readonly key: string;
     /**

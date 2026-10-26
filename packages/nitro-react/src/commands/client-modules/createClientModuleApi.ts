@@ -68,7 +68,7 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
     const api: ClientModuleApi = {
         version: 1,
-        minor: 4,
+        minor: 5,
         key: moduleKey,
         baseUrl,
         libs: getClientModuleLibraries(),
