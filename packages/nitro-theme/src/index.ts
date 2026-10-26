@@ -124,6 +124,7 @@ export * from './utils/dropmenuPlacement';
 export * from './utils/dynamicStyles';
 export * from './utils/escapeMarkup';
 export * from './utils/FillLayout';
+export * from './utils/frameOverrides';
 export * from './utils/frameStorage';
 export * from './utils/getGlobalRect';
 export * from './utils/GetPixelRatio';

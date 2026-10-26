@@ -105,7 +105,7 @@ export interface TemplateViewProps {
     frame?: TemplateFrameOptions;
 }
 
-export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onPositionChange' | 'onClose' | 'resizeDirection' | 'rememberPosition' | 'rememberSize' | 'closeButtonVisible' | 'closeButtonVariant' | 'onHelp' | 'onPointerTap'> & {
+export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onPositionChange' | 'onClose' | 'resizeDirection' | 'rememberPosition' | 'themePosition' | 'rememberSize' | 'closeButtonVisible' | 'closeButtonVariant' | 'onHelp' | 'onPointerTap'> & {
     /**
      * The frame is a modal dialog's (`buildModalDialogFromXML`), drawn inside a `ModalDialog`: it stays
      * in the modal's layer, which centres it, rather than going onto the window desktop under the
@@ -1801,6 +1801,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                 centered={window?.centered}
                 onPositionChange={window?.onPositionChange}
                 rememberPosition={!!window && (window.rememberPosition ?? true)}
+                themePosition={window?.themePosition ?? true}
                 rememberSize={window?.rememberSize ?? true}
                 draggable={!!window && (window.draggable ?? true)}
                 // A pane a patch added (`wrap`, named `<owner>:<name>`) closes the window it is part of.

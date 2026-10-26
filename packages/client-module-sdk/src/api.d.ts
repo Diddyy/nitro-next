@@ -322,10 +322,11 @@ export interface ClientModuleApi {
      * The minor version: 1 for API 1.1 (`state`, `events`, `contextMenu`, `chatCommands`), 2 for 1.2
      * (`channels`, `links.handle`'s `path`), 3 for 1.3 (`windows.register`'s `aboveOnTop`,
      * `templates.bind`'s `items`), 4 for 1.4 (`templates.bind` reaching windows drawn as another
-     * window's items, item contexts). A plain-JavaScript module that may meet an older client reads
-     * `api.minor ?? 0`.
+     * window's items, item contexts), 5 for 1.5 (an `override` binding laid over the window's code is
+     * no conflict; a theme's first place for the navigator). A plain-JavaScript module that may meet an
+     * older client reads `api.minor ?? 0`.
      */
-    readonly minor: 4;
+    readonly minor: 5;
     /** The module's key: its plugin's. */
     readonly key: string;
     /**
@@ -520,7 +521,8 @@ export interface ClientModuleApi {
          * What the window's code would bind, for an element this module added: a caption, a click, a
          * picture - or a function of the window's context giving it. With `override`, an element the
          * window's code binds itself (named as the code names it): this module's value is used for the
-         * fields it sets, each field the code sets too reported as a conflict. With `items`, the element
+         * fields it sets (laying it over the code's is no conflict; a field another module's override
+         * sets too is, reported). With `items`, the element
          * is bound in each clone of a list that has it (a row the code adds per room) instead of in the
          * window, and a function is also given which clone it draws (`item`: its `key`, its `index`
          * in the list, the list's name) - every other row a colour of the theme's. A window drawn
