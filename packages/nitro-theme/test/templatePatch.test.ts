@@ -275,7 +275,7 @@ void test('a list told to follow its items grows the window it reflects to, and 
     assert.deepEqual(laidOut(template), { window: 97, border: 96, list: 82, items: [ 0, 21, 42, 63 ] });
 });
 
-void test('an override binding wins for the fields it sets over the window code, each one reported; a plain binding only reaches added elements', () => {
+void test('an override binding wins for the fields it sets over the window code; two extensions setting one field are reported; a plain binding only reaches added elements', () => {
     const own = { name_text: { caption: 'Alice', color: 0xffffff }, motto: { caption: 'hi' } };
     const entries = [
         { owner: 'skin', element: 'name_text', override: true, binding: { color: 0xffd54f, alpha: 0.5 } },
@@ -411,7 +411,8 @@ void test('an item binding draws each clone of a list with its index: rows alter
     assert.deepEqual(captions, [ 'Room 0', 'Room 1', 'Room 2' ]);
     // The block's clone has no `row`: not bound there, and no miss.
     assert.deepEqual(missing, []);
-    assert.deepEqual(conflicts, [ `${WINDOW_CODE_OWNER}>theme`, `${WINDOW_CODE_OWNER}>theme`, `${WINDOW_CODE_OWNER}>theme` ]);
+    // One theme over the code's colour is what `override` asks for: no conflict (a theme saw a warning per load for each).
+    assert.deepEqual(conflicts, []);
 });
 
 void test('without item bindings a clone is drawn with its item\'s own bindings, as before', () => {

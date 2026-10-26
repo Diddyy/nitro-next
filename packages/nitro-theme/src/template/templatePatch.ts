@@ -478,8 +478,9 @@ export interface TemplateBindingEntry {
 /**
  * The bindings a window is drawn with: the window's `own`, the extensions' for elements they added
  * under them (an owned name never meets one of the window's), and their overrides over them - for
- * each field an override sets, its value is used, and every field the window's code or an earlier
- * override sets too is a conflict, the window's code named `WINDOW_CODE_OWNER`. `resolve` gives an
+ * each field an override sets, its value is used. Laying it over the window's code is what an
+ * override asks for; a field two extensions' overrides set is a conflict, its owners listed in order
+ * (the window's code first, as `WINDOW_CODE_OWNER`, when it sets it too). `resolve` gives an
  * entry's binding as it is for the window (a function of its context made, or `undefined` when it
  * threw); `own` itself is returned while no extension binds the template.
  */
@@ -524,7 +525,7 @@ export const mergeTemplateBindings = <T extends TemplateBindingEntry>(templateId
 
     for (const [ element, byField ] of setters) {
         for (const [ field, owners ] of byField) {
-            if (owners.length > 1) conflicts.push({ template: templateId, element, property: `binding.${field}`, owners });
+            if (owners.filter(owner => owner !== WINDOW_CODE_OWNER).length > 1) conflicts.push({ template: templateId, element, property: `binding.${field}`, owners });
         }
     }
 
