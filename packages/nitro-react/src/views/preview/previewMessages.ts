@@ -125,3 +125,47 @@ export const toDesignMessage = (value: Json): DesignMessage | undefined => {
         context: flatValues(value.context),
     };
 };
+
+/** The bitmaps a chat style may have, as the bundle names them. */
+const CHAT_BUBBLE_FILES = [ 'chat_bubble_base', 'chat_bubble_pointer', 'selector_preview', 'chat_bubble_color', 'icon', 'chat_bubble_emblem', 'chat_bubble_emblem_multiline' ] as const;
+
+export type ChatBubbleFile = typeof CHAT_BUBBLE_FILES[number];
+
+/** A `chatbubble` message: a chat style's draft and a line said in it (`ChatBubblePreviewView`). */
+export interface ChatBubbleMessage {
+    /** Its asset id, as the bundle has it. */
+    assetId: string;
+    /** Its reg points, as `chat-style-definitions.json` has them. */
+    regPoints: Json;
+    /** Who may speak with it, as the style's flags. */
+    flags: { hcOnly: boolean; ambassadorOnly: boolean; purchasable: boolean; staffOverrideable: boolean; allowHTML: boolean; notification: boolean; systemStyle: boolean };
+    /** Its bitmaps by file, each an address (a `data:` url for one not saved yet). */
+    files: Partial<Record<ChatBubbleFile, string>>;
+    /** The line, the speaker's name and look, and the colour a colour layer takes (their shirt's). */
+    text: string;
+    name: string;
+    figure: string;
+    color: number | undefined;
+    /** The room's bubble width the text wraps at. */
+    width: number;
+}
+
+/** A `chatbubble` message read field by field; undefined without reg points or a base bitmap. */
+export const toChatBubbleMessage = (value: Json): ChatBubbleMessage | undefined => {
+    const style = isObject(value.style) ? value.style : {};
+    const files = isObject(value.files) ? value.files : {};
+
+    if (!isObject(style.regPoints) || !isObject(style.regPoints.scale9) || !isObject(style.regPoints.textFieldMargins) || (typeof files.chat_bubble_base !== 'string')) return undefined;
+
+    return {
+        assetId: str(style.assetId) || 'preview',
+        regPoints: style.regPoints,
+        flags: { hcOnly: bool(style.clubOnly), ambassadorOnly: bool(style.ambassadorOnly), purchasable: bool(style.purchasable), staffOverrideable: bool(style.staffOverrideable), allowHTML: bool(style.allowHtml), notification: bool(style.notification), systemStyle: bool(style.system) },
+        files: Object.fromEntries(CHAT_BUBBLE_FILES.filter(file => (typeof files[file] === 'string') && (files[file]).length).map(file => [ file, files[file] as string ])),
+        text: str(value.text),
+        name: str(value.name),
+        figure: str(value.figure),
+        color: ((typeof value.color === 'number') && Number.isFinite(value.color)) ? int(value.color) : undefined,
+        width: (num(value.width) > 0) ? int(value.width) : 350,
+    };
+};
