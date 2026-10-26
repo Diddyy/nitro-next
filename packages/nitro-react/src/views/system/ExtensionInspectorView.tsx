@@ -131,7 +131,7 @@ const opsShown = (patch: TemplatePatch, hit: TemplateInspectHit): readonly Templ
 };
 
 /** One op, as a line of the inspector. */
-const describeOp = (op: TemplatePatchOp) => ('set' in op ? `set ${JSON.stringify(op.set)}` : 'remove' in op ? 'remove' : 'move' in op ? `move ${op.move} '${op.to}'` : 'wrap' in op ? `wrap in ${op.wrap.tag ?? op.wrap.like ?? ''} ${op.wrap.name}` : `insert ${op.insert} ${op.add.name}`);
+const describeOp = (op: TemplatePatchOp) => ('set' in op ? `set ${JSON.stringify(op.set)}` : 'bind' in op ? `bind ${JSON.stringify(op.bind)}${op.items ? ' in each row' : ''}${op.override ? ' over the window' : ''}` : 'remove' in op ? 'remove' : 'move' in op ? `move ${op.move} '${op.to}'` : 'wrap' in op ? `wrap in ${op.wrap.tag ?? op.wrap.like ?? ''} ${op.wrap.name}` : `insert ${op.insert} ${op.add.name}`);
 
 /** Link prefixes and paths more than one module handles: each of them gets all their links. */
 const linkConflictLines = () => clientModuleLinkConflicts(clientModulesStore.getState().linkHandlers)

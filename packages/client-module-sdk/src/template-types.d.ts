@@ -101,14 +101,41 @@ export type ClientModuleTemplateInsertPosition = 'before' | 'after' | 'first' | 
  * inside it, keeping its name - so the window's code still finds and binds it. `wrap` puts a new
  * element in the element's place, at its rect unless given, and the element inside it at (0, 0):
  * wrapped in a `frame`, a part of a window becomes a separately framed pane of it (the window itself,
- * `''`, is not wrapped; `set: { style: 'none' }` on it leaves only its panes framed).
+ * `''`, is not wrapped; `set: { style: 'none' }` on it leaves only its panes framed). `bind`
+ * binds the element as `templates.bind` does, its values data: `${ctx.<key>}`, `${item.<key>}` (with
+ * `items`), `${text.<key>}` filled as it is drawn, a relative `asset` read from the module's base - the
+ * op a theme with no code writes in its `template-patches.json`.
  */
 export type ClientModuleTemplatePatchOp
     = | { element: string; set: ClientModuleTemplateElementChanges }
         | { element: string; remove: true }
         | { element: string; insert: ClientModuleTemplateInsertPosition; add: ClientModuleTemplateElementInput }
         | { element: string; move: ClientModuleTemplateInsertPosition; to: string }
-        | { element: string; wrap: ClientModuleTemplateElementInput };
+        | { element: string; wrap: ClientModuleTemplateElementInput }
+        | { element: string; bind: ClientModuleTemplateBindValues; items?: boolean; override?: boolean };
+
+/** What a `bind` op gives: binding fields, each a value of its type or text with placeholders (`'icons/${item.index}.png'`). */
+export interface ClientModuleTemplateBindValues {
+    caption?: string;
+    htmlText?: string;
+    tooltip?: string;
+    asset?: string;
+    helpPage?: string;
+    visible?: boolean | string;
+    background?: boolean | string;
+    greyscale?: boolean | string;
+    disabled?: boolean | string;
+    selected?: boolean | string;
+    italic?: boolean | string;
+    underline?: boolean | string;
+    crop?: boolean | string;
+    color?: number | string;
+    backgroundColor?: number | string;
+    etchingColor?: number | string;
+    alpha?: number | string;
+    blend?: number | string;
+    rotation?: number | string;
+}
 
 /**
  * What a window tells extensions about what it shows, read-only, flat values (the infostand: the

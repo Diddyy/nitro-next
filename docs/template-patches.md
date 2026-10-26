@@ -41,6 +41,7 @@ and the library's `templates.json` have the same names.
 { element: 'search', set: { width: 180, params: { scale: [ 'fixed', 'fixed' ] } } }
 { element: '', set: { width: 309, limits: [ 309, 309, 230, null ] } }
 { element: 'navigationContainer', wrap: { tag: 'frame', name: 'nav', style: '0', caption: 'Shop', margins: [ 6, 28, 6, 6 ] } }
+{ element: 'tab_button/icon', bind: { asset: 'icons/tab${item.index}.png' }, items: true }
 ```
 
 - **`set`**: the layout's own properties - `x`, `y`, `width`, `height`, `style`, `dynamicStyle`,
@@ -56,6 +57,7 @@ and the library's `templates.json` have the same names.
   What the window's code sets on an element is what it draws: a `set` of a field its code binds there
   (the catalogue's title `caption`) changes nothing and is reported **ineffective** (below) - give the
   element a binding with `override: true` instead.
+- **`bind`**: what `api.templates.bind` does, written as data - see "A binding as data" below.
 - **`move`** `before` / `after` the element `to` names, or `first` / `last` inside it: the element
   and its children go there and **keep their names**, so the window's code still finds them
   (`findChildByName`) and binds them - a title lifted out of a list into a header still shows the
@@ -201,7 +203,7 @@ window as Habbo does, and starts it at its pane's origin when a theme wrapped it
 
 - **A client module**: `api.templates.patch(templateId, ops, { order })`, and
   `api.templates.bind(templateId, element, binding)` for what an element it added does (a click, a
-  caption that changes, a picture). `api.templates.arrange(templateId, fn)` runs after the window's
+  caption that changes, a picture) - or, for values only, a `bind` op in its patch. `api.templates.arrange(templateId, fn)` runs after the window's
   own layout code. All are taken out when the module stops; the window is drawn as before.
   `api.templates.report(templateId)` gives the last application's conflicts, misses and errors, and
   the ops each owner's patches gave it (`ops`).
@@ -330,6 +332,52 @@ item's own over it:
 api.templates.bind('habbo-catalog-com/productViewWidget', 'ctlg_product_name', { color: 0x000000 }, { override: true });
 api.templates.bind('habbo-catalog-com/priceDisplayWidget', '', ctx => ({ color: (Number(ctx.priceInCredits) > 0) ? 0xe2ae1d : 0x6c6b6b }), { override: true });
 ```
+
+## A binding as data: `bind`
+
+A theme with no code - a plugin's `template-patches.json`, a hotel's patch in the admin panel - binds
+an element with a **`bind` op**, which does what `api.templates.bind` does. Its values are data, with
+placeholders filled each time the window (or row) is drawn:
+
+| Placeholder | Is |
+| --- | --- |
+| `${ctx.<key>}` | the window's context key (the table above); in a row, the row's own over it, as a binding function is given it |
+| `${item.<key>}` | with `"items": true`, the row drawn: `key`, `index` (from 0), `list`, or a key of the row's own context (a catalogue tab's `pageId`, `pageName`, `icon`, `iconUrl`, `selected`) |
+| `${text.<key>}` | the text of the key (the key itself while the texts lack it, as Flash shows it) |
+| `${style:<name>}` | a theme style property, filled as the file is read (turbo-cloud `docs/plugin-data.md`) |
+
+A value that is one placeholder keeps its value's type (`"selected": "${ctx.selected}"` is a boolean, a
+colour a number); one inside text is written into it. A **relative `asset`** is a file beside the patch
+file: the plugin's own `wwwroot` (for a hotel's patch, the hotel's own served files; for a module's
+`api.templates.patch`, its base). An address of its own - `https://...`, `/...`, a `${...}` the
+window fills from the hotel's variables - stays as it is.
+
+The catalogue's tabs drawn as icons by a theme with no code - the bitmap added and bound in one file,
+the icons in its `wwwroot/icons/`:
+
+```json
+{ "patches": [ { "template": "habbo-catalog-com/catalog_ubuntu_with_tabs", "ops": [
+    { "element": "tab_button", "insert": "last", "add": { "tag": "bitmap", "name": "icon", "x": 6, "y": 5, "width": 20, "height": 20 } },
+    { "element": "tab_button/icon", "bind": { "asset": "icons/tab${item.index}.png", "tooltip": "${item.pageName}" }, "items": true } ] } ] }
+```
+
+The rules are the module `bind`'s:
+- **Owner**: the binding is the file's plugin's (the hotel's, `hotel`, for a panel patch). Without
+  `override` the op binds an element its owner added, named by the short name its `insert` gave it
+  (in any patch of the same file); with **`"override": true`** one the window's code binds, named as
+  the code names it, laid over the code's binding for the fields it sets.
+- **Order**: bindings - a file's and a module's - are laid by the patch's `order`, then plugin key,
+  then as added (a module's `bind` is order 0).
+- **Report**: the op counts as applied when the patched template has its element, unmatched (a
+  console warning and the plugin's client report) when it does not; two overrides of one field are a
+  conflict, as two modules' are. A placeholder with no value for a window drawn (a context key it does
+  not give) leaves the field to the window and is said once (`patch.unmatched`, `<element>:${ctx.key}`).
+- **Fields**: `caption`, `htmlText`, `tooltip`, `asset`, `helpPage` (text); `visible`, `background`,
+  `greyscale`, `disabled`, `selected`, `italic`, `underline`, `crop` (true or false); `color`,
+  `backgroundColor`, `etchingColor`, `alpha`, `blend`, `rotation` (numbers). What a click does stays
+  code's: there is no handler in data. A `bind` op given by a function of the context is an error -
+  its values read `${ctx.*}` instead. Turbo's patch check refuses an op with an unknown field or
+  placeholder root, or `${item.*}` without `"items": true`, before the panel saves it.
 
 ## After the window's layout code
 
