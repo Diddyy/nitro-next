@@ -105,3 +105,11 @@ void test('a bind op that no client could bind is refused with what is wrong', (
     assert.match(problems[3], /color is a number/);
     assert.match(templateBindProblems({ element: '', bind: { visible: false } }).join(' '), /"override": true/);
 });
+
+// Stranger test S3 (3.2 #5): the root `text` is one, so this passed and drew nothing - the text
+// looked up was "tabicon.${item.index", whose value is its own key: an address that 404s.
+void test('a bind op with a placeholder inside another is refused', () => {
+    const op: TemplateBindOp = { element: 'tab_button/icon', bind: { asset: '${text.tabicon.${item.index}}' }, items: true, override: true };
+
+    assert.deepEqual(templateBindProblems(op), [ 'bind\'s asset puts a placeholder inside another (${text.tabicon.${item.index}}): placeholders are filled once and do not nest, so it names no key. Bind each row\'s own value (${item.<key>}) or one whole key.' ]);
+});

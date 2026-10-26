@@ -134,7 +134,10 @@ export const templateBindProblems = (op: TemplateBindOp): string[] => {
             for (const [ , name ] of value.matchAll(PLACEHOLDER)) {
                 const rooted = ROOTED.exec(name);
 
-                if (!rooted && !STYLE.test(name)) problems.push(`bind's ${field} names \${${name}}: a placeholder is \${ctx.<key>}, \${item.<key>}, \${text.<key>} or \${style:<name>}.`);
+                // `${text.icon.${item.index}}`: filled once, from the key as written, the outer names a
+                // text no hotel has ("icon.${item.index") and the inner is never filled.
+                if (name.includes('${')) problems.push(`bind's ${field} puts a placeholder inside another (${value}): placeholders are filled once and do not nest, so it names no key. Bind each row's own value (\${item.<key>}) or one whole key.`);
+                else if (!rooted && !STYLE.test(name)) problems.push(`bind's ${field} names \${${name}}: a placeholder is \${ctx.<key>}, \${item.<key>}, \${text.<key>} or \${style:<name>}.`);
                 else if (rooted?.[1] === 'item' && op.items !== true) problems.push(`bind's ${field} names \${${name}}, which a row has: give the op "items": true.`);
             }
 

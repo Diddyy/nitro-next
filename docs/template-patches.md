@@ -23,8 +23,9 @@ Windows are drawn from Habbo's own layouts (`templates.json` in each library's b
 | `'@8'` | the window's 9th child (for unnamed elements); `'help_button/@0'` its first child |
 
 To find names, **alt-click the element** in the client (staff holding Turbo's `client.inspector`,
-or a development build after `NitroInspector()` in the browser console - off by default, remembered
-in localStorage until `NitroInspector(false)`): the extension inspector shows the template id, the element's key, its
+or a development build after `NitroInspector()` in the browser console - off by default, on at once
+with no reload, remembered in localStorage until `NitroInspector(false)`; the console says which it is,
+and an alt-click that finds no template element says so too): the extension inspector shows the template id, the element's key, its
 type, style, rect and the elements it is in, the skins it draws (their sprites and sizes, see
 [the skin map](#the-skin-map)), the patches on it and on what holds it, and puts a patch for
 it on the clipboard (also logged as `[Inspector]`) - Alt+Shift-click its skin's overlay entry. A patch whose ops are a function of the window's
@@ -372,12 +373,19 @@ The rules are the module `bind`'s:
   console warning and the plugin's client report) when it does not; two overrides of one field are a
   conflict, as two modules' are. A placeholder with no value for a window drawn (a context key it does
   not give) leaves the field to the window and is said once (`patch.unmatched`, `<element>:${ctx.key}`).
+  An op the client cannot bind (below) is skipped and reported **ineffective** (`patch.ineffective`,
+  `<element>:bind`), and an `asset` it draws that does not load (a 404, a bundle asset no bundle has) is
+  a console warning and reported ineffective with its address (`<element>:<url>`); neither counts as
+  applied, and an owner none of whose ops applied is not reported applied at all.
+- **No nesting**: a placeholder is filled once, from the key as written, so `${text.icon.${item.index}}`
+  names no text (the inner one is never filled). Bind the row's own value (`icons/tab${item.index}.png`)
+  or one whole key; the check below refuses a nested one.
 - **Fields**: `caption`, `htmlText`, `tooltip`, `asset`, `helpPage` (text); `visible`, `background`,
   `greyscale`, `disabled`, `selected`, `italic`, `underline`, `crop` (true or false); `color`,
   `backgroundColor`, `etchingColor`, `alpha`, `blend`, `rotation` (numbers). What a click does stays
   code's: there is no handler in data. A `bind` op given by a function of the context is an error -
   its values read `${ctx.*}` instead. Turbo's patch check refuses an op with an unknown field or
-  placeholder root, or `${item.*}` without `"items": true`, before the panel saves it.
+  placeholder root, a placeholder inside another, or `${item.*}` without `"items": true`, before the panel saves it.
 
 ## After the window's layout code
 
@@ -552,7 +560,10 @@ no skin draws is warned about too. A production build compiles the check out.
 1. Open the window and Alt-click its frame or border (in a development build run `NitroInspector()`
    in the console first; staff need `client.inspector`). The card names the skin, `frame 3` for the
    catalogue, `border 9` for the purse, and its sprites: `theme-habbo-frame-3-frame-3-default 64x64,
-   nine-slice 10,33,10,10 (layer)` and its `-plain` twin (the untinted pieces).
+   nine-slice 10,33,10,10 (layer)` and its `-plain` twin (the untinted pieces). The `-plain` twin is
+   drawn **over** the tinted layer: leave it transparent wherever the window's colour should show (an
+   opaque copy of the frame hides the colour; a development build's console warns when a `-plain`
+   overlay is opaque over more than a quarter of its tinted art).
 2. Read "drawn by N windows": that is everything your art will change.
 3. Alt+Shift-click: the overlay entry is on the clipboard. Draw each sprite at the size the card
    gives, keeping the nine-slice corners where they were (the slice rects are the sheet's), and save
@@ -571,8 +582,9 @@ one's value is used and the conflict is logged (`TemplatePatches`) and kept in t
 whose element the template does not have (a renamed element in a new client release) is skipped,
 a console warning and reported; the others still apply. An op that matched but changes nothing the
 window draws - a field its code binds on that element, a `position` on what is not the window's own
-frame - is a console warning and reported **ineffective** (`patch.ineffective`, reason
-`<element>.<field>`) once the window is drawn, and not counted as applied. Each owner's applied, unmatched,
+frame, a `bind` the client cannot bind or whose `asset` does not load - is a console warning and reported
+**ineffective** (`patch.ineffective`, reason `<element>.<field>`, `<element>:bind`, `<element>:<url>`)
+once the window is drawn, and not counted as applied. Each owner's applied, unmatched,
 ineffective and clashing ops, and its code that threw (ops of a context, a binding, a post-layout hook: `module.failed`),
 also go to a Turbo server's extension inspector (`TurboClientExtensionReportComposer`,
 part of `client.modules`), whose log names the miss and whose admin panel lists it on the plugin. A hotel takes a plugin's file away with an empty url in
