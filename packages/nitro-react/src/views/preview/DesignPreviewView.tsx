@@ -6,23 +6,38 @@
  *
  * What the window's patches did is said back (`report`: per owner the ops given and applied, those
  * that match nothing, those that change nothing drawn, conflicts, styles with no value); a press on
- * the window names the element under it (`select`: its key, as a patch names it), and a `highlight`
- * key outlines that element. The draft never leaves this page: nothing is saved and nothing is sent.
+ * the window names the element under it (`select`: its key, as a patch names it, what it is drawn
+ * with and where), and a `highlight` key outlines that element, saying where it is drawn (`rect`)
+ * each time it moves, so a panel's handles can sit on it. The draft never leaves this page: nothing is saved and nothing is sent.
  */
-import { ClientPointToStage, inspectAt, inspectFind, inspectTemplateKey, setTemplateInspecting, TemplateBindings } from '@nitrodevco/nitro-theme';
+import { ClientPointToStage, GetStagePixelScale, inspectAt, inspectFind, inspectTemplateKey, setTemplateInspecting, TemplateBindings } from '@nitrodevco/nitro-theme';
 import { useApplication } from '@pixi/react';
-import { Graphics } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import { Frame, TemplateWindow } from '#base/theme';
 
-import { designHighlight, designShown, sayDesign, subscribeDesign } from './designPreview';
+import { DesignBox, designHighlight, designShown, sayDesign, setDesignPicker, subscribeDesign } from './designPreview';
 import type { DesignMessage } from './previewMessages';
 
 /** A frame Nitro draws itself is drawn this size, with nothing in it. */
 const FRAME_SIZE = { width: 320, height: 200 };
 
 const HIGHLIGHT_COLOR = 0x1e90ff;
+
+/** Where the containers drawing the element `key` names are, in the page's CSS pixels. */
+const drawnBoxes = (stage: Container, canvas: HTMLCanvasElement, template: string, key: string): DesignBox[] => {
+    const page = canvas.getBoundingClientRect();
+    const scale = GetStagePixelScale();
+
+    return inspectFind(stage, template, key).map((container) => {
+        const bounds = container.getBounds();
+        const from = stage.toLocal({ x: bounds.x, y: bounds.y });
+        const to = stage.toLocal({ x: bounds.x + bounds.width, y: bounds.y + bounds.height });
+
+        return { x: page.left + (from.x / scale), y: page.top + (from.y / scale), width: (to.x - from.x) / scale, height: (to.y - from.y) / scale };
+    });
+};
 
 /** A list's sample rows as the bindings its code would give it. */
 const sampleBindings = (items: DesignMessage['items']): TemplateBindings => Object.fromEntries(Object.entries(items).map(([ name, rows ]) => [ name, {
@@ -55,13 +70,10 @@ export const DesignPreviewView = () => {
     useEffect(() => {
         if (!design || !app?.canvas) return;
 
-        const onPointerDown = (event: PointerEvent) => {
-            if (event.target !== app.canvas) return;
+        const canvas = app.canvas;
 
-            const hit = inspectAt(app.stage, ClientPointToStage(app.canvas, event.clientX, event.clientY));
-
-            event.preventDefault();
-            event.stopImmediatePropagation();
+        const pick = (clientX: number, clientY: number) => {
+            const hit = inspectAt(app.stage, ClientPointToStage(canvas, clientX, clientY));
 
             if (!hit) {
                 // A frame of Nitro's own has no template: what a patch reaches of it is its root.
@@ -81,12 +93,34 @@ export const DesignPreviewView = () => {
 
             const element = (node ?? hit.node).element;
 
-            sayDesign({ event: 'select', template: hit.window.id, key: key ?? null, tag: element.tag, name: element.name ?? null, style: (element.style !== undefined) ? String(element.style) : null, caption: element.caption ?? null });
+            sayDesign({
+                event: 'select',
+                template: hit.window.id,
+                key: key ?? null,
+                tag: element.tag,
+                name: element.name ?? null,
+                style: (element.style !== undefined) ? String(element.style) : null,
+                caption: element.caption ?? null,
+                element: { x: element.x, y: element.y, width: element.width, height: element.height, color: element.color ?? null, hidden: !!element.hidden, vars: { ...element.vars }, params: { ...element.params } },
+                rects: (key === undefined) ? [] : drawnBoxes(app.stage, canvas, hit.window.id, key),
+            });
         };
 
+        const onPointerDown = (event: PointerEvent) => {
+            if (event.target !== canvas) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            pick(event.clientX, event.clientY);
+        };
+
+        setDesignPicker(pick);
         window.addEventListener('pointerdown', onPointerDown, true);
 
-        return () => window.removeEventListener('pointerdown', onPointerDown, true);
+        return () => {
+            setDesignPicker(undefined);
+            window.removeEventListener('pointerdown', onPointerDown, true);
+        };
     }, [ design, app, isFrame ]);
 
     // The outline: over everything, redrawn each frame as the window lays itself out.
@@ -99,6 +133,8 @@ export const DesignPreviewView = () => {
         outline.zIndex = Number.MAX_SAFE_INTEGER;
         app.stage.addChild(outline);
 
+        let said = '';
+
         const draw = () => {
             outline.clear();
 
@@ -108,6 +144,15 @@ export const DesignPreviewView = () => {
                 const to = app.stage.toLocal({ x: bounds.x + bounds.width, y: bounds.y + bounds.height });
 
                 outline.rect(from.x, from.y, to.x - from.x, to.y - from.y).fill({ color: HIGHLIGHT_COLOR, alpha: 0.15 }).stroke({ width: 2, color: HIGHLIGHT_COLOR });
+            }
+
+            // Said when it moves, not each frame: a panel's handles follow the element as a patch moves it.
+            const rects = drawnBoxes(app.stage, app.canvas, design.template, highlight);
+            const now = JSON.stringify(rects);
+
+            if (now !== said) {
+                said = now;
+                sayDesign({ event: 'rect', template: design.template, key: highlight, rects, scale: GetStagePixelScale() });
             }
         };
 
