@@ -3,14 +3,14 @@
  * client's texts and bitmaps. What the window's code does with its named elements comes in as
  * `bindings`.
  */
-import { colorTemplateByTags, findTemplateChild, isTemplateInspecting, subscribeTemplateInspecting, Template, TemplateBindings, TemplateContext, TemplateInspectContext, TemplateInspectWindowContext, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
+import { colorTemplateByTags, EMPTY_TEMPLATE_CONTEXT, findTemplateChild, isTemplateInspecting, subscribeTemplateInspecting, Template, TemplateBindings, TemplateContext, TemplateInspectContext, TemplateInspectWindowContext, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 import { openClientLink } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { useSystemStore, useTranslation } from '#base/context/system';
 
-import { useTemplateExtensionArrange, useTemplateExtensionBindings, useTemplateExtensionItemBindings } from './templatePatches';
+import { noteIneffectiveSets, templateRootLook, useTemplateExtensionArrange, useTemplateExtensionBindings, useTemplateExtensionItemBindings, useTemplatePatchList } from './templatePatches';
 import { useTemplate } from './useTemplate';
 
 export interface TemplateWindowProps {
@@ -94,8 +94,14 @@ export const TemplateWindow = ({ id, part, bindings, arrange, context, frame, wi
     // drawn in another's element starts its own element chain). Turning it on redraws the view once.
     const inspecting = useSyncExternalStore(subscribeTemplateInspecting, isTemplateInspecting);
     const inspectWindow = useMemo(() => ({ id, part, context }), [ id, part, context ]);
+    // A root patch's frame look (`style`, `color`, `position`), over what the code binds: the window's own frame only.
+    const patchList = useTemplatePatchList();
+    const rootOverride = (part === undefined) ? templateRootLook(id, context, patchList) : undefined;
 
     if (!template) return null;
+
+    // What of the patches the window's bindings leave undrawn is said, not counted as applied.
+    if (part === undefined) noteIneffectiveSets(id, template, context ?? EMPTY_TEMPLATE_CONTEXT, allBindings, patchList);
 
     const view = (
         <TemplateView
@@ -105,6 +111,7 @@ export const TemplateWindow = ({ id, part, bindings, arrange, context, frame, wi
             itemBindings={itemBindings}
             arrange={allArrange}
             frame={windowFrame}
+            rootOverride={rootOverride}
             width={width}
             height={height}
             resolveText={resolveText}

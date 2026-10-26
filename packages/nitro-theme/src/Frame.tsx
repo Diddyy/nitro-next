@@ -8,10 +8,9 @@ import { DragTargetContext, DragTargetController } from './drag/DragTargetContex
 import { reachedUnclaimed } from './drag/useDragTrigger';
 import { Header } from './Header';
 import { ChildBounds, useChildBounds, useFrameDrag, useFrameResize, useThemeVariant } from './hooks';
-import { useThemeConfigValue } from './host';
 import { BackgroundLayer, ShadowLayer } from './layer';
 import { Scaler, ScalerDirection } from './Scaler';
-import { DropShadowConfig, expandSides, FRAME_OVERRIDES_KEY, frameOverrideOf, getWindowLayer, isFramelessVariant, subscribeWindowLayer, ThemeProps, ThemeVariant, WindowPlacedContext } from './utils';
+import { DropShadowConfig, expandSides, FrameOverride, getWindowLayer, isFramelessVariant, subscribeWindowLayer, ThemeProps, ThemeVariant, useFrameOverride, WindowPlacedContext } from './utils';
 
 export type FrameVariant = ThemeVariant;
 
@@ -22,6 +21,12 @@ export interface FrameProps extends Omit<ThemeProps<FrameVariant>, 'dropShadow'>
      * `frame.overrides` entry names the frame by (`frameOverrideOf`).
      */
     name?: string;
+    /**
+     * The look a template patch on its window's root gives the frame (`rootFrameOverride`): over
+     * `frame.overrides` and over what the code passes (`useFrameOverride`). A template's root frame
+     * gets it from `TemplateView`; a frame of its own takes patches naming its `id` without it.
+     */
+    patchOverride?: FrameOverride;
     caption?: string;
     resizeDirection?: ScalerDirection;
     contentLayout?: BoxLayout;
@@ -172,12 +177,12 @@ const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefi
  * clipped to it.
  */
 export const Frame = ({
-    variant: codeVariant, defaultVariant, tooltip, tooltipDelay, layout, tintColor: codeTintColor, tintMode, textStyle, textColor, dropShadow, id, name, caption, resizeDirection = 'all', contentLayout, margins,
+    variant: codeVariant, defaultVariant, tooltip, tooltipDelay, layout, tintColor: codeTintColor, tintMode, textStyle, textColor, dropShadow, id, name, patchOverride, caption, resizeDirection = 'all', contentLayout, margins,
     defaultPosition, rememberPosition = true, themePosition = true, rememberSize = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, panes, panesInFront, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
-    // A theme's style for this window (`frame.overrides`), over what its code passes.
-    const override = frameOverrideOf(useThemeConfigValue<unknown>(FRAME_OVERRIDES_KEY), id, name);
+    // A theme's style for this window (`frame.overrides`, then template patches), over what its code passes.
+    const override = useFrameOverride(id, name, patchOverride);
     // Its first position as well: where the player left it still wins (`useFrameDrag`'s stored offset).
     const position = themePosition ? override?.position : undefined;
     const { frameRef, attachFrame, offset, zIndex, revealed, onHeaderPointerDown, startDrag } = useFrameDrag(id, { defaultPosition: position ?? defaultPosition, remember: rememberPosition, centered: position ? false : centered, onPositionChange });

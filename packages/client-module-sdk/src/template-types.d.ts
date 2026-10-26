@@ -31,6 +31,12 @@ export interface ClientModuleTemplateElementChanges {
      * only with its limits.
      */
     limits?: [ number | null, number | null, number | null, number | null ];
+    /**
+     * The window itself (`''`) only, when it is a frame: where it first opens, in whole pixels
+     * from the desktop's top left. A root `style`, `color` and `position` go over what the window's
+     * code sets and over `frame.overrides`.
+     */
+    position?: { x: number; y: number };
 }
 
 /**
@@ -181,4 +187,9 @@ export interface ClientModuleTemplatePatchReport {
     unmatched: { template: string; owner: string; element: string }[];
     /** Extension code that threw - ops or a binding made for a context, a post-layout hook - and was skipped. */
     errors: { template: string; owner: string; message: string }[];
+    /**
+     * `set` fields that matched but change nothing the window draws - its code binds that
+     * field of the element (a caption it sets) - once the window has been drawn; not counted in `applied`.
+     */
+    ineffective?: { template: string; owner: string; element: string; property: string }[];
 }

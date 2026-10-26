@@ -45,6 +45,11 @@ export interface TemplateElementChanges {
      * takes another only with its limits.
      */
     limits?: TemplateElement['limits'];
+    /**
+     * The window itself (`''`) only, when it is a frame: where it first opens, in whole pixels from the
+     * desktop's top left, as `frame.overrides`' `position` (`utils/frameOverrides.ts`).
+     */
+    position?: { x: number; y: number };
 }
 
 /**
@@ -132,6 +137,20 @@ export interface TemplatePatchReport {
     conflicts: TemplatePatchConflict[];
     unmatched: TemplatePatchUnmatched[];
     errors: TemplatePatchError[];
+    /** Ops that matched but change nothing the window draws, once it has been drawn (`TemplatePatchIneffective`). */
+    ineffective?: TemplatePatchIneffective[];
+}
+
+/**
+ * A `set` that matched its element but changes nothing the window draws: the window's code binds the
+ * same field of that element (`property`), and what the code binds is drawn - a caption its code
+ * sets, say. Not counted as applied.
+ */
+export interface TemplatePatchIneffective {
+    template: string;
+    owner: string;
+    element: string;
+    property: string;
 }
 
 /** No context: what a window that passes none is patched with. */

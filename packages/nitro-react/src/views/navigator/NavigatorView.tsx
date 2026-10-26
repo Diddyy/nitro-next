@@ -40,7 +40,8 @@ import { NAVIGATOR_FILTER_TYPES, splitNavigatorFilter, useNavigatorActions, useN
 import { useConfigValue, useGroupBadgeImageUrl, useTranslation, useWindowActions } from '#base/context/system';
 import { PerkCodes, useOwnPerkAllowed, useOwnUserId } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
-import { FRAME_OVERRIDES_KEY, frameOverrideOf, getGlobalRect, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
+import { getGlobalRect, layerFrameOverrides, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows, useFrameOverride } from '#base/theme';
+import { templateRootLook, useTemplatePatchList } from '#base/theme/templatePatches';
 
 import { isRepeatedEnter } from './navigatorEnterGuard';
 import { isNavigatorPlacedByPlayer, navigatorFirstPosition, setNavigatorPlacedByPlayer } from './navigatorFirstPosition';
@@ -137,7 +138,7 @@ export const NavigatorView = () => {
     const openingGeometry = useNavigatorOpeningGeometry();
     const openingHeight = openingGeometry?.height || preferences?.windowHeight;
     const ownUserId = useOwnUserId();
-    const themePosition = frameOverrideOf(useConfigValue<unknown>(FRAME_OVERRIDES_KEY), 'navigator')?.position;
+    const themePosition = layerFrameOverrides(useFrameOverride('navigator', undefined), templateRootLook(TEMPLATE, undefined, useTemplatePatchList()))?.position;
     // The frame's own close and position, made once (`createMainWindow`).
     const [ { frame, fromTheme } ] = useState(() => {
         const { position, fromTheme } = navigatorFirstPosition(openingGeometry, preferences, themePosition, isNavigatorPlacedByPlayer(ownUserId));

@@ -38,7 +38,6 @@ import { Frame, FrameProps } from '../Frame';
 import { Gradient, GradientDirection } from '../Gradient';
 import { Header } from '../Header';
 import { loadTexture, useTextureFromUrl } from '../hooks/usePixiTexture';
-import { useThemeConfigValue } from '../host';
 import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
 import { isTemplateInspecting, TemplateInspectContext } from '../inspect';
@@ -53,7 +52,7 @@ import { TabContext } from '../TabContext';
 import { TextInput } from '../TextInput';
 import { ImageProps, ThemeImage } from '../ThemeImage';
 import { ThemeText } from '../ThemeText';
-import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, FRAME_OVERRIDES_KEY, frameOverrideOf, FrameSize, isFramelessVariant, ThemeVariant, themeVariantOf, toCssHexColor, WindowPlacedContext } from '../utils';
+import { ButtonVariant, FLASH_INVERT_COLOR, FlashBitmapVars, flashBlendMode, FrameOverride, FrameSize, isFramelessVariant, ThemeVariant, themeVariantOf, toCssHexColor, useFrameOverride, WindowPlacedContext } from '../utils';
 import { localizeCaption } from './localizeCaption';
 import { isMarkupTemplateText, knownTemplateTextStyle, measureTemplateText, templateFontSize, templateTextFormat, templateTextStyle, templateWrapWidth } from './measureTemplateText';
 import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateBindingStore, TemplateExpander, TemplateItemBindings, TemplateWindows } from './templateBindings';
@@ -103,6 +102,11 @@ export interface TemplateViewProps {
      * window clicked has had it (a bubble closed by a click elsewhere in the window).
      */
     frame?: TemplateFrameOptions;
+    /**
+     * Not Flash's: the look template patches give the window's root frame (`rootFrameOverride`), over
+     * what the window's code binds and over `frame.overrides`.
+     */
+    rootOverride?: FrameOverride;
 }
 
 export type TemplateFrameOptions = Required<Pick<FrameProps, 'id'>> & Pick<FrameProps, 'defaultPosition' | 'centered' | 'onPositionChange' | 'onClose' | 'resizeDirection' | 'rememberPosition' | 'themePosition' | 'rememberSize' | 'closeButtonVisible' | 'closeButtonVariant' | 'onHelp' | 'onPointerTap'> & {
@@ -349,6 +353,7 @@ interface Context {
     showHidden: boolean;
     idPrefix: string;
     frame?: TemplateFrameOptions;
+    rootOverride?: FrameOverride;
     /** The scroll each standalone scrollbar shares with its target. */
     scroll: TemplateScrollStore;
     /** The window's frame resized by the user, which the template is laid out at. */
@@ -1478,6 +1483,8 @@ interface FrameContentClipProps {
     variant?: string;
     frameId: string;
     frameName?: string;
+    /** A root patch's look for it (`rootOverride`). */
+    patchOverride?: FrameOverride;
     children: ReactNode;
 }
 
@@ -1487,9 +1494,9 @@ interface FrameContentClipProps {
  * columns - and, above the content area, out to the frame's one-pixel outline, where that layout's
  * white strip and tabs run up to the title bar and across to the edge.
  */
-const FrameContentClip = ({ width, height, margins, variant, frameId, frameName, children }: FrameContentClipProps) => {
+const FrameContentClip = ({ width, height, margins, variant, frameId, frameName, patchOverride, children }: FrameContentClipProps) => {
     const [ mask, setMask ] = useState<PixiGraphics | null>(null);
-    const frameless = isFramelessVariant(frameOverrideOf(useThemeConfigValue<unknown>(FRAME_OVERRIDES_KEY), frameId, frameName)?.variant ?? variant);
+    const frameless = isFramelessVariant(useFrameOverride(frameId, frameName, patchOverride)?.variant ?? variant);
     const [ left, top, right, bottom ] = margins;
     const contentWidth = Math.max(0, width - left - right);
     const contentHeight = Math.max(0, height - top - bottom);
@@ -1781,10 +1788,12 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
         const horizontal = axisLayout(resizeDirection === 'x' || resizeDirection === 'all', rect.width, minWidth, maxWidth);
         const vertical = axisLayout(resizeDirection === 'y' || resizeDirection === 'all', rect.height, minHeight, maxHeight);
         const frameId = window?.id ?? `${context.idPrefix}${id}`;
+        const patchOverride = id === ROOT_ID ? context.rootOverride : undefined;
         const frame = (
             <Frame
                 id={frameId}
                 name={element.name}
+                patchOverride={patchOverride}
                 // `IFrameWindow.style`, as its code sets it (`BadgeLeaderboardView.setFrameStyle`).
                 variant={binding?.style ?? element.style}
                 caption={captionOf(element, context, binding)}
@@ -1824,6 +1833,7 @@ const ElementContent = ({ element, context, id, flow, shown, reveal }: ElementVi
                     variant={binding?.style ?? element.style}
                     frameId={frameId}
                     frameName={element.name}
+                    patchOverride={patchOverride}
                 >
                     {children}
                 </FrameContentClip>
@@ -2127,7 +2137,7 @@ ElementView.displayName = 'TemplateElementView';
  * binding draws differently redraw (`TemplateBindingStore`). `resolveText` and `imageUrl` should be
  * stable: a new one redraws every element, which is what a change of language needs.
  */
-export const TemplateView = ({ template, resolveText, imageUrl, bindings, itemBindings, showHidden = false, idPrefix = 'template-', width, height, arrange, frame }: TemplateViewProps) => {
+export const TemplateView = ({ template, resolveText, imageUrl, bindings, itemBindings, showHidden = false, idPrefix = 'template-', width, height, arrange, frame, rootOverride }: TemplateViewProps) => {
     const [ store ] = useState(() => new TemplateBindingStore());
     // The size the user dragged the window to; the template is laid out at it.
     const [ frameSize, setFrameSize ] = useState<FrameSize | null>(null);
@@ -2156,13 +2166,14 @@ export const TemplateView = ({ template, resolveText, imageUrl, bindings, itemBi
         showHidden,
         idPrefix,
         frame,
+        rootOverride,
         scroll,
         onFrameResize: (size) => {
             setFrameSize(size);
             frame?.onResize?.(size);
         },
         skins: template.skins,
-    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame, scroll, template.skins ]);
+    }), [ resolveText, imageUrl, store, showHidden, idPrefix, frame, rootOverride, scroll, template.skins ]);
 
     // A list's `show` over its items; otherwise the binding, over the layout.
     const shownBy = new Map<TemplateElement, boolean>();

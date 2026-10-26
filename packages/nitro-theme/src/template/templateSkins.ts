@@ -254,7 +254,11 @@ export interface SkinMapEntry {
     /** The colour its art is tinted with when the window sets none (`#rrggbb`). */
     tintColor?: string;
     sprites: SkinSprite[];
-    /** The template windows that draw it, by template id: the keys of the elements that do (`''` the window's root). */
+    /**
+     * The windows that draw it: template windows by template id, the keys of the elements that do
+     * (`''` the window's root), and the frames of windows Nitro draws without a template by their frame
+     * id (`wired-setup`: `['']`) - what a patch names them by.
+     */
     windows: Record<string, string[]>;
 }
 
@@ -272,10 +276,11 @@ const sorted = <T>(record: Record<string, T>): Record<string, T> => Object.fromE
 /**
  * The skin map of a theme and the templates drawn with it: every skin of the theme that draws a sprite
  * (React-drawn windows use those no template names), each with the template elements that draw it - a
- * composite element's (`scrollable_itemlist_vertical`) inner window layout's skins its own - and every
+ * composite element's (`scrollable_itemlist_vertical`) inner window layout's skins its own - and the
+ * frames of Nitro's own windows (`nitroFrames`: frame id to the frame styles it is drawn in), and every
  * sprite with the skins it is in. Keys are sorted, so the same input writes the same file.
  */
-export const buildSkinMap = (theme: ThemeVariantsData, frames: SkinSheetFrames, templates: Readonly<Record<string, Template>>): SkinMap => {
+export const buildSkinMap = (theme: ThemeVariantsData, frames: SkinSheetFrames, templates: Readonly<Record<string, Template>>, nitroFrames: Readonly<Record<string, readonly string[]>> = {}): SkinMap => {
     const skins: Record<string, SkinMapEntry> = {};
 
     for (const [ component, variants ] of Object.entries(theme.variants)) {
@@ -328,6 +333,10 @@ export const buildSkinMap = (theme: ThemeVariantsData, frames: SkinSheetFrames, 
             refs.forEach(ref => note(ref, id, ''));
             walk(root.children, [ root ], cascadeUnder(theme, refs, {}));
         }
+    }
+
+    for (const [ id, styles ] of Object.entries(nitroFrames)) {
+        for (const style of styles) note({ component: 'frame', style }, id, '');
     }
 
     const sprites: SkinMap['sprites'] = {};
