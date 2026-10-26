@@ -321,10 +321,11 @@ export interface ClientModuleApi {
     /**
      * The minor version: 1 for API 1.1 (`state`, `events`, `contextMenu`, `chatCommands`), 2 for 1.2
      * (`channels`, `links.handle`'s `path`), 3 for 1.3 (`windows.register`'s `aboveOnTop`,
-     * `templates.bind`'s `items`). A plain-JavaScript module that may meet an older client reads
+     * `templates.bind`'s `items`), 4 for 1.4 (`templates.bind` reaching windows drawn as another
+     * window's items, item contexts). A plain-JavaScript module that may meet an older client reads
      * `api.minor ?? 0`.
      */
-    readonly minor: 3;
+    readonly minor: 4;
     /** The module's key: its plugin's. */
     readonly key: string;
     /**
@@ -522,7 +523,11 @@ export interface ClientModuleApi {
          * fields it sets, each field the code sets too reported as a conflict. With `items`, the element
          * is bound in each clone of a list that has it (a row the code adds per room) instead of in the
          * window, and a function is also given which clone it draws (`item`: its `key`, its `index`
-         * in the list, the list's name) - every other row a colour of the theme's.
+         * in the list, the list's name) - every other row a colour of the theme's. A window drawn
+         * inside another as one of its items (a catalogue widget's view in its page, a grid item) takes
+         * the bindings of its own template as a window of it does. A function's context is the
+         * window's, with what the item itself shows over it where the code gives that (a catalogue
+         * tab's page, an offer's prices): nitro-next `docs/template-patches.md` lists the keys.
          */
         bind: (template: string, element: string, binding: ClientModuleTemplateBinding | ((context: ClientModuleTemplateContext, item?: ClientModuleTemplateItem) => ClientModuleTemplateBinding), options?: { override?: boolean; items?: boolean }) => ClientModuleDispose;
         /**

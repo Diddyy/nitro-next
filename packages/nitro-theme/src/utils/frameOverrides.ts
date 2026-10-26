@@ -4,8 +4,10 @@
  * patch reaches them. `{ "<frame id or window name>": { "variant": "<style>", "color": "#rrggbb" } }`,
  * the object or the object as JSON text; each plugin adds its entries (Turbo merges them per plugin, as
  * `templates.patches`). `variant` is the frame style (`FrameProps.variant`), `color` its tint: `#rrggbb`,
- * `0xRRGGBB` / `0xAARRGGBB` text or a number. What the window's code passes is the default; an entry
- * replaces only what it gives.
+ * `0xRRGGBB` / `0xAARRGGBB` text or a number. `position` (`{ "x": 84, "y": 153 }`, from the desktop's
+ * top left) is where the window first opens, for any window with a frame, a template's root frame too:
+ * where the player left it still wins, as it does over the code's own first position. What the
+ * window's code passes is the default; an entry replaces only what it gives.
  */
 import { parseCssHexColor, toCssHexColor } from './cssHexColor';
 
@@ -28,6 +30,8 @@ export interface FrameOverride {
     variant?: string;
     /** `#rrggbb`. */
     color?: string;
+    /** Where the window first opens, in whole pixels; over the code's `defaultPosition` and `centered`. */
+    position?: { x: number; y: number };
 }
 
 /** `#rgb`, `#rrggbb`, `0xRRGGBB`, `0xAARRGGBB`: what `parseCssHexColor` reads, and nothing it would half-read (`blue`). */
@@ -37,6 +41,14 @@ const colorOf = (value: unknown): string | undefined => {
     const number = (typeof value === 'number') ? value : (typeof value === 'string' && HEX_COLOR.test(value.trim())) ? parseCssHexColor(value) : Number.NaN;
 
     return Number.isFinite(number) ? toCssHexColor(number) : undefined;
+};
+
+const positionOf = (value: unknown): { x: number; y: number } | undefined => {
+    if (!value || typeof value !== 'object') return undefined;
+
+    const { x, y } = value as Record<string, unknown>;
+
+    return (typeof x === 'number' && typeof y === 'number' && Number.isFinite(x) && Number.isFinite(y)) ? { x: Math.trunc(x), y: Math.trunc(y) } : undefined;
 };
 
 const read = (value: unknown): ReadonlyMap<string, FrameOverride> => {
@@ -56,13 +68,14 @@ const read = (value: unknown): ReadonlyMap<string, FrameOverride> => {
     for (const [ key, entry ] of Object.entries(parsed as Record<string, unknown>)) {
         if (!entry || typeof entry !== 'object') continue;
 
-        const { variant, color } = entry as Record<string, unknown>;
+        const { variant, color, position } = entry as Record<string, unknown>;
         const override: FrameOverride = {
             ...(((typeof variant === 'string' && variant.length) || typeof variant === 'number') && { variant: String(variant) }),
             ...((colorOf(color) !== undefined) && { color: colorOf(color) }),
+            ...((positionOf(position) !== undefined) && { position: positionOf(position) }),
         };
 
-        if (override.variant !== undefined || override.color !== undefined) overrides.set(key, override);
+        if (override.variant !== undefined || override.color !== undefined || override.position !== undefined) overrides.set(key, override);
     }
 
     return overrides;

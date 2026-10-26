@@ -238,6 +238,8 @@ export const CatalogView = () => {
                 items: tabs.map((node, index) => ({
                     key: `${index}:${node.pageName}`,
                     from: 'tab_button',
+                    // Not Flash's: the tab's page, for a theme's item bindings (an icon per tab).
+                    context: { pageId: node.pageId, pageName: node.pageName, icon: node.icon, iconUrl: catalogIconUrl.replace('%name%', node.icon.toString()), selected: activeNodes.includes(node) },
                     bindings: {
                         '': {
                             caption: node.localization.length ? node.localization : node.pageName,
@@ -273,10 +275,19 @@ export const CatalogView = () => {
         container.setX(templateWrapperOf(container) ? 0 : container.parent.width - pageWidth - LAYOUT_CONTAINER_RIGHT_GAP);
     };
 
+    // Not Flash's: what the page shows, for a theme's patches and bindings (`docs/template-patches.md`).
+    const context = {
+        layoutCode: activePage?.layoutCode ?? '',
+        pageId: activePage?.pageId ?? -1,
+        hasHeaderImage: getCatalogPageImage(activePage, CATALOG_HEADER_IMAGE) !== undefined,
+        hasHeaderText: !!getCatalogPageText(activePage, CATALOG_HEADER_DESCRIPTION)?.length,
+    };
+
     return (
         <TemplateWindow
             id={windowTemplateId}
             frame={frame}
+            context={context}
             height={isBuilder ? windowTemplate.height + BUILDERS_CLUB_EXTRA_HEIGHT : undefined}
             bindings={bindings}
             arrange={arrange}

@@ -203,6 +203,18 @@ patches still apply. Keep a context's values to what the window shows - they are
 | `habbo-room-ui-com/pet_view` | `type: 'pet'`, `name`, `figure`, `isOwnPet` |
 | `habbo-groups-com/new_extended_profile` (profile) | `userId`, `name`, `figure`, `isOwnUser` |
 | `habbo-new-navigator/navigator_frame_2_xml` (navigator) | `tab` (the selected tab's search code: `hotel_view`, `myworld_view`, `roomads_view`, `official_view`), `searchCode` (the results' search code: the tab's, a category's `category__<name>` once its "more" is pressed, a saved search's; `''` before the first results) |
+| `habbo-catalog-com/catalog_ubuntu_with_tabs` (catalogue window) | `layoutCode` (the open page's, `''` before one), `pageId` (`-1` before one), `hasHeaderImage` (the page has a header picture of its own: the window binds the room builder's as a fallback otherwise), `hasHeaderText` (it has a header description) |
+| `habbo-catalog-com/layout_<code>` (a catalogue page) | `layoutCode`, `pageId`, and the keys of the `EMBEDDED` widgets drawn in it: the total price's (`totalPriceWidget`) `priceInCredits`, `priceInActivityPoints`, `activityPointType`, `priceInSilver`, `quantity` while an offer is selected |
+
+Items carry a context of their own where the code gives one, laid over their window's for the
+functions that bind them (an `items` binding of the window, or a binding of the template the item is
+drawn from - see "Windows drawn inside another"):
+
+| Item | Context keys |
+| --- | --- |
+| a catalogue tab (`tab_button` in `catalog_ubuntu_with_tabs`) | `pageId`, `pageName`, `icon` (the node's icon id), `iconUrl` (`catalog.icons.url` for it), `selected` |
+| `habbo-catalog-com/productViewWidget` (the product view of a page) | `offerId`, `priceInCredits`, `priceInActivityPoints`, `activityPointType`, `priceInSilver` while an offer is shown |
+| `habbo-catalog-com/price_display`, `habbo-catalog-com/priceDisplayWidget` (a price, the price box on a product) | `priceInCredits`, `priceInActivityPoints`, `activityPointType`, `priceInSilver` |
 
 Any other window passes none (`{}`); a window is given one by passing `context` to its `TemplateWindow`.
 A theme that shows the search row on two tabs only, and a Create button on My World only:
@@ -246,6 +258,30 @@ is called each time a row is drawn - its index changes with its list - so keep i
 api.templates.bind('habbo-room-ui-com/user_view', 'name_text', ctx => ({ color: ctx.isOwnUser ? 0x8fd14f : 0xffffff }), { override: true });
 ```
 
+A theme draws the catalogue's tabs as icons: a bitmap added to the tab template, bound per tab from
+the tab's context (`tab_button`'s caption can be hidden the same way):
+
+```ts
+api.templates.patch('habbo-catalog-com/catalog_ubuntu_with_tabs', [
+    { element: 'tab_button', insert: 'last', add: { tag: 'bitmap', name: 'icon', x: 4, y: 3, width: 20, height: 20 } },
+]);
+api.templates.bind('habbo-catalog-com/catalog_ubuntu_with_tabs', 'icon', ctx => ({ asset: String(ctx.iconUrl) }), { items: true });
+```
+
+### Windows drawn inside another
+
+Some windows are drawn inside another as one of its items: a catalogue page's widget views
+(`productViewWidget`, `purchaseWidget`, `itemGridWidget` - `attachWidgetView` builds them into the
+page's window), each grid item, a price. A template's bindings (`override` ones too) reach those
+windows as they reach a window drawn on its own, its function given the window's context with the
+item's own over it:
+
+```ts
+// The product's name black whatever the preview shows, and a price box in the currency's colour.
+api.templates.bind('habbo-catalog-com/productViewWidget', 'ctlg_product_name', { color: 0x000000 }, { override: true });
+api.templates.bind('habbo-catalog-com/priceDisplayWidget', '', ctx => ({ color: (Number(ctx.priceInCredits) > 0) ? 0xe2ae1d : 0x6c6b6b }), { override: true });
+```
+
 ## After the window's layout code
 
 `api.templates.arrange(templateId, (windows, ctx) => { ... })` runs each time a window of the
@@ -279,9 +315,39 @@ Their frame takes a style from the hotel variable **`frame.overrides`**:
 
 An entry is found by the frame's id (the window's id on the desktop: `wired-setup`), or by the
 window's name in its layout for a template's root frame; `variant` is the frame style, `color` its
-tint (`#rrggbb`, `0xRRGGBB` / `0xAARRGGBB` or a number). What the window's code passes stays the
-default for what an entry leaves out. Turbo merges each plugin's entries in (turbo-cloud
+tint (`#rrggbb`, `0xRRGGBB` / `0xAARRGGBB` or a number). `position` (`{ "x": 84, "y": 153 }`, from the
+desktop's top left) is where a window first opens - any window with a frame, the catalogue's
+(`catalog`) too: where the player has moved it since still wins. What the window's code passes stays
+the default for what an entry leaves out. Turbo merges each plugin's entries in (turbo-cloud
 `docs/extensions.md`).
+
+```json
+{ "frame.overrides": { "catalog": { "position": { "x": 84, "y": 153 } } } }
+```
+
+## A theme's skins
+
+What a theme's variants (its `theme-variants.json`) and its module windows can say beyond Habbo's:
+
+- **`tintMode`** on a variant (or a `Frame` / `Border` / `Header`'s prop): `multiply` (the client's
+  `ColorTransform`, the default) or `subtract`, each channel the colour less the art's darkness
+  (`colour - (255 - value)`): white art takes the colour, black stays, a grey comes out darker
+  (#e0e0e0 under #6fa6e2: #5087c3, multiply's #6192c6). For art drawn for that tint; the tinted copy
+  is made once per art and colour.
+- A header variant's **`captionPadding`**: the caption's margin either side (8 in Habbo's layouts),
+  and **`closeAt`** (from the header's top right) inside the header's box: a press reaches nothing
+  past it, so a negative inset is drawn at the edge and warned about; widen the header (a border) to
+  place the button further out.
+- A `Frame`'s `textColor` colours its header's caption as well as its text.
+- `RichText`'s `listMarker` (`{ align: 'right', gap }`: the marker right-aligned `gap` pixels before
+  the text, as a browser draws an `li`); an editor's blank line (`<p><br></p>`) is kept, a line per break.
+
+## The previewer's room
+
+The room every object showcase draws in (the catalogue's product view, the inventory's preview) is
+Flash's floor `110` and wall `99999` (`RoomPreviewer.createRoomForPreviews`). The hotel variable
+**`room.previewer`** names other plane types of the room's visualization, read when a previewer room
+is first made: `{ "room.previewer": { "floorType": "101", "wallType": "101", "landscapeType": "1.1" } }`.
 
 ## Replacing one bitmap of a library
 
@@ -342,5 +408,7 @@ version number only listed as a dependency.
   reaches a player at their next load. Modules' patches come and go live.
 - Patches change templates. Windows Nitro draws with React components rather than a template have no
   elements to patch; their frame takes `frame.overrides`, nothing else.
-- `asset.overlays` and `frame.overrides` are read as the client starts, like patch files: a change
-  reaches a player at their next load.
+- `asset.overlays`, `frame.overrides` and `room.previewer` are read as the client starts, like patch
+  files: a change reaches a player at their next load.
+- A template's extension `arrange` runs for windows drawn on their own, not yet for one drawn as
+  another window's item (a catalogue widget's view): arrange the page's window instead.

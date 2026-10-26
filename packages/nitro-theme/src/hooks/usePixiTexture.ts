@@ -15,8 +15,10 @@ import { Assets, groupD8, Rectangle, Texture } from 'pixi.js';
 import { useSyncExternalStore } from 'react';
 
 import { themeHost } from '../host';
+import { parseCssHexColor } from '../utils/cssHexColor';
 import { isAssetName } from '../utils/isAssetName';
 import { SpriteFrame } from '../utils/spriteFrame';
+import { isSubtractTint, subtractTintPixels, ThemeTintMode } from '../utils/subtractTint';
 import { getThemeSliceCanvas, ThemeSliceEffect, themeSliceEffectId } from '../utils/themeSprites';
 
 const themeTextures = new Map<string, Texture>();
@@ -240,6 +242,29 @@ export const getTextureSilhouette = (texture: Texture, color: string): Texture |
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 });
+
+/**
+ * A loaded texture with the `subtract` tint of `color` (`#rrggbb`) baked in (`subtractTintPixels`),
+ * drawn untinted: one per texture + colour.
+ */
+export const getTextureSubtractTinted = (texture: Texture, color: string): Texture | undefined => getDerivedTexture(texture, `subtract:${color}`, (ctx, canvas) => {
+    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    subtractTintPixels(image.data, parseCssHexColor(color));
+    ctx.putImageData(image, 0, 0);
+});
+
+/**
+ * What a layer draws `texture` with for its tint: the texture and the colour as a multiply `tint`,
+ * or for `subtract` the tinted copy untinted - the texture itself until its pixels can be read.
+ */
+export const tintedLayerTexture = (texture: Texture, tintColor: string | undefined, tintMode: ThemeTintMode | undefined): { texture: Texture; tint: string | undefined } => {
+    if (!tintColor || !isSubtractTint(tintMode)) return { texture, tint: tintColor };
+
+    const tinted = getTextureSubtractTinted(texture, tintColor);
+
+    return tinted ? { texture: tinted, tint: undefined } : { texture, tint: tintColor };
+};
 
 /** The client's `BitmapDataRenderer` greyscale weights (Rec. 709 luminance): the grey of `r, g, b` (0-255). */
 export const greyscaleLuminance = (r: number, g: number, b: number): number => Math.round((r * 0.212671) + (g * 0.71516) + (b * 0.072169));

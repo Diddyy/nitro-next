@@ -78,6 +78,12 @@ export interface ClientModuleFrameProps {
      */
     variant?: string;
     caption?: string;
+    /** `#rrggbb`: the frame's colour over its style's. */
+    tintColor?: string;
+    /** How `tintColor` colours the art: `multiply` (the client's, the default) or `subtract` (each channel the colour less the art's darkness). */
+    tintMode?: 'multiply' | 'subtract';
+    /** `#rrggbb`: the colour of its text, its header's caption too. */
+    textColor?: string;
     centered?: boolean;
     /** Which way its scaler resizes it: `'none'` for a window of a fixed size. */
     resizeDirection?: 'none' | 'x' | 'y' | 'all';
@@ -218,6 +224,8 @@ export interface ClientModuleRichTextProps {
     onLink?: (link: string) => void;
     blockSpacing?: number;
     listIndent?: number;
+    /** Where a list item's marker sits in its `listIndent`: at the left (default), or right-aligned `gap` pixels before the text, as a browser draws it. */
+    listMarker?: { align?: 'left' | 'right'; gap?: number };
     layout?: ClientModuleLayout;
 }
 

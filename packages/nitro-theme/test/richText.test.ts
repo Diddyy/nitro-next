@@ -44,3 +44,14 @@ void test('a style open across a line break or a misnested end tag is closed in 
 
     assert.deepEqual(blocks.map(block => block.kind === 'text' && block.markup), [ '<b>one<br>two</b>', '<b>three</b> four', '<i><u>x</u></i> y' ]);
 });
+
+void test('an editor\'s blank line (<p><br></p>) is a blank block of a line per break; an empty block with no break is nothing', () => {
+    const blocks = parseRichText('<p>First Place</p><p><br></p><p></p><p><br><br></p><p>Second</p>');
+
+    assert.deepEqual(blocks, [
+        { kind: 'text', role: 'p', markup: 'First Place', align: 'left', depth: 0 },
+        { kind: 'text', role: 'p', markup: ' ', align: 'left', depth: 0, blank: true },
+        { kind: 'text', role: 'p', markup: ' <br> ', align: 'left', depth: 0, blank: true },
+        { kind: 'text', role: 'p', markup: 'Second', align: 'left', depth: 0 },
+    ]);
+});

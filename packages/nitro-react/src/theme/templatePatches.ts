@@ -13,7 +13,7 @@
  * applied, unmatched and clashing ops go to the server's extension inspector (`reportClientExtension`).
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, Template, TemplateBinding, TemplateBindings, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItemBindings, TemplateItemContext, TemplatePatch, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
+import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, Template, TemplateBinding, TemplateBindings, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
 
 import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
@@ -53,6 +53,15 @@ const CONTEXTS_KEPT = 16;
 
 /** A source template's patched copies for the patch list they were made from, by context key (`''` for any). */
 const patched = new WeakMap<Template, { patches: readonly TemplatePatch[]; byContext: Map<string, Template> }>();
+/**
+ * Each template's id, the patched copies' too: a clone drawn from another template (a catalogue
+ * widget's view in its page, a grid item) gets the bindings extensions give that template.
+ */
+const templateIds = new WeakMap<Template, string>();
+
+/** The id of the template a list item is drawn from, when it is a whole template the client has read. */
+const itemTemplateIdOf = (from: TemplateItem['from']) => ((typeof from === 'object' && !('tag' in from)) ? templateIds.get(from) : undefined);
+
 /** The last report per template id, for the inspector; logged when it changes. */
 const reports = new Map<string, TemplatePatchReport>();
 /** The last conflicts of override bindings per template id, by the signature they were logged at. */
@@ -222,6 +231,8 @@ const announceReport = (id: string, report: TemplatePatchReport) => {
  * patch reads it - per context, kept for the last few contexts; never copied per render.
  */
 export const patchedTemplate = (id: string, source: Template | undefined, context: TemplateContext = EMPTY_TEMPLATE_CONTEXT, list: readonly TemplatePatch[] = patches): Template | undefined => {
+    if (source && !templateIds.has(source)) templateIds.set(source, id);
+
     if (!source || !list.length) return source;
 
     let entry = patched.get(source);
@@ -243,6 +254,7 @@ export const patchedTemplate = (id: string, source: Template | undefined, contex
     if (entry.byContext.size >= CONTEXTS_KEPT) entry.byContext.delete(entry.byContext.keys().next().value);
 
     entry.byContext.set(key, template);
+    templateIds.set(template, id);
 
     return template;
 };
@@ -335,15 +347,33 @@ const itemBindingFor = (id: string, entry: ExtensionBinding, context: TemplateCo
 
 const itemBindingsOf = (id: string, all: readonly ExtensionBinding[], context: TemplateContext): TemplateItemBindings | undefined => {
     const entries = all.filter(entry => entry.template === id && entry.items);
+    // The bindings of the other templates a clone may be drawn from, as a window of that template has them.
+    const others = all.filter(entry => entry.template !== id && !entry.items);
 
-    if (!entries.length) return undefined;
+    if (!entries.length && !others.length) return undefined;
 
     return (item, at, prototype) => {
-        const { bindings: merged, conflicts } = mergeTemplateItemBindings(id, prototype, item.bindings, entries, entry => itemBindingFor(id, entry, context, at));
+        const itemContext = item.context ? { ...context, ...item.context } : context;
+        let merged = item.bindings;
 
-        if (conflicts.length) noteItemBindingConflicts(id, conflicts);
+        if (entries.length) {
+            const { bindings, conflicts } = mergeTemplateItemBindings(id, prototype, merged, entries, entry => itemBindingFor(id, entry, itemContext, at));
 
-        return merged;
+            if (conflicts.length) noteItemBindingConflicts(id, conflicts);
+
+            merged = bindings;
+        }
+
+        const from = itemTemplateIdOf(item.from);
+        const fromEntries = from ? others.filter(entry => entry.template === from) : [];
+
+        if (!from || !fromEntries.length) return merged;
+
+        const { bindings, conflicts } = mergeTemplateItemBindings(from, prototype, merged, fromEntries, entry => itemBindingFor(from, entry, itemContext, at));
+
+        if (conflicts.length) noteItemBindingConflicts(from, conflicts);
+
+        return bindings;
     };
 };
 
