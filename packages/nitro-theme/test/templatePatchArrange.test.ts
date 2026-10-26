@@ -142,3 +142,23 @@ void test('arrange ops count as applied when the patched template has every elem
     assert.deepEqual(report.unmatched.map(miss => `${miss.owner}:${miss.element}`), [ 'c:catalog.header.picture', 'c:layoutContainr' ]);
     assert.deepEqual(report.conflicts, [ { template: CATALOG, element: 'layoutContainer', property: 'arrange.y', owners: [ 'a', 'b' ] } ]);
 });
+
+// Past a cap a formula is refused unread, as Turbo's patch check refuses it (TemplateArrangeFormula.cs),
+// where a formula nested thousands deep would overflow the server's recursive reader.
+const capProblem = (formula: string) => templateArrangeProblems({ element: 'box', arrange: { y: formula } });
+
+void test('an arrange formula longer than 500 characters is refused', () => {
+    assert.match(capProblem(`${'1+'.repeat(250)}1`)[0], /at most 500 characters, not 501/);
+    assert.deepEqual(capProblem(`${'1+'.repeat(249)}1`), []);
+});
+
+void test('an arrange formula nested deeper than 32 is refused', () => {
+    assert.match(capProblem(`${'('.repeat(40)}1${')'.repeat(40)}`)[0], /nests at most 32 deep/);
+    assert.match(capProblem(`${'-'.repeat(40)}1`)[0], /nests at most 32 deep/);
+    assert.deepEqual(capProblem(`${'('.repeat(31)}1${')'.repeat(31)}`), []);
+});
+
+void test('an arrange call with more than 16 values is refused', () => {
+    assert.match(capProblem(`max(${Array(17).fill(1).join(', ')})`)[0], /max takes at most 16 values/);
+    assert.deepEqual(capProblem(`max(${Array(16).fill(1).join(', ')})`), []);
+});

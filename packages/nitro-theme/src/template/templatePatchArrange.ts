@@ -34,6 +34,16 @@ type Measure = typeof TEMPLATE_ARRANGE_MEASURES[number];
 /** The name a formula reads the window itself by. */
 export const TEMPLATE_ARRANGE_WINDOW = 'window';
 
+/**
+ * How long a formula may be, how deep it may nest (brackets, calls, choices and signs, each a level of
+ * the recursive parser) and how many values a call may take; past them it is refused, never read.
+ * Turbo's patch check caps the same (`TemplateArrangeFormula.cs`), where a deep one would overflow the
+ * server's stack.
+ */
+export const TEMPLATE_ARRANGE_MAX_LENGTH = 500;
+export const TEMPLATE_ARRANGE_MAX_DEPTH = 32;
+export const TEMPLATE_ARRANGE_MAX_ARGS = 16;
+
 /** The functions a formula may call, and how many arguments each takes (at least, at most). */
 const FUNCTIONS: Readonly<Record<string, readonly [ number, number ]>> = {
     min: [ 1, Infinity ],
@@ -156,8 +166,21 @@ const reference = (name: string): Node => {
 
 /** Recursive descent over the tokens, loosest first: `?:`, `||`, `&&`, comparison, `+ -`, `* / %`, unary. */
 const parse = (text: string): Node => {
+    if (text.length > TEMPLATE_ARRANGE_MAX_LENGTH) throw new Error(`a formula is at most ${TEMPLATE_ARRANGE_MAX_LENGTH} characters, not ${text.length}: split it over ops (a later op reads what an earlier one set)`);
+
     const tokens = tokenize(text);
     let at = 0;
+    let depth = 0;
+    /** `read` one level deeper, refused past the cap. */
+    const nested = <T>(read: () => T): T => {
+        if (++depth > TEMPLATE_ARRANGE_MAX_DEPTH) throw new Error(`a formula nests at most ${TEMPLATE_ARRANGE_MAX_DEPTH} deep (brackets, calls, choices and signs inside one another)`);
+
+        const node = read();
+
+        depth--;
+
+        return node;
+    };
     const peek = (operator: string) => (tokens[at]?.kind === 'operator') && (tokens[at].text === operator);
     const expect = (operator: string) => {
         if (!peek(operator)) throw new Error(`'${operator}' was expected ${tokens[at] ? `before '${tokens[at].text}'` : 'at the end'}`);
@@ -199,7 +222,11 @@ const parse = (text: string): Node => {
             const args: Node[] = [];
 
             if (!peek(')')) {
-                do args.push(expression());
+                do {
+                    if (args.length >= TEMPLATE_ARRANGE_MAX_ARGS) throw new Error(`${token.text} takes at most ${TEMPLATE_ARRANGE_MAX_ARGS} values`);
+
+                    args.push(expression());
+                }
                 while (peek(',') && ++at);
             }
 
@@ -225,7 +252,7 @@ const parse = (text: string): Node => {
         if (peek('-') || peek('!')) {
             const operator = tokens[at++].text as '-' | '!';
 
-            return { kind: 'unary', operator, operand: unary() };
+            return { kind: 'unary', operator, operand: nested(unary) };
         }
 
         return primary();
@@ -237,7 +264,7 @@ const parse = (text: string): Node => {
     const and = binary([ '&&' ], comparison);
     const or = binary([ '||' ], and);
 
-    const expression = (): Node => {
+    const expression = (): Node => nested(() => {
         const test = or();
 
         if (!peek('?')) return test;
@@ -249,7 +276,7 @@ const parse = (text: string): Node => {
         expect(':');
 
         return { kind: 'if', test, then, otherwise: expression() };
-    };
+    });
 
     const node = expression();
 

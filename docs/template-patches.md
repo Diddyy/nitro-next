@@ -448,8 +448,10 @@ from the window before it, ops in their order. The rules are the module `arrange
   for a window drawn - an element that is not there, a sum over a context key the window does not give -
   keeps the layout's and is said once (`patch.unmatched`, `<element>:arrange:<what>`). An op the client
   cannot run (an unknown field, function or measure, a broken formula, `${item.*}` or `${text.*}`, a
-  placeholder inside another) is skipped and reported **ineffective** (`<element>:arrange`); Turbo's patch
-  check refuses it before the panel saves it, with the same sentence.
+  placeholder inside another, a formula longer than 500 characters, nested deeper than 32 - brackets, calls,
+  choices and signs inside one another - or a call with more than 16 values) is skipped and reported
+  **ineffective** (`<element>:arrange`); Turbo's patch check refuses it before the panel saves it, with the
+  same sentence.
 - An `arrange` op given by a function of the context is an error: its formulas read `${ctx.*}` instead.
   Code is still the tool for what a formula cannot say: a loop over rows, a value the window's context
   does not give.
