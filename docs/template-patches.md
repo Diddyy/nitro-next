@@ -65,11 +65,45 @@ and the library's `templates.json` have the same names.
 - **`insert`** `before` / `after` an element, or `first` / `last` inside it. **`like`** starts the new
   element as a copy of one the template has - its type, look, input flags (`params`) and children -
   with the given fields over it: a button "like the help button" is a real button without knowing
-  Flash's window flags. Without `like`, give `tag` and the rest yourself.
+  Flash's window flags. Without `like`, give `tag` and the rest yourself. `bindAs` (below) names it
+  for the window's code.
 
 An added element is named `<owner>:<name>` (the owner is the plugin's key), so it never meets a name
 of the template's or of another plugin's. The owner reaches it by its short name in later ops and
 in bindings; nobody else can.
+
+**`bindAs`** instead gives an added element a name the window's code fills but the template lacks, so
+the code's own binding reaches it. The catalogue's code puts a `frontpage4` page's text 0 into
+`ctlg_txt1`, which `layout_frontpage_featured` has no field for; a theme laying that page out as its
+own front page shows the text where it wants it, and a panel edit of the page's text shows there:
+
+```ts
+{ element: 'ctlg_txt2', insert: 'after', add: { like: 'ctlg_txt2', bindAs: 'ctlg_txt1', y: 240 } }
+```
+
+Later ops (any owner's) reach it by that name. A name the template already has, or that an earlier
+patch took, is a conflict (`property: 'bindAs'`, owners `(template)` or the first owner, then this
+one) and the element keeps its owned name (`name`, or `bindAs` without one).
+
+## Many templates at once
+
+A patch's `template` may be a pattern, `*` standing for any run of characters: one patch for a family
+of windows. Every catalogue page layout is 360 wide; a theme whose page area holds 342 narrows them
+all, and the catalogue sizes its page container by the patched page (`CatalogView`, as Flash takes
+the page window's width):
+
+```json
+{ "template": "habbo-catalog-com/layout_*", "ops": [ { "element": "", "set": { "width": 342 } } ] }
+```
+
+Resizing the window itself resizes its layout by as much, so each page's parts follow by their own
+`scale` flags; a part pinned to its width is patched on its own. An op whose element a matched
+template lacks is a miss on that template, as for any patch. Bindings and post-layout hooks still
+name one template each.
+
+The catalogue's navigation rows are as tall as their templates (`normal_topitem_template`,
+`normal_subitem_template`, 21 in Habbo's layout): a theme's taller rows (`set: { height: 25 }`) give an
+open branch's list room for them, as `updateChildListHeight` adds up each item's height.
 
 ## A layout that follows what a patch adds
 

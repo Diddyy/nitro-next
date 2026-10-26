@@ -11,6 +11,7 @@ import type { TemplateBinding, TemplateContext, TemplateItemContext, TemplatePat
 import type { ComponentProps } from 'react';
 
 import type * as Theme from '#base/theme';
+import type { LoadingScreenInput } from '#base/views/loading-screen/loadingScreenStyle';
 
 import type { ClientModuleApi } from './ClientModuleApi';
 
@@ -39,4 +40,5 @@ export type ClientModuleSdkConformance = [
     Assert<Sdk.ClientModuleFrameProps extends ComponentProps<typeof Theme.Frame> ? true : false>,
     Assert<Sdk.ClientModuleThemeTextProps extends ComponentProps<typeof Theme.ThemeText> ? true : false>,
     Assert<Sdk.ClientModuleTemplateWindowProps extends ComponentProps<typeof Theme.TemplateWindow> ? true : false>,
+    Assert<Same<Sdk.ClientModuleLoadingScreen, LoadingScreenInput>>,
 ];

@@ -505,12 +505,14 @@ export interface ClientModuleApi {
     };
     templates: {
         /**
-         * Changes a core window's template (`<library>/<asset>`) as data: `set` layout properties (and
+         * Changes a core window's template (`<library>/<asset>`, or a pattern with `*`s for a family of
+         * them: `habbo-catalog-com/layout_*`) as data: `set` layout properties (and
          * `params`, merged by key), `remove` an element, `insert` one or `move` one keeping its name.
          * `ops` may be a function of the window's context, called once per context. Patches from every
          * module and plugin apply together in order (`order`, then key); an element this module adds is
-         * named `<key>:<name>` and only this module reaches it by its short name. Conflicts, elements a
-         * release no longer has and ops that throw are kept in `report`.
+         * named `<key>:<name>` and only this module reaches it by its short name - or, with `bindAs`, by
+         * a name the window's code fills that the template lacks, so the code's binding reaches it.
+         * Conflicts, elements a release no longer has and ops that throw are kept in `report`.
          */
         patch: (template: string, ops: readonly ClientModuleTemplatePatchOp[] | ((context: ClientModuleTemplateContext) => readonly ClientModuleTemplatePatchOp[]), options?: { order?: number }) => ClientModuleDispose;
         /**

@@ -196,10 +196,30 @@ it leaves out is Habbo's own:
     "bar": { "width": 260, "outline": "#ffffff", "well": "#000000", "fill": "#ffffff" }, "percent": false } }
 ```
 
-`backgroundImage` covers the screen (its saturation as CSS `saturate()`), `photo: false` leaves out
-Habbo's photo frame and centres the rest on `box`, `text` is a text key or the text itself (in place of
-the revolving `client.starting.revolving` lines), `bar` takes `fillBottom` for a two-tone fill, and
-`percentColor` the percentage's colour. A value of the wrong type is ignored.
+`backgroundImage` covers the screen, centred, unless `backgroundSize` (`cover`, `contain`, `auto` = its
+own size, or a scale), `backgroundPosition` (CSS keywords: `"left bottom"`, `"top"`), `backgroundOffset`
+(`[ x, y ]` pixels from there) and `backgroundRepeat` (`repeat-x`, `repeat-y`, `repeat`: tiled from
+where it sits) say otherwise. **`layers`** are more pictures over it, bottom to top, each
+`{ "image", "size", "position", "offset", "repeat" }` - a hotel view drawn as its parts at their own
+size rather than one shot right at one aspect only:
+
+```json
+{ "loading.screen": {
+    "background": "#6eadc8", "backgroundImage": "/c_images/view/sky.png", "backgroundSize": "auto",
+    "backgroundPosition": "top", "backgroundRepeat": "repeat-x",
+    "layers": [ { "image": "/c_images/view/left.png", "size": "auto", "position": "left bottom" },
+                { "image": "/c_images/view/right.png", "size": "auto", "position": "right bottom" } ],
+    "order": [ "logo", "bar", "text" ], "textWidth": 143 } }
+```
+
+`backgroundSaturation` greys every picture (CSS `saturate()`), `photo: false` leaves out Habbo's photo
+frame and centres the rest on `box`, `text` is a text key or the text itself (in place of the revolving
+`client.starting.revolving` lines), `textWidth` the width it wraps at, `bar` takes `fillBottom` for a
+two-tone fill, and `percentColor` the percentage's colour. `order` lists the parts top to bottom (`logo`,
+`text`, `bar`, `percent`; one left out follows in Habbo's order), each the gap of its kind below the one
+before (10, the percentage 5). A value of the wrong type is ignored. A theme plugin names its pictures by
+their path in its `wwwroot/` (`"loading/logo.png"`); Turbo gives clients their address. The shape is the SDK's
+`ClientModuleLoadingScreen`, for a theme that writes its variables from a script.
 
 ## Replacing the toolbar
 

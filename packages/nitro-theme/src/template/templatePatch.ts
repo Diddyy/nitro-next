@@ -13,7 +13,7 @@
  * Kept free of runtime imports beyond the template helpers, so a build script or a test can run it
  * under Node.
  */
-import { resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateWindows } from './templateBindings';
+import { findTemplateChild, resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateWindows } from './templateBindings';
 import type { Template, TemplateElement, TemplateParams, TemplateValue } from './templateData';
 import type { LayoutWindow } from './templateLayout';
 
@@ -52,8 +52,13 @@ export interface TemplateElementChanges {
  * an op's `element` is, `'help_button'`, `'help_button/@0'`): its type, look, input flags and children
  * - a button "like the help button" - and the fields given replace the copy's (`vars` merged). Without
  * `like` it is built from the fields alone (`tag` then needed), the rest Flash's defaults.
+ *
+ * `bindAs` gives it a name the window's code fills that the template lacks (the catalogue's
+ * `ctlg_txt1`, the page text a layout has no field for): it takes that name rather than an owned one,
+ * so the code's binding of the name (the page's text, as a panel edits it) reaches it. A name the
+ * template (or an earlier patch) already has is a conflict, reported, and the element keeps its owned name.
  */
-export type TemplateElementInput = Partial<Omit<TemplateElement, 'children' | 'name' | 'tag'>> & { name: string; tag?: string; like?: string; children?: TemplateElementInput[] };
+export type TemplateElementInput = Partial<Omit<TemplateElement, 'children' | 'name' | 'tag'>> & ({ name: string; bindAs?: string } | { name?: string; bindAs: string }) & { tag?: string; like?: string; children?: TemplateElementInput[] };
 
 export type TemplateInsertPosition = 'before' | 'after' | 'first' | 'last';
 
@@ -88,7 +93,11 @@ export type TemplatePatchOps = readonly TemplatePatchOp[] | ((context: TemplateC
 export interface TemplatePatch {
     /** Who made it: a plugin's key. Elements it adds are named `<owner>:<name>`. */
     owner: string;
-    /** The template's id, `<library>/<asset>` (`habbo-friend-list-com/friend_list_xml`). */
+    /**
+     * The template's id, `<library>/<asset>` (`habbo-friend-list-com/friend_list_xml`), or a pattern
+     * where `*` stands for any run of characters (`habbo-catalog-com/layout_*`: every catalogue page
+     * layout) - one patch for a family of templates.
+     */
     template: string;
     ops: TemplatePatchOps;
     /** Lower runs first; a theme that others build on takes a low order. Default 0. */
@@ -128,8 +137,23 @@ export interface TemplatePatchReport {
 /** No context: what a window that passes none is patched with. */
 export const EMPTY_TEMPLATE_CONTEXT: TemplateContext = Object.freeze({});
 
+const patterns = new Map<string, RegExp>();
+
+/** Whether a patch's `template` names `id`: the id itself, or a pattern with `*`s matching it whole. */
+export const templatePatchMatches = (template: string, id: string): boolean => {
+    if (template === id) return true;
+
+    if (!template.includes('*')) return false;
+
+    let pattern = patterns.get(template);
+
+    if (!pattern) patterns.set(template, (pattern = new RegExp(`^${template.split('*').map(part => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`)));
+
+    return pattern.test(id);
+};
+
 /** Whether `id`'s patches depend on the window's context: any of them gives its ops as a function. */
-export const templatePatchesUseContext = (patches: readonly TemplatePatch[], id: string) => patches.some(patch => patch.template === id && typeof patch.ops === 'function');
+export const templatePatchesUseContext = (patches: readonly TemplatePatch[], id: string) => patches.some(patch => templatePatchMatches(patch.template, id) && typeof patch.ops === 'function');
 
 const contextKeys = new WeakMap<TemplateContext, string>();
 
@@ -180,9 +204,12 @@ const ownCopy = (owner: string, element: TemplateElement): TemplateElement => ({
     children: element.children.map(child => ownCopy(owner, child)),
 });
 
-/** The element an input describes, or the `like` it names that the template does not have. */
-const toElement = (owner: string, input: TemplateElementInput, find: (key: string) => TemplateElement | undefined): TemplateElement | { missing: string } => {
-    const { like, children, vars, ...fields } = input;
+/**
+ * The element an input describes, or the `like` it names that the template does not have. `claim`
+ * gives an input's `bindAs` name to it, false when the template has the name already.
+ */
+const toElement = (owner: string, input: TemplateElementInput, find: (key: string) => TemplateElement | undefined, claim: (name: string) => boolean): TemplateElement | { missing: string } => {
+    const { like, children, vars, bindAs, ...fields } = input;
     let base: TemplateElement | undefined;
 
     if (like !== undefined) {
@@ -195,7 +222,7 @@ const toElement = (owner: string, input: TemplateElementInput, find: (key: strin
     const ownChildren: TemplateElement[] = [];
 
     for (const child of children ?? []) {
-        const element = toElement(owner, child, find);
+        const element = toElement(owner, child, find, claim);
 
         if ('missing' in element) return element;
         ownChildren.push(element);
@@ -209,7 +236,7 @@ const toElement = (owner: string, input: TemplateElementInput, find: (key: strin
         ...copy,
         ...fields,
         tag: fields.tag ?? copy!.tag,
-        name: ownedElementName(owner, input.name),
+        name: (bindAs !== undefined && claim(bindAs)) ? bindAs : ownedElementName(owner, input.name ?? bindAs!),
         vars: { ...copy?.vars, ...vars },
         children: children ? ownChildren : (copy?.children ?? []),
     };
@@ -254,7 +281,7 @@ const elementKey = (owner: string, key: string, owned: ReadonlySet<string>) => k
  */
 export const applyTemplatePatches = (template: Template, templateId: string, patches: readonly TemplatePatch[], context: TemplateContext = EMPTY_TEMPLATE_CONTEXT): { template: Template; report: TemplatePatchReport } => {
     const report: TemplatePatchReport = { applied: 0, ops: {}, conflicts: [], unmatched: [], errors: [] };
-    const own = sortTemplatePatches(patches.filter(patch => patch.template === templateId))
+    const own = sortTemplatePatches(patches.filter(patch => templatePatchMatches(patch.template, templateId)))
         .map(patch => ({ owner: patch.owner, ops: opsOf(patch, context, report.errors) }))
         .filter(patch => patch.ops.length);
 
@@ -266,9 +293,29 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
     // Who set each property of each element, to report a second owner setting it.
     const setters = new Map<TemplateElement, Map<string, string[]>>();
     const owned = new Set<string>();
+    // Who took each `bindAs` name, to report a second owner (or the template's own element) wanting it.
+    const boundAs = new Map<string, string>();
 
     for (const patch of own) {
+        // The names this op's elements took: given back when the op places nothing.
+        let claimed: string[] = [];
+        const release = () => claimed.forEach(name => boundAs.delete(name));
+        const claim = (name: string) => {
+            if (!findTemplateChild(result.elements, name) && !boundAs.has(name)) {
+                boundAs.set(name, patch.owner);
+                claimed.push(name);
+
+                return true;
+            }
+
+            report.conflicts.push({ template: templateId, element: name, property: 'bindAs', owners: [ boundAs.get(name) ?? TEMPLATE_OWNER, patch.owner ] });
+
+            return false;
+        };
+
         for (const op of patch.ops) {
+            claimed = [];
+
             const key = elementKey(patch.owner, op.element, owned);
             const target = resolveTemplateNames(result.elements, [ key ]).targets.get(key);
 
@@ -327,15 +374,17 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
                 container?.splice(container.indexOf(target), 1);
             } else if ('wrap' in op) {
                 const from = findContainer(result.elements, target);
-                const wrapper = toElement(patch.owner, op.wrap, like => resolveTemplateNames(result.elements, [ elementKey(patch.owner, like, owned) ]).targets.get(elementKey(patch.owner, like, owned)));
+                const wrapper = toElement(patch.owner, op.wrap, like => resolveTemplateNames(result.elements, [ elementKey(patch.owner, like, owned) ]).targets.get(elementKey(patch.owner, like, owned)), claim);
 
                 if ('missing' in wrapper) {
+                    release();
                     report.unmatched.push({ template: templateId, owner: patch.owner, element: wrapper.missing });
 
                     continue;
                 }
 
                 if (!from || (from === result.elements && result.elements.length === 1)) {
+                    release();
                     report.unmatched.push({ template: templateId, owner: patch.owner, element: op.element });
 
                     continue;
@@ -374,15 +423,17 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
                 from.splice(from.indexOf(target), 1);
                 place(result.elements, target, op.move, destination);
             } else {
-                const element = toElement(patch.owner, op.add, like => resolveTemplateNames(result.elements, [ elementKey(patch.owner, like, owned) ]).targets.get(elementKey(patch.owner, like, owned)));
+                const element = toElement(patch.owner, op.add, like => resolveTemplateNames(result.elements, [ elementKey(patch.owner, like, owned) ]).targets.get(elementKey(patch.owner, like, owned)), claim);
 
                 if ('missing' in element) {
+                    release();
                     report.unmatched.push({ template: templateId, owner: patch.owner, element: element.missing });
 
                     continue;
                 }
 
                 if (!place(result.elements, element, op.insert, target)) {
+                    release();
                     report.unmatched.push({ template: templateId, owner: patch.owner, element: op.element });
 
                     continue;
@@ -411,6 +462,9 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
 
 /** Who the window's own code is, in a conflict an override binding reports. */
 export const WINDOW_CODE_OWNER = '(window)';
+
+/** The template's own element, in a conflict over a `bindAs` name it already has. */
+export const TEMPLATE_OWNER = '(template)';
 
 /** A binding an extension gives the elements of a template's windows (`api.templates.bind`). */
 export interface TemplateBindingEntry {
