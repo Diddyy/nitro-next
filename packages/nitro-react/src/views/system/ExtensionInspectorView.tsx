@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { clientModuleLinkConflicts } from '#base/commands';
 import { clientModulesStore } from '#base/context/client-modules';
-import { ClientGates, useClientGate } from '#base/context/user';
+import { ClientGates, passesClientGate, useClientGate, userStore } from '#base/context/user';
 import { templatePatchList } from '#base/theme/templatePatches';
 import { loadSkinMap, skinWindowsLine } from '#base/utils';
 
@@ -42,7 +42,12 @@ export const ExtensionInspectorView = () => {
 
             const hit = inspectAt(app.stage, ClientPointToStage(app.canvas, event.clientX, event.clientY));
 
-            if (!hit) return;
+            // Said, so an alt-click that finds nothing is not taken for an inspector that is off.
+            if (!hit) {
+                console.info('[Inspector]', 'Nothing under the pointer is an element of a template window: the room, or a window Nitro draws without a template.');
+
+                return;
+            }
 
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -85,7 +90,9 @@ const DEV_INSPECTOR_KEY = 'nitro.inspector';
 /**
  * Development builds: off until `NitroInspector()` in the console (`NitroInspector(false)` turns it
  * off), remembered in this browser's localStorage. Off by default, so an alt-click (alt-drag, a test's
- * alt-click) presses what it always did and the windows note nothing.
+ * alt-click) presses what it always did and the windows note nothing. It turns on and off at once, the
+ * open windows drawn again to follow (`setTemplateInspecting`), and says so; staff holding
+ * `client.inspector` have it on whatever this says.
  */
 const useDevInspector = () => {
     const [ on, setOn ] = useState(() => import.meta.env.DEV && (window.localStorage.getItem(DEV_INSPECTOR_KEY) === '1'));
@@ -98,6 +105,13 @@ const useDevInspector = () => {
             else window.localStorage.removeItem(DEV_INSPECTOR_KEY);
 
             setOn(value);
+
+            const held = passesClientGate(userStore.getState(), ClientGates.ExtensionInspector);
+
+            // Not `[Inspector]`, which starts each element report.
+            console.info('[NitroInspector]', value
+                ? `On${held ? ' (you hold client.inspector, so it was already)' : ''}: Alt-click a window element for its key, Alt+Shift-click for its skin's overlay entry. Kept over a reload until NitroInspector(false).`
+                : held ? 'Still on: you hold client.inspector, which turns it on whatever this says.' : 'Off.');
         };
 
         return () => {

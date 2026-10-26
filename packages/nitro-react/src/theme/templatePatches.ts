@@ -14,7 +14,7 @@
  * does a `font_face` the page cannot draw (`templateFontFaces.ts`).
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, FrameOverride, ineffectiveTemplateSets, isTemplateBindOp, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, resolveTemplateBind, rootFrameOverride, setFramePatchLooks, Template, templateBindElement, TemplateBinding, TemplateBindings, TemplateBindOp, templateBindProblems, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, templatePatchAddedNames, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchIneffective, templatePatchMatches, TemplatePatchOp, TemplatePatchReport, TemplatePatchSet, templatePatchSets, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
+import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, FrameOverride, ineffectiveTemplateSets, isTemplateBindOp, loadTexture, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, resolveTemplateBind, rootFrameOverride, setFramePatchLooks, Template, templateBindElement, TemplateBinding, TemplateBindings, TemplateBindOp, templateBindProblems, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, templatePatchAddedNames, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchIneffective, templatePatchMatches, TemplatePatchOp, TemplatePatchReport, TemplatePatchSet, templatePatchSets, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
 
 import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
@@ -173,6 +173,50 @@ const combineArranges = (id: string, own: ((windows: TemplateWindows) => void) |
 /** The placeholders a `bind` op's values named that had no value, per template, owner and placeholder: each said once. */
 const bindMisses = new Set<string>();
 
+/** The `bind` ops no client binds (`templateBindProblems`): they change nothing, so are not counted as applied. */
+const refusedBindOps = new WeakSet<TemplateBindOp>();
+/** Per `bind` op, the asset addresses its binding has drawn, and those that did not load. */
+const bindAssets = new WeakMap<TemplateBindOp, { drawn: Set<string>; failed: Set<string> }>();
+
+/** Whether `op` changes nothing its windows draw: refused, or every asset it drew failed to load. */
+const deadBindOp = (op: TemplateBindOp) => {
+    if (refusedBindOps.has(op)) return true;
+
+    const assets = bindAssets.get(op);
+
+    return !!assets && (assets.drawn.size > 0) && (assets.failed.size === assets.drawn.size);
+};
+
+/**
+ * Loads the asset a `bind` op's binding drew, once per address: one that does not load (a 404, a
+ * bundle asset no bundle has) draws nothing, so it is said - console and the server's extension
+ * inspector, kind `patch.ineffective` with the address - and the op is not counted as applied while
+ * nothing it drew loaded. A `${key}` left in it is the window's to fill (a hotel variable): not loaded here.
+ */
+const noteBindAsset = (patch: TemplatePatch, op: TemplateBindOp, url: string) => {
+    let assets = bindAssets.get(op);
+
+    if (!assets) bindAssets.set(op, (assets = { drawn: new Set(), failed: new Set() }));
+
+    if (!url || url.includes('${') || assets.drawn.has(url)) return;
+
+    const seen = assets;
+
+    seen.drawn.add(url);
+
+    void loadTexture(url).then((texture) => {
+        if (texture) return;
+
+        seen.failed.add(url);
+
+        const message = `${patch.template}: ${patch.owner}'s bind of '${op.element}' draws ${url}, which did not load, so the element draws nothing there.`;
+
+        console.warn(`[TemplatePatches] ${message}`);
+        reportClientExtension({ owner: patch.owner, kind: 'patch.ineffective', subject: patch.template, reason: `${op.element}:${url}`, message });
+        reannounceApplied(patch.template);
+    });
+};
+
 /** Says once that a `bind` op's placeholder (or field) had nothing to fill it for a window drawn. */
 const noteBindMiss = (template: string, owner: string, element: string, what: string) => {
     const key = JSON.stringify([ template, owner, element, what ]);
@@ -196,19 +240,26 @@ const bindOpBinding = (patch: TemplatePatch, op: TemplateBindOp, added: Readonly
     const problems = templateBindProblems(op);
 
     if (problems.length) {
-        const message = `${patch.template}: ${patch.owner}'s bind of '${op.element}' is skipped: ${problems.join(' ')}`;
+        const message = `${patch.template}: ${patch.owner}'s bind of '${op.element}' is skipped, so it changes nothing: ${problems.join(' ')}`;
 
+        refusedBindOps.add(op);
         console.warn(`[TemplatePatches] ${message}`);
-        reportClientExtension({ owner: patch.owner, kind: 'module.failed', subject: patch.template, reason: 'patch', message });
+        reportClientExtension({ owner: patch.owner, kind: 'patch.ineffective', subject: patch.template, reason: `${op.element}:bind`, message });
 
         return undefined;
     }
 
-    const binding = (context: TemplateContext, item?: TemplateItemContext, itemContext?: TemplateContext) => resolveTemplateBind(
-        op.bind,
-        { context, item, itemContext, text: key => translate(key, key), base },
-        what => noteBindMiss(patch.template, patch.owner, op.element, what),
-    );
+    const binding = (context: TemplateContext, item?: TemplateItemContext, itemContext?: TemplateContext) => {
+        const bound = resolveTemplateBind(
+            op.bind,
+            { context, item, itemContext, text: key => translate(key, key), base },
+            what => noteBindMiss(patch.template, patch.owner, op.element, what),
+        );
+
+        if (typeof bound.asset === 'string') noteBindAsset(patch, op, bound.asset);
+
+        return bound;
+    };
 
     return { owner: patch.owner, template: patch.template, element: templateBindElement(patch.owner, op, name => added.has(name)), binding, override: op.override === true, items: op.items === true, order: patch.order ?? 0 };
 };
@@ -309,26 +360,49 @@ const announceReport = (id: string, report: TemplatePatchReport) => {
         reportClientExtension({ owner: error.owner, kind: 'module.failed', subject: id, reason: 'patch', message });
     }
 
+    announceApplied(id, report);
+};
+
+/**
+ * Each owner's `patch.applied` figure for `id`, once its window has been drawn (`APPLIED_REPORT_DELAY`).
+ * An owner none of whose ops applied is not reported applied: its misses say why.
+ */
+const announceApplied = (id: string, report: TemplatePatchReport) => {
     clearTimeout(appliedTimers.get(id));
     appliedTimers.set(id, setTimeout(() => {
         appliedTimers.delete(id);
 
-        for (const { owner, count, applied } of appliedCounts(id, report)) reportClientExtension({ owner, kind: 'patch.applied', subject: id, reason: String(applied), message: `${applied} of ${count} op(s) applied.` });
+        for (const { owner, count, applied } of appliedCounts(id, report)) {
+            if (applied > 0) reportClientExtension({ owner, kind: 'patch.applied', subject: id, reason: String(applied), message: `${applied} of ${count} op(s) applied.` });
+        }
     }, APPLIED_REPORT_DELAY));
+};
+
+/** The figures again for every template `template` names, once a bound asset failed after they were said. */
+const reannounceApplied = (template: string) => {
+    for (const [ id, report ] of reports) {
+        if (templatePatchMatches(template, id)) announceApplied(id, report);
+    }
 };
 
 /** Whether every field `set` sets is one its window's bindings make ineffective. */
 const whollyIneffective = (set: TemplatePatchSet, ineffective: readonly TemplatePatchIneffective[]) => Object.entries(set.set)
     .every(([ property, value ]) => (value === undefined) || ineffective.some(miss => miss.owner === set.owner && miss.element === set.element && miss.property === property));
 
-/** Each owner's ops that matched and change what the window draws: neither unmatched nor wholly ineffective. */
+/** `owner`'s `bind` ops for `id` that change nothing (`deadBindOp`). */
+const deadBindOps = (id: string, owner: string) => patches
+    .filter(patch => patch.owner === owner && Array.isArray(patch.ops) && templatePatchMatches(patch.template, id))
+    .flatMap(patch => (patch.ops as readonly TemplatePatchOp[]).filter(isTemplateBindOp))
+    .filter(deadBindOp).length;
+
+/** Each owner's ops that matched and change what the window draws: neither unmatched, nor wholly ineffective, nor a dead `bind`. */
 const appliedCounts = (id: string, report: TemplatePatchReport) => {
     const ineffective = ineffectiveSets.get(id)?.ineffective ?? [];
     const sets = templateSetsSeen.get(id) ?? [];
 
     return Object.entries(report.ops).map(([ owner, count ]) => {
         const unmatched = report.unmatched.filter(miss => miss.owner === owner).length;
-        const dead = ineffective.length ? sets.filter(set => set.owner === owner && whollyIneffective(set, ineffective)).length : 0;
+        const dead = (ineffective.length ? sets.filter(set => set.owner === owner && whollyIneffective(set, ineffective)).length : 0) + deadBindOps(id, owner);
 
         return { owner, count, applied: Math.max(0, count - unmatched - dead) };
     });
@@ -389,9 +463,9 @@ export const noteIneffectiveSets = (id: string, template: Template, context: Tem
         if (before.has(keyOf(miss))) continue;
 
         const position = miss.property === 'position';
-        const message = `${id}: ${miss.owner}'s patch sets ${miss.property} of '${miss.element}', which changes nothing: ${position ? 'only a window\'s own frame (\'\') opens at a position' : `the window's code sets ${miss.property} of that element, and that is what it draws`}.`;
+        const message = `${id}: ${miss.owner}'s patch sets ${miss.property} of '${miss.element}', which changes nothing: ${position ? 'only a window\'s own frame (\'\') opens at a position' : `the window's code sets ${miss.property} of that element, and that is what it draws. Bind it with override: true instead`}.`;
 
-        console.warn(`[TemplatePatches] ${message}${position ? '' : ' Bind it with override: true instead.'}`);
+        console.warn(`[TemplatePatches] ${message}`);
         reportClientExtension({ owner: miss.owner, kind: 'patch.ineffective', subject: id, reason: `${miss.element}.${miss.property}`, message });
     }
 };
