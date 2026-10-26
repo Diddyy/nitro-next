@@ -166,11 +166,14 @@ const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefi
  * clipped to it.
  */
 export const Frame = ({
-    variant: codeVariant, defaultVariant, tooltip, tooltipDelay, layout, tintColor: codeTintColor, textStyle, textColor, dropShadow, id, name, caption, resizeDirection = 'all', contentLayout, margins,
+    variant: codeVariant, defaultVariant, tooltip, tooltipDelay, layout, tintColor: codeTintColor, tintMode, textStyle, textColor, dropShadow, id, name, caption, resizeDirection = 'all', contentLayout, margins,
     defaultPosition, rememberPosition = true, rememberSize = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, panes, panesInFront, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
-    const { frameRef, attachFrame, offset, zIndex, revealed, onHeaderPointerDown, startDrag } = useFrameDrag(id, { defaultPosition, remember: rememberPosition, centered, onPositionChange });
+    // A theme's style for this window (`frame.overrides`), over what its code passes.
+    const override = frameOverrideOf(useThemeConfigValue<unknown>(FRAME_OVERRIDES_KEY), id, name);
+    // Its first position as well: where the player left it still wins (`useFrameDrag`'s stored offset).
+    const { frameRef, attachFrame, offset, zIndex, revealed, onHeaderPointerDown, startDrag } = useFrameDrag(id, { defaultPosition: override?.position ?? defaultPosition, remember: rememberPosition, centered: override?.position ? false : centered, onPositionChange });
     /*
      * The window a frame that is no drag target itself is dragged with: `WindowController.update`
      * walks up from a `mouse_dragging_trigger` (a frame skin's header) to the first ancestor with the
@@ -190,8 +193,6 @@ export const Frame = ({
      * one. A frame already on a desktop - every window of the client's own, and a frame nested
      * inside one - stays exactly where it is rendered.
      */
-    // A theme's style for this window (`frame.overrides`), over what its code passes.
-    const override = frameOverrideOf(useThemeConfigValue<unknown>(FRAME_OVERRIDES_KEY), id, name);
     const variant = override?.variant ?? codeVariant;
     const frameless = isFramelessVariant(variant);
     const tintColor = override?.color ?? codeTintColor;
@@ -214,6 +215,7 @@ export const Frame = ({
     const { ownCascade, config, handlers, resolvedLayer, resolvedPlain, resolvedOverlay, resolvedShadow, resolvedTint } = useThemeVariant<FrameVariant>({
         cascadeKey: 'frame', variant: frameless ? undefined : variant, defaultVariant, tooltip, tooltipDelay, tintColor, textStyle, textColor, dropShadow, interactive: true, onPointerOver, onPointerOut, onPointerDown: (frameless && draggable) ? onFramelessPointerDown : onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
     });
+    const resolvedTintMode = tintMode ?? config.tintMode;
     const minWidth = layout?.minWidth ?? config.layout?.minWidth ?? 20;
     const minHeight = layout?.minHeight ?? config.layout?.minHeight ?? 20;
     const maxWidth = layout?.maxWidth ?? config.layout?.maxWidth;
@@ -306,6 +308,7 @@ export const Frame = ({
                     <BackgroundLayer
                         layer={resolvedLayer}
                         tintColor={resolvedTint}
+                        tintMode={resolvedTintMode}
                     />
                 ) }
                 {/* The skin's `colorize="false"` pieces, over the tinted art and under the shine. */}
@@ -331,6 +334,9 @@ export const Frame = ({
                                 <Header
                                     caption={caption}
                                     tintColor={resolvedTint}
+                                    tintMode={resolvedTintMode}
+                                    // A colour the window's code gives its frame's text is its title's too.
+                                    textColor={textColor}
                                     onClose={onClose}
                                     closeButtonVisible={closeButtonVisible}
                                     closeVariant={closeButtonVariant}

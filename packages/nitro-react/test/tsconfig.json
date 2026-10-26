@@ -9,6 +9,7 @@
     },
     "include": [
         "./**/*",
+        "../src/hooks/room/roomPreviewerLook.ts",
         "../src/commands/client-modules/pluginMessageCodec.ts",
         "../src/commands/client-modules/clientModuleChannels.ts",
         "../src/commands/client-modules/clientModuleLinkRoutes.ts",

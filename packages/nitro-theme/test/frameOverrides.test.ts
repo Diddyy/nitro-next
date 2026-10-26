@@ -24,3 +24,11 @@ void test('a value that is not an object, or an entry with nothing usable, overr
     assert.equal(parseFrameOverrides({ a: { color: 'blue' }, b: 3 }).size, 0);
     assert.equal(frameOverrideOf(undefined, 'a'), undefined);
 });
+
+void test('a position is whole pixels from the desktop top left; one without both numbers is no position', () => {
+    const overrides = parseFrameOverrides({ catalog: { position: { x: 84.7, y: 153 } }, navigator: { position: { x: '84', y: 1 } }, inventory: { position: [ 1, 2 ], color: '#fff' } });
+
+    assert.deepEqual(overrides.get('catalog'), { position: { x: 84, y: 153 } });
+    assert.equal(overrides.get('navigator'), undefined);
+    assert.deepEqual(overrides.get('inventory'), { color: '#ffffff' });
+});
