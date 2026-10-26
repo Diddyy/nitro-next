@@ -10,6 +10,13 @@
  *   `onRewardTracks` as the packet would, and the track `trackId` names - else the first - is opened
  *   as `reward_track/open/<id>` opens it. `figure` and `gender` stand in for the own avatar.
  *
+ * - `window: 'design'`: `template` names a window of the game - a template's id (`<library>/<asset>`,
+ *   one window of it with `part`) or a frame Nitro draws itself by its frame id - drawn with `draft`,
+ *   an appearance editor's unsaved patch files, style values, variables and texts (`base`: Habbo's
+ *   own, none of them), `items` sample rows for the lists its code fills. Answered after with
+ *   `report` (what its patches did), and a press on it with `select` (the element's key); `{ window:
+ *   'design', highlight: '<key>' }` outlines an element and changes nothing else (`DesignPreviewView`).
+ *
  * Each shown window is answered with `shown` and the desktop's size; a message the host cannot use,
  * with `error`. Pressing a prize or a button sends nothing: there is no connection.
  */
@@ -26,12 +33,14 @@ import { RewardTrackView } from '#base/views/reward-track/RewardTrackView';
 import { SystemDialogsView } from '#base/views/system/SystemDialogsView';
 import { ViewErrorBoundaries } from '#base/views/system/ViewErrorBoundary';
 
-import { toRewardTracksMessage } from './previewMessages';
+import { DesignReply, highlightDesign, showDesign } from './designPreview';
+import { DesignPreviewView } from './DesignPreviewView';
+import { toDesignMessage, toRewardTracksMessage } from './previewMessages';
 
 /** The windows the host can show. */
-const PREVIEW_WINDOWS = [ 'rewardtrack' ];
+const PREVIEW_WINDOWS = [ 'rewardtrack', 'design' ];
 
-type PreviewReply = { event: 'ready'; windows: string[] } | { event: 'shown'; window: string; width: number; height: number } | { event: 'error'; message: string };
+type PreviewReply = { event: 'ready'; windows: string[] } | { event: 'shown'; window: string; width: number; height: number } | { event: 'error'; message: string } | DesignReply;
 
 const reply = (target: MessageEventSource | null, origin: string, message: PreviewReply) => {
     if (!target || !('postMessage' in target)) return;
@@ -59,6 +68,25 @@ const showRewardTrack = (message: Record<string, unknown>, setFigure: SetFigure)
     return undefined;
 };
 
+/** `design`: the window and the draft to draw it with, or only the element to outline. */
+const showDesignWindow = (message: Record<string, unknown>, answer: (reply: PreviewReply) => void): string | undefined => {
+    if (('highlight' in message) && (message.template === undefined)) {
+        highlightDesign((typeof message.highlight === 'string') ? message.highlight : null);
+
+        return undefined;
+    }
+
+    const design = toDesignMessage(message);
+
+    if (!design) return 'no template to draw';
+
+    showDesign(design, answer);
+
+    if ('highlight' in message) highlightDesign((typeof message.highlight === 'string') ? message.highlight : null);
+
+    return undefined;
+};
+
 export const PreviewHostView = () => {
     const allowedOrigins = parsePreviewAllowedOrigins(useConfigValue<unknown>(PREVIEW_ALLOWED_ORIGINS_KEY));
     const allowed = allowedOrigins.join(',');
@@ -80,7 +108,9 @@ export const PreviewHostView = () => {
             if ((typeof message !== 'object') || (message === null) || ((message as Record<string, unknown>).type !== PREVIEW_MESSAGE_TYPE)) return;
 
             const { window: name } = message as Record<string, unknown>;
-            const error = (name === 'rewardtrack') ? showRewardTrack(message as Record<string, unknown>, setFigure) : `no window ${String(name)}`;
+            const answer = (next: PreviewReply) => reply(event.source, event.origin, next);
+            const show = (name === 'rewardtrack') ? () => showRewardTrack(message as Record<string, unknown>, setFigure) : (name === 'design') ? () => showDesignWindow(message as Record<string, unknown>, answer) : undefined;
+            const error = show ? show() : `no window ${String(name)}`;
 
             if (error) reply(event.source, event.origin, { event: 'error', message: error });
             else reply(event.source, event.origin, { event: 'shown', window: String(name), width: window.innerWidth, height: window.innerHeight });
@@ -99,6 +129,7 @@ export const PreviewHostView = () => {
             <ViewErrorBoundaries>
                 <RewardTrackView />
                 <RewardTrackPremiumConfirmationView />
+                <DesignPreviewView />
                 <SystemDialogsView />
                 <ModalLayer />
                 <TooltipLayer />

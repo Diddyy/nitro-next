@@ -652,6 +652,13 @@ export const templatePatchReport = (id: string): TemplatePatchReport | undefined
     };
 };
 
+/** Per owner, the ops its patches gave a template and how many of them change what it draws (`patch.applied`), once drawn. */
+export const templatePatchOwnerCounts = (id: string): { owner: string; count: number; applied: number }[] => {
+    const report = reports.get(id);
+
+    return report ? appliedCounts(id, report) : [];
+};
+
 /** The patches added now: for the inspector, which lists those naming the element it shows. */
 export const templatePatchList = (): readonly TemplatePatch[] => patches;
 
@@ -714,4 +721,48 @@ export const loadTemplatePatchFiles = async (value: unknown, styleValues?: unkno
             NitroLogger.error('TemplatePatches', `${owner}'s patch file ${url} did not load: ${error instanceof Error ? error.message : String(error)}`);
         }
     }));
+};
+
+/** The preview host's draft patches, and the styles the files were last resolved with. */
+let previewDisposers: (() => void)[] = [];
+let previewStyles: string | undefined;
+
+/**
+ * The preview host's draft (`previewHost`): the hotel's patch files (`value`, as `templates.patches`)
+ * with `drafts` - a patch file per owner, as a panel editor holds it unsaved - standing in for those
+ * owners' files, resolved with `styleValues` (`templates.styles` with the draft's values). `drafts`
+ * null is Habbo's own: no patch file at all. Gives the styles a draft names that have no value.
+ */
+export const previewTemplatePatchFiles = async (value: unknown, styleValues: unknown, drafts: Readonly<Record<string, unknown>> | null): Promise<string[]> => {
+    const styles = parseObject(styleValues);
+    const stylesKey = JSON.stringify(styles);
+    const files = parseObject(value);
+    const missing = new Set<string>();
+
+    previewDisposers.forEach(dispose => dispose());
+    previewDisposers = [];
+
+    // A file resolved with other style values is read again with these.
+    if (!drafts || (stylesKey !== previewStyles)) await loadTemplatePatchFiles({});
+
+    previewStyles = stylesKey;
+
+    if (!drafts) return [];
+
+    await loadTemplatePatchFiles(Object.fromEntries(Object.entries(files).filter(([ owner ]) => !(owner in drafts))), styles);
+
+    for (const [ owner, draft ] of Object.entries(drafts)) {
+        const file = resolveStyles(draft, styles, owner, missing) as TemplatePatchFile;
+
+        if (!Array.isArray(file?.patches)) continue;
+
+        const url = files[owner];
+        const base = new URL((typeof url === 'string') && url.length ? url : '.', window.location.href).href;
+        const list = file.patches.filter(patch => patch && (typeof patch.template === 'string'));
+        const added = templatePatchAddedNames(owner, list.flatMap(patch => (Array.isArray(patch.ops) ? patch.ops : [])));
+
+        previewDisposers.push(...list.map(patch => addTemplatePatch({ owner, template: patch.template, ops: Array.isArray(patch.ops) ? patch.ops : [], order: patch.order }, { base, added })));
+    }
+
+    return [ ...missing ];
 };

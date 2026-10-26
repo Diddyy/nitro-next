@@ -118,3 +118,34 @@ export const inspectChain = (node: TemplateInspectNode): TemplateElement[] => {
  * `undefined` for an element the template does not have - a clone a list's code made.
  */
 export const inspectKey = (node: TemplateInspectNode): string | undefined => templateElementKey(inspectChain(node));
+
+/** `inspectKey` in the template the window draws: a window drawn alone (`part`) is that window of it. */
+export const inspectTemplateKey = (node: TemplateInspectNode, window: TemplateInspectWindow): string | undefined => {
+    const own = inspectKey(node);
+
+    return ((own === undefined) || !window.part) ? own : own ? `${window.part}/${own}` : window.part;
+};
+
+/**
+ * The containers drawing the element `key` names (`inspectTemplateKey`) in the windows of template
+ * `id`: the outermost of each drawing, not the boxes inside it. What a preview outlines.
+ */
+export const inspectFind = (stage: Container, id: string, key: string): Container[] => {
+    const found: Container[] = [];
+
+    const visit = (container: Container) => {
+        const holder = targets.get(container);
+
+        if (holder?.node && (holder.window?.id === id) && (inspectTemplateKey(holder.node, holder.window) === key)) {
+            found.push(container);
+
+            return;
+        }
+
+        for (const child of container.children) visit(child);
+    };
+
+    visit(stage);
+
+    return found;
+};
