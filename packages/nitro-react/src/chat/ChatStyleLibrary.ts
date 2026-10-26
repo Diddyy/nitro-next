@@ -6,7 +6,7 @@ import { Texture } from 'pixi.js';
 import { assetBundleUrl, loadAssetBundle } from '#base/utils';
 
 import { CHAT_BUBBLES_KEY, chatBubbleStyleTheme, ChatBubbleTheme, ChatBubbleTint, parseChatBubbleTheme, setChatBubbleTheme } from './chatBubbleTheme';
-import { ChatStyle, IChatStyle } from './ChatStyle';
+import { ChatStyle, ChatStyleTextures, IChatStyle } from './ChatStyle';
 
 /** What Nitro Studio writes into the `habbo-free-flow-chat-com` library's bundle beside the bitmaps. */
 interface ChatStyleCatalogue {
@@ -64,6 +64,25 @@ export class ChatStyleLibrary {
 
     public getChatStyle(styleId: number): ChatStyle | undefined {
         return this._styles.get(styleId) ?? this._styles.get(CHAT_STYLE_DEFAULT_ID);
+    }
+
+    /**
+     * Not Flash's: a style drawn from a draft, not the bundle - the preview host's chat bubble
+     * (`views/preview/chatBubblePreview.ts`) - under `definition.id`, which no bundle style has;
+     * `removeStyle` takes it out again.
+     */
+    public addDraftStyle(definition: ChatStyleDefinition, textures: ChatStyleTextures): ChatStyle {
+        const style = new ChatStyle(definition, textures);
+
+        this.removeStyle(definition.id);
+        this._styles.set(definition.id, style);
+
+        return style;
+    }
+
+    public removeStyle(styleId: number): void {
+        this._styles.get(styleId)?.dispose();
+        this._styles.delete(styleId);
     }
 
     public dispose(): void {

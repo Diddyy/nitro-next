@@ -16,6 +16,7 @@
 import { findTemplateChild, resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateWindows } from './templateBindings';
 import type { Template, TemplateElement, TemplateParams, TemplateValue } from './templateData';
 import type { LayoutWindow } from './templateLayout';
+import { isTemplateArrangeOp, TEMPLATE_ARRANGE_FIELDS, TEMPLATE_ARRANGE_WINDOW, TemplateArrangeOp, templateArrangeReads } from './templatePatchArrange';
 import { isTemplateBindOp, templateBindElement, TemplateBindOp } from './templatePatchBind';
 
 /** What a patch may change on an element: its layout's own attributes, never its code's behaviour. */
@@ -90,7 +91,14 @@ export type TemplatePatchOp
          * (`templatePatchBind.ts`): it changes no template - the binding is added beside the patch - and
          * counts as applied when the patched template has the element.
          */
-        | TemplateBindOp;
+        | TemplateBindOp
+        /**
+         * Moves and sizes the element after the window's own `arrange`, as `api.templates.arrange` does,
+         * its rect data - numbers and formulas over what the layout measured (`templatePatchArrange.ts`):
+         * it changes no template, and counts as applied when the patched template has the element and
+         * every element its formulas read.
+         */
+        | TemplateArrangeOp;
 
 /**
  * What a window tells patches about what it shows, read-only: the infostand's user id, type and
@@ -323,6 +331,8 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
     const boundAs = new Map<string, string>();
     // The `bind` ops, checked against the template once every op has changed it: they bind it as drawn.
     const binds: { owner: string; op: TemplateBindOp }[] = [];
+    // The `arrange` ops, checked the same way: they move the window as drawn.
+    const arranges: { owner: string; op: TemplateArrangeOp }[] = [];
 
     for (const patch of own) {
         // The names this op's elements took: given back when the op places nothing.
@@ -348,6 +358,13 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
                 // Its binding is added with the patch's list; one a function gives for a context has none.
                 if (patch.ofContext) report.errors.push({ template: templateId, owner: patch.owner, message: `a bind op of '${op.element}' is given in the patch's list, not by a function of the context: its values read \${ctx.<key>}.` });
                 else binds.push({ owner: patch.owner, op });
+
+                continue;
+            }
+
+            if (isTemplateArrangeOp(op)) {
+                if (patch.ofContext) report.errors.push({ template: templateId, owner: patch.owner, message: `an arrange op of '${op.element}' is given in the patch's list, not by a function of the context: its formulas read \${ctx.<key>}.` });
+                else arranges.push({ owner: patch.owner, op });
 
                 continue;
             }
@@ -492,6 +509,38 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
 
         if (!resolveTemplateNames(result.elements, [ key ]).targets.has(key)) report.unmatched.push({ template: templateId, owner, element: op.element });
         else report.applied++;
+    }
+
+    // Who arranges each field of each element: two owners are a conflict, the later one's rect kept.
+    const arrangers = new Map<string, Map<string, string[]>>();
+
+    for (const { owner, op } of arranges) {
+        const keyOf = (element: string) => templateBindElement(owner, { element, override: true }, name => owned.has(name));
+        const has = (element: string) => (element === '') || (element === TEMPLATE_ARRANGE_WINDOW) || resolveTemplateNames(result.elements, [ keyOf(element) ]).targets.has(keyOf(element));
+        const missing = [ op.element, ...templateArrangeReads(op) ].find(element => !has(element));
+
+        if (missing !== undefined) {
+            report.unmatched.push({ template: templateId, owner, element: missing });
+
+            continue;
+        }
+
+        report.applied++;
+
+        const key = (op.element === TEMPLATE_ARRANGE_WINDOW) ? '' : keyOf(op.element);
+        const byField = arrangers.get(key) ?? new Map<string, string[]>();
+
+        arrangers.set(key, byField);
+
+        for (const field of TEMPLATE_ARRANGE_FIELDS) {
+            if (op.arrange?.[field] !== undefined) byField.set(field, [ ...(byField.get(field) ?? []), owner ]);
+        }
+    }
+
+    for (const [ element, byField ] of arrangers) {
+        for (const [ field, owners ] of byField) {
+            if (new Set(owners).size > 1) report.conflicts.push({ template: templateId, element, property: `arrange.${field}`, owners });
+        }
     }
 
     for (const [ element, byProperty ] of setters) {

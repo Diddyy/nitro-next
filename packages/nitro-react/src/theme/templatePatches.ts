@@ -14,7 +14,7 @@
  * does a `font_face` the page cannot draw (`templateFontFaces.ts`).
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, FrameOverride, ineffectiveTemplateSets, isTemplateBindOp, loadTexture, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, resolveTemplateBind, rootFrameOverride, setFramePatchLooks, Template, templateBindElement, TemplateBinding, TemplateBindings, TemplateBindOp, templateBindProblems, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, templatePatchAddedNames, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchIneffective, templatePatchMatches, TemplatePatchOp, TemplatePatchReport, TemplatePatchSet, templatePatchSets, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
+import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, FrameOverride, ineffectiveTemplateSets, isTemplateArrangeOp, isTemplateBindOp, loadTexture, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, resolveTemplateBind, rootFrameOverride, runTemplateArrange, setFramePatchLooks, Template, TemplateArrangeOp, templateArrangeProblems, templateBindElement, TemplateBinding, TemplateBindings, TemplateBindOp, templateBindProblems, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, templatePatchAddedNames, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchIneffective, templatePatchMatches, TemplatePatchOp, TemplatePatchReport, TemplatePatchSet, templatePatchSets, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
 
 import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
@@ -46,6 +46,8 @@ interface ExtensionArrange {
     owner: string;
     template: string;
     arrange: TemplateExtensionArrange;
+    /** Where it runs among the others, as a binding is laid: a patch's `arrange` op takes the patch's `order`, a module's arrange 0. */
+    order: number;
 }
 
 let patches: readonly TemplatePatch[] = [];
@@ -168,7 +170,7 @@ export const useTemplateExtensionBindings = (id: string, own: TemplateBindings |
  */
 export const useTemplateExtensionArrange = (id: string, own: ((windows: TemplateWindows) => void) | undefined, context: TemplateContext = EMPTY_TEMPLATE_CONTEXT) => combineArranges(id, own, useSyncExternalStore(subscribe, getArranges), context);
 
-const combineArranges = (id: string, own: ((windows: TemplateWindows) => void) | undefined, all: readonly ExtensionArrange[], context: TemplateContext) => chainTemplateArranges(own, all.filter(entry => entry.template === id), context, (entry, error) => reportCodeError(id, entry.owner, error));
+const combineArranges = (id: string, own: ((windows: TemplateWindows) => void) | undefined, all: readonly ExtensionArrange[], context: TemplateContext) => chainTemplateArranges(own, all.filter(entry => templatePatchMatches(entry.template, id)), context, (entry, error) => reportCodeError(id, entry.owner, error));
 
 /** The placeholders a `bind` op's values named that had no value, per template, owner and placeholder: each said once. */
 const bindMisses = new Set<string>();
@@ -265,10 +267,52 @@ const bindOpBinding = (patch: TemplatePatch, op: TemplateBindOp, added: Readonly
 };
 
 /**
- * Bindings in the order they are laid: by `order`, then owner, then as added - as patches apply
- * (`sortTemplatePatches`), never by when a file or module loaded.
+ * Bindings in the order they are laid, arranges in the order they run: by `order`, then owner, then as
+ * added - as patches apply (`sortTemplatePatches`), never by when a file or module loaded.
  */
-const sortBindings = (list: readonly ExtensionBinding[]) => [ ...list ].sort((a, b) => (a.order - b.order) || (a.owner < b.owner ? -1 : a.owner > b.owner ? 1 : 0));
+const sortBindings = <T extends { order: number; owner: string }>(list: readonly T[]) => [ ...list ].sort((a, b) => (a.order - b.order) || (a.owner < b.owner ? -1 : a.owner > b.owner ? 1 : 0));
+
+/** The `arrange` ops no client runs (`templateArrangeProblems`): they change nothing, so are not counted as applied. */
+const refusedArrangeOps = new WeakSet<TemplateArrangeOp>();
+
+/** Says once that an `arrange` op's formula (or field) read nothing for a window drawn. */
+const noteArrangeMiss = (template: string, owner: string, element: string, what: string) => {
+    const key = JSON.stringify([ template, owner, element, 'arrange', what ]);
+
+    if (bindMisses.has(key)) return;
+
+    bindMisses.add(key);
+
+    const message = `${template}: ${owner}'s arrange of '${element}' reads ${what}, which gives no number here; the field is left as the window laid it out.`;
+
+    console.warn(`[TemplatePatches] ${message}`);
+    reportClientExtension({ owner, kind: 'patch.unmatched', subject: template, reason: `${element}:arrange:${what}`, message });
+};
+
+/**
+ * A patch's `arrange` op as the hook it adds after the window's own `arrange`. One
+ * `templateArrangeProblems` refuses adds nothing and is reported.
+ */
+const arrangeOpHook = (patch: TemplatePatch, op: TemplateArrangeOp, added: ReadonlySet<string>): ExtensionArrange | undefined => {
+    const problems = templateArrangeProblems(op);
+
+    if (problems.length) {
+        refusedArrangeOps.add(op);
+
+        const message = `${patch.template}: ${patch.owner}'s arrange of '${op.element}' is skipped, so it changes nothing: ${problems.join(' ')}`;
+
+        console.warn(`[TemplatePatches] ${message}`);
+        reportClientExtension({ owner: patch.owner, kind: 'patch.ineffective', subject: patch.template, reason: `${op.element}:arrange`, message });
+
+        return undefined;
+    }
+
+    const arrange: TemplateExtensionArrange = (windows, context) => {
+        runTemplateArrange(patch.owner, op, windows, context, name => added.has(name), what => noteArrangeMiss(patch.template, patch.owner, op.element, what));
+    };
+
+    return { owner: patch.owner, template: patch.template, arrange, order: patch.order ?? 0 };
+};
 
 /**
  * Adds a patch; the returned function takes it out again. Its `bind` ops (in a list, not a function
@@ -280,10 +324,13 @@ export const addTemplatePatch = (patch: TemplatePatch, options: { base?: string;
     const ops = Array.isArray(patch.ops) ? patch.ops as readonly TemplatePatchOp[] : [];
     const added = options.added ?? templatePatchAddedNames(patch.owner, ops);
     const entries = ops.filter(isTemplateBindOp).map(op => bindOpBinding(patch, op, added, options.base)).filter(entry => entry !== undefined);
+    const hooks = ops.filter(isTemplateArrangeOp).map(op => arrangeOpHook(patch, op, added)).filter(entry => entry !== undefined);
 
     patches = [ ...patches, patch ];
 
     if (entries.length) bindings = sortBindings([ ...bindings, ...entries ]);
+
+    if (hooks.length) arranges = sortBindings([ ...arranges, ...hooks ]);
 
     changed();
     checkTemplatePatchFontFaces(patch);
@@ -293,6 +340,7 @@ export const addTemplatePatch = (patch: TemplatePatch, options: { base?: string;
 
         patches = patches.filter(entry => entry !== patch);
         bindings = bindings.filter(entry => !entries.includes(entry));
+        arranges = arranges.filter(entry => !hooks.includes(entry));
         changed();
     };
 };
@@ -321,9 +369,9 @@ export const addTemplateBinding = (owner: string, template: string, name: string
 
 /** Runs `arrange` after the own `arrange` of every window drawn from `template`. */
 export const addTemplateArrange = (owner: string, template: string, arrange: TemplateExtensionArrange) => {
-    const entry: ExtensionArrange = { owner, template, arrange };
+    const entry: ExtensionArrange = { owner, template, arrange, order: 0 };
 
-    arranges = [ ...arranges, entry ];
+    arranges = sortBindings([ ...arranges, entry ]);
     changed();
 
     return () => {
@@ -389,11 +437,11 @@ const reannounceApplied = (template: string) => {
 const whollyIneffective = (set: TemplatePatchSet, ineffective: readonly TemplatePatchIneffective[]) => Object.entries(set.set)
     .every(([ property, value ]) => (value === undefined) || ineffective.some(miss => miss.owner === set.owner && miss.element === set.element && miss.property === property));
 
-/** `owner`'s `bind` ops for `id` that change nothing (`deadBindOp`). */
+/** `owner`'s `bind` ops for `id` that change nothing (`deadBindOp`), and its `arrange` ops the client refused. */
 const deadBindOps = (id: string, owner: string) => patches
     .filter(patch => patch.owner === owner && Array.isArray(patch.ops) && templatePatchMatches(patch.template, id))
-    .flatMap(patch => (patch.ops as readonly TemplatePatchOp[]).filter(isTemplateBindOp))
-    .filter(deadBindOp).length;
+    .flatMap(patch => patch.ops as readonly TemplatePatchOp[])
+    .filter(op => (isTemplateBindOp(op) && deadBindOp(op)) || (isTemplateArrangeOp(op) && refusedArrangeOps.has(op))).length;
 
 /** Each owner's ops that matched and change what the window draws: neither unmatched, nor wholly ineffective, nor a dead `bind`. */
 const appliedCounts = (id: string, report: TemplatePatchReport) => {

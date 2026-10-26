@@ -19,6 +19,12 @@
  *   answered with `rect` (where it is drawn) each time it moves; `{ window: 'design', pick: { x, y } }`
  *   picks the element at that point of the page as a press there would (the panel's handles cover it).
  *
+ * - `window: 'chatbubble'`: `style` is a chat style's draft as the panel edits it (`assetId`,
+ *   `regPoints`, its flags), `files` its bitmaps by file name (`chat_bubble_base`, ...: addresses,
+ *   `data:` urls for ones not saved), and `text`, `name`, `figure`, `color` and `width` a line said in
+ *   it: drawn as the room draws it (`ChatBubblePreviewView`) and answered with `bubble` (its size, the
+ *   files that did not load).
+ *
  * Each shown window is answered with `shown` and the desktop's size; a message the host cannot use,
  * with `error`. Pressing a prize or a button sends nothing: there is no connection.
  */
@@ -35,14 +41,16 @@ import { RewardTrackView } from '#base/views/reward-track/RewardTrackView';
 import { SystemDialogsView } from '#base/views/system/SystemDialogsView';
 import { ViewErrorBoundaries } from '#base/views/system/ViewErrorBoundary';
 
+import { ChatBubbleReport, showChatBubble } from './chatBubblePreview';
+import { ChatBubblePreviewView } from './ChatBubblePreviewView';
 import { DesignReply, highlightDesign, pickDesign, showDesign } from './designPreview';
 import { DesignPreviewView } from './DesignPreviewView';
-import { toDesignMessage, toRewardTracksMessage } from './previewMessages';
+import { toChatBubbleMessage, toDesignMessage, toRewardTracksMessage } from './previewMessages';
 
 /** The windows the host can show. */
-const PREVIEW_WINDOWS = [ 'rewardtrack', 'design' ];
+const PREVIEW_WINDOWS = [ 'rewardtrack', 'design', 'chatbubble' ];
 
-type PreviewReply = { event: 'ready'; windows: string[] } | { event: 'shown'; window: string; width: number; height: number } | { event: 'error'; message: string } | DesignReply;
+type PreviewReply = { event: 'ready'; windows: string[] } | { event: 'shown'; window: string; width: number; height: number } | { event: 'error'; message: string } | DesignReply | ChatBubbleReport;
 
 const reply = (target: MessageEventSource | null, origin: string, message: PreviewReply) => {
     if (!target || !('postMessage' in target)) return;
@@ -99,6 +107,17 @@ const showDesignWindow = (message: Record<string, unknown>, answer: (reply: Prev
     return undefined;
 };
 
+/** `chatbubble`: a chat style's draft and a line said in it. */
+const showChatBubbleWindow = (message: Record<string, unknown>, answer: (reply: PreviewReply) => void): string | undefined => {
+    const bubble = toChatBubbleMessage(message);
+
+    if (!bubble) return 'no chat style to draw: it needs its reg points (scale9, textFieldMargins) and a chat_bubble_base';
+
+    showChatBubble(bubble, answer, text => answer({ event: 'error', message: text }));
+
+    return undefined;
+};
+
 export const PreviewHostView = () => {
     const allowedOrigins = parsePreviewAllowedOrigins(useConfigValue<unknown>(PREVIEW_ALLOWED_ORIGINS_KEY));
     const allowed = allowedOrigins.join(',');
@@ -121,7 +140,7 @@ export const PreviewHostView = () => {
 
             const { window: name } = message as Record<string, unknown>;
             const answer = (next: PreviewReply) => reply(event.source, event.origin, next);
-            const show = (name === 'rewardtrack') ? () => showRewardTrack(message as Record<string, unknown>, setFigure) : (name === 'design') ? () => showDesignWindow(message as Record<string, unknown>, answer) : undefined;
+            const show = (name === 'rewardtrack') ? () => showRewardTrack(message as Record<string, unknown>, setFigure) : (name === 'design') ? () => showDesignWindow(message as Record<string, unknown>, answer) : (name === 'chatbubble') ? () => showChatBubbleWindow(message as Record<string, unknown>, answer) : undefined;
             const error = show ? show() : `no window ${String(name)}`;
 
             if (error) reply(event.source, event.origin, { event: 'error', message: error });
@@ -142,6 +161,7 @@ export const PreviewHostView = () => {
                 <RewardTrackView />
                 <RewardTrackPremiumConfirmationView />
                 <DesignPreviewView />
+                <ChatBubblePreviewView />
                 <SystemDialogsView />
                 <ModalLayer />
                 <TooltipLayer />

@@ -104,7 +104,10 @@ export type ClientModuleTemplateInsertPosition = 'before' | 'after' | 'first' | 
  * `''`, is not wrapped; `set: { style: 'none' }` on it leaves only its panes framed). `bind`
  * binds the element as `templates.bind` does, its values data: `${ctx.<key>}`, `${item.<key>}` (with
  * `items`), `${text.<key>}` filled as it is drawn, a relative `asset` read from the module's base - the
- * op a theme with no code writes in its `template-patches.json`.
+ * op a theme with no code writes in its `template-patches.json`. `arrange` moves and sizes the element
+ * after the window's layout as `templates.arrange` does, each of `x`, `y`, `width`, `height` a number or a
+ * formula over `${<element>.<measure>}`, `${window.<measure>}` and `${ctx.<key>}` (nitro-next
+ * `docs/template-patches.md`, "An arrangement as data").
  */
 export type ClientModuleTemplatePatchOp
     = | { element: string; set: ClientModuleTemplateElementChanges }
@@ -112,7 +115,8 @@ export type ClientModuleTemplatePatchOp
         | { element: string; insert: ClientModuleTemplateInsertPosition; add: ClientModuleTemplateElementInput }
         | { element: string; move: ClientModuleTemplateInsertPosition; to: string }
         | { element: string; wrap: ClientModuleTemplateElementInput }
-        | { element: string; bind: ClientModuleTemplateBindValues; items?: boolean; override?: boolean };
+        | { element: string; bind: ClientModuleTemplateBindValues; items?: boolean; override?: boolean }
+        | { element: string; arrange: { x?: number | string; y?: number | string; width?: number | string; height?: number | string } };
 
 /** What a `bind` op gives: binding fields, each a value of its type or text with placeholders (`'icons/${item.index}.png'`). */
 export interface ClientModuleTemplateBindValues {
