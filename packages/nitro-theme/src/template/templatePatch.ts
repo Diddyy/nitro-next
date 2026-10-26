@@ -16,6 +16,7 @@
 import { findTemplateChild, resolveTemplateNames, TemplateBinding, TemplateBindings, TemplateWindows } from './templateBindings';
 import type { Template, TemplateElement, TemplateParams, TemplateValue } from './templateData';
 import type { LayoutWindow } from './templateLayout';
+import { isTemplateBindOp, templateBindElement, TemplateBindOp } from './templatePatchBind';
 
 /** What a patch may change on an element: its layout's own attributes, never its code's behaviour. */
 export interface TemplateElementChanges {
@@ -83,7 +84,13 @@ export type TemplatePatchOp
          * unless `add` gives its own: wrapping a part of a window in a `frame` makes it a separately
          * framed pane of the window (`docs/template-patches.md`). The window itself (`''`) is not wrapped.
          */
-        | { element: string; wrap: TemplateElementInput };
+        | { element: string; wrap: TemplateElementInput }
+        /**
+         * Binds the element as `api.templates.bind` does, its values data with placeholders
+         * (`templatePatchBind.ts`): it changes no template - the binding is added beside the patch - and
+         * counts as applied when the patched template has the element.
+         */
+        | TemplateBindOp;
 
 /**
  * What a window tells patches about what it shows, read-only: the infostand's user id, type and
@@ -301,7 +308,7 @@ const elementKey = (owner: string, key: string, owned: ReadonlySet<string>) => k
 export const applyTemplatePatches = (template: Template, templateId: string, patches: readonly TemplatePatch[], context: TemplateContext = EMPTY_TEMPLATE_CONTEXT): { template: Template; report: TemplatePatchReport } => {
     const report: TemplatePatchReport = { applied: 0, ops: {}, conflicts: [], unmatched: [], errors: [] };
     const own = sortTemplatePatches(patches.filter(patch => templatePatchMatches(patch.template, templateId)))
-        .map(patch => ({ owner: patch.owner, ops: opsOf(patch, context, report.errors) }))
+        .map(patch => ({ owner: patch.owner, ops: opsOf(patch, context, report.errors), ofContext: typeof patch.ops === 'function' }))
         .filter(patch => patch.ops.length);
 
     for (const patch of own) report.ops[patch.owner] = (report.ops[patch.owner] ?? 0) + patch.ops.length;
@@ -314,6 +321,8 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
     const owned = new Set<string>();
     // Who took each `bindAs` name, to report a second owner (or the template's own element) wanting it.
     const boundAs = new Map<string, string>();
+    // The `bind` ops, checked against the template once every op has changed it: they bind it as drawn.
+    const binds: { owner: string; op: TemplateBindOp }[] = [];
 
     for (const patch of own) {
         // The names this op's elements took: given back when the op places nothing.
@@ -334,6 +343,14 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
 
         for (const op of patch.ops) {
             claimed = [];
+
+            if (isTemplateBindOp(op)) {
+                // Its binding is added with the patch's list; one a function gives for a context has none.
+                if (patch.ofContext) report.errors.push({ template: templateId, owner: patch.owner, message: `a bind op of '${op.element}' is given in the patch's list, not by a function of the context: its values read \${ctx.<key>}.` });
+                else binds.push({ owner: patch.owner, op });
+
+                continue;
+            }
 
             const key = elementKey(patch.owner, op.element, owned);
             const target = resolveTemplateNames(result.elements, [ key ]).targets.get(key);
@@ -468,6 +485,13 @@ export const applyTemplatePatches = (template: Template, templateId: string, pat
 
             report.applied++;
         }
+    }
+
+    for (const { owner, op } of binds) {
+        const key = templateBindElement(owner, op, name => owned.has(name));
+
+        if (!resolveTemplateNames(result.elements, [ key ]).targets.has(key)) report.unmatched.push({ template: templateId, owner, element: op.element });
+        else report.applied++;
     }
 
     for (const [ element, byProperty ] of setters) {

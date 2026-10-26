@@ -14,10 +14,11 @@
  * does a `font_face` the page cannot draw (`templateFontFaces.ts`).
  */
 import { NitroLogger } from '@nitrodevco/nitro-api';
-import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, FrameOverride, ineffectiveTemplateSets, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, rootFrameOverride, setFramePatchLooks, Template, TemplateBinding, TemplateBindings, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchIneffective, TemplatePatchOp, TemplatePatchReport, TemplatePatchSet, templatePatchSets, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
+import { applyTemplatePatches, chainTemplateArranges, EMPTY_TEMPLATE_CONTEXT, FrameOverride, ineffectiveTemplateSets, isTemplateBindOp, mergeTemplateBindings, mergeTemplateItemBindings, ownedElementName, resolveTemplateBind, rootFrameOverride, setFramePatchLooks, Template, templateBindElement, TemplateBinding, TemplateBindings, TemplateBindOp, templateBindProblems, TemplateContext, templateContextKey, TemplateExtensionArrange, TemplateItem, TemplateItemBindings, TemplateItemContext, TemplatePatch, templatePatchAddedNames, TemplatePatchConflict, TemplatePatchError, templatePatchErrorMessage, templatePatchesUseContext, TemplatePatchIneffective, templatePatchMatches, TemplatePatchOp, TemplatePatchReport, TemplatePatchSet, templatePatchSets, TemplateWindows, WINDOW_CODE_OWNER } from '@nitrodevco/nitro-theme';
 import { useSyncExternalStore } from 'react';
 
 import { reportClientExtension } from '#base/commands/client-modules/clientExtensionReports';
+import { translate } from '#base/context/system';
 import { checkTemplatePatchFontFaces } from '#base/theme/templateFontFaces';
 import { parseObject, resolveStyles } from '#base/theme/templateStyles';
 
@@ -25,7 +26,7 @@ import { parseObject, resolveStyles } from '#base/theme/templateStyles';
  * A binding, or what it is for a window's context - and, for an item binding (`items`), for the clone
  * of its list it is drawing (`item`: its key, its index in the list, the list's name).
  */
-export type TemplateExtensionBinding = TemplateBinding | ((context: TemplateContext, item?: TemplateItemContext) => TemplateBinding);
+export type TemplateExtensionBinding = TemplateBinding | ((context: TemplateContext, item?: TemplateItemContext, itemContext?: TemplateContext) => TemplateBinding);
 
 interface ExtensionBinding {
     owner: string;
@@ -37,6 +38,8 @@ interface ExtensionBinding {
     override: boolean;
     /** In each clone of a list the element is in (a row the code adds per room), not the window (`bind(..., { items: true })`). */
     items: boolean;
+    /** Where it is laid among the others, as a patch is by its `order`: a patch's `bind` op takes the patch's, a module's binding 0. */
+    order: number;
 }
 
 interface ExtensionArrange {
@@ -167,9 +170,70 @@ export const useTemplateExtensionArrange = (id: string, own: ((windows: Template
 
 const combineArranges = (id: string, own: ((windows: TemplateWindows) => void) | undefined, all: readonly ExtensionArrange[], context: TemplateContext) => chainTemplateArranges(own, all.filter(entry => entry.template === id), context, (entry, error) => reportCodeError(id, entry.owner, error));
 
-/** Adds a patch; the returned function takes it out again. */
-export const addTemplatePatch = (patch: TemplatePatch) => {
+/** The placeholders a `bind` op's values named that had no value, per template, owner and placeholder: each said once. */
+const bindMisses = new Set<string>();
+
+/** Says once that a `bind` op's placeholder (or field) had nothing to fill it for a window drawn. */
+const noteBindMiss = (template: string, owner: string, element: string, what: string) => {
+    const key = JSON.stringify([ template, owner, element, what ]);
+
+    if (bindMisses.has(key)) return;
+
+    bindMisses.add(key);
+
+    const message = `${template}: ${owner}'s bind of '${element}' names ${what}, which has no value of its type here; the field is left to the window.`;
+
+    console.warn(`[TemplatePatches] ${message}`);
+    reportClientExtension({ owner, kind: 'patch.unmatched', subject: template, reason: `${element}:${what}`, message });
+};
+
+/**
+ * A patch's `bind` op as the binding it adds: its values filled for the window (and row) drawn, a
+ * relative `asset` read from beside `base`. One `templateBindProblems` refuses adds nothing and is
+ * reported.
+ */
+const bindOpBinding = (patch: TemplatePatch, op: TemplateBindOp, added: ReadonlySet<string>, base: string | undefined): ExtensionBinding | undefined => {
+    const problems = templateBindProblems(op);
+
+    if (problems.length) {
+        const message = `${patch.template}: ${patch.owner}'s bind of '${op.element}' is skipped: ${problems.join(' ')}`;
+
+        console.warn(`[TemplatePatches] ${message}`);
+        reportClientExtension({ owner: patch.owner, kind: 'module.failed', subject: patch.template, reason: 'patch', message });
+
+        return undefined;
+    }
+
+    const binding = (context: TemplateContext, item?: TemplateItemContext, itemContext?: TemplateContext) => resolveTemplateBind(
+        op.bind,
+        { context, item, itemContext, text: key => translate(key, key), base },
+        what => noteBindMiss(patch.template, patch.owner, op.element, what),
+    );
+
+    return { owner: patch.owner, template: patch.template, element: templateBindElement(patch.owner, op, name => added.has(name)), binding, override: op.override === true, items: op.items === true, order: patch.order ?? 0 };
+};
+
+/**
+ * Bindings in the order they are laid: by `order`, then owner, then as added - as patches apply
+ * (`sortTemplatePatches`), never by when a file or module loaded.
+ */
+const sortBindings = (list: readonly ExtensionBinding[]) => [ ...list ].sort((a, b) => (a.order - b.order) || (a.owner < b.owner ? -1 : a.owner > b.owner ? 1 : 0));
+
+/**
+ * Adds a patch; the returned function takes it out again. Its `bind` ops (in a list, not a function
+ * of the context) add their bindings with it: an element named by its short name is one `added` names
+ * (the owned names of what the owner's ops add - by default this patch's), a relative `asset` a file
+ * beside `base` (the patch file's url, a module's base).
+ */
+export const addTemplatePatch = (patch: TemplatePatch, options: { base?: string; added?: ReadonlySet<string> } = {}) => {
+    const ops = Array.isArray(patch.ops) ? patch.ops as readonly TemplatePatchOp[] : [];
+    const added = options.added ?? templatePatchAddedNames(patch.owner, ops);
+    const entries = ops.filter(isTemplateBindOp).map(op => bindOpBinding(patch, op, added, options.base)).filter(entry => entry !== undefined);
+
     patches = [ ...patches, patch ];
+
+    if (entries.length) bindings = sortBindings([ ...bindings, ...entries ]);
+
     changed();
     checkTemplatePatchFontFaces(patch);
 
@@ -177,6 +241,7 @@ export const addTemplatePatch = (patch: TemplatePatch) => {
         if (!patches.includes(patch)) return;
 
         patches = patches.filter(entry => entry !== patch);
+        bindings = bindings.filter(entry => !entries.includes(entry));
         changed();
     };
 };
@@ -190,9 +255,9 @@ export const addTemplatePatch = (patch: TemplatePatch) => {
  */
 export const addTemplateBinding = (owner: string, template: string, name: string, binding: TemplateExtensionBinding, options: { override?: boolean; items?: boolean } = {}) => {
     const override = options.override === true;
-    const entry: ExtensionBinding = { owner, template, element: override ? name : ownedElementName(owner, name), binding, override, items: options.items === true };
+    const entry: ExtensionBinding = { owner, template, element: override ? name : ownedElementName(owner, name), binding, override, items: options.items === true, order: 0 };
 
-    bindings = [ ...bindings, entry ];
+    bindings = sortBindings([ ...bindings, entry ]);
     changed();
 
     return () => {
@@ -411,7 +476,7 @@ const noteBindingConflicts = (id: string, conflicts: TemplatePatchConflict[]) =>
 };
 
 const mergeExtensionBindings = (id: string, own: TemplateBindings | undefined, all: readonly ExtensionBinding[], context: TemplateContext): TemplateBindings | undefined => {
-    const { bindings: merged, conflicts } = mergeTemplateBindings(id, own, all.filter(entry => entry.template === id && !entry.items), entry => bindingFor(id, entry, context));
+    const { bindings: merged, conflicts } = mergeTemplateBindings(id, own, all.filter(entry => templatePatchMatches(entry.template, id) && !entry.items), entry => bindingFor(id, entry, context));
 
     noteBindingConflicts(id, conflicts);
 
@@ -439,11 +504,11 @@ const noteItemBindingConflicts = (id: string, conflicts: TemplatePatchConflict[]
 };
 
 /** An item binding as it is for one clone: called each time the clone is drawn (an item's index changes with its list). */
-const itemBindingFor = (id: string, entry: ExtensionBinding, context: TemplateContext, at: TemplateItemContext): TemplateBinding | undefined => {
+const itemBindingFor = (id: string, entry: ExtensionBinding, context: TemplateContext, at: TemplateItemContext, itemContext: TemplateContext | undefined): TemplateBinding | undefined => {
     if (typeof entry.binding !== 'function') return entry.binding;
 
     try {
-        return entry.binding(context, at);
+        return entry.binding(context, at, itemContext);
     } catch (error) {
         reportCodeError(id, entry.owner, error);
 
@@ -452,9 +517,9 @@ const itemBindingFor = (id: string, entry: ExtensionBinding, context: TemplateCo
 };
 
 const itemBindingsOf = (id: string, all: readonly ExtensionBinding[], context: TemplateContext): TemplateItemBindings | undefined => {
-    const entries = all.filter(entry => entry.template === id && entry.items);
+    const entries = all.filter(entry => templatePatchMatches(entry.template, id) && entry.items);
     // The bindings of the other templates a clone may be drawn from, as a window of that template has them.
-    const others = all.filter(entry => entry.template !== id && !entry.items);
+    const others = all.filter(entry => !templatePatchMatches(entry.template, id) && !entry.items);
 
     if (!entries.length && !others.length) return undefined;
 
@@ -463,7 +528,7 @@ const itemBindingsOf = (id: string, all: readonly ExtensionBinding[], context: T
         let merged = item.bindings;
 
         if (entries.length) {
-            const { bindings, conflicts } = mergeTemplateItemBindings(id, prototype, merged, entries, entry => itemBindingFor(id, entry, itemContext, at));
+            const { bindings, conflicts } = mergeTemplateItemBindings(id, prototype, merged, entries, entry => itemBindingFor(id, entry, itemContext, at, item.context));
 
             if (conflicts.length) noteItemBindingConflicts(id, conflicts);
 
@@ -471,11 +536,11 @@ const itemBindingsOf = (id: string, all: readonly ExtensionBinding[], context: T
         }
 
         const from = itemTemplateIdOf(item.from);
-        const fromEntries = from ? others.filter(entry => entry.template === from) : [];
+        const fromEntries = from ? others.filter(entry => templatePatchMatches(entry.template, from)) : [];
 
         if (!from || !fromEntries.length) return merged;
 
-        const { bindings, conflicts } = mergeTemplateItemBindings(from, prototype, merged, fromEntries, entry => itemBindingFor(from, entry, itemContext, at));
+        const { bindings, conflicts } = mergeTemplateItemBindings(from, prototype, merged, fromEntries, entry => itemBindingFor(from, entry, itemContext, at, item.context));
 
         if (conflicts.length) noteItemBindingConflicts(from, conflicts);
 
@@ -565,7 +630,10 @@ export const loadTemplatePatchFiles = async (value: unknown, styleValues?: unkno
 
             if (missing.size > 0) NitroLogger.warn('TemplatePatches', `${owner}'s patch file names styles the hotel has no value of: ${[ ...missing ].join(', ')}.`);
 
-            const disposers = file.patches.map(patch => addTemplatePatch({ owner, template: patch.template, ops: patch.ops ?? [], order: patch.order }));
+            // A `bind` op names what any of the file's patches adds by its short name, and reads a relative asset from beside the file.
+            const base = new URL(url, window.location.href).href;
+            const added = templatePatchAddedNames(owner, file.patches.flatMap(patch => (Array.isArray(patch.ops) ? patch.ops : [])));
+            const disposers = file.patches.map(patch => addTemplatePatch({ owner, template: patch.template, ops: patch.ops ?? [], order: patch.order }, { base, added }));
 
             filePatches.set(owner, { url, dispose: () => disposers.forEach(dispose => dispose()) });
         } catch (error) {

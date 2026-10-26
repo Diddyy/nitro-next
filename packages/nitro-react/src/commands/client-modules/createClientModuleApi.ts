@@ -348,7 +348,7 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
             },
         },
         templates: {
-            patch: (template, ops, options = {}) => track(addTemplatePatch({ owner: moduleKey, template, ops, order: options.order })),
+            patch: (template, ops, options = {}) => track(addTemplatePatch({ owner: moduleKey, template, ops, order: options.order }, { base: baseUrl })),
             bind: (template, element, binding, options) => track(addTemplateBinding(moduleKey, template, element, binding, options)),
             arrange: (template, arrange) => track(addTemplateArrange(moduleKey, template, arrange)),
             report: template => templatePatchReport(template),
