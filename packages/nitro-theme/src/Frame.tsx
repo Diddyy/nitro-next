@@ -52,6 +52,12 @@ export interface FrameProps extends Omit<ThemeProps<FrameVariant>, 'dropShadow'>
      */
     rememberPosition?: boolean;
     /**
+     * Whether a theme's first position for this window (`frame.overrides.<id>.position`) goes over
+     * `defaultPosition`. On by default; `false` for a window whose code weighs the theme's position
+     * itself - the navigator's, which the player's own saved place beats.
+     */
+    themePosition?: boolean;
+    /**
      * Whether this window reopens at the size its scaler was last left at. On by default; pass
      * `false` for a window whose size is kept elsewhere - the navigator's comes from the server's
      * preferences, and a stored one would win over them.
@@ -167,13 +173,14 @@ const frameAxisSize = (fit: boolean, hasMargins: boolean, bound: number | undefi
  */
 export const Frame = ({
     variant: codeVariant, defaultVariant, tooltip, tooltipDelay, layout, tintColor: codeTintColor, tintMode, textStyle, textColor, dropShadow, id, name, caption, resizeDirection = 'all', contentLayout, margins,
-    defaultPosition, rememberPosition = true, rememberSize = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, panes, panesInFront, children,
+    defaultPosition, rememberPosition = true, themePosition = true, rememberSize = true, draggable = true, centered, onPositionChange, onClose, onResize, closeButtonVisible, closeButtonVariant, onMenu, helpPage, onHelp, backdrop, fitContent, panes, panesInFront, children,
     onPointerOver, onPointerOut, onPointerDown: onPointerDownProp, onPointerUp, onPointerUpOutside, onPointerTap,
 }: FrameProps) => {
     // A theme's style for this window (`frame.overrides`), over what its code passes.
     const override = frameOverrideOf(useThemeConfigValue<unknown>(FRAME_OVERRIDES_KEY), id, name);
     // Its first position as well: where the player left it still wins (`useFrameDrag`'s stored offset).
-    const { frameRef, attachFrame, offset, zIndex, revealed, onHeaderPointerDown, startDrag } = useFrameDrag(id, { defaultPosition: override?.position ?? defaultPosition, remember: rememberPosition, centered: override?.position ? false : centered, onPositionChange });
+    const position = themePosition ? override?.position : undefined;
+    const { frameRef, attachFrame, offset, zIndex, revealed, onHeaderPointerDown, startDrag } = useFrameDrag(id, { defaultPosition: position ?? defaultPosition, remember: rememberPosition, centered: position ? false : centered, onPositionChange });
     /*
      * The window a frame that is no drag target itself is dragged with: `WindowController.update`
      * walks up from a `mouse_dragging_trigger` (a frame skin's header) to the first ancestor with the

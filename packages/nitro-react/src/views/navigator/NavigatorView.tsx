@@ -38,11 +38,12 @@ import { addNavigatorSavedSearch, collapseNavigatorCategory, deleteNavigatorSave
 import { useWebSocketContext } from '#base/context/communication';
 import { NAVIGATOR_FILTER_TYPES, splitNavigatorFilter, useNavigatorActions, useNavigatorOpeningGeometry, useNavigatorStore } from '#base/context/navigator';
 import { useConfigValue, useGroupBadgeImageUrl, useTranslation, useWindowActions } from '#base/context/system';
-import { PerkCodes, useOwnPerkAllowed } from '#base/context/user';
+import { PerkCodes, useOwnPerkAllowed, useOwnUserId } from '#base/context/user';
 import { useWindowVisibility } from '#base/hooks';
-import { getGlobalRect, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
+import { FRAME_OVERRIDES_KEY, frameOverrideOf, getGlobalRect, LayoutWindow, TemplateBindings, TemplateItem, TemplateWindow, TemplateWindows } from '#base/theme';
 
 import { isRepeatedEnter } from './navigatorEnterGuard';
+import { isNavigatorPlacedByPlayer, navigatorFirstPosition, setNavigatorPlacedByPlayer } from './navigatorFirstPosition';
 import { ALTERNATING_COLOR_MOD, ALTERNATING_COLOR_NONE, getModulatedBackgroundColor, getUserCountColor, ROW_BASE_COLOR } from './NavigatorRoomEntryUtils';
 import { NavigatorRoomInfoPopup } from './NavigatorRoomInfoPopup';
 
@@ -114,7 +115,7 @@ export const NavigatorView = () => {
     const blocksOpen = useNavigatorStore(x => x.blocksOpen);
     const viewModes = useNavigatorStore(x => x.viewModes);
     const preferences = useNavigatorStore(x => x.preferences);
-    const { setTopLevelContext, setLeftPaneHidden, collapseCategory, expandCategory, setViewMode, setSearchFilter, setFilterType, setWindowGeometry } = useNavigatorActions();
+    const { setTopLevelContext, setLeftPaneHidden, collapseCategory, expandCategory, setViewMode, setSearchFilter, setFilterType, setWindowGeometry, setWindowPlacedByTheme } = useNavigatorActions();
     const canToggleView = useOwnPerkAllowed(PerkCodes.NavigatorRoomThumbnailCamera);
     const thumbnailUrlBase = useConfigValue<string>('navigator.thumbnail.url_base') ?? '';
     const imageLibraryUrl = useConfigValue<string>('image.library.url') ?? '';
@@ -131,24 +132,40 @@ export const NavigatorView = () => {
     // once results come without a filter (`setTextAndSearchModeFromFilter`).
     const [ placeholderShown, setPlaceholderShown ] = useState(true);
     const [ placeholderResults, setPlaceholderResults ] = useState(searchResult);
-    // `createMainWindow`: where the window was last, else where the preferences put it.
+    // `createMainWindow`: where the window was last, else where the preferences put it - or a
+    // theme's first place, for a player who has not dragged it (`navigatorFirstPosition`).
     const openingGeometry = useNavigatorOpeningGeometry();
     const openingHeight = openingGeometry?.height || preferences?.windowHeight;
+    const ownUserId = useOwnUserId();
+    const themePosition = frameOverrideOf(useConfigValue<unknown>(FRAME_OVERRIDES_KEY), 'navigator')?.position;
     // The frame's own close and position, made once (`createMainWindow`).
-    const [ frame ] = useState(() => ({
-        id: 'navigator',
-        defaultPosition: { x: openingGeometry?.x ?? preferences?.windowX ?? 20, y: openingGeometry?.y ?? preferences?.windowY ?? 20 },
-        rememberPosition: false,
-        rememberSize: false,
-        onPositionChange: (position: { x: number; y: number }) => setWindowGeometry(position),
-        resizeDirection: 'y' as const,
-        onClose: hide,
-    }));
+    const [ { frame, fromTheme } ] = useState(() => {
+        const { position, fromTheme } = navigatorFirstPosition(openingGeometry, preferences, themePosition, isNavigatorPlacedByPlayer(ownUserId));
+
+        return {
+            fromTheme,
+            frame: {
+                id: 'navigator',
+                defaultPosition: position,
+                rememberPosition: false,
+                themePosition: false,
+                rememberSize: false,
+                onPositionChange: (moved: { x: number; y: number }) => {
+                    setNavigatorPlacedByPlayer(ownUserId);
+                    setWindowGeometry(moved);
+                },
+                resizeDirection: 'y' as const,
+                onClose: hide,
+            },
+        };
+    });
 
     // The window's place until it is first dragged; its size comes from `arrange`.
     useEffect(() => {
         setWindowGeometry(frame.defaultPosition);
-    }, [ frame, setWindowGeometry ]);
+        // A theme's place is not the player's: it is not sent until they move the window (`syncNavigatorWindowPreferences`).
+        setWindowPlacedByTheme(fromTheme);
+    }, [ frame, fromTheme, setWindowGeometry, setWindowPlacedByTheme ]);
 
     // `onSearchResults` ends with `_roomInfoPopup.show(false)`, and puts the results' filter in the field.
     if (roomInfoBubbleResults !== searchResult) {

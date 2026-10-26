@@ -38,6 +38,7 @@ const actions = {
     renameRoomVisit: state.renameRoomVisit,
     stepRoomVisitHistory: state.stepRoomVisitHistory,
     setWindowGeometry: state.setWindowGeometry,
+    setWindowPlacedByTheme: state.setWindowPlacedByTheme,
     setRoomEventInfoExpanded: state.setRoomEventInfoExpanded,
     setRoomEventSettingsVisible: state.setRoomEventSettingsVisible,
     setEnforceCategorySelectionType: state.setEnforceCategorySelectionType,
