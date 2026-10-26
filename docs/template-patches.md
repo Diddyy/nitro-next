@@ -509,6 +509,24 @@ The client's build writes the file from the template bundles its `nitro-config.j
 (`tools/skin-map.mjs`, run by `vite.config.ts`; the development server makes it on the first
 request). A hotel that publishes other bundles runs the tool against them:
 `node tools/skin-map.mjs --from <bundles url with %libname% | folder> --out <client>/skins.json`.
+
+The same run writes `template-index.json` beside it (`<client>/template-index.json`): every template
+window's element tree, each element with its key (what a patch's `element` or a binding names it
+by; none for an element no key reaches), tag, name, style, tags (`#icon`), rect (`[x, y, width, height]`), caption,
+`hidden`, and the text keys its caption and variables show (`texts`), and under `frames` the frame
+ids of the windows Nitro draws itself with their frame styles:
+
+```json
+{ "templates": { "habbo-toolbar-com/purse_xml": { "name": "grid_purse", "width": 230, "height": 77,
+    "elements": [ { "key": "", "tag": "container", "rect": [ -38, 0, 230, 77 ], "children": [
+        { "key": "@0", "tag": "border", "style": "9", "rect": [ 0, 0, 230, 76 ] },
+        { "key": "credit_count_button", "tag": "region", "name": "credit_count_button", "style": "3",
+          "rect": [ 0, 19, 52, 19 ], "texts": [ "purse_coins" ] } ] } ] } },
+  "frames": { "wired-setup": [ "0", "102", "3" ] } }
+```
+
+The admin panel's **Windows & skins** page (Plugins > Windows & skins) reads both files through the
+server, so the element tree, the skins and the text keys are there without the inspector.
 Windows Nitro draws with React components rather than a template use the same skins but are not
 listed.
 

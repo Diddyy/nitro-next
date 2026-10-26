@@ -6,6 +6,11 @@
  * output's `skins.json`) and its development server on the first request; run it again when other
  * bundles are published. The extension inspector and the development build's overlay check read it.
  *
+ * Beside it, `template-index.json`: every template window with its element tree - each element's key (what a
+ * patch's `element` or a binding names it by), tag, name, style, rect, caption and the text keys it shows -
+ * and the frames of the windows Nitro draws itself. The admin panel's windows browser reads both through the
+ * server, so a theme author finds a window's names there rather than in the client.
+ *
  * The bundles come from `asset.bundles.templates` (`%libname%` the library) of the client's
  * `nitro-config.json`, or `--from`: that url form, or a folder of `<library>.nitro` files. The libraries
  * are the ones the client's source names (`habbo-<x>-com`, `-lib`), or `--libraries a,b`; one the
@@ -13,7 +18,7 @@
  *
  *   node tools/skin-map.mjs                                  (writes packages/nitro-react/dist/skins.json)
  *   node tools/skin-map.mjs --from https://cdn.example.com/bundled/templates/%libname%.nitro
- *   node tools/skin-map.mjs --from ./bundles --out skins.json
+ *   node tools/skin-map.mjs --from ./bundles --out skins.json            (and template-index.json beside it, or --index <file>)
  */
 import fs from 'node:fs';
 import { registerHooks } from 'node:module';
@@ -34,6 +39,7 @@ registerHooks({ resolve: (specifier, context, next) => {
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { buildSkinMap, THEME_SKIN_LIBRARY } = await import(pathToFileURL(path.join(root, 'packages/nitro-theme/src/template/templateSkins.ts')).href);
+const { templateElementKey } = await import(pathToFileURL(path.join(root, 'packages/nitro-theme/src/template/templateElementKey.ts')).href);
 
 const args = process.argv.slice(2);
 const option = (name) => {
@@ -42,6 +48,7 @@ const option = (name) => {
     return (at >= 0) ? args[at + 1] : undefined;
 };
 const out = path.resolve(option('--out') ?? path.join(root, 'packages/nitro-react/dist/skins.json'));
+const indexOut = path.resolve(option('--index') ?? path.join(path.dirname(out), 'template-index.json'));
 const from = option('--from') ?? JSON.parse(fs.readFileSync(path.join(root, 'packages/nitro-react/public/config/nitro-config.json'), 'utf8'))['asset.bundles.templates'];
 
 if (!from) {
@@ -172,11 +179,67 @@ if (!theme || !frames) {
     process.exit(1);
 }
 
+/** The text keys a caption or a variable shows (`${earnings.title}`), each once. */
+const textKeys = (values) => {
+    const keys = [];
+
+    for (const value of values) {
+        if (typeof value !== 'string') continue;
+
+        for (const match of value.matchAll(/\$\{([^${}]+)\}/g)) {
+            if (!keys.includes(match[1])) keys.push(match[1]);
+        }
+    }
+
+    return keys;
+};
+
+/**
+ * `template-index.json`: each template window's element tree as a patch names it - every element's key
+ * (`templateElementKey`; missing for one no key reaches), tag, name, style, tags, rect, caption, `hidden` and the
+ * text keys its caption and variables show - and the frames Nitro draws without a template (frame id to its
+ * styles). Keys are sorted, so the same bundles write the same file.
+ */
+const buildTemplateIndex = (nitroFrames) => {
+    const node = (element, chain) => {
+        const at = [ ...chain, element ];
+        const key = templateElementKey(at);
+        const texts = textKeys([ element.caption, ...Object.values(element.vars ?? {}) ]);
+        const children = element.children.map(child => node(child, at));
+
+        return {
+            ...((key !== undefined) ? { key } : {}),
+            tag: element.tag,
+            ...(element.name ? { name: element.name } : {}),
+            ...((element.style !== undefined) ? { style: element.style } : {}),
+            ...(element.tags?.length ? { tags: element.tags } : {}),
+            rect: [ element.x, element.y, element.width, element.height ],
+            ...(element.caption ? { caption: element.caption } : {}),
+            ...(texts.length ? { texts } : {}),
+            ...(element.hidden ? { hidden: true } : {}),
+            ...(children.length ? { children } : {}),
+        };
+    };
+    const windows = {};
+
+    for (const id of Object.keys(templates).sort()) {
+        const template = templates[id];
+
+        // The window's root is its first element: the chain a key is counted from starts there.
+        windows[id] = { name: template.name, width: template.width, height: template.height, elements: template.elements.map(element => node(element, [])) };
+    }
+
+    return { version: 1, templates: windows, frames: Object.fromEntries(Object.entries(nitroFrames).sort(([ a ], [ b ]) => a.localeCompare(b))) };
+};
+
 const nitroFrames = sourceFrames();
 const map = buildSkinMap(theme, frames, templates, nitroFrames);
 const text = `${JSON.stringify(map)}\n`;
+const index = `${JSON.stringify(buildTemplateIndex(nitroFrames))}\n`;
 const summary = `${Object.keys(map.skins).length} skins, ${Object.keys(map.sprites).length} sprites, ${Object.keys(templates).length} templates of ${libraries.length - missing.length} libraries${missing.length ? ` (no bundle: ${missing.join(', ')})` : ''}, ${Object.keys(nitroFrames).length} frames of Nitro's own`;
 
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, text);
-console.log(`wrote ${path.relative(process.cwd(), out)} (${(text.length / 1024).toFixed(0)} KiB) - ${summary}`);
+fs.mkdirSync(path.dirname(indexOut), { recursive: true });
+fs.writeFileSync(indexOut, index);
+console.log(`wrote ${path.relative(process.cwd(), out)} (${(text.length / 1024).toFixed(0)} KiB) and ${path.relative(process.cwd(), indexOut)} (${(index.length / 1024).toFixed(0)} KiB) - ${summary}`);
