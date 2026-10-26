@@ -59,6 +59,7 @@ and the library's `templates.json` have the same names.
   (the catalogue's title `caption`) changes nothing and is reported **ineffective** (below) - give the
   element a binding with `override: true` instead.
 - **`bind`**: what `api.templates.bind` does, written as data - see "A binding as data" below.
+- **`arrange`**: what `api.templates.arrange` does, written as data - see "An arrangement as data" below.
 - **`move`** `before` / `after` the element `to` names, or `first` / `last` inside it: the element
   and its children go there and **keep their names**, so the window's code still finds them
   (`findChildByName`) and binds them - a title lifted out of a list into a header still shows the
@@ -105,8 +106,8 @@ the page window's width):
 
 Resizing the window itself resizes its layout by as much, so each page's parts follow by their own
 `scale` flags; a part pinned to its width is patched on its own. An op whose element a matched
-template lacks is a miss on that template, as for any patch. Bindings and post-layout hooks still
-name one template each.
+template lacks is a miss on that template, as for any patch. Bindings and post-layout hooks (a
+module's and an `arrange` op's) take a pattern too.
 
 The catalogue's navigation rows are as tall as their templates (`normal_topitem_template`,
 `normal_subitem_template`, 21 in Habbo's layout): a theme's taller rows (`set: { height: 25 }`) give an
@@ -410,6 +411,49 @@ api.templates.arrange('habbo-room-ui-com/user_view', ({ find, root }) => {
 });
 ```
 
+## An arrangement as data: `arrange`
+
+A theme with no code lays an element out after the window's layout with an **`arrange` op**, which does
+what `api.templates.arrange` does: each of **`x`**, **`y`**, **`width`**, **`height`** is a number or a
+**formula** worked out once the window's own code (and earlier ops) laid it out, and the element takes
+them in one `setRectangle`, as code sizes it - a field not given keeps the element's. A formula reads:
+
+| In a formula | Is |
+| --- | --- |
+| `${<element>.<measure>}` | an element's `x`, `y`, `width`, `height`, `textWidth` or `textHeight` as laid out so far (an earlier op's change included); the element named as any op names it, one its owner added by its short name |
+| `${window.<measure>}` | the window itself (`""` is the window as the op's `element`) |
+| `${ctx.<key>}` | the window's context key (`null` when the window does not give it) |
+| `${style:<name>}` | a theme style property, filled as the file is read: a number here |
+| `12`, `0xff`, `'pets'`, `true`, `false`, `null` | values |
+| `+ - * / %`, `== != < <= > >=`, `&& \|\| !`, `a ? b : c`, `( )` | sums, tests and choices, as in JavaScript |
+| `min(a, b, ...)`, `max(...)`, `round(a)`, `floor(a)`, `ceil(a)`, `abs(a)` | numbers |
+| `oneOf(value, a, b, ...)` | whether `value` is one of the others: `oneOf(${ctx.layoutCode}, 'pets', 'pets2')` |
+
+The catalogue's page under a header picture only some pages have, as a theme's module did it in code -
+the picture 290 x 75 when the page has one, the page under the header's text but on the info layouts:
+
+```json
+{ "patches": [ { "template": "habbo-catalog-com/catalog_ubuntu_with_tabs", "ops": [
+    { "element": "catalog.header.image", "arrange": { "x": 26, "width": "${ctx.hasHeaderImage} ? 290 : 0", "height": "${ctx.hasHeaderImage} ? 75 : 0" } },
+    { "element": "layoutContainer", "arrange": { "y": "!${ctx.hasHeaderImage} ? 0 : ${ctx.hasHeaderText} && !oneOf(${ctx.layoutCode}, 'pets', 'pets2', 'pets3', 'trophies') ? ${catalog.header.description.y} + ${catalog.header.description.textHeight} + 8 : ${catalog.header.image.y} + 83" } },
+    { "element": "layoutContainer", "arrange": { "height": "436 - ${layoutContainer.y}" } } ] } ] }
+```
+
+The second op on `layoutContainer` reads the `y` the first gave it: the fields of one op are worked out
+from the window before it, ops in their order. The rules are the module `arrange`'s and the `bind` op's:
+- **Owner and order**: the op runs after the window's own `arrange`, with the module hooks and other
+  files' ops by the patch's `order`, then plugin key, then as added (a module's `arrange` is order 0).
+- **Report**: the op counts as applied when the patched template has its element and every element its
+  formulas read, unmatched (naming the missing one) when it does not. A field whose formula gives no number
+  for a window drawn - an element that is not there, a sum over a context key the window does not give -
+  keeps the layout's and is said once (`patch.unmatched`, `<element>:arrange:<what>`). An op the client
+  cannot run (an unknown field, function or measure, a broken formula, `${item.*}` or `${text.*}`, a
+  placeholder inside another) is skipped and reported **ineffective** (`<element>:arrange`); Turbo's patch
+  check refuses it before the panel saves it, with the same sentence.
+- An `arrange` op given by a function of the context is an error: its formulas read `${ctx.*}` instead.
+  Code is still the tool for what a formula cannot say: a loop over rows, a value the window's context
+  does not give.
+
 ## Windows drawn without a template
 
 Windows Nitro draws with a `Frame` of its own (the wired setup window) have no elements to patch;
@@ -583,7 +627,9 @@ Patches apply by `order` (lower first; a base theme takes a negative one), then 
 added - never by load timing. When two owners set the same property of the same element the later
 one's value is used and the conflict is logged (`TemplatePatches`) and kept in the report. An op
 whose element the template does not have (a renamed element in a new client release) is skipped,
-a console warning and reported; the others still apply. An op that matched but changes nothing the
+a console warning and reported; the others still apply. Two owners' `arrange` ops setting one field of
+one element are a conflict too (`property: 'arrange.<field>'`): they run in the same order, so the later
+one's rect is kept. An op that matched but changes nothing the
 window draws - a field its code binds on that element, a `position` on what is not the window's own
 frame, a `bind` the client cannot bind or whose `asset` does not load - is a console warning and reported
 **ineffective** (`patch.ineffective`, reason `<element>.<field>`, `<element>:bind`, `<element>:<url>`)
