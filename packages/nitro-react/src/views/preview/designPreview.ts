@@ -1,14 +1,19 @@
 /**
  * The preview host's design window, as data (`DesignPreviewView` draws it): the window shown and the
  * key outlined, and applying a `design` message's draft over the hotel's own - its patch files, style
- * values, variables and texts - each draft put back before the next. Not a Flash feature.
+ * values, variables and texts - each draft put back before the next. The variables the client reads
+ * only as it starts are applied again here: `asset.overlays` (`applyDesignOverlays`), `text.fonts` and
+ * the text style and face overrides, so new art and a new font are drawn before they are saved. Not a
+ * Flash feature.
  */
-import { templatePatchMatches } from '@nitrodevco/nitro-theme';
+import { ASSET_OVERLAYS_KEY, setFontFaceOverrides, setTextStyleOverrides, templatePatchMatches } from '@nitrodevco/nitro-theme';
 
 import { systemStore } from '#base/context/system';
 import { previewTemplatePatchFiles, templatePatchList, templatePatchOwnerCounts, templatePatchReport } from '#base/theme/templatePatches';
 import { parseObject } from '#base/theme/templateStyles';
+import { loadTextFonts, TEXT_FONTS_KEY } from '#base/theme/textFonts';
 
+import { applyDesignOverlays } from './designOverlays';
 import type { DesignMessage } from './previewMessages';
 
 /** What the window's patches did, once drawn. */
@@ -85,6 +90,8 @@ export interface DesignShown {
     frame?: string;
     items: DesignMessage['items'];
     context: DesignMessage['context'];
+    /** Counts each draft that changed a bitmap, a font or a text style: the window is drawn anew for it. */
+    art: number;
 }
 
 /**
@@ -94,6 +101,9 @@ export interface DesignShown {
 const REPORT_DELAYS_MS = [ 250, 1500 ];
 
 let shown: DesignShown | undefined;
+let art = 0;
+/** The text variables the last draft drew with, to know when one changes. */
+let drawnText = '';
 let highlightKey: string | null = null;
 let say: Say | undefined;
 const listeners = new Set<() => void>();
@@ -202,10 +212,25 @@ export const showDesign = (message: DesignMessage, reply: Say) => {
             setConfig({ ...current, 'frame.overrides': {} });
         }
 
+        // What the client read as it started, drawn with the draft's values (Habbo's own: the hotel's).
+        const now = systemStore.getState().config;
+        const hotelOverlays = ownVariables.has(ASSET_OVERLAYS_KEY) ? ownVariables.get(ASSET_OVERLAYS_KEY) : now[ASSET_OVERLAYS_KEY];
+        const text = JSON.stringify([ now[TEXT_FONTS_KEY] ?? null, now['text.styles.overrides'] ?? null, now['text.faces.overrides'] ?? null ]);
+        const [ overlaysChanged ] = await Promise.all([ applyDesignOverlays(hotelOverlays, now[ASSET_OVERLAYS_KEY]), loadTextFonts(now[TEXT_FONTS_KEY]) ]);
+
+        if (text !== drawnText) {
+            setTextStyleOverrides('hotel', now['text.styles.overrides']);
+            setFontFaceOverrides('hotel', now['text.faces.overrides']);
+        }
+
+        if (overlaysChanged || (text !== drawnText)) art++;
+
+        drawnText = text;
+
         const styles = { ...parseObject(config['templates.styles']), ...message.styles };
         const missing = await previewTemplatePatchFiles(config['templates.patches'], styles, message.base ? null : message.patches);
 
-        shown = { template: message.template, part: message.part, frame: message.frame, items: message.items, context: message.context };
+        shown = { template: message.template, part: message.part, frame: message.frame, items: message.items, context: message.context, art };
         notify();
 
         reportTimers.forEach(timer => clearTimeout(timer));

@@ -168,6 +168,7 @@ export const DesignPreviewView = () => {
 
     if (isFrame) return (
         <Frame
+            key={design.art}
             id={design.template}
             caption={design.template}
             centered
@@ -177,6 +178,7 @@ export const DesignPreviewView = () => {
 
     return (
         <TemplateWindow
+            key={design.art}
             id={design.template}
             part={design.part}
             frame={frame}

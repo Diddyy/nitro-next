@@ -71,6 +71,15 @@ browser text.
   text, as any other does. A layout's `spacing` var stays exact on either anti-aliasing: as in
   Flash, whose `TextFormat.letterSpacing` ignores `antiAliasType`, Volter's normal layout adds it
   after every glyph as the advanced one does (`layoutNormalText`).
+- A theme's own font files are the config's `text.fonts`: `{ "<family>": "<url>" }` (Turbo gives a
+  plugin's `wwwroot` file its address, and a font staff upload on the panel's Theme tab is the hotel's
+  entry). `loadTextFonts` (`theme/textFonts.ts`) adds each to `document.fonts` as that family before the
+  first text - awaited at boot beside `preloadFlashFonts`, at most 5 s - so a style override's
+  `fontFamily` or a layout's `font_face` names it. The exact renderer has none of its glyphs: those texts
+  are browser text in the theme's face. A file that does not load is said on the console with its url.
+  The panel's preview host loads a draft's `text.fonts` and text overrides again for each draft, as it
+  does its `asset.overlays` (`views/preview/designOverlays.ts`: each replaced bitmap swapped in the asset
+  manager, the theme's sprites registered again, the library's own put back when a draft leaves it).
 - Fonts are captured bundles in `public/assets/fonts/*.air51.json`, shipped in `fonts.nitro` and
   registered once at boot by `preloadFlashFonts()`. They cover the Latin script (U+0021-017F:
   ASCII, Latin-1 and Latin Extended-A, so every hotel's language) and U+2000-22FF (dashes, curly

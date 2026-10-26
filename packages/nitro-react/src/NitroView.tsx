@@ -28,6 +28,7 @@ import { rebootAfterGpuLoss } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, setFontFaceOverrides, setTextStyleOverrides, WindowLayer } from '#base/theme';
 import { loadTemplatePatchFiles } from '#base/theme/templatePatches';
+import { loadTextFonts, TEXT_FONTS_KEY } from '#base/theme/textFonts';
 import { isPreviewHost, loadAssetBundle, preloadAssetBundles, unloadAssetBundle } from '#base/utils';
 
 import { MainView } from './MainView';
@@ -104,7 +105,8 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
                 // The plugins' declarative window patches; a window drawn before one arrives is redrawn with it.
                 void loadTemplatePatchFiles(GetConfigValue('templates.patches'), GetConfigValue('templates.styles'));
 
-                await Promise.all([ loadAssetBundle('loading-screen'), preloadFlashFonts() ]);
+                // The theme's font files too: a text style naming one draws in it from the first frame.
+                await Promise.all([ loadAssetBundle('loading-screen'), preloadFlashFonts(), loadTextFonts(GetConfigValue(TEXT_FONTS_KEY)) ]);
 
                 setSplash({ photo: 1 + Math.floor(Math.random() * SPLASH_PHOTOS), seed: Math.random() });
 
