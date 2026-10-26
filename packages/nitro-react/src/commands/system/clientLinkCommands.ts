@@ -322,9 +322,9 @@ export const openClientLink = (send: Send, link: string) => {
             }
 
             // `HabboClubCenter.linkReceived`: habboUI/open/hccenter - `openClubCenter` / `verifyClubLevel`.
-            // The club centre's own mount (`CatalogClubCenterComponent`) runs `showClubCenter`.
+            // The club centre (`CatalogClubCenterView`) runs `showClubCenter` for each link, up already or not.
             if ((parts.length >= 3) && (parts[1] === 'open') && (parts[2] === 'hccenter')) {
-                showWindow('club_center');
+                showWindow('club_center', { openedAt: performance.now() });
 
                 return;
             }
