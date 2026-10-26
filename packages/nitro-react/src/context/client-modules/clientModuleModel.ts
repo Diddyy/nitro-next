@@ -1,5 +1,5 @@
 /**
- * Not Flash's: what client module API 1.1 hands a module about the client - the read-only state
+ * Not Flash's: what the client module API hands a module about the client - the read-only state
  * (`api.state`), the room events (`api.events`), the context menu buttons (`api.contextMenu`) and the
  * chat commands (`api.chatCommands`) - and the rules that turn the client's own stores into them.
  * Kept free of runtime imports so it can be tested under Node as it stands; the wiring is

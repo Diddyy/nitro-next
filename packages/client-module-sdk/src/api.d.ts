@@ -1,5 +1,5 @@
 /**
- * The client module API (version 1.1) as a module author types against it: what `activate(api)` is
+ * The client module API as a module author types against it: what `activate(api)` is
  * handed. It mirrors `packages/nitro-react/src/commands/client-modules/ClientModuleApi.ts` without
  * the client's internals, so a module builds outside this repository with nothing but React's types.
  * `nitro-react/src/commands/client-modules/clientModuleSdk.check.ts` fails the client's type check
@@ -311,7 +311,7 @@ export interface ClientModuleLibraries {
     theme: ClientModuleTheme;
     /**
      * The client's app-wide stores. Internal and unversioned.
-     * @deprecated Since 1.1: read `api.state` and `api.events`, which keep their shape across releases.
+     * @deprecated Read `api.state` and `api.events`, which keep their shape across releases.
      */
     stores: { room: unknown; system: unknown; user: unknown };
 }
@@ -319,14 +319,10 @@ export interface ClientModuleLibraries {
 export interface ClientModuleApi {
     readonly version: 1;
     /**
-     * The minor version: 1 for API 1.1 (`state`, `events`, `contextMenu`, `chatCommands`), 2 for 1.2
-     * (`channels`, `links.handle`'s `path`), 3 for 1.3 (`windows.register`'s `aboveOnTop`,
-     * `templates.bind`'s `items`), 4 for 1.4 (`templates.bind` reaching windows drawn as another
-     * window's items, item contexts), 5 for 1.5 (an `override` binding laid over the window's code is
-     * no conflict; a theme's first place for the navigator). A plain-JavaScript module that may meet an
-     * older client reads `api.minor ?? 0`.
+     * The minor version. No module outside this project has been published, so the API stays 1.0
+     * while it changes; it counts up from the first one that is.
      */
-    readonly minor: 5;
+    readonly minor: 0;
     /** The module's key: its plugin's. */
     readonly key: string;
     /**
