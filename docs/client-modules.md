@@ -47,7 +47,7 @@ module is imported, so a bundled module can bind them at its top level):
 | `react`, `reactJsxRuntime` | The client's React (`createElement`, hooks) and its JSX runtime |
 | `theme` | `#base/theme`: `Frame`, `TemplateWindow`, `Box`, `Region`, `ThemeText`, `RichText`, `Button`, ... |
 | `zustand.useStore` | To read a store in a component |
-| `stores.user` / `room` / `system` | The app-wide stores. **Deprecated since 1.1**: their shape is the client's own and changes between releases; read `api.state` and `api.events` instead |
+| `stores.user` / `room` / `system` | The app-wide stores. **Deprecated**: their shape is the client's own and changes between releases; read `api.state` and `api.events` instead |
 
 A module built with a bundler (the SDK's preset below) maps `react`, `react/jsx-runtime` and the theme to small shims that
 re-export from `globalThis.NitroClientModuleHost`, and marks nothing else external. Pixi's elements
@@ -119,16 +119,11 @@ to or changed in the API fails `npx tsc -p packages/nitro-react/tsconfig.typeche
 `yarn workspace @nitrodevco/client-module-sdk test` bundles a module with the preset and runs it on
 a stand-in host.
 
-## The API (version 1.5, `commands/client-modules/ClientModuleApi.ts`)
+## The API (`commands/client-modules/ClientModuleApi.ts`)
 
-`api.version` is 1 and `api.minor` 5: version 1.1 added `state`, `events`, `contextMenu` and
-`chatCommands`, 1.2 `channels` and `links.handle`'s `path`, 1.3 `windows.register`'s `aboveOnTop`
-and `templates.bind`'s `items`, 1.4 `templates.bind` reaching a window drawn as another's item (a
-catalogue widget's view, a grid item) and items' own context (a catalogue tab's page, an offer's
-prices), 1.5 an `override` binding over the window's code no longer reported as a conflict (two
-modules' overrides of one field still are) and `frame.overrides.navigator.position` below a place the
-player saved, without changing a member of 1. A plain-JavaScript module that may meet an older client
-reads `api.minor ?? 0` (or `api.state?.`, `api.channels?.`); one typed with the SDK is built against 1.5.
+`api.version` is 1 and `api.minor` 0. No module outside this project has been published, so the API
+stays 1.0 while it changes, with no compatibility kept for earlier builds of it; it counts up from the
+first published module.
 
 | Part | What |
 | --- | --- |
@@ -295,7 +290,7 @@ schema to TypeScript: `int`, `long` and `double` are `number`, `bool` is `boolea
 
 ## Example
 
-Turbo's plugin template (`templates/turbo-plugin`, `client/src/index.tsx`) uses all four parts of 1.1:
+Turbo's plugin template (`templates/turbo-plugin`, `client/src/index.tsx`) uses four of these parts:
 the own user's name from `state`, a room event, an avatar menu button and a chat command.
 
 `docs/examples/client-modules/hello/` is a module with no build step: a toolbar icon and a me

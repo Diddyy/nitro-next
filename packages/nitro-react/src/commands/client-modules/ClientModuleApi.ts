@@ -1,5 +1,5 @@
 /**
- * Not Flash's: version 1.1 of what a client module is handed - `activate(api)` - by the loader in
+ * Not Flash's: what a client module is handed - `activate(api)` - by the loader in
  * `commands/client-modules`. Everything a module adds through it is taken out again when the module
  * stops, whether or not it disposed of it itself; each `register`/`add`/`handle` also returns the
  * function that takes that one thing out early.
@@ -51,14 +51,10 @@ export interface ClientModuleContextMenuButton<M extends ClientModuleContextMenu
 export interface ClientModuleApi {
     readonly version: 1;
     /**
-     * The minor version: 1 for API 1.1 (`state`, `events`, `contextMenu`, `chatCommands`), 2 for 1.2
-     * (`channels`, `links.handle`'s `path`), 3 for 1.3 (`windows.register`'s `aboveOnTop`,
-     * `templates.bind`'s `items`), 4 for 1.4 (`templates.bind` reaching windows drawn as another
-     * window's items, item contexts), 5 for 1.5 (an `override` binding laid over the window's code is
-     * no conflict; a theme's first place for the navigator). A plain-JavaScript module that may meet an
-     * older client reads `api.minor ?? 0`.
+     * The minor version. No module outside this project has been published, so the API stays 1.0
+     * while it changes; it counts up from the first one that is.
      */
-    readonly minor: 5;
+    readonly minor: 0;
     /** The module's key: its plugin's. */
     readonly key: string;
     /**
@@ -68,7 +64,7 @@ export interface ClientModuleApi {
     readonly baseUrl: string;
     /**
      * The client's own React, theme and stores, shared rather than bundled a second time. `stores` is
-     * deprecated since 1.1: read `state` and `events`, which keep their shape across releases.
+     * deprecated: read `state` and `events`, which keep their shape across releases.
      */
     readonly libs: ClientModuleLibraries;
     /**
