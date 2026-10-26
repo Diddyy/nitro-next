@@ -26,6 +26,7 @@ export * from './nativeTextMarkup';
 export * from './richText';
 export * from './ScrollViewport';
 export * from './spriteFrame';
+export * from './subtractTint';
 export * from './tabContentVariants';
 export * from './textStyles';
 export * from './themeAssetBundle';

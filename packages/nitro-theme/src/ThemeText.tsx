@@ -178,6 +178,14 @@ const markedRunRects = (metrics: CanvasTextMetrics, style: TextStyle): { underli
  * natural size on both axes is what makes it overflow a too-small container instead, matching
  * a `<span>`'s real floor.
  */
+/** An `objectPosition`'s place as a row's flex placement: what puts a box of the text's size where the plain text's `objectPosition` puts its glyphs. */
+const flexPlacement = (position: ReturnType<typeof textObjectPosition>) => {
+    const [ horizontal, vertical ] = position.split(' ');
+    const place = (side: string) => ((side === 'center') ? 'center' : (side === 'right' || side === 'bottom') ? 'flex-end' : 'flex-start');
+
+    return { justifyContent: place(horizontal), alignItems: place(vertical) } as const;
+};
+
 const NativeText = ({ text: source, markup, textStyle, textOptions, flashFormat, layout, verticalAlign, visible, alpha, x, y, onLink }: TextRenderConfig) => {
     // Markup the exact renderer could not take: its runs as the canvas text's tags (`nativeMarkup`).
     const rich = useMemo(() => (markup ? nativeMarkup(source) : undefined), [ markup, source ]);
@@ -236,30 +244,37 @@ const NativeText = ({ text: source, markup, textStyle, textOptions, flashFormat,
     const objectPosition = textObjectPosition(textOptions?.align, verticalAlign);
     const label = (labelLayout: BoxLayout | undefined, nudge: boolean) => ((underlines.length || linked)
         ? (
+                // The text and its marks at the text's own size, placed in a box the caller sized (a
+                // paragraph's width) by the text's `align`, as the plain text's `objectPosition` places it.
                 <pixiContainer
                     eventMode={linked ? 'passive' : 'none'}
                     visible={visible}
                     alpha={alpha}
                     x={nudge ? x : undefined}
                     y={nudge ? y : undefined}
-                    layout={{ width: Math.ceil(metrics.width), height: Math.ceil(metrics.height), flexShrink: 0, ...labelLayout }}
+                    layout={{ width: Math.ceil(metrics.width), height: Math.ceil(metrics.height), flexShrink: 0, ...labelLayout, flexDirection: 'row', ...flexPlacement(objectPosition) }}
                 >
-                    <pixiText
-                        text={text}
-                        style={style}
-                        resolution={GetPixelRatio()}
-                        {...linkEvents}
-                        layout={{ position: 'absolute', left: 0, top: 0, width: Math.ceil(metrics.width), height: Math.ceil(metrics.height), objectFit: 'none', objectPosition: 'left top' }}
-                    />
-                    {/* No layout of its own: a laid-out leaf is moved so its bounds start at its box, which would put every line at x 0. */}
-                    <pixiGraphics
-                        eventMode="none"
-                        draw={(g: Graphics) => {
-                            g.clear();
+                    <pixiContainer
+                        eventMode={linked ? 'passive' : 'none'}
+                        layout={{ width: Math.ceil(metrics.width), height: Math.ceil(metrics.height), flexShrink: 0 }}
+                    >
+                        <pixiText
+                            text={text}
+                            style={style}
+                            resolution={GetPixelRatio()}
+                            {...linkEvents}
+                            layout={{ position: 'absolute', left: 0, top: 0, width: Math.ceil(metrics.width), height: Math.ceil(metrics.height), objectFit: 'none', objectPosition: 'left top' }}
+                        />
+                        {/* No layout of its own: a laid-out leaf is moved so its bounds start at its box, which would put every line at x 0. */}
+                        <pixiGraphics
+                            eventMode="none"
+                            draw={(g: Graphics) => {
+                                g.clear();
 
-                            for (const line of underlines) g.rect(line.x, line.y, line.width, 1).fill(line.color);
-                        }}
-                    />
+                                for (const line of underlines) g.rect(line.x, line.y, line.width, 1).fill(line.color);
+                            }}
+                        />
+                    </pixiContainer>
                 </pixiContainer>
             )
         : (
