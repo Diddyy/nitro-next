@@ -74,10 +74,11 @@ const pruneBundledAssets = (): Plugin => ({
 
 /**
  * The skin map, `skins.json` (`tools/skin-map.mjs`): every skin of the theme, the sprites it draws with
- * their sizes, and the windows that draw it, from the template bundles `nitro-config.json` names. Written
- * into the build's output; in development made the first time it is asked for and kept until the server
- * restarts. Only the extension inspector and the development build's overlay check read it, so a bundle
- * host the build cannot reach only leaves it out, with a warning.
+ * their sizes, and the windows that draw it, from the template bundles `nitro-config.json` names - and beside
+ * it `template-index.json`, every template window's element tree. Written into the build's output; in
+ * development made the first time either is asked for and kept until the server restarts. Only the extension
+ * inspector, the development build's overlay check and the admin panel's windows browser read them, so a
+ * bundle host the build cannot reach only leaves them out, with a warning.
  */
 const skinMap = (): Plugin => {
     const make = (out: string) => new Promise<string>((resolve, reject) => {
@@ -103,17 +104,20 @@ const skinMap = (): Plugin => {
             const cache = r('node_modules/.cache/skins.json');
             let made: Promise<string> | undefined;
 
-            server.middlewares.use('/skins.json', (_request, response) => {
-                made ??= make(cache);
-                made.then(() => {
-                    response.setHeader('Content-Type', 'application/json');
-                    response.end(readFileSync(cache));
-                }, (error: Error) => {
-                    made = undefined;
-                    response.statusCode = 503;
-                    response.end(error.message);
+            // One run writes both: `template-index.json` beside `skins.json`.
+            for (const file of [ 'skins.json', 'template-index.json' ]) {
+                server.middlewares.use(`/${file}`, (_request, response) => {
+                    made ??= make(cache);
+                    made.then(() => {
+                        response.setHeader('Content-Type', 'application/json');
+                        response.end(readFileSync(r(`node_modules/.cache/${file}`)));
+                    }, (error: Error) => {
+                        made = undefined;
+                        response.statusCode = 503;
+                        response.end(error.message);
+                    });
                 });
-            });
+            }
         },
     };
 };
