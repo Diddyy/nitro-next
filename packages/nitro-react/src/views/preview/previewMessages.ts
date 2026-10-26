@@ -70,3 +70,58 @@ export const toRewardTracksMessage = (value: unknown): RewardTracksMessageType |
 
     return { disabled: bool(value.disabled), tracks: list(value.tracks, toTrack), reload: bool(value.reload) };
 };
+
+/** A sample row of a list the window's code fills (a catalogue tab per top-level page): what is cloned, its caption, its context. */
+export interface DesignSampleRow {
+    from: string;
+    caption?: string;
+    context: Record<string, string | number | boolean>;
+}
+
+/** A `design` message: the window to draw and the editor's draft to draw it with (`DesignPreviewView`). */
+export interface DesignMessage {
+    /** A template's id (`<library>/<asset>`), or the id of a frame Nitro draws itself (no `/`). */
+    template: string;
+    /** One window of the template, drawn alone. */
+    part?: string;
+    /** The id the window's code gives its frame (`CatalogView`'s `catalog`): what `frame.overrides` names it by. */
+    frame?: string;
+    /** Habbo's own: no patch file, no frame override, nothing of the draft. */
+    base: boolean;
+    /** Per owner, the patch file standing in for its own (`{ "patches": [ ... ] }`); an owner not named keeps its file. */
+    patches: Record<string, unknown>;
+    /** Over `templates.styles`, by `<plugin key>:<name>`. */
+    styles: Record<string, unknown>;
+    /** Over the hotel's variables: each a path into one (`[ 'frame.overrides', 'catalog', 'color' ]`) and its value. */
+    variables: { path: string[]; value: unknown }[];
+    /** Over the hotel's texts, by key. */
+    texts: Record<string, string>;
+    /** Sample rows for the lists the window's code fills, by the list's element name. */
+    items: Record<string, DesignSampleRow[]>;
+    /** What the window tells patches about what it shows. */
+    context: Record<string, string | number | boolean>;
+}
+
+const flatValues = (value: unknown): Record<string, string | number | boolean> => (isObject(value)
+    ? Object.fromEntries(Object.entries(value).filter((entry): entry is [ string, string | number | boolean ] => [ 'string', 'number', 'boolean' ].includes(typeof entry[1])))
+    : {});
+
+/** A `design` message read field by field; undefined without a window to draw. */
+export const toDesignMessage = (value: Json): DesignMessage | undefined => {
+    if ((typeof value.template !== 'string') || !value.template.length) return undefined;
+
+    const draft = isObject(value.draft) ? value.draft : {};
+
+    return {
+        template: value.template,
+        ...((typeof value.part === 'string') && value.part.length ? { part: value.part } : {}),
+        ...((typeof value.frame === 'string') && value.frame.length ? { frame: value.frame } : {}),
+        base: bool(value.base),
+        patches: isObject(draft.patches) ? Object.fromEntries(Object.entries(draft.patches).filter(entry => isObject(entry[1]))) : {},
+        styles: isObject(draft.styles) ? draft.styles : {},
+        variables: list(draft.variables, entry => ({ path: Array.isArray(entry.path) ? entry.path.map(str).filter(part => part.length) : [], value: entry.value })).filter(entry => entry.path.length > 0),
+        texts: Object.fromEntries(Object.entries(isObject(draft.texts) ? draft.texts : {}).filter((entry): entry is [ string, string ] => typeof entry[1] === 'string')),
+        items: Object.fromEntries(Object.entries(isObject(value.items) ? value.items : {}).map(([ name, rows ]) => [ name, list(rows, row => ({ from: str(row.from), ...((typeof row.caption === 'string') ? { caption: row.caption } : {}), context: flatValues(row.context) })).filter(row => row.from.length) ])),
+        context: flatValues(value.context),
+    };
+};

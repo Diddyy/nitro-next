@@ -1,0 +1,193 @@
+/**
+ * The preview host's design window, as data (`DesignPreviewView` draws it): the window shown and the
+ * key outlined, and applying a `design` message's draft over the hotel's own - its patch files, style
+ * values, variables and texts - each draft put back before the next. Not a Flash feature.
+ */
+import { templatePatchMatches } from '@nitrodevco/nitro-theme';
+
+import { systemStore } from '#base/context/system';
+import { previewTemplatePatchFiles, templatePatchList, templatePatchOwnerCounts, templatePatchReport } from '#base/theme/templatePatches';
+import { parseObject } from '#base/theme/templateStyles';
+
+import type { DesignMessage } from './previewMessages';
+
+/** What the window's patches did, once drawn. */
+export interface DesignReport {
+    event: 'report';
+    template: string;
+    base: boolean;
+    /** Per owner, the ops its patches gave the window and how many change what it draws. */
+    owners: { owner: string; count: number; applied: number }[];
+    unmatched: { owner: string; element: string }[];
+    ineffective: { owner: string; element: string; property: string }[];
+    conflicts: { element: string; property: string; owners: string[] }[];
+    errors: { owner: string; message: string }[];
+    /** The `${style:name}`s the draft's files name that have no value. */
+    missingStyles: string[];
+}
+
+/** The element a press picked: its key as a patch names it, null for one no key reaches. */
+export interface DesignSelect {
+    event: 'select';
+    template: string;
+    key: string | null;
+    tag: string;
+    name: string | null;
+    style: string | null;
+    caption: string | null;
+}
+
+/** What the host says back about the design window. */
+export type DesignReply = DesignReport | DesignSelect;
+
+type Say = (reply: DesignReply) => void;
+
+/** The window drawn, with the sample rows its lists show. */
+export interface DesignShown {
+    template: string;
+    part?: string;
+    frame?: string;
+    items: DesignMessage['items'];
+    context: DesignMessage['context'];
+}
+
+/**
+ * How long after a draft the report is read: the window has been drawn by then (its ops that change
+ * nothing are known once it is), and again once a bound bitmap has had time to load.
+ */
+const REPORT_DELAYS_MS = [ 250, 1500 ];
+
+let shown: DesignShown | undefined;
+let highlightKey: string | null = null;
+let say: Say | undefined;
+const listeners = new Set<() => void>();
+
+export const subscribeDesign = (listener: () => void) => {
+    listeners.add(listener);
+
+    return () => {
+        listeners.delete(listener);
+    };
+};
+
+const notify = () => listeners.forEach(listener => listener());
+
+/** The hotel's own value of each variable and text a draft changed, to put back when the next leaves it. */
+const ownVariables = new Map<string, unknown>();
+const ownTexts = new Map<string, string | undefined>();
+
+/** `value` with `path` set to `to`, the objects on the way copied (a variable may be its object as JSON text). */
+const withPath = (value: unknown, path: readonly string[], to: unknown): unknown => {
+    if (!path.length) return to;
+
+    const object = { ...parseObject(value) };
+
+    object[path[0]] = withPath(object[path[0]], path.slice(1), to);
+
+    return object;
+};
+
+const applyVariables = (variables: DesignMessage['variables']) => {
+    const { config, setConfig } = systemStore.getState();
+    const next: Record<string, unknown> = { ...config };
+
+    for (const [ key, own ] of ownVariables) next[key] = own;
+
+    ownVariables.clear();
+
+    for (const { path, value } of variables) {
+        if (!ownVariables.has(path[0])) ownVariables.set(path[0], config[path[0]]);
+
+        next[path[0]] = withPath(next[path[0]], path.slice(1), value);
+    }
+
+    setConfig(next);
+};
+
+const applyTexts = (texts: Record<string, string>) => {
+    const { localizations, setLocalization } = systemStore.getState();
+    const next: Record<string, string> = {};
+
+    for (const [ key, own ] of ownTexts) next[key] = own ?? key;
+
+    ownTexts.clear();
+
+    for (const [ key, text ] of Object.entries(texts)) {
+        if (!ownTexts.has(key)) ownTexts.set(key, localizations[key]);
+
+        next[key] = text;
+    }
+
+    if (Object.keys(next).length) setLocalization(next);
+};
+
+const report = (message: DesignMessage, missingStyles: string[]) => {
+    const id = message.template;
+    const read = templatePatchReport(id);
+    // The last application's report outlives the patches it was of: only the owners patching the window now are said.
+    const live = new Set(templatePatchList().filter(patch => templatePatchMatches(patch.template, id)).map(patch => patch.owner));
+    const now = <T extends { owner: string }>(list: readonly T[] | undefined) => (list ?? []).filter(entry => live.has(entry.owner));
+
+    say?.({
+        event: 'report',
+        template: id,
+        base: message.base,
+        owners: now(templatePatchOwnerCounts(id)),
+        unmatched: now(read?.unmatched).map(({ owner, element }) => ({ owner, element })),
+        ineffective: now(read?.ineffective).map(({ owner, element, property }) => ({ owner, element, property })),
+        conflicts: (read?.conflicts ?? []).filter(conflict => conflict.owners.some(owner => live.has(owner))).map(({ element, property, owners }) => ({ element, property, owners })),
+        errors: now(read?.errors).map(({ owner, message: text }) => ({ owner, message: text })),
+        missingStyles,
+    });
+};
+
+let applying: Promise<void> = Promise.resolve();
+let reportTimers: ReturnType<typeof setTimeout>[] = [];
+
+/**
+ * Draws the design window with a message's draft; `reply` says what came of it, and later what a
+ * press selects. Drafts are applied in the order they came, each over the hotel's own.
+ */
+export const showDesign = (message: DesignMessage, reply: Say) => {
+    say = reply;
+
+    applying = applying.then(async () => {
+        const config = systemStore.getState().config;
+
+        applyTexts(message.base ? {} : message.texts);
+        applyVariables(message.base ? [] : message.variables);
+
+        if (message.base) {
+            // No frame override either: the frames as Habbo draws them.
+            const { config: current, setConfig } = systemStore.getState();
+
+            if (!ownVariables.has('frame.overrides')) ownVariables.set('frame.overrides', current['frame.overrides']);
+
+            setConfig({ ...current, 'frame.overrides': {} });
+        }
+
+        const styles = { ...parseObject(config['templates.styles']), ...message.styles };
+        const missing = await previewTemplatePatchFiles(config['templates.patches'], styles, message.base ? null : message.patches);
+
+        shown = { template: message.template, part: message.part, frame: message.frame, items: message.items, context: message.context };
+        notify();
+
+        reportTimers.forEach(timer => clearTimeout(timer));
+        reportTimers = REPORT_DELAYS_MS.map(delay => setTimeout(() => report(message, missing), delay));
+    }).catch(() => undefined);
+};
+
+/** Outlines the element `key` names in the design window; null outlines nothing. */
+export const highlightDesign = (key: string | null) => {
+    highlightKey = key;
+    notify();
+};
+
+/** The design window drawn now, if any. */
+export const designShown = () => shown;
+
+/** The key outlined now, if any. */
+export const designHighlight = () => highlightKey;
+
+/** Says a press's pick to the panel that drew the window. */
+export const sayDesign = (reply: DesignReply) => say?.(reply);
