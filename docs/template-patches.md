@@ -348,7 +348,8 @@ placeholders filled each time the window (or row) is drawn:
 
 A value that is one placeholder keeps its value's type (`"selected": "${ctx.selected}"` is a boolean, a
 colour a number); one inside text is written into it. A **relative `asset`** is a file beside the patch
-file: the plugin's own `wwwroot` (for a hotel's patch, the hotel's own served files; for a module's
+file: the plugin's own `wwwroot` (for a hotel's patch, the hotel's own served files - staff upload them on
+Plugins > Hotel theme > Images and paste the path it shows, `styles/tab0.png`; for a module's
 `api.templates.patch`, its base). An address of its own - `https://...`, `/...`, a `${...}` the
 window fills from the hotel's variables - stays as it is.
 
@@ -475,7 +476,9 @@ The bitmap is loaded as the library's bundle loads and stands in for the library
 draws it - a frame's art in its nine-slice and its shadow alike. Keep the bitmap's size: a frame's
 slice rects are of the sheet's sprite (one of another size is used and logged). One that does not
 load is logged and the library's own stays. A plugin names a file of its `wwwroot/` by its path
-(`"frame.png"`); Turbo gives clients its address.
+(`"frame.png"`); Turbo gives clients its address. Staff need no file of their own: Turbo's base theme
+`habbo` names the common frame and border sprites as image styles (turbo-cloud `docs/plugin-data.md`),
+so Plugins > Hotel theme uploads their art, and a theme with `"extends": "habbo"` gives it as defaults.
 
 **An overlay re-skins every window drawing that skin**, not only the one you looked at. A sprite is
 the art of a skin - a component's style: `border` style `9`, `frame` style `3` - and some sprites
