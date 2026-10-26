@@ -35,10 +35,46 @@ export interface DesignSelect {
     name: string | null;
     style: string | null;
     caption: string | null;
+    /** What the element is drawn with, its patches applied: what a visual editor starts from. */
+    element?: DesignElement;
+    /** Where it is drawn, in the page's CSS pixels: what a visual editor puts its handles on. */
+    rects?: DesignBox[];
+}
+
+/** A box in the page's CSS pixels. */
+export interface DesignBox {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+/** A picked element's own values, as a patch's `set` names them. */
+export interface DesignElement {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: number | string | null;
+    hidden: boolean;
+    vars: Record<string, unknown>;
+    params: Record<string, unknown>;
+}
+
+/**
+ * Where the outlined element is drawn now, said each time it moves: `scale` is stage pixels (a
+ * patch's units) per CSS pixel, so a drag of the page's pixels becomes a patch's.
+ */
+export interface DesignRects {
+    event: 'rect';
+    template: string;
+    key: string;
+    rects: DesignBox[];
+    scale: number;
 }
 
 /** What the host says back about the design window. */
-export type DesignReply = DesignReport | DesignSelect;
+export type DesignReply = DesignReport | DesignSelect | DesignRects;
 
 type Say = (reply: DesignReply) => void;
 
@@ -191,3 +227,13 @@ export const designHighlight = () => highlightKey;
 
 /** Says a press's pick to the panel that drew the window. */
 export const sayDesign = (reply: DesignReply) => say?.(reply);
+
+let picker: ((clientX: number, clientY: number) => void) | undefined;
+
+/** What picks the element at a point of the page (`DesignPreviewView` while it draws). */
+export const setDesignPicker = (pick: typeof picker) => {
+    picker = pick;
+};
+
+/** Picks the element at a point of the page, as a press there would: the panel's handles cover the window. */
+export const pickDesign = (clientX: number, clientY: number) => picker?.(clientX, clientY);

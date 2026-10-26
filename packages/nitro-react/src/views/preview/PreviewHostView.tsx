@@ -15,7 +15,9 @@
  *   an appearance editor's unsaved patch files, style values, variables and texts (`base`: Habbo's
  *   own, none of them), `items` sample rows for the lists its code fills. Answered after with
  *   `report` (what its patches did), and a press on it with `select` (the element's key); `{ window:
- *   'design', highlight: '<key>' }` outlines an element and changes nothing else (`DesignPreviewView`).
+ *   'design', highlight: '<key>' }` outlines an element and changes nothing else (`DesignPreviewView`),
+ *   answered with `rect` (where it is drawn) each time it moves; `{ window: 'design', pick: { x, y } }`
+ *   picks the element at that point of the page as a press there would (the panel's handles cover it).
  *
  * Each shown window is answered with `shown` and the desktop's size; a message the host cannot use,
  * with `error`. Pressing a prize or a button sends nothing: there is no connection.
@@ -33,7 +35,7 @@ import { RewardTrackView } from '#base/views/reward-track/RewardTrackView';
 import { SystemDialogsView } from '#base/views/system/SystemDialogsView';
 import { ViewErrorBoundaries } from '#base/views/system/ViewErrorBoundary';
 
-import { DesignReply, highlightDesign, showDesign } from './designPreview';
+import { DesignReply, highlightDesign, pickDesign, showDesign } from './designPreview';
 import { DesignPreviewView } from './DesignPreviewView';
 import { toDesignMessage, toRewardTracksMessage } from './previewMessages';
 
@@ -70,6 +72,16 @@ const showRewardTrack = (message: Record<string, unknown>, setFigure: SetFigure)
 
 /** `design`: the window and the draft to draw it with, or only the element to outline. */
 const showDesignWindow = (message: Record<string, unknown>, answer: (reply: PreviewReply) => void): string | undefined => {
+    const pick = message.pick as { x?: unknown; y?: unknown } | undefined;
+
+    if ((typeof pick === 'object') && (pick !== null) && (message.template === undefined)) {
+        if ((typeof pick.x !== 'number') || (typeof pick.y !== 'number')) return 'no point to pick at';
+
+        pickDesign(pick.x, pick.y);
+
+        return undefined;
+    }
+
     if (('highlight' in message) && (message.template === undefined)) {
         highlightDesign((typeof message.highlight === 'string') ? message.highlight : null);
 
