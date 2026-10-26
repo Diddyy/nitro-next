@@ -68,6 +68,40 @@ const sourceLibraries = () => {
 
 const libraries = option('--libraries')?.split(',').filter(Boolean) ?? sourceLibraries();
 
+/**
+ * The windows nitro-react draws with a `Frame` of its own (no template), by frame id, with the frame
+ * styles each is drawn in: a `<Frame>`'s (or `<WiredTradingFrame>`'s, a style 3 frame) literal `id`
+ * and `variant`; a wired window's `variant={frame.variant}` is each wired style's frame variant. An id
+ * built at run time (`wired-reward-${...}`) is the pattern a patch names them all by (`wired-reward-*`).
+ */
+const sourceFrames = () => {
+    const src = path.join(root, 'packages/nitro-react/src');
+    const read = file => fs.readFileSync(file, 'utf8');
+    const files = [];
+    const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => (entry.isDirectory() ? walk(path.join(dir, entry.name)) : /\.tsx?$/.test(entry.name) && files.push(path.join(dir, entry.name))));
+
+    walk(src);
+
+    const wiredStyles = [ ...new Set(files.filter(file => file.includes(`${path.sep}wired${path.sep}styles${path.sep}`)).flatMap(file => [ ...read(file).matchAll(/\bframe:\s*\{\s*variant:\s*'([^']+)'/g) ].map(match => match[1]))) ].sort();
+    const found = {};
+
+    for (const file of files) {
+        for (const match of read(file).matchAll(/<(Frame|WiredTradingFrame)\s([\s\S]{0,600})/g)) {
+            const attributes = match[2];
+            const id = /\bid=(?:"([^"]+)"|\{`([^`]+)`\})/.exec(attributes);
+            const name = id?.[1] ?? id?.[2]?.replace(/\$\{[^}]*\}/g, '*');
+
+            if (!name) continue;
+
+            const variant = (match[1] === 'WiredTradingFrame') ? [ '3' ] : /\bvariant="([^"]+)"/.exec(attributes)?.slice(1) ?? (/\bvariant=\{frame\.variant\}/.test(attributes) ? wiredStyles : []);
+
+            found[name] = [ ...new Set([ ...(found[name] ?? []), ...variant ]) ].sort();
+        }
+    }
+
+    return found;
+};
+
 /** A bundle's bytes, or `undefined` when there is none. */
 const fetchBundle = async (library) => {
     if (/^https?:/i.test(from)) {
@@ -138,9 +172,10 @@ if (!theme || !frames) {
     process.exit(1);
 }
 
-const map = buildSkinMap(theme, frames, templates);
+const nitroFrames = sourceFrames();
+const map = buildSkinMap(theme, frames, templates, nitroFrames);
 const text = `${JSON.stringify(map)}\n`;
-const summary = `${Object.keys(map.skins).length} skins, ${Object.keys(map.sprites).length} sprites, ${Object.keys(templates).length} templates of ${libraries.length - missing.length} libraries${missing.length ? ` (no bundle: ${missing.join(', ')})` : ''}`;
+const summary = `${Object.keys(map.skins).length} skins, ${Object.keys(map.sprites).length} sprites, ${Object.keys(templates).length} templates of ${libraries.length - missing.length} libraries${missing.length ? ` (no bundle: ${missing.join(', ')})` : ''}, ${Object.keys(nitroFrames).length} frames of Nitro's own`;
 
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, text);
