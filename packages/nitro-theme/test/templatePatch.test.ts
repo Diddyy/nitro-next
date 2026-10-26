@@ -370,7 +370,7 @@ void test('a wrapped part knows its pane through the pane\'s content area; an un
 });
 
 // The navigator's layout pins its width (`width_min` = `width_max` = 578): a theme's narrower navigator
-// (hiveui2's 309) needs its limits, which `set` takes whole.
+// (e.g. 309 wide) needs its limits, which `set` takes whole.
 void test('limits in a set replace the layout\'s, so a window its layout pins to one width takes another', () => {
     const pinned = (): Template => ({ name: 'nav', width: 578, height: 400, elements: [ element('frame', 'nav', [], { width: 578, height: 400, limits: [ 578, 578, 200, null ] }) ] });
     const width = (template: Template) => layoutTemplate(template.elements, { captionOf: () => '', measure: () => ({ width: 10, height: 10 }) }).get(template.elements[0])!.width;
