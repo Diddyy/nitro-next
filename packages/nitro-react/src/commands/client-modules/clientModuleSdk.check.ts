@@ -10,6 +10,7 @@ import type * as Sdk from '@nitrodevco/client-module-sdk/types';
 import type { TemplateBinding, TemplateContext, TemplateItemContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows } from '@nitrodevco/nitro-theme';
 import type { ComponentProps } from 'react';
 
+import type { ChatBubbleTheme } from '#base/chat';
 import type * as Theme from '#base/theme';
 import type { LoadingScreenInput } from '#base/views/loading-screen/loadingScreenStyle';
 
@@ -41,4 +42,5 @@ export type ClientModuleSdkConformance = [
     Assert<Sdk.ClientModuleThemeTextProps extends ComponentProps<typeof Theme.ThemeText> ? true : false>,
     Assert<Sdk.ClientModuleTemplateWindowProps extends ComponentProps<typeof Theme.TemplateWindow> ? true : false>,
     Assert<Same<Sdk.ClientModuleLoadingScreen, LoadingScreenInput>>,
+    Assert<Same<Sdk.ClientModuleChatBubbles, ChatBubbleTheme>>,
 ];

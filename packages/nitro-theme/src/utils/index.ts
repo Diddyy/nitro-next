@@ -2,6 +2,7 @@ export * from './assetOverlays';
 export * from './boxBlur';
 export * from './buttonGroupFactory';
 export * from './buttonVariants';
+export * from './capturedFontFace';
 export * from './clamp';
 export * from './cssHexColor';
 export * from './destroyOwnedTexture';

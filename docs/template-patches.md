@@ -201,6 +201,7 @@ patches still apply. Keep a context's values to what the window shows - they are
 | `habbo-room-ui-com/bot_view` | `type: 'bot'`, `name`, `figure`, `gender` |
 | `habbo-room-ui-com/rentable_bot_view` | `type: 'rentable_bot'`, `name`, `figure`, `gender`, `ownerName` |
 | `habbo-room-ui-com/pet_view` | `type: 'pet'`, `name`, `figure`, `isOwnPet` |
+| `habbo-room-ui-com/furni_view` (furni infostand; `jukebox_view`, `songdisk_view`, `crackable_furni_view` the same) | `type: 'furni'`, `objectId`, `category` (`floor` / `wall`), `typeId` (the furnidata id, -1 for none), `className`, `name`, `description`, `ownerId`, `ownerName` |
 | `habbo-groups-com/new_extended_profile` (profile) | `userId`, `name`, `figure`, `isOwnUser` |
 | `habbo-new-navigator/navigator_frame_2_xml` (navigator) | `tab` (the selected tab's search code: `hotel_view`, `myworld_view`, `roomads_view`, `official_view`), `searchCode` (the results' search code: the tab's, a category's `category__<name>` once its "more" is pressed, a saved search's; `''` before the first results) |
 | `habbo-catalog-com/catalog_ubuntu_with_tabs` (catalogue window) | `layoutCode` (the open page's, `''` before one), `pageId` (`-1` before one), `hasHeaderImage` (the page has a header picture of its own: the window binds the room builder's as a fallback otherwise), `hasHeaderText` (it has a header description) |
@@ -224,6 +225,25 @@ api.templates.patch('habbo-new-navigator/navigator_frame_2_xml', ctx => [
     { element: 'search_tools', set: { hidden: ctx.tab !== 'hotel_view' && ctx.tab !== 'roomads_view' } },
     { element: 'create_room', set: { hidden: ctx.tab !== 'myworld_view' } },
 ]);
+```
+
+Habbo's furni infostand shows no description (none of its layouts has a `description_text`). A theme
+that prints it above the owner adds a text and fills it from the context, sized after the window's own
+layout (`arrange`, below):
+
+```ts
+api.templates.patch('habbo-room-ui-com/furni_view', [ { element: 'owner_spacer', insert: 'before', add: { name: 'description', like: 'name_text' } } ]);
+api.templates.bind('habbo-room-ui-com/furni_view', 'description', ctx => ({ caption: String(ctx.description ?? '') }));
+api.templates.arrange('habbo-room-ui-com/furni_view', ({ find, root }) => {
+    const text = find(`${api.key}:description`), list = find('infostand_element_list'), border = find('info_border'), view = root();
+
+    if (!text || !list || !border || !view) return;
+
+    text.setHeight(text.textHeight + 5);
+    list.setHeight(list.scrollableRegion.height);
+    border.setHeight(list.height + 20);
+    view.setHeight(view.scrollableRegion.height);
+});
 ```
 
 ## Binding the window's own elements

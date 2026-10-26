@@ -222,6 +222,40 @@ before (10, the percentage 5). A value of the wrong type is ignored. A theme plu
 their path in its `wwwroot/` (`"loading/logo.png"`); Turbo gives clients their address. The shape is the SDK's
 `ClientModuleLoadingScreen`, for a theme that writes its variables from a script.
 
+## Chat bubbles
+
+A theme's room chat is data too: the configuration value **`chat.bubbles`** (an object, or the object as
+JSON text, merged from each plugin's variables as `loading.screen` is), read once as the chat styles load
+(`chat/chatBubbleTheme.ts`, typed in the SDK as `ClientModuleChatBubbles`). With none set every bubble is
+Habbo's, drawn on the same path; what an entry leaves out stays Habbo's:
+
+```json
+{ "chat.bubbles": {
+    "styles": {
+        "*": { "regPoints": { "overlapRect": { "x": 0, "y": 0, "width": 0, "height": 3 } } },
+        "0": { "art": "theme_normal", "tint": "subtract" }
+    },
+    "lines": { "whisper": { "name": { "italic": false, "color": "#000000" }, "text": { "color": "#595959" }, "alpha": 1 } } } }
+```
+
+- `styles` by chat style id, or `"*"` for every style (a style's own entry over it, reg points key by key).
+  `art` names another style of the `habbo-free-flow-chat-com` bundle (its asset id) whose bitmaps and reg
+  points draw this one - a plugin adds its art as chat styles of its own (the hotel's chat styles, built into
+  the bundle) and points Habbo's ids at them. `regPoints` change the style's (`ChatStyleRegPoints`): a bubble's
+  spacing in the flow is its height less `overlapRect`'s top and bottom (and Habbo's 10 px of slack), so
+  `overlapRect` sets the pitch; it replaces the style's own, which most of Habbo's set (`y: -2` on the normal
+  bubble). `tint` is how `chat_bubble_color` takes the speaker's colour: `multiply` (Habbo's `ColorTransform`)
+  or `subtract`, each channel the colour less the layer's darkness (`colour - (255 - layer)`, a strip drawn in
+  greys comes out darker); either is then darkened onto the base, so the base should be white under the strip.
+- `lines` by `talk`, `shout` and `whisper` (every line Habbo draws italic: whispers, respects, hand items):
+  `name` and `text` as `{ bold, italic, color }`, each run on its own, and the text's `alpha` (Habbo: 0.6 on
+  the italic lines).
+
+A value of the wrong type is ignored, and an `art` the bundle lacks is a console warning (the style keeps its
+own). Costs, measured on the rig: a line's markup is the same with no theme (0.6-0.7 ms per 1000 lines either
+way); a `subtract` tint reads the layer's pixels back once per colour (about 1.3-1.8 ms, against 0.13-0.16 ms
+for `multiply`), kept with the other tinted backgrounds. Tests: `test/chatBubbleTheme.test.ts`.
+
 ## Replacing the toolbar
 
 A theme replacing the stock toolbar can set `chat.input.width` to a positive number of stage
