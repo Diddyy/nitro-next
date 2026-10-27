@@ -22,7 +22,9 @@
  *   answered with `rect` (where it is drawn) each time it moves; `{ window: 'design', pick: { x, y } }`
  *   picks the element at that point of the page as a press there would (the panel's handles cover it);
  *   `{ window: 'design', boxes: true }` answers with `boxes` - every element a key reaches, where each
- *   drawing of it is - each time one moves, until `boxes: false` (a window editor's outlines and guides).
+ *   drawing of it is - each time one moves, until `boxes: false` (a window editor's outlines and guides);
+ *   `{ window: 'design', source: '<template id>' }` is answered with `source`, the template as the client
+ *   draws it with the draft's patches (null for none): what a new window duplicated from it starts as.
  *
  * - `window: 'chatbubble'`: `style` is a chat style's draft as the panel edits it (`assetId`,
  *   `regPoints`, its flags), `files` its bitmaps by file name (`chat_bubble_base`, ...: addresses,
@@ -39,7 +41,7 @@ import { useEffect } from 'react';
 import { loadHabbiconAssets, onRewardTracks, openRewardTrack } from '#base/commands';
 import { useConfigValue } from '#base/context/system';
 import { useUserInfoActions } from '#base/context/user';
-import { ModalLayer, TooltipLayer, WindowLayer } from '#base/theme';
+import { ModalLayer, readTemplateSource, Template, TooltipLayer, WindowLayer } from '#base/theme';
 import { parsePreviewAllowedOrigins, PREVIEW_ALLOWED_ORIGINS_KEY, PREVIEW_MESSAGE_TYPE } from '#base/utils';
 import { RewardTrackPremiumConfirmationView } from '#base/views/reward-track/RewardTrackPremiumConfirmationView';
 import { RewardTrackView } from '#base/views/reward-track/RewardTrackView';
@@ -56,7 +58,7 @@ import { toChatBubbleMessage, toDesignMessage, toRewardTracksMessage } from './p
 /** The windows the host can show. */
 const PREVIEW_WINDOWS = [ 'rewardtrack', 'design', 'chatbubble' ];
 
-type PreviewReply = { event: 'ready'; windows: string[]; states: ReturnType<typeof designStateList> } | { event: 'shown'; window: string; width: number; height: number } | { event: 'error'; message: string } | DesignReply | ChatBubbleReport;
+type PreviewReply = { event: 'ready'; windows: string[]; states: ReturnType<typeof designStateList> } | { event: 'shown'; window: string; width: number; height: number } | { event: 'error'; message: string } | { event: 'source'; template: string; source: Template | null } | DesignReply | ChatBubbleReport;
 
 const reply = (target: MessageEventSource | null, origin: string, message: PreviewReply) => {
     if (!target || !('postMessage' in target)) return;
@@ -104,6 +106,15 @@ const showDesignWindow = (message: Record<string, unknown>, answer: (reply: Prev
 
     if (('boxes' in message) && (message.template === undefined)) {
         boxDesign(message.boxes === true);
+
+        return undefined;
+    }
+
+    // A window's template as the client draws it, the draft's patches applied: what "Duplicate" copies into a new window.
+    if ((typeof message.source === 'string') && (message.template === undefined)) {
+        const template = message.source;
+
+        void readTemplateSource(template).then(source => answer({ event: 'source', template, source: source ?? null }));
 
         return undefined;
     }

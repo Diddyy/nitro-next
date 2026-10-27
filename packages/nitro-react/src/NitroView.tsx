@@ -24,7 +24,7 @@ import {
 import { useEffect, useState } from 'react';
 
 import { preloadChatStyles } from '#base/chat';
-import { rebootAfterGpuLoss } from '#base/commands';
+import { loadDataWindows, rebootAfterGpuLoss } from '#base/commands';
 import { useWebSocketContext } from '#base/context/communication';
 import { ModalLayer, PixiApplicationRoot, preloadFlashFonts, preloadThemeAssets, setFontFaceOverrides, setTextStyleOverrides, WindowLayer } from '#base/theme';
 import { loadTemplatePatchFiles } from '#base/theme/templatePatches';
@@ -104,6 +104,8 @@ export const NitroView = ({ dataLoaded, dataTotal }: NitroViewProps) => {
                 setLoadingLook(parseLoadingScreenStyle(GetConfigValue(LOADING_SCREEN_KEY)));
                 // The plugins' declarative window patches; a window drawn before one arrives is redrawn with it.
                 void loadTemplatePatchFiles(GetConfigValue('templates.patches'), GetConfigValue('templates.styles'));
+                // The plugins' windows defined as data, with their me menu entries and toolbar icons.
+                void loadDataWindows(GetConfigValue('templates.windows'));
 
                 // The theme's font files too: a text style naming one draws in it from the first frame.
                 await Promise.all([ loadAssetBundle('loading-screen'), preloadFlashFonts(), loadTextFonts(GetConfigValue(TEXT_FONTS_KEY)) ]);

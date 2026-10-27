@@ -2,7 +2,8 @@
  * Not Flash's: the open windows of the client modules (`windows.register` / `open`), each drawn by
  * its module's component in a boundary of its own, so a module that throws while drawing loses its
  * window and nothing else. The component draws its own frame - the theme's `Frame` or a
- * `TemplateWindow` - and is handed its params and its `close`.
+ * `TemplateWindow` - and is handed its params and its `close`. A plugin's window defined as data has no
+ * component: `DataWindowView` draws it from its template.
  *
  * A window registered `onTop` is drawn in a layer of its own over every other window - the
  * windows in it still raise over each other as they are pressed - and under the toolbar's sub
@@ -14,6 +15,8 @@ import { ReactNode } from 'react';
 import { ClientModuleWindow, useClientModulesActions, useClientModulesStore } from '#base/context/client-modules';
 import { Box } from '#base/theme';
 import { ViewErrorBoundary } from '#base/views/system/ViewErrorBoundary';
+
+import { DataWindowView } from './DataWindowView';
 
 /** Over every window's own z-index (they count up from 100), under `ToolbarExtendedMenu`'s 80000. */
 const ON_TOP_Z_INDEX = 70000;
@@ -51,10 +54,19 @@ export const ClientModuleWindowsView = () => {
 
         return (
             <ViewErrorBoundary key={key}>
-                <Window
-                    params={params}
-                    close={() => closeWindow(key)}
-                />
+                {window.template
+                    ? (
+                            <DataWindowView
+                                templateId={window.template}
+                                close={() => closeWindow(key)}
+                            />
+                        )
+                    : Window && (
+                        <Window
+                            params={params}
+                            close={() => closeWindow(key)}
+                        />
+                    )}
             </ViewErrorBoundary>
         );
     }).filter(Boolean);

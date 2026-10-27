@@ -9,6 +9,7 @@
 import { ASSET_OVERLAYS_KEY, setFontFaceOverrides, setTextStyleOverrides, templatePatchMatches } from '@nitrodevco/nitro-theme';
 
 import { systemStore } from '#base/context/system';
+import { pluginFilesBase, setDataWindowDrafts } from '#base/theme/dataWindows';
 import { previewTemplatePatchFiles, templatePatchList, templatePatchOwnerCounts, templatePatchReport } from '#base/theme/templatePatches';
 import { parseObject } from '#base/theme/templateStyles';
 import { loadTextFonts, TEXT_FONTS_KEY } from '#base/theme/textFonts';
@@ -270,6 +271,9 @@ export const showDesign = (message: DesignMessage, reply: Say) => {
         if (overlaysChanged || (text !== drawnText)) art++;
 
         drawnText = text;
+
+        // The draft's new windows, before the window is drawn: one of them may be it.
+        setDataWindowDrafts(message.base ? {} : message.windows, owner => pluginFilesBase(owner, config['templates.windows'], config['templates.patches']));
 
         const styles = { ...parseObject(config['templates.styles']), ...message.styles };
         const missing = await previewTemplatePatchFiles(config['templates.patches'], styles, message.base ? null : message.patches);

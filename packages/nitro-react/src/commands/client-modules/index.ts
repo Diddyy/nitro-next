@@ -10,5 +10,6 @@ export * from './clientModuleLoader';
 export * from './clientModuleMenus';
 export * from './clientModuleState';
 export * from './createClientModuleApi';
+export * from './dataWindowCommands';
 export * from './pluginMessageCodec';
 export * from './pluginMessages';
