@@ -95,8 +95,30 @@ export interface DesignRects {
     scale: number;
 }
 
+/** One element of the window as drawn, for an editor's outlines: where a patch names it and where each drawing of it is. */
+export interface DesignBoxedElement {
+    template: string;
+    key: string;
+    tag: string;
+    name: string | null;
+    tags: string[];
+    rects: DesignBox[];
+}
+
+/**
+ * Every element a key reaches drawn in the window (`inspectElements`), said each time one moves while
+ * an editor asks for them (`boxes: true`): its multi-select outlines, a marquee, guides to siblings,
+ * debug rects and names. `scale` as `rect`'s.
+ */
+export interface DesignBoxes {
+    event: 'boxes';
+    template: string;
+    elements: DesignBoxedElement[];
+    scale: number;
+}
+
 /** What the host says back about the design window. */
-export type DesignReply = DesignReport | DesignSelect | DesignRects;
+export type DesignReply = DesignReport | DesignSelect | DesignRects | DesignBoxes;
 
 type Say = (reply: DesignReply) => void;
 
@@ -124,6 +146,7 @@ let art = 0;
 /** The text variables the last draft drew with, to know when one changes. */
 let drawnText = '';
 let highlightKey: string | null = null;
+let boxesOn = false;
 let say: Say | undefined;
 const listeners = new Set<() => void>();
 
@@ -264,6 +287,15 @@ export const highlightDesign = (key: string | null) => {
     highlightKey = key;
     notify();
 };
+
+/** Says every drawn element's boxes as they move (`DesignBoxes`), or stops. */
+export const boxDesign = (on: boolean) => {
+    boxesOn = on;
+    notify();
+};
+
+/** Whether an editor asked for every element's boxes. */
+export const designBoxesOn = () => boxesOn;
 
 /** The design window drawn now, if any. */
 export const designShown = () => shown;

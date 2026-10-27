@@ -805,7 +805,9 @@ export const previewTemplatePatchFiles = async (value: unknown, styleValues: unk
         if (!Array.isArray(file?.patches)) continue;
 
         const url = files[owner];
-        const base = new URL((typeof url === 'string') && url.length ? url : '.', window.location.href).href;
+        // A theme the hotel gives no one yet has no entry: its draft names where its files are (`base`), for its pictures.
+        const own = (draft as { base?: unknown } | null)?.base;
+        const base = new URL((typeof url === 'string') && url.length ? url : (typeof own === 'string') && own.length ? own : '.', window.location.href).href;
         const list = file.patches.filter(patch => patch && (typeof patch.template === 'string'));
         const added = templatePatchAddedNames(owner, list.flatMap(patch => (Array.isArray(patch.ops) ? patch.ops : [])));
 

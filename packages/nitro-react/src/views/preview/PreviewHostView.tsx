@@ -20,7 +20,9 @@
  *   - a grid item built from another template - the template and key naming it, the path to it); `{ window:
  *   'design', highlight: '<key>' }` outlines an element and changes nothing else (`DesignPreviewView`),
  *   answered with `rect` (where it is drawn) each time it moves; `{ window: 'design', pick: { x, y } }`
- *   picks the element at that point of the page as a press there would (the panel's handles cover it).
+ *   picks the element at that point of the page as a press there would (the panel's handles cover it);
+ *   `{ window: 'design', boxes: true }` answers with `boxes` - every element a key reaches, where each
+ *   drawing of it is - each time one moves, until `boxes: false` (a window editor's outlines and guides).
  *
  * - `window: 'chatbubble'`: `style` is a chat style's draft as the panel edits it (`assetId`,
  *   `regPoints`, its flags), `files` its bitmaps by file name (`chat_bubble_base`, ...: addresses,
@@ -46,7 +48,7 @@ import { ViewErrorBoundaries } from '#base/views/system/ViewErrorBoundary';
 
 import { ChatBubbleReport, showChatBubble } from './chatBubblePreview';
 import { ChatBubblePreviewView } from './ChatBubblePreviewView';
-import { DesignReply, highlightDesign, pickDesign, showDesign } from './designPreview';
+import { boxDesign, DesignReply, highlightDesign, pickDesign, showDesign } from './designPreview';
 import { DesignPreviewView } from './DesignPreviewView';
 import { designStateList } from './designStates';
 import { toChatBubbleMessage, toDesignMessage, toRewardTracksMessage } from './previewMessages';
@@ -96,6 +98,12 @@ const showDesignWindow = (message: Record<string, unknown>, answer: (reply: Prev
 
     if (('highlight' in message) && (message.template === undefined)) {
         highlightDesign((typeof message.highlight === 'string') ? message.highlight : null);
+
+        return undefined;
+    }
+
+    if (('boxes' in message) && (message.template === undefined)) {
+        boxDesign(message.boxes === true);
 
         return undefined;
     }

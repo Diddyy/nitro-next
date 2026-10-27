@@ -10,7 +10,7 @@
  * with and where), and a `highlight` key outlines that element, saying where it is drawn (`rect`)
  * each time it moves, so a panel's handles can sit on it. The draft never leaves this page: nothing is saved and nothing is sent.
  */
-import { ClientPointToStage, GetStagePixelScale, inspectAt, inspectFind, inspectPart, inspectTemplates, setTemplateInspecting, TemplateBindings } from '@nitrodevco/nitro-theme';
+import { ClientPointToStage, GetStagePixelScale, inspectAt, inspectElements, inspectFind, inspectPart, inspectTemplates, setTemplateInspecting, TemplateBindings } from '@nitrodevco/nitro-theme';
 import { useApplication } from '@pixi/react';
 import { Container, Graphics } from 'pixi.js';
 import { ComponentType, useEffect, useMemo, useSyncExternalStore } from 'react';
@@ -24,7 +24,7 @@ import { DesignInfostandView } from './DesignInfostandView';
 import { DesignInventoryView } from './DesignInventoryView';
 import { DesignMessengerView } from './DesignMessengerView';
 import { DesignNavigatorView } from './DesignNavigatorView';
-import { DesignBox, designHighlight, designShown, sayDesign, setDesignPicker, setDesignTemplatesReader, subscribeDesign } from './designPreview';
+import { DesignBox, designBoxesOn, designHighlight, designShown, sayDesign, setDesignPicker, setDesignTemplatesReader, subscribeDesign } from './designPreview';
 import { DesignPurseView } from './DesignPurseView';
 import { CATALOG_WINDOW, FRIENDS_WINDOW, INFOSTAND_FURNI_WINDOW, INVENTORY_WINDOW, MESSENGER_WINDOW, NAVIGATOR_WINDOW, PURSE_WINDOW } from './designStates';
 import type { DesignMessage } from './previewMessages';
@@ -45,12 +45,15 @@ const FRAME_SIZE = { width: 320, height: 200 };
 
 const HIGHLIGHT_COLOR = 0x1e90ff;
 
-/** Where the containers drawing the element `key` names are, in the page's CSS pixels. */
-const drawnBoxes = (stage: Container, canvas: HTMLCanvasElement, template: string, key: string): DesignBox[] => {
+/** How often every element's boxes are measured while an editor asks for them: often enough to follow a drag. */
+const BOXES_EVERY_MS = 120;
+
+/** Where `containers` are drawn, in the page's CSS pixels. */
+const boxesOf = (stage: Container, canvas: HTMLCanvasElement, containers: readonly Container[]): DesignBox[] => {
     const page = canvas.getBoundingClientRect();
     const scale = GetStagePixelScale();
 
-    return inspectFind(stage, template, key).map((container) => {
+    return containers.map((container) => {
         const bounds = container.getBounds();
         const from = stage.toLocal({ x: bounds.x, y: bounds.y });
         const to = stage.toLocal({ x: bounds.x + bounds.width, y: bounds.y + bounds.height });
@@ -58,6 +61,9 @@ const drawnBoxes = (stage: Container, canvas: HTMLCanvasElement, template: strin
         return { x: page.left + (from.x / scale), y: page.top + (from.y / scale), width: (to.x - from.x) / scale, height: (to.y - from.y) / scale };
     });
 };
+
+/** Where the containers drawing the element `key` names are, in the page's CSS pixels. */
+const drawnBoxes = (stage: Container, canvas: HTMLCanvasElement, template: string, key: string): DesignBox[] => boxesOf(stage, canvas, inspectFind(stage, template, key));
 
 /** Each `${key}` a caption or a variable shows, with the text the client shows for it now (the key itself when it has none). */
 const shownTexts = (values: readonly unknown[]): Record<string, string> => {
@@ -86,6 +92,7 @@ const sampleBindings = (items: DesignMessage['items']): TemplateBindings => Obje
 export const DesignPreviewView = () => {
     const design = useSyncExternalStore(subscribeDesign, designShown);
     const highlight = useSyncExternalStore(subscribeDesign, designHighlight);
+    const boxes = useSyncExternalStore(subscribeDesign, designBoxesOn);
     const { app } = useApplication();
     const isFrame = !!design && !design.template.includes('/');
     const bindings = useMemo(() => (design ? sampleBindings(design.items) : undefined), [ design ]);
@@ -210,6 +217,43 @@ export const DesignPreviewView = () => {
             outline.destroy();
         };
     }, [ design, highlight, app ]);
+
+    // Every element's boxes, for an editor drawing its own outlines: said when one moves, not each frame.
+    useEffect(() => {
+        if (!design || !boxes || !app?.stage) return;
+
+        let said = '';
+        let waited = BOXES_EVERY_MS;
+
+        const measure = () => {
+            waited += app.ticker.deltaMS;
+
+            if (waited < BOXES_EVERY_MS) return;
+
+            waited = 0;
+
+            const elements = inspectElements(app.stage, design.template).map(({ template, key, element, containers }) => ({
+                template,
+                key,
+                tag: element.tag,
+                name: element.name ?? null,
+                tags: element.tags ?? [],
+                rects: boxesOf(app.stage, app.canvas, containers),
+            }));
+            const now = JSON.stringify(elements);
+
+            if (now === said) return;
+
+            said = now;
+            sayDesign({ event: 'boxes', template: design.template, elements, scale: GetStagePixelScale() });
+        };
+
+        app.ticker.add(measure);
+
+        return () => {
+            app.ticker.remove(measure);
+        };
+    }, [ design, boxes, app ]);
 
     if (!design) return null;
 

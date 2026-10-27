@@ -607,6 +607,15 @@ the game; its `report` lists every template drawn (`parts`), and a press says th
 is in, the template and key naming it there (inside a badge: `badgeGridItem`, `badgeWidget`, so a patch made
 from it changes the part) and the path to it.
 
+A window editor asks it for every element at once - `{ window: 'design', boxes: true }` - and is answered
+with `boxes` each time one moves (until `boxes: false`): every element a key reaches in the window and in
+what is drawn inside it, each named in its own template, with where each drawing of it is in the page's
+CSS pixels (a list's rows each) and its tag, name and tags. The admin panel's Theme studio draws its
+multi-select outlines, marquee, guides to the other elements and debug rects, names and tags from them. A
+draft's patch file may name `base`, where its owner's files are: a theme the hotel gives no player yet has
+no entry in `templates.patches`, and a picture its ops bind by a relative path (`styles/logo.png`) is read
+beside it.
+
 The admin panel's **Windows & skins** page (Plugins > Windows & skins) reads these files through the
 server, so the element tree, the skins and the text keys are there without the inspector.
 Windows Nitro draws with React components rather than a template use the same skins but are not
