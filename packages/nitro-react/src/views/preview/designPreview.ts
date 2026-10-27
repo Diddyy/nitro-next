@@ -160,8 +160,9 @@ const applyVariables = (variables: DesignMessage['variables']) => {
 
     ownVariables.clear();
 
+    // The hotel's own is what was put back above, not the config still holding the last draft's.
     for (const { path, value } of variables) {
-        if (!ownVariables.has(path[0])) ownVariables.set(path[0], config[path[0]]);
+        if (!ownVariables.has(path[0])) ownVariables.set(path[0], next[path[0]]);
 
         next[path[0]] = withPath(next[path[0]], path.slice(1), value);
     }
@@ -178,7 +179,7 @@ const applyTexts = (texts: Record<string, string>) => {
     ownTexts.clear();
 
     for (const [ key, text ] of Object.entries(texts)) {
-        if (!ownTexts.has(key)) ownTexts.set(key, localizations[key]);
+        if (!ownTexts.has(key)) ownTexts.set(key, (key in next) ? next[key] : localizations[key]);
 
         next[key] = text;
     }
