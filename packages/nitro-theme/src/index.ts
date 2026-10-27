@@ -100,6 +100,7 @@ export * from './template/templateBindings';
 export * from './template/templateData';
 export * from './template/templateElementKey';
 export * from './template/templateLayout';
+export * from './template/templateParts';
 export * from './template/templatePatch';
 export * from './template/templatePatchArrange';
 export * from './template/templatePatchBind';

@@ -84,7 +84,7 @@ void test('a bind op\'s placeholders are filled per row, keeping a whole value\'
     // An address of its own stays as it is: another host's, the hotel's root, a hotel variable the window fills.
     assert.deepEqual(resolveTemplateBind({ asset: '${item.iconUrl}' }, scope, what => misses.push(what)), { asset: 'https://images.test/icon_1.png' });
     assert.deepEqual(resolveTemplateBind({ asset: '/c_images/x.png' }, scope, what => misses.push(what)), { asset: '/c_images/x.png' });
-    assert.deepEqual(misses, []);
+    assert.deepEqual(misses, [] as string[]);
 
     // A key the window does not give leaves the field to the window and says which.
     assert.deepEqual(resolveTemplateBind({ asset: 'icons/${ctx.nothing}.png', caption: 'kept' }, scope, what => misses.push(what)), { caption: 'kept' });

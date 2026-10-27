@@ -14,6 +14,7 @@ import { parseObject } from '#base/theme/templateStyles';
 import { loadTextFonts, TEXT_FONTS_KEY } from '#base/theme/textFonts';
 
 import { applyDesignOverlays } from './designOverlays';
+import { designState } from './designStates';
 import type { DesignMessage } from './previewMessages';
 
 /** What the window's patches did, once drawn. */
@@ -29,17 +30,33 @@ export interface DesignReport {
     errors: { owner: string; message: string }[];
     /** The `${style:name}`s the draft's files name that have no value. */
     missingStyles: string[];
+    /** Every template drawn while the window shows: its own, the template windows in it and the parts built inside them (a grid item). */
+    parts: string[];
 }
 
-/** The element a press picked: its key as a patch names it, null for one no key reaches. */
+/**
+ * The element a press picked: the template its key names it in - inside a part built from another template
+ * (a catalogue grid item) that part's, so a patch made from it changes the part - and its key, null for one no
+ * key reaches.
+ */
 export interface DesignSelect {
     event: 'select';
+    /** The window shown (the message's `template`). */
+    window: string;
+    /** The part the element belongs to: a template built or drawn inside the window; null for the window's own. */
+    part: string | null;
+    /** Inside a list row cloned from one of the window's own elements: that element's key (the key is scoped under it, so a patch changes every row). */
+    row?: string;
+    /** From the window's root down to the element, each step's template and key: a breadcrumb. */
+    path: { template: string; key: string | null; tag: string; name: string | null }[];
     template: string;
     key: string | null;
     tag: string;
     name: string | null;
     style: string | null;
     caption: string | null;
+    /** Each `${key}` its caption and variables show, with the text the client shows for it now. */
+    texts?: Record<string, string>;
     /** What the element is drawn with, its patches applied: what a visual editor starts from. */
     element?: DesignElement;
     /** Where it is drawn, in the page's CSS pixels: what a visual editor puts its handles on. */
@@ -88,6 +105,8 @@ export interface DesignShown {
     template: string;
     part?: string;
     frame?: string;
+    /** The named state drawn with the game's own view (`DESIGN_STATES`), if the window has states. */
+    state?: string;
     items: DesignMessage['items'];
     context: DesignMessage['context'];
     /** Counts each draft that changed a bitmap, a font or a text style: the window is drawn anew for it. */
@@ -184,6 +203,7 @@ const report = (message: DesignMessage, missingStyles: string[]) => {
         conflicts: (read?.conflicts ?? []).filter(conflict => conflict.owners.some(owner => live.has(owner))).map(({ element, property, owners }) => ({ element, property, owners })),
         errors: now(read?.errors).map(({ owner, message: text }) => ({ owner, message: text })),
         missingStyles,
+        parts: drawnTemplates?.() ?? [],
     });
 };
 
@@ -230,7 +250,7 @@ export const showDesign = (message: DesignMessage, reply: Say) => {
         const styles = { ...parseObject(config['templates.styles']), ...message.styles };
         const missing = await previewTemplatePatchFiles(config['templates.patches'], styles, message.base ? null : message.patches);
 
-        shown = { template: message.template, part: message.part, frame: message.frame, items: message.items, context: message.context, art };
+        shown = { template: message.template, part: message.part, frame: message.frame, state: designState(message.template, message.state)?.id, items: message.items, context: message.context, art };
         notify();
 
         reportTimers.forEach(timer => clearTimeout(timer));
@@ -252,6 +272,13 @@ export const designHighlight = () => highlightKey;
 
 /** Says a press's pick to the panel that drew the window. */
 export const sayDesign = (reply: DesignReply) => say?.(reply);
+
+let drawnTemplates: (() => string[]) | undefined;
+
+/** What lists the templates drawn on the page (`DesignPreviewView` while it draws): the report's `parts`. */
+export const setDesignTemplatesReader = (read: typeof drawnTemplates) => {
+    drawnTemplates = read;
+};
 
 let picker: ((clientX: number, clientY: number) => void) | undefined;
 

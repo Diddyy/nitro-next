@@ -1,5 +1,5 @@
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
-import { Template, TemplateContext, TemplateLibrary, TemplatePatch } from '@nitrodevco/nitro-theme';
+import { noteTemplateId, Template, TemplateContext, TemplateLibrary, TemplatePatch } from '@nitrodevco/nitro-theme';
 import { useEffect, useMemo, useState } from 'react';
 
 import { assetOverlaysPending, loadTemplateBundle } from '#base/utils';
@@ -41,8 +41,14 @@ const useLoadedLibrary = (library: string) => {
     return loaded === library || libraryLoaded(library);
 };
 
-/** `id` with `list` applied for `context`: a cache read once made (`patchedTemplate`). */
-const readTemplate = (id: string, context: TemplateContext | undefined, list: readonly TemplatePatch[]) => patchedTemplate(id, sourceTemplate(id), context, list);
+/** `id` with `list` applied for `context`: a cache read once made (`patchedTemplate`), its id noted (a part pressed in the preview is named by it). */
+const readTemplate = (id: string, context: TemplateContext | undefined, list: readonly TemplatePatch[]) => {
+    const template = patchedTemplate(id, sourceTemplate(id), context, list);
+
+    if (template) noteTemplateId(template, id);
+
+    return template;
+};
 
 /**
  * A Flash window template by id - `<library>/<asset>`, the asset the client's code builds the window
@@ -78,7 +84,12 @@ const readLibrary = (library: string, list: readonly TemplatePatch[]) => {
         templates[id] = patched!;
     }
 
-    return templates ? { ...source, templates } : source;
+    const read = templates ? { ...source, templates } : source;
+
+    // A grid item built from one of them (`from: templates[id]`) is named by its id in the preview.
+    for (const [ id, template ] of Object.entries(read.templates)) noteTemplateId(template, id);
+
+    return read;
 };
 
 /**

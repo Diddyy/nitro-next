@@ -8,8 +8,9 @@
  *
  * Beside it, `template-index.json`: every template window with its element tree - each element's key (what a
  * patch's `element` or a binding names it by), tag, name, style, rect, caption and the text keys it shows -
- * and the frames of the windows Nitro draws itself. The admin panel's windows browser reads both through the
- * server, so a theme author finds a window's names there rather than in the client.
+ * and the frames of the windows Nitro draws itself - and the window map (`tools/window-map.mjs`): the windows a player
+ * sees, by area and friendly name, and the parts each draws inside. The admin panel's windows browser and theme
+ * studio read both through the server, so a theme author finds a window's names there rather than in the client.
  *
  * The bundles come from `asset.bundles.templates` (`%libname%` the library) of the client's
  * `nitro-config.json`, or `--from`: that url form, or a folder of `<library>.nitro` files. The libraries
@@ -19,6 +20,7 @@
  *   node tools/skin-map.mjs                                  (writes packages/nitro-react/dist/skins.json)
  *   node tools/skin-map.mjs --from https://cdn.example.com/bundled/templates/%libname%.nitro
  *   node tools/skin-map.mjs --from ./bundles --out skins.json            (and template-index.json beside it, or --index <file>)
+ *   node tools/skin-map.mjs --texts ./external_flash_texts.txt           (the window names' texts; default the config's gamedata.urls.externalTexts)
  */
 import fs from 'node:fs';
 import { registerHooks } from 'node:module';
@@ -40,6 +42,7 @@ registerHooks({ resolve: (specifier, context, next) => {
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { buildSkinMap, THEME_SKIN_LIBRARY } = await import(pathToFileURL(path.join(root, 'packages/nitro-theme/src/template/templateSkins.ts')).href);
 const { templateElementKey } = await import(pathToFileURL(path.join(root, 'packages/nitro-theme/src/template/templateElementKey.ts')).href);
+const { buildWindowMap, readTexts } = await import(pathToFileURL(path.join(root, 'tools/window-map.mjs')).href);
 
 const args = process.argv.slice(2);
 const option = (name) => {
@@ -49,7 +52,10 @@ const option = (name) => {
 };
 const out = path.resolve(option('--out') ?? path.join(root, 'packages/nitro-react/dist/skins.json'));
 const indexOut = path.resolve(option('--index') ?? path.join(path.dirname(out), 'template-index.json'));
-const from = option('--from') ?? JSON.parse(fs.readFileSync(path.join(root, 'packages/nitro-react/public/config/nitro-config.json'), 'utf8'))['asset.bundles.templates'];
+const config = JSON.parse(fs.readFileSync(path.join(root, 'packages/nitro-react/public/config/nitro-config.json'), 'utf8'));
+const from = option('--from') ?? config['asset.bundles.templates'];
+// The window names: the hotel's English texts (`key=value` lines), a file or an address.
+const textsFrom = option('--texts') ?? config['gamedata.urls.externalTexts'];
 
 if (!from) {
     console.error('No bundles: pass --from <url with %libname% | folder>, or set asset.bundles.templates in nitro-config.json.');
@@ -200,7 +206,7 @@ const textKeys = (values) => {
  * text keys its caption and variables show - and the frames Nitro draws without a template (frame id to its
  * styles). Keys are sorted, so the same bundles write the same file.
  */
-const buildTemplateIndex = (nitroFrames) => {
+const buildTemplateIndex = (nitroFrames, windowMap) => {
     const node = (element, chain) => {
         const at = [ ...chain, element ];
         const key = templateElementKey(at);
@@ -229,14 +235,15 @@ const buildTemplateIndex = (nitroFrames) => {
         windows[id] = { name: template.name, width: template.width, height: template.height, elements: template.elements.map(element => node(element, [])) };
     }
 
-    return { version: 1, templates: windows, frames: Object.fromEntries(Object.entries(nitroFrames).sort(([ a ], [ b ]) => a.localeCompare(b))) };
+    return { version: 1, templates: windows, frames: Object.fromEntries(Object.entries(nitroFrames).sort(([ a ], [ b ]) => a.localeCompare(b))), ...windowMap };
 };
 
 const nitroFrames = sourceFrames();
 const map = buildSkinMap(theme, frames, templates, nitroFrames);
 const text = `${JSON.stringify(map)}\n`;
-const index = `${JSON.stringify(buildTemplateIndex(nitroFrames))}\n`;
-const summary = `${Object.keys(map.skins).length} skins, ${Object.keys(map.sprites).length} sprites, ${Object.keys(templates).length} templates of ${libraries.length - missing.length} libraries${missing.length ? ` (no bundle: ${missing.join(', ')})` : ''}, ${Object.keys(nitroFrames).length} frames of Nitro's own`;
+const windowMap = buildWindowMap({ templates, src: path.join(root, 'packages/nitro-react/src'), nitroFrames, texts: await readTexts(textsFrom) });
+const index = `${JSON.stringify(buildTemplateIndex(nitroFrames, windowMap))}\n`;
+const summary = `${Object.keys(map.skins).length} skins, ${Object.keys(map.sprites).length} sprites, ${Object.keys(templates).length} templates of ${libraries.length - missing.length} libraries${missing.length ? ` (no bundle: ${missing.join(', ')})` : ''}, ${Object.keys(nitroFrames).length} frames of Nitro's own; ${Object.keys(windowMap.windows).length} windows, ${Object.keys(windowMap.parts).length} parts, ${windowMap.orphans.length} orphans, ${windowMap.unused.length} not drawn`;
 
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, text);
