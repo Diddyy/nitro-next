@@ -219,6 +219,14 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
             this._objectCache = undefined!;
         }
 
+        // A canvas drawn inside this one's room layer, under its display - a client module's secondary
+        // room - is its own room's to dispose: let go of here, not destroyed with the layer.
+        if (this._roomLayer) {
+            for (const child of [ ...this._roomLayer.children ]) {
+                if ((child !== this._background) && (child !== this._display) && (child !== this._mask)) this._roomLayer.removeChild(child);
+            }
+        }
+
         if (this._master) {
             while (this._master.children.length) {
                 const child = this._master.removeChildAt(0);
@@ -302,6 +310,11 @@ export class RoomSpriteCanvas implements IRoomRenderingCanvas {
         this._height = height;
         this.positionFpsText();
         this.updateZoomSampling();
+    }
+
+    /** Whether the canvas paints its black backing (`setBackgroundVisible`). */
+    public get backgroundVisible(): boolean {
+        return this._backgroundVisible;
     }
 
     public setBackgroundVisible(flag: boolean): void {

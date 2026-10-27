@@ -16,6 +16,7 @@
         "../src/commands/client-modules/clientModuleCapabilities.ts",
         "../src/commands/client-modules/clientModuleCorePackets.ts",
         "../src/commands/client-modules/clientModuleRoomPointer.ts",
+        "../src/commands/room/secondaryRoomGeometry.ts",
         "../src/context/client-modules/clientModuleModel.ts",
         "../src/views/loading-screen/loadingScreenStyle.ts",
         "../src/chat/chatBubbleTheme.ts",

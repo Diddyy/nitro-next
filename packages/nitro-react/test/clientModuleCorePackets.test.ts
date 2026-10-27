@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { BinaryReader, EvaWireDataWrapper } from '@nitrodevco/nitro-api';
-import { IncomingHeader } from '@nitrodevco/nitro-packets';
+import { IncomingHeader, RoomEntryInfoMessage } from '@nitrodevco/nitro-packets';
 
-import { parseClientModuleCorePacket } from '../src/commands/client-modules/clientModuleCorePackets';
+import { corePacketParserOf, parseClientModuleCorePacket } from '../src/commands/client-modules/clientModuleCorePackets';
 
 /** A plugin's relay packet (header 25000): the inner core packet's header as an int, then its body. */
 const relay = (innerHeader: number, body: (view: DataView) => number) => {
@@ -48,4 +48,14 @@ void test('a header the client has no packet at, or a body that does not read as
     assert.equal(warnings.length, 2);
     assert.match(warnings[0], /19999 is not a packet/);
     assert.match(warnings[1], /RoomEntryInfoMessage\) did not read/);
+});
+
+// A secondary room's `apply` routes a packet by the parser that read it: only what `parseCore` read says which.
+void test('what parseCore read names its parser, and an object of the same shape names none', () => {
+    const wrapper = relay(IncomingHeader.RoomEntryInfoMessage, roomEntryInfo);
+    const parsed = parseClientModuleCorePacket(wrapper.readInt(), wrapper, () => undefined);
+
+    assert.equal(corePacketParserOf(parsed), RoomEntryInfoMessage);
+    assert.equal(corePacketParserOf({ roomId: 42, isOwner: true }), undefined);
+    assert.equal(corePacketParserOf(undefined), undefined);
 });

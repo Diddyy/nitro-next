@@ -152,7 +152,8 @@ first published module.
 | `config.get(key)`, `texts.get(key, fallback?, replacements?)` | The hotel's configuration and texts |
 | `sounds.play(id)` | A sample of the client's sound manager |
 | `room.avatarOverlay(render)`, `room.leave()` | `render({ roomIndex, userId, name, isOwnUser })` is drawn above each user's head every frame, under the windows; `leave` quits the room for the hotel view, as the toolbar's hotel view icon does |
-| `room.onUnhandledPointer(listener)` | The pointer events over the room that the room did not use (`clientModuleRoomPointer.ts`, offered by `RoomCanvas`): hover, a press, a release, a click, a double or right click where the room hit nothing - no avatar, furni, floor or wall, and not a drag or an area selection. `listener({ type, x, y, altKey, ctrlKey, shiftKey, tile })`: `type` `move`, `down`, `up`, `click`, `doubleClick` or `rightClick`, `x`/`y` in stage pixels, `tile` the floor-plane tile (height 0) under the pointer in the room's coordinates, off its floor too. Returning `true` takes the event: the room's "nothing here" handling (a click there deselects) is skipped. The listener added last is asked first; one that throws is logged and does not take it. With no listener the room does what it always did |
+| `room.onUnhandledPointer(listener)` | The pointer events over the room that the room did not use (`clientModuleRoomPointer.ts`, offered by `RoomCanvas`): hover, a press, a release, a click, a double or right click where the room hit nothing - no avatar, furni, floor or wall, and not a drag or an area selection. `listener({ type, x, y, altKey, ctrlKey, shiftKey, tile, secondaryTile })`: `type` `move`, `down`, `up`, `click`, `doubleClick` or `rightClick`, `x`/`y` in stage pixels, `tile` the floor-plane tile (height 0) under the pointer in the room's coordinates, off its floor too, `secondaryTile` the floor tile of a secondary room under it (`{ roomId, x, y, z }`, the room drawn last first; see "Secondary rooms"). Returning `true` takes the event: the room's "nothing here" handling (a click there deselects) is skipped. The listener added last is asked first; one that throws is logged and does not take it. With no listener the room does what it always did |
+| `room.createSecondary(roomId, { offset, alpha, greyscale, tint })`, `room.keepWhenLeft(options)` | Another room drawn beside the room on screen, fed with that room's core packets: see "Secondary rooms" below |
 | `hotelView.addLayer(component, { replacesBackground })` | `component({ width, height })` is drawn in the reception at its size while it is shown, with its moving objects: over the background art, under the widgets, the hotel top and the left backdrop. Later layers are drawn over earlier ones. With `replacesBackground` the layer is the backdrop: the reception's own background bitmaps are hidden while it is added |
 | `hotelView.addWidget(slot, component)` | `component({ slot, width })` is drawn in a reception widget slot (`landing.view.dynamic.slot.<n>`: 1 across the top, 2 and 4 the left column, 3 and 5 the right, 6 the bottom slot) in place of the hotel's configured widget while it is added, laid out as the slot's widget: the slot takes the size the component draws at, and its row and the gaps follow (`HotelViewWidgetGrid`). `width` is the slot's pane (`landing.view.dynamic.leftPaneWidth` for 1, 2, 4 and 6, `rightPaneWidth` for 3 and 5). The last widget added for a slot is drawn; a slot out of 1-6 is refused with a warning. A plugin that decides its widgets on the server sends them in a named message and the module adds one per slot |
 | `notifications.registerLayout(name, { template, height })`, `notifications.add(name, text, { image?, link?, stay?, timeDisplay?, id? })` | A bubble in the client's notification stack drawn from a template of the bundles. `stay` keeps it up (no time out, a click does not dismiss it), `timeDisplay` is how long (ms) another stays, an `id` is not added twice while up; `add` returns the function that takes it down |
@@ -167,6 +168,67 @@ zoom of the current room, while `zoom.enabled`), `room/like` (rate the current r
 Every `register`/`add`/`handle` returns a function that takes that one thing out; whatever a module
 added is taken out by the client when it stops, so `deactivate` only undoes what the module did
 outside the API. Everything a module draws sits in an error boundary of its own.
+
+## Secondary rooms
+
+A module can draw another room beside the room on screen - a plugin's portal into a neighbouring
+room, say - and the session can walk into it without the room being built again
+(`commands/room/secondaryRooms.ts`).
+
+```js
+const portal = api.room.createSecondary(roomB, { offset: { x: 12, y: 0, z: 0 }, greyscale: 1, alpha: 0.75 });
+
+// The plugin's relay: the room id, then the core packet's header and its body.
+api.packets.registerParser(25000, (reader) => {
+    const roomId = reader.readInt();
+    const header = reader.readInt();
+
+    return { roomId, packet: api.packets.parseCore(header, reader) };
+}, ({ roomId, packet }) => {
+    if (roomId === roomB) portal?.apply(packet);
+});
+api.room.onUnhandledPointer(({ type, secondaryTile }) => {
+    if ((type !== 'click') || (secondaryTile?.roomId !== roomB)) return;
+
+    api.messages.send('portals.walk', secondaryTile);
+
+    return true;
+});
+```
+
+- **Drawn**: room `roomId` is a room of the room engine like the one on screen - its own objects,
+  content loading and frame - with its tile (0, 0, 0) drawn on the active room's tile `offset`. It sits
+  in the active canvas over its black backing and under its display, so the room on screen covers it
+  where they overlap, and follows that room's camera, drag, zoom and flip every frame. `alpha`,
+  `greyscale` (a colour matrix over the room) and `tint` say how it looks; `setOptions` changes them.
+  It takes no pointer events: the floor tile of it under the pointer comes with `onUnhandledPointer`
+  as `secondaryTile`. The room the session is in, or a room drawn already, is refused with a warning.
+- **Fed**: `apply(packet)` takes what `api.packets.parseCore` read and runs the client's own room
+  handlers on it (`registerRoomMappingHandlers`, `registerRoomFurnitureHandlers`,
+  `registerRoomUserHandlers`), with the room store pointed at a store of the secondary room's own
+  (`runInRoomStoreScope`), so nothing of the room on screen or its windows hears it. It takes the
+  floor and height maps, the entry tile, papers and wall settings, floor and wall items and their
+  updates, slides and wired moves, and the avatars, their moves and states; anything else (chat, room
+  settings, rights) answers `false` with a warning.
+- **Entered**: when the session goes into a room a module draws, the client takes that room as it is:
+  the same objects and canvas, the state its store was fed, and the camera starting where the room
+  was drawn and easing on from there (`takeRoomCameraStart`) rather than snapping to the centre. The
+  handle's status is `entered`. The server may send the room's content again on entry: a floor map the
+  same as the one it was built from is not built again, furni and avatars already there stay as they
+  are, and the tile object map is filled from the furni it has.
+- **Kept**: `keepWhenLeft(options)` keeps the room the session is in drawn once the session goes to
+  another room (`waiting` until then), placed with `options` against the room entered and fed by the
+  module from then on. Leaving for the hotel view keeps nothing.
+- **Gone**: `dispose()` takes the room away (a room the session is in stays); a module's rooms go
+  when it stops. With no secondary room nothing of this runs: no ticker, no extra pointer work.
+
+Costs, measured on the rig (a 20-tile-wide room with 12 furni and an avatar, drawn again beside
+itself; frame work = the ticker's callbacks and Pixi's render, CPU): 0.19 ms a frame with none and
+0.27 ms with one (0.95 and 1.26 ms at 4x CPU throttling); the JS heap 1.4 MB more and the GPU 22 MB
+more (130 textures, mostly the room's plane textures at the canvas size). Disposed, the plane textures
+go back to the render texture pool, which destroys them after about a minute unused (GPU back to
+40.9 MB from 42.0 MB before); three more create, feed and dispose cycles left no room, ticker or
+plane texture behind. Tests: `test/secondaryRooms.test.ts`, `tools/room-camera-sizing.test.mjs`.
 
 ## Drawing a module's windows
 

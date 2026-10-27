@@ -12,6 +12,12 @@ export type ClientModuleCorePacketBody = IMessageDataWrapper | IBinaryReader | A
 
 let parsers: Record<number, IncomingPacketConstructor> | undefined;
 
+/** Which parser read each value `parseClientModuleCorePacket` gave: a secondary room's `apply` routes it by that. */
+const parsedBy = new WeakMap<object, IncomingPacketConstructor>();
+
+/** The parser that read `value`, when `parseClientModuleCorePacket` gave it; `undefined` for anything else. */
+export const corePacketParserOf = (value: unknown): IncomingPacketConstructor | undefined => (((typeof value === 'object') && (value !== null)) ? parsedBy.get(value) : undefined);
+
 const isBinaryReader = (body: IMessageDataWrapper | IBinaryReader): body is IBinaryReader => (typeof (body as IBinaryReader).remaining === 'function');
 
 const wrapperOf = (header: number, body: ClientModuleCorePacketBody): IMessageDataWrapper => {
@@ -36,7 +42,11 @@ export const parseClientModuleCorePacket = (header: number, body: ClientModuleCo
     }
 
     try {
-        return new Parser().parse(wrapperOf(header, body));
+        const parsed = new Parser().parse(wrapperOf(header, body));
+
+        if ((typeof parsed === 'object') && (parsed !== null)) parsedBy.set(parsed, Parser);
+
+        return parsed;
     } catch (error) {
         warn(`header ${header} (${Parser.name}) did not read: ${error instanceof Error ? error.message : String(error)}`);
 

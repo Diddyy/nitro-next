@@ -1,10 +1,10 @@
 /** Room canvas lifecycle and input bridge, including RoomEngine camera updates on each render tick. */
-import { IRoomObject, IRoomRenderingCanvas, MouseEventType, RoomDragEvent, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectMouseEvent, RoomRenderedEvent, Vector3d } from '@nitrodevco/nitro-api';
+import { IRoomObject, MouseEventType, RoomDragEvent, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectMouseEvent, RoomRenderedEvent } from '@nitrodevco/nitro-api';
 import { GetRenderer, GetRoomStage, GetTicker, RoomAreaSelectionManager } from '@nitrodevco/nitro-renderer';
-import { FederatedPointerEvent, Point, Ticker } from 'pixi.js';
+import { FederatedPointerEvent, Ticker } from 'pixi.js';
 import { useEffect, useRef } from 'react';
 
-import { clientModuleRoomPointer } from '#base/commands';
+import { clientModuleRoomPointer, hasSecondaryRooms, roomPlaneTileAt, secondaryRoomTileAt } from '#base/commands';
 import { ClientModuleRoomPointerType } from '#base/context/client-modules';
 import { getRoomObjectBeingPlaced, useRoom, useRoomMouseActions, useRoomStore } from '#base/context/room';
 import { useRoomCamera } from '#base/hooks';
@@ -38,19 +38,6 @@ const MODULE_POINTER_TYPES: Record<string, ClientModuleRoomPointerType> = {
     [MouseEventType.MOUSE_CLICK]: 'click',
     [MouseEventType.DOUBLE_CLICK]: 'doubleClick',
     [MouseEventType.RIGHT_CLICK]: 'rightClick',
-};
-
-/** The tile of the floor plane (height 0) under a stage point, in the room's tile coordinates - off its floor too. */
-const floorTileAt = (canvas: IRoomRenderingCanvas, x: number, y: number) => {
-    const scale = canvas.isFlipped ? -canvas.scale : canvas.scale;
-
-    if (!scale) return undefined;
-
-    const point = new Point(((x - canvas.screenOffsetX) / scale) - (canvas.width / 2), ((y - canvas.screenOffsetY) / scale) - (canvas.height / 2));
-    const plane = canvas.geometry.getPlanePosition(point, new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(0, 1, 0));
-
-    // `RoomObjectTileMouseEvent.tileXAsInt`: a tile's own coordinate is its centre.
-    return (plane && Number.isFinite(plane.x) && Number.isFinite(plane.y)) ? { x: Math.floor(plane.x + 0.5), y: Math.floor(plane.y + 0.5) } : undefined;
 };
 
 export const RoomCanvas = () => {
@@ -159,7 +146,11 @@ export const RoomCanvas = () => {
 
         if (!pointerType || !room?.canvas || !clientModuleRoomPointer.has()) return false;
 
-        return clientModuleRoomPointer.offer({ type: pointerType, x, y, altKey, ctrlKey, shiftKey, tile: floorTileAt(room.canvas, x, y) });
+        return clientModuleRoomPointer.offer({
+            type: pointerType, x, y, altKey, ctrlKey, shiftKey,
+            tile: roomPlaneTileAt(room.canvas, x, y),
+            secondaryTile: hasSecondaryRooms() ? secondaryRoomTileAt(x, y) : undefined,
+        });
     };
 
     const dispatchMouseEvent = (

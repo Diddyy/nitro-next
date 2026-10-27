@@ -16,6 +16,7 @@ import { GetSoundManager } from '#base/sound';
 import { addTemplateArrange, addTemplateBinding, addTemplatePatch, templatePatchReport } from '#base/theme/templatePatches';
 
 import { quitRoom } from '../navigator/navigatorCommands';
+import { createSecondaryRoom, keepRoomWhenLeft } from '../room/secondaryRooms';
 import { openClientLink } from '../system/clientLinkCommands';
 import { ClientModuleApi, ClientModuleDispose, ClientModulePacketValue } from './ClientModuleApi';
 import { createClientModuleCapabilities } from './clientModuleCapabilities';
@@ -75,6 +76,8 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
 
         return false;
     };
+
+    const warnRoom = (message: string) => NitroLogger.warn('ClientModules', `${moduleKey}: room.${message}`);
 
     const api: ClientModuleApi = {
         version: 1,
@@ -320,6 +323,20 @@ export const createClientModuleApi = (connection: WebSocketConnection, moduleKey
                 systemStore.getState().endRoomSession();
             },
             onUnhandledPointer: listener => track(clientModuleRoomPointer.add(moduleKey, listener)),
+            createSecondary: (roomId, options = {}) => {
+                const room = createSecondaryRoom(moduleKey, roomId, options, warnRoom);
+
+                if (room) track(room.dispose);
+
+                return room;
+            },
+            keepWhenLeft: (options = {}) => {
+                const room = keepRoomWhenLeft(moduleKey, options, warnRoom);
+
+                if (room) track(room.dispose);
+
+                return room;
+            },
         },
         hotelView: {
             addLayer: (component, options = {}) => {

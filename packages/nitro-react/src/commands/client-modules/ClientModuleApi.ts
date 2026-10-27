@@ -10,7 +10,7 @@ import type { IBinaryReader, IMessageDataWrapper } from '@nitrodevco/nitro-api';
 import type { TemplateBinding, TemplateContext, TemplateItemContext, TemplatePatchOp, TemplatePatchReport, TemplateWindows } from '@nitrodevco/nitro-theme';
 import type { ComponentType, ReactNode } from 'react';
 
-import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleChatCommand, ClientModuleContextMenu, ClientModuleContextMenuTargets, ClientModuleEventName, ClientModuleEvents, ClientModuleHotelViewLayerProps, ClientModuleHotelViewWidgetProps, ClientModuleRoomPointerEvent, ClientModuleState, ClientModuleWindowProps } from '#base/context/client-modules';
+import type { ClientModuleAlert, ClientModuleAvatar, ClientModuleChatCommand, ClientModuleContextMenu, ClientModuleContextMenuTargets, ClientModuleEventName, ClientModuleEvents, ClientModuleHotelViewLayerProps, ClientModuleHotelViewWidgetProps, ClientModuleRoomPointerEvent, ClientModuleSecondaryRoom, ClientModuleSecondaryRoomOptions, ClientModuleState, ClientModuleWindowProps } from '#base/context/client-modules';
 
 import type { ClientModuleLibraries } from './clientModuleLibraries';
 
@@ -235,6 +235,21 @@ export interface ClientModuleApi {
          * skipped. The listener added last is asked first. The room's own use always comes first.
          */
         onUnhandledPointer: (listener: (event: ClientModuleRoomPointerEvent) => boolean | void) => ClientModuleDispose;
+        /**
+         * Draws room `roomId` beside the room on screen, its tile (0, 0, 0) on that room's tile
+         * `options.offset`, under it and taking no pointer events (its floor tile under the pointer is
+         * `secondaryTile` of `onUnhandledPointer`). It is empty until fed the room's core packets
+         * (`apply`). When the session goes into that room the client takes it as it is drawn - the same
+         * objects, the camera easing on from where it was - and its status is `entered`. `undefined`, with
+         * a warning, for the room the session is in or one drawn already. Disposed when the module stops.
+         */
+        createSecondary: (roomId: number, options?: ClientModuleSecondaryRoomOptions) => ClientModuleSecondaryRoom | undefined;
+        /**
+         * Keeps the room the session is in drawn once the session goes to another room: a secondary room
+         * from then on (`waiting` until then), placed with `options` against the room entered. Leaving for
+         * the hotel view keeps nothing. `undefined`, with a warning, outside a room or for a room kept already.
+         */
+        keepWhenLeft: (options?: ClientModuleSecondaryRoomOptions) => ClientModuleSecondaryRoom | undefined;
     };
     hotelView: {
         /**
