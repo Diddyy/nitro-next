@@ -13,14 +13,32 @@
 import { ClientPointToStage, GetStagePixelScale, inspectAt, inspectFind, inspectPart, inspectTemplates, setTemplateInspecting, TemplateBindings } from '@nitrodevco/nitro-theme';
 import { useApplication } from '@pixi/react';
 import { Container, Graphics } from 'pixi.js';
-import { useEffect, useMemo, useSyncExternalStore } from 'react';
+import { ComponentType, useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import { systemStore } from '#base/context/system';
 import { Frame, TemplateWindow } from '#base/theme';
 
 import { DesignCatalogView } from './DesignCatalogView';
+import { DesignFriendListView } from './DesignFriendListView';
+import { DesignInfostandView } from './DesignInfostandView';
+import { DesignInventoryView } from './DesignInventoryView';
+import { DesignMessengerView } from './DesignMessengerView';
+import { DesignNavigatorView } from './DesignNavigatorView';
 import { DesignBox, designHighlight, designShown, sayDesign, setDesignPicker, setDesignTemplatesReader, subscribeDesign } from './designPreview';
+import { DesignPurseView } from './DesignPurseView';
+import { CATALOG_WINDOW, FRIENDS_WINDOW, INFOSTAND_FURNI_WINDOW, INVENTORY_WINDOW, MESSENGER_WINDOW, NAVIGATOR_WINDOW, PURSE_WINDOW } from './designStates';
 import type { DesignMessage } from './previewMessages';
+
+/** The game's own view each window with states (`DESIGN_STATES`) is drawn by, with sample content. */
+const DESIGN_VIEWS: Readonly<Record<string, ComponentType<{ state: string }>>> = {
+    [CATALOG_WINDOW]: DesignCatalogView,
+    [INVENTORY_WINDOW]: DesignInventoryView,
+    [NAVIGATOR_WINDOW]: DesignNavigatorView,
+    [PURSE_WINDOW]: DesignPurseView,
+    [FRIENDS_WINDOW]: DesignFriendListView,
+    [INFOSTAND_FURNI_WINDOW]: DesignInfostandView,
+    [MESSENGER_WINDOW]: DesignMessengerView,
+};
 
 /** A frame Nitro draws itself is drawn this size, with nothing in it. */
 const FRAME_SIZE = { width: 320, height: 200 };
@@ -118,6 +136,7 @@ export const DesignPreviewView = () => {
                 event: 'select',
                 window: design.template,
                 part,
+                ...((named.row !== undefined) ? { row: named.row } : {}),
                 // A template window drawn inside (a catalogue page) starts its own chain: the window shown heads the path.
                 path: (path[0]?.template === design.template) ? path : [ { template: design.template, key: '', tag: 'frame', name: null }, ...path ],
                 template: named.template,
@@ -205,8 +224,10 @@ export const DesignPreviewView = () => {
     );
 
     // A window with named states is drawn by the game's own view, with sample content in it.
-    if (design.state) return (
-        <DesignCatalogView
+    const StateView = design.state ? DESIGN_VIEWS[design.template] : undefined;
+
+    if (StateView && design.state) return (
+        <StateView
             key={design.art}
             state={design.state}
         />

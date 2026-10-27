@@ -10,15 +10,10 @@ import { useEffect } from 'react';
 
 import { showCatalogPage } from '#base/commands';
 import { CatalogContextProvider, getCatalogStore } from '#base/context/catalog';
-import { inventoryStore } from '#base/context/inventory';
 import { CatalogView } from '#base/views/catalog/CatalogView';
 
-import { DESIGN_STATES } from './designStates';
-
-/** The badges the badge display page's grid shows: a few of Habbo's own. */
-const SAMPLE_BADGES = [ 'ADM', 'ACH_Login1', 'ACH_RoomEntry1', 'ACH_Motto1', 'ACH_AvatarLooks1', 'ACH_GuideEnrollmentLifetime1', 'UK183', 'HC1' ];
-
-const CATALOG_WINDOW = 'habbo-catalog-com/catalog_ubuntu_with_tabs';
+import { useSampleBadges } from './designSamples';
+import { CATALOG_WINDOW, DESIGN_STATES } from './designStates';
 
 /** A catalogue node as the index packet brings one. */
 const node = (pageId: number, localization: string, depth: number, children: ICatalogNode[] = []): ICatalogNode => ({ depth, parent: undefined, visible: true, icon: 1, pageId, pageName: localization.toLowerCase().replace(/\s+/g, '_'), localization, offerIds: [], children });
@@ -57,14 +52,8 @@ const showSamplePage = (state: string) => {
 };
 
 export const DesignCatalogView = ({ state }: { state: string }) => {
-    // The badge display page lists the user's badges: the preview's user has these.
-    useEffect(() => {
-        const own = inventoryStore.getState().badgeCodes;
-
-        inventoryStore.setState({ badgeCodes: SAMPLE_BADGES });
-
-        return () => inventoryStore.setState({ badgeCodes: own });
-    }, []);
+    // The badge display page lists the user's badges.
+    useSampleBadges();
 
     useEffect(() => {
         showSamplePage(state);

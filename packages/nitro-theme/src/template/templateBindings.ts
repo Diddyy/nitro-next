@@ -12,7 +12,7 @@ import type { PivotPoint } from '../utils/flashBitmap';
 import type { SpriteFrame } from '../utils/spriteFrame';
 import type { Template, TemplateElement } from './templateData';
 import type { LayoutWindow, TemplateRect } from './templateLayout';
-import { noteTemplatePart } from './templateParts';
+import { noteTemplatePart, noteTemplatePrototype } from './templateParts';
 import type { TemplateContext } from './templatePatch';
 
 /** A header's button as its window's code reaches it: shown or hidden, and its click. */
@@ -519,7 +519,8 @@ export class TemplateExpander {
 
                 if (entry) entry.scope = made;
 
-                if (typeof item.from !== 'string' && !('tag' in item.from)) noteTemplatePart(made, item.from);
+                if (typeof item.from === 'string') noteTemplatePrototype(made, item.from);
+                else if (!('tag' in item.from)) noteTemplatePart(made, item.from);
 
                 return [ made ];
             };

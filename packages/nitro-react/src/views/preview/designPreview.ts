@@ -45,6 +45,8 @@ export interface DesignSelect {
     window: string;
     /** The part the element belongs to: a template built or drawn inside the window; null for the window's own. */
     part: string | null;
+    /** Inside a list row cloned from one of the window's own elements: that element's key (the key is scoped under it, so a patch changes every row). */
+    row?: string;
     /** From the window's root down to the element, each step's template and key: a breadcrumb. */
     path: { template: string; key: string | null; tag: string; name: string | null }[];
     template: string;

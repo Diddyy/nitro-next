@@ -17,7 +17,7 @@ import { createContext } from 'react';
 
 import type { TemplateElement } from './template/templateData';
 import { templateElementKey } from './template/templateElementKey';
-import { templateIdOf, templatePartOf } from './template/templateParts';
+import { templateIdOf, templatePartOf, templatePrototypeOf } from './template/templateParts';
 import type { TemplateContext } from './template/templatePatch';
 
 /** One drawn element, and the element it is drawn in (none for a window's root). */
@@ -137,11 +137,11 @@ export const inspectFind = (stage: Container, id: string, key: string): Containe
     const visit = (container: Container) => {
         const holder = targets.get(container);
 
-        // A part built inside the window (a grid item cloned from its template) is found by the part's id and key.
+        // A part built inside the window (a grid item cloned from its template) is found by the part's id and key, a row by its prototype's.
         const named = (holder?.node && holder.window) ? ((holder.window.id === id) ? inspectTemplateKey(holder.node, holder.window) : undefined) : undefined;
         const inPart = (holder?.node && holder.window && (named !== key)) ? inspectPart(holder.node, holder.window) : undefined;
 
-        if ((holder?.window?.id === id && named === key && !inPart?.part) || (inPart?.part && (inPart.template === id) && (inPart.key === key))) {
+        if ((holder?.window?.id === id && named === key && !inPart?.part) || ((inPart?.part || (inPart?.row !== undefined)) && (inPart.template === id) && (inPart.key === key))) {
             found.push(container);
 
             return;
@@ -163,6 +163,8 @@ export interface TemplateInspectPart {
     key: string | undefined;
     /** Whether the template is a part built inside the window (a list's clone of another template's root). */
     part: boolean;
+    /** Inside a clone of one of the window's own elements (a list row): that element's key - what a patch on every row names. */
+    row?: string;
     /** From the window's root down to the element: each step's template, key (null for a clone), tag and name. */
     path: { template: string; key: string | null; tag: string; name: string | null }[];
 }
@@ -181,26 +183,34 @@ export const inspectPart = (node: TemplateInspectNode, window: TemplateInspectWi
     let template = window.id;
     let from = 0;
     let part = false;
+    /** Inside a clone of one of the window's own elements (a row): that element's key, the clone's keys scoped under it. */
+    let prototype: string | undefined;
 
     nodes.forEach((each, index) => {
         const made = templatePartOf(each.element);
         const id = made && templateIdOf(made);
+        const row = templatePrototypeOf(each.element);
 
         if (id) {
             template = id;
             from = index;
             part = true;
+            prototype = undefined;
+        } else if (row !== undefined) {
+            from = index;
+            prototype = (part || !window.part) ? row : `${window.part}/${row}`;
         }
 
         const chain = nodes.slice(from, index + 1).map(step => step.element);
-        const key = part ? templateElementKey(chain) : inspectTemplateKey(each, window);
+        const inner = (part || (prototype !== undefined)) ? templateElementKey(chain) : undefined;
+        const key = (prototype !== undefined) ? ((inner === undefined) ? undefined : inner ? `${prototype}/${inner}` : prototype) : part ? inner : inspectTemplateKey(each, window);
 
         path.push({ template, key: key ?? null, tag: each.element.tag, name: each.element.name ?? null });
     });
 
     const last = path[path.length - 1];
 
-    return { template, key: last?.key ?? undefined, part, path };
+    return { template, key: last?.key ?? undefined, part, ...((prototype !== undefined) ? { row: prototype } : {}), path };
 };
 
 /** Every template drawn on the stage now: the windows' and the parts built inside them, each once. */

@@ -57,13 +57,27 @@ const LIBRARY_AREAS = {
 const CURATED_NAMES = {
     'habbo-toolbar-com/toolbar_xml': 'Toolbar',
     'habbo-toolbar-com/purse_xml': 'Purse',
+    'habbo-room-ui-com/furni_view': 'Furni info (infostand)',
+    'habbo-room-ui-com/jukebox_view': 'Jukebox info (infostand)',
+    'habbo-room-ui-com/songdisk_view': 'Song disk info (infostand)',
+    'habbo-room-ui-com/crackable_furni_view': 'Crackable furni info (infostand)',
+    'habbo-room-ui-com/user_view': 'User info (infostand)',
+    'habbo-room-ui-com/bot_view': 'Bot info (infostand)',
+    'habbo-room-ui-com/pet_view': 'Pet info (infostand)',
 };
+
+/**
+ * Templates that are windows of their own though no frame holds them and their file names others: the
+ * infostand draws one of its layouts by what is selected (`InfostandFurniView`'s `VARIANT_TEMPLATES`), each
+ * a window a player sees, none a part of another.
+ */
+const OWN_WINDOWS = new Set([ 'habbo-room-ui-com/furni_view', 'habbo-room-ui-com/jukebox_view', 'habbo-room-ui-com/songdisk_view', 'habbo-room-ui-com/crackable_furni_view' ]);
 
 /** The hotel's texts (`key=value` lines) from a file or an address; empty when neither gives any. */
 export const readTexts = async (from) => {
     if (!from) return {};
 
-    let text = '';
+    let text;
 
     try {
         text = /^https?:/i.test(from) ? await (await fetch(from)).text() : fs.readFileSync(from, 'utf8');
@@ -251,7 +265,8 @@ export const buildWindowMap = ({ templates, src, nitroFrames, texts }) => {
 
             const slash = literal.indexOf('/');
             const library = (slash > 0) ? literal.slice(0, slash) : undefined;
-            const asset = library && libraries.includes(library) ? literal.slice(slash + 1) : literal;
+            // `${LIBRARY}/friend_entry_xml`: the library a constant in reach names, the asset fixed.
+            const asset = (library && libraries.includes(library)) || ((match[1] === '`') && /^\$\{[^}]*\}$/.test(library ?? '')) ? literal.slice(slash + 1) : literal;
             const pattern = (match[1] === '`') ? literalPattern(asset) : undefined;
             const candidates = pattern ? ids.filter(id => pattern.test(id.slice(id.indexOf('/') + 1))) : (byAsset.get(asset) ?? []);
 
@@ -319,7 +334,7 @@ export const buildWindowMap = ({ templates, src, nitroFrames, texts }) => {
     const windowsOf = new Map();
 
     for (const [ file, found ] of draws) {
-        const own = [ ...found ].filter(id => id.startsWith('frame:') || isFrame(templates[id]));
+        const own = [ ...found ].filter(id => id.startsWith('frame:') || isFrame(templates[id]) || OWN_WINDOWS.has(id));
 
         // A file nothing above draws is a window of its own: its largest template, when it opens no frame.
         if (!own.length && !owners.get(file).size) {
@@ -348,10 +363,12 @@ export const buildWindowMap = ({ templates, src, nitroFrames, texts }) => {
     const windowId = id => (id.startsWith('frame:') ? id.slice('frame:'.length) : id);
     const windows = {};
     const firstFile = new Map();
+    /** A view or a component: what draws a window, over a command or a table naming it (`clientModuleMenus`). */
+    const isView = at => /^(views|components)\//.test(relative(at));
 
     for (const [ file, own ] of windowsOf) {
         for (const id of own) {
-            if (!firstFile.has(id)) firstFile.set(id, file);
+            if (!firstFile.has(id) || (!isView(firstFile.get(id)) && isView(file))) firstFile.set(id, file);
         }
     }
 
