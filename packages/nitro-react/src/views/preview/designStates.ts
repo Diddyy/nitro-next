@@ -33,6 +33,8 @@ export const PURSE_WINDOW = 'habbo-toolbar-com/purse_xml';
 export const FRIENDS_WINDOW = 'habbo-friend-list-com/main_window_xml';
 export const INFOSTAND_FURNI_WINDOW = 'habbo-room-ui-com/furni_view';
 export const MESSENGER_WINDOW = 'habbo-messenger-com/messenger_xml';
+/** The room screen: every piece of the HUD a player sees in a room, each its own window (`DesignHudView`). */
+export const HUD_WINDOW = 'hud';
 
 /** The inventory's states: a tab with things in it each. */
 const INVENTORY_STATES: DesignState[] = [
@@ -64,6 +66,14 @@ const INFOSTAND_FURNI_STATES: DesignState[] = [
     { id: 'visitor', name: 'Visitor', tab: 'visitor' },
 ];
 
+/** The room screen's states: the room as a visitor sees it with a furni picked, a user picked, with the Me menu open, with the room info open. */
+const HUD_STATES: DesignState[] = [
+    { id: 'room', name: 'In a room', tab: 'room' },
+    { id: 'user', name: 'A user picked', tab: 'user' },
+    { id: 'memenu', name: 'Me menu open', tab: 'memenu' },
+    { id: 'roominfo', name: 'Room info open', tab: 'roominfo' },
+];
+
 /** The states of each window drawn with its own view. */
 export const DESIGN_STATES: Readonly<Record<string, readonly DesignState[]>> = {
     [CATALOG_WINDOW]: CATALOG_STATES,
@@ -73,6 +83,7 @@ export const DESIGN_STATES: Readonly<Record<string, readonly DesignState[]>> = {
     [FRIENDS_WINDOW]: FRIENDS_STATES,
     [INFOSTAND_FURNI_WINDOW]: INFOSTAND_FURNI_STATES,
     [MESSENGER_WINDOW]: [ { id: 'chat', name: 'Conversation' } ],
+    [HUD_WINDOW]: HUD_STATES,
 };
 
 /** The state `id` of `window`, its first when `id` names none it has; `undefined` for a window drawn as its bare template. */

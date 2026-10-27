@@ -22,7 +22,7 @@ const friend = (playerId: number, name: string, isOnline: boolean, motto: string
     persistedUser: true, vipMember: false, pocketHabboUser: false, relationshipType: MessengerFriendRelationType.Zero,
 });
 
-const FRIENDS = [ friend(1, 'Bonnie', true, 'Building all day'), friend(2, 'Frank', true, 'Welcome!'), friend(3, 'Marcy', false, 'Back soon'), friend(4, 'Pixel', false, 'Pixels everywhere') ];
+export const SAMPLE_FRIENDS = [ friend(1, 'Bonnie', true, 'Building all day'), friend(2, 'Frank', true, 'Welcome!'), friend(3, 'Marcy', false, 'Back soon'), friend(4, 'Pixel', false, 'Pixels everywhere') ];
 const REQUESTS: IFriendRequest[] = [ { playerId: 5, name: 'Newbie', figure: FIGURE, state: FriendRequestStateType.Open }, { playerId: 6, name: 'Quizmaster', figure: FIGURE, state: FriendRequestStateType.Open } ];
 
 export const DesignFriendListView = ({ state }: { state: string }) => {
@@ -30,7 +30,7 @@ export const DesignFriendListView = ({ state }: { state: string }) => {
         const own = userStore.getState();
         const { processFriends, replaceFriendRequests } = own;
 
-        processFriends(FRIENDS);
+        processFriends(SAMPLE_FRIENDS);
         replaceFriendRequests(REQUESTS);
 
         return () => userStore.setState(own, true);
