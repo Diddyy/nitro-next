@@ -41,3 +41,22 @@ void test('each element of the window once, with the outermost containers drawin
     assert.ok(found.every(entry => entry.template === 'lib/dialog'));
     assert.equal(found.find(entry => entry.key === '')?.containers.includes(frameInner), false, 'a container inside the frame\'s own drawing is not another drawing of it');
 });
+
+void test('with no window named, every window on the stage: the room screen is many', () => {
+    const bar = element('container', undefined, [ element('bitmap', 'icon') ]);
+    const purse = element('container', undefined);
+    const barNode: TemplateInspectNode = { element: bar, parent: undefined };
+    const iconNode: TemplateInspectNode = { element: bar.children[0], parent: barNode };
+    const stage = new Container();
+    const barBox = new Container();
+    const iconBox = new Container();
+    const purseBox = new Container();
+
+    noteInspectTarget(barBox, { node: barNode, window: { id: 'lib/bar' } });
+    noteInspectTarget(iconBox, { node: iconNode, window: { id: 'lib/bar' } });
+    noteInspectTarget(purseBox, { node: { element: purse, parent: undefined }, window: { id: 'lib/purse' } });
+    barBox.addChild(iconBox);
+    stage.addChild(barBox, purseBox);
+
+    assert.deepEqual(inspectElements(stage, undefined).map(entry => `${entry.template}|${entry.key}`), [ 'lib/bar|', 'lib/bar|icon', 'lib/purse|' ]);
+});

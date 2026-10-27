@@ -225,9 +225,10 @@ export interface TemplateInspectElement {
  * Every element a key reaches drawn in the windows of template `id` and in what is drawn inside them
  * (the parts built from other templates, a template window such as a catalogue page), each named in
  * its own template, with the outermost containers drawing it - an editor's outlines of the whole
- * window at once, in one walk. A clone no key reaches is left out; a hidden element is not drawn.
+ * window at once, in one walk; with no `id`, of every window on the stage. A clone no key reaches is left
+ * out; a hidden element is not drawn.
  */
-export const inspectElements = (stage: Container, id: string): TemplateInspectElement[] => {
+export const inspectElements = (stage: Container, id: string | undefined): TemplateInspectElement[] => {
     const found = new Map<string, TemplateInspectElement>();
 
     const visit = (container: Container, drawing: TemplateInspectNode | undefined, inside: boolean) => {
@@ -235,7 +236,8 @@ export const inspectElements = (stage: Container, id: string): TemplateInspectEl
 
         const holder = targets.get(container);
         let node = drawing;
-        const within = inside || (holder?.window?.id === id);
+        // No id: every window on the stage (a screen of many, the room screen's HUD).
+        const within = inside || (holder?.window !== undefined && ((id === undefined) || (holder.window.id === id)));
 
         if (within && holder?.node && holder.window && (holder.node !== drawing)) {
             node = holder.node;

@@ -238,7 +238,8 @@ export const DesignPreviewView = () => {
 
             waited = 0;
 
-            const elements = inspectElements(app.stage, design.template).map(({ template, key, element, containers }) => ({
+            // The room screen is many windows: the elements of each.
+            const elements = inspectElements(app.stage, (design.template === HUD_WINDOW) ? undefined : design.template).map(({ template, key, element, containers }) => ({
                 template,
                 key,
                 tag: element.tag,
