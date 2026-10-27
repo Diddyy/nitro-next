@@ -53,6 +53,8 @@ export interface DesignSelect {
     name: string | null;
     style: string | null;
     caption: string | null;
+    /** Each `${key}` its caption and variables show, with the text the client shows for it now. */
+    texts?: Record<string, string>;
     /** What the element is drawn with, its patches applied: what a visual editor starts from. */
     element?: DesignElement;
     /** Where it is drawn, in the page's CSS pixels: what a visual editor puts its handles on. */

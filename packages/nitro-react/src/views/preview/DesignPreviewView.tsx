@@ -15,6 +15,7 @@ import { useApplication } from '@pixi/react';
 import { Container, Graphics } from 'pixi.js';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
+import { systemStore } from '#base/context/system';
 import { Frame, TemplateWindow } from '#base/theme';
 
 import { DesignCatalogView } from './DesignCatalogView';
@@ -38,6 +39,20 @@ const drawnBoxes = (stage: Container, canvas: HTMLCanvasElement, template: strin
 
         return { x: page.left + (from.x / scale), y: page.top + (from.y / scale), width: (to.x - from.x) / scale, height: (to.y - from.y) / scale };
     });
+};
+
+/** Each `${key}` a caption or a variable shows, with the text the client shows for it now (the key itself when it has none). */
+const shownTexts = (values: readonly unknown[]): Record<string, string> => {
+    const { localizations } = systemStore.getState();
+    const texts: Record<string, string> = {};
+
+    for (const value of values) {
+        if (typeof value !== 'string') continue;
+
+        for (const match of value.matchAll(/\$\{([^${}]+)\}/g)) texts[match[1]] = localizations[match[1]] ?? match[1];
+    }
+
+    return texts;
 };
 
 /** A list's sample rows as the bindings its code would give it. */
@@ -111,6 +126,7 @@ export const DesignPreviewView = () => {
                 name: element.name ?? null,
                 style: (element.style !== undefined) ? String(element.style) : null,
                 caption: element.caption ?? null,
+                texts: shownTexts([ element.caption, ...Object.values(element.vars ?? {}) ]),
                 element: { x: element.x, y: element.y, width: element.width, height: element.height, color: element.color ?? null, hidden: !!element.hidden, vars: { ...element.vars }, params: { ...element.params } },
                 rects: (key === undefined) ? [] : drawnBoxes(app.stage, canvas, named.template, key),
             });

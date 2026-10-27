@@ -366,7 +366,7 @@ export const buildWindowMap = ({ templates, src, nitroFrames, texts }) => {
 
         const asset = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
 
-        return asset.replace(/_xml$/, '').replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^\w/, c => c.toUpperCase()).trim();
+        return asset.replace(/_xml$/, '').replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, (match, a, b) => `${a} ${b.toLowerCase()}`).replace(/^\w/, c => c.toUpperCase()).trim();
     };
 
     const areaOf = (id, file) => {
@@ -403,7 +403,7 @@ export const buildWindowMap = ({ templates, src, nitroFrames, texts }) => {
             for (const window of partWindows(file, id).map(windowId)) {
                 if (window === id) continue;
 
-                parts[id] = parts[id] ?? { windows: [] };
+                parts[id] = parts[id] ?? { name: englishName(id), windows: [] };
 
                 if (!parts[id].windows.includes(window)) parts[id].windows.push(window);
 
