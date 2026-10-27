@@ -13,10 +13,14 @@
 import { NitroLogger } from '@nitrodevco/nitro-api';
 import type { Template, TemplateElement } from '@nitrodevco/nitro-theme';
 
-/** What a named element does when clicked: close its window, or open an in-client link. */
+/**
+ * What a named element does when clicked: close its window, open an in-client link, or show the
+ * element `show` names and hide the others buttons show - tabs, each showing its page.
+ */
 export interface DataWindowButton {
     close?: boolean;
     link?: string;
+    show?: string;
 }
 
 /** Where players open the window from. */
@@ -95,6 +99,7 @@ export const readDataWindow = (id: string, file: unknown, base: string): DataWin
             if (!isObject(action)) continue;
             if (action.close === true) buttons[element] = { close: true };
             else if (typeof action.link === 'string') buttons[element] = { link: action.link };
+            else if (typeof action.show === 'string') buttons[element] = { show: action.show };
         }
     }
 

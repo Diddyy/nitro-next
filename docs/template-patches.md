@@ -485,8 +485,10 @@ copy of a window of the game) and writes them into the theme staff work on.
   is filled from the hotel's variables.
 - `buttons`: what a named element does when clicked - `{ "close": true }` closes the window,
   `{ "link": "<link>" }` opens an in-client link (`navigator/goto/<room>`, `habbopages/<page>`,
-  another window's `window/<plugin key>/<name>`; `event:` in front is read too). The frame's close
-  button closes it.
+  another window's `window/<plugin key>/<name>`; `event:` in front is read too), `{ "show": "<element>" }`
+  shows that element and hides the others the window's buttons show - tabs, each showing its page
+  (the first named is shown as it opens, and the button of the page shown is selected). The frame's
+  close button closes it.
 - `entries`: where players open it from - `{ "where": "memenu", "caption": "..." }` an entry in the me
   menu, `{ "where": "toolbar", "icon": "<image>", "tooltip": "..." }` an icon in the bottom bar.
 - The link **`window/<plugin key>/<name>`** opens it from anything that opens a link: a notice's or
@@ -744,7 +746,7 @@ version number only listed as a dependency.
 
 - Variables (and so patch files and windows as data) are read as the client starts: a plugin's file
   added or changed reaches a player at their next load. Modules' patches come and go live.
-- A window as data has no state of its own: tabs that switch pages, lists filled from the server and
+- A window as data keeps no state beyond the page its tabs show: lists filled from the server and
   inputs need a client module.
 - Patches change templates. Windows Nitro draws with React components rather than a template have no
   elements to patch; their frame takes a root patch naming its id, and `frame.overrides`, nothing else.
