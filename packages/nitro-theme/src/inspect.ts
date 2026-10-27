@@ -213,6 +213,52 @@ export const inspectPart = (node: TemplateInspectNode, window: TemplateInspectWi
     return { template, key: last?.key ?? undefined, part, ...((prototype !== undefined) ? { row: prototype } : {}), path };
 };
 
+/** One element of a window as drawn: where a patch names it, and the containers drawing it (a list's rows each). */
+export interface TemplateInspectElement {
+    template: string;
+    key: string;
+    element: TemplateElement;
+    containers: Container[];
+}
+
+/**
+ * Every element a key reaches drawn in the windows of template `id` and in what is drawn inside them
+ * (the parts built from other templates, a template window such as a catalogue page), each named in
+ * its own template, with the outermost containers drawing it - an editor's outlines of the whole
+ * window at once, in one walk. A clone no key reaches is left out; a hidden element is not drawn.
+ */
+export const inspectElements = (stage: Container, id: string): TemplateInspectElement[] => {
+    const found = new Map<string, TemplateInspectElement>();
+
+    const visit = (container: Container, drawing: TemplateInspectNode | undefined, inside: boolean) => {
+        if (!container.visible || !container.renderable) return;
+
+        const holder = targets.get(container);
+        let node = drawing;
+        const within = inside || (holder?.window?.id === id);
+
+        if (within && holder?.node && holder.window && (holder.node !== drawing)) {
+            node = holder.node;
+
+            const part = inspectPart(node, holder.window);
+
+            if (part.key !== undefined) {
+                const entry = `${part.template}|${part.key}`;
+                const known = found.get(entry);
+
+                if (known) known.containers.push(container);
+                else found.set(entry, { template: part.template, key: part.key, element: node.element, containers: [ container ] });
+            }
+        }
+
+        for (const child of container.children) visit(child, node, within);
+    };
+
+    visit(stage, undefined, false);
+
+    return [ ...found.values() ];
+};
+
 /** Every template drawn on the stage now: the windows' and the parts built inside them, each once. */
 export const inspectTemplates = (stage: Container): string[] => {
     const found = new Set<string>();
