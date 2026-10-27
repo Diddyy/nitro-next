@@ -3,10 +3,10 @@
  * of the HUD a player sees in a room, where they see it, drawn by the game's own views with sample state
  * - the bottom bar with its icons and the friend bar, the purse, the chat input and two lines said, the
  * room tools with the room's name card, a notification bubble, the furni infostand, and by the state the
- * Me menu or the room info. Each piece is its own template window, so a press names the window it hit
+ * user infostand, the Me menu or the room info. Each piece is its own template window, so a press names the window it hit
  * (`select`'s `part`) and a patch made from it changes that window. Nothing is sent. Not a Flash feature.
  */
-import { IRoom, RoomChatTypeEnum } from '@nitrodevco/nitro-api';
+import { AvatarGenderType, IRoom, IRoomUserData, RoomChatTypeEnum, RoomObjectCategoryEnum, RoomObjectUserType } from '@nitrodevco/nitro-api';
 import { useEffect, useLayoutEffect } from 'react';
 
 import { ChatBubbleData } from '#base/chat';
@@ -19,6 +19,7 @@ import { NotificationsBubble } from '#base/views/notifications/NotificationsBubb
 import { PurseTemplateView } from '#base/views/purse/PurseTemplateView';
 import { ChatBubbleBody } from '#base/views/room-widgets/chat/ChatBubbleBody';
 import { RoomChatInputView } from '#base/views/room-widgets/chat-input/RoomChatInputView';
+import { InfostandUserView } from '#base/views/room-widgets/object-infostand/InfostandUserView';
 import { RoomInfoView } from '#base/views/room-widgets/room-info/RoomInfoView';
 import { ROOM_TOOLS_INFO_MARGIN, roomToolsRight } from '#base/views/room-widgets/room-tools/roomToolsGeometry';
 import { RoomToolsInfoView } from '#base/views/room-widgets/room-tools/RoomToolsInfoView';
@@ -39,8 +40,24 @@ const FIGURE = 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64';
 const ROOM_NAME = 'Sunset Cafe';
 const ROOM_TAGS = [ 'cafe', 'chill' ];
 
-/** A room the chat input belongs to: it is drawn only in one (`RoomUI` creates it with the session). */
-const SAMPLE_ROOM = { roomId: 1 } as IRoom;
+/** The user the user infostand shows: in the room as object 1 (`RoomUsersEvent`). */
+const SAMPLE_USER_OBJECT = 1;
+
+const SAMPLE_USER = {
+    id: SAMPLE_USER_OBJECT, objectId: SAMPLE_USER_OBJECT, category: RoomObjectCategoryEnum.Unit, name: 'Bonnie', userType: RoomObjectUserType.User, gender: AvatarGenderType.Female,
+    figure: 'hr-515-33.hd-600-1.ch-635-70.lg-716-66-62.sh-735-68', custom: 'Coffee first', webID: 1, activityPoints: 1250, groupId: 0, groupName: '', groupStatus: 0, ownerId: 0, ownerName: '',
+    rarityLevel: 0, hasSaddle: false, isRiding: false, canBreed: false, canHarvest: false, canRevive: false, hasBreedingPermission: false, petLevel: 0, petPosture: '', botSkills: [], isModerator: false,
+} as IRoomUserData;
+
+/**
+ * A room the HUD's views belong to - the chat input is drawn only in one (`RoomUI` creates it with the session) - with the
+ * sample user's avatar in it as far as the infostand reads it (its model holds nothing: no rights, carries nothing, stands).
+ */
+const SAMPLE_ROOM = {
+    roomId: 1,
+    eventDispatcher: { addEventListener: () => undefined, removeEventListener: () => undefined },
+    getRoomObject: (objectId: number) => ((objectId === SAMPLE_USER_OBJECT) ? { instanceId: 1, model: { updateCounter: 0, getValue: () => undefined } } : undefined),
+} as unknown as IRoom;
 
 /** The lines said, each where the room's chat draws it: from the top, a bubble's height apart. */
 const LINES: { name: string; text: string; color: number; x: number; y: number }[] = [
@@ -94,7 +111,7 @@ const useRoomSample = () => {
             clubSubscription: { clubDays: 23, clubPeriods: 2, isVip: true, pastClubDays: 400, pastVipDays: 400, isExpiring: false, minutesUntilExpiration: 33120, minutesSinceLastModified: 0 },
         });
         systemStore.setState({ landingViewVisible: false });
-        roomStore.setState({ room: SAMPLE_ROOM });
+        roomStore.setState({ room: SAMPLE_ROOM, usersByRoomObjectId: { [SAMPLE_USER_OBJECT]: SAMPLE_USER } });
 
         return () => {
             roomStore.setState(ownRoom, true);
@@ -211,7 +228,16 @@ export const DesignHudView = ({ state }: { state: string }) => {
                     onClose={none}
                 />
             )}
-            {(shown !== 'memenu') && <DesignInfostandView state="visitor" />}
+            {(shown === 'user') && (
+                // The infostand's corner (`RoomWidgets`): bottom right, over the toolbar.
+                <Box layout={{ position: 'absolute', right: 4, bottom: 58 }}>
+                    <InfostandUserView
+                        objectData={{ objectId: SAMPLE_USER_OBJECT, category: RoomObjectCategoryEnum.Unit }}
+                        onClose={none}
+                    />
+                </Box>
+            )}
+            {((shown === 'room') || (shown === 'roominfo')) && <DesignInfostandView state="visitor" />}
             <ToolbarView />
             {/* Drawn after the toolbar because it sits inside it when it fits (`MainView`). */}
             <RoomChatInputView />

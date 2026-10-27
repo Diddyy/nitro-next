@@ -66,9 +66,10 @@ const INFOSTAND_FURNI_STATES: DesignState[] = [
     { id: 'visitor', name: 'Visitor', tab: 'visitor' },
 ];
 
-/** The room screen's states: the room as a visitor sees it with a furni picked, with the Me menu open, with the room info open. */
+/** The room screen's states: the room as a visitor sees it with a furni picked, a user picked, with the Me menu open, with the room info open. */
 const HUD_STATES: DesignState[] = [
     { id: 'room', name: 'In a room', tab: 'room' },
+    { id: 'user', name: 'A user picked', tab: 'user' },
     { id: 'memenu', name: 'Me menu open', tab: 'memenu' },
     { id: 'roominfo', name: 'Room info open', tab: 'roominfo' },
 ];
