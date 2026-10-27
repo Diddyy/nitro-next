@@ -26,7 +26,6 @@ import { NitroLogger } from '@nitrodevco/nitro-api';
 import { GetAssetManager } from '@nitrodevco/nitro-renderer';
 
 import { configString, systemStore } from '#base/context/system';
-import { parseObject } from '#base/theme/templateStyles';
 import { loadTemplateBundle, normalizeLocalizationMap, parseLocalizationData } from '#base/utils';
 
 /** The library the default localizations are embedded in, whose bundle carries every language's (`loadTemplateBundle`). */
@@ -117,7 +116,23 @@ const loadDefaultEmbedLocalizations = (language: string, fallback: boolean): { l
  * over the hotel's texts wherever the hotel's are laid down, so a language swap or a texts reload
  * keeps them.
  */
-const themeTexts = (): Record<string, string> => Object.fromEntries(Object.entries(parseObject(systemStore.getState().config['text.overrides'])).filter((entry): entry is [ string, string ] => typeof entry[1] === 'string'));
+const themeTexts = (): Record<string, string> => {
+    const value: unknown = systemStore.getState().config['text.overrides'];
+    let texts: unknown = value;
+
+    // The object, or the object as JSON text, as every merged variable is read.
+    if (typeof value === 'string') {
+        try {
+            texts = JSON.parse(value) as unknown;
+        } catch {
+            return {};
+        }
+    }
+
+    if (!texts || (typeof texts !== 'object') || Array.isArray(texts)) return {};
+
+    return Object.fromEntries(Object.entries(texts).filter((entry): entry is [ string, string ] => typeof entry[1] === 'string'));
+};
 
 /**
  * The boot's texts: the default language's default localizations from the library's bundle, with
