@@ -203,7 +203,8 @@ window as Habbo does, and starts it at its pane's origin when a theme wrapped it
 
 - **A plugin with no code** (a theme): `wwwroot/template-patches.json` in its folder. Turbo lists it
   for clients in the merged variable `templates.patches` (`{ "<plugin key>": "<url>" }`) while the
-  plugin is loaded; the plugin names it nowhere. Clients load the files as they start.
+  plugin is loaded; the plugin names it nowhere. Clients load the files as they start, and again
+  when the file changes (Live reload, below).
 
   ```json
   { "patches": [ { "template": "habbo-toolbar-com/purse_xml", "order": -10, "ops": [
@@ -725,6 +726,26 @@ also go to a Turbo server's extension inspector (`TurboClientExtensionReportComp
 part of `client.modules`), whose log names the miss and whose admin panel lists it on the plugin. A hotel takes a plugin's file away with an empty url in
 its own `templates.patches`.
 
+## Live reload
+
+When staff change the look a player draws - their theme's patches, style values, images, fonts, the
+hotel's texts, or which theme they get - Turbo sends the named message `turbo.theme.changed { theme,
+revision, url }` (turbo-cloud `docs/plugin-data.md`, "Live reload"), and `theme/themeLive.ts` reads the
+look at `url` (`{ theme, variables }`) and draws what changed over what is open, keeping the room
+session and with no reload:
+
+| Changed | Drawn by |
+| --- | --- |
+| `templates.patches`, `templates.styles` | `loadTemplatePatchFiles` (a file at a new address replaces its owner's last once it is in; every file read again when the style values changed); open template windows are patched again as they read the patch list |
+| `asset.overlays` | `reapplyAssetOverlays`: each bitmap whose overlay changed loaded again, one no longer named put back to the library's own (kept the first time it was replaced), the theme sheet's sprites registered again; then `notifyThemeArtChanged`, and every component reading a texture through the theme's hooks draws again in place - a window keeps its place, order, scroll and typed text |
+| `frame.overrides` | `Frame`, which reads it from the variables |
+| `text.fonts`, `text.styles.overrides`, `text.faces.overrides` | `loadTextFonts` and the overrides set again; template windows drawn anew |
+| `templates.windows` | `loadDataWindows`: the plugins' windows as data read again |
+| `gamedata.urls.externalTexts`, `text.overrides` | `reloadHotelTexts`: the hotel's texts with the theme's own over them; those that changed laid over the shown, key by key |
+
+A burst of messages draws the last. `asset.bundles.templates.overrides` and `loading.screen` are read
+at the next load.
+
 ## Where it lives
 
 - `@nitrodevco/nitro-theme` `template/templatePatch.ts`: `applyTemplatePatches`, the rule bindings
@@ -742,22 +763,22 @@ its own `templates.patches`.
   `templateElementSkins`, `themeSkinSprites`, `buildSkinMap`; tested in `packages/nitro-theme/test`),
   `tools/skin-map.mjs` (writes `skins.json`); nitro-react `utils/skinMap.ts` (fetches it) and
   `utils/assetOverlayCheck.ts` (the development build's overlay check); nitro-react `utils/assetOverlays.ts` (applied
-  by `loadAssetBundle`; a template of a library waits for its overlays), the theme
-  sheet's overlaid sprites sliced from their own bitmap (`themeAssetBundle.ts`).
+  by `loadAssetBundle`; a template of a library waits for its overlays; `reapplyAssetOverlays` for live
+  reload), the theme sheet's overlaid sprites sliced from their own bitmap (`themeAssetBundle.ts`);
+  nitro-react `theme/themeLive.ts` (live reload).
 
 A React Compiler note for anyone touching this: memoised code recomputes only on what it reads, so
 patch state reaches components as a value they read (a `useSyncExternalStore` snapshot), never as a
-version number only listed as a dependency.
+version number only listed as a dependency. The theme's texture hooks (`usePixiTexture`,
+`usePixiEffectTexture`) opt out (`'use no memo'`): the compiler would keep a key's texture, and art
+changed in place is another texture under the same key.
 
 ## Not yet
 
-- Variables (and so patch files and windows as data) are read as the client starts: a plugin's file
-  added or changed reaches a player at their next load. Modules' patches come and go live.
 - A window as data keeps no state beyond the page its tabs show: lists filled from the server and
   inputs need a client module.
 - Patches change templates. Windows Nitro draws with React components rather than a template have no
   elements to patch; their frame takes a root patch naming its id, and `frame.overrides`, nothing else.
-- `asset.overlays`, `frame.overrides` and `room.previewer` are read as the client starts, like patch
-  files: a change reaches a player at their next load.
+- `room.previewer` is read as the client starts: a change reaches a player at their next load.
 - A template's extension `arrange` runs for windows drawn on their own, not yet for one drawn as
   another window's item (a catalogue widget's view): arrange the page's window instead.
