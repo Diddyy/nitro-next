@@ -152,6 +152,45 @@ export const initializeLocalizations = async (externalTexts: Record<string, stri
 };
 
 /**
+ * Not Flash's: the hotel's texts read again from `url` (live reload, `theme/themeLive.ts`), the theme's
+ * own (`text.overrides`) over them, and laid over the texts shown key by key, as `parseLocalizationData`
+ * updates them: only a text that changed is set,
+ * its `${key}` references read from the texts shown. Resolves how many changed; 0 when the file did not load.
+ */
+export const reloadHotelTexts = async (url: string): Promise<number> => {
+    try {
+        const body = await fetchExternalTexts(url);
+
+        if (!isLocalizationData(body)) return 0;
+
+        // The theme's own texts lie over the hotel's, as they do at boot.
+        const next = { ...parseLocalizationData(body), ...themeTexts() };
+        const changed: Record<string, string> = {};
+
+        for (const key in next) {
+            if (key.length && next[key].length && (next[key] !== hotelTexts[key])) changed[key] = next[key];
+        }
+
+        hotelTexts = { ...hotelTexts, ...changed };
+
+        const shown = systemStore.getState().localizations;
+        const resolved: Record<string, string> = {};
+
+        for (const [ key, text ] of Object.entries(changed)) resolved[key] = text.includes('${') ? text.replace(/\$\{([^}]+)\}/g, (_, ref: string) => changed[ref] ?? shown[ref] ?? `\${${ref}}`) : text;
+
+        const count = Object.keys(resolved).length;
+
+        if (count) systemStore.getState().setLocalization(resolved);
+
+        return count;
+    } catch (err) {
+        NitroLogger.error(err);
+
+        return 0;
+    }
+};
+
+/**
  * The default localizations of `language` made the ones shown, the hotel's texts laid back over
  * them. False when the bundle has none for it - no fallback, so a mistyped `:lang` changes nothing.
  * A key the new language lacks keeps its old text, as Flash's `parseLocalizationData` leaves it.
