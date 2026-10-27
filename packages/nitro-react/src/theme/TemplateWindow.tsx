@@ -11,6 +11,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useSystemStore, useTranslation } from '#base/context/system';
 
 import { noteIneffectiveSets, templateRootLook, useTemplateExtensionArrange, useTemplateExtensionBindings, useTemplateExtensionItemBindings, useTemplatePatchList } from './templatePatches';
+import { useThemeArt } from './themeLive';
 import { templateRootOffset, useTemplate } from './useTemplate';
 
 export interface TemplateWindowProps {
@@ -96,6 +97,8 @@ export const TemplateWindow = ({ id, part, bindings, arrange, context, frame, wi
     const inspectWindow = useMemo(() => ({ id, part, context }), [ id, part, context ]);
     // A root patch's frame look (`style`, `color`, `position`), over what the code binds: the window's own frame only.
     const patchList = useTemplatePatchList();
+    // A live reload that changed a font or a text style draws the window anew (`themeLive.ts`).
+    const art = useThemeArt();
     const rootOverride = (part === undefined) ? templateRootLook(id, context, patchList) : undefined;
 
     if (!template) return null;
@@ -108,7 +111,7 @@ export const TemplateWindow = ({ id, part, bindings, arrange, context, frame, wi
 
     const drawn = (
         <TemplateView
-            key={inspecting ? 'inspected' : 'plain'}
+            key={`${inspecting ? 'inspected' : 'plain'}-${art}`}
             template={template}
             bindings={allBindings}
             itemBindings={itemBindings}

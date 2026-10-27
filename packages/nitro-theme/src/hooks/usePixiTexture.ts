@@ -26,6 +26,30 @@ const croppedTextures = new Map<string, Texture>();
 /** The keys of the textures derived from the theme's art (`theme:*`): dropped with it (`resetThemeTextures`). */
 const themeDerivedKeys = new Set<string>();
 
+/** Counts each time the theme's art changed while drawn (`notifyThemeArtChanged`). */
+let themeArt = 0;
+const themeArtListeners = new Set<() => void>();
+
+const subscribeThemeArt = (listener: () => void) => {
+    themeArtListeners.add(listener);
+
+    return () => {
+        themeArtListeners.delete(listener);
+    };
+};
+
+const getThemeArt = () => themeArt;
+
+/**
+ * Says the art drawn changed in place - the theme's sprites registered again, or a bitmap of the
+ * asset manager swapped (nitro-react live reload, `theme/themeLive.ts`): every component reading a
+ * texture through these hooks draws again, reading the new one, with nothing mounted again.
+ */
+export const notifyThemeArtChanged = (): void => {
+    themeArt++;
+    themeArtListeners.forEach(listener => listener());
+};
+
 /** Registers one sprite of the theme's sheet under its texture key (`preloadThemeAssets`). */
 export const registerThemeTexture = (key: string, texture: Texture): void => {
     themeTextures.set(key, texture);
@@ -503,6 +527,8 @@ export const useTextureFromUrl = (url: string | undefined): Texture | undefined 
         };
     };
 
+    useSyncExternalStore(subscribeThemeArt, getThemeArt);
+
     return useSyncExternalStore(subscribe, getSnapshot);
 };
 
@@ -529,10 +555,22 @@ export const watchThemeDraws = (watcher: ((themeKey: string) => void) | undefine
  * theme has loaded, and for a key the sheet does not carry.
  */
 export const usePixiTexture = (themeKey: string | undefined, options?: PixiTextureOptions): Texture | undefined => {
+    // Read again on every render: the compiler would keep the texture of a key, and art changed in
+    // place (`notifyThemeArtChanged`) is another texture under the same key.
+    'use no memo';
+
     if (import.meta.env.DEV && themeKey) drawWatcher?.(themeKey);
+
+    useSyncExternalStore(subscribeThemeArt, getThemeArt);
 
     return options?.standalone ? getStandaloneThemeTexture(themeKey) : getThemeTexture(themeKey);
 };
 
 /** A theme key with an effect applied, as a texture - cut out of the sheet once per key + effect. */
-export const usePixiEffectTexture = (themeKey: string | readonly string[] | undefined, effect: ThemeSliceEffect): Texture | undefined => getThemeEffectTexture(themeKey, effect);
+export const usePixiEffectTexture = (themeKey: string | readonly string[] | undefined, effect: ThemeSliceEffect): Texture | undefined => {
+    'use no memo';
+
+    useSyncExternalStore(subscribeThemeArt, getThemeArt);
+
+    return getThemeEffectTexture(themeKey, effect);
+};

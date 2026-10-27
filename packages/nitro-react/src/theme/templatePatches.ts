@@ -722,9 +722,10 @@ const filePatches = new Map<string, { url: string; dispose: () => void }>();
  * or that object as JSON text): each file's patches are added under its key, the owner. A file that
  * does not load or is not a patch file is logged and adds nothing; the others still apply. Theme
  * style values (`templates.styles`, `{ "<plugin key>:<name>": value }`) fill the `${style:name}`
- * the files name.
+ * the files name. A file at a new address replaces its owner's last once it is in, so a window drawn
+ * meanwhile keeps the last; `again` reads every file again (live reload, the style values changed).
  */
-export const loadTemplatePatchFiles = async (value: unknown, styleValues?: unknown) => {
+export const loadTemplatePatchFiles = async (value: unknown, styleValues?: unknown, { again = false }: { again?: boolean } = {}) => {
     const styles = parseObject(styleValues);
 
     let entries: Record<string, unknown> = {};
@@ -740,13 +741,13 @@ export const loadTemplatePatchFiles = async (value: unknown, styleValues?: unkno
     const wanted = new Map(Object.entries(entries).filter((entry): entry is [ string, string ] => typeof entry[1] === 'string' && entry[1].length > 0));
 
     for (const [ owner, loaded ] of filePatches) {
-        if (wanted.get(owner) === loaded.url) continue;
+        if (wanted.has(owner)) continue;
 
         loaded.dispose();
         filePatches.delete(owner);
     }
 
-    await Promise.all([ ...wanted ].filter(([ owner ]) => !filePatches.has(owner)).map(async ([ owner, url ]) => {
+    await Promise.all([ ...wanted ].filter(([ owner, url ]) => again || (filePatches.get(owner)?.url !== url)).map(async ([ owner, url ]) => {
         try {
             const response = await fetch(url);
 
@@ -764,6 +765,7 @@ export const loadTemplatePatchFiles = async (value: unknown, styleValues?: unkno
             const added = templatePatchAddedNames(owner, file.patches.flatMap(patch => (Array.isArray(patch.ops) ? patch.ops : [])));
             const disposers = file.patches.map(patch => addTemplatePatch({ owner, template: patch.template, ops: patch.ops ?? [], order: patch.order }, { base, added }));
 
+            filePatches.get(owner)?.dispose();
             filePatches.set(owner, { url, dispose: () => disposers.forEach(dispose => dispose()) });
         } catch (error) {
             NitroLogger.error('TemplatePatches', `${owner}'s patch file ${url} did not load: ${error instanceof Error ? error.message : String(error)}`);

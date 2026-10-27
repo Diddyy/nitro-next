@@ -93,6 +93,14 @@ export const loadThemeSession = async (url: unknown, query: URLSearchParams): Pr
     }
 };
 
+/** The theme drawn now, live reload having drawn another (`themeLive.ts`). */
+export const noteThemeDrawn = (theme: string) => {
+    if (!session || (session.theme === theme)) return;
+
+    session = { ...session, theme };
+    listeners.forEach(listener => listener());
+};
+
 /** Keeps the player's choice (empty: the hotel's default); `done` hears whether it was kept, and why not. */
 export const chooseTheme = (key: string, done: (ok: boolean, message: string) => void) => {
     const stop = onPluginMessage(OWNER, 'turbo.theme.chosen', (data) => {
