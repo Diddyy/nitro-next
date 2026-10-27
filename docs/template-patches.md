@@ -167,6 +167,13 @@ A patch on a window's root (`''`) restyles its frame, whatever the window's code
 - **Precedence**, lowest first: what the window's code passes, the hotel's `frame.overrides` (below),
   a patch naming the frame's id, a patch on the template's root. Patches among themselves apply by
   `order` as every patch does.
+- **Moving a piece of the room screen**: a window with no frame of its own is drawn where its code
+  puts it (the toolbar, the purse, the friend bar, the chat input, the room tools). A root `x`/`y`
+  moves it that far from there - the root's new value minus the layout's own - so it keeps following
+  its anchor as the screen resizes. Not Flash's (its code overwrote the layout's `x`/`y`):
+  `{ "template": "habbo-friend-bar-com/new_bar_xml", "ops": [ { "element": "", "set": { "x": -200, "y": -100 } } ] }`
+  draws the friend bar 200 px left of and 100 px above its place. The theme studio's room screen
+  (`Room screen (HUD)`) does this by dragging a whole piece.
 
 ## A window of separately framed panes
 
