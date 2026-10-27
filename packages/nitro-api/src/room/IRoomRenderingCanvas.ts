@@ -9,6 +9,8 @@ export interface IRoomRenderingCanvas {
     initialize(width: number, height: number): void;
     setMask(flag: boolean): void;
     setBackgroundVisible(flag: boolean): void;
+    /** Whether the canvas paints its black backing (`setBackgroundVisible`). */
+    readonly backgroundVisible: boolean;
     setScale(scale: number, point?: Point, offsetPoint?: Point): void;
     setFlip(flipped: boolean, point?: Point, offsetPoint?: Point): void;
     render(time: number, update?: boolean): void;
