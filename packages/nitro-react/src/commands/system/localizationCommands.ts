@@ -111,12 +111,36 @@ const loadDefaultEmbedLocalizations = (language: string, fallback: boolean): { l
 };
 
 /**
+ * Not Flash's: the theme the player draws gives texts of its own (`text.overrides`, `{ key: text }`,
+ * Turbo's merged variable: a theme's texts, without the keys staff changed on the hotel). They lie
+ * over the hotel's texts wherever the hotel's are laid down, so a language swap or a texts reload
+ * keeps them.
+ */
+const themeTexts = (): Record<string, string> => {
+    const value: unknown = systemStore.getState().config['text.overrides'];
+    let texts: unknown = value;
+
+    // The object, or the object as JSON text, as every merged variable is read.
+    if (typeof value === 'string') {
+        try {
+            texts = JSON.parse(value) as unknown;
+        } catch {
+            return {};
+        }
+    }
+
+    if (!texts || (typeof texts !== 'object') || Array.isArray(texts)) return {};
+
+    return Object.fromEntries(Object.entries(texts).filter((entry): entry is [ string, string ] => typeof entry[1] === 'string'));
+};
+
+/**
  * The boot's texts: the default language's default localizations from the library's bundle, with
  * the hotel's texts over them, and every `${key}` between them resolved. A hotel whose config names
  * no template bundle url, or whose bundle fails, starts with the hotel's texts alone.
  */
 export const initializeLocalizations = async (externalTexts: Record<string, string>): Promise<void> => {
-    hotelTexts = externalTexts;
+    hotelTexts = { ...externalTexts, ...themeTexts() };
 
     const defaults = (await loadTemplateBundle(LOCALIZATION_LIBRARY)) ? loadDefaultEmbedLocalizations(getDefaultLocalizationLanguage(), true) : undefined;
 
@@ -266,9 +290,11 @@ const loadLocalizationFromUrl = async (hashesUrl: string): Promise<boolean> => {
             if (!localizations[key].length) delete localizations[key];
         }
 
-        hotelTexts = { ...hotelTexts, ...localizations };
+        const shown = { ...localizations, ...themeTexts() };
 
-        systemStore.getState().setLocalization(localizations);
+        hotelTexts = { ...hotelTexts, ...shown };
+
+        systemStore.getState().setLocalization(shown);
 
         return true;
     } catch (err) {
