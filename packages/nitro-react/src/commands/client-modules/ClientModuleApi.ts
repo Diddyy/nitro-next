@@ -160,14 +160,18 @@ export interface ClientModuleApi {
     messages: {
         /**
          * Every `name` message the server sends, as an object of its fields (camelCase, as the
-         * schema names them). A name the server's list does not have warns once; the handler is kept,
-         * since a plugin loading on the server may send its module before its messages' list.
+         * schema names them). A carried packet field (`'packet'`, the last) is `{ header, packet }`:
+         * the core packet as the client's own parser read it (`undefined`, and a warning, for a header
+         * the client has no packet at), which a secondary room's `apply` takes as it is. A name the
+         * server's list does not have warns once; the handler is kept, since a plugin loading on the
+         * server may send its module before its messages' list.
          */
         on: (name: string, handler: (data: Record<string, unknown>) => void) => ClientModuleDispose;
         /**
          * Sends `name` with `data`'s fields, written in the schema's order. A field the schema does
          * not have is ignored and a missing one sent as its default (0, '', false, []), each logged
-         * once; a name the server did not list warns and sends nothing.
+         * once; a name the server did not list, or a message that carries a packet (only the server
+         * sends one), warns and sends nothing.
          */
         send: (name: string, data: Record<string, unknown>) => void;
     };

@@ -32,8 +32,9 @@ export type ClientModulePacketValue = number | string | boolean;
 
 /**
  * One field type of a plugin message's schema, as the server sends it (`client.messages`): a scalar,
- * `['array', item]`, `['map', value]` (a string-keyed dictionary, read as an object) or
- * `['object', fields]`. `int`, `long` and `double` read as numbers.
+ * `['array', item]`, `['map', value]` (a string-keyed dictionary, read as an object),
+ * `['object', fields]` or, as the last field only, `'packet'` (a core packet the server carries,
+ * read as a `ClientModuleCarriedPacket`). `int`, `long` and `double` read as numbers.
  */
 export type ClientModuleMessageType =
     | 'int'
@@ -41,12 +42,24 @@ export type ClientModuleMessageType =
     | 'bool'
     | 'string'
     | 'double'
+    | 'packet'
     | readonly [ 'array', ClientModuleMessageType ]
     | readonly [ 'map', ClientModuleMessageType ]
     | readonly [ 'object', ClientModuleMessageSchema ];
 
 /** A plugin message's schema: its fields in wire order, `[camelCaseName, type]`. */
 export type ClientModuleMessageSchema = readonly (readonly [ string, ClientModuleMessageType ])[];
+
+/**
+ * A plugin message's carried packet field (`'packet'`): the core packet's header and what the client's
+ * own parser for it read - `undefined`, with a warning, when the client has no packet at that header or
+ * the body did not read as it. Only parsed: none of the client's handlers hear it. A secondary room's
+ * `apply` takes the field as it is.
+ */
+export interface ClientModuleCarriedPacket {
+    header: number;
+    packet: unknown;
+}
 
 /** The value a schema type reads as. */
 export type ClientModuleMessageValue<T> = T extends 'int' | 'long' | 'double'
@@ -55,13 +68,15 @@ export type ClientModuleMessageValue<T> = T extends 'int' | 'long' | 'double'
         ? boolean
         : T extends 'string'
             ? string
-            : T extends readonly [ 'array', infer Item ]
-                ? ClientModuleMessageValue<Item>[]
-                : T extends readonly [ 'map', infer Value ]
-                    ? Record<string, ClientModuleMessageValue<Value>>
-                    : T extends readonly [ 'object', infer Fields ]
-                        ? ClientModuleMessageOf<Fields>
-                        : unknown;
+            : T extends 'packet'
+                ? ClientModuleCarriedPacket
+                : T extends readonly [ 'array', infer Item ]
+                    ? ClientModuleMessageValue<Item>[]
+                    : T extends readonly [ 'map', infer Value ]
+                        ? Record<string, ClientModuleMessageValue<Value>>
+                        : T extends readonly [ 'object', infer Fields ]
+                            ? ClientModuleMessageOf<Fields>
+                            : unknown;
 
 /**
  * A message's data as an object, from its schema written `as const` (the JSON the server sends, or
@@ -290,9 +305,10 @@ export interface ClientModuleSecondaryRoom {
     readonly roomId: number;
     readonly status: ClientModuleSecondaryRoomStatus;
     /**
-     * Feeds the room a core room packet `api.packets.parseCore` read - its floor and height maps, papers,
-     * furniture, avatars and their updates - through the client's own room handlers: whether it was
-     * applied (a warning names why not).
+     * Feeds the room a core room packet - a plugin message's carried packet field (`{ header, packet }`)
+     * or what `api.packets.parseCore` read - its floor and height maps, papers, furniture, avatars and
+     * their updates, through the client's own room handlers: whether it was applied (a warning names
+     * why not).
      */
     apply: (packet: unknown) => boolean;
     /** Changes how it is drawn; what `options` leaves out stays as it was. */
@@ -489,14 +505,17 @@ export interface ClientModuleApi {
     messages: {
         /**
          * Every `name` message the server sends, as an object of its fields (camelCase, as the
-         * schema names them). A name the server's list does not have warns once; the handler is kept,
-         * since a plugin loading on the server may send its module before its messages' list.
+         * schema names them). A carried packet field (`'packet'`, the last) is a
+         * `ClientModuleCarriedPacket`, which a secondary room's `apply` takes as it is. A name the
+         * server's list does not have warns once; the handler is kept, since a plugin loading on the
+         * server may send its module before its messages' list.
          */
         on: (name: string, handler: (data: Record<string, unknown>) => void) => ClientModuleDispose;
         /**
          * Sends `name` with `data`'s fields, written in the schema's order. A field the schema does
          * not have is ignored and a missing one sent as its default (0, '', false, []), each logged
-         * once; a name the server did not list warns and sends nothing.
+         * once; a name the server did not list, or a message that carries a packet (only the server
+         * sends one), warns and sends nothing.
          */
         send: (name: string, data: Record<string, unknown>) => void;
     };

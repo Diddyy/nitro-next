@@ -165,9 +165,10 @@ export interface ClientModuleSecondaryRoom {
     readonly roomId: number;
     readonly status: ClientModuleSecondaryRoomStatus;
     /**
-     * Feeds the room a core room packet `api.packets.parseCore` read - its floor and height maps, papers,
-     * furniture, avatars and their updates - through the client's own room handlers: whether it was
-     * applied (a warning names why not).
+     * Feeds the room a core room packet - a plugin message's carried packet field (`{ header, packet }`)
+     * or what `api.packets.parseCore` read - its floor and height maps, papers, furniture, avatars and
+     * their updates, through the client's own room handlers: whether it was applied (a warning names
+     * why not).
      */
     apply: (packet: unknown) => boolean;
     /** Changes how it is drawn; what `options` leaves out stays as it was. */

@@ -28,7 +28,7 @@ import { StoreApi } from 'zustand';
 import type { ClientModuleSecondaryRoom, ClientModuleSecondaryRoomOptions, ClientModuleSecondaryRoomStatus } from '#base/context/client-modules';
 import { createRoomStore, getRoomContentHandlers, RoomState, roomStateOf, RoomStore, roomStore, runInRoomStoreScope } from '#base/context/room';
 
-import { corePacketParserOf } from '../client-modules/clientModuleCorePackets';
+import { corePacketOf, corePacketParserOf } from '../client-modules/clientModuleCorePackets';
 import { parseRoomFloorTiles, roomFloorTileAt, RoomFloorTiles, RoomTileLocation, secondaryRoomScreenOffset } from './secondaryRoomGeometry';
 
 /** The core room packets a secondary room takes: the floor and height maps, its furniture and its avatars. */
@@ -205,7 +205,10 @@ const disposeEntry = (entry: Entry) => {
     entry.store = undefined;
 };
 
-const applyPacket = (entry: Entry, packet: unknown) => {
+const applyPacket = (entry: Entry, given: unknown) => {
+    // A plugin message's carried field ({ header, packet }) stands for its packet.
+    const packet = corePacketOf(given);
+
     if (entry.status !== 'drawn' || !entry.store) {
         entry.warn(`apply: room ${entry.roomId} is ${entry.status}; only a drawn room takes packets.`);
 
@@ -215,7 +218,7 @@ const applyPacket = (entry: Entry, packet: unknown) => {
     const parser = corePacketParserOf(packet);
 
     if (!parser) {
-        entry.warn('apply: give it what api.packets.parseCore read.');
+        entry.warn('apply: give it what api.packets.parseCore read, or a plugin message\'s carried packet field.');
 
         return false;
     }
