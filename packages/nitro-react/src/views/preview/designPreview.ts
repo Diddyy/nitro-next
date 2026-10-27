@@ -147,6 +147,8 @@ let art = 0;
 let drawnText = '';
 let highlightKey: string | null = null;
 let boxesOn = false;
+/** The template the outlined key is in, when it is not the window's own (a window of the room screen). */
+let highlightIn: string | undefined;
 let say: Say | undefined;
 const listeners = new Set<() => void>();
 
@@ -282,9 +284,10 @@ export const showDesign = (message: DesignMessage, reply: Say) => {
     }).catch(() => undefined);
 };
 
-/** Outlines the element `key` names in the design window; null outlines nothing. */
-export const highlightDesign = (key: string | null) => {
+/** Outlines the element `key` names in the design window - in the template `of`, else the window's own; null outlines nothing. */
+export const highlightDesign = (key: string | null, of?: string) => {
     highlightKey = key;
+    highlightIn = of;
     notify();
 };
 
@@ -302,6 +305,9 @@ export const designShown = () => shown;
 
 /** The key outlined now, if any. */
 export const designHighlight = () => highlightKey;
+
+/** The template the outlined key is in, if not the window's own. */
+export const designHighlightIn = () => highlightIn;
 
 /** Says a press's pick to the panel that drew the window. */
 export const sayDesign = (reply: DesignReply) => say?.(reply);

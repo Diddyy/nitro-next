@@ -20,13 +20,14 @@ import { Frame, TemplateWindow } from '#base/theme';
 
 import { DesignCatalogView } from './DesignCatalogView';
 import { DesignFriendListView } from './DesignFriendListView';
+import { DesignHudView } from './DesignHudView';
 import { DesignInfostandView } from './DesignInfostandView';
 import { DesignInventoryView } from './DesignInventoryView';
 import { DesignMessengerView } from './DesignMessengerView';
 import { DesignNavigatorView } from './DesignNavigatorView';
-import { DesignBox, designBoxesOn, designHighlight, designShown, sayDesign, setDesignPicker, setDesignTemplatesReader, subscribeDesign } from './designPreview';
+import { DesignBox, designBoxesOn, designHighlight, designHighlightIn, designShown, sayDesign, setDesignPicker, setDesignTemplatesReader, subscribeDesign } from './designPreview';
 import { DesignPurseView } from './DesignPurseView';
-import { CATALOG_WINDOW, FRIENDS_WINDOW, INFOSTAND_FURNI_WINDOW, INVENTORY_WINDOW, MESSENGER_WINDOW, NAVIGATOR_WINDOW, PURSE_WINDOW } from './designStates';
+import { CATALOG_WINDOW, FRIENDS_WINDOW, HUD_WINDOW, INFOSTAND_FURNI_WINDOW, INVENTORY_WINDOW, MESSENGER_WINDOW, NAVIGATOR_WINDOW, PURSE_WINDOW } from './designStates';
 import type { DesignMessage } from './previewMessages';
 
 /** The game's own view each window with states (`DESIGN_STATES`) is drawn by, with sample content. */
@@ -38,6 +39,7 @@ const DESIGN_VIEWS: Readonly<Record<string, ComponentType<{ state: string }>>> =
     [FRIENDS_WINDOW]: DesignFriendListView,
     [INFOSTAND_FURNI_WINDOW]: DesignInfostandView,
     [MESSENGER_WINDOW]: DesignMessengerView,
+    [HUD_WINDOW]: DesignHudView,
 };
 
 /** A frame Nitro draws itself is drawn this size, with nothing in it. */
@@ -93,8 +95,10 @@ export const DesignPreviewView = () => {
     const design = useSyncExternalStore(subscribeDesign, designShown);
     const highlight = useSyncExternalStore(subscribeDesign, designHighlight);
     const boxes = useSyncExternalStore(subscribeDesign, designBoxesOn);
+    const highlightIn = useSyncExternalStore(subscribeDesign, designHighlightIn);
     const { app } = useApplication();
-    const isFrame = !!design && !design.template.includes('/');
+    // The room screen (`hud`) is no frame though its id has no library: it is drawn by its own view.
+    const isFrame = !!design && !design.template.includes('/') && !DESIGN_VIEWS[design.template];
     const bindings = useMemo(() => (design ? sampleBindings(design.items) : undefined), [ design ]);
     // The frame id its code gives it, so the hotel's `frame.overrides` entry for it applies as in the game.
     const frameId = design?.frame;
@@ -181,6 +185,8 @@ export const DesignPreviewView = () => {
     useEffect(() => {
         if (!design || (highlight === null) || !app?.stage) return;
 
+        // A window of the room screen names its elements in its own template.
+        const template = highlightIn ?? design.template;
         const outline = new Graphics();
 
         outline.eventMode = 'none';
@@ -192,7 +198,7 @@ export const DesignPreviewView = () => {
         const draw = () => {
             outline.clear();
 
-            for (const container of inspectFind(app.stage, design.template, highlight)) {
+            for (const container of inspectFind(app.stage, template, highlight)) {
                 const bounds = container.getBounds();
                 const from = app.stage.toLocal({ x: bounds.x, y: bounds.y });
                 const to = app.stage.toLocal({ x: bounds.x + bounds.width, y: bounds.y + bounds.height });
@@ -201,12 +207,12 @@ export const DesignPreviewView = () => {
             }
 
             // Said when it moves, not each frame: a panel's handles follow the element as a patch moves it.
-            const rects = drawnBoxes(app.stage, app.canvas, design.template, highlight);
+            const rects = drawnBoxes(app.stage, app.canvas, template, highlight);
             const now = JSON.stringify(rects);
 
             if (now !== said) {
                 said = now;
-                sayDesign({ event: 'rect', template: design.template, key: highlight, rects, scale: GetStagePixelScale() });
+                sayDesign({ event: 'rect', template, key: highlight, rects, scale: GetStagePixelScale() });
             }
         };
 
@@ -216,7 +222,7 @@ export const DesignPreviewView = () => {
             app.ticker.remove(draw);
             outline.destroy();
         };
-    }, [ design, highlight, app ]);
+    }, [ design, highlight, highlightIn, app ]);
 
     // Every element's boxes, for an editor drawing its own outlines: said when one moves, not each frame.
     useEffect(() => {

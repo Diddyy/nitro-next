@@ -18,7 +18,8 @@
  *   content in the one `state` names. Answered after with `report` (what its patches did, and every
  *   template drawn: `parts`), and a press on it with `select` (the window, the part the element is in
  *   - a grid item built from another template - the template and key naming it, the path to it); `{ window:
- *   'design', highlight: '<key>' }` outlines an element and changes nothing else (`DesignPreviewView`),
+ *   'design', highlight: '<key>' }` outlines an element and changes nothing else (`DesignPreviewView`) - one of
+ *   the template `in` names when it is not the window's own (`hud`, the room screen, is many windows),
  *   answered with `rect` (where it is drawn) each time it moves; `{ window: 'design', pick: { x, y } }`
  *   picks the element at that point of the page as a press there would (the panel's handles cover it);
  *   `{ window: 'design', boxes: true }` answers with `boxes` - every element a key reaches, where each
@@ -96,8 +97,11 @@ const showDesignWindow = (message: Record<string, unknown>, answer: (reply: Prev
         return undefined;
     }
 
+    // A window of the room screen (`hud`) names its elements in its own template: `in`.
+    const highlightIn = ((typeof message.in === 'string') && message.in.length) ? message.in : undefined;
+
     if (('highlight' in message) && (message.template === undefined)) {
-        highlightDesign((typeof message.highlight === 'string') ? message.highlight : null);
+        highlightDesign((typeof message.highlight === 'string') ? message.highlight : null, highlightIn);
 
         return undefined;
     }
@@ -114,7 +118,7 @@ const showDesignWindow = (message: Record<string, unknown>, answer: (reply: Prev
 
     showDesign(design, answer);
 
-    if ('highlight' in message) highlightDesign((typeof message.highlight === 'string') ? message.highlight : null);
+    if ('highlight' in message) highlightDesign((typeof message.highlight === 'string') ? message.highlight : null, highlightIn);
 
     return undefined;
 };
