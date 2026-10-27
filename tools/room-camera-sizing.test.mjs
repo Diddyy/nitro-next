@@ -212,7 +212,7 @@ await test('the installed room ticker and resize listener use the latest camera 
     const canvas = { master: { on() {}, off() {} }, initialize: () => initialized++ };
     const room = { canvas, roomId: 1, dispatchEvent() {} };
     const { RoomCanvas } = load(component, {
-        '@nitrodevco/nitro-api': { RoomRenderedEvent: class {} },
+        '@nitrodevco/nitro-api': { RoomRenderedEvent: class {}, MouseEventType: {} },
         '@nitrodevco/nitro-renderer': { GetRenderer: () => ({ canvas: { addEventListener() {}, removeEventListener() {} }, screen: { width: 800, height: 600 }, on: (_, fn) => { resize = fn; }, off() {} }), GetTicker: () => ({ add: (fn) => {
             tick = fn;
             registrations++;
@@ -229,6 +229,8 @@ await test('the installed room ticker and resize listener use the latest camera 
         '#base/context/room': { useRoom: () => room, useRoomStore: select => select({}), useRoomMouseActions: () => ({ hasAndResetCursorUpdate: () => false }) },
         '#base/hooks': { useRoomCamera: () => ({ updateRoomCamera: callback }) },
         './touchPlacementDrop': { touchPlacementDrop: { objectId: -1, category: -1 } },
+        'pixi.js': { Point: class {} },
+        '#base/commands': { clientModuleRoomPointer: { has: () => false, offer: () => false } },
     });
     callback = time => seen.push([ 'initial', time ]);
     RoomCanvas();

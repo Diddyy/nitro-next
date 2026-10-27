@@ -1,9 +1,11 @@
 /** Room canvas lifecycle and input bridge, including RoomEngine camera updates on each render tick. */
-import { IRoomObject, MouseEventType, RoomDragEvent, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectMouseEvent, RoomRenderedEvent } from '@nitrodevco/nitro-api';
+import { IRoomObject, IRoomRenderingCanvas, MouseEventType, RoomDragEvent, RoomDraggedEvent, RoomGeometryScaleType, RoomObjectMouseEvent, RoomRenderedEvent, Vector3d } from '@nitrodevco/nitro-api';
 import { GetRenderer, GetRoomStage, GetTicker, RoomAreaSelectionManager } from '@nitrodevco/nitro-renderer';
-import { FederatedPointerEvent, Ticker } from 'pixi.js';
+import { FederatedPointerEvent, Point, Ticker } from 'pixi.js';
 import { useEffect, useRef } from 'react';
 
+import { clientModuleRoomPointer } from '#base/commands';
+import { ClientModuleRoomPointerType } from '#base/context/client-modules';
 import { getRoomObjectBeingPlaced, useRoom, useRoomMouseActions, useRoomStore } from '#base/context/room';
 import { useRoomCamera } from '#base/hooks';
 import { ClientToStage, DOUBLE_CLICK_MS, useLatest } from '#base/theme';
@@ -27,6 +29,29 @@ const DRAG_THRESHOLD: number = 15;
  * finger, dragging moves it rather than the room, and lifting drops it there.
  */
 const isTouchPlacing = (event: FederatedPointerEvent) => (event.pointerType === 'touch') && !!getRoomObjectBeingPlaced();
+
+/** The room's mouse event types as a client module is told them (`api.room.onUnhandledPointer`). */
+const MODULE_POINTER_TYPES: Record<string, ClientModuleRoomPointerType> = {
+    [MouseEventType.MOUSE_MOVE]: 'move',
+    [MouseEventType.MOUSE_DOWN]: 'down',
+    [MouseEventType.MOUSE_UP]: 'up',
+    [MouseEventType.MOUSE_CLICK]: 'click',
+    [MouseEventType.DOUBLE_CLICK]: 'doubleClick',
+    [MouseEventType.RIGHT_CLICK]: 'rightClick',
+};
+
+/** The tile of the floor plane (height 0) under a stage point, in the room's tile coordinates - off its floor too. */
+const floorTileAt = (canvas: IRoomRenderingCanvas, x: number, y: number) => {
+    const scale = canvas.isFlipped ? -canvas.scale : canvas.scale;
+
+    if (!scale) return undefined;
+
+    const point = new Point(((x - canvas.screenOffsetX) / scale) - (canvas.width / 2), ((y - canvas.screenOffsetY) / scale) - (canvas.height / 2));
+    const plane = canvas.geometry.getPlanePosition(point, new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(0, 1, 0));
+
+    // `RoomObjectTileMouseEvent.tileXAsInt`: a tile's own coordinate is its centre.
+    return (plane && Number.isFinite(plane.x) && Number.isFinite(plane.y)) ? { x: Math.floor(plane.x + 0.5), y: Math.floor(plane.y + 0.5) } : undefined;
+};
 
 export const RoomCanvas = () => {
     const room = useRoom();
@@ -128,6 +153,15 @@ export const RoomCanvas = () => {
         return false;
     };
 
+    /** What the room hit nothing with goes to the client modules listening (`api.room.onUnhandledPointer`): whether one took it. */
+    const offerToClientModules = (x: number, y: number, type: string, altKey: boolean, ctrlKey: boolean, shiftKey: boolean) => {
+        const pointerType = MODULE_POINTER_TYPES[type];
+
+        if (!pointerType || !room?.canvas || !clientModuleRoomPointer.has()) return false;
+
+        return clientModuleRoomPointer.offer({ type: pointerType, x, y, altKey, ctrlKey, shiftKey, tile: floorTileAt(room.canvas, x, y) });
+    };
+
     const dispatchMouseEvent = (
         x: number,
         y: number,
@@ -160,6 +194,7 @@ export const RoomCanvas = () => {
         if (
             !handleRoomDragging(x, y, type, altKey, ctrlKey, shiftKey)
             && !room.canvas.handleMouseEvent(x, y, type, altKey, ctrlKey, shiftKey, buttonDown)
+            && !offerToClientModules(x, y, type, altKey, ctrlKey, shiftKey)
         ) {
             let eventType: string = '';
 
