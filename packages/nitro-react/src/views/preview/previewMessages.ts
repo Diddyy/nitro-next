@@ -86,6 +86,11 @@ export interface DesignMessage {
     part?: string;
     /** The id the window's code gives its frame (`CatalogView`'s `catalog`): what `frame.overrides` names it by. */
     frame?: string;
+    /**
+     * A named state of a window the host draws with the game's own view and sample content (`DESIGN_STATES`:
+     * the catalogue's `page:badge_display`); absent, a window with states shows its first.
+     */
+    state?: string;
     /** Habbo's own: no patch file, no frame override, nothing of the draft. */
     base: boolean;
     /** Per owner, the patch file standing in for its own (`{ "patches": [ ... ] }`); an owner not named keeps its file. */
@@ -116,6 +121,7 @@ export const toDesignMessage = (value: Json): DesignMessage | undefined => {
         template: value.template,
         ...((typeof value.part === 'string') && value.part.length ? { part: value.part } : {}),
         ...((typeof value.frame === 'string') && value.frame.length ? { frame: value.frame } : {}),
+        ...((typeof value.state === 'string') && value.state.length ? { state: value.state } : {}),
         base: bool(value.base),
         patches: isObject(draft.patches) ? Object.fromEntries(Object.entries(draft.patches).filter(entry => isObject(entry[1]))) : {},
         styles: isObject(draft.styles) ? draft.styles : {},

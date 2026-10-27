@@ -10,14 +10,15 @@
  * with and where), and a `highlight` key outlines that element, saying where it is drawn (`rect`)
  * each time it moves, so a panel's handles can sit on it. The draft never leaves this page: nothing is saved and nothing is sent.
  */
-import { ClientPointToStage, GetStagePixelScale, inspectAt, inspectFind, inspectTemplateKey, setTemplateInspecting, TemplateBindings } from '@nitrodevco/nitro-theme';
+import { ClientPointToStage, GetStagePixelScale, inspectAt, inspectFind, inspectPart, inspectTemplates, setTemplateInspecting, TemplateBindings } from '@nitrodevco/nitro-theme';
 import { useApplication } from '@pixi/react';
 import { Container, Graphics } from 'pixi.js';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import { Frame, TemplateWindow } from '#base/theme';
 
-import { DesignBox, designHighlight, designShown, sayDesign, setDesignPicker, subscribeDesign } from './designPreview';
+import { DesignCatalogView } from './DesignCatalogView';
+import { DesignBox, designHighlight, designShown, sayDesign, setDesignPicker, setDesignTemplatesReader, subscribeDesign } from './designPreview';
 import type { DesignMessage } from './previewMessages';
 
 /** A frame Nitro draws itself is drawn this size, with nothing in it. */
@@ -77,32 +78,41 @@ export const DesignPreviewView = () => {
 
             if (!hit) {
                 // A frame of Nitro's own has no template: what a patch reaches of it is its root.
-                if (isFrame) sayDesign({ event: 'select', template: design.template, key: '', tag: 'frame', name: null, style: null, caption: null });
+                if (isFrame) sayDesign({ event: 'select', window: design.template, part: null, path: [ { template: design.template, key: '', tag: 'frame', name: null } ], template: design.template, key: '', tag: 'frame', name: null, style: null, caption: null });
 
                 return;
             }
 
-            // A clone the window's code made has no key of its own: the nearest element that has one is named.
+            // Inside a part built from another template (a grid item) the element is named in that template; a clone
+            // the window's code made has no key of its own: the nearest element that has one is named.
             let node: typeof hit.node | undefined = hit.node;
-            let key = inspectTemplateKey(node, hit.window);
+            let named = inspectPart(node, hit.window);
 
-            while ((key === undefined) && node?.parent) {
+            while ((named.key === undefined) && node?.parent) {
                 node = node.parent;
-                key = inspectTemplateKey(node, hit.window);
+                named = inspectPart(node, hit.window);
             }
 
+            const { key } = named;
             const element = (node ?? hit.node).element;
+            // The part the element belongs to: a template built inside the window, or a template window drawn in it (a catalogue page).
+            const part = named.part ? named.template : (hit.window.id !== design.template) ? hit.window.id : null;
+            const { path } = inspectPart(hit.node, hit.window);
 
             sayDesign({
                 event: 'select',
-                template: hit.window.id,
+                window: design.template,
+                part,
+                // A template window drawn inside (a catalogue page) starts its own chain: the window shown heads the path.
+                path: (path[0]?.template === design.template) ? path : [ { template: design.template, key: '', tag: 'frame', name: null }, ...path ],
+                template: named.template,
                 key: key ?? null,
                 tag: element.tag,
                 name: element.name ?? null,
                 style: (element.style !== undefined) ? String(element.style) : null,
                 caption: element.caption ?? null,
                 element: { x: element.x, y: element.y, width: element.width, height: element.height, color: element.color ?? null, hidden: !!element.hidden, vars: { ...element.vars }, params: { ...element.params } },
-                rects: (key === undefined) ? [] : drawnBoxes(app.stage, canvas, hit.window.id, key),
+                rects: (key === undefined) ? [] : drawnBoxes(app.stage, canvas, named.template, key),
             });
         };
 
@@ -115,10 +125,12 @@ export const DesignPreviewView = () => {
         };
 
         setDesignPicker(pick);
+        setDesignTemplatesReader(() => inspectTemplates(app.stage));
         window.addEventListener('pointerdown', onPointerDown, true);
 
         return () => {
             setDesignPicker(undefined);
+            setDesignTemplatesReader(undefined);
             window.removeEventListener('pointerdown', onPointerDown, true);
         };
     }, [ design, app, isFrame ]);
@@ -173,6 +185,14 @@ export const DesignPreviewView = () => {
             caption={design.template}
             centered
             layout={{ width: FRAME_SIZE.width, height: FRAME_SIZE.height }}
+        />
+    );
+
+    // A window with named states is drawn by the game's own view, with sample content in it.
+    if (design.state) return (
+        <DesignCatalogView
+            key={design.art}
+            state={design.state}
         />
     );
 

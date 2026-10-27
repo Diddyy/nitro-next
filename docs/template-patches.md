@@ -582,7 +582,32 @@ ids of the windows Nitro draws itself with their frame styles:
   "frames": { "wired-setup": [ "0", "102", "3" ] } }
 ```
 
-The admin panel's **Windows & skins** page (Plugins > Windows & skins) reads both files through the
+Beside them, the **window map** (`tools/window-map.mjs`, read from the client's source): `windows` are what a
+player sees as a window - a template whose root is a `frame`, a frame Nitro draws itself (by its frame id), and
+the main template of a view nothing else holds (the toolbar, the purse, the infostand) - each with its English
+`name` (its caption's text, from `--texts` or the config's `gamedata.urls.externalTexts`), its `area`
+(Catalogue, Navigator, Inventory, Toolbar & purse, Room, Chat, Friends & messenger, Groups, Wired, Help &
+moderation, Games, Hotel view, Loading), its title's text key (`caption`), the source file that opens it and
+the `parts` drawn inside it; `parts` lists, per part (a grid item, a catalogue page layout, a widget, a list row),
+the windows it is drawn in, so "shared by 15 windows" is `windows.length`. A part belongs to the windows of the
+file naming it, or of the files above it by imports (through the barrels, and only through files importing
+what names it). `unused` lists the templates the client never draws; `orphans` those drawn but in no window.
+
+```json
+{ "windows": { "habbo-catalog-com/catalog_ubuntu_with_tabs": { "name": "Catalogue", "area": "Catalogue",
+      "template": "habbo-catalog-com/catalog_ubuntu_with_tabs", "caption": "catalog.title",
+      "source": "views/catalog/CatalogView.tsx", "parts": [ "habbo-catalog-com/badgeGridItem", "..." ] } },
+  "parts": { "habbo-catalog-com/badgeGridItem": { "windows": [ "habbo-catalog-com/catalog_ubuntu", "habbo-catalog-com/catalog_ubuntu_with_tabs" ] } },
+  "orphans": [], "unused": [ "..." ] }
+```
+
+The preview host draws a window with named states (its `ready` says them: the catalogue's front, furni and
+badge display pages) with the game's own view and sample content, so the parts are drawn where they are in
+the game; its `report` lists every template drawn (`parts`), and a press says the window, the part the element
+is in, the template and key naming it there (inside a badge: `badgeGridItem`, `badgeWidget`, so a patch made
+from it changes the part) and the path to it.
+
+The admin panel's **Windows & skins** page (Plugins > Windows & skins) reads these files through the
 server, so the element tree, the skins and the text keys are there without the inspector.
 Windows Nitro draws with React components rather than a template use the same skins but are not
 listed.

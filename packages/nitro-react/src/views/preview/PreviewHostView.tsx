@@ -13,8 +13,11 @@
  * - `window: 'design'`: `template` names a window of the game - a template's id (`<library>/<asset>`,
  *   one window of it with `part`) or a frame Nitro draws itself by its frame id - drawn with `draft`,
  *   an appearance editor's unsaved patch files, style values, variables and texts (`base`: Habbo's
- *   own, none of them), `items` sample rows for the lists its code fills. Answered after with
- *   `report` (what its patches did), and a press on it with `select` (the element's key); `{ window:
+ *   own, none of them), `items` sample rows for the lists its code fills; a window with named states
+ *   (`ready`'s `states`: the catalogue's pages per layout) is drawn by the game's own view with sample
+ *   content in the one `state` names. Answered after with `report` (what its patches did, and every
+ *   template drawn: `parts`), and a press on it with `select` (the window, the part the element is in
+ *   - a grid item built from another template - the template and key naming it, the path to it); `{ window:
  *   'design', highlight: '<key>' }` outlines an element and changes nothing else (`DesignPreviewView`),
  *   answered with `rect` (where it is drawn) each time it moves; `{ window: 'design', pick: { x, y } }`
  *   picks the element at that point of the page as a press there would (the panel's handles cover it).
@@ -45,12 +48,13 @@ import { ChatBubbleReport, showChatBubble } from './chatBubblePreview';
 import { ChatBubblePreviewView } from './ChatBubblePreviewView';
 import { DesignReply, highlightDesign, pickDesign, showDesign } from './designPreview';
 import { DesignPreviewView } from './DesignPreviewView';
+import { designStateList } from './designStates';
 import { toChatBubbleMessage, toDesignMessage, toRewardTracksMessage } from './previewMessages';
 
 /** The windows the host can show. */
 const PREVIEW_WINDOWS = [ 'rewardtrack', 'design', 'chatbubble' ];
 
-type PreviewReply = { event: 'ready'; windows: string[] } | { event: 'shown'; window: string; width: number; height: number } | { event: 'error'; message: string } | DesignReply | ChatBubbleReport;
+type PreviewReply = { event: 'ready'; windows: string[]; states: ReturnType<typeof designStateList> } | { event: 'shown'; window: string; width: number; height: number } | { event: 'error'; message: string } | DesignReply | ChatBubbleReport;
 
 const reply = (target: MessageEventSource | null, origin: string, message: PreviewReply) => {
     if (!target || !('postMessage' in target)) return;
@@ -150,7 +154,7 @@ export const PreviewHostView = () => {
         window.addEventListener('message', onMessage);
 
         // A frame's parent may be any of them: a message aimed at another origin is never delivered.
-        if (window.parent !== window) for (const origin of origins) reply(window.parent, origin, { event: 'ready', windows: PREVIEW_WINDOWS });
+        if (window.parent !== window) for (const origin of origins) reply(window.parent, origin, { event: 'ready', windows: PREVIEW_WINDOWS, states: designStateList() });
 
         return () => window.removeEventListener('message', onMessage);
     }, [ allowed, setFigure ]);
