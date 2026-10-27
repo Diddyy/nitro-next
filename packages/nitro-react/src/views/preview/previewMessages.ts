@@ -95,6 +95,11 @@ export interface DesignMessage {
     base: boolean;
     /** Per owner, the patch file standing in for its own (`{ "patches": [ ... ] }`); an owner not named keeps its file. */
     patches: Record<string, unknown>;
+    /**
+     * Unsaved windows defined as data, by `<plugin key>/<name>`, each over the saved one (`dataWindows.ts`):
+     * the window drawn as `<plugin key>/windows/<name>`.
+     */
+    windows: Record<string, unknown>;
     /** Over `templates.styles`, by `<plugin key>:<name>`. */
     styles: Record<string, unknown>;
     /** Over the hotel's variables: each a path into one (`[ 'frame.overrides', 'catalog', 'color' ]`) and its value. */
@@ -124,6 +129,7 @@ export const toDesignMessage = (value: Json): DesignMessage | undefined => {
         ...((typeof value.state === 'string') && value.state.length ? { state: value.state } : {}),
         base: bool(value.base),
         patches: isObject(draft.patches) ? Object.fromEntries(Object.entries(draft.patches).filter(entry => isObject(entry[1]))) : {},
+        windows: isObject(draft.windows) ? Object.fromEntries(Object.entries(draft.windows).filter(entry => isObject(entry[1]))) : {},
         styles: isObject(draft.styles) ? draft.styles : {},
         variables: list(draft.variables, entry => ({ path: Array.isArray(entry.path) ? entry.path.map(str).filter(part => part.length) : [], value: entry.value })).filter(entry => entry.path.length > 0),
         texts: Object.fromEntries(Object.entries(isObject(draft.texts) ? draft.texts : {}).filter((entry): entry is [ string, string ] => typeof entry[1] === 'string')),

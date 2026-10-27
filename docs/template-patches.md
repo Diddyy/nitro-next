@@ -456,6 +456,47 @@ from the window before it, ops in their order. The rules are the module `arrange
   Code is still the tool for what a formula cannot say: a loop over rows, a value the window's context
   does not give.
 
+## Windows as data
+
+A plugin with no code can bring windows of its own: each `wwwroot/windows/<name>.json` in its folder
+(`<name>`: small letters, digits, `-`, `_`). Turbo lists them for clients in the merged variable
+`templates.windows` (`{ "<plugin key>/<name>": "<url>" }`) while the plugin is loaded; the plugin
+names them nowhere. The panel's Theme studio makes them (**New window**: from a starter, blank, or a
+copy of a window of the game) and writes them into the theme staff work on.
+
+```json
+{ "title": "Welcome",
+  "template": { "name": "welcome", "width": 310, "height": 190, "elements": [
+    { "tag": "frame", "name": "window", "x": 0, "y": 0, "width": 310, "height": 190, "style": "3",
+      "caption": "Welcome", "margins": [ 1, 30, 1, 1 ], "vars": {}, "children": [
+        { "tag": "static_bitmap", "name": "image", "x": 10, "y": 10, "width": 90, "height": 90,
+          "vars": { "asset_uri": "styles/frank.png" }, "children": [] },
+        { "tag": "button_thick", "name": "close_button", "x": 92, "y": 118, "width": 126, "height": 28,
+          "style": "3", "caption": "Close", "vars": {}, "children": [] } ] } ] },
+  "buttons": { "close_button": { "close": true } },
+  "entries": [ { "where": "memenu", "caption": "Welcome" } ] }
+```
+
+- `template` is a template in the shape the template bundles carry (`templateData.ts`): the window
+  is drawn as any template window is, from the window manager's skins, so it looks like the game's.
+  Its id is **`<plugin key>/windows/<name>`**: patches, bindings, arranges and the inspector reach it
+  by that id as they reach `<library>/<asset>`. A relative `asset_uri` is a file of the plugin's
+  `wwwroot/` by its path there (`styles/frank.png`), as a patch file's is; `${image.library.url}...`
+  is filled from the hotel's variables.
+- `buttons`: what a named element does when clicked - `{ "close": true }` closes the window,
+  `{ "link": "<link>" }` opens an in-client link (`navigator/goto/<room>`, `habbopages/<page>`,
+  another window's `window/<plugin key>/<name>`; `event:` in front is read too). The frame's close
+  button closes it.
+- `entries`: where players open it from - `{ "where": "memenu", "caption": "..." }` an entry in the me
+  menu, `{ "where": "toolbar", "icon": "<image>", "tooltip": "..." }` an icon in the bottom bar.
+- The link **`window/<plugin key>/<name>`** opens it from anything that opens a link: a notice's or
+  the hotel view's button, a catalogue page, a habbo page (`event:window/hotel/welcome`), the
+  server's in-client link.
+
+The admin API refuses a file no client could draw (turbo-cloud `docs/plugin-data.md`); a file that
+reaches a client anyway and is no window is logged and skipped. Its entries and window are listed by
+the plugin's key with the modules' (`theme/dataWindows.ts`, `commands/client-modules/dataWindowCommands.ts`).
+
 ## Windows drawn without a template
 
 Windows Nitro draws with a `Frame` of its own (the wired setup window) have no elements to patch;
@@ -701,8 +742,10 @@ version number only listed as a dependency.
 
 ## Not yet
 
-- Variables (and so patch files) are read as the client starts: a plugin's file added or changed
-  reaches a player at their next load. Modules' patches come and go live.
+- Variables (and so patch files and windows as data) are read as the client starts: a plugin's file
+  added or changed reaches a player at their next load. Modules' patches come and go live.
+- A window as data has no state of its own: tabs that switch pages, lists filled from the server and
+  inputs need a client module.
 - Patches change templates. Windows Nitro draws with React components rather than a template have no
   elements to patch; their frame takes a root patch naming its id, and `frame.overrides`, nothing else.
 - `asset.overlays`, `frame.overrides` and `room.previewer` are read as the client starts, like patch

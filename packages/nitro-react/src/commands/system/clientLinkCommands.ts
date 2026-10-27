@@ -18,6 +18,7 @@ import { getWiredHasReadPermission, getWiredMenuEnabled, WIRED_MENU_TAB_INSPECTI
 import { openAchievements } from '../achievements/achievementCommands';
 import { openCampaignCalendarLink } from '../campaign/campaignCalendarCommands';
 import { routeClientModuleLink } from '../client-modules/clientModuleLinkRoutes';
+import { openDataWindow } from '../client-modules/dataWindowCommands';
 import { openCursedDragonAdoption } from '../cursed-dragon-adoption/cursedDragonAdoptionCommands';
 import { openDailyTasksLink } from '../daily-tasks/dailyTasksCommands';
 import { showEarnings } from '../earnings/earningsCommands';
@@ -166,6 +167,12 @@ export const openClientLink = (send: Send, link: string) => {
                     return;
                 }
             }
+
+            break;
+        }
+        // Not Flash's: a plugin's window defined as data, `window/<plugin key>/<name>` (`dataWindowCommands`).
+        case 'window': {
+            if ((parts.length === 3) && openDataWindow(`${parts[1]}/${parts[2]}`)) return;
 
             break;
         }
