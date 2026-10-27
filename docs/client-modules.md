@@ -145,9 +145,9 @@ first published module.
 | `links.handle(prefix, fn, { path? })`, `links.open(link)` | In-client links `<prefix>/...` the client has no route of its own for. With `path` (`'news/*'`: the parts after the prefix, `*` any one part) only links whose parts begin with it. A link goes to the handlers of the most specific path that matches (the most parts, a named part before `*`), and only when none does to every handler of the whole prefix (`clientModuleLinkRoutes.ts`). Two modules on one prefix and path both get its links: a conflict, warned as it is made and listed by the extension inspector (alt-click) - give each module a path of its own |
 | `channels.publish(key, value)`, `channels.subscribe(key, handler)`, `channels.get(key)` | Data modules share by key instead of encoding it in a link (`clientModuleChannels.ts`). `publish` hands the value to the key's subscribers and keeps it as the key's value; `subscribe` gets each value from then on and, at once, the one kept - so a module loaded after the publisher still gets it - as `handler(value, from)`, `from` the publishing module's key. When a module stops its subscriptions go and each value it left is cleared: its subscribers get `undefined`. Values are passed as they are (publish plain data, a new object for a change); a handler that throws is logged and the others still run. Typed in the SDK with `defineChannel<T>(key)` |
 | `packets.registerParser(header, parse, listener)`, `registerComposer(header)`, `send(header, ...values)` | Extension packets at 20000-32767 outside Turbo's 30000-30099, never over a header the client already has; values are ints, strings and booleans |
-| `packets.parseCore(header, body)` | A core packet a plugin's packet carries (another room's objects, relayed), read by the client's own parser for `header` from where `body` stands: the parser's reader, bytes taken out with `readBytes`, or an `ArrayBuffer` (`clientModuleCorePackets.ts`). Only parsed: none of the client's handlers hear it. A header the client has no packet at, or a body that does not read as one, gives `undefined` and a warning, never a throw |
+| `packets.parseCore(header, body)` | A core packet a plugin's own extension packet carries (a plugin message's carried packet field is read for the module already, see `messages.on`), read by the client's own parser for `header` from where `body` stands: the parser's reader, bytes taken out with `readBytes`, or an `ArrayBuffer` (`clientModuleCorePackets.ts`). Only parsed: none of the client's handlers hear it. A header the client has no packet at, or a body that does not read as one, gives `undefined` and a warning, never a throw |
 | `capabilities.declare(name, version?)`, `capabilities.version(name)`, `capabilities.subscribe(listener)` | A Turbo extension of the module's plugin (`ICapabilityComposer` on the server) the client asks for while the module runs (see "The exchange"); one of the client's own names is refused. `version` is what the server accepted (0: not, or not yet), `subscribe` hears each answer that changes the accepted set |
-| `messages.on(name, handler)`, `messages.send(name, data)` | The plugin's named messages (Turbo's `client.messages`, `docs/plugin-messages.md` there): read into an object of the fields the server's schema names, and written from one, so a module never sees a header. `on` for a name the server has not listed warns once (the handler is kept: a plugin loading sends its module before its list); `send` for one warns and sends nothing. A field the schema lacks is ignored and a missing one sent as its default (0, '', false, []), each logged once per name. Optional (`api.messages?.`): clients before it have none |
+| `messages.on(name, handler)`, `messages.send(name, data)` | The plugin's named messages (Turbo's `client.messages`, `docs/plugin-messages.md` there): read into an object of the fields the server's schema names, and written from one, so a module never sees a header. A carried packet field (`'packet'`, a room watch's envelope) is `{ header, packet }`, the packet read by the client's own parser, which a secondary room's `apply` takes as it is; a message that carries one is never sent. `on` for a name the server has not listed warns once (the handler is kept: a plugin loading sends its module before its list); `send` for one warns and sends nothing. A field the schema lacks is ignored and a missing one sent as its default (0, '', false, []), each logged once per name. Optional (`api.messages?.`): clients before it have none |
 | `http.get(path, query?)`, `http.post(path, body?)`, `put`, `patch`, `delete` | The module's own plugin's web routes, `/api/plugins/<key>/<path>` on the hotel's public web host (Turbo's `docs/plugin-web-routes.md`), signed in as the player: the client asks the server for a token over `web.session` (30011 / 30012), sends it as `Authorization: Bearer`, keeps it until it nearly runs out and asks again once on a 401; the module never sees it. Resolves `{ ok, status, data, error }` (never throws for an HTTP error; `status` 0 when the hotel serves no routes or the path would leave the plugin's own) |
 | `config.get(key)`, `texts.get(key, fallback?, replacements?)` | The hotel's configuration and texts |
 | `sounds.play(id)` | A sample of the client's sound manager |
@@ -178,14 +178,10 @@ room, say - and the session can walk into it without the room being built again
 ```js
 const portal = api.room.createSecondary(roomB, { offset: { x: 12, y: 0, z: 0 }, greyscale: 1, alpha: 0.75 });
 
-// The plugin's relay: the room id, then the core packet's header and its body.
-api.packets.registerParser(25000, (reader) => {
-    const roomId = reader.readInt();
-    const header = reader.readInt();
-
-    return { roomId, packet: api.packets.parseCore(header, reader) };
-}, ({ roomId, packet }) => {
-    if (roomId === roomB) portal?.apply(packet);
+// The plugin's envelope, PortalRoom(int RoomId, IComposer? Carried): a room watch fills `carried`
+// with each of room B's packets, which the client's own parser reads.
+api.messages.on('portals.room', ({ roomId, carried }) => {
+    if (roomId === roomB) portal?.apply(carried);
 });
 api.room.onUnhandledPointer(({ type, secondaryTile }) => {
     if ((type !== 'click') || (secondaryTile?.roomId !== roomB)) return;
@@ -203,8 +199,8 @@ api.room.onUnhandledPointer(({ type, secondaryTile }) => {
   `greyscale` (a colour matrix over the room) and `tint` say how it looks; `setOptions` changes them.
   It takes no pointer events: the floor tile of it under the pointer comes with `onUnhandledPointer`
   as `secondaryTile`. The room the session is in, or a room drawn already, is refused with a warning.
-- **Fed**: `apply(packet)` takes what `api.packets.parseCore` read and runs the client's own room
-  handlers on it (`registerRoomMappingHandlers`, `registerRoomFurnitureHandlers`,
+- **Fed**: `apply(packet)` takes a plugin message's carried packet field (`{ header, packet }`, a room
+  watch's envelope) or what `api.packets.parseCore` read, and runs the client's own room handlers on it (`registerRoomMappingHandlers`, `registerRoomFurnitureHandlers`,
   `registerRoomUserHandlers`), with the room store pointed at a store of the secondary room's own
   (`runInRoomStoreScope`), so nothing of the room on screen or its windows hears it. It takes the
   floor and height maps, the entry tile, papers and wall settings, floor and wall items and their
@@ -350,16 +346,24 @@ message is skipped, with a warning).
 
 The schema is compact JSON: an array of `[name, type]` fields (camelCase), where a type is `'int'`,
 `'long'`, `'bool'`, `'string'`, `'double'`, `['array', type]`, `['map', type]` (a server
-`Dictionary<string, T>`) or `['object', fields]`.
+`Dictionary<string, T>`), `['object', fields]` or, as the last field only, `'packet'` (a server
+`IComposer`: a whole core packet carried after the other fields, as a room watch's envelope carries
+the watched room's packets).
 `pluginMessageCodec.ts` reads and writes from it in Habbo's wire encoding: ints, a long as its high
 and low int, a byte for a bool, a string after its length, a double as its 8 IEEE bytes, an array as
 an int count and its items, a map as an int count and each key (a string) and value, a record as its
 fields. A map reads as a plain object (each key an own property); a module writes one as an object or
-a `Map`. For typed modules a generator can map the
+a `Map`. A `'packet'` is the rest of the message, the core packet's short header and body as the
+server writes that packet alone: `readCarriedCorePacket` (`clientModuleCorePackets.ts`) reads it with
+the client's own parser for the header and hands the module `{ header, packet }` (`packet` undefined,
+with a warning once, at a header the client has no packet at). Only parsed: none of the client's
+handlers hear it; a secondary room's `apply` takes the field as it is. A message that carries a packet
+goes only from the server to clients: `messages.send` warns and sends nothing. For typed modules a generator can map the
 schema to TypeScript: `int`, `long` and `double` are `number`, `bool` is `boolean`, `string` is
 `string`, an array `T[]`, a map `Record<string, T>` and an object an interface of its fields
-(`ClientModuleMessageOf` in the SDK does this). Tests:
-`packages/nitro-react/test/pluginMessageCodec.test.ts` (`yarn workspace @nitrodevco/nitro-react test`).
+(`ClientModuleMessageOf` in the SDK does this; a `'packet'` is a `ClientModuleCarriedPacket`). Tests:
+`packages/nitro-react/test/pluginMessageCodec.test.ts`, `pluginMessageCarriedPacket.test.ts` (a room
+watch's envelope as the server frames it, through the listener) (`yarn workspace @nitrodevco/nitro-react test`).
 
 ## Example
 
