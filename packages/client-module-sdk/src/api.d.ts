@@ -236,6 +236,25 @@ export interface ClientModuleRoomState {
     controllerLevel: number;
 }
 
+/** What the pointer did over the room: `move` is hover. */
+export type ClientModuleRoomPointerType = 'move' | 'down' | 'up' | 'click' | 'doubleClick' | 'rightClick';
+
+/** A pointer event over the room that the room did not use (`api.room.onUnhandledPointer`). */
+export interface ClientModuleRoomPointerEvent {
+    type: ClientModuleRoomPointerType;
+    /** Where, in the stage pixels the client's windows are laid out in. */
+    x: number;
+    y: number;
+    altKey: boolean;
+    ctrlKey: boolean;
+    shiftKey: boolean;
+    /**
+     * The tile of the room's floor plane (height 0) under the pointer, in the room's tile coordinates:
+     * also off the room's floor, so negative or past its size.
+     */
+    tile: { x: number; y: number } | undefined;
+}
+
 /** Everything `api.state` reads, frozen: a part keeps its identity until something in it changes. */
 export interface ClientModuleState {
     user: Readonly<ClientModuleUserState>;
@@ -407,6 +426,14 @@ export interface ClientModuleApi {
         registerComposer: (header: number) => ClientModuleDispose | undefined;
         /** Sends on a header the module claimed: each value an int, a string or a boolean. */
         send: (header: number, ...values: ClientModulePacketValue[]) => void;
+        /**
+         * Reads a core packet a plugin's packet carries - its header, then its body read from where
+         * `body` stands (a parser's reader, bytes taken out with `readBytes`, or an `ArrayBuffer`) -
+         * with the client's own parser for that header, as the client would have parsed it. Only
+         * parsed: none of the client's handlers hear it. Undefined, and a warning, when the client has
+         * no packet at that header or the body does not read as one.
+         */
+        parseCore: <T = unknown>(header: number, body: ClientModulePacketReader | ClientModuleBinaryReader | ArrayBuffer) => T | undefined;
     };
     /**
      * The plugin's named messages (Turbo's `client.messages`, turbo-cloud `docs/plugin-messages.md`):
@@ -441,6 +468,22 @@ export interface ClientModuleApi {
         get: <T = unknown>(key: string) => T | undefined;
     };
     /**
+     * The Turbo extensions (protocol capabilities) the client asks the server for, which the module
+     * adds to: a capability its plugin registers on the server (`ICapabilityComposer`), so the server
+     * sends its packets to this client. The client asks again with every module's names after the
+     * modules start, and without a module's once it stops; the server answers each request in full,
+     * sending what each accepted extension carries (permission nodes, command tree, plugin messages,
+     * modules) again.
+     */
+    capabilities: {
+        /** Asks for `name` at `version` (1 when left out) while the module runs. A name the client asks for itself is refused. */
+        declare: (name: string, version?: number) => ClientModuleDispose;
+        /** The version the server accepted `name` at, 0 when it did not (or has not answered yet). */
+        version: (name: string) => number;
+        /** Each answer that changes what the server accepted: every name with its version. */
+        subscribe: (listener: (accepted: ReadonlyMap<string, number>) => void) => ClientModuleDispose;
+    };
+    /**
      * The module's own plugin's web routes (`IPluginWebRoute`) on the hotel's public web host:
      * `path` is under `/api/plugins/<key>/`, such as `'top'` or `'scores/42'`. The client signs the
      * call in as the player; the module never sees a token. Rejects only when the network fails.
@@ -469,6 +512,13 @@ export interface ClientModuleApi {
         avatarOverlay: (render: (avatar: ClientModuleAvatar) => ReactNode) => ClientModuleDispose;
         /** Leaves the room for the hotel view, as the toolbar's hotel view icon does. Nothing outside a room. */
         leave: () => void;
+        /**
+         * The pointer events over the room that the room did not use: a press, a click or hover where
+         * it hit nothing - no avatar, furni, floor or wall, and not a drag or an area selection. Return
+         * `true` to take one: the room's own "nothing here" handling (a click there deselects) is
+         * skipped. The listener added last is asked first. The room's own use always comes first.
+         */
+        onUnhandledPointer: (listener: (event: ClientModuleRoomPointerEvent) => boolean | void) => ClientModuleDispose;
     };
     hotelView: {
         /**

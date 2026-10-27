@@ -111,6 +111,25 @@ export interface ClientModuleRoomState {
     controllerLevel: number;
 }
 
+/** What the pointer did over the room: `move` is hover. */
+export type ClientModuleRoomPointerType = 'move' | 'down' | 'up' | 'click' | 'doubleClick' | 'rightClick';
+
+/** A pointer event over the room that the room did not use (`api.room.onUnhandledPointer`). */
+export interface ClientModuleRoomPointerEvent {
+    type: ClientModuleRoomPointerType;
+    /** Where, in the stage pixels the client's windows are laid out in. */
+    x: number;
+    y: number;
+    altKey: boolean;
+    ctrlKey: boolean;
+    shiftKey: boolean;
+    /**
+     * The tile of the room's floor plane (height 0) under the pointer, in the room's tile coordinates:
+     * also off the room's floor, so negative or past its size.
+     */
+    tile: { x: number; y: number } | undefined;
+}
+
 /** Everything `api.state` reads, frozen: a part keeps its identity until something in it changes. */
 export interface ClientModuleState {
     user: Readonly<ClientModuleUserState>;
