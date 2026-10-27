@@ -3,7 +3,7 @@
  * client's texts and bitmaps. What the window's code does with its named elements comes in as
  * `bindings`.
  */
-import { colorTemplateByTags, EMPTY_TEMPLATE_CONTEXT, findTemplateChild, isTemplateInspecting, subscribeTemplateInspecting, Template, TemplateBindings, TemplateContext, TemplateInspectContext, TemplateInspectWindowContext, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
+import { Box, colorTemplateByTags, EMPTY_TEMPLATE_CONTEXT, findTemplateChild, isTemplateInspecting, subscribeTemplateInspecting, Template, TemplateBindings, TemplateContext, TemplateInspectContext, TemplateInspectWindowContext, TemplateView, TemplateViewProps } from '@nitrodevco/nitro-theme';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 import { openClientLink } from '#base/commands';
@@ -11,7 +11,7 @@ import { useWebSocketContext } from '#base/context/communication';
 import { useSystemStore, useTranslation } from '#base/context/system';
 
 import { noteIneffectiveSets, templateRootLook, useTemplateExtensionArrange, useTemplateExtensionBindings, useTemplateExtensionItemBindings, useTemplatePatchList } from './templatePatches';
-import { useTemplate } from './useTemplate';
+import { templateRootOffset, useTemplate } from './useTemplate';
 
 export interface TemplateWindowProps {
     id: string;
@@ -103,7 +103,10 @@ export const TemplateWindow = ({ id, part, bindings, arrange, context, frame, wi
     // What of the patches the window's bindings leave undrawn is said, not counted as applied.
     if (part === undefined) noteIneffectiveSets(id, template, context ?? EMPTY_TEMPLATE_CONTEXT, allBindings, patchList);
 
-    const view = (
+    // Not Flash's: a root `x`/`y` patched on a window its code places (no frame of its own) moves it from that place.
+    const moved = ((part === undefined) && !frame) ? templateRootOffset(id, template) : undefined;
+
+    const drawn = (
         <TemplateView
             key={inspecting ? 'inspected' : 'plain'}
             template={template}
@@ -118,6 +121,17 @@ export const TemplateWindow = ({ id, part, bindings, arrange, context, frame, wi
             imageUrl={imageUrl}
         />
     );
+
+    const view = moved
+        ? (
+                <Box
+                    pointerTransparent
+                    layout={{ position: 'relative', left: moved.x, top: moved.y }}
+                >
+                    {drawn}
+                </Box>
+            )
+        : drawn;
 
     if (!inspecting) return view;
 

@@ -15,6 +15,24 @@ const libraryOf = (id: string) => id.slice(0, id.indexOf('/'));
 /** The template as the library has it, `undefined` until its bundle is in. */
 const sourceTemplate = (id: string) => GetAssetManager().getBundleFile<TemplateLibrary>(libraryOf(id), 'templates')?.templates[id];
 
+/**
+ * Not Flash's: how far the patches moved the root of `id`'s window from where its library has it, as
+ * drawn in `template` (patched); `undefined` unmoved. A window is drawn at its origin and its code
+ * places it (`TemplateView`), so `TemplateWindow` moves a window with no frame of its own (the
+ * toolbar, the purse, the friend bar) that far from the code's place.
+ */
+export const templateRootOffset = (id: string, template: Template): { x: number; y: number } | undefined => {
+    const own = sourceTemplate(id)?.elements;
+    const root = template.elements[0];
+
+    if ((own?.length !== 1) || (template.elements.length !== 1) || !root) return undefined;
+
+    const x = root.x - own[0].x;
+    const y = root.y - own[0].y;
+
+    return (x || y) ? { x, y } : undefined;
+};
+
 /** Whether a library's bundle and the window manager's are both in, with their `asset.overlays`: a template of it can be drawn. */
 const libraryLoaded = (library: string) => !!GetAssetManager().getBundleFile<TemplateLibrary>(library, 'templates') && !!GetAssetManager().getBundleFile<TemplateLibrary>(WINDOW_MANAGER, 'templates') && !assetOverlaysPending(library) && !assetOverlaysPending(WINDOW_MANAGER);
 
